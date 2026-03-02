@@ -2104,6 +2104,16 @@ HHStoredVars[HHStoredVarPrefixKey +"Temp_haremTeam"] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey +"Temp_haremTeamScrolls"] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey +"Temp_haremTeamSettings"] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey +"Temp_loveRaids"] =
     {
     storage:"sessionStorage",

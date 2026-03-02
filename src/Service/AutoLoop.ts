@@ -1163,8 +1163,8 @@ export async function autoLoop()
             break;
         case ConfigHelper.getHHScriptVars("pagesIDHarem"):
             Harem.moduleHarem();
-            // Harem.run = callItOnce(Harem.run);
-            // busy = await Harem.run();
+            Harem.run = callItOnce(Harem.run);
+            busy = await Harem.run();
             break;
         case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
             HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
@@ -1188,6 +1188,8 @@ export async function autoLoop()
         case ConfigHelper.getHHScriptVars("pagesIDWaifu"):
             Harem.moduleHaremExportGirlsData();
             Harem.moduleHaremCountMax();
+            Harem.run = callItOnce(Harem.run);
+            busy = await Harem.run();
             break;
         case ConfigHelper.getHHScriptVars("pagesIDContests"):
             DailyGoals.parse = callItOnce(DailyGoals.parse);

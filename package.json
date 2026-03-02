@@ -1,6 +1,6 @@
 {
   "name": "hhauto",
-  "version": "7.29.17",
+  "version": "7.29.17.beta",
   "description": "[English](https://github.com/Roukys/HHauto/wiki/English)",
   "main": "HHAuto.user.js",
   "scripts": {

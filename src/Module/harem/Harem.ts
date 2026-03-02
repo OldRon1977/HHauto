@@ -6,12 +6,16 @@ import {
     getTextForUI,
     setStoredValue,
     getPage,
-    HeroHelper
+    HeroHelper,
+    randomInterval,
+    TimeHelper,
+    setTimer
 } from '../../Helper/index';
-import { gotoPage } from '../../Service/index';
-import { fillHHPopUp, isJSON, logHHAuto, maskHHPopUp } from '../../Utils/index';
+import { addNutakuSession, gotoPage } from '../../Service/index';
+import { fillHHPopUp, getHHAjax, isJSON, logHHAuto, maskHHPopUp } from '../../Utils/index';
 import { HHStoredVarPrefixKey } from '../../config/index';
-import { KKHaremGirl, KKHaremSalaryGirl } from '../../model/index';
+import { KKHaremGirl, KKHaremSalaryGirl, TeamData } from '../../model/index';
+import { HaremFilter, HaremGirl } from '../index';
 
 
 export class Harem {
@@ -31,6 +35,9 @@ export class Harem {
         deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
         deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart");
         deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlSpent");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings");
         
         const lastActionPerformed:string = getStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed");
         if(lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
@@ -252,6 +259,177 @@ export class Harem {
         }
 
         return girlCount;
+    }
+
+    static async run(): Promise<boolean>
+    {
+        try {
+            const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+            const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
+            const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
+
+                HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
+                
+                if (!!haremItem && haremGirlMode === 'team') {
+                    if (debugEnabled) logHHAuto("Waifu page detected, get girls with skills");
+                    const girlDictionary = getHHVars("girls_data_list");
+                    const skilledGirls = Object.values(girlDictionary).filter((girl: KKHaremGirl) => {
+                        const skills: any[] = Object.values(girl.skill_tiers_info);
+                        return Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0)) > 0;
+                    });
+                    if (debugEnabled) logHHAuto('Found skilled girls: ' + skilledGirls.length);
+                    const skilledGirlsScrolls = { 'mythic': {}, 'legendary': {}, 'epic': {}, 'rare': {}, 'common': {} } as any;
+
+                    for (let index = 0; index < skilledGirls.length; index++) {
+                        const girl: KKHaremGirl = skilledGirls[index] as KKHaremGirl;
+                        const skills: any[] = Object.values(girl.skill_tiers_info);
+                        const totalScrolls = Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
+                        //if (debugEnabled) logHHAuto(`Girl ${girl.name}, ${girl.rarity} has used ${totalScrolls} scrolls`);
+                        const girlRarity = girl.rarity == 'starting' ? 'common' : girl.rarity; // Starting girl use common scrolls
+                        skilledGirlsScrolls[girlRarity][girl.id_girl+""] = totalScrolls;
+                    }
+                    if (debugEnabled) logHHAuto("Found skilled girls: ", skilledGirlsScrolls);
+
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls", JSON.stringify(skilledGirlsScrolls));
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
+
+                    return true;
+                }
+
+            } else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
+
+                if (!!haremItem && haremGirlMode === 'team') {
+                    const team: TeamData = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
+                    const teamSettings = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings")) : {};
+                    const skilledGirlsScrolls = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls")) : [];
+                    const userFilter = false; // TODO add user filter to only display
+                    let girlListDisplayed: KKHaremSalaryGirl[];
+                    let heroMoney = HeroHelper.getMoney();
+
+                    if (userFilter && (team.scrolls_mythic > 0 || team.scrolls_legendary > 0 || team.scrolls_epic > 0 || team.scrolls_rare > 0 || team.scrolls_common > 0)) {
+                        const haremFilter = new HaremFilter();
+                        haremFilter.openFilter();
+                        await TimeHelper.sleep(randomInterval(200, 400)); // wait open
+
+                        if (debugEnabled) logHHAuto('Reseting girl filters');
+                        haremFilter.resetFilter();
+                        await TimeHelper.sleep(randomInterval(800, 1200)); // wait loading
+
+                        if (debugEnabled) logHHAuto('selectOnlyOwnedGirls');
+                        await haremFilter.selectOnlyOwnedGirls();
+                        await TimeHelper.sleep(randomInterval(200, 400));
+
+                        if (debugEnabled) logHHAuto('selectSkilledGirls');
+                        await haremFilter.selectSkilledGirls();
+                        await TimeHelper.sleep(randomInterval(800, 1200));
+
+                        girlListDisplayed = Object.values(getHHVars("shared.GirlSalaryManager.girlsMap"));
+                        if (girlListDisplayed.length >= 24) {
+                            Harem.scrollToLastGirl();
+                        }
+                    }
+
+                    const getScrolls = async (rarity: string) => {
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "resetting " + rarity, 7, 0);
+                        logHHAuto('Get ' + rarity + ' scrolls needed: ' + team['scrolls_' + rarity]);
+                        let scrollGot = 0;
+                        //await haremFilter.selectGirlFilters('6');
+                        //const mythicGirls: KKHaremSalaryGirl[] = girlListDisplayed.filter((girl: KKHaremSalaryGirl) => girl.gData.rarity == 'mythic');
+                        const girls: { [id_girl: string]: number } = skilledGirlsScrolls[rarity];
+                        for (const girlId in girls) {
+                            if (team.girlIds.includes(Number(girlId))) {
+                                if (debugEnabled) logHHAuto('Found ' + rarity + ' girl in team: (' + girlId + '), keep skilled');
+                                continue;
+                            }
+                            const girlSkillNb = girls[girlId];
+                            // common 5M per skill
+                            const cost = girlSkillNb * 5000000;
+                            if(teamSettings.moneyToKeep && (heroMoney - cost) < teamSettings.moneyToKeep) {
+                                logHHAuto(`Not enough money to reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost / 1000000}M. Player money: ${heroMoney}`);
+                                continue;
+                            }
+
+                            logHHAuto(`Reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost / 1000000}M. Player money: ${heroMoney}`);
+                            const resetSuccess = await Harem.resetGirlSkills(Number(girlId));
+                            if (resetSuccess) {
+                                scrollGot += girls[girlId];
+                                heroMoney -= cost;
+                            } else {
+                                return false;
+                            }
+                            // logHHAuto(`Simulate reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost/1000000}M. Player money: ${heroMoney}`);
+                            // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
+                            if (scrollGot >= team['scrolls_' + rarity]) {
+                                if (debugEnabled) logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
+                                break;
+                            }
+                        }
+                        return true;
+                    };
+
+                    for (const rarity of ['mythic', 'legendary', 'epic', 'rare', 'common']) {
+                        const needScrolls = team['scrolls_' + rarity] > 0;
+                        const haveAlreadySkilledGirls = skilledGirlsScrolls[rarity] && Object.keys(skilledGirlsScrolls[rarity]).length > 0;
+                        const userSelectedResetScrolls = teamSettings['reset' + rarity.charAt(0).toUpperCase() + rarity.slice(1) + 'Girls'] === true;
+                        if (debugEnabled) logHHAuto(`For rarity ${rarity}, needScrolls: ${needScrolls}, haveAlreadySkilledGirls: ${haveAlreadySkilledGirls}, userSelectedResetScrolls: ${userSelectedResetScrolls}`);
+                        if (needScrolls && haveAlreadySkilledGirls && userSelectedResetScrolls) {
+                            if(!await getScrolls(rarity)){
+                                logHHAuto(`Failed to get enough ${rarity} scrolls, stop process`);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (debugEnabled) logHHAuto('Finished getting scrolls, go to first girl');
+
+                    let nextGirlId = team.girlIds[0] || -1;
+                    if (nextGirlId >= 0) {
+                        if (debugEnabled) logHHAuto('Go to first team girl (' + nextGirlId + ') remaining ' + (team.girlIds.length - 1) + ' girls');
+                        gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EQUIPMENT_TYPE) }, randomInterval(1500, 2500));
+                        return true;
+                    } else {
+                        // Harem.clearHaremToolVariables();
+                    }
+                }
+            }
+
+        } catch ({ errName, message }) {
+            logHHAuto(`ERROR: run harem auto: ${errName}, ${message}`);
+            console.error(message);
+            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+            Harem.clearHaremToolVariables();
+        } finally {
+            return false;
+        }
+    }
+
+    static scrollToLastGirl() {
+        try {
+            $('.girls_list')[0].scrollTop = $('.girls_list')[0].scrollHeight;
+        } catch (err) { }
+    }
+    
+    static resetGirlSkills(girlId: number): Promise<boolean> {
+        return new Promise((resolve) => {
+            const currentPage = window.location.pathname + window.location.search;
+            // change referer
+            //logHHAuto('change referer to ' + '/girl/' + girlId);
+            window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills') as string);
+            var params1 = {
+                action: "girl_skills_reset",
+                id_girl: girlId
+            };
+            getHHAjax()(params1, function (data: any) {
+                // change referer
+                //logHHAuto('change referer back to ' + currentPage);
+                window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
+                resolve(data.success || true);
+            }, function (err) {
+                logHHAuto('Error occured during girl skills reset', err);
+                resolve(false);
+            });
+        });
     }
 
     static moduleHarem()

@@ -5,14 +5,15 @@ import {
     getPage,
     getTextForUI,
     hhButton,
+    hhMenuSwitch,
     randomInterval,
     setStoredValue
 } from '../Helper/index';
-import { addNutakuSession } from '../Service/PageNavigationService';
-import { getHHAjax, logHHAuto } from '../Utils/index';
+import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
+import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey } from '../config/index';
-import { KKHaremGirl, KKTeamGirl, TeamData } from '../model/index';
-import { HaremGirl } from './harem/HaremGirl';
+import { KKTeamGirl, TeamData } from '../model/index';
+import { Harem, HaremGirl } from './index';
 
 export class TeamModule {
 
@@ -61,17 +62,17 @@ export class TeamModule {
 
         $("#contains_all section").append(EquipAll);
         $("#contains_all section").append(UnequipAll);
-        // $("#contains_all section").append(StuffTeam);
+        $("#contains_all section").append(StuffTeam);
 
         $("#EquipAll").on("click", TeamModule.equipAllGirls);
         $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
-        $("#StuffTeam").on("click", TeamModule.stuffAllGirls);
+        $("#StuffTeam").on("click", TeamModule.buildStuffTeamSelectPopUp);
 
         $('.team-slot-container').on('click', TeamModule.manageSkillScrollTooltip);
         TeamModule.manageSkillScrollTooltip();
     }
 
-    static unequipAllGirls() {
+    static unequipAllGirls(callback: any = null) {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEditTeam") || getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
             logHHAuto('Unequip from edit team');
             $("#UnequipAll").attr('disabled', 'disabled');
@@ -92,7 +93,11 @@ export class TeamModule {
                 // change referer
                 //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
-                setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                if(callback && typeof callback === 'function') {
+                    callback();
+                } else {
+                    setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                }
             });
         } 
         // else if (getPage().match(/^\/characters\/\d+$/)) {
@@ -131,37 +136,34 @@ export class TeamModule {
         const neededMythicScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'mythic', 6);
         if (neededMythicScrolls > 0) {
             team.scrolls_mythic = neededMythicScrolls;
-            logHHAuto(`Needed ${neededMythicScrolls} mythic scrolls`);
             scrollTooltipDetail += `<span class="scrolls_mythic_icn" style="width: 25px;height: 25px;"></span> Mythic: ${neededMythicScrolls}/${heroCurrencies.scrolls_mythic} <br/>`;
         }
         let neededLegendaryScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'legendary', 5);
         neededLegendaryScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'legendary', 3);
         if (neededLegendaryScrolls > 0) {
             team.scrolls_legendary = neededLegendaryScrolls;
-            logHHAuto(`Needed ${neededLegendaryScrolls} legendary scrolls`);
             scrollTooltipDetail += `<span class="scrolls_legendary_icn" style="width: 25px;height: 25px;"></span> Legendary: ${neededLegendaryScrolls}/${heroCurrencies.scrolls_legendary} <br/>`;
         }
         let neededEpicScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'epic', 5);
         neededEpicScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'epic', 3);
         if (neededEpicScrolls > 0) {
             team.scrolls_epic = neededEpicScrolls;
-            logHHAuto(`Needed ${neededEpicScrolls} epic scrolls`);
             scrollTooltipDetail += `<span class="scrolls_epic_icn" style="width: 25px;height: 25px;"></span> Epic: ${neededEpicScrolls}/${heroCurrencies.scrolls_epic} <br/>`;
         }
         let neededRareScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'rare', 5);
         neededRareScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'rare', 3);
         if (neededRareScrolls > 0) {
             team.scrolls_rare = neededRareScrolls;
-            logHHAuto(`Needed ${neededRareScrolls} rare scrolls`);
             scrollTooltipDetail += `<span class="scrolls_rare_icn" style="width: 25px;height: 25px;"></span> Rare: ${neededRareScrolls}/${heroCurrencies.scrolls_rare} <br/>`;
         }
         let neededCommonScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 5);
         neededCommonScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 3);
         neededCommonScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 1);
         if (neededCommonScrolls > 0) {
-            logHHAuto(`Needed ${neededCommonScrolls} common scrolls`);
+            team.scrolls_common = neededCommonScrolls;
             scrollTooltipDetail += `<span class="scrolls_common_icn" style="width: 25px;height: 25px;"></span> Common: ${neededCommonScrolls}/${heroCurrencies.scrolls_common} <br/>`;
         }
+        logHHAuto(`Needed ${neededMythicScrolls} mythic scrolls, ${neededLegendaryScrolls} legendary scrolls, ${neededEpicScrolls} epic scrolls, ${neededRareScrolls} rare scrolls and ${neededCommonScrolls} common scrolls for the current team`);
 
 
         const scrollTooltip = $('<div class="hhScrollTooltip"><span class="scrolls_common_icn" style="width: 25px;height: 25px;"></span></div>');
@@ -176,18 +178,108 @@ export class TeamModule {
 
     static stuffAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            logHHAuto('Stuff from edit team');
-            $("#StuffTeam").attr('disabled', 'disabled');
-            const teamGirls = TeamModule.getSelectedGirls();
-            if (teamGirls.length == 0) {
-                return;
-            }
-            // TODO
-            const team = this.createSkillScrollTooltip(teamGirls, false);
-            // TeamModule.createSkillScrollTooltip(teamGirls);
+        }
+    }
 
-            $("#StuffTeam").removeAttr('disabled');
-        } 
+    static buildStuffTeamSelectPopUp() {
+        const teamGirls = TeamModule.getSelectedGirls();
+        if (teamGirls.length == 0) {
+            return;
+        }
+        const team = TeamModule.createSkillScrollTooltip(teamGirls, false);
+        team.girlIds = teamGirls.map(girl => girl.id_girl);
+        const heroCurrencies = getHero().currencies;
+
+        const displayScrollSwitch = function(rarity:string){
+            const showToggle = team['scrolls_' + rarity.toLowerCase()] > heroCurrencies['scrolls_' + rarity.toLowerCase()];
+            return `<span><span class="scrolls_${rarity.toLowerCase()}_icn" style="width: 25px;height: 25px;" title="${rarity} bulbs"></span>${rarity} bulbs:</span> 
+            <div ${showToggle ? '' : 'style="display:none;"'}> ${hhMenuSwitch('stuffTeamReset' + rarity + 'Girls')} </div>
+            <div ${!showToggle ? '' : 'style="display:none;"'}>${getTextForUI("enoughBulbsOwned", "elementText")}</div>
+            <span>Needed: ${team['scrolls_' + rarity.toLowerCase()]}/Owned: ${heroCurrencies['scrolls_'+rarity.toLowerCase()]} <span><br/>`;
+        };
+
+        const estimatedCost = 5 * (team.scrolls_mythic || 0 + team.scrolls_legendary || 0 + team.scrolls_epic || 0 + team.scrolls_rare || 0 + team.scrolls_common || 0);
+
+        let stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
+            <div class="rowLine">
+                <p>${getTextForUI("StuffTeam", "tooltip")}</p>
+            </div>
+            <div class="rowLine">
+                ${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(estimatedCost)}M
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                ${hhMenuSwitch('unequipGirlsBefore')}
+                ${hhMenuSwitch('StuffTeamEquipment')}
+                ${hhMenuSwitch('StuffTeamSkills')}
+            </div>
+            <hr/>
+            <div class="rowLine" ${team.scrolls_mythic > 0    ? '' : 'style="display:none;"' }>${displayScrollSwitch('Mythic')}</div>
+            <div class="rowLine" ${team.scrolls_legendary > 0 ? '' : 'style="display:none;"' }>${displayScrollSwitch('Legendary')}</div>
+            <div class="rowLine" ${team.scrolls_epic > 0      ? '' : 'style="display:none;"' }>${displayScrollSwitch('Epic')}</div>
+            <div class="rowLine" ${team.scrolls_rare > 0      ? '' : 'style="display:none;"' }>${displayScrollSwitch('Rare')}</div>
+            <div class="rowLine" ${team.scrolls_common > 0    ? '' : 'style="display:none;"' }>${displayScrollSwitch('Common')}</div>
+            <hr/>
+            <div class="rowLine">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("StuffTeamMoney", "tooltip")}</span>
+                    <label for"moneyToKeep">${getTextForUI("StuffTeamMoney", "elementText")}</label>
+                    <input id="moneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px" required pattern="[0-9 ]+" type="text" value="500000000">
+                </div>
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                <div style="padding:10px;width:50%" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("Launch", "tooltip")}</span>
+                    <label class="myButton" id="stuffTeamSubmit" style="font-size:15px; width:100%;text-align:center">${getTextForUI("Launch", "elementText")}</label>
+                </div>
+            </div>
+            <p style="color: red;" id="stuffTeamError"></p>
+        </div>`;
+        fillHHPopUp("stuffTeamMenu", getTextForUI("StuffTeam", "elementText"), stuffTeamMenu);
+
+        (<HTMLInputElement>document.getElementById("unequipGirlsBefore")).checked = true;
+        (<HTMLInputElement>document.getElementById("StuffTeamEquipment")).checked = true;
+        (<HTMLInputElement>document.getElementById("StuffTeamSkills")).checked = true;
+
+
+        $("#stuffTeamSubmit").on("click", function() {
+            logHHAuto('Stuff from edit team');
+            //$("#StuffTeam").attr('disabled', 'disabled');
+            const saveAndGo = function () {
+
+                const teamSettings = {
+                    moneyToKeep: (<HTMLInputElement>document.getElementById("moneyToKeep")).value,
+                    resetMythicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetMythicGirls")).checked,
+                    resetLegendaryGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetLegendaryGirls")).checked,
+                    resetEpicGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetEpicGirls")).checked,
+                    resetRareGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetRareGirls")).checked,
+                    resetCommonGirls: (<HTMLInputElement>document.getElementById("stuffTeamResetCommonGirls")).checked,
+                };
+                logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
+                
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam", JSON.stringify(team));
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'team');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings", JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                
+                if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
+                } else {
+                    logHHAuto('No skill to reset, going to harem.');
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
+                }
+            }
+            const unequipBefore = (<HTMLInputElement>document.getElementById("unequipGirlsBefore")).checked;
+            if (unequipBefore) {
+                // First un-equip all
+                TeamModule.unequipAllGirls(saveAndGo);
+            } else {
+                saveAndGo();
+            }
+        });
     }
 
     // static getSkillNeededScrollsOneGirl(girl: KKTeamGirl): number {
@@ -203,7 +295,7 @@ export class TeamModule {
 
     static getSkillNeededScrolls(mainGirl: KKTeamGirl, teamGirls: KKTeamGirl[], rarity: string, nbGrades: number): number {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);
-        logHHAuto(`Found ${girls.length} ${rarity} girls with ${nbGrades} grades in the team.`);
+        if (girls.length > 0) logHHAuto(`Found ${girls.length} ${rarity} girls with ${nbGrades} grades in the team.`);
         let usedScrolls = 0;
         for (const girl of girls) {
             const skills: any[] = Object.values(girl.skill_tiers_info);
@@ -217,26 +309,9 @@ export class TeamModule {
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
 
-        logHHAuto(`Total skill points used by ${rarity}_${nbGrades} girls in the team: ${usedScrolls}/${fullNeededScrolls}`);
-        return fullNeededScrolls - usedScrolls;
+        if (girls.length > 0) logHHAuto(`Total skill points used by ${rarity}_${nbGrades} girls in the team: ${usedScrolls}/${fullNeededScrolls}`);
+        return Math.max(0, fullNeededScrolls - usedScrolls);
     }
-
-    // static resetGirlSkills(girlId: number) {
-    //     const currentPage = window.location.pathname + window.location.search;
-    //     // change referer
-    //     //logHHAuto('change referer to ' + '/characters/' + girlId);
-    //     window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills') as string);
-    //     var params1 = {
-    //         action: "girl_skills_reset",
-    //         id_girl: girlId
-    //     };
-    //     getHHAjax()(params1, function (data: any) {
-    //         // change referer
-    //         //logHHAuto('change referer back to ' + currentPage);
-    //         window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
-    //         setTimeout(function () { location.reload(); }, randomInterval(200, 500));
-    //     });
-    // }
 
     static equipAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
