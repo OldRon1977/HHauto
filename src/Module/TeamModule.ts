@@ -9,8 +9,8 @@ import {
     setStoredValue
 } from '../Helper/index';
 import { addNutakuSession } from '../Service/PageNavigationService';
-import { getHHAjax, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { getHHAjax, logHHAuto, safeJsonParse } from '../Utils/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKHaremGirl, KKTeamGirl, TeamData } from '../model/index';
 import { HaremGirl } from './harem/HaremGirl';
 
@@ -240,7 +240,7 @@ export class TeamModule {
 
     static equipAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
 
             logHHAuto('Equip team');
@@ -327,7 +327,7 @@ export class TeamModule {
     }
 
     static assignTopTeam() {
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
             let girlToSelect = best ? i : i + 7;
@@ -384,7 +384,11 @@ export class TeamModule {
                 logHHAuto('ERROR, no girl information found');
                 return;
             }
-            let obj = JSON.parse(tooltipData);
+            let obj = safeJsonParse(tooltipData, null);
+            if (obj === null) {
+                logHHAuto('ERROR, failed to parse girl information');
+                return;
+            }
             //sum formula
             let tempGrades = obj.graded2;
             //console.log(obj,tempGrades);

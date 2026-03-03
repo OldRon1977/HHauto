@@ -1,6 +1,8 @@
 import { BDSMPlayer, BDSMSimu } from '../model/index';
 import { logHHAuto } from '../Utils/LogUtils';
 import { ConfigHelper } from "./ConfigHelper";
+import { getStoredJSON } from "./StorageHelper";
+import { HHStoredVarPrefixKey } from '../config/index';
 
 export class BDSMHelper {
 
@@ -37,7 +39,7 @@ export class BDSMHelper {
         const playerDef = inHeroData.defense;
         const playerCrit = inHeroData.chance;
         
-        let playerElements:any[] = [];
+        let playerElements:string[] = [];
         inHeroData.team.theme_elements.forEach((el) => playerElements.push(el.type));
         const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
     
@@ -46,7 +48,7 @@ export class BDSMHelper {
         const opponentDef = opponentData.defense;
         const opponentCrit = opponentData.chance;
     
-        let opponentElements:any[] = [];
+        let opponentElements:string[] = [];
         opponentData.team.theme_elements.forEach((el) => opponentElements.push(el.type));
         
         const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
@@ -364,7 +366,7 @@ export function calculateSynergiesFromTeamMemberElements(elements) {
     // Only care about those not included in the stats already: fire, stone, sun and water
     // Assume max harem synergy
     //const girlDictionary = (typeof(localStorage.HHPNMap) == "undefined") ? new Map(): new Map(JSON.parse(localStorage.HHPNMap));
-    const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize")).count:800;
+    const girlCount = getStoredJSON(HHStoredVarPrefixKey+"Temp_HaremSize", {count:800}).count;
     const girlsPerElement = Math.min(girlCount / 8, 100)
 
     return {

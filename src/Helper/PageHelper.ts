@@ -1,8 +1,8 @@
 import { PlaceOfPower } from '../Module/index';
 import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { ConfigHelper } from "./ConfigHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { queryStringGetParam } from "./UrlHelper";
 
 export function getPage(checkUnknown = false, checkPop = false):string
@@ -88,11 +88,11 @@ export function getPage(checkUnknown = false, checkPop = false):string
         }
         if (!isKnown && page )
         {
-            let unknownPageList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList")):{};
+            let unknownPageList = getStoredJSON(HHStoredVarPrefixKey+TK.unkownPagesList, {});
             logHHAuto("Page unkown for script : "+page+" / "+window.location.pathname);
             unknownPageList[page] = window.location.pathname;
             //console.log(unknownPageList);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList", JSON.stringify(unknownPageList));
+            setStoredValue(HHStoredVarPrefixKey+TK.unkownPagesList, JSON.stringify(unknownPageList));
         }
     }
     return page;

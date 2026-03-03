@@ -1,7 +1,7 @@
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { HHStoredVarPrefixKey, SK } from "../config/index";
 
 export class AdsService {
     static closeHomeAds() {
@@ -21,7 +21,7 @@ export class AdsService {
     }
 
     static moveAds(page: string):void {
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showAdsBack") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showAdsBack) === "true") {
             if (page == ConfigHelper.getHHScriptVars("pagesIDHome")) {
                 if (!AdsService.isCrossGameAds() && !AdsService.isSexFriendsAds()) {
                     GM_addStyle('#sliding-popups#sliding-popups { z-index : 1}');

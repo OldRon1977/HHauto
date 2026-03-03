@@ -11,6 +11,7 @@ import {
     getPage,
     getSecondsLeft,
     getStoredValue,
+    getStoredJSON,
     getTextForUI,
     getTimeLeft,
     HeroHelper,
@@ -27,7 +28,7 @@ import {
     ParanoiaService
 } from "../../Service/index";
 import { getHHAjax, isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { SeasonOpponent } from '../../model/index';
 import { Booster } from "../Booster";
 import { EventModule } from "./EventModule";
@@ -38,15 +39,15 @@ export class Season {
     static getRemainingTime(){
         const seasonTimer = unsafeWindow.season_sec_untill_event_end;
 
-        if ( seasonTimer != undefined && (getSecondsLeft("SeasonRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+"Temp_SeasonEndDate") === undefined) )
+        if ( seasonTimer != undefined && (getSecondsLeft("SeasonRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.SeasonEndDate) === undefined) )
         {
             setTimer("SeasonRemainingTime",seasonTimer);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_SeasonEndDate",Math.ceil(new Date().getTime()/1000)+seasonTimer);
+            setStoredValue(HHStoredVarPrefixKey+TK.SeasonEndDate,Math.ceil(new Date().getTime()/1000)+seasonTimer);
         }
     }
     static displayRemainingTime()
     {
-        EventModule.displayGenericRemainingTime("#scriptSeasonTime", "season", "HHAutoSeasonTimer", "SeasonRemainingTime", HHStoredVarPrefixKey+"Temp_SeasonEndDate");
+        EventModule.displayGenericRemainingTime("#scriptSeasonTime", "season", "HHAutoSeasonTimer", "SeasonRemainingTime", HHStoredVarPrefixKey+TK.SeasonEndDate);
     }
 
     static getEnergy() {
@@ -62,11 +63,11 @@ export class Season {
     }
 
     static getPinfo() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold")) || 0;
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
 
         let Tegzd = '';
-        const boostLimited = getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonBoostedOnly") === "true" && !Booster.haveBoosterEquiped();
+        const boostLimited = getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
         if(boostLimited) {
             Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
         }else {
@@ -90,13 +91,13 @@ export class Season {
     }
 
     static isTimeToFight() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold")) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+"Temp_SeasonHumanLikeRun") === "true";
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
+        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun) === "true";
 
         const energyAboveThreshold = humanLikeRun && Season.getEnergy() > threshold || Season.getEnergy() > Math.max(threshold, runThreshold-1);
         const paranoiaSpending = Season.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('kiss') > 0;
-        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonBoostedOnly") === "true";
+        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
 
         if(checkTimer('nextSeasonTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
@@ -108,8 +109,8 @@ export class Season {
 
     static async moduleSimSeasonBattle(autoRun=false)
     {
-        const dispalyPowerCalc = getStoredValue(HHStoredVarPrefixKey + "Setting_seasonDisplayPowerCalc") === "true"; 
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        const dispalyPowerCalc = getStoredValue(HHStoredVarPrefixKey + SK.seasonDisplayPowerCalc) === "true";
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (!autoRun && !dispalyPowerCalc) {
             if (debugEnabled) logHHAuto("Auto season : Display power calc is disabled, not simulating fight.");
             return -1;
@@ -175,7 +176,7 @@ export class Season {
             {
                 price = 12;
             }
-            if (numberOfReds === 3 && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonPassReds") === "true" && HeroHelper.getKoban()>=price+Number(getStoredValue(HHStoredVarPrefixKey+"Setting_kobanBank")))
+            if (numberOfReds === 3 && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonPassReds) === "true" && HeroHelper.getKoban()>=price+Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank)))
             {
                 chosenIndex = -2;
             }
@@ -193,7 +194,7 @@ export class Season {
                     logHHAuto('Error when dispaly chosen opponent');
                 }
             }
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonIgnoreNoGirls") === "true" && !hasGirlToWin) {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true" && !hasGirlToWin) {
                 logHHAuto("Ignoring season fights as no girl to win on fight reward");
                 chosenIndex = -1;
             }
@@ -314,7 +315,7 @@ export class Season {
                 //oppoName = seasonOpponents[index].nickname;
             }
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo") === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses-1) ) {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses-1) ) {
             chosenIndex = -1; // wait more mojo
         }
         return { numberOfReds, chosenIndex };
@@ -348,7 +349,7 @@ export class Season {
                         location.reload();
                     })
                 }
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 setTimer('nextSeasonTime',5);
                 setTimeout(refreshOpponents,randomInterval(800,1600));
@@ -362,10 +363,10 @@ export class Season {
             }
             else
             {
-                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold")) || 0;
+                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
                 const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
                 if (runThreshold > 0) {
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_SeasonHumanLikeRun", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun, "true");
                 }
                 const toGoTo: string = $(".opponent_perform_button_container :first-child", opponentBlock).first().attr('href') || ''
                 if(toGoTo=='') {
@@ -374,7 +375,7 @@ export class Season {
                     return false;
                 }
                 location.href = addNutakuSession(toGoTo) as string;
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 logHHAuto(`Going to crush : ${$(".personal_info div.player-name", opponentBlock).text()} (${chosenID})`);
                 setTimer('nextSeasonTime',5);
@@ -430,7 +431,7 @@ export class Season {
 
     static goAndCollect()
     {
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonCollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonCollectablesList")):[];
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoSeasonCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeason"))
         {
@@ -438,7 +439,7 @@ export class Season {
             const seasonEnd = getSecondsLeft("SeasonRemainingTime");
             logHHAuto("Season end in " + TimeHelper.debugDate(seasonEnd));
 
-            if (checkTimer('nextSeasonCollectAllTime') && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonCollectAll") === "true")
+            if (checkTimer('nextSeasonCollectAllTime') && seasonEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true")
             {
                 if($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
@@ -455,11 +456,11 @@ export class Season {
                     setTimer('nextSeasonCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                 }
             }
-            if (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonCollect") === "true")
+            if (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollect) === "true")
             {
                 logHHAuto("Going to collect Season.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
 
                 let limitClassPass = "";
                 if ($("div#gsp_btn_holder:visible").length)
@@ -467,7 +468,7 @@ export class Season {
                     limitClassPass = ".free_reward"; // without season pass
                 }
 
-                let buttonsToCollect:any[] = [];
+                let buttonsToCollect:{reward: string; button: HTMLElement; tier: string; paid: boolean}[] = [];
                 const listSeasonTiersToClaim = $("#seasons_tab_container .rewards_pair .reward_wrapper.reward_is_claimable"+limitClassPass);
                 logHHAuto('Found ' + listSeasonTiersToClaim.length + ' rewards available for collection before filtering');
                 for (let currentReward = 0 ; currentReward < listSeasonTiersToClaim.length ; currentReward++)
@@ -564,7 +565,7 @@ export class Season {
         }
     }
     static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey +"Setting_AllMaskRewards") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey +SK.AllMaskRewards) === "true")
         {
             Season.maskReward();
         }

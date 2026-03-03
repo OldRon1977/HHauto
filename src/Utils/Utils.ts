@@ -90,6 +90,15 @@ export function isJSON(str: any)
     return (/^[\],:{}\s]*$/).test(str);
 }
 
+export function safeJsonParse<T>(json: string | undefined | null, defaultValue: T, reviver?: (key: string, value: any) => any): T {
+    if (json === undefined || json === null) return defaultValue;
+    try {
+        return reviver ? JSON.parse(json, reviver) : JSON.parse(json);
+    } catch (e) {
+        return defaultValue;
+    }
+}
+
 
 export function replaceCheatClick()
 {

@@ -7,15 +7,16 @@ import {
     getPage,
     getSecondsLeft,
     getStoredValue,
+    getStoredJSON,
     getTextForUI,
     randomInterval,
     setStoredValue,
-    setTimer, 
+    setTimer,
     TimeHelper,
     getHHVars} from "../../Helper/index";
 import { gotoPage } from "../../Service/index";
 import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 
 export class SeasonalEvent {
     static SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
@@ -33,11 +34,11 @@ export class SeasonalEvent {
     static getRemainingTime(){
         const seasonalEventTimerRequest = `.mega-event-panel .mega-event-container .mega-timer span[rel=expires]`
 
-        if ( $(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+"Temp_SeasonalEventEndDate") === undefined) )
+        if ( $(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.SeasonalEventEndDate) === undefined) )
         {
             const seasonalEventTimer = Number(convertTimeToInt($(seasonalEventTimerRequest).text()));
             setTimer("SeasonalEventRemainingTime",seasonalEventTimer);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_SeasonalEventEndDate",Math.ceil(new Date().getTime()/1000)+seasonalEventTimer);
+            setStoredValue(HHStoredVarPrefixKey+TK.SeasonalEventEndDate,Math.ceil(new Date().getTime()/1000)+seasonalEventTimer);
         }
     }
     static getGlobalRankRemainingTime(){
@@ -71,7 +72,7 @@ export class SeasonalEvent {
     }
     static goAndCollect(manualCollectAll = false)
     {
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollectablesList")):[];
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"))
         {
@@ -80,8 +81,8 @@ export class SeasonalEvent {
             const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
             const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
             // logHHAuto("Seasonal end in " + seasonalEventEnd);
-            const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollect") === "true")
-            const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollectAll") === "true");
+            const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true")
+            const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true");
 
             const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
             const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
@@ -96,7 +97,7 @@ export class SeasonalEvent {
                 if (needToCollectAllBeforeEnd) logHHAuto("Going to collect all SeasonalEvent rewards.");
                 if (manualCollectAll) logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 let buttonsToCollect:HTMLElement[] = [];
 
                 const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
@@ -189,11 +190,11 @@ export class SeasonalEvent {
         }
     }
     static styles(){
-        if (getStoredValue(HHStoredVarPrefixKey +"Setting_AllMaskRewards") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey +SK.AllMaskRewards) === "true")
         {
             SeasonalEvent.maskReward();
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showRewardsRecap") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true")
         {
             SeasonalEvent.displayRewardsSeasonalDiv();
             // SeasonalEvent.displayGirlsMileStones(); // TODO fixme

@@ -11,7 +11,7 @@ import {
 } from '../Helper/index';
 import { autoLoop, gotoPage } from "../Service/index";
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 
 export class Bundles {
     static getExpiryTime(){
@@ -30,7 +30,7 @@ export class Bundles {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome"))
         {
             try{
-                if(getStoredValue(HHStoredVarPrefixKey+"Setting_autoFreeBundlesCollect") !== "true") {
+                if(getStoredValue(HHStoredVarPrefixKey+SK.autoFreeBundlesCollect) !== "true") {
                     logHHAuto("Error autoFreeBundlesCollect not activated.");
                     return;
                 }
@@ -46,7 +46,7 @@ export class Bundles {
                     return false;
                 }
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
                 const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
                 const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
@@ -56,9 +56,9 @@ export class Bundles {
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
                     $("#common-popups .close_cross").trigger('click'); // Close popup
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                 }
 
                 function parseAndCollectFreeBundles(){
