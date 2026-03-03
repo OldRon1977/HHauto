@@ -109,6 +109,8 @@ settingValue("Setting_autoAff", "500000000", "Long Integer");
 settingBool("Setting_autoAffW");
 settingBool("Setting_autoBuyBoosters", "false", { kobanUsing: true });
 settingValue("Setting_autoBuyBoostersFilter", "B1;B2;B3;B4", "List");
+settingBool("Setting_autoEquipBoosters");
+settingValue("Setting_autoEquipBoostersSlots", "B1;B1;B2;B4", "List");
 settingBool("Setting_autoChamps", "false", { onNew: () => { clearTimer('nextChampionTime'); } });
 settingBool("Setting_autoChampAlignTimer");
 settingBool("Setting_autoChampsForceStart", "false", { onNew: () => { clearTimer('nextChampionTime'); } });

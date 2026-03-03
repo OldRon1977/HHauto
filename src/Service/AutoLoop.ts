@@ -41,6 +41,7 @@ import {
     handleEventParsing,
     handleMythicWave,
     handleShop,
+    handleAutoEquipBoosters,
     handleHaremSize,
     handlePlaceOfPower,
     handleGenericBattle,
@@ -240,6 +241,7 @@ export async function autoLoop()
         await handleEventParsing(ctx);
         await handleMythicWave(ctx);
         await handleShop(ctx);
+        await handleAutoEquipBoosters(ctx);
         await handleHaremSize(ctx);
         await handlePlaceOfPower(ctx);
         await handleGenericBattle(ctx);

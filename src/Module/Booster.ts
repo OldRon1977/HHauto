@@ -183,7 +183,8 @@ export class Booster {
         const isLeagueWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesBoostedOnly) === "true";
         const isSeasonWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonBoostedOnly) === "true";
         const isPantheonWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true";
-        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isMythicAutoSandalWood || isLoveRaidAutoSandalWood;
+        const isAutoEquipBoosters = getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) === "true";
+        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isMythicAutoSandalWood || isLoveRaidAutoSandalWood || isAutoEquipBoosters;
     }
 
     static getBoosterFromStorage(){
@@ -212,6 +213,90 @@ export class Booster {
         }
 
         setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+    }
+
+    static getBoosterByIdentifier(identifier: string): any {
+        switch (identifier) {
+            case 'B1': return Booster.GINSENG_ROOT;
+            case 'B2': return Booster.JUJUBES;
+            case 'B3': return Booster.CHLORELLA;
+            case 'B4': return Booster.CURDYCEPS;
+            default: return null;
+        }
+    }
+
+    static parseEquipSlotConfig(): string[] {
+        const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoostersSlots) || "B1;B1;B2;B4";
+        const normalized = raw.replace(/,/g, ';');
+        const slots = normalized.split(';').map(s => s.trim().toUpperCase());
+        if (slots.length < 1 || slots.length > 4 || !slots.every(s => /^B[1-4]$/.test(s))) {
+            logHHAuto("Auto-equip booster config invalid: " + raw + ", falling back to B1;B1;B2;B4");
+            return ['B1', 'B1', 'B2', 'B4'];
+        }
+        return slots;
+    }
+
+    static getBoostersToEquip(): string[] {
+        const slotConfig = Booster.parseEquipSlotConfig();
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const serverNow = getHHVars('server_now_ts');
+
+        const activeBoosters = boosterStatus.normal.filter(
+            (booster: any) => booster.endAt > serverNow
+        );
+
+        const activeCountByIdentifier: Record<string, number> = {};
+        activeBoosters.forEach((booster: any) => {
+            const id = booster.item?.identifier;
+            if (id) {
+                activeCountByIdentifier[id] = (activeCountByIdentifier[id] || 0) + 1;
+            }
+        });
+
+        const boostersToEquip: string[] = [];
+        const remainingActive = { ...activeCountByIdentifier };
+
+        for (const desiredId of slotConfig) {
+            if ((remainingActive[desiredId] || 0) > 0) {
+                remainingActive[desiredId]--;
+            } else {
+                boostersToEquip.push(desiredId);
+            }
+        }
+
+        return boostersToEquip;
+    }
+
+    static async autoEquipBoosters(): Promise<boolean> {
+        const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
+        if (!isEnabled) return false;
+
+        const boostersToEquip = Booster.getBoostersToEquip();
+        if (boostersToEquip.length === 0) {
+            return false;
+        }
+
+        logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
+
+        const nextBoosterId = boostersToEquip[0];
+        const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
+        if (!boosterObj) {
+            logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+            return false;
+        }
+
+        if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
+            logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+            return false;
+        }
+
+        const equipped = await HeroHelper.equipBooster(boosterObj);
+        if (equipped) {
+            logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+        } else {
+            logHHAuto("Auto-equip: Failed to equip " + boosterObj.name);
+        }
+        return equipped;
     }
 
     static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl=null, loveRaid: LoveRaid=null): boolean {
