@@ -4,7 +4,8 @@ import {
     getHHVars,
     getStoredJSON,
     getStoredValue,
-    setStoredValue
+    setStoredValue,
+    setTimer
 } from '../Helper/index';
 import { gotoPage } from '../Service/index';
 import { isJSON, logHHAuto, onAjaxResponse } from '../Utils/index';
@@ -267,12 +268,44 @@ export class Booster {
         return boostersToEquip;
     }
 
+    static getShortestBoosterRemainingSeconds(): number {
+        const slotConfig = Booster.parseEquipSlotConfig();
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const serverNow = getHHVars('server_now_ts');
+
+        const activeBoosters = boosterStatus.normal.filter(
+            (booster: any) => booster.endAt > serverNow
+        );
+
+        if (activeBoosters.length === 0) return 0;
+
+        // Find the shortest remaining time among active boosters matching our config
+        let shortest = Infinity;
+        for (const booster of activeBoosters) {
+            const id = booster.item?.identifier;
+            if (id && slotConfig.includes(id)) {
+                const remaining = booster.endAt - serverNow;
+                if (remaining < shortest) {
+                    shortest = remaining;
+                }
+            }
+        }
+
+        return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
+    }
+
     static async autoEquipBoosters(): Promise<boolean> {
         const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
         if (!isEnabled) return false;
 
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
+            // All slots filled – set timer to shortest remaining booster time + small buffer
+            const shortestRemaining = Booster.getShortestBoosterRemainingSeconds();
+            if (shortestRemaining > 0) {
+                setTimer('nextAutoEquipBoosterTime', shortestRemaining + 10);
+                logHHAuto("Auto-equip: All booster slots active. Next check in " + shortestRemaining + "s.");
+            }
             return false;
         }
 
@@ -282,19 +315,24 @@ export class Booster {
         const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
         if (!boosterObj) {
             logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+            setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
             return false;
         }
 
         if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
             logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+            setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
             return false;
         }
 
         const equipped = await HeroHelper.equipBooster(boosterObj);
         if (equipped) {
             logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+            // Short timer to check if more boosters need equipping
+            setTimer('nextAutoEquipBoosterTime', 30);
         } else {
             logHHAuto("Auto-equip: Failed to equip " + boosterObj.name);
+            setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
         }
         return equipped;
     }
