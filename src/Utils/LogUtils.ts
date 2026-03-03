@@ -1,6 +1,7 @@
 import { deleteStoredValue, extractHHVars, getLocalStorageSize, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { getBrowserData } from "./BrowserUtils";
+import { safeJsonParse } from './Utils';
 
 const MAX_LINES = 500
 
@@ -9,10 +10,10 @@ export function cleanLogsInStorage() {
     let currDate = new Date();
     var prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":cleanLogsInStorage";
     currentLoggingText[prefix] = 'Cleaned logging, storage size before clean ' + getLocalStorageSize();
-    setStoredValue(HHStoredVarPrefixKey + "Temp_Logging", JSON.stringify(currentLoggingText));
+    setStoredValue(HHStoredVarPrefixKey + TK.Logging, JSON.stringify(currentLoggingText));
 
     // Delete big temp in storage
-    deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList");
+    deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
 }
 
 export function logHHAuto(...args)
@@ -61,7 +62,7 @@ export function logHHAuto(...args)
     {
         text = JSON.stringify(args, getCircularReplacer(), 2);
     }
-    currentLoggingText = getStoredValue(HHStoredVarPrefixKey+"Temp_Logging")!==undefined?getStoredValue(HHStoredVarPrefixKey+"Temp_Logging"):"reset";
+    currentLoggingText = getStoredValue(HHStoredVarPrefixKey+TK.Logging) ?? "reset";
     //console.log("debug : ",currentLoggingText);
     if (!currentLoggingText.startsWith("{"))
     {
@@ -71,7 +72,7 @@ export function logHHAuto(...args)
     else
     {
 
-        currentLoggingText = JSON.parse(currentLoggingText);
+        currentLoggingText = safeJsonParse(currentLoggingText, {});
     }
     nbLines = Object.keys(currentLoggingText).length;
     //console.log("Debug : Counting log lines : "+nbLines);
@@ -96,7 +97,7 @@ export function logHHAuto(...args)
     console.log(prefix+":"+text);
     currentLoggingText[prefix]=text;
 
-    setStoredValue(HHStoredVarPrefixKey+"Temp_Logging", JSON.stringify(currentLoggingText));
+    setStoredValue(HHStoredVarPrefixKey+TK.Logging, JSON.stringify(currentLoggingText));
 
 }
 

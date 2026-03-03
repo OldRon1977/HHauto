@@ -1,7 +1,7 @@
 import { KKEnergy } from "./KKEnergy"
 
 export class KKHero {
-    infos: any;
+    infos: Record<string, unknown>;
     energies: {
         quest: KKEnergy,
         fight: KKEnergy,
@@ -10,9 +10,9 @@ export class KKHero {
         worship: KKEnergy,
         reply: KKEnergy
     };
-    energy_fields: any;
-    caracs:any;
-    club: any;
+    energy_fields: Record<string, unknown>;
+    caracs: Record<string, number>;
+    club: Record<string, unknown>;
     currencies: {
         hard_currency: number;
         laby_coin: number;
@@ -27,9 +27,9 @@ export class KKHero {
         sultry_coins: number;
         ticket: number;
     };
-    mc_level: any;
-    name: any;
-    recharge: any;
-    update: any;
-    updates: any;
+    mc_level: number;
+    name: string;
+    recharge: (...args: unknown[]) => void;
+    update: (field: string, value: number, flag: boolean) => void;
+    updates: (changes: Record<string, unknown>, flag?: boolean) => void;
 }

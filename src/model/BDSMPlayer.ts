@@ -4,9 +4,9 @@ export class BDSMPlayer {
     atk: number;
     adv_def: number;
     critchance: number;
-    bonuses: any;
-    tier4: any;
-    tier5: any;
+    bonuses: any; // complex nested game data used in arithmetic
+    tier4: any; // complex nested game data used in arithmetic
+    tier5: any; // complex nested game data used in arithmetic
     playerShield: number;
     opponentShield: number;
     stunned: number;

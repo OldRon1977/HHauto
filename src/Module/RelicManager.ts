@@ -1,4 +1,4 @@
-import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { HHStoredVarPrefixKey, TK } from "../config/index";
 import {
     ConfigHelper,
     getStoredValue,
@@ -9,6 +9,7 @@ import {
 import {
     logHHAuto
 } from "../Utils/LogUtils";
+import { safeJsonParse } from "../Utils/index";
 
 
 export class LabyrinthRelic {
@@ -34,7 +35,7 @@ export class LabyrinthRelic {
             try {
                 const tooltipData = $('.girl-image', slot).attr(<string>ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
                 if (tooltipData != '') {
-                    this.girlName = JSON.parse(tooltipData).name;
+                    this.girlName = safeJsonParse(tooltipData, {name: ''}).name;
                 }
             } catch (err) { 
                 // logHHAuto('ERROR: Can\'t find girl name');
@@ -59,7 +60,7 @@ export class RelicManager {
     debugEnabled:boolean;
 
     constructor() {
-        this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
     }
 
     parseRelics(): LabyrinthRelic[] {

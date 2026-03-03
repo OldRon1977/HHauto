@@ -21,7 +21,7 @@ import {
     Troll 
 } from '../Module/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 
 export function createPInfo():JQuery<HTMLElement> {
     const pInfo = $('<div id="pInfo" ></div>');
@@ -30,11 +30,11 @@ export function createPInfo():JQuery<HTMLElement> {
         pInfo.on("dblclick", function() {
             let masterSwitch = <HTMLInputElement>document.getElementById("master");
             if (masterSwitch.checked === true) {
-                setStoredValue(HHStoredVarPrefixKey+"Setting_master", "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
                 masterSwitch.checked = false;
                 //console.log("Master switch off");
             } else {
-                setStoredValue(HHStoredVarPrefixKey+"Setting_master", "true");
+                setStoredValue(HHStoredVarPrefixKey+SK.master, "true");
                 masterSwitch.checked = true;
                 //console.log("Master switch on");
             }
@@ -79,36 +79,36 @@ export function updateData() {
         logHHAuto('ERROR pInfo element not found');
         return;
     }
-    if (getStoredValue(HHStoredVarPrefixKey+"Setting_showInfo") =="true") // && busy==false // && getPage()==ConfigHelper.getHHScriptVars("pagesIDHome")
+    if (getStoredValue(HHStoredVarPrefixKey+SK.showInfo) =="true") // && busy==false // && getPage()==ConfigHelper.getHHScriptVars("pagesIDHome")
     {
         let contest = '';
         if (!TimeHelper.canCollectCompetitionActive()) contest = " : Wait for contest";
         var Tegzd='';
-        Tegzd+=(getStoredValue(HHStoredVarPrefixKey+"Setting_master") ==="true"?"<span style='color:LimeGreen'>HH auto ++ ON":"<span style='color:red'>HH auto ++ OFF")+'</span>';
-        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+"Setting_master") ==="true"?"<span style='color:LimeGreen'>"+getTextForUI("master","elementText")+" : ON":"<span style='color:red'>"+getTextForUI("master","elementText")+" : OFF")+'</span>';
-        //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+"Setting_master") ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
-        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop") ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
+        Tegzd+=(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>HH auto ++ ON":"<span style='color:red'>HH auto ++ OFF")+'</span>';
+        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>"+getTextForUI("master","elementText")+" : ON":"<span style='color:red'>"+getTextForUI("master","elementText")+" : OFF")+'</span>';
+        //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
+        //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
         Tegzd += '<ul>';
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_paranoia") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey+SK.paranoia) === "true")
         {
-            Tegzd += '<li>'+getStoredValue(HHStoredVarPrefixKey+"Temp_pinfo")+': '+getTimeLeft('paranoiaSwitch')+'</li>';
+            Tegzd += '<li>'+getStoredValue(HHStoredVarPrefixKey+TK.pinfo)+': '+getTimeLeft('paranoiaSwitch')+'</li>';
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_waitforContest") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) === "true") {
             Tegzd += Contest.getPinfo();
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollBattle") == "true")
+        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) == "true")
         {
             Tegzd += Troll.getPinfo(contest);
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledSalary",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSalary") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledSalary",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSalary) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoSalary","elementText")+' : '+getTimeLeft('nextSalaryTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledSeason',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeason") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeason) =="true")
         {
             Tegzd += Season.getPinfo();
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey +"Setting_autoPentaDrill") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrill) =="true")
         {
             Tegzd += PentaDrill.getPinfo();
         }
@@ -121,23 +121,23 @@ export function updateData() {
         {
             Tegzd += '<li>Collect POG : '+getTimeLeft('nextPoGCollectTime')+'</li>';
         }*/
-        if (ConfigHelper.getHHScriptVars('isEnabledLeagues',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoLeagues") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledLeagues',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoLeagues) =="true")
         {
             Tegzd += LeagueHelper.getPinfo();
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledChamps",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoChamps") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledChamps",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoChamps) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoChampsTitle","elementText")+' : '+getTimeLeft('nextChampionTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledClubChamp",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubChamp") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledClubChamp",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoClubChamp) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoClubChamp","elementText")+' : '+getTimeLeft('nextClubChampionTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && (getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheon") == "true" || DailyGoals.isPantheonDailyGoal() ))
+        if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) == "true" || DailyGoals.isPantheonDailyGoal() ))
         {
             Tegzd += Pantheon.getPinfo();
         }
-        if (Labyrinth.isEnabled() && getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyrinth") =="true")
+        if (Labyrinth.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) =="true")
         {
             Tegzd += Labyrinth.getPinfo();
         }
@@ -145,23 +145,23 @@ export function updateData() {
         {
             Tegzd += LoveRaidManager.getPinfo();
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledShop",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_updateMarket") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledShop",false) && getStoredValue(HHStoredVarPrefixKey+SK.updateMarket) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoBuy","elementText")+' : '+getTimeLeft('nextShopTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledMission",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoMission") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledMission",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoMission) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoMission","elementText")+' : '+getTimeLeft('nextMissionTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledContest",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoContest") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledContest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoContest) =="true")
         {
             Tegzd += '<li>' + getTextForUI("autoContest", "elementText") + ' : ' + getTimeLeft('nextContestCollectTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlaces") =="true")
+        if (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlaces) =="true")
         {
             Tegzd += '<li>'+getTextForUI("powerPlacesTitle","elementText")+' : '+getTimeLeft('minPowerPlacesTime')+'</li>';
         }
-        if ( ConfigHelper.getHHScriptVars("isEnabledPachinko",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoFreePachinko") =="true")
+        if ( ConfigHelper.getHHScriptVars("isEnabledPachinko",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoFreePachinko) =="true")
         {
             if (getTimer('nextPachinkoTime') !== -1)
             {
@@ -184,18 +184,18 @@ export function updateData() {
         {
             Tegzd += '<li>'+getTextForUI("sultryMysteriesEventRefreshShopNext","elementText")+' : '+getTimeLeft('eventSultryMysteryShopRefresh')+'</li>';
         }
-        if (getStoredValue(HHStoredVarPrefixKey+"Temp_haveAff"))
+        if (getStoredValue(HHStoredVarPrefixKey+TK.haveAff))
         {
-            Tegzd += '<li>'+getTextForUI("autoAffW","elementText")+' : '+NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+"Temp_haveAff"))+'</li>';
+            Tegzd += '<li>'+getTextForUI("autoAffW","elementText")+' : '+NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveAff))+'</li>';
         }
-        if (getStoredValue(HHStoredVarPrefixKey+"Temp_haveExp"))
+        if (getStoredValue(HHStoredVarPrefixKey+TK.haveExp))
         {
-            Tegzd += '<li>'+getTextForUI("autoExpW","elementText")+' : '+NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+"Temp_haveExp"))+'</li>';
+            Tegzd += '<li>'+getTextForUI("autoExpW","elementText")+' : '+NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveExp))+'</li>';
         }
         Tegzd += '</ul>';
 
         pInfo.style.display='block';
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_showInfoLeft") === 'true' && getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+        if (getStoredValue(HHStoredVarPrefixKey+SK.showInfoLeft) === 'true' && getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
             pInfo.className='left';
         }
         pInfo.innerHTML = Tegzd;

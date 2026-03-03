@@ -1,8 +1,8 @@
 import { convertTimeToInt, randomInterval, setTimer } from "../../Helper/index";
-import { KKEventGirl } from "../../model/index";
+import { HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
 
 export class KinkyCumpetition {
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 

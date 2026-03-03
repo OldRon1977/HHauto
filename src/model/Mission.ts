@@ -4,7 +4,7 @@ export class Mission {
     cost:number;
     duration:number;
     remaining_time:number;
-    remaining_cost:any;
+    remaining_cost:number | string;
     missionObject:HTMLElement;
 }
 

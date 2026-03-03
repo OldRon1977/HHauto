@@ -3,14 +3,15 @@ import {
     ConfigHelper,
     getHHVars,
     getStoredValue,
+    getStoredJSON,
     getTextForUI,
     setStoredValue,
     getPage,
     HeroHelper
 } from '../../Helper/index';
 import { gotoPage } from '../../Service/index';
-import { fillHHPopUp, isJSON, logHHAuto, maskHHPopUp } from '../../Utils/index';
-import { HHStoredVarPrefixKey } from '../../config/index';
+import { fillHHPopUp, isJSON, logHHAuto, maskHHPopUp, safeJsonParse } from '../../Utils/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../../config/index';
 import { KKHaremGirl, KKHaremSalaryGirl } from '../../model/index';
 
 
@@ -24,17 +25,17 @@ export class Harem {
     static clearHaremToolVariables()
     {
         // logHHAuto('clearHaremToolVariables');
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlSpent");
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlSpent);
         
-        const lastActionPerformed:string = getStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed");
+        const lastActionPerformed:string = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
         if(lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
-            setStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed", "none");
+            setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, "none");
         }
     }
 
@@ -96,7 +97,7 @@ export class Harem {
     static getHaremGirlsFromOcdIfExist(): Map<string, any> {
         if (localStorage.getItem('HHS.HHPNMap') !== null) {
             try {
-                const girlsArray = JSON.parse(localStorage.getItem('HHS.HHPNMap'));
+                const girlsArray = safeJsonParse(localStorage.getItem('HHS.HHPNMap'), null);
                 let girlNameDictionary = new Map();
                 girlsArray.forEach((data:any) => {
                     girlNameDictionary.set(data[0]+"", data[1]);
@@ -240,7 +241,7 @@ export class Harem {
 
     static getGirlCount(): number  {
         // Store girls for harem tools
-        let girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")).count : 0;
+        let girlCount = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, {count: 0}).count;
         const girlsDataList = getHHVars("girlsDataList", false);
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
 
@@ -287,18 +288,18 @@ export class Harem {
             // }
             logHHAuto("Go to " + girlToGoTo);
             gotoPage('/girl/'+girlToGoTo,{resource:haremItem});
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
         }
-        setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlActions", haremItem);
-        setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlMode", 'list');
-        if (! (Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart")) > 0)) {
+        setStoredValue(HHStoredVarPrefixKey+TK.haremGirlActions, haremItem);
+        setStoredValue(HHStoredVarPrefixKey+TK.haremGirlMode, 'list');
+        if (! (Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart)) > 0)) {
             logHHAuto('set money to ' + HeroHelper.getMoney());
-            setStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart", HeroHelper.getMoney());
+            setStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart, HeroHelper.getMoney());
         }
-        if (payLast) setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlPayLast", 'true');
-        setStoredValue(HHStoredVarPrefixKey+"Temp_filteredGirlsList", JSON.stringify(filteredGirlsList));
-        setStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+        if (payLast) setStoredValue(HHStoredVarPrefixKey+TK.haremGirlPayLast, 'true');
+        setStoredValue(HHStoredVarPrefixKey+TK.filteredGirlsList, JSON.stringify(filteredGirlsList));
+        setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
     };
 
     static addGoToGirlPageButton(){
@@ -384,14 +385,14 @@ export class Harem {
             $('#'+menuIDXp+'Button').on("click", function() { Harem.fillCurrentGirlItem('experience');});
             $('#'+menuIDGifts+'Button').on("click", function() { Harem.fillCurrentGirlItem('affection');});
             $('#'+menuIDMaxGifts+'Button').on("click", function() {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection');
             });$('#'+menuIDMaxXp+'Button').on("click", function() {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('experience');
             });
             $('#'+menuIDUpgradeMax+'Button').on("click", function() {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection', true);
             });
         };
@@ -403,7 +404,7 @@ export class Harem {
    
     static HaremSizeNeedsRefresh(inCustomExpi)
     {
-        return ! isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize")) || JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize")).count_date < (new Date().getTime() - inCustomExpi * 1000);
+        return getStoredJSON(HHStoredVarPrefixKey+TK.HaremSize, {count_date: 0}).count_date < (new Date().getTime() - inCustomExpi * 1000);
     }
 
     static moduleHaremCountMax()
@@ -411,7 +412,7 @@ export class Harem {
         const girlList = getHHVars('girls_data_list', false) || getHHVars('availableGirls', false)
         if (Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMinSizeExpirationSecs")) && girlList !== null)
         {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize", JSON.stringify({ count: Object.keys(girlList).length,count_date:new Date().getTime()}));
+            setStoredValue(HHStoredVarPrefixKey + TK.HaremSize, JSON.stringify({ count: Object.keys(girlList).length,count_date:new Date().getTime()}));
             logHHAuto("Harem size updated to : " + Object.keys(girlList).length);
         }
     }

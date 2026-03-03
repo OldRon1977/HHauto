@@ -1,10 +1,10 @@
 import { addNutakuSession, autoLoop } from '../Service/index';
 import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKHero } from '../model/index';
 import { ConfigHelper } from './ConfigHelper';
 import { getHHVars } from "./HHHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 
 export function getHero():KKHero
@@ -91,7 +91,7 @@ export class HeroHelper {
     }
 
     static haveBoosterInInventory(idBooster:string) {
-        const HaveBooster=isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_haveBooster"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_haveBooster")):{};
+        const HaveBooster=getStoredJSON(HHStoredVarPrefixKey+TK.haveBooster, {});
         const boosterOwned = HaveBooster.hasOwnProperty(idBooster) ? Number(HaveBooster[idBooster]) : 0;
         return boosterOwned > 0
     }
@@ -139,11 +139,11 @@ export class HeroHelper {
     }
 
     static getSandalWoodEquipFailure(increase:boolean=false){
-        const numberFailureStr:string = getStoredValue(HHStoredVarPrefixKey+"Temp_sandalwoodFailure") ?? '0';
+        const numberFailureStr:string = getStoredValue(HHStoredVarPrefixKey+TK.sandalwoodFailure) ?? '0';
         let numberFailure = numberFailureStr ? Number(numberFailureStr): 0;
         if(isNaN(numberFailure)) numberFailure = 0;
         if(increase) numberFailure = numberFailure + 1;
-        setStoredValue(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", numberFailure);
+        setStoredValue(HHStoredVarPrefixKey+TK.sandalwoodFailure, numberFailure);
         return numberFailure;
     }
 }

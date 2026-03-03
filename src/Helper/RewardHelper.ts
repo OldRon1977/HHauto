@@ -4,11 +4,11 @@ import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 import { EventModule, LoveRaidManager, SeasonalEvent } from '../Module/index';
 import { queryStringGetParam } from "./UrlHelper";
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { EventGirl } from '../model/EventGirl';
 
 export class RewardHelper {
@@ -273,7 +273,7 @@ export class RewardHelper {
         let inCaseTimer = setTimeout(function(){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));}, 60000); //in case of issue
         function parseReward()
         {
-            let eventsGirlz: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsGirlz")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsGirlz")) : [];
+            let eventsGirlz: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
             let eventGirl: EventGirl = EventModule.getEventGirl();
             let eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
             if (!eventsGirlz || eventsGirlz.length == 0)
@@ -356,7 +356,7 @@ export class RewardHelper {
             if (needLoveRaidUpdate) {
                 LoveRaidManager.saveLoveRaids(loveRaid);
             }
-            setStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz", JSON.stringify(eventsGirlz));
+            setStoredValue(HHStoredVarPrefixKey+TK.eventsGirlz, JSON.stringify(eventsGirlz));
             if (eventGirl?.girl_id) EventModule.saveEventGirl(eventGirl);
             if (eventMythicGirl?.girl_id) EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""

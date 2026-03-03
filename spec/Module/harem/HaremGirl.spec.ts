@@ -11,7 +11,7 @@ describe("HaremGirl", function () {
             graded: graded,
             awakening_costs: awakening_costs,
             element: element,
-        }
+        } as any
     }
 
     beforeEach(function () {

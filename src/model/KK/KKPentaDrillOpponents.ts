@@ -1,15 +1,15 @@
 export class KKPentaDrillOpponents {
     player: {
-        id_fighter: any;
-        nickname: any;
-        total_power: any;
+        id_fighter: number | string;
+        nickname: string;
+        total_power: number;
     }
     rewards: {
-        loot: any;
-        rewards: any;
+        loot: boolean;
+        rewards: Record<string, unknown>[];
         team:{
-            value: any;
-            type: any;
+            value: number | string;
+            type: string;
         }[];
     }
 }

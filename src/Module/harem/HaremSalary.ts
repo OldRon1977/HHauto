@@ -8,7 +8,7 @@ import {
     TimeHelper
 } from '../../Helper/index';
 import { logHHAuto } from '../../Utils/index';
-import { HHStoredVarPrefixKey } from '../../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../../config/index';
 
 export class HaremSalary {
     static getSalaryButton() {
@@ -40,7 +40,7 @@ export class HaremSalary {
                 else
                 {
                     const salarySumTag = HaremSalary.getSalarySumTag();
-                    const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoSalaryMinSalary") || 20000);
+                    const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSalaryMinSalary) || 20000);
                     if (enoughSalaryToCollect) {
                         const getButtonClass: string = salaryButton.attr("class") || '';
                         if (getButtonClass.indexOf("blue_button_L") !== -1 || getButtonClass.indexOf("round_blue_button") !== -1)

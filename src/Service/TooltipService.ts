@@ -1,11 +1,11 @@
 import { getStoredValue } from '../Helper/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK } from '../config/index';
 
 export function manageToolTipsDisplay(important=false)
 {
 
-    if(getStoredValue(HHStoredVarPrefixKey+"Setting_showTooltips") === "true")
+    if(getStoredValue(HHStoredVarPrefixKey+SK.showTooltips) === "true")
     {
         enableToolTipsDisplay(important);
     }

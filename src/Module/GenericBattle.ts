@@ -10,7 +10,7 @@ import {
 } from '../Helper/index';
 import { gotoPage } from '../Service/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { EventGirl, LoveRaid } from '../model/index';
 import { Troll } from "./Troll";
 import { DailyGoals, EventModule, LoveRaidManager } from './index';
@@ -27,7 +27,7 @@ export class GenericBattle {
             || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") )
         {
             logHHAuto("On battle page.");
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey+"Setting_autoLeagues") === "true")
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey+SK.autoLeagues) === "true")
             {
                 logHHAuto("Reloading after league fight.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"),{},randomInterval(4000,5000));
@@ -37,17 +37,17 @@ export class GenericBattle {
                 const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
                 let troll_id:string = queryStringGetParam(window.location.search,'id_opponent');
                 //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
-                if (getStoredValue(HHStoredVarPrefixKey+"Temp_autoTrollBattleSaveQuest") === "true" && (Number(troll_id) === lastTrollIdAvailable))
+                if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable))
                 {
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_autoTrollBattleSaveQuest", "false");
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "false");
                 }
 
                 const eventGirl: EventGirl = EventModule.getEventGirl();
                 const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
                 if(
-                    getStoredValue(HHStoredVarPrefixKey + "Setting_plusEvent") === "true" && eventGirl?.girl_id && !eventGirl?.is_mythic
+                    getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && eventGirl?.girl_id && !eventGirl?.is_mythic
                     || 
-                    getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythic") === "true" && eventMythicGirl?.girl_id && eventMythicGirl?.is_mythic
+                    getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && eventMythicGirl?.girl_id && eventMythicGirl?.is_mythic
                 )
                 {
                     logHHAuto("Event ongoing search for girl rewards in popup.");
@@ -77,22 +77,22 @@ export class GenericBattle {
                 }
 
             }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeason") === "true")
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey+SK.autoSeason) === "true")
             {
                 logHHAuto("Go back to Season arena after Season fight.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonArena"),{},randomInterval(2000,4000));
             }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey +"Setting_autoPentaDrill") === "true")
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrill) === "true")
             {
                 logHHAuto("Go back to Penta drill arena after fight.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"),{},randomInterval(2000,4000));
             }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheon") === "true" || DailyGoals.isPantheonDailyGoal()))
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal()))
             {
                 logHHAuto("Go back to Pantheon arena after Pantheon temple.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPantheon"),{},randomInterval(2000,4000));
             }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey+"Setting_autoLabyrinth") === "true")
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey+SK.autoLabyrinth) === "true")
             {
                 logHHAuto("Go back to Labyrinth after fight.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"),{},randomInterval(2000,4000));

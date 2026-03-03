@@ -1,12 +1,13 @@
 import { checkTimer, ConfigHelper, convertTimeToInt, HeroHelper, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/LogUtils";
+import { HHEvent, HHEventData, HHEventList } from "../../model/index";
 
 export class SultryMysteries {
     static isEnabled(){
         return HeroHelper.getLevel()>=ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_SM");
     }
 
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 

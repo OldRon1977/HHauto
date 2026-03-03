@@ -12,8 +12,8 @@ import {
     TimeHelper
 } from '../Helper/index';
 import { autoLoop, gotoPage } from '../Service/index';
-import { isDisplayedHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey } from '../config/index';
+import { isDisplayedHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp, safeJsonParse } from '../Utils/index';
+import { HHAuto_inputPattern, HHStoredVarPrefixKey, TK } from '../config/index';
 
 export class Pachinko {
     static ajaxBindingDone = false;
@@ -51,7 +51,7 @@ export class Pachinko {
             }
             else {
                 logHHAuto("Detected Pachinko Screen. Fetching Pachinko, setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto('switch to ' + pachinkoType);
                 const equipementSection = '#pachinko_whole .playing-zone';
                 const freeButtonQuery = '#playzone-replace-info button[data-free="true"].blue_button_L';
@@ -90,7 +90,7 @@ export class Pachinko {
 
                 setTimeout( function() {
                     RewardHelper.closeRewardPopupIfAny();
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
                     setTimeout(autoLoop,randomInterval(500,800));
                 },randomInterval(300,600));
@@ -109,7 +109,7 @@ export class Pachinko {
         let numberOfGirlsToWin = 0;
         if (girlsRewards.length > 0) {
             try {
-                numberOfGirlsToWin = JSON.parse(girlsRewards.attr("data-rewards") || '').length;
+                numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
             } catch (exp) { }
         }
         return numberOfGirlsToWin;
@@ -223,7 +223,7 @@ export class Pachinko {
     }
 
     static modulePachinko() {
-        Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const menuID = "PachinkoButton";
         let PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("PachinkoButton","tooltip")+'</span><label style="font-size:small" class="myButton" id="PachinkoButton">'+getTextForUI("PachinkoButton","elementText")+'</label></div>'
     
@@ -246,7 +246,7 @@ export class Pachinko {
     }
 
     static pachinkoPlayXTimes() {
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         Pachinko.pachinkoSelector = <HTMLSelectElement>document.getElementById("PachinkoSelector");
         Pachinko.ByPassNoGirlChecked = (<HTMLInputElement>document.getElementById("PachinkoByPassNoGirls")).checked;
@@ -313,8 +313,8 @@ export class Pachinko {
         if (!isDisplayedHHPopUp()) {
             Pachinko.autoPachinkoRunning = false;
             logHHAuto("PopUp closed, cancelling interval, restart autoloop.");
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + "Temp_autoLoopTimeMili")));
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
             return;
         }
         const confirmPachinko = document.getElementById("confirm_pachinko");
@@ -379,7 +379,7 @@ export class Pachinko {
             const searchParams = new URLSearchParams(opt.data)
             if (searchParams.get('action') == 'play' && searchParams.get('class') == 'Pachinko') {
 
-                const response = JSON.parse(xhr.responseText);
+                const response = safeJsonParse(xhr.responseText, null);
 
                 if (!response || !response.success) {
                     if (Pachinko.debugEnabled) logHHAuto("Not response success");
