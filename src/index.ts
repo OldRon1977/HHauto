@@ -30,8 +30,8 @@ declare global {
                 hh_ajax: (...args: unknown[]) => unknown;
             };
         };
-        // Hero: any;
-        // hh_ajax: any;
+        Hero: any;
+        hh_ajax: (...args: any[]) => any;
         hh_nutaku: Record<string, unknown>;
         hh_prices: Record<string, number>;
         HHTimers: Record<string, unknown>;
