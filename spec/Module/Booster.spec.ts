@@ -1,7 +1,10 @@
 import {
     Booster
 } from '../../src/Module/Booster'
+import { HeroHelper } from '../../src/Helper/HeroHelper'
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
+import { Timers, setTimer, checkTimer } from '../../src/Helper/TimerHelper';
+import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("Booster", function() {
   afterEach(() => {
@@ -9,6 +12,10 @@ describe("Booster", function() {
     sessionStorage.clear();
     // remove callback
     localStorage.itemInsertionCallback = null;
+    // Clear all timers
+    for (const key of Object.keys(Timers)) {
+        delete Timers[key];
+    }
   });
   const B4 = {item: {identifier:'B4'}, endAt:99999};
   const MB1 = {item: {identifier:'MB1', endAt:99999}};
@@ -96,15 +103,70 @@ describe("Booster", function() {
     });
   });
 
-  xdescribe("equipeSandalWoodIfNeeded", function() {
+  describe("isEquipOnCooldown", function() {
+    it("no cooldown by default", function() {
+      expect(Booster.isEquipOnCooldown()).toBeFalsy();
+    });
+
+    it("on cooldown after setEquipCooldown", function() {
+      Booster.setEquipCooldown(300);
+      expect(Booster.isEquipOnCooldown()).toBeTruthy();
+    });
+
+    it("not on cooldown after timer expires", function() {
+      // Set timer to 0 seconds (expires immediately)
+      Timers['nextBoosterEquipTime'] = new Date(Date.now() - 1000);
+      expect(Booster.isEquipOnCooldown()).toBeFalsy();
+    });
+  });
+
+  describe("markBoosterAsEquippedInStorage", function() {
+    beforeEach(function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterStatus", JSON.stringify({normal: [], mythic:[]}));
+    });
+
+    it("marks mythic booster as equipped", function() {
+      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+      const status = Booster.getBoosterFromStorage();
+      expect(status.mythic.length).toBe(1);
+      expect(status.mythic[0].item.identifier).toBe('MB1');
+      expect(status.mythic[0].usages_remaining).toBe(99);
+      expect(Booster.haveBoosterEquiped('MB1')).toBeTruthy();
+    });
+
+    it("marks normal booster as equipped", function() {
+      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
+      const status = Booster.getBoosterFromStorage();
+      expect(status.normal.length).toBe(1);
+      expect(status.normal[0].item.identifier).toBe('B1');
+      // endAt should be server_now_ts (1234) + 8*3600 = 30034
+      expect(status.normal[0].endAt).toBe(1234 + 8 * 3600);
+      expect(Booster.haveBoosterEquiped('B1')).toBeTruthy();
+    });
+
+    it("does not duplicate mythic booster", function() {
+      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+      const status = Booster.getBoosterFromStorage();
+      expect(status.mythic.length).toBe(1);
+    });
+
+    it("does not duplicate normal booster", function() {
+      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
+      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
+      const status = Booster.getBoosterFromStorage();
+      expect(status.normal.length).toBe(1);
+    });
+  });
+
+  describe("equipeSandalWoodIfNeeded", function() {
 
     beforeEach(function() {
-      // Always true here
-      unsafeWindow.hh_ajax = jest.fn(() => {
-          const fakeResponse = {
-              success: true
-          };
-          return Promise.resolve(fakeResponse);
+      MockHelper.mockDomain();
+      // Fixed mock: hh_ajax(params, successCb, errorCb) must invoke the callback
+      unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
+          const fakeResponse = { success: true };
+          successCb(fakeResponse);
       });
       // Have boosters equipped none
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterStatus", JSON.stringify({normal: [], mythic:[]}));
@@ -122,90 +184,116 @@ describe("Booster", function() {
         sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_eventGirl", girl);
     }
 
-    it("default", async function() {
-      Booster.equipeSandalWoodIfNeeded(1).then(data => {
-        expect(data).toBeFalsy();
-      });
+    it("default - no settings active", async function() {
+      const result = await Booster.equipeSandalWoodIfNeeded(1);
+      expect(result).toBeFalsy();
     });
 
     it("No all active", async function() {
       setGirl(true, 99, 55);
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'false');
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
-      Booster.equipeSandalWoodIfNeeded(1).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result1 = await Booster.equipeSandalWoodIfNeeded(1);
+      expect(result1).toBeFalsy();
+
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'false');
-      Booster.equipeSandalWoodIfNeeded(1).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result2 = await Booster.equipeSandalWoodIfNeeded(1);
+      expect(result2).toBeFalsy();
     });
 
-    it("Stored mythic girl", function() {
+    it("Stored mythic girl - wrong troll", async function() {
       setGirl(true, 99, 55);
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
-      Booster.equipeSandalWoodIfNeeded(1).then(data => {
-        // wrong troll
-        expect(data).toBeFalsy();
-      });
-      Booster.equipeSandalWoodIfNeeded(99).then(data => {
-        expect(data).toBeTruthy();
-      });
+      const result = await Booster.equipeSandalWoodIfNeeded(1);
+      // wrong troll
+      expect(result).toBeFalsy();
     });
 
-    it("No mythic girl", function() {
+    it("Stored mythic girl - correct troll - success", async function() {
+      setGirl(true, 99, 55);
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+      const result = await Booster.equipeSandalWoodIfNeeded(99);
+      expect(result).toBeTruthy();
+      // Failure counter should be reset on success
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(0);
+    });
+
+    it("No mythic girl", async function() {
       setGirl(false, 99, 55);
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
-      Booster.equipeSandalWoodIfNeeded(99).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result = await Booster.equipeSandalWoodIfNeeded(99);
+      expect(result).toBeFalsy();
     });
 
-    it("Ended mythic girl", function() {
+    it("Ended mythic girl", async function() {
       setGirl(true, 99, 100);
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
-      Booster.equipeSandalWoodIfNeeded(99).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result = await Booster.equipeSandalWoodIfNeeded(99);
+      expect(result).toBeFalsy();
     });
-    
-/*
+
     describe("Failure equip call", function() {
-      
+
       beforeEach(function() {
-        // Test failure case here
-        unsafeWindow.hh_ajax = jest.fn(() => {
-            const fakeResponse = {
-                success: false
-            };
-            return Promise.resolve(fakeResponse);
+        // Mock failure case: server returns success:false
+        unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
+            const fakeResponse = { success: false };
+            successCb(fakeResponse);
         });
       });
 
-      it("Ongoing mythic girl", function() {
+      it("First failure returns false and increments counter", async function() {
         setGirl(true, 99, 55);
         localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
         localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
-        Booster.equipeSandalWoodIfNeeded(99).then(data => {
-          expect(data).toBeFalsy();
-          expect(sessionStorage.getItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure")).toBe(1);
-        });
-        Booster.equipeSandalWoodIfNeeded(99).then(data => {
-          expect(data).toBeFalsy();
-          expect(sessionStorage.getItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure")).toBe(2);
-          expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('true');
-        });
-        Booster.equipeSandalWoodIfNeeded(99).then(data => {
-          expect(data).toBeFalsy();
-          expect(sessionStorage.getItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure")).toBe(3);
-          expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('false');
-        });
+        const result = await Booster.equipeSandalWoodIfNeeded(99);
+        expect(result).toBeFalsy();
+        // equipBooster increments to 1, equipeSandalWoodIfNeeded reads 1
+        expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+        // Setting should still be active
+        expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('true');
+        // Booster should be marked as equipped in storage
+        expect(Booster.haveBoosterEquiped('MB1')).toBeTruthy();
+        // Cooldown should be set
+        expect(Booster.isEquipOnCooldown()).toBeTruthy();
+      });
+
+      it("Third failure deactivates setting", async function() {
+        setGirl(true, 99, 55);
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+        // Pre-set failure counter to 2 (equipBooster will increment to 3)
+        sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", '2');
+        // Clear the booster status so ownedSandalwoodAndNotEquiped() returns true
+        sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterStatus", JSON.stringify({normal: [], mythic:[]}));
+
+        const result = await Booster.equipeSandalWoodIfNeeded(99);
+        expect(result).toBeFalsy();
+        // equipBooster increments 2→3, then equipeSandalWoodIfNeeded reads 3 → deactivates
+        expect(HeroHelper.getSandalWoodEquipFailure()).toBe(3);
+        expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('false');
       });
     });
-    */
+
+    describe("Cooldown behavior", function() {
+      it("skips equip when on cooldown", async function() {
+        setGirl(true, 99, 55);
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+
+        // Set cooldown
+        Booster.setEquipCooldown(300);
+
+        const result = await Booster.equipeSandalWoodIfNeeded(99);
+        expect(result).toBeFalsy();
+        // hh_ajax should NOT have been called
+        expect(unsafeWindow.hh_ajax).not.toHaveBeenCalled();
+      });
+    });
   });
 });

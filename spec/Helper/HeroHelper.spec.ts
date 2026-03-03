@@ -101,62 +101,91 @@ describe("HeroHelper", function() {
       MockHelper.mockDomain();
         unsafeWindow.hh_ajax = jest.fn();
         sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{}');
+        sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", '0');
     });
 
+    // Fixed mock: hh_ajax(params, successCb, errorCb) must invoke the callback
     function mockEquipeResponse(success:boolean) {
-        unsafeWindow.hh_ajax = jest.fn(() => {
+        unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
             const fakeResponse = {
                 success: success
             };
-            return Promise.resolve(fakeResponse);
+            successCb(fakeResponse);
         });
     }
-    
+
+    function mockEquipeError() {
+        unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
+            errorCb(new Error('AJAX network error'));
+        });
+    }
+
     it("default", async function() {
-      HeroHelper.equipBooster(null).then(data => {
-        expect(data).toBeFalsy();
-      });
-      HeroHelper.equipBooster({}).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result1 = await HeroHelper.equipBooster(null);
+      expect(result1).toBeFalsy();
+      const result2 = await HeroHelper.equipBooster({});
+      expect(result2).toBeFalsy();
     });
 
     it("No booster in inventory", async function() {
-      HeroHelper.equipBooster(Booster.GINSENG_ROOT).then(data => {
-        expect(data).toBeFalsy();
-      });
-      HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result1 = await HeroHelper.equipBooster(Booster.GINSENG_ROOT);
+      expect(result1).toBeFalsy();
+      const result2 = await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+      expect(result2).toBeFalsy();
     });
 
-    it("Have booster in inventory", async function() {
+    it("Have booster in inventory and success", async function() {
         mockEquipeResponse(true);
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
-      HeroHelper.equipBooster(Booster.GINSENG_ROOT).then(data => {
-        expect(data).toBeTruthy();
-      });
-      HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME).then(data => {
-        expect(data).toBeTruthy();
-        expect(unsafeWindow.hh_ajax).toHaveBeenCalledWith({
-          action: "market_equip_booster",
-          id_item: 632,
-          type: "booster"
-        })
-      });
+      const result1 = await HeroHelper.equipBooster(Booster.GINSENG_ROOT);
+      expect(result1).toBeTruthy();
+      // Failure counter should NOT increase on success
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(0);
     });
 
-    it("Have booster in inventory and failure", async function() {
+    it("Have booster in inventory and server returns failure", async function() {
         mockEquipeResponse(false);
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
-      HeroHelper.equipBooster(Booster.GINSENG_ROOT).then(data => {
-        expect(data).toBeFalsy();
-      });
-      HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME).then(data => {
-        expect(data).toBeFalsy();
-      });
+      const result1 = await HeroHelper.equipBooster(Booster.GINSENG_ROOT);
+      expect(result1).toBeFalsy();
+      // Failure counter should increase
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+    });
+
+    it("AJAX network error returns false", async function() {
+        mockEquipeError();
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+      const result = await HeroHelper.equipBooster(Booster.GINSENG_ROOT);
+      expect(result).toBeFalsy();
+      // Failure counter should increase on AJAX error too
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+    });
+
+    it("Multiple failures increment counter", async function() {
+        mockEquipeResponse(false);
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+      await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+      await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(2);
+      await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(3);
+    });
+
+    it("hh_ajax is called with correct params", async function() {
+        mockEquipeResponse(true);
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+      await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+      expect(unsafeWindow.hh_ajax).toHaveBeenCalledWith(
+        {action: "market_equip_booster", id_item: 632, type: "booster"},
+        expect.any(Function),
+        expect.any(Function)
+      );
     });
   });
 });

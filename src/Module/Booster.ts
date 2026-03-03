@@ -227,6 +227,7 @@ export class Booster {
 
         // Don't try to equip if we're on cooldown from a recent failure
         if (Booster.isEquipOnCooldown()) {
+            logHHAuto("needSandalWoodEquipped: skipping - equip on cooldown");
             return false;
         }
 
@@ -252,6 +253,7 @@ export class Booster {
     static ownedSandalwoodAndNotEquiped(): boolean {
         const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_PERFUME.identifier);
         const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_PERFUME.identifier);
+        logHHAuto(`ownedSandalwoodAndNotEquiped: owned=${ownedSandalwood}, equipped=${equipedSandalwood}, result=${ownedSandalwood && !equipedSandalwood}`);
         return ownedSandalwood && !equipedSandalwood;
     }
 
@@ -314,8 +316,10 @@ export class Booster {
     }
 
     static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, setting: string = 'plusEventMythicSandalWood'): Promise<boolean> {
+        logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, setting=${setting}`);
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythic") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood") === "true";
         const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + "Setting_plusLoveRaid") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood") === "true";
+        logHHAuto(`equipeSandalWoodIfNeeded: activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
         let eventMythicGirl: EventGirl = null, loveRaid: LoveRaid = null;
         let needForMythic = false, needForLoveRaid = false;
         if (activatedMythic) {
@@ -333,22 +337,26 @@ export class Booster {
                 setting = 'plusEventLoveRaidSandalWood';
             }
         }
+        logHHAuto(`equipeSandalWoodIfNeeded: needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
         try {
             if (((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
                 // Check cooldown before attempting equip
                 if (Booster.isEquipOnCooldown()) {
-                    logHHAuto("Booster equip on cooldown, skipping equip attempt");
+                    logHHAuto("equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");
                     return false;
                 }
                 // Equip a new one
+                logHHAuto("equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(SANDALWOOD_PERFUME)");
                 const equiped: boolean = await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+                logHHAuto(`equipeSandalWoodIfNeeded: equipBooster returned ${equiped}`);
                 if (!equiped) {
                     const numberFailure = HeroHelper.getSandalWoodEquipFailure();
+                    logHHAuto(`equipeSandalWoodIfNeeded: failure #${numberFailure}`);
                     if (numberFailure >= 3) {
-                        logHHAuto("Failure when equip Sandalwood for mythic for the third time, deactivated auto sandalwood");
+                        logHHAuto("equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood setting=" + setting);
                         setStoredValue(HHStoredVarPrefixKey + "Setting_" + setting, 'false');
                     } else {
-                        logHHAuto("Failure when equip Sandalwood for mythic, marking as already equipped");
+                        logHHAuto("equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
                         // Server says max boosters equipped - mark it as equipped to prevent retries
                         Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
                         // Set cooldown to prevent spamming equip attempts
@@ -356,11 +364,15 @@ export class Booster {
                     }
                 } else {
                     // Reset failure counter on success
+                    logHHAuto("equipeSandalWoodIfNeeded: success, resetting failure counter");
                     setStoredValue(HHStoredVarPrefixKey + "Temp_sandalwoodFailure", 0);
                 }
                 return equiped;
+            } else {
+                logHHAuto(`equipeSandalWoodIfNeeded: conditions not met, no equip needed`);
             }
         } catch (error) {
+            logHHAuto(`equipeSandalWoodIfNeeded: caught error: ${error}`);
             return Promise.resolve(false);
         }
         return Promise.resolve(false);
