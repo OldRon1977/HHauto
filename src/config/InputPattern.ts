@@ -7,6 +7,7 @@ export const HHAuto_inputPattern = {
     buyCombTimer:"[0-9]+",
     buyMythicCombTimer:"[0-9]+",
     autoBuyBoostersFilter:"(B[1-4]|MB[1-9]|MB1[1-2])(;B[1-4]|;MB[1-9]|;MB1[1-2])*",
+    autoEquipBoostersSlots:"B[1-4](;B[1-4]){0,3}",
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout:"[0-9]+",
     safeSecondsForContest:"[0-9]+",

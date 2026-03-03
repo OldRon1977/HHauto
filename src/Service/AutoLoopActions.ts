@@ -157,6 +157,20 @@ export async function handleShop(ctx: AutoLoopContext): Promise<void> {
     }
 }
 
+// 3b. handleAutoEquipBoosters - auto-equip legendary boosters when slots are empty/expired
+export async function handleAutoEquipBoosters(ctx: AutoLoopContext): Promise<void> {
+    if (ctx.busy === false
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true"
+        && isAutoLoopActive()
+    ) {
+        const equipped = await Booster.autoEquipBoosters();
+        if (equipped) {
+            ctx.busy = true;
+            ctx.lastActionPerformed = "autoEquipBoosters";
+        }
+    }
+}
+
 // 4. handleHaremSize - lines 276-288
 export async function handleHaremSize(ctx: AutoLoopContext): Promise<void> {
     if (

@@ -132,6 +132,8 @@ export const SK = {
     maxBooster: "Setting_maxBooster",
     autoBuyBoosters: "Setting_autoBuyBoosters",
     autoBuyBoostersFilter: "Setting_autoBuyBoostersFilter",
+    autoEquipBoosters: "Setting_autoEquipBoosters",
+    autoEquipBoostersSlots: "Setting_autoEquipBoostersSlots",
     updateMarket: "Setting_updateMarket",
     showMarketTools: "Setting_showMarketTools",
 
