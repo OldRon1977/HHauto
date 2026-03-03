@@ -1237,6 +1237,27 @@ class Booster {
         }
         return boostersToEquip;
     }
+    static getShortestBoosterRemainingSeconds() {
+        var _a;
+        const slotConfig = Booster.parseEquipSlotConfig();
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const serverNow = getHHVars('server_now_ts');
+        const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
+        if (activeBoosters.length === 0)
+            return 0;
+        // Find the shortest remaining time among active boosters matching our config
+        let shortest = Infinity;
+        for (const booster of activeBoosters) {
+            const id = (_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier;
+            if (id && slotConfig.includes(id)) {
+                const remaining = booster.endAt - serverNow;
+                if (remaining < shortest) {
+                    shortest = remaining;
+                }
+            }
+        }
+        return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
+    }
     static autoEquipBoosters() {
         return __awaiter(this, void 0, void 0, function* () {
             const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
@@ -1244,6 +1265,12 @@ class Booster {
                 return false;
             const boostersToEquip = Booster.getBoostersToEquip();
             if (boostersToEquip.length === 0) {
+                // All slots filled – set timer to shortest remaining booster time + small buffer
+                const shortestRemaining = Booster.getShortestBoosterRemainingSeconds();
+                if (shortestRemaining > 0) {
+                    setTimer('nextAutoEquipBoosterTime', shortestRemaining + 10);
+                    LogUtils_logHHAuto("Auto-equip: All booster slots active. Next check in " + shortestRemaining + "s.");
+                }
                 return false;
             }
             LogUtils_logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
@@ -1251,18 +1278,23 @@ class Booster {
             const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
             if (!boosterObj) {
                 LogUtils_logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
                 return false;
             }
             if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
                 LogUtils_logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+                setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
                 return false;
             }
             const equipped = yield HeroHelper.equipBooster(boosterObj);
             if (equipped) {
                 LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+                // Short timer to check if more boosters need equipping
+                setTimer('nextAutoEquipBoosterTime', 30);
             }
             else {
                 LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name);
+                setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
             }
             return equipped;
         });
@@ -17222,6 +17254,7 @@ function handleAutoEquipBoosters(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
         if (ctx.busy === false
             && getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true"
+            && checkTimer('nextAutoEquipBoosterTime')
             && isAutoLoopActive()) {
             const equipped = yield Booster.autoEquipBoosters();
             if (equipped) {

@@ -161,6 +161,7 @@ export async function handleShop(ctx: AutoLoopContext): Promise<void> {
 export async function handleAutoEquipBoosters(ctx: AutoLoopContext): Promise<void> {
     if (ctx.busy === false
         && getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true"
+        && checkTimer('nextAutoEquipBoosterTime')
         && isAutoLoopActive()
     ) {
         const equipped = await Booster.autoEquipBoosters();
