@@ -1,6 +1,6 @@
 export class TransPornstarHarem {
     static trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 11: 8, 13: 9, 14: 10 };
-    static lastQuestId: -1; //  TODO update when new quest comes
+    static lastQuestId = -1; //  TODO update when new quest comes
     static getEnv() {
         return {
             "www.transpornstarharem.com": { name: "TPH_prod", id: "hh_startrans", baseImgPath: "https://images.hh-content.com/startrans" },

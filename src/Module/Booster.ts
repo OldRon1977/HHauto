@@ -1,9 +1,11 @@
 import {
     HeroHelper,
     ConfigHelper,
+    checkTimer,
     getHHVars,
     getStoredValue,
-    setStoredValue 
+    setStoredValue,
+    setTimer
 } from '../Helper/index';
 import { gotoPage } from '../Service/index';
 import { isJSON, logHHAuto, onAjaxResponse } from '../Utils/index';
@@ -205,6 +207,8 @@ export class Booster {
         const activeSlots = $('#equiped .booster .slot:not(.empty):not(.mythic)').map((i, el)=> $(el).data('d')).toArray()
         const activeMythicSlots = $('#equiped .booster .slot:not(.empty).mythic').map((i, el)=> $(el).data('d')).toArray()
 
+        logHHAuto(`collectBoostersFromMarket: found ${activeSlots.length} normal boosters, ${activeMythicSlots.length} mythic boosters equipped`);
+
         const boosterStatus = {
             normal: activeSlots.map((data) => ({...data, endAt: getHHVars('server_now_ts') + data.expiration})),
             mythic: activeMythicSlots,
@@ -218,6 +222,11 @@ export class Booster {
         const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + "Setting_plusLoveRaid") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood") === "true";
         if(!activatedMythic && !activatedLoveRaid) {
             // if neither mythic nor love raid auto sandalwood is activated, no need to check
+            return false;
+        }
+
+        // Don't try to equip if we're on cooldown from a recent failure
+        if (Booster.isEquipOnCooldown()) {
             return false;
         }
 
@@ -235,8 +244,8 @@ export class Booster {
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
         }
-        
-        
+
+
         return ((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
     }
 
@@ -244,6 +253,43 @@ export class Booster {
         const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_PERFUME.identifier);
         const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_PERFUME.identifier);
         return ownedSandalwood && !equipedSandalwood;
+    }
+
+    static isEquipOnCooldown(): boolean {
+        return !checkTimer('nextBoosterEquipTime');
+    }
+
+    static setEquipCooldown(seconds: number = 5 * 60) {
+        setTimer('nextBoosterEquipTime', seconds);
+        logHHAuto(`Booster equip cooldown set for ${seconds} seconds`);
+    }
+
+    static markBoosterAsEquippedInStorage(booster: any) {
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const isMythic = parseInt(booster.id_item) >= 632;
+
+        if (isMythic) {
+            const alreadyTracked = boosterStatus.mythic.some(b => b.item?.identifier === booster.identifier);
+            if (!alreadyTracked) {
+                boosterStatus.mythic.push({
+                    item: booster,
+                    usages_remaining: 99 // Unknown, will be refreshed on next market visit
+                });
+                setStoredValue(HHStoredVarPrefixKey+'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
+            }
+        } else {
+            const serverNow = getHHVars('server_now_ts');
+            const alreadyTracked = boosterStatus.normal.some(b => b.item?.identifier === booster.identifier && b.endAt > serverNow);
+            if (!alreadyTracked) {
+                boosterStatus.normal.push({
+                    item: booster,
+                    endAt: serverNow + 8 * 3600 // Assume 8 hours remaining, refreshed on next market visit
+                });
+                setStoredValue(HHStoredVarPrefixKey+'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
+            }
+        }
     }
 
     static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null): boolean {
@@ -289,6 +335,11 @@ export class Booster {
         }
         try {
             if (((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
+                // Check cooldown before attempting equip
+                if (Booster.isEquipOnCooldown()) {
+                    logHHAuto("Booster equip on cooldown, skipping equip attempt");
+                    return false;
+                }
                 // Equip a new one
                 const equiped: boolean = await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
                 if (!equiped) {
@@ -296,8 +347,16 @@ export class Booster {
                     if (numberFailure >= 3) {
                         logHHAuto("Failure when equip Sandalwood for mythic for the third time, deactivated auto sandalwood");
                         setStoredValue(HHStoredVarPrefixKey + "Setting_" + setting, 'false');
-
-                    } else logHHAuto("Failure when equip Sandalwood for mythic");
+                    } else {
+                        logHHAuto("Failure when equip Sandalwood for mythic, marking as already equipped");
+                        // Server says max boosters equipped - mark it as equipped to prevent retries
+                        Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+                        // Set cooldown to prevent spamming equip attempts
+                        Booster.setEquipCooldown(5 * 60);
+                    }
+                } else {
+                    // Reset failure counter on success
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_sandalwoodFailure", 0);
                 }
                 return equiped;
             }

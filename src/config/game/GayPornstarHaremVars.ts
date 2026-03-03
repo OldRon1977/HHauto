@@ -1,7 +1,7 @@
 export class GayPornstarHarem {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Cuervos & Sandor
     static trollIdMapping = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 };
-    static lastQuestId: -1; //  TODO update when new quest comes
+    static lastQuestId = -1; //  TODO update when new quest comes
     static getEnv() {
         return {
             "www.gaypornstarharem.com": { name: "GPSH_prod", id: "hh_stargay", baseImgPath: "https://images.hh-content.com/stargay" },

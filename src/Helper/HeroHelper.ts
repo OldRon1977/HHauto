@@ -120,11 +120,15 @@ export class HeroHelper {
             const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
             window.history.replaceState(null, '', addNutakuSession('/shop.html') as string);
             getHHAjax()(params, function(data) {
-                if (data.success) logHHAuto('Booster equipped');
-                else HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                if (data.success) {
+                    logHHAuto('Booster equipped');
+                } else {
+                    logHHAuto('Booster equip failed - server returned success:false (may already be equipped)');
+                    HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                }
                 setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
                 setTimeout(autoLoop,randomInterval(500,800));
-                resolve(true);
+                resolve(data.success);
             }, function (err){
                 logHHAuto('Error occured booster not equipped, could be booster is already equipped');
                 setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
