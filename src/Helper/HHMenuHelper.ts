@@ -3,7 +3,7 @@ import { LeagueHelper } from '../Module/League';
 import { LoveRaidManager } from '../Module/index';
 import { setDefaults } from '../Service/index';
 import { isDisplayedHHPopUp, logHHAuto } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';
+import { HHAuto_inputPattern, HHStoredVarPrefixKey, HHStoredVars } from '../config/index';
 import { LoveRaid } from '../model/LoveRaid';
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
@@ -191,7 +191,7 @@ export function hhButton(textKeyId, buttonId, mainStyle='', labelSyle=''){
 }
 
 export function hhMenuSwitch(textKeyAndInputId, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false){
-    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton">`
+    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton switchRow">`
         +`<div class="tooltipHH">`
             +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
             +`<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''} ${isStylingSwitch ? 'styling' : ''}"></span></label>`
@@ -201,7 +201,7 @@ export function hhMenuSwitch(textKeyAndInputId, isEnabledDivId='', isKobanSwitch
 }
 
 export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=false) {
-    return `<div class="labelAndButton">`
+    return `<div class="labelAndButton switchRow">`
         +`<div class="imgAndObjectRow">`
             +`<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/${imgPath}" />`
             +`<div style="padding-left:5px">`
@@ -217,26 +217,27 @@ export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=fa
 
 export function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
     return `<div class="labelAndButton">`
+        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
             + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
             + `<select id="${textKeyAndInputId}" style="${inputStyle}" >${options}</select>`
         +`</div>`
-        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
     +`</div>`;
 }
 
 export function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle='', inputClass='', inputMode='text') {
     return `<div class="labelAndButton">`
+        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
             +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
             +`<input id="${textKeyAndInputId}" class="${inputClass}" style="${inputStyle}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
         +`</div>`
-        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
     +`</div>`;
 }
 
 export function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode='text') {
     let htmlRet = `<div class="labelAndButton">`
+        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="imgAndObjectRow">`;
     if (imgPath && imgPath.indexOf('images/') >= 0) {
     htmlRet +=`<img class="iconImg" src="/${imgPath}" />`
@@ -251,7 +252,6 @@ export function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, 
                 +`</div>`
             +`</div>`
         +`</div>`
-        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
     +`</div>`;
     return htmlRet;
 }
@@ -261,7 +261,7 @@ export function switchHHMenuButton(isActive)
     var element = document.getElementById("sMenuButton");
     if(element !== null)
     {
-        if (getStoredValue(HHStoredVarPrefixKey+SK.master) === "false")
+        if (getStoredValue(HHStoredVarPrefixKey+"Setting_master") === "false")
         {
             element.style["background-color"] = "red";
             element.style["background-image"] = "none";
@@ -431,7 +431,7 @@ export function addEventsOnMenuItems()
 
 
 export function getMenu() {
-    const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
+    const debugEnabled = getStoredValue(HHStoredVarPrefixKey+"Temp_Debug")==='true';
     
     const getLeftColumn = () => {
         return `<div class="optionsColumn" style="min-width: 185px;">`
@@ -460,7 +460,7 @@ export function getMenu() {
                     +`<div class="optionsColumn">`
                         + hhMenuSwitch('master') // Master switch
                         + hhMenuSwitch('paranoia')
-                        +`<div id="isEnabledMousePause" class="labelAndButton">`
+                        +`<div id="isEnabledMousePause" class="labelAndButton switchRow">`
                             +`<div class="tooltipHH">`
                                 +`<span class="tooltipHHtext">${getTextForUI("mousePause","tooltip")}</span>`
                                 +`<label class="switch">`
@@ -476,7 +476,7 @@ export function getMenu() {
                         + hhMenuSwitch('showTooltips')
                     +`</div>`
                     +`<div class="optionsColumn">`
-                        +`<div class="labelAndButton">`
+                        +`<div class="labelAndButton switchRow">`
                             +`<div class="tooltipHH">`
                                 +`<span class="tooltipHHtext">${getTextForUI("waitforContest","tooltip")}</span>`
                                 +`<label class="switch">`
@@ -846,10 +846,6 @@ export function getMenu() {
                         + hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
                         + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
                         + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
-                    +`</div>`
-                    +`<div class="internalOptionsRow">`
-                        + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
-                        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')

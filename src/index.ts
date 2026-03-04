@@ -1,57 +1,57 @@
 import { hardened_start } from "./Service/index";
-import { HHEventData, KKDailyGoal, KKHaremGirl, KKHero, KKLoveRaid, KKPentaDrillOpponents, KKTeamGirl } from "./model/index";
+import { KKDailyGoal, KKHero, KKLoveRaid, KKPentaDrillOpponents } from "./model/index";
 
 declare global {
     var love_raids: KKLoveRaid[] | undefined;
     interface Window {
         // Below just informs IDE and/or TS-compiler (it's set in `.js` file).
-        championData: Record<string, unknown>;
+        championData: any;
         contests_timer: {
-            duration: number;
-            next_contest: number;
-            remaining_time: number;
+            duration: any;
+            next_contest: any;
+            remaining_time: any;
         };
-        Collect: Record<string, unknown>;
-        current_tier_number: number | undefined;
+        Collect: any;
+        current_tier_number: any;
         daily_goals_list: KKDailyGoal[];
-        event_data: HHEventData;
-        current_event: HHEventData;
-        girl: KKHaremGirl;
+        event_data: any;
+        current_event: any;
+        girl: any;
         // GirlSalaryManager: any;
-        harem: Record<string, unknown>;
-        has_contests_datas: boolean;
-        hero_data: any; // complex structure used by BDSMHelper
+        harem: any;
+        has_contests_datas: any;
+        hero_data: any;
         shared?: {
-            GirlSalaryManager: Record<string, unknown>;
+            GirlSalaryManager: any;
             Hero: KKHero;
-            animations: any; // deep optional chaining with .loadingAnimation.start/stop
+            animations: any;
             general: {
-                is_cheat_click: boolean;
-                hh_ajax: (...args: unknown[]) => unknown;
+                is_cheat_click: any;
+                hh_ajax: any;
             };
         };
         Hero: any;
-        hh_ajax: (...args: any[]) => any;
-        hh_nutaku: Record<string, unknown>;
-        hh_prices: Record<string, number>;
-        HHTimers: Record<string, unknown>;
-        is_cheat_click: boolean;
-        league_tag: string;
+        hh_ajax: any;
+        hh_nutaku: any;
+        hh_prices: any;
+        HHTimers: any;
+        is_cheat_click: any;
+        league_tag: any;
         // loadingAnimation: any;
-        opponents: any; // array-like with .player objects, used by Season
-        player_gems_amount: Record<string, { amount: number; [key: string]: unknown }>;
-        season_sec_untill_event_end: number;
-        seasonal_event_active: boolean;
-        seasonal_time_remaining: number;
-        mega_event_data: Record<string, unknown>;
-        penta_drill_data: { cycle_data?: { seconds_until_event_end: number; [key: string]: unknown }; [key: string]: unknown };
+        opponents: any;
+        player_gems_amount: any;
+        season_sec_untill_event_end: any;
+        seasonal_event_active: any;
+        seasonal_time_remaining: any;
+        mega_event_data: any;
+        penta_drill_data: any;
         opponents_list: KKPentaDrillOpponents[] | undefined;
-        mega_event_active: boolean;
-        mega_event_time_remaining: number;
-        server_now_ts: number;
-        id_girl: number | string;
-        girl_squad: Array<{ remaining_ego_percent: number; [key: string]: unknown }>;
-        teams_data: Record<string, { girls_ids: number[]; girls: KKTeamGirl[]; [key: string]: unknown }>;
+        mega_event_active: any;
+        mega_event_time_remaining: any;
+        server_now_ts: any;
+        id_girl: any;
+        girl_squad: any;
+        teams_data: any;
         //pop
         pop_list:boolean;
         pop_index:number;
