@@ -46,7 +46,7 @@ GM_addStyle('#pInfo.left {right: 250px; left:220px; top:12%;');
 GM_addStyle('span.HHMenuItemName {line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px
-GM_addStyle('div.optionsColumn {display:flex; flex-direction:column}');
+GM_addStyle('div.optionsColumn {display:flex; flex-direction:column; overflow:hidden}');
 GM_addStyle('div.optionsBoxWithTitle {display:flex; flex-direction:column}');
 GM_addStyle('div.optionsBoxWithTitleInline {display:flex; flex-direction:row; border:1px solid #ffa23e; border-radius:5px; margin:1px}');
 GM_addStyle('div.optionsBoxWithTitleInline .optionsBox {border: none}');
@@ -57,9 +57,9 @@ GM_addStyle('#sMenu::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-bord
 GM_addStyle('#sMenu::-webkit-scrollbar-corner {background: #000;}');
 GM_addStyle('#sMenu .HHMenuItemName {font-size:8px;}');
 GM_addStyle('div.optionsBoxTitle {height:12px; display:flex; flex-direction:row; justify-content:center; align-items:center;}'); //; padding:2px; padding-bottom:0px;
-GM_addStyle('div.rowOptionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px}');
-GM_addStyle('div.optionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px}');
-GM_addStyle('div.internalOptionsRow {display:flex; flex-direction:row; justify-content:space-between; align-items:center}'); //; padding:3px;
+GM_addStyle('div.rowOptionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px; overflow:hidden}');
+GM_addStyle('div.optionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px; overflow:hidden}');
+GM_addStyle('div.internalOptionsRow {display:flex; flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:2px}'); //; padding:3px;
 GM_addStyle('div.internalOptionsRow.separator {border-top:1px solid #ffa23e}'); //; padding:3px;
 GM_addStyle('div.imgAndObjectRow {display:flex; flex-direction:row; justify-content:flex-start; align-items:center}'); //; padding:3px;//class="internalOptionsRow" style="justify-content:flex-start; align-items:center"
 GM_addStyle('div.labelAndButton {padding:2px 3px; display:flex; flex-direction:column}');
