@@ -191,18 +191,17 @@ export function hhButton(textKeyId, buttonId, mainStyle='', labelSyle=''){
 }
 
 export function hhMenuSwitch(textKeyAndInputId, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false){
-    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton">`
-        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
+    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton switchRow">`
         +`<div class="tooltipHH">`
             +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
             +`<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''} ${isStylingSwitch ? 'styling' : ''}"></span></label>`
         +`</div>`
+        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
     +`</div>`;
 }
 
 export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=false) {
-    return `<div class="labelAndButton">`
-        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
+    return `<div class="labelAndButton switchRow">`
         +`<div class="imgAndObjectRow">`
             +`<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/${imgPath}" />`
             +`<div style="padding-left:5px">`
@@ -212,6 +211,7 @@ export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=fa
                 +`</div>`
             +`</div>`
         +`</div>`
+        +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
     +`</div>`;
 }
 
@@ -244,7 +244,7 @@ export function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, 
     }else {
     htmlRet += `<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/${imgPath}" />`
     }
-    htmlRet += 
+    htmlRet +=
             `<div style="padding-left:5px">`
                 +`<div class="tooltipHH">`
                     +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
@@ -460,8 +460,7 @@ export function getMenu() {
                     +`<div class="optionsColumn">`
                         + hhMenuSwitch('master') // Master switch
                         + hhMenuSwitch('paranoia')
-                        +`<div id="isEnabledMousePause" class="labelAndButton">`
-                            +`<span class="HHMenuItemName">${getTextForUI("mousePause","elementText")}</span>`
+                        +`<div id="isEnabledMousePause" class="labelAndButton switchRow">`
                             +`<div class="tooltipHH">`
                                 +`<span class="tooltipHHtext">${getTextForUI("mousePause","tooltip")}</span>`
                                 +`<label class="switch">`
@@ -471,13 +470,13 @@ export function getMenu() {
                                 +`</label>`
                                 +`<input style="text-align:center; width:40px" id="mousePauseTimeout" required pattern="${HHAuto_inputPattern.mousePauseTimeout}" type="text">`
                             +`</div>`
+                            +`<span class="HHMenuItemName">${getTextForUI("mousePause","elementText")}</span>`
                         +`</div>`
                         + hhMenuInput('collectAllTimer', HHAuto_inputPattern.collectAllTimer, 'text-align:center; width:25px')
                         + hhMenuSwitch('showTooltips')
                     +`</div>`
                     +`<div class="optionsColumn">`
-                        +`<div class="labelAndButton">`
-                            +`<span class="HHMenuItemName">${getTextForUI("waitforContest","elementText")}</span>`
+                        +`<div class="labelAndButton switchRow">`
                             +`<div class="tooltipHH">`
                                 +`<span class="tooltipHHtext">${getTextForUI("waitforContest","tooltip")}</span>`
                                 +`<label class="switch">`
@@ -487,6 +486,7 @@ export function getMenu() {
                                 +`</label>`
                                 +`<input style="text-align:center; width:30px" id="safeSecondsForContest" required pattern="${HHAuto_inputPattern.safeSecondsForContest}" type="text">`
                             +`</div>`
+                            +`<span class="HHMenuItemName">${getTextForUI("waitforContest","elementText")}</span>`
                         +`</div>`
                         + hhMenuSwitch('settPerTab')
                         + hhMenuSwitch('paranoiaSpendsBefore')
