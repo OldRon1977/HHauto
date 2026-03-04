@@ -21,7 +21,7 @@ declare global {
         harem: any;
         has_contests_datas: any;
         hero_data: any;
-        shared: {
+        shared?: {
             GirlSalaryManager: any;
             Hero: KKHero;
             animations: any;
@@ -30,8 +30,8 @@ declare global {
                 hh_ajax: any;
             };
         };
-        // Hero: any;
-        // hh_ajax: any;
+        Hero: any;
+        hh_ajax: any;
         hh_nutaku: any;
         hh_prices: any;
         HHTimers: any;
