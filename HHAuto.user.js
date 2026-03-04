@@ -43,10 +43,10 @@ GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: abso
             + '#pInfo ul {margin:0; padding:0; columns:2; list-style-type: none;}'
             + '#pInfo ul li {margin:0}');
 GM_addStyle('#pInfo.left {right: 250px; left:220px; top:12%;');
-GM_addStyle('span.HHMenuItemName {line-height:120%;}');
+GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px
-GM_addStyle('div.optionsColumn {display:flex; flex-direction:column; overflow:hidden}');
+GM_addStyle('div.optionsColumn {display:flex; flex-direction:column}');
 GM_addStyle('div.optionsBoxWithTitle {display:flex; flex-direction:column}');
 GM_addStyle('div.optionsBoxWithTitleInline {display:flex; flex-direction:row; border:1px solid #ffa23e; border-radius:5px; margin:1px}');
 GM_addStyle('div.optionsBoxWithTitleInline .optionsBox {border: none}');
@@ -57,17 +57,15 @@ GM_addStyle('#sMenu::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-bord
 GM_addStyle('#sMenu::-webkit-scrollbar-corner {background: #000;}');
 GM_addStyle('#sMenu .HHMenuItemName {font-size:8px;}');
 GM_addStyle('div.optionsBoxTitle {height:12px; display:flex; flex-direction:row; justify-content:center; align-items:center;}'); //; padding:2px; padding-bottom:0px;
-GM_addStyle('div.rowOptionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px; overflow:hidden}');
-GM_addStyle('div.optionsBox {margin:1px; padding:2px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px; overflow:hidden}');
-GM_addStyle('div.internalOptionsRow {display:flex; flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:2px}'); //; padding:3px;
+GM_addStyle('div.rowOptionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px}');
+GM_addStyle('div.optionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px}');
+GM_addStyle('div.internalOptionsRow {display:flex; flex-direction:row; justify-content: space-between; align-items: flex-end}'); //; padding:3px;
 GM_addStyle('div.internalOptionsRow.separator {border-top:1px solid #ffa23e}'); //; padding:3px;
 GM_addStyle('div.imgAndObjectRow {display:flex; flex-direction:row; justify-content:flex-start; align-items:center}'); //; padding:3px;//class="internalOptionsRow" style="justify-content:flex-start; align-items:center"
-GM_addStyle('div.labelAndButton {padding:2px 3px; display:flex; flex-direction:column}');
-GM_addStyle('div.labelAndButton.switchRow {flex-direction:row; align-items:center; gap:4px}');
-GM_addStyle('div.labelAndButton.switchRow .HHMenuItemName {white-space:nowrap}');
+GM_addStyle('div.labelAndButton {padding:3px; display:flex;flex-direction:column}');
 GM_addStyle('div.HHMenuItemBox {padding:0.2em}');
 GM_addStyle('div.HHMenuRow {display:flex; flex-direction:row; align-items:center; align-content:center; justify-content:flex-start}');
-GM_addStyle('input.maxMoneyInputField {text-align:right; width:85px; box-sizing:border-box}');
+GM_addStyle('input.maxMoneyInputField  {text-align:right; width:70px}');
 GM_addStyle('.myButton {box-shadow: 0px 0px 0px 2px #9fb4f2; background:linear-gradient(to bottom, #7892c2 5%, #476e9e 100%); background-color:#7892c2; border-radius:10px; border:1px solid #4e6096; display:inline-block; cursor:pointer; color:#ffffff; font-family:Arial; font-size:8px; padding:3px 7px; text-decoration:none; text-shadow:0px 1px 0px #283966;}'
             +'.myButton:hover { background:linear-gradient(to bottom, #476e9e 5%, #7892c2 100%); background-color:#476e9e; }'
             +'.myButton:active { position:relative; top:1px;}'
@@ -14255,16 +14253,17 @@ function hhButton(textKeyId, buttonId, mainStyle = '', labelSyle = '') {
         + `</div>`;
 }
 function hhMenuSwitch(textKeyAndInputId, isEnabledDivId = '', isKobanSwitch = false, isStylingSwitch = false) {
-    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton switchRow">`
+    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
         + `<div class="tooltipHH">`
         + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
         + `<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''} ${isStylingSwitch ? 'styling' : ''}"></span></label>`
         + `</div>`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
         + `</div>`;
 }
 function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch = false) {
-    return `<div class="labelAndButton switchRow">`
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
         + `<div class="imgAndObjectRow">`
         + `<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/${imgPath}" />`
         + `<div style="padding-left:5px">`
@@ -14274,7 +14273,6 @@ function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch = false) 
         + `</div>`
         + `</div>`
         + `</div>`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
         + `</div>`;
 }
 function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
@@ -14475,7 +14473,8 @@ function getMenu() {
             + `<div class="optionsColumn">`
             + hhMenuSwitch('master') // Master switch
             + hhMenuSwitch('paranoia')
-            + `<div id="isEnabledMousePause" class="labelAndButton switchRow">`
+            + `<div id="isEnabledMousePause" class="labelAndButton">`
+            + `<span class="HHMenuItemName">${getTextForUI("mousePause", "elementText")}</span>`
             + `<div class="tooltipHH">`
             + `<span class="tooltipHHtext">${getTextForUI("mousePause", "tooltip")}</span>`
             + `<label class="switch">`
@@ -14485,13 +14484,13 @@ function getMenu() {
             + `</label>`
             + `<input style="text-align:center; width:40px" id="mousePauseTimeout" required pattern="${HHAuto_inputPattern.mousePauseTimeout}" type="text">`
             + `</div>`
-            + `<span class="HHMenuItemName">${getTextForUI("mousePause", "elementText")}</span>`
             + `</div>`
             + hhMenuInput('collectAllTimer', HHAuto_inputPattern.collectAllTimer, 'text-align:center; width:25px')
             + hhMenuSwitch('showTooltips')
             + `</div>`
             + `<div class="optionsColumn">`
-            + `<div class="labelAndButton switchRow">`
+            + `<div class="labelAndButton">`
+            + `<span class="HHMenuItemName">${getTextForUI("waitforContest", "elementText")}</span>`
             + `<div class="tooltipHH">`
             + `<span class="tooltipHHtext">${getTextForUI("waitforContest", "tooltip")}</span>`
             + `<label class="switch">`
@@ -14501,7 +14500,6 @@ function getMenu() {
             + `</label>`
             + `<input style="text-align:center; width:30px" id="safeSecondsForContest" required pattern="${HHAuto_inputPattern.safeSecondsForContest}" type="text">`
             + `</div>`
-            + `<span class="HHMenuItemName">${getTextForUI("waitforContest", "elementText")}</span>`
             + `</div>`
             + hhMenuSwitch('settPerTab')
             + hhMenuSwitch('paranoiaSpendsBefore')
