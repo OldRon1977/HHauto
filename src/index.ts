@@ -21,7 +21,7 @@ declare global {
         harem: Record<string, unknown>;
         has_contests_datas: boolean;
         hero_data: any; // complex structure used by BDSMHelper
-        shared: {
+        shared?: {
             GirlSalaryManager: Record<string, unknown>;
             Hero: KKHero;
             animations: any; // deep optional chaining with .loadingAnimation.start/stop
