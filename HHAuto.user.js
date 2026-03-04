@@ -18,8 +18,8 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @license      MIT
-// @updateURL    https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
-// @downloadURL  https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
+// @updateURL    https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
+// @downloadURL  https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
 // ==/UserScript==
 
 // WARNING: This file has been generated, DO NOT EDIT.
