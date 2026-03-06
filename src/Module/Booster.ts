@@ -331,8 +331,10 @@ export class Booster {
             // Short timer to check if more boosters need equipping
             setTimer('nextAutoEquipBoosterTime', 30);
         } else {
-            logHHAuto("Auto-equip: Failed to equip " + boosterObj.name);
-            setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
+            logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slots may be full. Next retry in 30 min.");
+            // Likely all slots are already full — long cooldown to prevent spam.
+            // The booster status in storage is stale; force refresh next time we visit the market page.
+            setTimer('nextAutoEquipBoosterTime', 1800); // retry in 30 min
         }
         return equipped;
     }
