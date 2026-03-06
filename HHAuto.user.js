@@ -1217,6 +1217,10 @@ class Booster {
         const boosterStatus = Booster.getBoosterFromStorage();
         const serverNow = getHHVars('server_now_ts');
         const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
+        // All physical slots occupied — nothing can be equipped
+        if (activeBoosters.length >= slotConfig.length) {
+            return [];
+        }
         const activeCountByIdentifier = {};
         activeBoosters.forEach((booster) => {
             var _a;
@@ -1225,6 +1229,7 @@ class Booster {
                 activeCountByIdentifier[id] = (activeCountByIdentifier[id] || 0) + 1;
             }
         });
+        const freeSlots = slotConfig.length - activeBoosters.length;
         const boostersToEquip = [];
         const remainingActive = Object.assign({}, activeCountByIdentifier);
         for (const desiredId of slotConfig) {
@@ -1235,7 +1240,8 @@ class Booster {
                 boostersToEquip.push(desiredId);
             }
         }
-        return boostersToEquip;
+        // Only return as many as there are free slots
+        return boostersToEquip.slice(0, freeSlots);
     }
     static getShortestBoosterRemainingSeconds() {
         var _a;
