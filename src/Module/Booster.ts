@@ -246,6 +246,11 @@ export class Booster {
             (booster: any) => booster.endAt > serverNow
         );
 
+        // All physical slots occupied — nothing can be equipped
+        if (activeBoosters.length >= slotConfig.length) {
+            return [];
+        }
+
         const activeCountByIdentifier: Record<string, number> = {};
         activeBoosters.forEach((booster: any) => {
             const id = booster.item?.identifier;
@@ -254,6 +259,7 @@ export class Booster {
             }
         });
 
+        const freeSlots = slotConfig.length - activeBoosters.length;
         const boostersToEquip: string[] = [];
         const remainingActive = { ...activeCountByIdentifier };
 
@@ -265,7 +271,8 @@ export class Booster {
             }
         }
 
-        return boostersToEquip;
+        // Only return as many as there are free slots
+        return boostersToEquip.slice(0, freeSlots);
     }
 
     static getShortestBoosterRemainingSeconds(): number {
