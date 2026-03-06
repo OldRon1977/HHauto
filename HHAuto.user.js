@@ -1014,6 +1014,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 
 
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
+const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 class Booster {
     //all following lines credit:Tom208 OCD script  
     static collectBoostersFromAjaxResponses() {
@@ -1278,10 +1279,16 @@ class Booster {
         }
         return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
     }
+    static isAutoEquipAllowed() {
+        const playerId = HeroHelper.getPlayerId();
+        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    }
     static autoEquipBoosters() {
         return __awaiter(this, void 0, void 0, function* () {
             const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
             if (!isEnabled)
+                return false;
+            if (!Booster.isAutoEquipAllowed())
                 return false;
             const boostersToEquip = Booster.getBoostersToEquip();
             if (boostersToEquip.length === 0) {
@@ -14116,6 +14123,7 @@ class NumberHelper {
 
 
 
+
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -14880,10 +14888,10 @@ function getMenu() {
             + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
             + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
             + `</div>`
-            + `<div class="internalOptionsRow">`
-            + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
-            + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
-            + `</div>`
+            + (Booster.isAutoEquipAllowed() ? `<div class="internalOptionsRow">`
+                + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
+                + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
+                + `</div>` : '')
             + `<div class="internalOptionsRow">`
             + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
             + hhMenuSwitch('updateMarket')

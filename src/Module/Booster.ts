@@ -16,6 +16,7 @@ import { EventModule, LoveRaidManager } from './index';
 
 
 const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
+const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 
 export class Booster {
     static GINSENG_ROOT = {"id_item":"316","identifier":"B1","name":"Ginseng root", "rarity":"legendary"};
@@ -318,9 +319,15 @@ export class Booster {
         return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
     }
 
+    static isAutoEquipAllowed(): boolean {
+        const playerId = HeroHelper.getPlayerId();
+        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    }
+
     static async autoEquipBoosters(): Promise<boolean> {
         const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
         if (!isEnabled) return false;
+        if (!Booster.isAutoEquipAllowed()) return false;
 
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
