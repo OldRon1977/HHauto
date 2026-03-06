@@ -1293,8 +1293,10 @@ class Booster {
                 setTimer('nextAutoEquipBoosterTime', 30);
             }
             else {
-                LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name);
-                setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
+                LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slots may be full. Next retry in 30 min.");
+                // Likely all slots are already full — long cooldown to prevent spam.
+                // The booster status in storage is stale; force refresh next time we visit the market page.
+                setTimer('nextAutoEquipBoosterTime', 1800); // retry in 30 min
             }
             return equipped;
         });
@@ -16266,11 +16268,13 @@ class HeroHelper {
                 getHHAjax()(params, function (data) {
                     if (data.success)
                         LogUtils_logHHAuto('Booster equipped');
-                    else
+                    else {
+                        LogUtils_logHHAuto('Booster equip failed: ' + (data.error || 'unknown error'));
                         HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                    }
                     setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                     setTimeout(autoLoop, randomInterval(500, 800));
-                    resolve(true);
+                    resolve(data.success === true);
                 }, function (err) {
                     LogUtils_logHHAuto('Error occured booster not equipped, could be booster is already equipped');
                     setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");

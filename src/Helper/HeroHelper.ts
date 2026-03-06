@@ -121,10 +121,13 @@ export class HeroHelper {
             window.history.replaceState(null, '', addNutakuSession('/shop.html') as string);
             getHHAjax()(params, function(data) {
                 if (data.success) logHHAuto('Booster equipped');
-                else HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                else {
+                    logHHAuto('Booster equip failed: ' + (data.error || 'unknown error'));
+                    HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                }
                 setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
                 setTimeout(autoLoop,randomInterval(500,800));
-                resolve(true);
+                resolve(data.success === true);
             }, function (err){
                 logHHAuto('Error occured booster not equipped, could be booster is already equipped');
                 setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
