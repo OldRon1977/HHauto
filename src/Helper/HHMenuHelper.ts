@@ -848,6 +848,10 @@ export function getMenu() {
                         + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
+                        + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
+                        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
+                    +`</div>`
+                    +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                         + hhMenuSwitch('updateMarket')
                     +`</div>`
