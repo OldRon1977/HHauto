@@ -217,6 +217,23 @@ export class Booster {
     }
 
     static getBoosterByIdentifier(identifier: string): any {
+        // Try to resolve from shop data first (site-specific id_item)
+        const storeData = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, null);
+        if (storeData && Array.isArray(storeData[1])) {
+            const shopBooster = storeData[1].find(
+                (b: any) => b.item && b.item.identifier === identifier && b.item.rarity === 'legendary'
+            );
+            if (shopBooster) {
+                return {
+                    id_item: shopBooster.item.id_item || shopBooster.id_item,
+                    identifier: shopBooster.item.identifier,
+                    name: shopBooster.item.name,
+                    rarity: shopBooster.item.rarity
+                };
+            }
+        }
+
+        // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
             case 'B2': return Booster.JUJUBES;
