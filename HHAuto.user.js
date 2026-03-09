@@ -1258,6 +1258,24 @@ class Booster {
         }
         return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
     }
+    static resolveItemId(identifier) {
+        // 1. Check HHEnvVariables config (per-site override, e.g. boosterId_MB1)
+        const configId = ConfigHelper.getHHScriptVars("boosterId_" + identifier, false);
+        if (configId) return configId;
+        // 2. Look up from store data (has correct per-site IDs)
+        const storeContents = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, []);
+        const shopBoosters = storeContents[1] || [];
+        const boosterInStore = shopBoosters.find(b => b.item && b.item.identifier === identifier);
+        if (boosterInStore) return boosterInStore.item.id_item;
+        // 3. Look up from equipped booster status
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const allEquipped = [...(boosterStatus.normal || []), ...(boosterStatus.mythic || [])];
+        const equippedBooster = allEquipped.find(b => b.item && b.item.identifier === identifier);
+        if (equippedBooster) return equippedBooster.item.id_item;
+        // 4. Fall back to hardcoded value from static constants
+        const boosterObj = Booster.getBoosterByIdentifier(identifier);
+        return boosterObj ? boosterObj.id_item : null;
+    }
     static autoEquipBoosters() {
         return __awaiter(this, void 0, void 0, function* () {
             const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
@@ -16249,13 +16267,10 @@ class HeroHelper {
                 LogUtils_logHHAuto("Booster " + booster + " not in inventory");
                 return Promise.resolve(false);
             }
-            let itemId = ConfigHelper.getHHScriptVars("boosterId_" + booster.identifier, false);
-            if (!itemId) {
-                itemId = booster.id_item;
-            }
+            const itemId = Booster.resolveItemId(booster.identifier) || booster.id_item;
             //action=market_equip_booster&id_item=316&type=booster
             setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
-            LogUtils_logHHAuto("Equip " + booster.name + ", setting autoloop to false");
+            LogUtils_logHHAuto("Equip " + booster.name + " (id_item=" + itemId + "), setting autoloop to false");
             const params = {
                 action: "market_equip_booster",
                 id_item: itemId,
