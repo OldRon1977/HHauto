@@ -1014,6 +1014,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 
 
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
+const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 class Booster {
     //all following lines credit:Tom208 OCD script  
     static collectBoostersFromAjaxResponses() {
@@ -1194,6 +1195,20 @@ class Booster {
         setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
     }
     static getBoosterByIdentifier(identifier) {
+        // Try to resolve from shop data first (site-specific id_item)
+        const storeData = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, null);
+        if (storeData && Array.isArray(storeData[1])) {
+            const shopBooster = storeData[1].find((b) => b.item && b.item.identifier === identifier && b.item.rarity === 'legendary');
+            if (shopBooster) {
+                return {
+                    id_item: shopBooster.item.id_item || shopBooster.id_item,
+                    identifier: shopBooster.item.identifier,
+                    name: shopBooster.item.name,
+                    rarity: shopBooster.item.rarity
+                };
+            }
+        }
+        // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
             case 'B2': return Booster.JUJUBES;
@@ -1217,6 +1232,10 @@ class Booster {
         const boosterStatus = Booster.getBoosterFromStorage();
         const serverNow = getHHVars('server_now_ts');
         const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
+        // All physical slots occupied — nothing can be equipped
+        if (activeBoosters.length >= slotConfig.length) {
+            return [];
+        }
         const activeCountByIdentifier = {};
         activeBoosters.forEach((booster) => {
             var _a;
@@ -1225,6 +1244,7 @@ class Booster {
                 activeCountByIdentifier[id] = (activeCountByIdentifier[id] || 0) + 1;
             }
         });
+        const freeSlots = slotConfig.length - activeBoosters.length;
         const boostersToEquip = [];
         const remainingActive = Object.assign({}, activeCountByIdentifier);
         for (const desiredId of slotConfig) {
@@ -1235,7 +1255,8 @@ class Booster {
                 boostersToEquip.push(desiredId);
             }
         }
-        return boostersToEquip;
+        // Only return as many as there are free slots
+        return boostersToEquip.slice(0, freeSlots);
     }
     static getShortestBoosterRemainingSeconds() {
         var _a;
@@ -1276,10 +1297,16 @@ class Booster {
         const boosterObj = Booster.getBoosterByIdentifier(identifier);
         return boosterObj ? boosterObj.id_item : null;
     }
+    static isAutoEquipAllowed() {
+        const playerId = HeroHelper.getPlayerId();
+        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    }
     static autoEquipBoosters() {
         return __awaiter(this, void 0, void 0, function* () {
             const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
             if (!isEnabled)
+                return false;
+            if (!Booster.isAutoEquipAllowed())
                 return false;
             const boostersToEquip = Booster.getBoostersToEquip();
             if (boostersToEquip.length === 0) {
@@ -14114,6 +14141,7 @@ class NumberHelper {
 
 
 
+
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -14878,10 +14906,10 @@ function getMenu() {
             + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
             + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
             + `</div>`
-            + `<div class="internalOptionsRow">`
-            + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
-            + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
-            + `</div>`
+            + (Booster.isAutoEquipAllowed() ? `<div class="internalOptionsRow">`
+                + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
+                + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
+                + `</div>` : '')
             + `<div class="internalOptionsRow">`
             + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
             + hhMenuSwitch('updateMarket')

@@ -16,6 +16,7 @@ import { EventModule, LoveRaidManager } from './index';
 
 
 const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
+const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 
 export class Booster {
     static GINSENG_ROOT = {"id_item":"316","identifier":"B1","name":"Ginseng root", "rarity":"legendary"};
@@ -217,6 +218,23 @@ export class Booster {
     }
 
     static getBoosterByIdentifier(identifier: string): any {
+        // Try to resolve from shop data first (site-specific id_item)
+        const storeData = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, null);
+        if (storeData && Array.isArray(storeData[1])) {
+            const shopBooster = storeData[1].find(
+                (b: any) => b.item && b.item.identifier === identifier && b.item.rarity === 'legendary'
+            );
+            if (shopBooster) {
+                return {
+                    id_item: shopBooster.item.id_item || shopBooster.id_item,
+                    identifier: shopBooster.item.identifier,
+                    name: shopBooster.item.name,
+                    rarity: shopBooster.item.rarity
+                };
+            }
+        }
+
+        // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
             case 'B2': return Booster.JUJUBES;
@@ -246,6 +264,11 @@ export class Booster {
             (booster: any) => booster.endAt > serverNow
         );
 
+        // All physical slots occupied — nothing can be equipped
+        if (activeBoosters.length >= slotConfig.length) {
+            return [];
+        }
+
         const activeCountByIdentifier: Record<string, number> = {};
         activeBoosters.forEach((booster: any) => {
             const id = booster.item?.identifier;
@@ -254,6 +277,7 @@ export class Booster {
             }
         });
 
+        const freeSlots = slotConfig.length - activeBoosters.length;
         const boostersToEquip: string[] = [];
         const remainingActive = { ...activeCountByIdentifier };
 
@@ -265,7 +289,8 @@ export class Booster {
             }
         }
 
-        return boostersToEquip;
+        // Only return as many as there are free slots
+        return boostersToEquip.slice(0, freeSlots);
     }
 
     static getShortestBoosterRemainingSeconds(): number {
@@ -294,9 +319,15 @@ export class Booster {
         return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
     }
 
+    static isAutoEquipAllowed(): boolean {
+        const playerId = HeroHelper.getPlayerId();
+        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    }
+
     static async autoEquipBoosters(): Promise<boolean> {
         const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
         if (!isEnabled) return false;
+        if (!Booster.isAutoEquipAllowed()) return false;
 
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
