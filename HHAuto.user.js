@@ -1193,6 +1193,14 @@ class Booster {
             mythic: activeMythicSlots,
         };
         setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+        // Cache id_item mapping from equipped boosters
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        [...activeSlots, ...activeMythicSlots].forEach((data) => {
+            if (data && data.item && data.item.identifier && data.item.id_item) {
+                boosterIdMap[data.item.identifier] = data.item.id_item;
+            }
+        });
+        setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(boosterIdMap));
     }
     static getBoosterByIdentifier(identifier) {
         // Try to resolve from shop data first (site-specific id_item)
@@ -1283,17 +1291,20 @@ class Booster {
         // 1. Check HHEnvVariables config (per-site override, e.g. boosterId_MB1)
         const configId = ConfigHelper.getHHScriptVars("boosterId_" + identifier, false);
         if (configId) return configId;
-        // 2. Look up from store data (has correct per-site IDs)
+        // 2. Check cached booster ID map (populated from player inventory on shop page)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        if (boosterIdMap[identifier]) return boosterIdMap[identifier];
+        // 3. Look up from store data (has correct per-site IDs)
         const storeContents = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, []);
         const shopBoosters = storeContents[1] || [];
         const boosterInStore = shopBoosters.find(b => b.item && b.item.identifier === identifier);
         if (boosterInStore) return boosterInStore.item.id_item;
-        // 3. Look up from equipped booster status
+        // 4. Look up from equipped booster status
         const boosterStatus = Booster.getBoosterFromStorage();
         const allEquipped = [...(boosterStatus.normal || []), ...(boosterStatus.mythic || [])];
         const equippedBooster = allEquipped.find(b => b.item && b.item.identifier === identifier);
         if (equippedBooster) return equippedBooster.item.id_item;
-        // 4. Fall back to hardcoded value from static constants
+        // 5. Fall back to hardcoded value from static constants
         const boosterObj = Booster.getBoosterByIdentifier(identifier);
         return boosterObj ? boosterObj.id_item : null;
     }
@@ -11470,13 +11481,18 @@ class Shop {
                 var d = JSON.parse(this.dataset.d);
                 HaveExp += d.quantity * d.item.value;
             } });
+            var BoosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
             $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
                 var d = JSON.parse(this.dataset.d);
                 HaveBooster[d.item.identifier] = d.quantity;
+                if (d.item.id_item) {
+                    BoosterIdMap[d.item.identifier] = d.item.id_item;
+                }
             } });
             setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
             setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
             LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
@@ -13690,6 +13706,7 @@ tempSession("Temp_fought");
 tempSession("Temp_haveAff");
 tempSession("Temp_haveExp");
 tempSession("Temp_haveBooster");
+tempSession("Temp_boosterIdMap");
 tempStorage("Temp_hideBeatenOppo", "0");
 tempSession("Temp_LeagueOpponentList");
 // DISABLED: tempSession("Temp_LeagueTempOpponentList")  // formerly active
@@ -14006,6 +14023,7 @@ const TK = {
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
+    boosterIdMap: "Temp_boosterIdMap",
     haveExp: "Temp_haveExp",
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
