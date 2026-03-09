@@ -50,14 +50,15 @@ export function getPage(checkUnknown = false, checkPop = false):string
         {
             // if on Pop menu
             var t;
-            var popList= $("div.pop_list")
-            if (popList.length == 1 || unsafeWindow.pop_list)
+            var popList= $("div.pop_list").not('[style*="display:none"]').not('[style*="display: none"]');
+            if (popList.length >= 1 || unsafeWindow.pop_list)
             {
                 t = 'main';
             }
             else
             {
-                t = unsafeWindow.pop_index;
+                var popThumb = $(".pop_thumb_selected[pop_id]");
+                t = unsafeWindow.pop_index || (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
                 checkUnknown = false;
                 if (t === undefined)
                 {

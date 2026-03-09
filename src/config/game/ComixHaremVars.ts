@@ -1,7 +1,7 @@
 export class ComixHarem {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
     static trollIdMapping = {};
-    static lastQuestId: -1; //  TODO update when new quest comes
+    static lastQuestId = -1; //  TODO update when new quest comes
     static getEnv() {
         return {
             "www.comixharem.com": { name: "CH_prod", id: "hh_comix", baseImgPath: "https://ch.hh-content.com" },

@@ -1,7 +1,7 @@
 export class GayHarem {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Bella
     static trollIdMapping = {};
-    static lastQuestId: -1; //  TODO update when new quest comes
+    static lastQuestId = -1; //  TODO update when new quest comes
     static getEnv() {
         return {
             "www.gayharem.com": { name: "GH_prod", id: "hh_gay" },

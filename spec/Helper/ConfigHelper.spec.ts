@@ -48,7 +48,7 @@ describe("ConfigHelper", function() {
     it("HH", function() {
         MockHelper.mockDomain('www.hentaiheroes.com');
         expect(ConfigHelper.getHHScriptVars('eventIDReg')).toBe("event_");
-        expect(ConfigHelper.getHHScriptVars('lastQuestId')).toBe(1850);
+        expect(ConfigHelper.getHHScriptVars('lastQuestId')).toBe(2116);
         expect(ConfigHelper.getHHScriptVars('isEnabledSideQuest')).toBeTruthy();
 
         expect(ConfigHelper.getHHScriptVars('UNKNOWN')).toBeNull();
