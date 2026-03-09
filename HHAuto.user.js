@@ -1188,19 +1188,12 @@ class Booster {
     static collectBoostersFromMarket() {
         const activeSlots = $('#equiped .booster .slot:not(.empty):not(.mythic)').map((i, el) => $(el).data('d')).toArray();
         const activeMythicSlots = $('#equiped .booster .slot:not(.empty).mythic').map((i, el) => $(el).data('d')).toArray();
+        LogUtils_logHHAuto(`collectBoostersFromMarket: found ${activeSlots.length} normal boosters, ${activeMythicSlots.length} mythic boosters equipped`);
         const boosterStatus = {
             normal: activeSlots.map((data) => (Object.assign(Object.assign({}, data), { endAt: getHHVars('server_now_ts') + data.expiration }))),
             mythic: activeMythicSlots,
         };
         setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
-        // Cache id_item mapping from equipped boosters
-        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
-        [...activeSlots, ...activeMythicSlots].forEach((data) => {
-            if (data && data.item && data.item.identifier && data.item.id_item) {
-                boosterIdMap[data.item.identifier] = data.item.id_item;
-            }
-        });
-        setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(boosterIdMap));
     }
     static getBoosterByIdentifier(identifier) {
         // Try to resolve from shop data first (site-specific id_item)
@@ -1287,27 +1280,6 @@ class Booster {
         }
         return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
     }
-    static resolveItemId(identifier) {
-        // 1. Check HHEnvVariables config (per-site override, e.g. boosterId_MB1)
-        const configId = ConfigHelper.getHHScriptVars("boosterId_" + identifier, false);
-        if (configId) return configId;
-        // 2. Check cached booster ID map (populated from player inventory on shop page)
-        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
-        if (boosterIdMap[identifier]) return boosterIdMap[identifier];
-        // 3. Look up from store data (has correct per-site IDs)
-        const storeContents = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, []);
-        const shopBoosters = storeContents[1] || [];
-        const boosterInStore = shopBoosters.find(b => b.item && b.item.identifier === identifier);
-        if (boosterInStore) return boosterInStore.item.id_item;
-        // 4. Look up from equipped booster status
-        const boosterStatus = Booster.getBoosterFromStorage();
-        const allEquipped = [...(boosterStatus.normal || []), ...(boosterStatus.mythic || [])];
-        const equippedBooster = allEquipped.find(b => b.item && b.item.identifier === identifier);
-        if (equippedBooster) return equippedBooster.item.id_item;
-        // 5. Fall back to hardcoded value from static constants
-        const boosterObj = Booster.getBoosterByIdentifier(identifier);
-        return boosterObj ? boosterObj.id_item : null;
-    }
     static isAutoEquipAllowed() {
         const playerId = HeroHelper.getPlayerId();
         return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
@@ -1364,6 +1336,11 @@ class Booster {
             // if neither mythic nor love raid auto sandalwood is activated, no need to check
             return false;
         }
+        // Don't try to equip if we're on cooldown from a recent failure
+        if (Booster.isEquipOnCooldown()) {
+            LogUtils_logHHAuto("needSandalWoodEquipped: skipping - equip on cooldown");
+            return false;
+        }
         let needForMythic = false, needForLoveRaid = false;
         if (activatedMythic) {
             if (!eventMythicGirl) {
@@ -1382,7 +1359,42 @@ class Booster {
     static ownedSandalwoodAndNotEquiped() {
         const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_PERFUME.identifier);
         const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_PERFUME.identifier);
+        LogUtils_logHHAuto(`ownedSandalwoodAndNotEquiped: owned=${ownedSandalwood}, equipped=${equipedSandalwood}, result=${ownedSandalwood && !equipedSandalwood}`);
         return ownedSandalwood && !equipedSandalwood;
+    }
+    static isEquipOnCooldown() {
+        return !checkTimer('nextBoosterEquipTime');
+    }
+    static setEquipCooldown(seconds = 5 * 60) {
+        setTimer('nextBoosterEquipTime', seconds);
+        LogUtils_logHHAuto(`Booster equip cooldown set for ${seconds} seconds`);
+    }
+    static markBoosterAsEquippedInStorage(booster) {
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const isMythic = parseInt(booster.id_item) >= 632;
+        if (isMythic) {
+            const alreadyTracked = boosterStatus.mythic.some(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) === booster.identifier; });
+            if (!alreadyTracked) {
+                boosterStatus.mythic.push({
+                    item: booster,
+                    usages_remaining: 99 // Unknown, will be refreshed on next market visit
+                });
+                setStoredValue(HHStoredVarPrefixKey + 'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                LogUtils_logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
+            }
+        }
+        else {
+            const serverNow = getHHVars('server_now_ts');
+            const alreadyTracked = boosterStatus.normal.some(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) === booster.identifier && b.endAt > serverNow; });
+            if (!alreadyTracked) {
+                boosterStatus.normal.push({
+                    item: booster,
+                    endAt: serverNow + 8 * 3600 // Assume 8 hours remaining, refreshed on next market visit
+                });
+                setStoredValue(HHStoredVarPrefixKey + 'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                LogUtils_logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
+            }
+        }
     }
     static needSandalWoodMythic(nextTrollChoosen, eventMythicGirl = null) {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
@@ -1404,8 +1416,10 @@ class Booster {
     }
     static equipeSandalWoodIfNeeded(nextTrollChoosen, setting = 'plusEventMythicSandalWood') {
         return __awaiter(this, void 0, void 0, function* () {
-            const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-            const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, setting=${setting}`);
+            const activatedMythic = getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythic") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood") === "true";
+            const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + "Setting_plusLoveRaid") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood") === "true";
+            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
             let eventMythicGirl = null, loveRaid = null;
             let needForMythic = false, needForLoveRaid = false;
             if (activatedMythic) {
@@ -1423,23 +1437,46 @@ class Booster {
                     setting = 'plusEventLoveRaidSandalWood';
                 }
             }
+            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
             try {
                 if (((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
+                    // Check cooldown before attempting equip
+                    if (Booster.isEquipOnCooldown()) {
+                        LogUtils_logHHAuto("equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");
+                        return false;
+                    }
                     // Equip a new one
+                    LogUtils_logHHAuto("equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(SANDALWOOD_PERFUME)");
                     const equiped = yield HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+                    LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: equipBooster returned ${equiped}`);
                     if (!equiped) {
                         const numberFailure = HeroHelper.getSandalWoodEquipFailure();
+                        LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: failure #${numberFailure}`);
                         if (numberFailure >= 3) {
-                            LogUtils_logHHAuto("Failure when equip Sandalwood for mythic for the third time, deactivated auto sandalwood");
+                            LogUtils_logHHAuto("equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood setting=" + setting);
                             setStoredValue(HHStoredVarPrefixKey + "Setting_" + setting, 'false');
                         }
-                        else
-                            LogUtils_logHHAuto("Failure when equip Sandalwood for mythic");
+                        else {
+                            LogUtils_logHHAuto("equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
+                            // Server says max boosters equipped - mark it as equipped to prevent retries
+                            Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+                            // Set cooldown to prevent spamming equip attempts
+                            Booster.setEquipCooldown(5 * 60);
+                        }
+                    }
+                    else {
+                        // Reset failure counter on success
+                        LogUtils_logHHAuto("equipeSandalWoodIfNeeded: success, resetting failure counter");
+                        setStoredValue(HHStoredVarPrefixKey + "Temp_sandalwoodFailure", 0);
                     }
                     return equiped;
                 }
+                else {
+                    LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: conditions not met, no equip needed`);
+                }
             }
             catch (error) {
+                LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: caught error: ${error}`);
                 return Promise.resolve(false);
             }
             return Promise.resolve(false);
@@ -8332,12 +8369,13 @@ function getPage(checkUnknown = false, checkPop = false) {
         if (tab === 'pop' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length > 0) {
             // if on Pop menu
             var t;
-            var popList = $("div.pop_list");
-            if (popList.length == 1 || unsafeWindow.pop_list) {
+            var popList = $("div.pop_list").not('[style*="display:none"]').not('[style*="display: none"]');
+            if (popList.length >= 1 || unsafeWindow.pop_list) {
                 t = 'main';
             }
             else {
-                t = unsafeWindow.pop_index;
+                var popThumb = $(".pop_thumb_selected[pop_id]");
+                t = unsafeWindow.pop_index || (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
                 checkUnknown = false;
                 if (t === undefined) {
                     // Keep this but not triggered anymore. When Wrong POP is targetted, daily goals is highlighted
@@ -11481,18 +11519,13 @@ class Shop {
                 var d = JSON.parse(this.dataset.d);
                 HaveExp += d.quantity * d.item.value;
             } });
-            var BoosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
             $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
                 var d = JSON.parse(this.dataset.d);
                 HaveBooster[d.item.identifier] = d.quantity;
-                if (d.item.id_item) {
-                    BoosterIdMap[d.item.identifier] = d.item.id_item;
-                }
             } });
             setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
             setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
-            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
             LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
@@ -12569,6 +12602,7 @@ class AmourAgent {
     }
 }
 AmourAgent.trollIdMapping = {};
+AmourAgent.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/ComixHaremVars.ts
 class ComixHarem {
@@ -12622,6 +12656,7 @@ class ComixHarem {
 }
 ComixHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
 ComixHarem.trollIdMapping = {};
+ComixHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/GayHaremVars.ts
 class GayHarem {
@@ -12685,6 +12720,7 @@ class GayHarem {
 }
 GayHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Bella
 GayHarem.trollIdMapping = {};
+GayHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/GayPornstarHaremVars.ts
 class GayPornstarHarem {
@@ -12725,6 +12761,7 @@ class GayPornstarHarem {
 }
 GayPornstarHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Cuervos & Sandor
 GayPornstarHarem.trollIdMapping = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 };
+GayPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/HentaiHeroesVars.ts
 class HentaiHeroes {
@@ -12867,6 +12904,7 @@ class MangaRpg {
     }
 }
 MangaRpg.trollIdMapping = { 3: 3 };
+MangaRpg.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/PornstarHaremVars.ts
 class PornstarHarem {
@@ -12931,6 +12969,7 @@ class PornstarHarem {
     }
 }
 PornstarHarem.trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17 }; // under 10 id as usual
+PornstarHarem.lastQuestId = 16100; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/TransPornstarHaremVars.ts
 class TransPornstarHarem {
@@ -12972,6 +13011,7 @@ class TransPornstarHarem {
     }
 }
 TransPornstarHarem.trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 11: 8, 13: 9, 14: 10 };
+TransPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/index.ts
 
@@ -13706,7 +13746,6 @@ tempSession("Temp_fought");
 tempSession("Temp_haveAff");
 tempSession("Temp_haveExp");
 tempSession("Temp_haveBooster");
-tempSession("Temp_boosterIdMap");
 tempStorage("Temp_hideBeatenOppo", "0");
 tempSession("Temp_LeagueOpponentList");
 // DISABLED: tempSession("Temp_LeagueTempOpponentList")  // formerly active
@@ -14023,7 +14062,6 @@ const TK = {
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
-    boosterIdMap: "Temp_boosterIdMap",
     haveExp: "Temp_haveExp",
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
@@ -16313,10 +16351,13 @@ class HeroHelper {
                 LogUtils_logHHAuto("Booster " + booster + " not in inventory");
                 return Promise.resolve(false);
             }
-            const itemId = Booster.resolveItemId(booster.identifier) || booster.id_item;
+            let itemId = ConfigHelper.getHHScriptVars("boosterId_" + booster.identifier, false);
+            if (!itemId) {
+                itemId = booster.id_item;
+            }
             //action=market_equip_booster&id_item=316&type=booster
             setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
-            LogUtils_logHHAuto("Equip " + booster.name + " (id_item=" + itemId + "), setting autoloop to false");
+            LogUtils_logHHAuto("equipBooster: Equip " + booster.name + " (id_item=" + itemId + "), setting autoloop to false");
             const params = {
                 action: "market_equip_booster",
                 id_item: itemId,
@@ -16327,20 +16368,24 @@ class HeroHelper {
                 const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
                 window.history.replaceState(null, '', addNutakuSession('/shop.html'));
                 getHHAjax()(params, function (data) {
-                    if (data.success)
-                        LogUtils_logHHAuto('Booster equipped');
+                    LogUtils_logHHAuto(`equipBooster: AJAX success callback, data.success=${data.success}, full response=${JSON.stringify(data)}`);
+                    if (data.success) {
+                        LogUtils_logHHAuto('equipBooster: Booster equipped successfully');
+                    }
                     else {
-                        LogUtils_logHHAuto('Booster equip failed: ' + (data.error || 'unknown error'));
+                        LogUtils_logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
                         HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     }
                     setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                     setTimeout(autoLoop, randomInterval(500, 800));
-                    resolve(data.success === true);
+                    LogUtils_logHHAuto(`equipBooster: resolving with ${data.success}`);
+                    resolve(data.success);
                 }, function (err) {
-                    LogUtils_logHHAuto('Error occured booster not equipped, could be booster is already equipped');
+                    LogUtils_logHHAuto('equipBooster: AJAX error callback - ' + err);
                     setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                     setTimeout(autoLoop, randomInterval(500, 800));
                     HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                    LogUtils_logHHAuto('equipBooster: resolving with false');
                     resolve(false);
                 });
                 // change referer
