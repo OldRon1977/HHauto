@@ -326,6 +326,7 @@ tempSession("Temp_fought");
 tempSession("Temp_haveAff");
 tempSession("Temp_haveExp");
 tempSession("Temp_haveBooster");
+tempSession("Temp_boosterIdMap");
 tempStorage("Temp_hideBeatenOppo", "0");
 tempSession("Temp_LeagueOpponentList");
 // DISABLED: tempSession("Temp_LeagueTempOpponentList")  // formerly active

@@ -1209,6 +1209,14 @@ class Booster {
                 };
             }
         }
+        // Try to resolve from player's booster inventory (site-specific id_item)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        if (boosterIdMap[identifier]) {
+            const hardcoded = { B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS }[identifier];
+            if (hardcoded) {
+                return Object.assign(Object.assign({}, hardcoded), { id_item: boosterIdMap[identifier] });
+            }
+        }
         // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
@@ -1314,6 +1322,8 @@ class Booster {
                 setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
                 return false;
             }
+            // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
+            setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
             const equipped = yield HeroHelper.equipBooster(boosterObj);
             if (equipped) {
                 LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
@@ -11519,13 +11529,17 @@ class Shop {
                 var d = JSON.parse(this.dataset.d);
                 HaveExp += d.quantity * d.item.value;
             } });
+            var BoosterIdMap = {};
             $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
                 var d = JSON.parse(this.dataset.d);
                 HaveBooster[d.item.identifier] = d.quantity;
+                if (d.item.id_item)
+                    BoosterIdMap[d.item.identifier] = String(d.item.id_item);
             } });
             setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
             setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
             LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
@@ -13746,6 +13760,7 @@ tempSession("Temp_fought");
 tempSession("Temp_haveAff");
 tempSession("Temp_haveExp");
 tempSession("Temp_haveBooster");
+tempSession("Temp_boosterIdMap");
 tempStorage("Temp_hideBeatenOppo", "0");
 tempSession("Temp_LeagueOpponentList");
 // DISABLED: tempSession("Temp_LeagueTempOpponentList")  // formerly active
@@ -14066,6 +14081,7 @@ const TK = {
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
+    boosterIdMap: "Temp_boosterIdMap",
     // Troll
     TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
     TrollInvalid: "Temp_TrollInvalid",
