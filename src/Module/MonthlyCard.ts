@@ -1,3 +1,15 @@
+// MonthlyCard.ts -- Updates input validation patterns for monthly card features
+// based on available energy types.
+//
+// Monthly cards grant bonus energy across various game modes. This module
+// dynamically adjusts input validation patterns in the settings UI based on
+// which energy types (league, season, pantheon, etc.) are currently available
+// to the player, ensuring the configuration options stay in sync with unlocked
+// game features.
+//
+// Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     ConfigHelper,
     getHHVars

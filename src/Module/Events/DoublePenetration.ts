@@ -1,3 +1,12 @@
+// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
+//
+// Double Penetration is a time-limited competitive event with its own fight
+// mechanics. This module tracks event progress, manages fight energy, collects
+// milestone rewards, and handles the event-specific UI interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Double Penetration event is active)
+//
 import {
     RewardHelper,
     checkTimer,

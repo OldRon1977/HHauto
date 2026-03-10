@@ -1,4 +1,16 @@
-import { 
+// Labyrinth.ts -- Manages the labyrinth dungeon: floor navigation, team management,
+// and timer tracking.
+//
+// The labyrinth is a multi-floor dungeon where the player progresses through
+// rooms of enemies. This module handles navigating between floors, tracking
+// remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
+// for the actual fight logic and RelicManager.ts for relic selection.
+//
+// Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
+//             TeamModule.ts (team setup)
+// Used by: Service/index.ts (main automation loop)
+//
+import {
     ConfigHelper,
     TimeHelper,
     convertTimeToInt,

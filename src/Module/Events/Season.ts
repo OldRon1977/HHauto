@@ -1,4 +1,15 @@
-
+// Season.ts -- Season (Kiss) game mode: automated fights, opponent selection,
+// and energy tracking.
+//
+// The Season (also known as Kiss) mode is a PvP competition with its own
+// energy system and ranking. This module selects opponents based on win
+// probability (using BDSM calculations), manages season-specific energy,
+// tracks timers, and handles fight automation within the seasonal ladder.
+//
+// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
+//             EventModule.ts (event detection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     BDSMHelper,
     calculateBattleProbabilities,

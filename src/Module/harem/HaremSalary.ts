@@ -1,3 +1,11 @@
+// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
+//
+// Harem girls generate soft currency (salary) over time. This module
+// periodically navigates to the harem page and collects accumulated salary
+// earnings, tracking collection timers to avoid unnecessary page loads.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     ConfigHelper,
     getPage,

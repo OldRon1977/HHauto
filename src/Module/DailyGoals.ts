@@ -1,3 +1,11 @@
+// DailyGoals.ts -- Automates daily goals: claims rewards and tracks refresh timers.
+//
+// The game offers daily goals with rewards upon completion. This module
+// monitors goal completion status, claims available rewards, and manages
+// the refresh timer so goals are checked at appropriate intervals.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     RewardHelper,
     checkTimer,

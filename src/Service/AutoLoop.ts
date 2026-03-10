@@ -1,3 +1,24 @@
+// AutoLoop.ts
+//
+// The main automation loop that drives all periodic actions. Runs on
+// a configurable interval (default ~1 second) via setTimeout recursion.
+//
+// Each iteration:
+//   1. Checks if "burst" mode is active (master switch on, not in
+//      paranoia rest, menu not open)
+//   2. If active, runs through all action handlers in priority order
+//      (defined in AutoLoopActions.ts). Only one action fires per
+//      iteration to prevent conflicting navigations.
+//   3. Runs page-specific UI handlers regardless of burst state
+//   4. Manages paranoia flip if enabled
+//   5. Schedules the next iteration
+//
+// Also tracks energy spending across iterations (CheckSpentPoints)
+// to detect when the player manually buys energy, which resets the
+// corresponding cooldown timer.
+//
+// Used by: StartService (initial call), self (recursive setTimeout)
+
 import {
     TimeHelper,
     checkTimer,

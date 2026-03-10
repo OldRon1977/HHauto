@@ -1,3 +1,7 @@
+// Regex patterns used for input validation in the HHAuto settings menu.
+// Each pattern constrains what the user can enter in a specific settings field
+// (e.g., timers, thresholds, booster filters).
+
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 
 export const HHAuto_inputPattern = {

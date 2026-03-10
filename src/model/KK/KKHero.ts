@@ -1,3 +1,7 @@
+// Raw API model for the player's hero (main character).
+// Maps directly to the hero object in the game's API responses, including
+// energy pools, character stats, club membership, and equipment.
+
 import { KKEnergy } from "./KKEnergy"
 
 export class KKHero {

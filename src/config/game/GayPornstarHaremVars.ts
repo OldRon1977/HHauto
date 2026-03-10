@@ -1,3 +1,7 @@
+// Game-variant configuration for Gay Pornstar Harem.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Gay Pornstar Harem game variant.
+
 export class GayPornstarHarem {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Cuervos & Sandor
     static trollIdMapping = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 };

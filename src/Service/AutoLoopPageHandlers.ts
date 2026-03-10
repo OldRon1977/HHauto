@@ -1,3 +1,19 @@
+// AutoLoopPageHandlers.ts
+//
+// Handles page-specific UI enhancements that run on every loop
+// iteration regardless of whether the automation is "busy". These
+// are read-only or display-only operations that enrich the current
+// page with HHAuto overlays (reward previews, opponent info, timer
+// displays, etc.) without navigating away.
+//
+// Unlike AutoLoopActions (which fire one-at-a-time and navigate),
+// page handlers run unconditionally based on the current page ID.
+// They add informational elements, parse visible data, and set up
+// page-specific features like the league opponent list or labyrinth
+// auto-battle.
+//
+// Used by: AutoLoop.autoLoop() (called after action handlers)
+
 import { AutoLoopContext } from './AutoLoopContext';
 import {
     RewardHelper,

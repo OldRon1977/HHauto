@@ -1,3 +1,7 @@
+// Raw API model for a Love Raid as returned by the game's API.
+// Contains raid IDs, module type (champion/season/troll), timing,
+// girl data with shard progress, and event naming.
+
 export class KKLoveRaid {
   id_raid: number | string;
   id_girl: number | string;

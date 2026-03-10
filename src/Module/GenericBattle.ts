@@ -1,3 +1,13 @@
+// GenericBattle.ts -- Handles the battle result page UI across all fight types.
+//
+// When a battle completes (troll, event, league, etc.), this module manages
+// the result page: adds skip buttons, auto-skips fight animations, and parses
+// reward drops. It acts as a shared handler for all battle outcomes rather
+// than being specific to one game mode.
+//
+// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+//          and other fight modules that navigate to battle pages
+//
 import {
     RewardHelper,
     ConfigHelper,

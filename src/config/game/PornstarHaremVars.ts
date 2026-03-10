@@ -1,3 +1,7 @@
+// Game-variant configuration for Pornstar Harem.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Pornstar Harem game variant.
+
 export class PornstarHarem {
     static trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17 }; // under 10 id as usual
     static lastQuestId = 16100; //  TODO update when new quest comes

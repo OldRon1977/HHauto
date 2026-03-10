@@ -1,3 +1,7 @@
+// Registry of all stored variables (settings and temporary state) for HHAuto.
+// Defines each variable's storage type (setting vs. temp), default value,
+// validation regex, UI label, and type. Used by the settings menu and storage layer.
+
 import {
     clearTimer,
     deleteStoredValue,

@@ -1,3 +1,11 @@
+// Market.ts -- Auto-buys items from the in-game market using soft currency.
+//
+// Periodically checks the market shop for available items and purchases them
+// via AJAX requests using the player's soft currency. Manages purchase
+// cooldowns and tracks spending to avoid over-buying.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     HeroHelper,
     clearTimer,

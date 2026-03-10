@@ -1,3 +1,12 @@
+// LoveRaidManager.ts -- Love Raid event: manages raids and tracks girl shards.
+//
+// Love Raids are cooperative events where players raid together for girl shard
+// rewards. This module manages raid participation, tracks collected shards,
+// monitors raid timers, and handles the event page interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Love Raid event is active)
+//
 import {
     checkTimer,
     ConfigHelper,

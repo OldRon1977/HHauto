@@ -1,3 +1,12 @@
+// RelicManager.ts -- Manages labyrinth relics: detects available relics and
+// selects the best options.
+//
+// After completing labyrinth rooms, the player is offered a choice of relics
+// that provide bonuses for the current run. This module evaluates available
+// relic options and selects the optimal one based on configured preferences.
+//
+// Used by: LabyrinthAuto.ts (called after room completion)
+//
 import { HHStoredVarPrefixKey, TK } from "../config/index";
 import {
     ConfigHelper,

@@ -1,3 +1,25 @@
+// StorageHelper.ts
+//
+// Abstraction layer over browser localStorage and sessionStorage for
+// persisting all HHAuto settings and temporary state. Every stored
+// variable is registered in HHStoredVars (config/HHStoredVars.ts) with
+// a storage type, default value, and optional validation regex.
+//
+// Key design decisions:
+//   - Settings use localStorage (survive tab close); temp vars use
+//     sessionStorage (reset per session) unless the user enables
+//     per-tab isolation (settPerTab), which puts everything in session.
+//   - All keys are prefixed (HHStoredVarPrefixKey) to avoid collisions
+//     with game data in the same storage.
+//   - Write errors (storage full) trigger a log cleanup and one retry.
+//   - Migration logic (migrateHHVars) handles key prefix changes
+//     between script versions.
+//
+// Also provides export/import of settings as JSON files and a popup
+// for selecting which reward types to auto-collect.
+//
+// Used by: Every module and helper in the project.
+
 import { setDefaults } from '../Service/index';
 import { cleanLogsInStorage, fillHHPopUp, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
 import { HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';

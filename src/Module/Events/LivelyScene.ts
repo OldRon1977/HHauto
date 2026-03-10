@@ -1,3 +1,12 @@
+// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
+//
+// Lively Scene is a time-limited event where the player progresses through
+// scenes to earn rewards. This module tracks scene progression, manages
+// event energy, and collects available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Lively Scene event is active)
+//
 import {
     ConfigHelper,
     randomInterval,

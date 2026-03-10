@@ -1,13 +1,33 @@
+/**
+ * EventModule.ts -- Central coordinator for all time-limited game events.
+ *
+ * This is the backbone of event automation. It detects which events are active on the
+ * game's home or event pages, routes parsing to the correct event-specific handler
+ * (PlusEvent, MythicEvent, BossBang, etc.), and manages shared event state in
+ * sessionStorage (event list, event girls, champion girls).
+ *
+ * Key responsibilities:
+ * - Parse event pages to extract event data and girl reward information.
+ * - Track event lifecycle: detect active events, mark completed events, and clean up
+ *   expired event data.
+ * - Prioritize event girls based on the user-configured troll order.
+ * - Inject UI enhancements: completion badges on the home page, priority labels on
+ *   girl reward tiles, a "collect all" button for event chests.
+ * - Provide countdown timers on the home page for Path of Value / Path of Glory events.
+ *
+ * Called by AutoLoop on each tick. Individual event handlers (in sibling files) contain
+ * the event-type-specific parsing and reward collection logic.
+ */
 import {
     TimeHelper,
     checkTimer,
     checkTimerMustExist,
     clearTimer,
     convertTimeToInt,
-    ConfigHelper, 
-    getLimitTimeBeforeEnd, 
-    getPage, 
-    getSecondsLeft, 
+    ConfigHelper,
+    getLimitTimeBeforeEnd,
+    getPage,
+    getSecondsLeft,
     getStoredJSON,
     getStoredValue,
     getTextForUI,
@@ -38,6 +58,11 @@ import { PlusEvent } from "./PlusEvents";
 import { SultryMysteries } from "./SultryMysteries";
 
 export class EventModule {
+    /**
+     * Remove stale event data from sessionStorage for the given event ID.
+     * Also prunes expired events, disables timers when no mythic/regular events remain,
+     * and cleans up associated girl and champion lists.
+     */
     static clearEventData(inEventID:string)
     {
         //clearTimer('eventMythicNextWave');

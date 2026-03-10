@@ -1,3 +1,7 @@
+// Model for a league opponent displayed in the league battle screen.
+// Holds the opponent's ID, nickname, power level, and the pre-computed
+// battle simulation result used to decide whether to fight.
+
 import { BDSMSimu } from './BDSMSimu';
 import { KKLeagueOpponent } from './KK/index';
 

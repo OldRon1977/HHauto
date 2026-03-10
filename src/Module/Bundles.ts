@@ -1,3 +1,11 @@
+// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
+//
+// The game periodically offers free bundle rewards in a popup. This module
+// detects available bundles, navigates to the shop page, and claims them
+// automatically on a timer-based schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     RewardHelper,
     TimeHelper,

@@ -1,3 +1,20 @@
+/**
+ * Browser detection utilities.
+ *
+ * Parses the browser's User-Agent string to identify the browser name and
+ * version. Used primarily by the debug log exporter (saveHHDebugLog) so
+ * that bug reports include the user's browser environment.
+ */
+
+/**
+ * Detect the browser name and full version from the given Navigator object.
+ *
+ * Handles Chrome, Firefox, Safari, Opera (OPR), Edge, and IE/Trident.
+ * Returns a human-readable string like "chrome 120.0.6099.130".
+ *
+ * @param nav - The Navigator object (typically `window.navigator`).
+ * @returns A string in the format "<browser> <version>".
+ */
 export function getBrowserData(nav: Navigator) {
     let name:string, version;
 

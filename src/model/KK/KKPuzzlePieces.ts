@@ -1,3 +1,7 @@
+// Raw API model for a puzzle piece (collectible event progress item).
+// Contains the piece and objective IDs, associated reward data,
+// and flags for whether the reward has been unlocked and claimed.
+
 export class KKPuzzlePieces {
     id_piece: number;
     id_objective: number;

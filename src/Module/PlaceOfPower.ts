@@ -1,3 +1,12 @@
+// PlaceOfPower.ts -- Automates Place of Power: navigates to active PoPs and
+// collects rewards.
+//
+// Places of Power (PoPs) are map locations that grant periodic rewards. This
+// module detects which PoPs are currently active, navigates to them, and
+// collects available rewards on a timed schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     clearTimer,
     convertTimeToInt,
