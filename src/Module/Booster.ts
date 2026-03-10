@@ -237,6 +237,15 @@ export class Booster {
             }
         }
 
+        // Try to resolve from player's booster inventory (site-specific id_item)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        if (boosterIdMap[identifier]) {
+            const hardcoded = {B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS}[identifier];
+            if (hardcoded) {
+                return { ...hardcoded, id_item: boosterIdMap[identifier] };
+            }
+        }
+
         // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
@@ -358,6 +367,9 @@ export class Booster {
             setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
             return false;
         }
+
+        // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
+        setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
 
         const equipped = await HeroHelper.equipBooster(boosterObj);
         if (equipped) {

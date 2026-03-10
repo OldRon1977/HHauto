@@ -51,12 +51,14 @@ export class Shop {
             $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveAff+=d.quantity*d.item.value;}});
             $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveExp+=d.quantity*d.item.value;}});
     
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity;}});
+            var BoosterIdMap={};
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = String(d.item.id_item);}});
     
             setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
             setStoredValue(HHStoredVarPrefixKey+TK.haveBooster, JSON.stringify(HaveBooster));
-    
+            setStoredValue(HHStoredVarPrefixKey+TK.boosterIdMap, JSON.stringify(BoosterIdMap));
+
             logHHAuto('counted '+getStoredValue(HHStoredVarPrefixKey+TK.haveAff)+' Aff, '+getStoredValue(HHStoredVarPrefixKey+TK.haveExp)+' Exp, Booster: ' + JSON.stringify(HaveBooster));
     
             setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify([assA,assB,assG,assP]));

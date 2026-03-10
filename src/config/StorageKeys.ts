@@ -267,6 +267,7 @@ export const TK = {
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
+    boosterIdMap: "Temp_boosterIdMap",
 
     // Troll
     TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
