@@ -1,3 +1,7 @@
+// Per-environment (game variant) configuration for HHAuto.
+// Detects the current game domain and loads the matching set of page IDs, URLs,
+// CSS selectors, feature flags, and troll/quest data for that variant.
+
 import { getLanguageCode } from "../Helper/LanguageHelper";
 import { Harem } from '../Module/index';
 import { 

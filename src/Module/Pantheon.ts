@@ -1,3 +1,12 @@
+// Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
+//
+// The Pantheon is a PvP arena with its own energy system. This module selects
+// opponents, manages Pantheon-specific fight energy, and handles cooldown
+// timers. Similar to League but uses a separate energy pool and ranking system.
+//
+// Depends on: TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     RewardHelper,
     checkTimer,

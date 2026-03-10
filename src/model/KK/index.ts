@@ -1,3 +1,6 @@
+// Barrel export for KK (raw API) model types.
+// Re-exports all game API data structure classes used throughout HHAuto.
+
 export * from './kkDailyGoal'
 export * from './KKEnergy'
 export * from './KKEventGirl'

@@ -1,3 +1,26 @@
+// StartService.ts
+//
+// One-time initialization that runs when the script first loads on a
+// game page. Responsibilities:
+//
+//   - Version migration: detects script version changes and runs
+//     data migrations (e.g. consolidating mask reward settings)
+//   - Environment checks: verifies jQuery is loaded, Hero object
+//     exists, and the user is logged in before proceeding
+//   - Menu setup: creates the HHAuto settings menu, populates
+//     dynamic dropdowns (troll targets, league sort, labyrinth),
+//     and binds all event handlers
+//   - UI injection: adds the pInfo overlay, hides cross-game promo
+//     banners, moves ads, and sets up the debug dialog
+//   - Auto-loop start: restores timers from storage, applies
+//     defaults, then kicks off the first autoLoop() call
+//
+// The hardened_start() function is the true entry point, called both
+// immediately and after a 5-second delay as a fallback. It guards
+// against missing jQuery and "Forbidden" error pages.
+//
+// Used by: src/index.ts (entry point)
+
 import {
     addEventsOnMenuItems,
     ConfigHelper,

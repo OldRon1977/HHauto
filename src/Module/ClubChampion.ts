@@ -1,3 +1,12 @@
+// ClubChampion.ts -- Automates Club Champion cooperative fights.
+//
+// Club Champions are cooperative boss battles shared among club members. This
+// module manages fight scheduling, energy tracking, and automatic participation
+// in club champion rounds. Requires active club membership (see Club.ts).
+//
+// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     TimeHelper,
     convertTimeToInt,

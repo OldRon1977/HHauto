@@ -1,10 +1,31 @@
+/**
+ * Logging and debug-export utilities for HHAuto.
+ *
+ * All log entries are persisted in the browser's storage (localStorage /
+ * GM storage) as a JSON object keyed by timestamp + caller name. This
+ * allows the user to review the automation history even after a page reload.
+ *
+ * The log is capped at MAX_LINES entries; older entries are pruned on each
+ * write to keep storage usage bounded.
+ *
+ * Also provides a one-click debug log exporter that bundles all stored
+ * settings, browser info, and log entries into a downloadable JSON file
+ * for sharing in bug reports.
+ */
+
 import { deleteStoredValue, extractHHVars, getLocalStorageSize, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { getBrowserData } from "./BrowserUtils";
 import { safeJsonParse } from './Utils';
 
+/** Maximum number of log entries kept in storage before old ones are pruned. */
 const MAX_LINES = 500
 
+/**
+ * Wipe all existing log entries from storage and record a single
+ * "cleaned" marker with the storage size before the clean.
+ * Also deletes the cached league opponent list which can grow large.
+ */
 export function cleanLogsInStorage() {
     var currentLoggingText: any = {};
     let currDate = new Date();
@@ -16,6 +37,17 @@ export function cleanLogsInStorage() {
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
 }
 
+/**
+ * Write a timestamped log entry to both the browser console and persistent
+ * storage. Automatically detects the calling function name from the stack
+ * trace and uses it as part of the log key.
+ *
+ * Accepts any number of arguments: a single string is stored as-is;
+ * objects are JSON-serialized with circular-reference protection.
+ *
+ * When the stored log exceeds MAX_LINES, the oldest entries are removed.
+ * Duplicate keys within the same millisecond get a numeric suffix.
+ */
 export function logHHAuto(...args)
 {
 
@@ -35,6 +67,8 @@ export function logHHAuto(...args)
     var currentLoggingText:any;
     var nbLines:number;
 
+    // JSON.stringify replacer that tracks seen objects to avoid
+    // "Converting circular structure to JSON" errors.
     const getCircularReplacer = () => {
         const seen = new WeakSet();
         return (key, value) => {
@@ -101,6 +135,13 @@ export function logHHAuto(...args)
 
 }
 
+/**
+ * Bundle all HHAuto settings, browser info, script version, and the
+ * stored log into a JSON file, then trigger a browser download.
+ *
+ * The resulting file can be attached to bug reports so developers
+ * can reproduce issues without asking the user for each detail.
+ */
 export function saveHHDebugLog()
 {
     var dataToSave={}

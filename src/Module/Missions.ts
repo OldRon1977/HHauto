@@ -1,3 +1,12 @@
+// Missions.ts -- Automates missions: collects completed missions and starts new ones.
+//
+// Missions are time-based tasks that yield rewards. This module checks for
+// completed missions, collects their rewards, and starts the next available
+// mission automatically. Tracks mission durations and schedules collection
+// at the right time.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     RewardHelper,
     TimeHelper,

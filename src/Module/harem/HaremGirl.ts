@@ -1,4 +1,14 @@
-import { 
+// HaremGirl.ts -- Individual girl data: stats, upgrade costs, and affection/XP
+// management.
+//
+// Each girl in the harem has stats, levels, affection, and XP. This module
+// handles reading and managing individual girl data, calculating upgrade
+// costs, tracking affection and XP progress, and performing upgrades when
+// configured to do so.
+//
+// Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
+//
+import {
     deleteStoredValue,
     ConfigHelper,
     getHHVars,

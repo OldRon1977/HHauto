@@ -1,3 +1,11 @@
+// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
+//
+// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
+// spreadsheets) directly into the game interface. Listens for AJAX responses
+// to inject links at the right time when relevant pages load.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     ConfigHelper,
     getPage,

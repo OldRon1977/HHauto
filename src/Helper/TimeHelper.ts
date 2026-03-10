@@ -1,3 +1,18 @@
+// TimeHelper.ts
+//
+// Time-related utilities: converting between human-readable durations
+// ("2d 05:30:00"), seconds, and the game's localized timer strings
+// (e.g. "2j 5h 30m" in French). Also provides contest-safe-time
+// logic that prevents spending energy too close to a contest end.
+//
+// The game renders timers with locale-specific unit labels (h/m/s in
+// English, j/h/m/s in French, etc.). convertTimeToInt() uses the
+// i18n timer definitions to parse these back into seconds regardless
+// of locale.
+//
+// Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
+//          InfoService (display remaining times)
+
 import { Contest } from '../Module/Contest';
 import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK } from '../config/index';

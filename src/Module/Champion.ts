@@ -1,3 +1,11 @@
+// Champion.ts -- Automates the Champions game mode.
+//
+// Handles map navigation, ticket-based fights, and reward collection for the
+// Champions feature. Manages fight energy (tickets), selects opponents, and
+// tracks cooldown timers between rounds.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import { get } from 'jquery';
 import {
     convertTimeToInt,

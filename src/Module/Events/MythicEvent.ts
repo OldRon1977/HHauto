@@ -1,3 +1,14 @@
+// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
+//
+// Mythic events feature special troll bosses with wave-based progression and
+// unique girl shard rewards. This module tracks wave progress, coordinates
+// with Troll.ts for fight prioritization, and manages event-specific timers
+// and girl shard tracking.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Mythic event is active),
+//          Troll.ts (reads event troll priorities)
+//
 import { clearTimer, convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/index";
 import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";

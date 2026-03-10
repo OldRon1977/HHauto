@@ -1,3 +1,7 @@
+// Raw API model for a girl associated with an active event.
+// Maps directly to the event girl object in the game's API responses,
+// including shard count, source info, and navigation anchors.
+
 export class KKEventGirl {
     girlData: Record<string, unknown>;
     shards: number;

@@ -1,8 +1,24 @@
-import { 
+// InfoService.ts
+//
+// Renders the floating "pInfo" overlay panel that shows the current
+// automation status at a glance: which modules are active, their
+// next scheduled run times, energy counts, and paranoia state.
+//
+// The panel is positioned differently on the home page vs. other
+// pages. On hover it expands to show the full status list. Double-
+// clicking it toggles the master automation switch as a quick
+// shortcut.
+//
+// updateData() is called every loop iteration to refresh the display
+// with current timer values and module states.
+//
+// Used by: StartService (creates the panel), AutoLoop (refreshes it)
+
+import {
     NumberHelper,
     ConfigHelper,
     getPage,
-    getStoredValue, 
+    getStoredValue,
     getTextForUI,
     getTimeLeft ,
     getTimer,

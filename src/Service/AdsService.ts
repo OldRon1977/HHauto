@@ -1,3 +1,16 @@
+// AdsService.ts
+//
+// Manages in-game advertisements that can interfere with automation.
+// When the "show ads in background" setting is enabled, this service
+// pushes ad containers behind the game UI via z-index overrides so
+// they don't block click targets. On non-home pages, ads are
+// repositioned further down the page to avoid overlap.
+//
+// Also detects cross-game promo popups and sex-friends ads that use
+// a different DOM structure than regular ads.
+//
+// Used by: StartService (on page load)
+
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";

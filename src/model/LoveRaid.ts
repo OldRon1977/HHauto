@@ -1,3 +1,7 @@
+// Model representing a Love Raid event instance.
+// Contains the raid target (girl), associated troll/champion/season module,
+// timing (start/end), shard progress, and reward availability flags.
+
 export class LoveRaid {
     id_girl: number;
     trollId: number;

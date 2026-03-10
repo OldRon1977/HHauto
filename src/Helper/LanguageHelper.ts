@@ -1,3 +1,19 @@
+// LanguageHelper.ts
+//
+// Handles UI text localization for the HHAuto menu and tooltips.
+// Detects the game's current language from the <html lang> attribute
+// and resolves translated strings from the i18n dictionaries.
+//
+// Fallback strategy: If a translation is missing or outdated (version
+// older than the English entry), English text is used. This ensures
+// new menu items are always visible before translators catch up.
+//
+// Also provides a translation popup (manageTranslationPopUp) that lets
+// community members contribute translations directly from the game UI,
+// exporting them as a downloadable text file.
+//
+// Used by: Nearly every Helper and Module that renders UI text.
+
 import { fillHHPopUp, logHHAuto } from '../Utils/index';
 import { HHAuto_ToolTips } from "../i18n/index";
 

@@ -1,3 +1,20 @@
+// AutoLoopActions.ts
+//
+// Contains all discrete action handlers called by the AutoLoop. Each
+// handler checks whether its preconditions are met (feature enabled,
+// timer expired, energy available, not busy) and if so, triggers the
+// corresponding module action and marks the loop as busy.
+//
+// Handlers are executed in a fixed priority order defined in AutoLoop.ts.
+// Only one action fires per loop iteration (once ctx.busy is true, all
+// subsequent handlers skip). This serialization prevents conflicting
+// navigation and ensures the game page is in a known state.
+//
+// Handler naming convention: handle<Feature>(ctx) where ctx is the
+// shared AutoLoopContext carrying busy state, event data, and energy.
+//
+// Used by: AutoLoop.autoLoop()
+
 import { AutoLoopContext } from './AutoLoopContext';
 import { ModuleHandlerDescriptor } from '../model/IModule';
 import {

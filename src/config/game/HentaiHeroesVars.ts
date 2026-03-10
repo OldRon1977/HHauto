@@ -1,3 +1,7 @@
+// Game-variant configuration for Hentai Heroes (the primary/default variant).
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Hentai Heroes game variant.
+
 export class HentaiHeroes {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
     static trollIdMapping = { 21: 19 };

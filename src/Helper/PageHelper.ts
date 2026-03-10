@@ -1,3 +1,21 @@
+// PageHelper.ts
+//
+// Determines which game page the player is currently viewing. The game
+// uses a root element's `page` attribute to identify the view, but the
+// Activities page multiplexes sub-pages (Contests, Missions, Daily
+// Goals, Place of Power) via tabs and query parameters.
+//
+// This helper resolves those ambiguities into a single canonical page
+// ID that AutoLoop and modules can switch on. It also logs unknown
+// page IDs to help detect game updates that add new pages.
+//
+// Why the complexity: The Activities page redesign merged several
+// formerly separate pages into tabs, but automation still needs
+// distinct IDs for each to route actions correctly.
+//
+// Used by: AutoLoop (page routing), StartService (initial setup),
+//          PageNavigationService (navigation targets)
+
 import { PlaceOfPower } from '../Module/index';
 import { isJSON, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, TK } from '../config/index';

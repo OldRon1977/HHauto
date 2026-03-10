@@ -1,3 +1,14 @@
+// MouseService.ts
+//
+// Pauses automation while the user is actively interacting with the
+// page. Binds mousemove, scroll, and mouseup events that set a
+// "mouseBusy" flag for a configurable timeout (default 5s).
+//
+// While mouseBusy is true, AutoLoop skips all actions to avoid
+// interfering with manual gameplay.
+//
+// Used by: StartService (binds events), AutoLoop (checks flag)
+
 import { getStoredValue } from '../Helper/index';
 import { HHStoredVarPrefixKey, SK } from '../config/index';
 

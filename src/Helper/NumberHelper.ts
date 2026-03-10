@@ -1,3 +1,18 @@
+// NumberHelper.ts
+//
+// Utility functions for formatting and parsing numbers across the UI.
+// Handles thousands separators (locale-aware via toLocaleString) and
+// compact notation (K, M, B, T suffixes) for displaying large values
+// like gold, XP, or damage in a readable way.
+//
+// The rounding modes (ceil/round/floor via `updown`) matter because
+// the game rounds differently by context: reward previews round down
+// to avoid overpromising, cost displays round up to avoid underpaying.
+//
+// Used by: HHMenuHelper (input formatting), RewardHelper (reward
+//          display), InfoService (player info panel)
+
+/** Event handler for menu inputs that auto-formats with thousands separators. */
 export function add1000sSeparator1()
 {
     var nToFormat = this.value;

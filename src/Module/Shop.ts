@@ -1,3 +1,12 @@
+// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
+// inventory.
+//
+// Handles automated interactions with the in-game equipment shop. Buys
+// desired equipment, sells unwanted items, and manages inventory slots.
+// Tracks shop refresh timers and available currency.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     checkTimer,
     convertTimeToInt,

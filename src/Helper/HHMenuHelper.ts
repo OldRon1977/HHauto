@@ -1,3 +1,22 @@
+// HHMenuHelper.ts
+//
+// Builds and manages the HHAuto settings menu injected into the game page.
+// The menu is a floating panel (div#sMenu) with toggles, dropdowns, and
+// inputs for every automation feature. Responsibilities:
+//
+//   - Creating the menu toggle button and positioning it per page
+//   - Generating the full HTML menu with sections for each module
+//   - Reading user settings from inputs into storage (getMenuValues)
+//   - Writing stored settings back into inputs (setMenuValues)
+//   - Populating dynamic dropdowns (troll targets, league sort, labyrinth)
+//   - Masking sections that depend on disabled parent features
+//
+// Why one large class: The menu is tightly coupled to storage keys
+// (SK/TK) and input patterns. Splitting further would scatter the
+// HTML template across many files without real benefit.
+//
+// Used by: StartService (on init), AutoLoop (button state refresh)
+
 import { LabyrinthAuto } from '../Module/LabyrinthAuto';
 import { Booster } from '../Module/Booster';
 import { LeagueHelper } from '../Module/League';

@@ -1,3 +1,7 @@
+// Model for a player in the BDSM (battle simulation) system.
+// Holds combat stats (HP, attack, defense, crit, shields, stun, reflect, etc.)
+// used by the battle simulator to predict fight outcomes.
+
 //@ts-check
 export class BDSMPlayer {
     hp: number;

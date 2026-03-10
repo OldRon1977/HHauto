@@ -1,3 +1,18 @@
+// index.ts - HHAuto entry point
+//
+// This is the Tampermonkey userscript entry point. It augments the
+// global Window interface with game-specific properties that the script
+// reads from the page context (via unsafeWindow), then kicks off
+// initialization in two ways:
+//
+//   1. An IIFE that calls hardened_start() immediately on script load
+//   2. A setTimeout fallback that retries after 5 seconds in case the
+//      game's JS hasn't finished loading yet
+//
+// hardened_start() verifies jQuery is available, checks for "Forbidden"
+// error pages, and delegates to start() which sets up the full menu,
+// timers, and auto-loop.
+
 import { hardened_start } from "./Service/index";
 import { KKDailyGoal, KKHero, KKLoveRaid, KKPentaDrillOpponents } from "./model/index";
 
