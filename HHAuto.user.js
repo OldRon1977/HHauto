@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.29.16
+// @version      7.29.17.beta
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -186,6 +186,10 @@ HHAuto_ToolTips.en['spendKobans0'] = { version: "5.6.24", elementText: "Spend Ko
 //HHAuto_ToolTips.en['spendKobans2'] = { version: "5.6.24", elementText: "You\'ve been warned", tooltip: "Third security switches for usage of kobans <br>Have to be activated after the second one.<br> All 3 needs to be active for Kobans spending functions"};
 HHAuto_ToolTips.en['kobanBank'] = { version: "5.6.24", elementText: "Kobans Bank", tooltip: "(Integer)<br>Minimum Kobans kept when using Kobans spending functions" };
 HHAuto_ToolTips.en['displayTitle'] = { version: "5.6.24", elementText: "Display options" };
+HHAuto_ToolTips.en['haremTitle'] = { version: "7.29.17", elementText: "Harem options" };
+HHAuto_ToolTips.en['showHaremAvatarMissingGirls'] = { version: "7.29.17", elementText: "Show Avatar", tooltip: "Show Avatar for missing girls in Harem" };
+HHAuto_ToolTips.en['showHaremTools'] = { version: "7.29.17", elementText: "Show Tools", tooltip: "Show grils tools in Harem" };
+HHAuto_ToolTips.en['showHaremSkillsButtons'] = { version: "7.29.17", elementText: "Show Skills Buttons", tooltip: "Show upgrade skill buttons in Harem" };
 HHAuto_ToolTips.en['autoActivitiesTitle'] = { version: "5.6.24", elementText: "Activities" };
 HHAuto_ToolTips.en['buyCombat'] = { version: "5.6.24", elementText: "Buy comb. for events", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>If enabled : <br>Buying combat point during last X hours of event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Combats", tooltip: "(Integer)<br>X last hours of event" };
@@ -365,6 +369,8 @@ HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a 
 HHAuto_ToolTips.en['giveaffection'] = { version: "6.2.0", elementText: "Give Affection", tooltip: "Automatically give max current range affection to selected girl." };
 HHAuto_ToolTips.en['costaffection'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
 HHAuto_ToolTips.en['giveAllaffection'] = { version: "6.2.0", elementText: "Give All Affection", tooltip: "Automatically give all affection to selected girl." };
+HHAuto_ToolTips.en['giveequipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Automatically give all equipment to selected girl." };
+HHAuto_ToolTips.en['giveskills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Automatically give all skills to selected girl." };
 HHAuto_ToolTips.en['menuExp'] = { version: "6.2.0", elementText: "Give Exp", tooltip: "" };
 HHAuto_ToolTips.en['menuExpInfo'] = { version: "5.30.0", elementText: "Max out button will be used until requested level is reached" };
 HHAuto_ToolTips.en['menuExpButton'] = { version: "5.30.0", elementText: "Go !", tooltip: "Launch giving exp." };
@@ -431,9 +437,20 @@ HHAuto_ToolTips.en['ChangeTeamButton'] = { version: "5.6.24", elementText: "Curr
 HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Possible Best", tooltip: "Get list of top 16 girls for your team if they are Max Lv & Aff" };
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
 HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams", tooltip: "Equip team girls equipment with ingame girl equip button" };
-HHAuto_ToolTips.en['StuffTeam'] = { version: "7.29.5", elementText: "Stuff Team", tooltip: "Stuff team" };
-HHAuto_ToolTips.en['skillPointTooltipTitle'] = { version: "7.29.5", elementText: "Skill points:<br/>(needed/owned)" };
-HHAuto_ToolTips.en['skillPointTooltipDescription'] = { version: "7.29.5", elementText: "Main girl up to 5th skill<br />Other girls up to 4th skill" };
+HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team", tooltip: "Auto build the team by selecting equipment and skills. Can also remove skills from other girls if needed. Money limit will be considered" };
+HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
+HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
+HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
+HHAuto_ToolTips.en['StuffTeamSkills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Auto select girl skills." };
+HHAuto_ToolTips.en['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Reset Mythic girls", tooltip: "Reset Mythic girls to ket more orbs" };
+HHAuto_ToolTips.en['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Reset Legendary girls", tooltip: "Reset Legendary girls to ket more orbs" };
+HHAuto_ToolTips.en['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Reset Epic girls", tooltip: "Reset Epic girls to ket more orbs" };
+HHAuto_ToolTips.en['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Reset Rare girls", tooltip: "Reset Rare girls to ket more orbs" };
+HHAuto_ToolTips.en['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Reset Common girls", tooltip: "Reset Common girls to ket more orbs" };
+HHAuto_ToolTips.en['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Un-equip all Before", tooltip: "Remove all equipment from girls before starting" };
+HHAuto_ToolTips.en['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skill points:<br/>(needed/owned)" };
+HHAuto_ToolTips.en['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Main girl up to 5th skill<br />Other girls up to 4th skill" };
+HHAuto_ToolTips.en['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Enough bulbs owned" };
 HHAuto_ToolTips.en['AssignTopTeam'] = { version: "5.6.24", elementText: "Assign first 7", tooltip: "Put the first 7 ones in the team." };
 HHAuto_ToolTips.en['ExportGirlsData'] = { version: "5.6.24", elementText: "⤓", tooltip: "Export Girls data." };
 HHAuto_ToolTips.en['autoFreeBundlesCollect'] = { version: "5.16.0", elementText: "Collect free bundles", tooltip: "Collect free bundles." };
@@ -442,10 +459,10 @@ HHAuto_ToolTips.en['saveDefaults'] = { version: "5.6.24", elementText: "Save def
 HHAuto_ToolTips.en['autoGiveAff'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Aff to girls in order ( you can use OCD script to filter )." };
 HHAuto_ToolTips.en['autoGiveExp'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Exp to girls in order ( you can use OCD script to filter )." };
 HHAuto_ToolTips.en['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pantheon", tooltip: "" };
-HHAuto_ToolTips.en['autoLabyrinth'] = { version: "7.19.0", elementText: "Labyrinth", tooltip: "if enabled : Automatically do Labyrinth simple mode.<br/>Will select easiest opponent not looking for later step<br/>Difficulty need to be manually selected before." };
+HHAuto_ToolTips.en['autoLabyrinth'] = { version: "7.19.0", elementText: "Labyrinth", tooltip: "if enabled : Automatically do Labyrinth simple mode.<br/>Will select easiest opponent not looking for later step." };
 HHAuto_ToolTips.en['autoLabyHard'] = { version: "7.25.3", elementText: "Hard mode", tooltip: "if enabled : Automatically do Labyrinth hard mode.<br/>Will select hardest opponent group and low power." };
 HHAuto_ToolTips.en['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "if enabled : Automatically sweep labyrinth floor when available." };
-HHAuto_ToolTips.en['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Difficulty", tooltip: "Labyrinth difficulty to select before starting.<br/>Need to be manually selected before starting the labyrinth." };
+HHAuto_ToolTips.en['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Difficulty", tooltip: "Labyrinth difficulty to select before starting." };
 HHAuto_ToolTips.en['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Easy" };
 HHAuto_ToolTips.en['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal" };
 HHAuto_ToolTips.en['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Hard" };
@@ -5807,6 +5824,16 @@ class DailyGoalsIcon {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/harem/Harem.ts
+var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
 
 
 
@@ -5817,16 +5844,19 @@ class Harem {
     }
     static clearHaremToolVariables() {
         // logHHAuto('clearHaremToolVariables');
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlSpent);
-        const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlSpent");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls");
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings");
+        const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed");
         if (lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
-            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, "none");
+            setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", "none");
         }
     }
     static getGirlMapSorted(inSortType = "DateAcquired", inSortReversed = true) {
@@ -5877,7 +5907,7 @@ class Harem {
     static getHaremGirlsFromOcdIfExist() {
         if (localStorage.getItem('HHS.HHPNMap') !== null) {
             try {
-                const girlsArray = safeJsonParse(localStorage.getItem('HHS.HHPNMap'), null);
+                const girlsArray = JSON.parse(localStorage.getItem('HHS.HHPNMap'));
                 let girlNameDictionary = new Map();
                 girlsArray.forEach((data) => {
                     girlNameDictionary.set(data[0] + "", data[1]);
@@ -5893,13 +5923,13 @@ class Harem {
         }
     }
     static getGirlData(girlId) {
-        var gMap = getHHVars('girls_data_list') || getHHVars('availableGirls');
+        var gMap = getHHVars('girlsDataList');
         if (gMap === null) {
             // error
             //logHHAuto("Girls Map was undefined...! Error, cannot export girls.");
         }
         else {
-            return gMap.find((girl) => girl.id_girl == girlId);
+            return Object.values(gMap).find((girl) => girl.id_girl == girlId);
         }
         return null;
     }
@@ -6006,7 +6036,7 @@ class Harem {
     }
     static getGirlCount() {
         // Store girls for harem tools
-        let girlCount = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count;
+        let girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")).count : 0;
         const girlsDataList = getHHVars("girlsDataList", false);
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
         if (girlCount == 0 && girlsDataList) {
@@ -6016,6 +6046,174 @@ class Harem {
             girlCount = girlsListSec.length;
         }
         return girlCount;
+    }
+    static run() {
+        return Harem_awaiter(this, void 0, void 0, function* () {
+            try {
+                const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+                const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
+                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
+                    HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
+                    if (!!haremItem && haremGirlMode === 'team') {
+                        if (debugEnabled)
+                            LogUtils_logHHAuto("Waifu page detected, get girls with skills");
+                        const girlDictionary = getHHVars("girls_data_list");
+                        const skilledGirls = Object.values(girlDictionary).filter((girl) => {
+                            const skills = Object.values(girl.skill_tiers_info);
+                            return Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0)) > 0;
+                        });
+                        if (debugEnabled)
+                            LogUtils_logHHAuto('Found skilled girls: ' + skilledGirls.length);
+                        const skilledGirlsScrolls = { 'mythic': {}, 'legendary': {}, 'epic': {}, 'rare': {}, 'common': {} };
+                        for (let index = 0; index < skilledGirls.length; index++) {
+                            const girl = skilledGirls[index];
+                            const skills = Object.values(girl.skill_tiers_info);
+                            const totalScrolls = Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
+                            //if (debugEnabled) logHHAuto(`Girl ${girl.name}, ${girl.rarity} has used ${totalScrolls} scrolls`);
+                            const girlRarity = girl.rarity == 'starting' ? 'common' : girl.rarity; // Starting girl use common scrolls
+                            skilledGirlsScrolls[girlRarity][girl.id_girl + ""] = totalScrolls;
+                        }
+                        if (debugEnabled)
+                            LogUtils_logHHAuto("Found skilled girls: ", skilledGirlsScrolls);
+                        setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls", JSON.stringify(skilledGirlsScrolls));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
+                        return true;
+                    }
+                }
+                else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
+                    if (!!haremItem && haremGirlMode === 'team') {
+                        const team = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
+                        const teamSettings = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings")) : {};
+                        const skilledGirlsScrolls = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls")) : [];
+                        const userFilter = false; // TODO add user filter to only display
+                        let girlListDisplayed;
+                        let heroMoney = HeroHelper.getMoney();
+                        if (userFilter && (team.scrolls_mythic > 0 || team.scrolls_legendary > 0 || team.scrolls_epic > 0 || team.scrolls_rare > 0 || team.scrolls_common > 0)) {
+                            const haremFilter = new HaremFilter();
+                            haremFilter.openFilter();
+                            yield TimeHelper.sleep(randomInterval(200, 400)); // wait open
+                            if (debugEnabled)
+                                LogUtils_logHHAuto('Reseting girl filters');
+                            haremFilter.resetFilter();
+                            yield TimeHelper.sleep(randomInterval(800, 1200)); // wait loading
+                            if (debugEnabled)
+                                LogUtils_logHHAuto('selectOnlyOwnedGirls');
+                            yield haremFilter.selectOnlyOwnedGirls();
+                            yield TimeHelper.sleep(randomInterval(200, 400));
+                            if (debugEnabled)
+                                LogUtils_logHHAuto('selectSkilledGirls');
+                            yield haremFilter.selectSkilledGirls();
+                            yield TimeHelper.sleep(randomInterval(800, 1200));
+                            girlListDisplayed = Object.values(getHHVars("shared.GirlSalaryManager.girlsMap"));
+                            if (girlListDisplayed.length >= 24) {
+                                Harem.scrollToLastGirl();
+                            }
+                        }
+                        const getScrolls = (rarity) => Harem_awaiter(this, void 0, void 0, function* () {
+                            HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "resetting " + rarity, 7, 0);
+                            LogUtils_logHHAuto('Get ' + rarity + ' scrolls needed: ' + team['scrolls_' + rarity]);
+                            let scrollGot = 0;
+                            //await haremFilter.selectGirlFilters('6');
+                            //const mythicGirls: KKHaremSalaryGirl[] = girlListDisplayed.filter((girl: KKHaremSalaryGirl) => girl.gData.rarity == 'mythic');
+                            const girls = skilledGirlsScrolls[rarity];
+                            for (const girlId in girls) {
+                                if (team.girlIds.includes(Number(girlId))) {
+                                    if (debugEnabled)
+                                        LogUtils_logHHAuto('Found ' + rarity + ' girl in team: (' + girlId + '), keep skilled');
+                                    continue;
+                                }
+                                const girlSkillNb = girls[girlId];
+                                // common 5M per skill
+                                const cost = girlSkillNb * 5000000;
+                                if (teamSettings.moneyToKeep && (heroMoney - cost) < teamSettings.moneyToKeep) {
+                                    LogUtils_logHHAuto(`Not enough money to reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost / 1000000}M. Player money: ${heroMoney}`);
+                                    continue;
+                                }
+                                LogUtils_logHHAuto(`Reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost / 1000000}M. Player money: ${heroMoney}`);
+                                const resetSuccess = yield Harem.resetGirlSkills(Number(girlId));
+                                if (resetSuccess) {
+                                    scrollGot += girls[girlId];
+                                    heroMoney -= cost;
+                                }
+                                else {
+                                    return false;
+                                }
+                                // logHHAuto(`Simulate reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost/1000000}M. Player money: ${heroMoney}`);
+                                // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
+                                if (scrollGot >= team['scrolls_' + rarity]) {
+                                    if (debugEnabled)
+                                        LogUtils_logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
+                                    break;
+                                }
+                            }
+                            return true;
+                        });
+                        for (const rarity of ['mythic', 'legendary', 'epic', 'rare', 'common']) {
+                            const needScrolls = team['scrolls_' + rarity] > 0;
+                            const haveAlreadySkilledGirls = skilledGirlsScrolls[rarity] && Object.keys(skilledGirlsScrolls[rarity]).length > 0;
+                            const userSelectedResetScrolls = teamSettings['reset' + rarity.charAt(0).toUpperCase() + rarity.slice(1) + 'Girls'] === true;
+                            if (debugEnabled)
+                                LogUtils_logHHAuto(`For rarity ${rarity}, needScrolls: ${needScrolls}, haveAlreadySkilledGirls: ${haveAlreadySkilledGirls}, userSelectedResetScrolls: ${userSelectedResetScrolls}`);
+                            if (needScrolls && haveAlreadySkilledGirls && userSelectedResetScrolls) {
+                                if (!(yield getScrolls(rarity))) {
+                                    LogUtils_logHHAuto(`Failed to get enough ${rarity} scrolls, stop process`);
+                                    break;
+                                }
+                            }
+                        }
+                        if (debugEnabled)
+                            LogUtils_logHHAuto('Finished getting scrolls, go to first girl');
+                        let nextGirlId = team.girlIds[0] || -1;
+                        if (nextGirlId >= 0) {
+                            if (debugEnabled)
+                                LogUtils_logHHAuto('Go to first team girl (' + nextGirlId + ') remaining ' + (team.girlIds.length - 1) + ' girls');
+                            gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EQUIPMENT_TYPE) }, randomInterval(1500, 2500));
+                            return true;
+                        }
+                        else {
+                            // Harem.clearHaremToolVariables();
+                        }
+                    }
+                }
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR: run harem auto: ${errName}, ${message}`);
+                console.error(message);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                Harem.clearHaremToolVariables();
+            }
+            finally {
+                return false;
+            }
+        });
+    }
+    static scrollToLastGirl() {
+        try {
+            $('.girls_list')[0].scrollTop = $('.girls_list')[0].scrollHeight;
+        }
+        catch (err) { }
+    }
+    static resetGirlSkills(girlId) {
+        return new Promise((resolve) => {
+            const currentPage = window.location.pathname + window.location.search;
+            // change referer
+            //logHHAuto('change referer to ' + '/girl/' + girlId);
+            window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills'));
+            var params1 = {
+                action: "girl_skills_reset",
+                id_girl: girlId
+            };
+            getHHAjax()(params1, function (data) {
+                // change referer
+                //logHHAuto('change referer back to ' + currentPage);
+                window.history.replaceState(null, '', addNutakuSession(currentPage));
+                resolve(data.success || true);
+            }, function (err) {
+                LogUtils_logHHAuto('Error occured during girl skills reset', err);
+                resolve(false);
+            });
+        });
     }
     static moduleHarem() {
         const menuIDXp = "haremGiveXP";
@@ -6029,8 +6227,13 @@ class Harem {
             GM_registerMenuCommand(getTextForUI(menuIDXp, "elementText"), giveHaremXp);
             GM_registerMenuCommand(getTextForUI(menuIDGifts, "elementText"), giveHaremGifts);
         }
-        Harem.addGoToGirlPageButton();
-        Harem.addGirlListMenu();
+        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremAvatarMissingGirls") === "true") {
+            Harem.addGirlImages();
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremTools") === "true") {
+            Harem.addGoToGirlPageButton();
+            Harem.addGirlListMenu();
+        }
     }
     static fillCurrentGirlItem(haremItem, payLast = false) {
         let filteredGirlsList = Harem.getFilteredGirlList();
@@ -6042,19 +6245,19 @@ class Harem {
             // }
             LogUtils_logHHAuto("Go to " + girlToGoTo);
             gotoPage('/girl/' + girlToGoTo, { resource: haremItem });
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
             LogUtils_logHHAuto("setting autoloop to false");
         }
-        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, haremItem);
-        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'list');
-        if (!(Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart)) > 0)) {
+        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", haremItem);
+        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'list');
+        if (!(Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart")) > 0)) {
             LogUtils_logHHAuto('set money to ' + HeroHelper.getMoney());
-            setStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart, HeroHelper.getMoney());
+            setStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart", HeroHelper.getMoney());
         }
         if (payLast)
-            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
-        setStoredValue(HHStoredVarPrefixKey + TK.filteredGirlsList, JSON.stringify(filteredGirlsList));
-        setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast", 'true');
+        setStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList", JSON.stringify(filteredGirlsList));
+        setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
     }
     ;
     static addGoToGirlPageButton() {
@@ -6078,6 +6281,29 @@ class Harem {
         }
         else {
             $('#' + goToGirlPageButtonId).hide();
+        }
+    }
+    static addGirlImages() {
+        var _a, _b, _c;
+        if ($('.hhava').length > 0)
+            return;
+        try {
+            const displayedGirl = $('#harem_right .opened').attr('girl') || ''; // unsafeWindow.harem.preselectedGirlId
+            const girlOwned = displayedGirl != '' && $('#harem_right .opened .avatar-box:visible').length > 0;
+            const girl = Harem.getGirlData(Number(displayedGirl));
+            console.log('Girl : ' + (girl === null || girl === void 0 ? void 0 : girl.name));
+            if (!girlOwned) {
+                GM_addStyle('.hhava {height: 14.6rem;}');
+                GM_addStyle('#harem_right > div[girl] .middle_part {flex: 0 0 282px;}');
+                $('#harem_right .opened .avatar').hide();
+                for (let index = 0; index < ((_b = (_a = girl === null || girl === void 0 ? void 0 : girl.images) === null || _a === void 0 ? void 0 : _a.ava) === null || _b === void 0 ? void 0 : _b.length); index++) {
+                    const avatar = $(`<img src="${(_c = girl === null || girl === void 0 ? void 0 : girl.images) === null || _c === void 0 ? void 0 : _c.ava[index]}" class="avatar hhava" />`);
+                    $('#harem_right .opened .middle_part').append(avatar);
+                }
+            }
+        }
+        catch ({ errName, message }) {
+            LogUtils_logHHAuto(`ERROR in display DP rewards: ${message}`);
         }
     }
     static addGirlListMenu() {
@@ -6131,15 +6357,15 @@ class Harem {
             $('#' + menuIDXp + 'Button').on("click", function () { Harem.fillCurrentGirlItem('experience'); });
             $('#' + menuIDGifts + 'Button').on("click", function () { Harem.fillCurrentGirlItem('affection'); });
             $('#' + menuIDMaxGifts + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
                 Harem.fillCurrentGirlItem('affection');
             });
             $('#' + menuIDMaxXp + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
                 Harem.fillCurrentGirlItem('experience');
             });
             $('#' + menuIDUpgradeMax + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
                 Harem.fillCurrentGirlItem('affection', true);
             });
         };
@@ -6148,12 +6374,12 @@ class Harem {
         $('#' + girlListMenuButtonId).on("click", openGirlMenu);
     }
     static HaremSizeNeedsRefresh(inCustomExpi) {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count_date: 0 }).count_date < (new Date().getTime() - inCustomExpi * 1000);
+        return !isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")) || JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")).count_date < (new Date().getTime() - inCustomExpi * 1000);
     }
     static moduleHaremCountMax() {
         const girlList = getHHVars('girls_data_list', false) || getHHVars('availableGirls', false);
         if (Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMinSizeExpirationSecs")) && girlList !== null) {
-            setStoredValue(HHStoredVarPrefixKey + TK.HaremSize, JSON.stringify({ count: Object.keys(girlList).length, count_date: new Date().getTime() }));
+            setStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize", JSON.stringify({ count: Object.keys(girlList).length, count_date: new Date().getTime() }));
             LogUtils_logHHAuto("Harem size updated to : " + Object.keys(girlList).length);
         }
     }
@@ -6936,6 +7162,2637 @@ class GenericBattle {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Helper/TimerHelper.ts
+
+
+
+
+let Timers = {};
+function setTimers(timer) {
+    Timers = timer;
+}
+function setTimer(name, seconds) {
+    var ND = new Date().getTime() + seconds * 1000;
+    Timers[name] = ND;
+    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
+    LogUtils_logHHAuto(name + " set to " + TimeHelper.toHHMMSS(ND / 1000 - new Date().getTimezoneOffset() * 60) + ' (' + TimeHelper.toHHMMSS(seconds) + ')');
+}
+function clearTimer(name) {
+    delete Timers[name];
+    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
+}
+function checkTimer(name) {
+    if (!Timers[name] || Timers[name] < new Date()) {
+        return true;
+    }
+    return false;
+}
+function checkTimerMustExist(name) {
+    if (Timers[name] && Timers[name] < new Date()) {
+        return true;
+    }
+    return false;
+}
+function getTimer(name) {
+    if (!Timers[name]) {
+        return -1;
+    }
+    return Timers[name];
+}
+function getSecondsLeft(name) {
+    if (!Timers[name]) {
+        return 0;
+    }
+    var result = Math.ceil(Timers[name] / 1000) - Math.ceil(new Date().getTime() / 1000);
+    if (result > 0) {
+        return result;
+    }
+    else {
+        return 0;
+    }
+}
+function getTimeLeft(name) {
+    const timerWaitingCompet = ['nextPachinkoTime', 'nextPachinko2Time', 'nextPachinkoEquipTime', 'nextSeasonTime', 'nextLeaguesTime'];
+    if (!Timers[name]) {
+        if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0) {
+            return "Wait for contest";
+        }
+        return "No timer";
+    }
+    var diff = getSecondsLeft(name);
+    if (diff <= 0) {
+        if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0) {
+            return "Wait for contest";
+        }
+        return "Time's up!";
+    }
+    return TimeHelper.toHHMMSS(diff);
+}
+
+;// CONCATENATED MODULE: ./src/Helper/TimeHelper.ts
+
+
+
+
+
+class TimeHelper {
+    static getContestSafeTime() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true") {
+            return 0;
+        }
+        const safeTimeStr = getStoredValue(HHStoredVarPrefixKey + SK.safeSecondsForContest);
+        let safeTime = safeTimeStr !== undefined ? Number(safeTimeStr) : 120;
+        if (isNaN(safeTime) || safeTime < 0)
+            safeTime = 120;
+        return safeTime;
+    }
+    static canCollectCompetitionActive() {
+        const safeTime = TimeHelper.getContestSafeTime();
+        return getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" || !((getSecondsLeft('contestRemainingTime') - safeTime) < 0 && getSecondsLeft('nextContestTime') > 0);
+    }
+    static toHHMMSS(secs) {
+        var sec_num = parseInt(secs, 10);
+        var days = Math.floor(sec_num / 86400);
+        var hours = Math.floor(sec_num / 3600) % 24;
+        var minutes = Math.floor(sec_num / 60) % 60;
+        var seconds = sec_num % 60;
+        var n = 0;
+        return [days, hours, minutes, seconds]
+            .map(v => v < 10 ? "0" + v : v)
+            .filter((v, i) => { if (v !== "00") {
+            n++;
+            return true;
+        } return n > 0; })
+            .join(":");
+    }
+    static debugDate(sec_num) {
+        let days = Math.floor(sec_num / 86400);
+        let hours = Math.floor(sec_num / 3600) % 24;
+        let minutes = Math.floor(sec_num / 60) % 60;
+        let seconds = sec_num % 60;
+        return JSON.stringify({ days: days, hours: hours, minutes: minutes, seconds: seconds });
+    }
+    static sleep(waitTime) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, waitTime);
+        });
+    }
+}
+function convertTimeToInt(remainingTimer, failSafe = true) {
+    let newTimer = 0;
+    if (remainingTimer && remainingTimer.length > 0) {
+        try {
+            let splittedTime = remainingTimer.trim().split(' ');
+            for (let i = 0; i < splittedTime.length; i++) {
+                let timerSymbol = splittedTime[i].match(/[^0-9]+/)[0];
+                switch (timerSymbol) {
+                    case timerDefinitions[hhTimerLocale].days:
+                        newTimer += parseInt(splittedTime[i]) * 86400;
+                        break;
+                    case timerDefinitions[hhTimerLocale].hours:
+                        newTimer += parseInt(splittedTime[i]) * 3600;
+                        break;
+                    case timerDefinitions[hhTimerLocale].minutes:
+                        newTimer += parseInt(splittedTime[i]) * 60;
+                        break;
+                    case timerDefinitions[hhTimerLocale].seconds:
+                        newTimer += parseInt(splittedTime[i]);
+                        break;
+                    default:
+                        LogUtils_logHHAuto('Timer symbol not recognized: ' + timerSymbol);
+                }
+            }
+        }
+        catch ({ errName, message }) {
+            if (failSafe) {
+                LogUtils_logHHAuto(`ERROR: occured, reset to 15min: ${errName}, ${message}`);
+                newTimer = randomInterval(15 * 60, 17 * 60);
+            }
+            else {
+                LogUtils_logHHAuto(`ERROR: occured, return -1: ${errName}, ${message}`);
+                newTimer = -1;
+            }
+        }
+    }
+    else {
+        if (failSafe) {
+            LogUtils_logHHAuto('No valid timer definitions, reset to 15min');
+            newTimer = randomInterval(15 * 60, 17 * 60);
+        }
+        else {
+            LogUtils_logHHAuto('No valid timer definitions, return -1');
+            newTimer = -1;
+        }
+    }
+    return newTimer;
+}
+function getLimitTimeBeforeEnd() {
+    return Number(getStoredValue(HHStoredVarPrefixKey + SK.collectAllTimer)) * 3600;
+}
+function randomInterval(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+;// CONCATENATED MODULE: ./src/config/HHStoredVars.ts
+
+
+const HHStoredVars_HHStoredVars = {};
+//Settings Vars
+const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
+//Do not move, has to be first one
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_settPerTab"] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+// Rest of settings vars
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAff"] =
+    {
+        default: "500000000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAffW"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoosters"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoostersFilter"] =
+    {
+        default: "B1;B2;B3;B4",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChamps"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextChampionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampAlignTimer"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStart"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextChampionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsFilter"] =
+    {
+        default: "1;2;3;4;5;6",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextChampionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamLoop"] =
+    {
+        default: "10",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsGirlThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamKeepSecondLine"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsUseEne"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuildChampsTeam"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showClubButtonInPoa"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChamp"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextClubChampionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChampMax"] =
+    {
+        default: "999",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubForceStart"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextClubChampionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoContest"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextContestCollectTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactEndedContests"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExp"] =
+    {
+        default: "500000000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExpW"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreePachinko"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextPachinkoTime');
+            clearTimer('nextPachinko2Time');
+            clearTimer('nextPachinkoEquipTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeagues"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextLeaguesTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesAllowWinCurrent"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesBoostedOnly"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesRunThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesForceOneFight"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_leagueListDisplayPowerCalc"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList");
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSelectedIndex"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "selectedIndex",
+        kobanUsing: false,
+        customMenuID: "autoLeaguesSelector",
+        isValid: /^[0-9]$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSortIndex"] =
+    {
+        default: "1",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "selectedIndex",
+        kobanUsing: false,
+        customMenuID: "autoLeaguesSortMode",
+        isValid: /^[0-9]$/,
+        newValueFunction: function () {
+            deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList");
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSecurityThreshold"] =
+    {
+        default: "40",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactMissions"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMission"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextMissionTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionKFirst"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_invertMissions"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactPowerPlace"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlaces"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('minPowerPlacesTime');
+            PlaceOfPower.cleanTempPopToStart();
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('minPowerPlacesTime');
+            PlaceOfPower.cleanTempPopToStart();
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesPrecision"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesInverted"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesWaitMax"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesIndexFilter"] =
+    {
+        default: "1;2;3",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('minPowerPlacesTime');
+            PlaceOfPower.cleanTempPopToStart();
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuest"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSideQuest"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuestThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalary"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextSalaryTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalaryMinSalary"] =
+    {
+        default: "20000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextSalaryTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeason"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextSeasonTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoSeasonCollectablesList");
+                    clearTimer('nextSeasonCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonIgnoreNoGirls"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_seasonDisplayPowerCalc"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonPassReds"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonBoostedOnly"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrill"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextPentaDrillTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: {
+            "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectablesList");
+                    clearTimer('nextPentaDrillCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillBoostedOnly"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStats"] =
+    {
+        default: "500000000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStatsSwitch"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollBattle"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollMythicByPassParanoia"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollSelectedIndex"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        customMenuID: "autoTrollSelector",
+        isValid: /^[0-9]|1[0-5]|98|99$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollRunThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStartEventGirl"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyCombat"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyCombTimer"] =
+    {
+        default: "16",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombat"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombTimer"] =
+    {
+        default: "16",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollectablesList", getTextForUI("menuDailyCollectableText", "elementText"));
+                    clearTimer('nextFreeBundlesCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_waitforContest"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('contestRemainingTime');
+            clearTimer('nextContestTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_safeSecondsForContest"] =
+    {
+        default: "120",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePause"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePauseTimeout"] =
+    {
+        default: "5000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectAllTimer"] =
+    {
+        default: "12",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        isValid: /^[1-9][0-9]|[1-9]$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_eventTrollOrder"] =
+    {
+        default: "1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyTrollNumber"] =
+    {
+        default: "20",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyMythicTrollNumber"] =
+    {
+        default: "20",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_master"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxAff"] =
+    {
+        default: "50000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxBooster"] =
+    {
+        default: "10",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxExp"] =
+    {
+        default: "10000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX10"] =
+    {
+        default: "10",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        isValid: /^(\d)+$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX50"] =
+    {
+        default: "50",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_updateMarket"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoia"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('paranoiaSwitch');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSettings"] =
+    {
+        default: "140-320/Sleep:28800-30400|Active:250-460|Casual:1500-2700/6:Sleep|8:Casual|10:Active|12:Casual|14:Active|18:Casual|20:Active|22:Casual|24:Sleep",
+        storage: "Storage()",
+        HHType: "Setting"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusLoveRaid"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextLoveRaidTime');
+            deleteStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids");
+            deleteStoredValue(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex");
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false,
+        customMenuID: "loveRaidSelector",
+        isValid: /^[0-9]|1[0-5]$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyLoveRaidCombat"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyLoveRaidTrollNumber"] =
+    {
+        default: "20",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEvent"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythic"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autodpEventCollectablesList");
+                    clearTimer('nextdpEventCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList");
+                    clearTimer('nextLivelySceneEventCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangEvent"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangMinTeam"] =
+    {
+        default: "5",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_sultryMysteriesEventRefreshShop"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectEventChest"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_AllMaskRewards"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalBuyFreeCard"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextSeasonalCardCollectTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showCalculatePower"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showAdsBack"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showRewardsRecap"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_hideOwnedGirls"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfo"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfoLeft"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremAvatarMissingGirls"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremTools"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showMarketTools"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showTooltips"] =
+    {
+        default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_spendKobans0"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_kobanBank"] =
+    {
+        default: "1000000",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Long Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10Fights"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10FightsAllowNormalEvent"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50Fights"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50FightsAllowNormalEvent"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_saveDefaults"] =
+    {
+        storage: "localStorage",
+        HHType: "Setting"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheon"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextPantheonTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonRunThreshold"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonBoostedOnly"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyrinth"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            clearTimer('nextLabyrinthTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabySweep"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyCustomTeamBuilder"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyHard"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyDifficultyIndex"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "selectedIndex",
+        kobanUsing: false,
+        customMenuID: "autoLabyDifficulty",
+        isValid: /^[0-9]$/,
+        newValueFunction: function () {
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectablesList");
+                    clearTimer('nextSeasonalEventCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList");
+                    clearTimer('nextPoVCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoGCollectablesList");
+                    clearTimer('nextPoGCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoACollectablesList");
+                    clearTimer('nextPoACollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollectAll"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoals"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        newValueFunction: function () {
+            //clearTimer('nextLabyrinthTime');
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactDailyGoals"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollect"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false,
+        events: { "change": function () {
+                if (this.checked) {
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollectablesList", getTextForUI("menuDailyCollectableText", "elementText"));
+                    clearTimer('nextDailyGoalsCollectTime');
+                }
+            }
+        }
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollectablesList"] =
+    {
+        default: JSON.stringify([]),
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Array"
+    };
+// Temp vars
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_scriptversion"] =
+    {
+        default: "0",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoLoop"] =
+    {
+        default: "true",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_battlePowerRequired"] =
+    {
+        default: "0",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_dailyGoalsList"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+/*HHStoredVars[HHStoredVarPrefixKey+"Temp_leaguesTarget"] =
+    {
+    default:"9",
+    storage:"sessionStorage",
+    HHType:"Temp",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:false,
+    menuType:"value",
+    kobanUsing:false,
+    customMenuID:"autoLeaguesSelector"
+};*/
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_lastActionPerformed"] =
+    {
+        default: "none",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_questRequirement"] =
+    {
+        default: "none",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+/*HHStoredVars[HHStoredVarPrefixKey+"Temp_userLink"] =
+    {
+    default:"none",
+    storage:"sessionStorage",
+    HHType:"Temp"
+};*/
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoLoopTimeMili"] =
+    {
+        default: "1000",
+        storage: "Storage()",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_freshStart"] =
+    {
+        default: "no",
+        storage: "Storage()",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Logging"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Debug"] =
+    {
+        default: "false",
+        storage: "sessionStorage",
+        valueType: "Boolean",
+        HHType: "Temp"
+    };
+/*HHStoredVars[HHStoredVarPrefixKey+"Temp_trollToFight"] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:false,
+    menuType:"value",
+    kobanUsing:false,
+    customMenuID:"autoTrollSelector"
+};*/
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoTrollBattleSaveQuest"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_burst"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_charLevel"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_filteredGirlsList"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlActions"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlMode"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"] =
+    {
+        default: "0",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlPayLast"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlEnd"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlLimit"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeam"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeamScrolls"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeamSettings"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_loveRaids"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventsGirlz"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventGirl"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventMythicGirl"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoChampsEventGirls"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+        //isValid:/^\[({"girl_id":"(\d)+","champ_id":"(\d)+","girl_shards":"(\d)+","girl_name":"([^"])+","event_id":"([^"])+"},?)+\]$/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_raidGirls"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_champBuildTeam"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_clubChampLimitReached"] =
+    {
+        default: "false",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_trollWithGirls"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_fought"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveAff"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveExp"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveBooster"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_hideBeatenOppo"] =
+    {
+        default: "0",
+        storage: "Storage()",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueOpponentList"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp",
+        //isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
+    };
+/*
+HHStoredVars[HHStoredVarPrefixKey+"Temp_LeagueTempOpponentList"] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp",
+    isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns|expectedValue)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
+};*/
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaLeagueBlocked"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaQuestBlocked"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaSpendings"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_pinfo"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopTargeted"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopToStart"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopUnableToStart"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_storeContents"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Timers"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_NextSwitch"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Totalpops"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_currentlyAvailablePops"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_CheckSpentPoints"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventsList"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_bossBangTeam"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_boosterStatus"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_sandalwoodFailure"] =
+    {
+        default: "0",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueSavedData"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueHumanLikeRun"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_TrollHumanLikeRun"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_TrollInvalid"] =
+    {
+        default: "false",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_MainAdventureWorldID"] =
+    {
+        default: "0",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_SideAdventureWorldID"] =
+    {
+        default: "0",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PantheonHumanLikeRun"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_SeasonHumanLikeRun"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PentaDrillHumanLikeRun"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_HaremSize"] =
+    {
+        storage: "localStorage",
+        HHType: "Temp",
+        isValid: /{"count":(\d)+,"count_date":(\d)+}/
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LastPageCalled"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoAEndDate"] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoVEndDate"] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoGEndDate"] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_poaManualCollectAll"] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_lseManualCollectAll"] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_unkownPagesList"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_trollPoints"] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+
+;// CONCATENATED MODULE: ./src/Module/harem/HaremFilter.ts
+var HaremFilter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+class HaremFilter {
+    constructor() {
+        this.STARTING_INDEX = 1;
+        this.COMMON_INDEX = 2;
+        this.RARE_INDEX = 3;
+        this.EPIC_INDEX = 4;
+        this.LEGENDARY_INDEX = 5;
+        this.MYTHIC_INDEX = 6;
+        this.STAR_SEPARATOR = '_';
+        this.RARITY_ORDER = [this.STARTING_INDEX, this.MYTHIC_INDEX, this.LEGENDARY_INDEX, this.EPIC_INDEX, this.RARE_INDEX, this.COMMON_INDEX];
+    }
+    openFilter() {
+        $('#filter_girls').trigger('click');
+    }
+    resetFilter() {
+        $('#reset-filters').trigger('click');
+    }
+    getRarityFilterValues() {
+        if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoSalaryUseFilter") === "true") {
+            return getStoredValue(HHStoredVarPrefixKey + "Setting_autoSalaryFilter") ? getStoredValue(HHStoredVarPrefixKey + "Setting_autoSalaryFilter").split(";") : this.RARITY_ORDER;
+        }
+        return [];
+    }
+    selectOption(selector, index) {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            $('.select-group.' + selector + ' .selectric-wrapper .selectric').trigger('click');
+            yield TimeHelper.sleep(randomInterval(200, 400)); // wait open
+            $('.select-group.' + selector + ' .selectric-items li[data-index="' + index + '"]').trigger('click');
+            yield TimeHelper.sleep(randomInterval(800, 1200)); // wait loading
+        });
+    }
+    selectGirlRarity(rarityIndex = 1) {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            yield this.selectOption('girl-rarity-dropdown', rarityIndex);
+        });
+    }
+    selectGirlAffectionCategory(stars = 0) {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            const starsMapping = {
+                0: 0, // All
+                1: 1,
+                3: 2,
+                5: 3,
+                6: 4
+            };
+            if (starsMapping.hasOwnProperty(stars)) {
+                yield this.selectOption('girl-max-grade-dropdown', starsMapping[stars]);
+            }
+            else {
+                LogUtils_logHHAuto(`Error unkown GirlAffectionCategory ${stars}, selecting all`);
+                yield this.selectOption('girl-max-grade-dropdown', 0);
+            }
+        });
+    }
+    getGirlAffectionCategory() {
+        return $('.select-group.girl-max-grade-dropdown .selectric-items li.selected').data('index');
+    }
+    selectOnlyOwnedGirls() {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            const ownedButton = $('.check-btn.shards-state[shards="100"]');
+            if (ownedButton.attr('selected') == null) {
+                ownedButton.trigger('click');
+            }
+            const hasShardButton = $('.check-btn.shards-state[shards="1-99"]');
+            if (hasShardButton.attr('selected') != null) {
+                hasShardButton.trigger('click');
+            }
+            const noShardButton = $('.check-btn.shards-state[shards="no_shards"]');
+            if (noShardButton.attr('selected') != null) {
+                noShardButton.trigger('click');
+            }
+            yield TimeHelper.sleep(randomInterval(800, 1200)); // wait loading
+        });
+    }
+    selectSkilledGirls(skillLevel = 1) {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            $('#skill-tier-select').val(skillLevel).trigger('change'); // Select girl with at least 1 skill
+            yield TimeHelper.sleep(randomInterval(800, 1200)); // wait loading
+        });
+    }
+    selectGirlFilters(girlType) {
+        return HaremFilter_awaiter(this, void 0, void 0, function* () {
+            LogUtils_logHHAuto(`selectGirlRarity ${girlType.charAt(0)}.`);
+            yield this.selectGirlRarity(Number(girlType.charAt(0)));
+            if (girlType.length === 3) {
+                LogUtils_logHHAuto(`selectGirlCategory ${girlType.charAt(2)}.`);
+                yield this.selectGirlAffectionCategory(Number(girlType.charAt(2)));
+            }
+            else if (this.getGirlAffectionCategory() != '0') {
+                LogUtils_logHHAuto('reset selectGirlCategory');
+                yield this.selectGirlAffectionCategory(0);
+            }
+        });
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Module/harem/HaremGirl.ts
 var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -7101,7 +9958,7 @@ class HaremGirl {
             var proceedButtonCost = $(".price", proceedButtonMatch);
             var proceedCost = parsePrice(proceedButtonCost[0].innerText);
             var moneyCurrent = HeroHelper.getMoney();
-            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
             console.log("Debug girl Quest MONEY for : " + proceedCost);
             if (proceedCost <= moneyCurrent) {
                 // We have money.
@@ -7118,7 +9975,7 @@ class HaremGirl {
             }
         }
         else {
-            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) == 'true';
+            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast") == 'true';
             if (haremGirlPayLast) {
                 // back
                 gotoPage('/girl/' + unsafeWindow.id_girl, { resource: 'affection' }, randomInterval(1500, 2500));
@@ -7146,10 +10003,10 @@ class HaremGirl {
             const userHaremGirlLimit = Math.min(Number(document.getElementById("menuExpLevel").value), 750);
             if ((Number(selectedGirl.level) + 50) <= Number(userHaremGirlLimit)) {
                 HaremGirl.HaremDisplayGirlPopup(haremItem, selectedGirl.name + ' ' + selectedGirl.Xp.cur + "xp, level " + selectedGirl.level + "/" + userHaremGirlLimit, (1) * 5);
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, haremItem);
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'girl');
-                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit, userHaremGirlLimit);
-                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", haremItem);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'girl');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit", userHaremGirlLimit);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
                 if ((Number(selectedGirl.level) + 50) >= Number(userHaremGirlLimit)) {
                     yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl);
                     HaremGirl.HaremClearGirlPopup();
@@ -7173,7 +10030,7 @@ class HaremGirl {
             const haremItem = HaremGirl.AFFECTION_TYPE;
             const selectedGirl = HaremGirl.getCurrentGirl();
             HaremGirl.switchTabs(haremItem);
-            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) == 'true';
+            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast") == 'true';
             const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
             const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded + 1);
             const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
@@ -7288,12 +10145,12 @@ class HaremGirl {
                 const fillGirlGifts = (payLast = false) => {
                     maskHHPopUp();
                     HaremGirl.switchTabs(HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'girl');
-                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
-                    setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.AFFECTION_TYPE);
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'girl');
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
                     if (payLast)
-                        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
+                        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast", 'true');
                     setTimeout(HaremGirl.fillAllAffection, randomInterval(500, 800));
                 };
                 $('#' + menuIDMaxGifts + 'Button').on("click", () => {
@@ -7391,7 +10248,12 @@ class HaremGirl {
                 GM_registerMenuCommand(getTextForUI(menuIDXp, "elementText"), giveHaremXp);
             //if(canGiftGirl) // Not supported yet
             //   GM_registerMenuCommand(getTextForUI(menuIDGifts,"elementText"), giveHaremGifts);
-            HaremGirl.addGirlMenu();
+            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremTools") === "true") {
+                HaremGirl.addGirlMenu();
+            }
+            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons") === "true") {
+                HaremGirl.showSkillButtons();
+            }
         }
         catch ({ errName, message }) {
             LogUtils_logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
@@ -7423,21 +10285,22 @@ class HaremGirl {
     static run() {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             try {
-                const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
-                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
-                const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd) === 'true';
-                const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
-                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
+                //const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+                const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
+                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+                const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd") === 'true';
+                const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
+                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
                 let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
                 const canGiftGirl = HaremGirl.canGiftGirl();
                 const canAwakeGirl = HaremGirl.canAwakeGirl();
                 const girl = HaremGirl.getCurrentGirl();
                 if (!haremItem) {
                     // No action to be peformed
-                    return Promise.resolve(false);
+                    return false;
                 }
-                LogUtils_logHHAuto("run HaremGirl: " + girl.name + '(' + girl.id_girl + ')');
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                LogUtils_logHHAuto("run HaremGirl: " + girl.name + ' (' + girl.id_girl + '), level ' + girl.level + ', rarity: ' + girl.rarity);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
                 LogUtils_logHHAuto("setting autoloop to false as action to be performed on girl");
                 LogUtils_logHHAuto("Action to be performed (mode: " + haremGirlMode + ") : give " + haremItem);
                 if (haremGirlMode === 'girl') {
@@ -7459,15 +10322,17 @@ class HaremGirl {
                             // No more quest
                             HaremGirl.HaremClearGirlPopup();
                             Harem.clearHaremToolVariables();
-                            return Promise.resolve(false);
+                            return false;
                         }
+                        // } else if (haremItem == HaremGirl.EQUIPMENT_TYPE) {
+                        // } else if (haremItem == HaremGirl.SKILLS_TYPE) {
                     }
                     else {
                         LogUtils_logHHAuto('ERROR, no action found to be executed. ', { haremItem: haremItem, canGiftGirl: canGiftGirl, canAwakeGirl: canAwakeGirl });
                         Harem.clearHaremToolVariables();
-                        return Promise.resolve(false);
+                        return false;
                     }
-                    return Promise.resolve(true);
+                    return true;
                 }
                 else if (haremGirlMode === 'list') {
                     let nextGirlId = -1;
@@ -7475,9 +10340,9 @@ class HaremGirl {
                     let remainingGirls = 0;
                     let girlListProgress = '';
                     const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
-                    const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
+                    const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
                     let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
-                    let filteredGirlsList = getStoredJSON(HHStoredVarPrefixKey + TK.filteredGirlsList, []);
+                    let filteredGirlsList = getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList")) : [];
                     LogUtils_logHHAuto("filteredGirlsList", filteredGirlsList);
                     if (filteredGirlsList && filteredGirlsList.length > 0) {
                         girlPosInList = filteredGirlsList.indexOf("" + girl.id_girl);
@@ -7496,7 +10361,7 @@ class HaremGirl {
                         HaremGirl.HaremDisplayGirlPopup(haremItem, girl.name + ' ' + girl.graded + "/" + girl.nb_grades + "star : Girl " + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                         if (yield HaremGirl.fillAllAffection()) {
                             LogUtils_logHHAuto("Going to girl quest");
-                            return Promise.resolve(true);
+                            return true;
                         }
                     }
                     else if (haremGirlEnd && haremItem == HaremGirl.EXPERIENCE_TYPE) {
@@ -7519,28 +10384,74 @@ class HaremGirl {
                     if (nextGirlId >= 0) {
                         LogUtils_logHHAuto('Go to next girl (' + nextGirlId + ') remaining ' + remainingGirls + ' girls');
                         gotoPage('/girl/' + nextGirlId, { resource: haremItem }, randomInterval(1500, 2500));
-                        return Promise.resolve(true);
+                        return true;
                     }
                     else {
                         LogUtils_logHHAuto("No more girls, go back to harem list");
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        gotoPage('/characters/' + girl.id_girl, {}, randomInterval(1500, 2500));
+                        Harem.clearHaremToolVariables();
+                    }
+                }
+                else if (haremGirlMode === 'team') {
+                    const upgradeSkill = haremItem.indexOf(HaremGirl.SKILLS_TYPE) >= 0;
+                    const upgradeEquipment = haremItem.indexOf(HaremGirl.EQUIPMENT_TYPE) >= 0;
+                    let team = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
+                    //logHHAuto(`Team to upgrade (${haremItem})`, team);
+                    let nextGirlId = -1;
+                    let girlPosInList = 0;
+                    let remainingGirls = 0;
+                    let girlListProgress = '';
+                    // const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
+                    if (team && team.team && team.team.length > 0) {
+                        girlPosInList = team.girlIds.indexOf(girl.id_girl);
+                        if (girlPosInList >= 0 && team.team.length > (girlPosInList + 1)) {
+                            remainingGirls = team.team.length - girlPosInList - 1;
+                            nextGirlId = team.team[girlPosInList + 1].id_girl;
+                            girlListProgress = (girlPosInList + 1) + '/' + team.team.length;
+                        }
+                    }
+                    if (girlPosInList == 0)
+                        LogUtils_logHHAuto('Main girl from the team');
+                    if (upgradeEquipment) {
+                        HaremGirl.switchTabs(HaremGirl.EQUIPMENT_TYPE);
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        $('#girl-equip').trigger('click');
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                    }
+                    if (upgradeSkill) {
+                        HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        LogUtils_logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
+                        yield HaremGirl.fullSkillsUpgrade(girlPosInList == 0 ? 5 : 4);
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                    }
+                    if (nextGirlId >= 0) {
+                        LogUtils_logHHAuto('Go to next girl (' + nextGirlId + ') remaining ' + remainingGirls + ' girls');
+                        gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EXPERIENCE_TYPE) }, randomInterval(1500, 2500));
+                        return true;
+                    }
+                    else {
+                        // Todo end team.
+                        LogUtils_logHHAuto("No more girls, go back to harem list");
                         gotoPage('/characters/' + girl.id_girl, {}, randomInterval(1500, 2500));
                         Harem.clearHaremToolVariables();
                     }
                 }
                 else {
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                     Harem.clearHaremToolVariables();
                 }
             }
             catch ({ errName, message }) {
                 LogUtils_logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
                 console.error(message);
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                 Harem.clearHaremToolVariables();
             }
             finally {
-                Promise.resolve(false);
+                return false;
             }
         });
     }
@@ -7562,14 +10473,23 @@ class HaremGirl {
             return Promise.resolve();
         });
     }
-    static fullSkillsUpgrade(retry = false) {
+    static fullSkillsUpgrade(maxTier = 5) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             try {
-                let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
+                let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR_PRIO).first(); // First percentage skills
+                if (skillButton.length == 0) {
+                    skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
+                }
                 if (skillButton.length > 0) {
+                    const skillId = Number(skillButton.parents('.skill-upgrade-row').attr('skill-id') || -1);
+                    //logHHAuto('Upgrading skill id: ' + skillId + ' targeting tier: ' + maxTier);
+                    if (maxTier == 4 && skillId > 10) {
+                        //logHHAuto('Max tier for sub skills reached, stopping upgrade for this skill');
+                        return Promise.resolve();
+                    }
                     skillButton.trigger('click');
                     yield TimeHelper.sleep(randomInterval(400, 700));
-                    return yield HaremGirl.fullSkillsUpgrade();
+                    return yield HaremGirl.fullSkillsUpgrade(maxTier);
                 }
             }
             catch (error) {
@@ -7579,8 +10499,8 @@ class HaremGirl {
         });
     }
     static HaremDisplayGirlPopup(haremItem, haremText, remainingTime, cost = 0) {
-        $(".girl-leveler-panel .girl-section").prepend(`<div id="popup_message_harem" class="HHpopup_message" name="popup_message_harem" style="" ><a id="popup_message_harem_close" class="close">&times;</a>
-                ${getTextForUI("give" + haremItem, "elementText")} : <br>
+        $(".girl-leveler-panel .girl-section, .waifu-page-container .girl-display, #harem_right .avatar-box").prepend(`<div id="popup_message_harem" class="HHpopup_message" name="popup_message_harem" style="" ><a id="popup_message_harem_close" class="close">&times;</a>
+                ${!!haremItem ? getTextForUI("give" + haremItem, "elementText") : ''} : <br>
                 ${haremText} (${remainingTime}sec)
                 ${(cost > 0) ? `<br>${getTextForUI("cost" + haremItem, "elementText")}: ${NumberHelper.nRounding(cost, 2, 0)}` : ''}
                 </div>`);
@@ -7632,6 +10552,7 @@ HaremGirl.SCROLLS_NEED_4 = {
     'common_1': 9
 };
 HaremGirl.SKILL_BUTTON_SELECTOR = "#skills .skill-upgrade button.blue_button_L:not([disabled])";
+HaremGirl.SKILL_BUTTON_SELECTOR_PRIO = "#skills .skill-upgrade [skill-id='2'] button.blue_button_L:not([disabled]),#skills .skill-upgrade [skill-id='4'] button.blue_button_L:not([disabled])";
 
 ;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
 var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -7707,6 +10628,7 @@ class HaremSalary {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/harem/index.ts
+
 
 
 
@@ -12172,14 +15094,14 @@ class TeamModule {
         const StuffTeam = hhButton('StuffTeam', 'StuffTeam', buttonStyles + ';left: 88%', 'font-size:small');
         $("#contains_all section").append(EquipAll);
         $("#contains_all section").append(UnequipAll);
-        // $("#contains_all section").append(StuffTeam);
+        $("#contains_all section").append(StuffTeam);
         $("#EquipAll").on("click", TeamModule.equipAllGirls);
         $("#UnequipAll").on("click", TeamModule.unequipAllGirls);
-        $("#StuffTeam").on("click", TeamModule.stuffAllGirls);
+        $("#StuffTeam").on("click", TeamModule.buildStuffTeamSelectPopUp);
         $('.team-slot-container').on('click', TeamModule.manageSkillScrollTooltip);
         TeamModule.manageSkillScrollTooltip();
     }
-    static unequipAllGirls() {
+    static unequipAllGirls(callback = null) {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEditTeam") || getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
             LogUtils_logHHAuto('Unequip from edit team');
             $("#UnequipAll").attr('disabled', 'disabled');
@@ -12200,7 +15122,12 @@ class TeamModule {
                 // change referer
                 //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage));
-                setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
+                else {
+                    setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                }
             });
         }
         // else if (getPage().match(/^\/characters\/\d+$/)) {
@@ -12236,37 +15163,34 @@ class TeamModule {
         const neededMythicScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'mythic', 6);
         if (neededMythicScrolls > 0) {
             team.scrolls_mythic = neededMythicScrolls;
-            LogUtils_logHHAuto(`Needed ${neededMythicScrolls} mythic scrolls`);
             scrollTooltipDetail += `<span class="scrolls_mythic_icn" style="width: 25px;height: 25px;"></span> Mythic: ${neededMythicScrolls}/${heroCurrencies.scrolls_mythic} <br/>`;
         }
         let neededLegendaryScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'legendary', 5);
         neededLegendaryScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'legendary', 3);
         if (neededLegendaryScrolls > 0) {
             team.scrolls_legendary = neededLegendaryScrolls;
-            LogUtils_logHHAuto(`Needed ${neededLegendaryScrolls} legendary scrolls`);
             scrollTooltipDetail += `<span class="scrolls_legendary_icn" style="width: 25px;height: 25px;"></span> Legendary: ${neededLegendaryScrolls}/${heroCurrencies.scrolls_legendary} <br/>`;
         }
         let neededEpicScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'epic', 5);
         neededEpicScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'epic', 3);
         if (neededEpicScrolls > 0) {
             team.scrolls_epic = neededEpicScrolls;
-            LogUtils_logHHAuto(`Needed ${neededEpicScrolls} epic scrolls`);
             scrollTooltipDetail += `<span class="scrolls_epic_icn" style="width: 25px;height: 25px;"></span> Epic: ${neededEpicScrolls}/${heroCurrencies.scrolls_epic} <br/>`;
         }
         let neededRareScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'rare', 5);
         neededRareScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'rare', 3);
         if (neededRareScrolls > 0) {
             team.scrolls_rare = neededRareScrolls;
-            LogUtils_logHHAuto(`Needed ${neededRareScrolls} rare scrolls`);
             scrollTooltipDetail += `<span class="scrolls_rare_icn" style="width: 25px;height: 25px;"></span> Rare: ${neededRareScrolls}/${heroCurrencies.scrolls_rare} <br/>`;
         }
         let neededCommonScrolls = TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 5);
         neededCommonScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 3);
         neededCommonScrolls += TeamModule.getSkillNeededScrolls(mainGirl, teamGirlWithoutMain, 'common', 1);
         if (neededCommonScrolls > 0) {
-            LogUtils_logHHAuto(`Needed ${neededCommonScrolls} common scrolls`);
+            team.scrolls_common = neededCommonScrolls;
             scrollTooltipDetail += `<span class="scrolls_common_icn" style="width: 25px;height: 25px;"></span> Common: ${neededCommonScrolls}/${heroCurrencies.scrolls_common} <br/>`;
         }
+        LogUtils_logHHAuto(`Needed ${neededMythicScrolls} mythic scrolls, ${neededLegendaryScrolls} legendary scrolls, ${neededEpicScrolls} epic scrolls, ${neededRareScrolls} rare scrolls and ${neededCommonScrolls} common scrolls for the current team`);
         const scrollTooltip = $('<div class="hhScrollTooltip"><span class="scrolls_common_icn" style="width: 25px;height: 25px;"></span></div>');
         scrollTooltip.css('position', 'absolute').css('top', '110px').css('right', '30px');
         scrollTooltip.attr('tooltip', `<div style="max-width: 290px;">${getTextForUI("skillPointTooltipTitle", "elementText")}<br />
@@ -12277,17 +15201,100 @@ class TeamModule {
     }
     static stuffAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            LogUtils_logHHAuto('Stuff from edit team');
-            $("#StuffTeam").attr('disabled', 'disabled');
-            const teamGirls = TeamModule.getSelectedGirls();
-            if (teamGirls.length == 0) {
-                return;
-            }
-            // TODO
-            const team = this.createSkillScrollTooltip(teamGirls, false);
-            // TeamModule.createSkillScrollTooltip(teamGirls);
-            $("#StuffTeam").removeAttr('disabled');
         }
+    }
+    static buildStuffTeamSelectPopUp() {
+        const teamGirls = TeamModule.getSelectedGirls();
+        if (teamGirls.length == 0) {
+            return;
+        }
+        const team = TeamModule.createSkillScrollTooltip(teamGirls, false);
+        team.girlIds = teamGirls.map(girl => girl.id_girl);
+        const heroCurrencies = getHero().currencies;
+        const displayScrollSwitch = function (rarity) {
+            const showToggle = team['scrolls_' + rarity.toLowerCase()] > heroCurrencies['scrolls_' + rarity.toLowerCase()];
+            return `<span><span class="scrolls_${rarity.toLowerCase()}_icn" style="width: 25px;height: 25px;" title="${rarity} bulbs"></span>${rarity} bulbs:</span> 
+            <div ${showToggle ? '' : 'style="display:none;"'}> ${hhMenuSwitch('stuffTeamReset' + rarity + 'Girls')} </div>
+            <div ${!showToggle ? '' : 'style="display:none;"'}>${getTextForUI("enoughBulbsOwned", "elementText")}</div>
+            <span>Needed: ${team['scrolls_' + rarity.toLowerCase()]}/Owned: ${heroCurrencies['scrolls_' + rarity.toLowerCase()]} <span><br/>`;
+        };
+        const estimatedCost = 5 * (team.scrolls_mythic || 0 + team.scrolls_legendary || 0 + team.scrolls_epic || 0 + team.scrolls_rare || 0 + team.scrolls_common || 0);
+        let stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
+            <div class="rowLine">
+                <p>${getTextForUI("StuffTeam", "tooltip")}</p>
+            </div>
+            <div class="rowLine">
+                ${getTextForUI("stuffTeaEstimatedCost", "elementText")}<span class="hudSC_mix_icn"></span>${Math.round(estimatedCost)}M
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                ${hhMenuSwitch('unequipGirlsBefore')}
+                ${hhMenuSwitch('StuffTeamEquipment')}
+                ${hhMenuSwitch('StuffTeamSkills')}
+            </div>
+            <hr/>
+            <div class="rowLine" ${team.scrolls_mythic > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Mythic')}</div>
+            <div class="rowLine" ${team.scrolls_legendary > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Legendary')}</div>
+            <div class="rowLine" ${team.scrolls_epic > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Epic')}</div>
+            <div class="rowLine" ${team.scrolls_rare > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Rare')}</div>
+            <div class="rowLine" ${team.scrolls_common > 0 ? '' : 'style="display:none;"'}>${displayScrollSwitch('Common')}</div>
+            <hr/>
+            <div class="rowLine">
+                <span class="hudSC_mix_icn"></span>
+                <div style="padding:10px;" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("StuffTeamMoney", "tooltip")}</span>
+                    <label for"moneyToKeep">${getTextForUI("StuffTeamMoney", "elementText")}</label>
+                    <input id="moneyToKeep" class="maxMoneyInputField" style="width:150px;height:20px" required pattern="[0-9 ]+" type="text" value="500000000">
+                </div>
+            </div>
+            <hr style="border: 1px solid #ffa23e; width:100%"/>
+            <div class="rowLine">
+                <div style="padding:10px;width:50%" class="tooltipHH">
+                    <span class="tooltipHHtext">${getTextForUI("Launch", "tooltip")}</span>
+                    <label class="myButton" id="stuffTeamSubmit" style="font-size:15px; width:100%;text-align:center">${getTextForUI("Launch", "elementText")}</label>
+                </div>
+            </div>
+            <p style="color: red;" id="stuffTeamError"></p>
+        </div>`;
+        fillHHPopUp("stuffTeamMenu", getTextForUI("StuffTeam", "elementText"), stuffTeamMenu);
+        document.getElementById("unequipGirlsBefore").checked = true;
+        document.getElementById("StuffTeamEquipment").checked = true;
+        document.getElementById("StuffTeamSkills").checked = true;
+        $("#stuffTeamSubmit").on("click", function () {
+            LogUtils_logHHAuto('Stuff from edit team');
+            //$("#StuffTeam").attr('disabled', 'disabled');
+            const saveAndGo = function () {
+                const teamSettings = {
+                    moneyToKeep: document.getElementById("moneyToKeep").value,
+                    resetMythicGirls: document.getElementById("stuffTeamResetMythicGirls").checked,
+                    resetLegendaryGirls: document.getElementById("stuffTeamResetLegendaryGirls").checked,
+                    resetEpicGirls: document.getElementById("stuffTeamResetEpicGirls").checked,
+                    resetRareGirls: document.getElementById("stuffTeamResetRareGirls").checked,
+                    resetCommonGirls: document.getElementById("stuffTeamResetCommonGirls").checked,
+                };
+                LogUtils_logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam", JSON.stringify(team));
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'team');
+                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings", JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
+                }
+                else {
+                    LogUtils_logHHAuto('No skill to reset, going to harem.');
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
+                }
+            };
+            const unequipBefore = document.getElementById("unequipGirlsBefore").checked;
+            if (unequipBefore) {
+                // First un-equip all
+                TeamModule.unequipAllGirls(saveAndGo);
+            }
+            else {
+                saveAndGo();
+            }
+        });
     }
     // static getSkillNeededScrollsOneGirl(girl: KKTeamGirl): number {
     //     const rarity = girl.girl.rarity;
@@ -12300,7 +15307,8 @@ class TeamModule {
     // }
     static getSkillNeededScrolls(mainGirl, teamGirls, rarity, nbGrades) {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);
-        LogUtils_logHHAuto(`Found ${girls.length} ${rarity} girls with ${nbGrades} grades in the team.`);
+        if (girls.length > 0)
+            LogUtils_logHHAuto(`Found ${girls.length} ${rarity} girls with ${nbGrades} grades in the team.`);
         let usedScrolls = 0;
         for (const girl of girls) {
             const skills = Object.values(girl.skill_tiers_info);
@@ -12312,28 +15320,13 @@ class TeamModule {
             const skills = Object.values(mainGirl.skill_tiers_info);
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
-        LogUtils_logHHAuto(`Total skill points used by ${rarity}_${nbGrades} girls in the team: ${usedScrolls}/${fullNeededScrolls}`);
-        return fullNeededScrolls - usedScrolls;
+        if (girls.length > 0)
+            LogUtils_logHHAuto(`Total skill points used by ${rarity}_${nbGrades} girls in the team: ${usedScrolls}/${fullNeededScrolls}`);
+        return Math.max(0, fullNeededScrolls - usedScrolls);
     }
-    // static resetGirlSkills(girlId: number) {
-    //     const currentPage = window.location.pathname + window.location.search;
-    //     // change referer
-    //     //logHHAuto('change referer to ' + '/characters/' + girlId);
-    //     window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills') as string);
-    //     var params1 = {
-    //         action: "girl_skills_reset",
-    //         id_girl: girlId
-    //     };
-    //     getHHAjax()(params1, function (data: any) {
-    //         // change referer
-    //         //logHHAuto('change referer back to ' + currentPage);
-    //         window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
-    //         setTimeout(function () { location.reload(); }, randomInterval(200, 500));
-    //     });
-    // }
     static equipAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
             LogUtils_logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
             LogUtils_logHHAuto('Equip team');
             $("#EquipAll").attr('disabled', 'disabled');
@@ -12413,7 +15406,7 @@ class TeamModule {
         return girls;
     }
     static assignTopTeam() {
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
         LogUtils_logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
             let girlToSelect = best ? i : i + 7;
@@ -12466,11 +15459,7 @@ class TeamModule {
                 LogUtils_logHHAuto('ERROR, no girl information found');
                 return;
             }
-            let obj = safeJsonParse(tooltipData, null);
-            if (obj === null) {
-                LogUtils_logHHAuto('ERROR, failed to parse girl information');
-                return;
-            }
+            let obj = JSON.parse(tooltipData);
             //sum formula
             let tempGrades = obj.graded2;
             //console.log(obj,tempGrades);
@@ -13474,317 +16463,6 @@ for (var key in GayPornstarHarem.getEnv()) {
 ;
 // Object.values(girlsDataList).filter(girl => girl.source?.name == "troll_tier" && girl.source?.group?.id == "7")
 
-;// CONCATENATED MODULE: ./src/config/HHStoredVars.ts
-
-
-const HHStoredVars_HHStoredVars = {};
-//Settings Vars
-const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
-// ── Factory Functions ──────────────────────────────────────────────
-function settingBool(key, defaultVal = "false", opts) {
-    var _a;
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign(Object.assign({ default: defaultVal, storage: "Storage()", HHType: "Setting", valueType: "Boolean", getMenu: true, setMenu: true, menuType: "checked", kobanUsing: (_a = opts === null || opts === void 0 ? void 0 : opts.kobanUsing) !== null && _a !== void 0 ? _a : false }, ((opts === null || opts === void 0 ? void 0 : opts.onNew) && { newValueFunction: opts.onNew })), ((opts === null || opts === void 0 ? void 0 : opts.events) && { events: opts.events }));
-}
-function settingValue(key, defaultVal, valueType, opts) {
-    var _a;
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign(Object.assign(Object.assign({ default: defaultVal, storage: "Storage()", HHType: "Setting", valueType, getMenu: true, setMenu: true, menuType: "value", kobanUsing: (_a = opts === null || opts === void 0 ? void 0 : opts.kobanUsing) !== null && _a !== void 0 ? _a : false }, ((opts === null || opts === void 0 ? void 0 : opts.onNew) && { newValueFunction: opts.onNew })), ((opts === null || opts === void 0 ? void 0 : opts.customMenuID) && { customMenuID: opts.customMenuID })), ((opts === null || opts === void 0 ? void 0 : opts.isValid) && { isValid: opts.isValid }));
-}
-function settingSelect(key, defaultVal, customMenuID, isValid, onNew) {
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign({ default: defaultVal, storage: "Storage()", HHType: "Setting", valueType: "Small Integer", getMenu: true, setMenu: true, menuType: "selectedIndex", kobanUsing: false, customMenuID, isValid }, (onNew && { newValueFunction: onNew }));
-}
-function settingArray(key) {
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = {
-        default: JSON.stringify([]), storage: "Storage()", HHType: "Setting", valueType: "Array"
-    };
-}
-function settingCollect(key, collectListKey, timerName, extraLabel) {
-    settingBool(key, "false", {
-        events: { "change": function () {
-                if (this.checked) {
-                    if (extraLabel) {
-                        getAndStoreCollectPreferences(HHStoredVarPrefixKey + collectListKey, extraLabel);
-                    }
-                    else {
-                        getAndStoreCollectPreferences(HHStoredVarPrefixKey + collectListKey);
-                    }
-                    clearTimer(timerName);
-                }
-            } }
-    });
-}
-function tempSession(key, defaultVal, valueType) {
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign(Object.assign(Object.assign({}, (defaultVal !== undefined && { default: defaultVal })), { storage: "sessionStorage", HHType: "Temp" }), (valueType && { valueType }));
-}
-function tempStorage(key, defaultVal) {
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign(Object.assign({}, (defaultVal !== undefined && { default: defaultVal })), { storage: "Storage()", HHType: "Temp" });
-}
-function tempLocal(key, opts) {
-    HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + key] = Object.assign(Object.assign(Object.assign({}, ((opts === null || opts === void 0 ? void 0 : opts.default) !== undefined && { default: opts.default })), { storage: "localStorage", HHType: "Temp" }), ((opts === null || opts === void 0 ? void 0 : opts.isValid) && { isValid: opts.isValid }));
-}
-// ── Settings ───────────────────────────────────────────────────────
-//Do not move, has to be first one
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_settPerTab"] =
-    {
-        default: "false",
-        storage: "localStorage",
-        HHType: "Setting",
-        valueType: "Boolean",
-        getMenu: true,
-        setMenu: true,
-        menuType: "checked",
-        kobanUsing: false
-    };
-// Rest of settings vars
-settingValue("Setting_autoAff", "500000000", "Long Integer");
-settingBool("Setting_autoAffW");
-settingBool("Setting_autoBuyBoosters", "false", { kobanUsing: true });
-settingValue("Setting_autoBuyBoostersFilter", "B1;B2;B3;B4", "List");
-settingBool("Setting_autoEquipBoosters");
-settingValue("Setting_autoEquipBoostersSlots", "B1;B1;B2;B4", "List");
-settingBool("Setting_autoChamps", "false", { onNew: () => { clearTimer('nextChampionTime'); } });
-settingBool("Setting_autoChampAlignTimer");
-settingBool("Setting_autoChampsForceStart", "false", { onNew: () => { clearTimer('nextChampionTime'); } });
-settingValue("Setting_autoChampsFilter", "1;2;3;4;5;6", "List", { onNew: () => { clearTimer('nextChampionTime'); } });
-settingValue("Setting_autoChampsTeamLoop", "10", "Small Integer");
-settingValue("Setting_autoChampsGirlThreshold", "0", "Long Integer");
-settingBool("Setting_autoChampsTeamKeepSecondLine");
-settingBool("Setting_autoChampsUseEne");
-settingBool("Setting_autoBuildChampsTeam");
-settingBool("Setting_showClubButtonInPoa", "true");
-settingBool("Setting_autoClubChamp", "false", { onNew: () => { clearTimer('nextClubChampionTime'); } });
-settingValue("Setting_autoClubChampMax", "999", "Small Integer");
-settingBool("Setting_autoClubForceStart", "false", { onNew: () => { clearTimer('nextClubChampionTime'); } });
-settingBool("Setting_autoContest", "false", { onNew: () => { clearTimer('nextContestCollectTime'); } });
-settingBool("Setting_compactEndedContests");
-settingValue("Setting_autoExp", "500000000", "Long Integer");
-settingBool("Setting_autoExpW");
-settingBool("Setting_autoFreePachinko", "false", { onNew: () => { clearTimer('nextPachinkoTime'); clearTimer('nextPachinko2Time'); clearTimer('nextPachinkoEquipTime'); } });
-settingBool("Setting_autoLeagues", "false", { onNew: () => { clearTimer('nextLeaguesTime'); } });
-settingBool("Setting_autoLeaguesAllowWinCurrent");
-settingBool("Setting_autoLeaguesCollect");
-settingBool("Setting_autoLeaguesBoostedOnly");
-settingValue("Setting_autoLeaguesRunThreshold", "0", "Small Integer");
-settingBool("Setting_autoLeaguesForceOneFight");
-settingBool("Setting_leagueListDisplayPowerCalc", "false", { onNew: () => { deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList"); } });
-settingSelect("Setting_autoLeaguesSelectedIndex", "0", "autoLeaguesSelector", /^[0-9]$/);
-settingSelect("Setting_autoLeaguesSortIndex", "1", "autoLeaguesSortMode", /^[0-9]$/, () => { deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList"); });
-settingValue("Setting_autoLeaguesThreshold", "0", "Small Integer");
-settingValue("Setting_autoLeaguesSecurityThreshold", "40", "Small Integer");
-settingBool("Setting_compactMissions");
-settingBool("Setting_autoMission", "false", { onNew: () => { clearTimer('nextMissionTime'); } });
-settingBool("Setting_autoMissionCollect");
-settingBool("Setting_autoMissionKFirst");
-settingBool("Setting_invertMissions");
-settingBool("Setting_compactPowerPlace");
-settingBool("Setting_autoPowerPlaces", "false", { onNew: () => { clearTimer('minPowerPlacesTime'); PlaceOfPower.cleanTempPopToStart(); } });
-settingBool("Setting_autoPowerPlacesAll", "false", { onNew: () => { clearTimer('minPowerPlacesTime'); PlaceOfPower.cleanTempPopToStart(); } });
-settingBool("Setting_autoPowerPlacesPrecision");
-settingBool("Setting_autoPowerPlacesInverted");
-settingBool("Setting_autoPowerPlacesWaitMax");
-settingValue("Setting_autoPowerPlacesIndexFilter", "1;2;3", "List", { onNew: () => { clearTimer('minPowerPlacesTime'); PlaceOfPower.cleanTempPopToStart(); } });
-settingBool("Setting_autoQuest");
-settingBool("Setting_autoSideQuest");
-settingValue("Setting_autoQuestThreshold", "0", "Small Integer");
-settingBool("Setting_autoSalary", "false", { onNew: () => { clearTimer('nextSalaryTime'); } });
-settingValue("Setting_autoSalaryMinSalary", "20000", "Long Integer", { onNew: () => { clearTimer('nextSalaryTime'); } });
-settingBool("Setting_autoSeason", "false", { onNew: () => { clearTimer('nextSeasonTime'); } });
-settingCollect("Setting_autoSeasonCollect", "Setting_autoSeasonCollectablesList", "nextSeasonCollectTime");
-settingBool("Setting_autoSeasonCollectAll");
-settingBool("Setting_autoSeasonIgnoreNoGirls");
-settingBool("Setting_seasonDisplayPowerCalc", "true");
-settingArray("Setting_autoSeasonCollectablesList");
-settingBool("Setting_autoSeasonPassReds", "false", { kobanUsing: true });
-settingValue("Setting_autoSeasonThreshold", "0", "Small Integer");
-settingValue("Setting_autoSeasonRunThreshold", "0", "Small Integer");
-settingBool("Setting_autoSeasonBoostedOnly");
-settingBool("Setting_autoSeasonSkipLowMojo", "true");
-settingBool("Setting_autoPentaDrill", "false", { onNew: () => { clearTimer('nextPentaDrillTime'); } });
-settingCollect("Setting_autoPentaDrillCollect", "Setting_autoPentaDrillCollectablesList", "nextPentaDrillCollectTime");
-settingBool("Setting_autoPentaDrillCollectAll");
-settingArray("Setting_autoPentaDrillCollectablesList");
-settingValue("Setting_autoPentaDrillThreshold", "0", "Small Integer");
-settingValue("Setting_autoPentaDrillRunThreshold", "0", "Small Integer");
-settingBool("Setting_autoPentaDrillBoostedOnly");
-settingValue("Setting_autoStats", "500000000", "Long Integer");
-settingBool("Setting_autoStatsSwitch");
-settingBool("Setting_autoTrollBattle");
-settingBool("Setting_autoTrollMythicByPassParanoia");
-settingValue("Setting_autoTrollSelectedIndex", "0", "Small Integer", { customMenuID: "autoTrollSelector", isValid: /^[0-9]|1[0-5]|98|99$/ });
-settingValue("Setting_autoTrollThreshold", "0", "Small Integer");
-settingValue("Setting_autoTrollRunThreshold", "0", "Small Integer");
-settingBool("Setting_autoChampsForceStartEventGirl");
-settingBool("Setting_buyCombat", "false", { kobanUsing: true });
-settingValue("Setting_buyCombTimer", "16", "Small Integer");
-settingBool("Setting_buyMythicCombat", "false", { kobanUsing: true });
-settingValue("Setting_buyMythicCombTimer", "16", "Small Integer");
-settingCollect("Setting_autoFreeBundlesCollect", "Setting_autoFreeBundlesCollectablesList", "nextFreeBundlesCollectTime", getTextForUI("menuDailyCollectableText", "elementText"));
-settingArray("Setting_autoFreeBundlesCollectablesList");
-settingBool("Setting_waitforContest", "true", { onNew: () => { clearTimer('contestRemainingTime'); clearTimer('nextContestTime'); } });
-settingValue("Setting_safeSecondsForContest", "120", "Small Integer");
-settingBool("Setting_mousePause");
-settingValue("Setting_mousePauseTimeout", "5000", "Small Integer");
-settingValue("Setting_collectAllTimer", "12", "Small Integer", { isValid: /^[1-9][0-9]|[1-9]$/ });
-settingValue("Setting_eventTrollOrder", "1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20", "List");
-settingValue("Setting_autoBuyTrollNumber", "20", "List");
-settingValue("Setting_autoBuyMythicTrollNumber", "20", "List");
-settingBool("Setting_master");
-settingValue("Setting_maxAff", "50000", "Long Integer");
-settingValue("Setting_maxBooster", "10", "Long Integer");
-settingValue("Setting_maxExp", "10000", "Long Integer");
-settingValue("Setting_minShardsX10", "10", "Small Integer", { isValid: /^(\d)+$/ });
-settingValue("Setting_minShardsX50", "50", "Small Integer");
-settingBool("Setting_updateMarket", "true");
-settingBool("Setting_paranoia", "true", { onNew: () => { clearTimer('paranoiaSwitch'); } });
-// Special: no default valueType or menu
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSettings"] =
-    {
-        default: "140-320/Sleep:28800-30400|Active:250-460|Casual:1500-2700/6:Sleep|8:Casual|10:Active|12:Casual|14:Active|18:Casual|20:Active|22:Casual|24:Sleep",
-        storage: "Storage()",
-        HHType: "Setting"
-    };
-settingBool("Setting_paranoiaSpendsBefore", "true");
-settingBool("Setting_plusLoveRaid", "false", { onNew: () => { clearTimer('nextLoveRaidTime'); deleteStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids"); deleteStoredValue(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex"); } });
-settingValue("Setting_autoLoveRaidSelectedIndex", "0", "Small Integer", { customMenuID: "loveRaidSelector", isValid: /^[0-9]|1[0-5]$/ });
-settingBool("Setting_buyLoveRaidCombat", "false", { kobanUsing: true });
-settingValue("Setting_autoBuyLoveRaidTrollNumber", "20", "List");
-settingBool("Setting_plusEventLoveRaidSandalWood");
-settingBool("Setting_plusEvent");
-settingBool("Setting_plusEventMythic");
-settingBool("Setting_plusEventMythicSandalWood");
-settingCollect("Setting_autodpEventCollect", "Setting_autodpEventCollectablesList", "nextdpEventCollectTime");
-settingArray("Setting_autodpEventCollectablesList");
-settingBool("Setting_autodpEventCollectAll");
-settingCollect("Setting_autoLivelySceneEventCollect", "Setting_autoLivelySceneEventCollectablesList", "nextLivelySceneEventCollectTime");
-settingArray("Setting_autoLivelySceneEventCollectablesList");
-settingBool("Setting_autoLivelySceneEventCollectAll");
-settingBool("Setting_bossBangEvent");
-settingValue("Setting_bossBangMinTeam", "5", "Small Integer");
-settingBool("Setting_sultryMysteriesEventRefreshShop");
-settingBool("Setting_collectEventChest");
-settingBool("Setting_AllMaskRewards");
-settingBool("Setting_autoSeasonalBuyFreeCard", "false", { onNew: () => { clearTimer('nextSeasonalCardCollectTime'); } });
-settingBool("Setting_showCalculatePower", "true");
-settingBool("Setting_showAdsBack", "true");
-settingBool("Setting_showRewardsRecap", "true");
-settingBool("Setting_hideOwnedGirls", "true");
-settingBool("Setting_showInfo", "true");
-settingBool("Setting_showInfoLeft");
-settingBool("Setting_showMarketTools");
-settingBool("Setting_showTooltips", "true");
-settingBool("Setting_spendKobans0");
-settingValue("Setting_kobanBank", "1000000", "Long Integer");
-settingBool("Setting_useX10Fights", "false", { kobanUsing: true });
-settingBool("Setting_useX10FightsAllowNormalEvent");
-settingBool("Setting_useX50Fights", "false", { kobanUsing: true });
-settingBool("Setting_useX50FightsAllowNormalEvent");
-// Special: no default, no valueType, no menu, localStorage
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_saveDefaults"] =
-    {
-        storage: "localStorage",
-        HHType: "Setting"
-    };
-settingBool("Setting_autoPantheon", "false", { onNew: () => { clearTimer('nextPantheonTime'); } });
-settingValue("Setting_autoPantheonThreshold", "0", "Small Integer");
-settingValue("Setting_autoPantheonRunThreshold", "0", "Small Integer");
-settingBool("Setting_autoPantheonBoostedOnly");
-settingBool("Setting_autoLabyrinth", "false", { onNew: () => { clearTimer('nextLabyrinthTime'); } });
-settingBool("Setting_autoLabySweep");
-settingBool("Setting_autoLabyCustomTeamBuilder");
-settingBool("Setting_autoLabyHard");
-settingSelect("Setting_autoLabyDifficultyIndex", "0", "autoLabyDifficulty", /^[0-9]$/, () => { });
-settingCollect("Setting_autoSeasonalEventCollect", "Setting_autoSeasonalEventCollectablesList", "nextSeasonalEventCollectTime");
-settingBool("Setting_autoSeasonalEventCollectAll");
-settingArray("Setting_autoSeasonalEventCollectablesList");
-settingCollect("Setting_autoPoVCollect", "Setting_autoPoVCollectablesList", "nextPoVCollectTime");
-settingBool("Setting_autoPoVCollectAll");
-settingArray("Setting_autoPoVCollectablesList");
-settingCollect("Setting_autoPoGCollect", "Setting_autoPoGCollectablesList", "nextPoGCollectTime");
-settingBool("Setting_autoPoGCollectAll");
-settingArray("Setting_autoPoGCollectablesList");
-settingCollect("Setting_autoPoACollect", "Setting_autoPoACollectablesList", "nextPoACollectTime");
-settingBool("Setting_autoPoACollectAll");
-settingArray("Setting_autoPoACollectablesList");
-settingBool("Setting_autoDailyGoals", "false", { onNew: () => { } });
-settingBool("Setting_compactDailyGoals");
-settingCollect("Setting_autoDailyGoalsCollect", "Setting_autoDailyGoalsCollectablesList", "nextDailyGoalsCollectTime", getTextForUI("menuDailyCollectableText", "elementText"));
-settingArray("Setting_autoDailyGoalsCollectablesList");
-// ── Temp Vars ──────────────────────────────────────────────────────
-tempLocal("Temp_scriptversion", { default: "0" });
-tempSession("Temp_autoLoop", "true");
-tempSession("Temp_battlePowerRequired", "0");
-tempSession("Temp_dailyGoalsList");
-// DISABLED: tempSession("Temp_leaguesTarget", "9", "Small Integer")  // formerly active
-tempSession("Temp_lastActionPerformed", "none");
-tempSession("Temp_questRequirement", "none");
-// DISABLED: tempSession("Temp_userLink", "none")  // formerly active
-tempStorage("Temp_autoLoopTimeMili", "1000");
-tempStorage("Temp_freshStart", "no");
-tempSession("Temp_Logging");
-tempSession("Temp_Debug", "false", "Boolean");
-// DISABLED: tempSession("Temp_trollToFight")  // formerly active
-tempSession("Temp_autoTrollBattleSaveQuest");
-tempSession("Temp_burst");
-tempSession("Temp_charLevel");
-tempSession("Temp_filteredGirlsList");
-tempSession("Temp_haremGirlActions");
-tempSession("Temp_haremGirlMode");
-tempSession("Temp_haremMoneyOnStart", "0");
-tempSession("Temp_haremGirlPayLast");
-tempSession("Temp_haremGirlEnd");
-tempSession("Temp_haremGirlLimit");
-tempSession("Temp_haremTeam");
-tempSession("Temp_loveRaids");
-tempSession("Temp_eventsGirlz");
-tempSession("Temp_eventGirl");
-tempSession("Temp_eventMythicGirl");
-tempSession("Temp_autoChampsEventGirls");
-tempSession("Temp_raidGirls");
-tempSession("Temp_champBuildTeam");
-tempSession("Temp_clubChampLimitReached", "false");
-tempSession("Temp_trollWithGirls");
-tempSession("Temp_fought");
-tempSession("Temp_haveAff");
-tempSession("Temp_haveExp");
-tempSession("Temp_haveBooster");
-tempStorage("Temp_hideBeatenOppo", "0");
-tempSession("Temp_LeagueOpponentList");
-// DISABLED: tempSession("Temp_LeagueTempOpponentList")  // formerly active
-tempSession("Temp_paranoiaLeagueBlocked");
-tempSession("Temp_paranoiaQuestBlocked");
-tempSession("Temp_paranoiaSpendings");
-tempSession("Temp_pinfo");
-tempSession("Temp_PopTargeted");
-tempSession("Temp_PopToStart");
-tempSession("Temp_PopUnableToStart");
-tempSession("Temp_storeContents");
-tempSession("Temp_Timers");
-tempSession("Temp_NextSwitch");
-tempSession("Temp_Totalpops");
-tempSession("Temp_currentlyAvailablePops");
-tempSession("Temp_CheckSpentPoints");
-tempSession("Temp_eventsList");
-tempSession("Temp_bossBangTeam");
-tempSession("Temp_boosterStatus");
-tempSession("Temp_sandalwoodFailure", "0");
-tempSession("Temp_LeagueSavedData");
-tempSession("Temp_LeagueHumanLikeRun");
-tempSession("Temp_TrollHumanLikeRun");
-tempSession("Temp_TrollInvalid", "false");
-tempLocal("Temp_MainAdventureWorldID", { default: "0" });
-tempLocal("Temp_SideAdventureWorldID", { default: "0" });
-tempSession("Temp_PantheonHumanLikeRun");
-tempSession("Temp_SeasonHumanLikeRun");
-tempSession("Temp_PentaDrillHumanLikeRun");
-tempLocal("Temp_HaremSize", { isValid: /{"count":(\d)+,"count_date":(\d)+}/ });
-tempSession("Temp_LastPageCalled");
-tempLocal("Temp_PoAEndDate");
-tempLocal("Temp_PoVEndDate");
-tempLocal("Temp_PoGEndDate");
-tempLocal("Temp_poaManualCollectAll", { default: "false" });
-tempLocal("Temp_lseManualCollectAll", { default: "false" });
-tempSession("Temp_unkownPagesList");
-tempSession("Temp_trollPoints");
-
 ;// CONCATENATED MODULE: ./src/config/InputPattern.ts
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 const HHAuto_inputPattern = {
@@ -14664,6 +17342,17 @@ function getMenu() {
             + hhMenuSwitch('autoPoGCollectAll')
             + `</div>`
             + `</div>`
+            + `</div>`
+            + `</div>`
+            + `<div class="optionsBoxWithTitle">`
+            + `<div class="optionsBoxTitle">`
+            + `<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/pictures/design/harem.svg" />`
+            + `<span class="optionsBoxTitle">${getTextForUI("haremTitle", "elementText")}</span>`
+            + `</div>`
+            + `<div class="rowOptionsBox">`
+            + hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
+            + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
+            + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')
             + `</div>`
             + `</div>`
             + `</div>`;
@@ -15656,6 +18345,7 @@ class SeasonOpponent {
 class TeamData {
     constructor() {
         this.team = [];
+        this.girlIds = [];
     }
 }
 
@@ -16079,177 +18769,6 @@ function setHHVars(infoSearched, newValue) {
             returnValue = returnValue[splittedInfoSearched[i]];
         }
     }
-}
-
-;// CONCATENATED MODULE: ./src/Helper/TimerHelper.ts
-
-
-
-
-let Timers = {};
-function setTimers(timer) {
-    Timers = timer;
-}
-function setTimer(name, seconds) {
-    var ND = new Date().getTime() + seconds * 1000;
-    Timers[name] = ND;
-    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
-    LogUtils_logHHAuto(name + " set to " + TimeHelper.toHHMMSS(ND / 1000 - new Date().getTimezoneOffset() * 60) + ' (' + TimeHelper.toHHMMSS(seconds) + ')');
-}
-function clearTimer(name) {
-    delete Timers[name];
-    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
-}
-function checkTimer(name) {
-    if (!Timers[name] || Timers[name] < new Date()) {
-        return true;
-    }
-    return false;
-}
-function checkTimerMustExist(name) {
-    if (Timers[name] && Timers[name] < new Date()) {
-        return true;
-    }
-    return false;
-}
-function getTimer(name) {
-    if (!Timers[name]) {
-        return -1;
-    }
-    return Timers[name];
-}
-function getSecondsLeft(name) {
-    if (!Timers[name]) {
-        return 0;
-    }
-    var result = Math.ceil(Timers[name] / 1000) - Math.ceil(new Date().getTime() / 1000);
-    if (result > 0) {
-        return result;
-    }
-    else {
-        return 0;
-    }
-}
-function getTimeLeft(name) {
-    const timerWaitingCompet = ['nextPachinkoTime', 'nextPachinko2Time', 'nextPachinkoEquipTime', 'nextSeasonTime', 'nextLeaguesTime'];
-    if (!Timers[name]) {
-        if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0) {
-            return "Wait for contest";
-        }
-        return "No timer";
-    }
-    var diff = getSecondsLeft(name);
-    if (diff <= 0) {
-        if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0) {
-            return "Wait for contest";
-        }
-        return "Time's up!";
-    }
-    return TimeHelper.toHHMMSS(diff);
-}
-
-;// CONCATENATED MODULE: ./src/Helper/TimeHelper.ts
-
-
-
-
-
-class TimeHelper {
-    static getContestSafeTime() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true") {
-            return 0;
-        }
-        const safeTimeStr = getStoredValue(HHStoredVarPrefixKey + SK.safeSecondsForContest);
-        let safeTime = safeTimeStr !== undefined ? Number(safeTimeStr) : 120;
-        if (isNaN(safeTime) || safeTime < 0)
-            safeTime = 120;
-        return safeTime;
-    }
-    static canCollectCompetitionActive() {
-        const safeTime = TimeHelper.getContestSafeTime();
-        return getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" || !((getSecondsLeft('contestRemainingTime') - safeTime) < 0 && getSecondsLeft('nextContestTime') > 0);
-    }
-    static toHHMMSS(secs) {
-        var sec_num = parseInt(secs, 10);
-        var days = Math.floor(sec_num / 86400);
-        var hours = Math.floor(sec_num / 3600) % 24;
-        var minutes = Math.floor(sec_num / 60) % 60;
-        var seconds = sec_num % 60;
-        var n = 0;
-        return [days, hours, minutes, seconds]
-            .map(v => v < 10 ? "0" + v : v)
-            .filter((v, i) => { if (v !== "00") {
-            n++;
-            return true;
-        } return n > 0; })
-            .join(":");
-    }
-    static debugDate(sec_num) {
-        let days = Math.floor(sec_num / 86400);
-        let hours = Math.floor(sec_num / 3600) % 24;
-        let minutes = Math.floor(sec_num / 60) % 60;
-        let seconds = sec_num % 60;
-        return JSON.stringify({ days: days, hours: hours, minutes: minutes, seconds: seconds });
-    }
-    static sleep(waitTime) {
-        return new Promise((resolve) => {
-            setTimeout(resolve, waitTime);
-        });
-    }
-}
-function convertTimeToInt(remainingTimer, failSafe = true) {
-    let newTimer = 0;
-    if (remainingTimer && remainingTimer.length > 0) {
-        try {
-            let splittedTime = remainingTimer.trim().split(' ');
-            for (let i = 0; i < splittedTime.length; i++) {
-                let timerSymbol = splittedTime[i].match(/[^0-9]+/)[0];
-                switch (timerSymbol) {
-                    case timerDefinitions[hhTimerLocale].days:
-                        newTimer += parseInt(splittedTime[i]) * 86400;
-                        break;
-                    case timerDefinitions[hhTimerLocale].hours:
-                        newTimer += parseInt(splittedTime[i]) * 3600;
-                        break;
-                    case timerDefinitions[hhTimerLocale].minutes:
-                        newTimer += parseInt(splittedTime[i]) * 60;
-                        break;
-                    case timerDefinitions[hhTimerLocale].seconds:
-                        newTimer += parseInt(splittedTime[i]);
-                        break;
-                    default:
-                        LogUtils_logHHAuto('Timer symbol not recognized: ' + timerSymbol);
-                }
-            }
-        }
-        catch ({ errName, message }) {
-            if (failSafe) {
-                LogUtils_logHHAuto(`ERROR: occured, reset to 15min: ${errName}, ${message}`);
-                newTimer = randomInterval(15 * 60, 17 * 60);
-            }
-            else {
-                LogUtils_logHHAuto(`ERROR: occured, return -1: ${errName}, ${message}`);
-                newTimer = -1;
-            }
-        }
-    }
-    else {
-        if (failSafe) {
-            LogUtils_logHHAuto('No valid timer definitions, reset to 15min');
-            newTimer = randomInterval(15 * 60, 17 * 60);
-        }
-        else {
-            LogUtils_logHHAuto('No valid timer definitions, return -1');
-            newTimer = -1;
-        }
-    }
-    return newTimer;
-}
-function getLimitTimeBeforeEnd() {
-    return Number(getStoredValue(HHStoredVarPrefixKey + SK.collectAllTimer)) * 3600;
-}
-function randomInterval(min, max) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/HeroHelper.ts

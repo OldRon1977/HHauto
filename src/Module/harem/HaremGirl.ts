@@ -3,7 +3,6 @@ import {
     ConfigHelper,
     getHHVars,
     getStoredValue,
-    getStoredJSON,
     getTextForUI,
     parsePrice,
     randomInterval,
@@ -15,8 +14,8 @@ import {
 import { Harem } from "../index";
 import { gotoPage } from "../../Service/index";
 import { displayHHPopUp, fillHHPopUp, isJSON, logHHAuto, maskHHPopUp } from "../../Utils/index";
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { KKHaremGirl } from "../../model/index";
+import { HHAuto_inputPattern, HHStoredVarPrefixKey } from "../../config/index";
+import { KKHaremGirl, TeamData } from "../../model/index";
 
 
 export class HaremGirl {
@@ -50,6 +49,7 @@ export class HaremGirl {
     }
 
     static SKILL_BUTTON_SELECTOR = "#skills .skill-upgrade button.blue_button_L:not([disabled])";
+    static SKILL_BUTTON_SELECTOR_PRIO = "#skills .skill-upgrade [skill-id='2'] button.blue_button_L:not([disabled]),#skills .skill-upgrade [skill-id='4'] button.blue_button_L:not([disabled])";
 
     static getCurrentGirl(): KKHaremGirl {
         return unsafeWindow.girl;
@@ -201,7 +201,7 @@ export class HaremGirl {
             var proceedButtonCost = $(".price", proceedButtonMatch);
             var proceedCost = parsePrice(proceedButtonCost[0].innerText);
             var moneyCurrent = HeroHelper.getMoney();
-            setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
             
             console.log("Debug girl Quest MONEY for : "+proceedCost);
             if(proceedCost <= moneyCurrent)
@@ -220,7 +220,7 @@ export class HaremGirl {
                 return false;
             }
         } else {
-            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) == 'true';
+            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast") == 'true';
             if (haremGirlPayLast) {
                 // back
                 gotoPage('/girl/' + unsafeWindow.id_girl, { resource: 'affection' }, randomInterval(1500, 2500));
@@ -248,10 +248,10 @@ export class HaremGirl {
         if((Number(selectedGirl.level) + 50) <= Number(userHaremGirlLimit)) {
             HaremGirl.HaremDisplayGirlPopup(haremItem, selectedGirl.name + ' ' + selectedGirl.Xp.cur + "xp, level " + selectedGirl.level + "/" + userHaremGirlLimit, (1) * 5);
 
-            setStoredValue(HHStoredVarPrefixKey+TK.haremGirlActions, haremItem);
-            setStoredValue(HHStoredVarPrefixKey+TK.haremGirlMode, 'girl');
-            setStoredValue(HHStoredVarPrefixKey+TK.haremGirlLimit, userHaremGirlLimit);
-            setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlActions", haremItem);
+            setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlMode", 'girl');
+            setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlLimit", userHaremGirlLimit);
+            setStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
 
             if((Number(selectedGirl.level) + 50) >= Number(userHaremGirlLimit)) {
                 await HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl);
@@ -274,7 +274,7 @@ export class HaremGirl {
         const haremItem = HaremGirl.AFFECTION_TYPE;
         const selectedGirl: KKHaremGirl = HaremGirl.getCurrentGirl();
         HaremGirl.switchTabs(haremItem);
-        const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey+TK.haremGirlPayLast) == 'true';
+        const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlPayLast") == 'true';
         const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
         const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded+1);
         const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
@@ -394,11 +394,11 @@ export class HaremGirl {
                 const fillGirlGifts = (payLast = false) => {
                     maskHHPopUp();
                     HaremGirl.switchTabs(HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey+TK.haremGirlActions, HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey+TK.haremGirlMode, 'girl');
-                    setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
-                    setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
-                    if (payLast) setStoredValue(HHStoredVarPrefixKey+TK.haremGirlPayLast, 'true');
+                    setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlActions", HaremGirl.AFFECTION_TYPE);
+                    setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlMode", 'girl');
+                    setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlEnd", 'true');
+                    setStoredValue(HHStoredVarPrefixKey+"Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                    if (payLast) setStoredValue(HHStoredVarPrefixKey+"Temp_haremGirlPayLast", 'true');
                     setTimeout(HaremGirl.fillAllAffection, randomInterval(500,800));
                 }
                 $('#'+menuIDMaxGifts+'Button').on("click",  () => {
@@ -515,7 +515,12 @@ export class HaremGirl {
             //if(canGiftGirl) // Not supported yet
             //   GM_registerMenuCommand(getTextForUI(menuIDGifts,"elementText"), giveHaremGifts);
 
-            HaremGirl.addGirlMenu();
+            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremTools") === "true") {
+                HaremGirl.addGirlMenu();
+            }
+            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons") === "true") {
+                HaremGirl.showSkillButtons();
+            }
 
         } catch ({ errName, message }) {
             logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
@@ -551,11 +556,12 @@ export class HaremGirl {
 
     static async run(): Promise<boolean> {
         try {
-            const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
-            const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
-            const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd) === 'true';
-            const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
-            const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
+            //const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+            const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
+            const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+            const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd") === 'true';
+            const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
+            const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
             let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
 
             const canGiftGirl = HaremGirl.canGiftGirl();
@@ -564,10 +570,10 @@ export class HaremGirl {
 
             if (!haremItem) {
                 // No action to be peformed
-                return Promise.resolve(false);
+                return false;
             }
-            logHHAuto("run HaremGirl: " + girl.name + '(' + girl.id_girl + ')');
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            logHHAuto("run HaremGirl: " + girl.name + ' (' + girl.id_girl + '), level ' + girl.level + ', rarity: ' + girl.rarity);
+            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
             logHHAuto("setting autoloop to false as action to be performed on girl");
             logHHAuto("Action to be performed (mode: " + haremGirlMode + ") : give " + haremItem);
 
@@ -591,14 +597,16 @@ export class HaremGirl {
                         // No more quest
                         HaremGirl.HaremClearGirlPopup();
                         Harem.clearHaremToolVariables();
-                        return Promise.resolve(false);
+                        return false;
                     }
+                // } else if (haremItem == HaremGirl.EQUIPMENT_TYPE) {
+                // } else if (haremItem == HaremGirl.SKILLS_TYPE) {
                 } else {
                     logHHAuto('ERROR, no action found to be executed. ', { haremItem: haremItem, canGiftGirl: canGiftGirl, canAwakeGirl: canAwakeGirl });
                     Harem.clearHaremToolVariables();
-                    return Promise.resolve(false);
+                    return false;
                 }
-                return Promise.resolve(true);
+                return true;
             }
             else if (haremGirlMode === 'list')
             {
@@ -607,10 +615,10 @@ export class HaremGirl {
                 let remainingGirls = 0;
                 let girlListProgress = '';
                 const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
-                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
+                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
                 let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
 
-                let filteredGirlsList = getStoredJSON(HHStoredVarPrefixKey + TK.filteredGirlsList, []);
+                let filteredGirlsList = getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList")) : [];
                 logHHAuto("filteredGirlsList", filteredGirlsList);
                 if (filteredGirlsList && filteredGirlsList.length > 0) {
                     girlPosInList = filteredGirlsList.indexOf("" + girl.id_girl);
@@ -628,7 +636,7 @@ export class HaremGirl {
                     HaremGirl.HaremDisplayGirlPopup(haremItem, girl.name + ' ' + girl.graded + "/" + girl.nb_grades + "star : Girl " + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                     if (await HaremGirl.fillAllAffection()) {
                         logHHAuto("Going to girl quest");
-                        return Promise.resolve(true);
+                        return true;
                     }
                 } else if (haremGirlEnd && haremItem == HaremGirl.EXPERIENCE_TYPE ) {
                     HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
@@ -648,24 +656,80 @@ export class HaremGirl {
                 if (nextGirlId >= 0) {
                     logHHAuto('Go to next girl (' + nextGirlId + ') remaining ' + remainingGirls + ' girls');
                     gotoPage('/girl/' + nextGirlId, { resource: haremItem }, randomInterval(1500, 2500));
-                    return Promise.resolve(true);
+                    return true;
                 } else {
                     logHHAuto("No more girls, go back to harem list");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     gotoPage('/characters/' + girl.id_girl, {}, randomInterval(1500, 2500));
                     Harem.clearHaremToolVariables();
                 }
+            }
+            else if (haremGirlMode === 'team') {
+                const upgradeSkill = haremItem.indexOf(HaremGirl.SKILLS_TYPE) >= 0;
+                const upgradeEquipment = haremItem.indexOf(HaremGirl.EQUIPMENT_TYPE) >= 0;
+                let team:TeamData = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
+                //logHHAuto(`Team to upgrade (${haremItem})`, team);
+
+
+                let nextGirlId = -1;
+                let girlPosInList = 0;
+                let remainingGirls = 0;
+                let girlListProgress = '';
+                // const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
+
+                if (team && team.team && team.team.length > 0) {
+                    girlPosInList = team.girlIds.indexOf(girl.id_girl);
+                    if (girlPosInList >= 0 && team.team.length > (girlPosInList + 1)) {
+                        remainingGirls = team.team.length - girlPosInList - 1;
+                        nextGirlId = team.team[girlPosInList + 1].id_girl;
+                        girlListProgress = (girlPosInList + 1) + '/' + team.team.length;
+                    }
+                }
+                if (girlPosInList == 0) logHHAuto('Main girl from the team');
+
+
+                if (upgradeEquipment) {
+                    HaremGirl.switchTabs(HaremGirl.EQUIPMENT_TYPE);
+                    await TimeHelper.sleep(randomInterval(400, 700));
+
+                    HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+
+                    $('#girl-equip').trigger('click');
+                    await TimeHelper.sleep(randomInterval(400, 700));
+
+                }
+                if (upgradeSkill) {
+                    HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
+                    await TimeHelper.sleep(randomInterval(400, 700));
+
+                    HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+
+                    logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
+                    await HaremGirl.fullSkillsUpgrade(girlPosInList == 0 ? 5 : 4);
+                    await TimeHelper.sleep(randomInterval(400, 700));
+                }
+                
+                if (nextGirlId >= 0) {
+                    logHHAuto('Go to next girl (' + nextGirlId + ') remaining ' + remainingGirls + ' girls');
+                    gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EXPERIENCE_TYPE) }, randomInterval(1500, 2500));
+                    return true;
+                } else {
+                    // Todo end team.
+                    logHHAuto("No more girls, go back to harem list");
+                    gotoPage('/characters/' + girl.id_girl, {}, randomInterval(1500, 2500));
+                    Harem.clearHaremToolVariables();
+                }
+                
             } else {
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
                 Harem.clearHaremToolVariables();
             }
         } catch ({ errName, message }) {
             logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
             console.error(message);
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
             Harem.clearHaremToolVariables();
         } finally {
-            Promise.resolve(false);
+            return false;
         }
     }
 
@@ -685,13 +749,22 @@ export class HaremGirl {
         return Promise.resolve();
     }
 
-    static async fullSkillsUpgrade(retry = false) {
+    static async fullSkillsUpgrade(maxTier=5) {
         try {
-            let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
+            let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR_PRIO).first(); // First percentage skills
+            if(skillButton.length == 0) {
+                skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
+            }
             if(skillButton.length > 0) {
+                const skillId = Number(skillButton.parents('.skill-upgrade-row').attr('skill-id') || -1);
+                //logHHAuto('Upgrading skill id: ' + skillId + ' targeting tier: ' + maxTier);
+                if(maxTier == 4 && skillId > 10) {
+                    //logHHAuto('Max tier for sub skills reached, stopping upgrade for this skill');
+                    return Promise.resolve();
+                }
                 skillButton.trigger('click');
                 await TimeHelper.sleep(randomInterval(400, 700));
-                return await HaremGirl.fullSkillsUpgrade();
+                return await HaremGirl.fullSkillsUpgrade(maxTier);
             }
         } catch (error) {
             logHHAuto("Can't remove popup_message_harem");
@@ -701,9 +774,9 @@ export class HaremGirl {
 
     static HaremDisplayGirlPopup(haremItem,haremText,remainingTime, cost=0)
     {
-        $(".girl-leveler-panel .girl-section").prepend(
+        $(".girl-leveler-panel .girl-section, .waifu-page-container .girl-display, #harem_right .avatar-box").prepend(
             `<div id="popup_message_harem" class="HHpopup_message" name="popup_message_harem" style="" ><a id="popup_message_harem_close" class="close">&times;</a>
-                ${getTextForUI("give"+haremItem,"elementText")} : <br>
+                ${ !!haremItem ? getTextForUI("give"+haremItem,"elementText") : ''} : <br>
                 ${haremText} (${remainingTime}sec)
                 ${(cost > 0) ? `<br>${getTextForUI("cost" + haremItem, "elementText")}: ${NumberHelper.nRounding(cost, 2, 0)}` : ''}
                 </div>`);

@@ -550,6 +550,17 @@ export function getMenu() {
                     +`</div>`
                 +`</div>`
             + `</div>`
+            +`<div class="optionsBoxWithTitle">`
+                +`<div class="optionsBoxTitle">`
+                    +`<img class="iconImg" src="${ConfigHelper.getHHScriptVars("baseImgPath")}/pictures/design/harem.svg" />`
+                    +`<span class="optionsBoxTitle">${getTextForUI("haremTitle","elementText")}</span>`
+                +`</div>`
+                +`<div class="rowOptionsBox">`
+                    + hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
+                    + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
+                    + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')
+                +`</div>`
+            + `</div>`
         +`</div>`;
     }
 

@@ -1,7 +1,7 @@
 {
   "name": "hhauto",
-  "version": "7.29.16",
-  "description": "[English](https://github.com/OldRon1977/HHauto/wiki/English)",
+  "version": "7.29.17.beta",
+  "description": "[English](https://github.com/Roukys/HHauto/wiki/English)",
   "main": "HHAuto.user.js",
   "scripts": {
     "test": "jest",
@@ -9,14 +9,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/OldRon1977/HHauto.git"
+    "url": "git+https://github.com/Roukys/HHauto.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/OldRon1977/HHauto/issues"
+    "url": "https://github.com/Roukys/HHauto/issues"
   },
-  "homepage": "https://github.com/OldRon1977/HHauto#readme",
+  "homepage": "https://github.com/Roukys/HHauto#readme",
   "devDependencies": {
     "@babel/core": "^7.23.6",
     "@babel/preset-env": "^7.23.6",
