@@ -879,7 +879,7 @@ export function getMenu() {
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitch('autoEquipBoosters')
-                        + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+                        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:70px')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
