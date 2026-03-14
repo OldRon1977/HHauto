@@ -25,7 +25,7 @@ export class MockHelper{
     }
 
     static mockHeroLevel(heroLevel: number) {
-        unsafeWindow.Hero = {
+        unsafeWindow.shared.Hero = {
             name: "TOTO",
             infos: {
                 level: heroLevel
@@ -35,42 +35,42 @@ export class MockHelper{
     }
     
     static mockEnergiesFight(amount: number, max: number) {
-        unsafeWindow.Hero.energies.fight = {
+        unsafeWindow.shared.Hero.energies.fight = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesChallenge(amount: number, max: number) {
-        unsafeWindow.Hero.energies.challenge = {
+        unsafeWindow.shared.Hero.energies.challenge = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesKiss(amount: number, max: number) {
-        unsafeWindow.Hero.energies.kiss = {
+        unsafeWindow.shared.Hero.energies.kiss = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesQuest(amount: number, max: number) {
-        unsafeWindow.Hero.energies.quest = {
+        unsafeWindow.shared.Hero.energies.quest = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesWorship(amount: number, max: number) {
-        unsafeWindow.Hero.energies.worship = {
+        unsafeWindow.shared.Hero.energies.worship = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesDrill(amount: number, max: number) {
-        unsafeWindow.Hero.energies.drill = {
+        unsafeWindow.shared.Hero.energies.drill = {
             amount: amount,
             max_regen_amount: max
         };

@@ -6,34 +6,42 @@ declare global {
     interface Window {
         // Below just informs IDE and/or TS-compiler (it's set in `.js` file).
         championData: any;
-        contests_timer: {
-            duration: any;
-            next_contest: any;
-            remaining_time: any;
+        contests_timer?: {
+            next_contest: number;
+            duration: number;
+            remaining_time: number;
+            [key: string]: any;
         };
         Collect: any;
-        current_tier_number: any;
-        daily_goals_list: KKDailyGoal[];
-        event_data: any;
-        current_event: any;
-        girl: any;
+        current_tier_number?: number;
+        daily_goals_list?: KKDailyGoal[];
+        event_data?: any;
+        current_event?: any;
+        girl?: any;
         // GirlSalaryManager: any;
         harem: any;
-        has_contests_datas: any;
-        hero_data: any;
-        shared: {
-            GirlSalaryManager: any;
-            Hero: KKHero;
-            animations: any;
-            general: {
-                is_cheat_click: any;
-                hh_ajax: any;
+        has_contests_datas?: any;
+        hero_data?: any;
+        shared?: {
+            Hero?: any;
+            general?: {
+                hh_ajax?: (...args: any[]) => any;
+                is_cheat_click?: (...args: any[]) => any;
+                [key: string]: any;
             };
-        };
+            animations?: {
+                loadingAnimation?: {
+                    start: () => void;
+                    stop: () => void;
+                };
+                [key: string]: any;
+            };
+            [key: string]: any;
+        }
         // Hero: any;
         // hh_ajax: any;
-        hh_nutaku: any;
-        hh_prices: any;
+        hh_nutaku?: any;
+        hh_prices?: any;
         HHTimers: any;
         is_cheat_click: any;
         league_tag: any;
@@ -48,13 +56,13 @@ declare global {
         opponents_list: KKPentaDrillOpponents[] | undefined;
         mega_event_active: any;
         mega_event_time_remaining: any;
-        server_now_ts: any;
-        id_girl: any;
-        girl_squad: any;
-        teams_data: any;
+        server_now_ts?: any;
+        id_girl?: any;
+        girl_squad?: any;
+        teams_data?: any;
         //pop
-        pop_list:boolean;
-        pop_index:number;
+        pop_list?:boolean;
+        pop_index?:number;
         love_raids:KKLoveRaid[]|undefined;
     }
 }

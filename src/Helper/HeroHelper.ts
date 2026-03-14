@@ -9,13 +9,12 @@ import { randomInterval } from "./TimeHelper";
 
 export function getHero():KKHero
 {
-    if(unsafeWindow.Hero === undefined && unsafeWindow.shared?.Hero === undefined)
+    if(unsafeWindow.shared?.Hero === undefined)
     {
         setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")))
         //logHHAuto(window.wrappedJSObject)
     }
-    //logHHAuto(unsafeWindow.Hero);
-    return unsafeWindow.Hero || unsafeWindow.shared?.Hero;
+    return unsafeWindow.shared?.Hero;
 }
 
 export function doStatUpgrades()
