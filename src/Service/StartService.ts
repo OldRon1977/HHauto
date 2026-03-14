@@ -188,7 +188,7 @@ export function hardened_start()
 
 export function start() {
 
-    if (unsafeWindow.Hero === undefined && unsafeWindow.shared?.Hero === undefined)
+    if (unsafeWindow.shared?.Hero === undefined)
     {
         logHHAuto('???no Hero???');
         $('.hh_logo').trigger('click');

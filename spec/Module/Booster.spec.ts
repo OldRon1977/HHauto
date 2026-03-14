@@ -164,7 +164,7 @@ describe("Booster", function() {
     beforeEach(function() {
       MockHelper.mockDomain();
       // Fixed mock: hh_ajax(params, successCb, errorCb) must invoke the callback
-      unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
+      unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
           const fakeResponse = { success: true };
           successCb(fakeResponse);
       });
@@ -241,7 +241,7 @@ describe("Booster", function() {
 
       beforeEach(function() {
         // Mock failure case: server returns success:false
-        unsafeWindow.hh_ajax = jest.fn((params, successCb, errorCb) => {
+        unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
             const fakeResponse = { success: false };
             successCb(fakeResponse);
         });
@@ -292,7 +292,7 @@ describe("Booster", function() {
         const result = await Booster.equipeSandalWoodIfNeeded(99);
         expect(result).toBeFalsy();
         // hh_ajax should NOT have been called
-        expect(unsafeWindow.hh_ajax).not.toHaveBeenCalled();
+        expect(unsafeWindow.shared.general.hh_ajax).not.toHaveBeenCalled();
       });
     });
   });

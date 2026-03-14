@@ -590,7 +590,11 @@ HHStoredVars[HHStoredVarPrefixKey+"Setting_autoQuest"] =
     getMenu:true,
     setMenu:true,
     menuType:"checked",
-    kobanUsing:false
+    kobanUsing:false,
+    newValueFunction:function()
+    {
+        deleteStoredValue(HHStoredVarPrefixKey + "Temp_questRequirement");
+    }
 };
 HHStoredVars[HHStoredVarPrefixKey+"Setting_autoSideQuest"] =
     {

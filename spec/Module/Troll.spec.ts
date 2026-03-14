@@ -12,7 +12,7 @@ describe("Troll module", function () {
         // MockHelper.mockPage('champions_map');
         // sessionStorage.setItem(HHStoredVarPrefixKey + 'Setting_autoChampsFilter', '1;2;3;4;5;6');
         // setTimer('nextChampionTime',-1);
-        unsafeWindow.Hero = {
+        unsafeWindow.shared.Hero = {
             name: "TOTO",
             energies: {
                 fight: { 
@@ -47,7 +47,7 @@ describe("Troll module", function () {
                 localStorage.setItem(HHStoredVarPrefixKey + 'Setting_plusEvent', 'true');
                 localStorage.setItem(HHStoredVarPrefixKey + 'Setting_buyCombTimer', '1');
                 setTimer('eventGoing', 1000);
-                unsafeWindow.Hero.currencies = { hard_currency: 1000 };
+                unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
                 MockHelper.mockEnergiesFight(0, 15);
 
                 const eventGirl = { girl_id: 1, is_mythic: false, shards: 90, troll_id: 1 } as EventGirl;
@@ -67,7 +67,7 @@ describe("Troll module", function () {
                 localStorage.setItem(HHStoredVarPrefixKey + 'Setting_minShardsX50', '20');
                 localStorage.setItem(HHStoredVarPrefixKey + 'Setting_useX50FightsAllowNormalEvent', 'true');
                 setTimer('eventGoing', 1000);
-                unsafeWindow.Hero.currencies = { hard_currency: 1000 };
+                unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
                 MockHelper.mockEnergiesFight(0, 15);
 
                 const eventGirl = { girl_id: 1, is_mythic: false, shards: 0, troll_id: 1 } as EventGirl;

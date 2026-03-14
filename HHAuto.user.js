@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.29.17.beta
+// @version      7.29.19
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8261,7 +8261,10 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuest"] =
         getMenu: true,
         setMenu: true,
         menuType: "checked",
-        kobanUsing: false
+        kobanUsing: false,
+        newValueFunction: function () {
+            deleteStoredValue(HHStoredVarPrefixKey + "Temp_questRequirement");
+        }
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSideQuest"] =
     {
@@ -19607,12 +19610,11 @@ var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 function getHero() {
     var _a, _b;
-    if (unsafeWindow.Hero === undefined && ((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
+    if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
         setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + "Temp_autoLoopTimeMili")));
         //logHHAuto(window.wrappedJSObject)
     }
-    //logHHAuto(unsafeWindow.Hero);
-    return unsafeWindow.Hero || ((_b = unsafeWindow.shared) === null || _b === void 0 ? void 0 : _b.Hero);
+    return (_b = unsafeWindow.shared) === null || _b === void 0 ? void 0 : _b.Hero;
 }
 function doStatUpgrades() {
     //Stats?
@@ -20321,7 +20323,7 @@ function callItOnce(fn) {
 }
 function getHHAjax() {
     var _a, _b;
-    return unsafeWindow.hh_ajax || ((_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.general) === null || _b === void 0 ? void 0 : _b.hh_ajax);
+    return (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.general) === null || _b === void 0 ? void 0 : _b.hh_ajax;
 }
 function getLoadingAnimation() {
     var _a, _b;
@@ -22767,7 +22769,7 @@ function hardened_start() {
 }
 function start() {
     var _a, _b;
-    if (unsafeWindow.Hero === undefined && ((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
+    if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
         LogUtils_logHHAuto('???no Hero???');
         $('.hh_logo').trigger('click');
         setTimeout(hardened_start, 5000);
