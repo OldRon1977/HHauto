@@ -18,8 +18,8 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @license      MIT
-// @updateURL    https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
-// @downloadURL  https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
+// @updateURL    https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
+// @downloadURL  https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
 // ==/UserScript==
 
 // WARNING: This file has been generated, DO NOT EDIT.
@@ -503,7 +503,7 @@ HHAuto_ToolTips.en['Name'] = { version: "5.6.24", elementText: "Name", tooltip: 
 HHAuto_ToolTips.en['sortPowerCalc'] = { version: "5.6.24", elementText: "Sort by score", tooltip: "Sorting opponents by score." };
 HHAuto_ToolTips.en['translate'] = { version: "5.6.25", elementText: "Translate", tooltip: "" };
 HHAuto_ToolTips.en['saveTranslation'] = { version: "5.6.25", elementText: "Save translation" };
-HHAuto_ToolTips.en['saveTranslationText'] = { version: "5.6.25", elementText: "Below you'll find all text that can be translated.<br>To contribute, modify directly in the cell the translation (if empty click on the blue part ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Gray cells are translations needing update.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blue cell are missing translations</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Please try to keep the text length to prevent UI issues.</p>At the bottom you'll find a button to generate a txt file with your modification.<br>Please upload it to : <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
+HHAuto_ToolTips.en['saveTranslationText'] = { version: "5.6.25", elementText: "Below you'll find all text that can be translated.<br>To contribute, modify directly in the cell the translation (if empty click on the blue part ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Gray cells are translations needing update.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blue cell are missing translations</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Please try to keep the text length to prevent UI issues.</p>At the bottom you'll find a button to generate a txt file with your modification.<br>Please upload it to : <a target='_blank' href='https://github.com/Roukys/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectable'] = { version: "5.6.47", elementText: "Collectable preferences.", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectableText'] = { version: "5.6.47", elementText: "Please select the collectables you want to be automatically collected.", tooltip: "" };
 HHAuto_ToolTips.en['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Please select the collectables you want to be immediately collected.", tooltip: "" };
@@ -1069,9 +1069,6 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
  * listener keeps this cache in sync with server responses. When the cache becomes stale
  * (e.g. after a failed equip), the next visit to the market page rebuilds it from the DOM.
  *
- * Auto-equip of normal boosters is restricted to a whitelist of player IDs
- * (AUTO_EQUIP_ALLOWED_IDS) because the feature is experimental.
- *
  * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
  *
  * Related modules:
@@ -1086,8 +1083,6 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 
 
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
-/** Only these player IDs may use the automatic normal-booster equip feature. */
-const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 /**
  * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
  *
@@ -1345,76 +1340,92 @@ class Booster {
         // Only return as many as there are free slots
         return boostersToEquip.slice(0, freeSlots);
     }
-    static getShortestBoosterRemainingSeconds() {
-        var _a;
-        const slotConfig = Booster.parseEquipSlotConfig();
+    /**
+     * Returns the longest remaining time (in seconds) among all active normal boosters.
+     * Used to schedule the next auto-equip check after all current boosters have expired.
+     */
+    static getLongestBoosterRemainingSeconds() {
         const boosterStatus = Booster.getBoosterFromStorage();
         const serverNow = getHHVars('server_now_ts');
         const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
         if (activeBoosters.length === 0)
             return 0;
-        // Find the shortest remaining time among active boosters matching our config
-        let shortest = Infinity;
+        let longest = 0;
         for (const booster of activeBoosters) {
-            const id = (_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier;
-            if (id && slotConfig.includes(id)) {
-                const remaining = booster.endAt - serverNow;
-                if (remaining < shortest) {
-                    shortest = remaining;
-                }
+            const remaining = booster.endAt - serverNow;
+            if (remaining > longest) {
+                longest = remaining;
             }
         }
-        return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
+        return Math.max(0, Math.floor(longest));
     }
-    static isAutoEquipAllowed() {
-        const playerId = HeroHelper.getPlayerId();
-        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    /**
+     * Generates a random delay between 5 minutes and 2 hours (in seconds).
+     * Added to booster expiry time to make auto-equip timing look human.
+     */
+    static getRandomEquipDelay() {
+        return randomInterval(5 * 60, 2 * 60 * 60);
     }
+    /**
+     * Schedules the next auto-equip check based on the longest-running active booster
+     * plus a random delay (5 min – 2 h). If no boosters are active, schedules immediately
+     * with just the random delay.
+     */
+    static scheduleNextEquipCheck() {
+        const longestRemaining = Booster.getLongestBoosterRemainingSeconds();
+        const randomDelay = Booster.getRandomEquipDelay();
+        const totalDelay = longestRemaining + randomDelay;
+        const delayMin = Math.floor(totalDelay / 60);
+        LogUtils_logHHAuto("Auto-equip: Next check in " + delayMin + " min (booster expires in "
+            + Math.floor(longestRemaining / 60) + " min + " + Math.floor(randomDelay / 60) + " min random delay).");
+        setTimer('nextAutoEquipBoosterTime', totalDelay);
+    }
+    /**
+     * Main auto-equip entry point. Tries to equip all configured boosters that are
+     * missing from the active slots. After equipping (or if all slots are occupied),
+     * schedules the next check based on the longest active booster + random delay.
+     *
+     * If the player has manually equipped boosters in the meantime, the method detects
+     * that slots are full and reschedules accordingly.
+     */
     static autoEquipBoosters() {
         return __awaiter(this, void 0, void 0, function* () {
             const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
             if (!isEnabled)
                 return false;
-            if (!Booster.isAutoEquipAllowed())
-                return false;
             const boostersToEquip = Booster.getBoostersToEquip();
             if (boostersToEquip.length === 0) {
-                // All slots filled – set timer to shortest remaining booster time + small buffer
-                const shortestRemaining = Booster.getShortestBoosterRemainingSeconds();
-                if (shortestRemaining > 0) {
-                    setTimer('nextAutoEquipBoosterTime', shortestRemaining + 10);
-                    LogUtils_logHHAuto("Auto-equip: All booster slots active. Next check in " + shortestRemaining + "s.");
-                }
+                // All slots filled (possibly by the player manually) — reschedule
+                LogUtils_logHHAuto("Auto-equip: All booster slots active.");
+                Booster.scheduleNextEquipCheck();
                 return false;
             }
             LogUtils_logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
-            const nextBoosterId = boostersToEquip[0];
-            const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
-            if (!boosterObj) {
-                LogUtils_logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
-                setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
-                return false;
+            let anyEquipped = false;
+            for (const nextBoosterId of boostersToEquip) {
+                const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
+                if (!boosterObj) {
+                    LogUtils_logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                    continue;
+                }
+                if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
+                    LogUtils_logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+                    continue;
+                }
+                const equipped = yield HeroHelper.equipBooster(boosterObj);
+                if (equipped) {
+                    LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+                    anyEquipped = true;
+                }
+                else {
+                    LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slot may be occupied.");
+                    // Stop trying further boosters — slots are likely full
+                    break;
+                }
             }
-            if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
-                LogUtils_logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
-                setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
-                return false;
-            }
-            // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
-            setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
-            const equipped = yield HeroHelper.equipBooster(boosterObj);
-            if (equipped) {
-                LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
-                // Short timer to check if more boosters need equipping
-                setTimer('nextAutoEquipBoosterTime', 30);
-            }
-            else {
-                LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slots may be full. Next retry in 30 min.");
-                // Likely all slots are already full — long cooldown to prevent spam.
-                // The booster status in storage is stale; force refresh next time we visit the market page.
-                setTimer('nextAutoEquipBoosterTime', 1800); // retry in 30 min
-            }
-            return equipped;
+            // Schedule next check based on longest active booster + random delay
+            Booster.scheduleNextEquipCheck();
+            return anyEquipped;
         });
     }
     static needSandalWoodEquipped(nextTrollChoosen, eventMythicGirl = null, loveRaid = null) {
@@ -17488,7 +17499,6 @@ class NumberHelper {
 
 
 
-
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -18264,10 +18274,10 @@ function getMenu() {
             + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
             + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
             + `</div>`
-            + (Booster.isAutoEquipAllowed() ? `<div class="internalOptionsRow">`
-                + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
-                + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
-                + `</div>` : '')
+            + `<div class="internalOptionsRow">`
+            + hhMenuSwitch('autoEquipBoosters')
+            + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+            + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
             + hhMenuSwitch('updateMarket')
@@ -20631,7 +20641,7 @@ class ConfigHelper {
             environnement = HHKnownEnvironnements[window.location.hostname].name;
         }
         else {
-            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/OldRon1977/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/OldRon1977/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
+            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/Roukys/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/Roukys/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
         }
         return environnement;
     }
@@ -22850,8 +22860,8 @@ function start() {
     setMenuValues();
     getMenuValues();
     manageToolTipsDisplay();
-    $("#git").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/wiki"); });
-    $("#ReportBugs").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
+    $("#git").on("click", function () { window.open("https://github.com/Roukys/HHauto/wiki"); });
+    $("#ReportBugs").on("click", function () { window.open("https://github.com/Roukys/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
     $("#loadConfig").on("click", function () {
         let LoadDialog = '<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
         fillHHPopUp("loadConfig", getTextForUI("loadConfig", "elementText"), LoadDialog);
