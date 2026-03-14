@@ -269,6 +269,16 @@ export async function autoLoop()
             }
         }
 
+        // Auto-equip legendary boosters from inventory
+        if (busy === false && isAutoLoopActive()
+            && getStoredValue(HHStoredVarPrefixKey+"Setting_autoEquipBoosters") === "true"
+            && checkTimer('nextAutoEquipBoosterTime')
+            && (lastActionPerformed === "none"))
+        {
+            busy = await Booster.autoEquipBoosters();
+            if (busy) lastActionPerformed = "booster";
+        }
+
         if (
             busy === false
             && isAutoLoopActive()

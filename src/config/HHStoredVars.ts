@@ -66,6 +66,28 @@ HHStoredVars[HHStoredVarPrefixKey+"Setting_autoBuyBoostersFilter"] =
     menuType:"value",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoosters"] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoostersSlots"] =
+    {
+    default:"B1;B1;B2;B4",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"List",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey+"Setting_autoChamps"] =
     {
     default:"false",
@@ -2287,6 +2309,11 @@ HHStoredVars[HHStoredVarPrefixKey+"Temp_boosterStatus"] =
 HHStoredVars[HHStoredVarPrefixKey+"Temp_sandalwoodFailure"] =
 {
     default:"0",
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey+"Temp_boosterIdMap"] =
+    {
     storage:"sessionStorage",
     HHType:"Temp"
 };

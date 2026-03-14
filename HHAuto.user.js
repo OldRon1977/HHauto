@@ -195,6 +195,8 @@ HHAuto_ToolTips.en['buyCombat'] = { version: "5.6.24", elementText: "Buy comb. f
 HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Combats", tooltip: "(Integer)<br>X last hours of event" };
 HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & Leg. Boosters", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Allow to buy booster in the market (if not going under Koban bank value)" };
 HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(values separated by ;)<br>Set list of codes of booster to buy, order is respected.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura" };
+HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.29.19", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
+HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.29.19", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
 HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pass 3 reds", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Use kobans to renew Season opponents if 3 reds" };
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
@@ -1181,7 +1183,8 @@ class Booster {
         const isLeagueWithBooster = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLeaguesBoostedOnly") === "true";
         const isSeasonWithBooster = getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonBoostedOnly") === "true";
         const isPantheonWithBooster = getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonBoostedOnly") === "true";
-        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isMythicAutoSandalWood || isLoveRaidAutoSandalWood;
+        const isAutoEquipBoosters = getStoredValue(HHStoredVarPrefixKey + "Setting_autoEquipBoosters") === "true";
+        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isMythicAutoSandalWood || isLoveRaidAutoSandalWood || isAutoEquipBoosters;
     }
     static getBoosterFromStorage() {
         return isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_boosterStatus")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_boosterStatus")) : DEFAULT_BOOSTERS;
@@ -1207,6 +1210,140 @@ class Booster {
             mythic: activeMythicSlots,
         };
         setStoredValue(HHStoredVarPrefixKey + 'Temp_boosterStatus', JSON.stringify(boosterStatus));
+    }
+    static getBoosterByIdentifier(identifier) {
+        // Try to resolve from shop data first (site-specific id_item)
+        const storeData = getStoredJSON(HHStoredVarPrefixKey + "Temp_storeContents", null);
+        if (storeData && Array.isArray(storeData[1])) {
+            const shopBooster = storeData[1].find((b) => b.item && b.item.identifier === identifier && b.item.rarity === 'legendary');
+            if (shopBooster) {
+                return {
+                    id_item: shopBooster.item.id_item || shopBooster.id_item,
+                    identifier: shopBooster.item.identifier,
+                    name: shopBooster.item.name,
+                    rarity: shopBooster.item.rarity
+                };
+            }
+        }
+        // Try to resolve from player's booster inventory (site-specific id_item)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + "Temp_boosterIdMap", {});
+        if (boosterIdMap[identifier]) {
+            const hardcoded = { B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS };
+            if (hardcoded[identifier]) {
+                return Object.assign(Object.assign({}, hardcoded[identifier]), { id_item: boosterIdMap[identifier] });
+            }
+        }
+        // Fallback to hardcoded defaults (HentaiHeroes IDs)
+        switch (identifier) {
+            case 'B1': return Booster.GINSENG_ROOT;
+            case 'B2': return Booster.JUJUBES;
+            case 'B3': return Booster.CHLORELLA;
+            case 'B4': return Booster.CURDYCEPS;
+            default: return null;
+        }
+    }
+    static parseEquipSlotConfig() {
+        const raw = getStoredValue(HHStoredVarPrefixKey + "Setting_autoEquipBoostersSlots") || "B1;B1;B2;B4";
+        const normalized = raw.replace(/,/g, ';');
+        const slots = normalized.split(';').map(s => s.trim().toUpperCase());
+        if (slots.length < 1 || slots.length > 4 || !slots.every(s => /^B[1-4]$/.test(s))) {
+            LogUtils_logHHAuto("Auto-equip booster config invalid: " + raw + ", falling back to B1;B1;B2;B4");
+            return ['B1', 'B1', 'B2', 'B4'];
+        }
+        return slots;
+    }
+    static getBoostersToEquip() {
+        const slotConfig = Booster.parseEquipSlotConfig();
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const serverNow = getHHVars('server_now_ts');
+        const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
+        // All physical slots occupied — nothing can be equipped
+        if (activeBoosters.length >= slotConfig.length) {
+            return [];
+        }
+        const activeCountByIdentifier = {};
+        activeBoosters.forEach((booster) => {
+            var _a;
+            const id = (_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier;
+            if (id) {
+                activeCountByIdentifier[id] = (activeCountByIdentifier[id] || 0) + 1;
+            }
+        });
+        const freeSlots = slotConfig.length - activeBoosters.length;
+        const boostersToEquip = [];
+        const remainingActive = Object.assign({}, activeCountByIdentifier);
+        for (const desiredId of slotConfig) {
+            if ((remainingActive[desiredId] || 0) > 0) {
+                remainingActive[desiredId]--;
+            }
+            else {
+                boostersToEquip.push(desiredId);
+            }
+        }
+        // Only return as many as there are free slots
+        return boostersToEquip.slice(0, freeSlots);
+    }
+    static getShortestBoosterRemainingSeconds() {
+        var _a;
+        const slotConfig = Booster.parseEquipSlotConfig();
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const serverNow = getHHVars('server_now_ts');
+        const activeBoosters = boosterStatus.normal.filter((booster) => booster.endAt > serverNow);
+        if (activeBoosters.length === 0)
+            return 0;
+        let shortest = Infinity;
+        for (const booster of activeBoosters) {
+            const id = (_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier;
+            if (id && slotConfig.includes(id)) {
+                const remaining = booster.endAt - serverNow;
+                if (remaining < shortest) {
+                    shortest = remaining;
+                }
+            }
+        }
+        return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
+    }
+    static autoEquipBoosters() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const isEnabled = getStoredValue(HHStoredVarPrefixKey + "Setting_autoEquipBoosters") === "true";
+            if (!isEnabled)
+                return false;
+            const boostersToEquip = Booster.getBoostersToEquip();
+            if (boostersToEquip.length === 0) {
+                // All slots filled – set timer to shortest remaining booster time + small buffer
+                const shortestRemaining = Booster.getShortestBoosterRemainingSeconds();
+                if (shortestRemaining > 0) {
+                    setTimer('nextAutoEquipBoosterTime', shortestRemaining + 10);
+                    LogUtils_logHHAuto("Auto-equip: All booster slots active. Next check in " + shortestRemaining + "s.");
+                }
+                return false;
+            }
+            LogUtils_logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
+            const nextBoosterId = boostersToEquip[0];
+            const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
+            if (!boosterObj) {
+                LogUtils_logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
+                return false;
+            }
+            if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
+                LogUtils_logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+                setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
+                return false;
+            }
+            // Set safety timer BEFORE the AJAX call
+            setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
+            const equipped = yield HeroHelper.equipBooster(boosterObj);
+            if (equipped) {
+                LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+                setTimer('nextAutoEquipBoosterTime', 30);
+            }
+            else {
+                LogUtils_logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slots may be full. Next retry in 30 min.");
+                setTimer('nextAutoEquipBoosterTime', 1800); // retry in 30 min
+            }
+            return equipped;
+        });
     }
     static needSandalWoodEquipped(nextTrollChoosen, eventMythicGirl = null, loveRaid = null) {
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythic") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood") === "true";
@@ -7257,6 +7394,28 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoostersFilter"
         menuType: "value",
         kobanUsing: false
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoosters"] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoostersSlots"] =
+    {
+        default: "B1;B1;B2;B4",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "List",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChamps"] =
     {
         default: "false",
@@ -9447,6 +9606,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_boosterStatus"] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_sandalwoodFailure"] =
     {
         default: "0",
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_boosterIdMap"] =
+    {
         storage: "sessionStorage",
         HHType: "Temp"
     };
@@ -17197,6 +17361,10 @@ function getMenu() {
             + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
             + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
             + `</div>`
+            + `<div class="internalOptionsRow" style="${debugEnabled ? '' : 'display:none;'}">`
+            + hhMenuSwitch('autoEquipBoosters')
+            + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+            + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
             + hhMenuSwitch('updateMarket')
@@ -17308,6 +17476,10 @@ function getStoredValue(inVarName) {
         return storedValue;
     }
     return undefined;
+}
+function getStoredJSON(inVarName, defaultValue = null) {
+    const raw = getStoredValue(inVarName);
+    return isJSON(raw) ? JSON.parse(raw) : defaultValue;
 }
 function deleteStoredValue(inVarName) {
     if (HHStoredVars_HHStoredVars.hasOwnProperty(inVarName)) {
@@ -19468,6 +19640,15 @@ function autoLoop() {
                     busy = Shop.updateShop();
                     lastActionPerformed = "shop";
                 }
+            }
+            // Auto-equip legendary boosters from inventory
+            if (busy === false && isAutoLoopActive()
+                && getStoredValue(HHStoredVarPrefixKey + "Setting_autoEquipBoosters") === "true"
+                && checkTimer('nextAutoEquipBoosterTime')
+                && (lastActionPerformed === "none")) {
+                busy = yield Booster.autoEquipBoosters();
+                if (busy)
+                    lastActionPerformed = "booster";
             }
             if (busy === false
                 && isAutoLoopActive()

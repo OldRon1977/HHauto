@@ -24,6 +24,11 @@ export function getStoredValue(inVarName: string)
     return undefined;
 }
 
+export function getStoredJSON(inVarName: string, defaultValue: any = null) {
+    const raw = getStoredValue(inVarName);
+    return isJSON(raw) ? JSON.parse(raw) : defaultValue;
+}
+
 export function deleteStoredValue(inVarName: string)
 {
     if (HHStoredVars.hasOwnProperty(inVarName))

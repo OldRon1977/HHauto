@@ -858,6 +858,10 @@ export function getMenu() {
                         + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
                         + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
                     +`</div>`
+                    +`<div class="internalOptionsRow" style="${debugEnabled ? '' : 'display:none;'}">`
+                        + hhMenuSwitch('autoEquipBoosters')
+                        + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+                    +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                         + hhMenuSwitch('updateMarket')
