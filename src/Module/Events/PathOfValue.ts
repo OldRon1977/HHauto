@@ -1,3 +1,13 @@
+// PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
+//
+// Path of Value is a tiered event similar to Path of Glory and Path of
+// Attraction, with its own point-based tier progression. This module tracks
+// progress through reward tiers, collects available rewards, and manages
+// event-specific timers and energy.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Value event is active)
+//
 import {
     RewardHelper,
     TimeHelper,

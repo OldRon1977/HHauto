@@ -1,3 +1,7 @@
+// Model for a season (Seasons of Love) opponent.
+// Holds the opponent's ID, nickname, mojo/exp/affection rewards,
+// and the pre-computed battle simulation result.
+
 import { BDSMSimu } from './BDSMSimu';
 
 export class SeasonOpponent {

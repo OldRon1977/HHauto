@@ -1,12 +1,21 @@
-import { 
+// Pachinko.ts -- Automates free pachinko (gacha) pulls: regular, mythic, and equipment.
+//
+// Pachinko is the game's gacha system with free pulls on a timer. This module
+// tracks cooldowns for each pachinko type (regular, mythic, equipment), navigates
+// to the correct tab, and executes free pulls when available. Does not spend
+// premium currency -- only claims free pulls.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+import {
     RewardHelper,
     convertTimeToInt,
-    ConfigHelper, 
-    getPage, 
-    getStoredValue, 
-    getTextForUI, 
-    hhMenuSwitch, 
-    randomInterval, 
+    ConfigHelper,
+    getPage,
+    getStoredValue,
+    getTextForUI,
+    hhMenuSwitch,
+    randomInterval,
     setStoredValue,
     setTimer,
     TimeHelper

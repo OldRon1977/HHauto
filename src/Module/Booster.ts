@@ -1,3 +1,28 @@
+/**
+ * Booster.ts -- Manages combat booster items (normal and mythic).
+ *
+ * Boosters are temporary power-ups that improve fight outcomes. This module handles:
+ *   - Tracking which boosters are currently equipped via AJAX interception
+ *   - Scraping equipped booster slots from the market page as a fallback
+ *   - Auto-equipping normal boosters from inventory based on a user-configured slot layout
+ *   - Equipping Sandalwood Perfume (mythic booster) before troll fights when farming
+ *     mythic event girls or love raid girls, to double shard drops
+ *
+ * Booster state is stored as JSON in browser storage under TK.boosterStatus. The AJAX
+ * listener keeps this cache in sync with server responses. When the cache becomes stale
+ * (e.g. after a failed equip), the next visit to the market page rebuilds it from the DOM.
+ *
+ * Auto-equip of normal boosters is restricted to a whitelist of player IDs
+ * (AUTO_EQUIP_ALLOWED_IDS) because the feature is experimental.
+ *
+ * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
+ *
+ * Related modules:
+ *   - Market (Shop.ts) -- provides shop booster data used by getBoosterByIdentifier()
+ *   - EventModule / LoveRaidManager -- supply event girl and love raid state for
+ *     Sandalwood decisions
+ *   - HeroHelper -- performs the actual AJAX call to equip a booster
+ */
 import {
     HeroHelper,
     ConfigHelper,
@@ -17,8 +42,14 @@ import { EventModule, LoveRaidManager } from './index';
 
 
 const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
+/** Only these player IDs may use the automatic normal-booster equip feature. */
 const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 
+/**
+ * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
+ *
+ * All methods are static. Booster state lives in browser storage, not on the class instance.
+ */
 export class Booster {
     static GINSENG_ROOT = {"id_item":"316","identifier":"B1","name":"Ginseng root", "rarity":"legendary"};
     static JUJUBES = {"id_item":"317","identifier":"B2","name":"Jujubes","rarity": "legendary"};
@@ -237,6 +268,15 @@ export class Booster {
             }
         }
 
+        // Try to resolve from player's booster inventory (site-specific id_item)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        if (boosterIdMap[identifier]) {
+            const hardcoded = {B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS}[identifier];
+            if (hardcoded) {
+                return { ...hardcoded, id_item: boosterIdMap[identifier] };
+            }
+        }
+
         // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
@@ -358,6 +398,9 @@ export class Booster {
             setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
             return false;
         }
+
+        // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
+        setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
 
         const equipped = await HeroHelper.equipBooster(boosterObj);
         if (equipped) {

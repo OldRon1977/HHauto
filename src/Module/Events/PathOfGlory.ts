@@ -1,3 +1,13 @@
+// PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
+//
+// Path of Glory is a tiered event where the player earns points through
+// battles to unlock progressive reward tiers. This module tracks tier
+// progress, checks for claimable rewards, and manages fight energy and
+// timer scheduling for the event.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Glory event is active)
+//
 import {
     RewardHelper,
     TimeHelper,

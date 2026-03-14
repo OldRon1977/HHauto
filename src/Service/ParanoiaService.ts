@@ -1,3 +1,15 @@
+// ParanoiaService.ts
+//
+// Anti-detection system that alternates between "burst" (active) and
+// "rest" (idle) periods to mimic human play patterns. During rest,
+// all actions stop and the script sits on the home page.
+//
+// Before entering rest, optionally spends remaining energy to avoid
+// wasting regeneration during downtime. Mythic events can bypass
+// paranoia to avoid missing time-limited waves.
+//
+// Used by: AutoLoop (checked every iteration when paranoia is on)
+
 import {
     ConfigHelper,
     getHHVars,

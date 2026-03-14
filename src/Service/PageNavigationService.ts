@@ -1,3 +1,15 @@
+// PageNavigationService.ts
+//
+// Centralized page navigation. Translates abstract page IDs into
+// actual URL paths using ConfigHelper, then navigates via
+// window.location after a randomized delay (300-500ms) to look
+// more human-like. Handles Nutaku session token injection.
+//
+// Before navigating, AutoLoop is disabled to prevent firing during
+// the page transition. It re-enables after the new page loads.
+//
+// Used by: Every module that needs to navigate to a game page.
+
 import { ConfigHelper, getPage, queryStringGetParam, randomInterval, setStoredValue, setTimer, url_add_param } from '../Helper/index';
 import { QuestHelper } from '../Module/index';
 import { logHHAuto } from '../Utils/index';

@@ -1,3 +1,6 @@
+// Barrel export for the model module.
+// Re-exports all game data models, interfaces, and KK (raw API) types.
+
 export * from './BDSMPlayer'
 export * from './IModule'
 export * from './BDSMSimu'

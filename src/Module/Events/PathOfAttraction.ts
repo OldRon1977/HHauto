@@ -1,3 +1,13 @@
+// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
+// reward tracking.
+//
+// Path of Attraction is a tiered event where the player collects points to
+// unlock reward tiers. This module tracks tier progress, collects available
+// rewards, and manages the event page navigation and timer scheduling.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Attraction event is active)
+//
 import {
     ConfigHelper,
     getStoredValue,

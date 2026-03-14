@@ -1,3 +1,12 @@
+// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
+//
+// Seasonal events are large-scale, time-limited events that span multiple
+// days. This module tracks seasonal event progress, collects available
+// rewards at each milestone, and manages event timers and page navigation.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Seasonal mega-event is active)
+//
 import {
     RewardHelper,
     checkTimer,

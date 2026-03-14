@@ -1,3 +1,12 @@
+// Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
+//
+// Contests are timed competitive events with milestone rewards. This module
+// checks for claimable contest rewards, tracks contest end timers, and
+// implements the "wait for contest" feature that pauses other automation
+// when a contest requiring specific actions is active.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     ConfigHelper,
     TimeHelper,

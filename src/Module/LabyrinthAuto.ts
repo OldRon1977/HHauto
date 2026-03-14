@@ -1,5 +1,15 @@
+// LabyrinthAuto.ts -- Auto-battle logic for the labyrinth dungeon.
+//
+// Handles the automated fighting within labyrinth floors: selects difficulty
+// levels, initiates fights against enemies, processes battle results, and
+// manages relic selection after completing rooms. Works in tandem with
+// Labyrinth.ts which handles the higher-level floor navigation.
+//
+// Depends on: RelicManager.ts (relic selection after fights)
+// Used by: Labyrinth.ts (called during floor progression)
+//
 import { HHStoredVarPrefixKey, SK, TK } from "../config/index";
-import { 
+import {
     ConfigHelper,
     getStoredValue,
     queryStringGetParam,
@@ -7,7 +17,7 @@ import {
     RewardHelper,
     setStoredValue,
     setTimer,
-    TimeHelper 
+    TimeHelper
 } from "../Helper/index";
 import { getPage } from "../Helper/PageHelper";
 import { gotoPage } from "../Service/PageNavigationService";

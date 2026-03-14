@@ -1,3 +1,7 @@
+// Model for a BDSM (battle simulation) result.
+// Stores the simulated point distribution, win/loss counts, expected value,
+// and a score class (plus/close/minus) indicating predicted outcome quality.
+
 //@ts-check
 export class BDSMSimu {
     points: number[];

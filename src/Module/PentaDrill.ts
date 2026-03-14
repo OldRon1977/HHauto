@@ -1,3 +1,13 @@
+// PentaDrill.ts -- Automates the Penta Drill game mode: fights, energy tracking,
+// and reward collection.
+//
+// Penta Drill is a combat mode with its own energy and reward system. This
+// module manages fight scheduling, tracks available energy, selects opponents,
+// and collects milestone rewards. Handles the time-limited nature of Penta
+// Drill events.
+//
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     checkTimer,
     ConfigHelper,

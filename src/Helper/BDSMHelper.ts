@@ -1,3 +1,22 @@
+/**
+ * BDSMHelper.ts - Battle Damage Simulation Model (BDSM)
+ *
+ * Provides a probabilistic battle simulator that predicts win/loss outcomes
+ * for PvP and PvE fights. The simulator models the full combat loop: attack,
+ * critical hits, elemental domination bonuses, tier-4/tier-5 girl skills
+ * (stun, shield, reflect, execute), and heal-on-hit. It explores every
+ * possible crit/non-crit branch per turn, weighting results by probability,
+ * to produce an aggregate win chance and expected league-point distribution.
+ *
+ * Used by League, Season, Troll, and Champion modules to decide whether a
+ * fight is worth taking before spending energy.
+ *
+ * Key concepts:
+ *   - "Domination bonuses" come from elemental rock-paper-scissors matchups.
+ *   - Tier-4 skills scale damage/defense per turn (compound growth).
+ *   - Tier-5 skills are leader-only abilities (stun, shield, reflect, execute).
+ *   - The simulation caps at 50 turns to avoid infinite recursion.
+ */
 import { BDSMPlayer, BDSMSimu } from '../model/index';
 import { logHHAuto } from '../Utils/LogUtils';
 import { ConfigHelper } from "./ConfigHelper";
@@ -6,7 +25,12 @@ import { HHStoredVarPrefixKey } from '../config/index';
 
 export class BDSMHelper {
 
-    static ELEMENTS = 
+    /**
+     * Elemental advantage lookup tables.
+     * - `chance`: elements that grant a crit-chance bonus when facing the listed counter.
+     * - `egoDamage`: elements that grant ego (HP) and attack bonuses when facing the listed counter.
+     */
+    static ELEMENTS =
     {
         chance: {
             darkness: 'light',
@@ -22,6 +46,11 @@ export class BDSMHelper {
         }
     };
 
+    /**
+     * Extract synergy multipliers from a team object. Each element type
+     * provides a different combat bonus (crit damage, crit chance, defense
+     * reduction, or heal-on-hit).
+     */
     static fightBonues(team){
         return {
             critDamage: team.synergies.find(({element: {type}})=>type==='fire').bonus_multiplier,
@@ -31,6 +60,15 @@ export class BDSMHelper {
         }
     }
         
+    /**
+     * Build BDSMPlayer models for the player and opponent from raw game data.
+     * Applies league-specific domination bonuses when `inLeague` is true,
+     * since league fights apply elemental ego/attack bonuses while other
+     * modes do not.
+     *
+     * @returns Object with `player`, `opponent` BDSMPlayer instances
+     *          and the computed `dominanceBonuses`.
+     */
     static getBdsmPlayersData(inHeroData, opponentData, inLeague=false)
     {
         // player stats
@@ -83,6 +121,21 @@ let _opponent: BDSMPlayer;
 let _runs;
 let _cache;
 
+/**
+ * Run a full probabilistic battle simulation between two players.
+ *
+ * Recursively explores every possible turn outcome (base hit vs. critical hit)
+ * for both sides, weighting each branch by its probability. Returns the
+ * aggregate win/loss probability and a distribution of expected league points.
+ *
+ * The simulation caps at 50 turns to prevent stack overflow on stalemate
+ * scenarios (e.g., high healing, low damage).
+ *
+ * @param player   - The attacker (hero) model.
+ * @param opponent - The defender model.
+ * @param debugEnabled - When true, logs simulation details.
+ * @returns BDSMSimu with win/loss probabilities, point distribution, and scoreClass.
+ */
 export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMPlayer, debugEnabled: boolean = false):BDSMSimu {
 
     if (debugEnabled) {
@@ -301,6 +354,11 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     })
     return skill_tier_4;
 }*/
+/**
+ * Estimate tier-4 skill bonuses from skill_tiers_info.
+ * The exact skill data is not always available from the API, so we estimate
+ * based on the number of skill points invested (0.2% per point for damage).
+ */
 function estimateTier4SkillValue(teamGirlsArray): { dmg: number, def: number } {
     let skill_tier_4 = { dmg: 0, def: 0 };
 
@@ -324,6 +382,15 @@ function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number }
     return skill_tier_5;
 }*/
 
+/**
+ * Estimate the tier-5 (leader) skill from the first girl's element.
+ * Tier-5 skills are element-dependent:
+ *   - sun/darkness  -> Stun (id 11)
+ *   - stone/light   -> Shield (id 12)
+ *   - psychic/nature -> Reflect (id 13)
+ *   - fire/water    -> Execute (id 14)
+ * Values are estimated from skill points invested since exact data may be unavailable.
+ */
 function estimateTier5SkillValue(teamGirlsArray): { id: number, value: number } {
     let skill_tier_5 = { id: 0, value: 0 };
     const girl = teamGirlsArray[0];
@@ -381,6 +448,12 @@ export function calculateSynergiesFromTeamMemberElements(elements) {
 replaced       ELEMENTS
 by ConfigHelper.getHHScriptVars("ELEMENTS")
 */
+/**
+ * Calculate elemental domination bonuses for both sides.
+ * Each element on team A that dominates a matching element on team B
+ * grants +10% ego, +10% attack, or +20% crit chance depending on the
+ * advantage type (egoDamage vs. chance).
+ */
 export function calculateDominationBonuses(playerElements, opponentElements) {
     const bonuses = {
         player: {
@@ -413,11 +486,19 @@ export function calculateDominationBonuses(playerElements, opponentElements) {
     return bonuses
 }
 
+/**
+ * Calculate the base crit chance from the harmony stat ratio.
+ * Crit chance is 30% of the player's share of total harmony.
+ */
 export function calculateCritChanceShare(ownHarmony, otherHarmony)
 {
     return 0.3*ownHarmony/(ownHarmony+otherHarmony)
 }
 
+/**
+ * Sum a specific skill's percentage_value across all girls in a team.
+ * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
+ */
 export function getSkillPercentage(team, id) {
     return 1 + (team.girls.map(e => e.skills[id]?.skill.percentage_value ?? 0).reduce((a, b) => a + b, 0) / 100);
 }

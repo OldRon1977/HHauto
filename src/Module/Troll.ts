@@ -1,3 +1,14 @@
+// Troll.ts -- Automates troll battles: energy management, fight selection,
+// reward handling, and mythic event support.
+//
+// Trolls are PvE bosses that cost fight energy to battle. This module manages
+// troll fight scheduling, selects which troll to fight (including event-specific
+// trolls during mythic events), tracks energy regeneration, and processes
+// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
+//
+// Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     checkTimer,
     clearTimer,

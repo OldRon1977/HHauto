@@ -1,3 +1,14 @@
+// League.ts -- Automates league fights: opponent selection, win probability, and
+// power calculation display.
+//
+// Leagues are the primary PvP mode. This module selects optimal opponents by
+// calculating win probability using the BDSM (Battle Data Simulation Model)
+// system from BDSMHelper, manages fight energy, and displays power calculations
+// in the UI. Supports both regular and boosted fights.
+//
+// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     BDSMHelper,
     calculateBattleProbabilities,

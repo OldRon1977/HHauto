@@ -1,3 +1,13 @@
+// TeamModule.ts -- Team management: auto-selects optimal teams for different
+// battle modes.
+//
+// Different game modes (league, troll, labyrinth, etc.) benefit from different
+// team compositions. This module automatically selects and switches to the
+// optimal team configuration before each fight type, saving the player from
+// manual team management.
+//
+// Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
+//
 import {
     ConfigHelper,
     HeroHelper,

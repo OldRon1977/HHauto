@@ -1,4 +1,14 @@
-import { 
+// Harem.ts -- Harem management: girl list, filtering, and size tracking.
+//
+// The harem is the player's collection of girls, each with stats and upgrade
+// paths. This module provides the core harem functionality: loading the girl
+// list, filtering by various criteria, tracking harem size, and managing
+// the harem page UI interactions.
+//
+// Depends on: HaremGirl.ts (individual girl data)
+// Used by: Service/index.ts (main automation loop), EventModule.ts (girl tracking)
+//
+import {
     deleteStoredValue,
     ConfigHelper,
     getHHVars,

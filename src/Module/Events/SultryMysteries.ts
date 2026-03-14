@@ -1,3 +1,13 @@
+// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and auto-buying.
+//
+// Sultry Mysteries is a time-limited event featuring a special event shop.
+// This module monitors the event shop for refresh timers, detects available
+// items, and automates purchasing when configured. Requires a minimum player
+// level to participate.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Sultry Mysteries event is active)
+//
 import { checkTimer, ConfigHelper, convertTimeToInt, HeroHelper, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHEvent, HHEventData, HHEventList } from "../../model/index";

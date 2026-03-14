@@ -1,3 +1,13 @@
+// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
+//
+// Plus Events are a category of events that overlay additional information
+// and rewards on top of normal gameplay. This module parses event data,
+// extracts girl shard progress and troll fight priorities, and displays
+// event overlay information in the UI.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Plus Events are active)
+//
 import { convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/index";
 import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";

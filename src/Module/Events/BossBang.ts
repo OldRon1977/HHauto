@@ -1,3 +1,12 @@
+// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
+//
+// Boss Bang is a club-wide cooperative event where members contribute damage
+// to shared bosses. This module parses event page data, tracks boss HP and
+// timers, and automates participation in boss fights when energy is available.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Boss Bang event is active)
+//
 import { ConfigHelper, convertTimeToInt, getPage, getStoredValue, randomInterval, setStoredValue, setTimer, TimeHelper } from "../../Helper/index";
 import { addNutakuSession, gotoPage } from "../../Service/index";
 import { logHHAuto } from "../../Utils/index";

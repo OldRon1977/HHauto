@@ -1,3 +1,13 @@
+// Quest.ts -- Automates questing: accepts quests, handles quest steps, and buys
+// energy if configured.
+//
+// Quests are the main PvE progression system. This module accepts available
+// quests, advances through multi-step quest chains, and optionally purchases
+// quest energy when configured to do so. Tracks quest completion and manages
+// the quest page navigation.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     checkTimer,
     ConfigHelper,

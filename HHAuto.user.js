@@ -102,6 +102,9 @@ GM_addStyle('#girl_preview_popup #poses-tab_container .pose-preview_wrapper.lock
 var __webpack_exports__ = {};
 
 ;// CONCATENATED MODULE: ./src/model/BDSMPlayer.ts
+// Model for a player in the BDSM (battle simulation) system.
+// Holds combat stats (HP, attack, defense, crit, shields, stun, reflect, etc.)
+// used by the battle simulator to predict fight outcomes.
 //@ts-check
 class BDSMPlayer {
     constructor(hp, atk, adv_def, critchance, bonuses, tier4, tier5, name = '') {
@@ -118,6 +121,9 @@ class BDSMPlayer {
 }
 
 ;// CONCATENATED MODULE: ./src/model/Champion.ts
+// Model representing a Champion (boss encounter) in the game.
+// Tracks the champion's index, timer state, whether it has been started,
+// impression level, filter membership, and associated event girls.
 class ChampionModel {
     constructor(index, impression, inFilter) {
         this.timer = -1;
@@ -135,6 +141,15 @@ class ChampionModel {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/UrlHelper.ts
+// UrlHelper.ts
+//
+// Simple URL query-string utilities. Wraps URLSearchParams for
+// extracting parameters and provides a helper to append new
+// key-value pairs to a URL string.
+//
+// Used by: PageHelper (tab detection), RewardHelper (troll ID),
+//          PageNavigationService (building navigation URLs)
+/** Extracts a single query parameter value from a query string. */
 function queryStringGetParam(inQueryString, inParam) {
     let urlParams = new URLSearchParams(inQueryString);
     return urlParams.get(inParam);
@@ -838,6 +853,21 @@ HHAuto_ToolTips.es['pogTitle'] = { version: "5.20.3", elementText: "Camino de la
 
 
 ;// CONCATENATED MODULE: ./src/Helper/LanguageHelper.ts
+// LanguageHelper.ts
+//
+// Handles UI text localization for the HHAuto menu and tooltips.
+// Detects the game's current language from the <html lang> attribute
+// and resolves translated strings from the i18n dictionaries.
+//
+// Fallback strategy: If a translation is missing or outdated (version
+// older than the English entry), English text is used. This ensures
+// new menu items are always visible before translators catch up.
+//
+// Also provides a translation popup (manageTranslationPopUp) that lets
+// community members contribute translations directly from the game UI,
+// exporting them as a downloadable text file.
+//
+// Used by: Nearly every Helper and Module that renders UI text.
 
 
 function getLanguageCode() {
@@ -1025,13 +1055,44 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/**
+ * Booster.ts -- Manages combat booster items (normal and mythic).
+ *
+ * Boosters are temporary power-ups that improve fight outcomes. This module handles:
+ *   - Tracking which boosters are currently equipped via AJAX interception
+ *   - Scraping equipped booster slots from the market page as a fallback
+ *   - Auto-equipping normal boosters from inventory based on a user-configured slot layout
+ *   - Equipping Sandalwood Perfume (mythic booster) before troll fights when farming
+ *     mythic event girls or love raid girls, to double shard drops
+ *
+ * Booster state is stored as JSON in browser storage under TK.boosterStatus. The AJAX
+ * listener keeps this cache in sync with server responses. When the cache becomes stale
+ * (e.g. after a failed equip), the next visit to the market page rebuilds it from the DOM.
+ *
+ * Auto-equip of normal boosters is restricted to a whitelist of player IDs
+ * (AUTO_EQUIP_ALLOWED_IDS) because the feature is experimental.
+ *
+ * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
+ *
+ * Related modules:
+ *   - Market (Shop.ts) -- provides shop booster data used by getBoosterByIdentifier()
+ *   - EventModule / LoveRaidManager -- supply event girl and love raid state for
+ *     Sandalwood decisions
+ *   - HeroHelper -- performs the actual AJAX call to equip a booster
+ */
 
 
 
 
 
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
+/** Only these player IDs may use the automatic normal-booster equip feature. */
 const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
+/**
+ * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
+ *
+ * All methods are static. Booster state lives in browser storage, not on the class instance.
+ */
 class Booster {
     //all following lines credit:Tom208 OCD script  
     static collectBoostersFromAjaxResponses() {
@@ -1226,6 +1287,14 @@ class Booster {
                 };
             }
         }
+        // Try to resolve from player's booster inventory (site-specific id_item)
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        if (boosterIdMap[identifier]) {
+            const hardcoded = { B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS }[identifier];
+            if (hardcoded) {
+                return Object.assign(Object.assign({}, hardcoded), { id_item: boosterIdMap[identifier] });
+            }
+        }
         // Fallback to hardcoded defaults (HentaiHeroes IDs)
         switch (identifier) {
             case 'B1': return Booster.GINSENG_ROOT;
@@ -1331,6 +1400,8 @@ class Booster {
                 setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
                 return false;
             }
+            // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
+            setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
             const equipped = yield HeroHelper.equipBooster(boosterObj);
             if (equipped) {
                 LogUtils_logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
@@ -1507,6 +1578,14 @@ Booster.CURDYCEPS = { "id_item": "319", "identifier": "B4", "name": "Cordyceps",
 Booster.SANDALWOOD_PERFUME = { "id_item": "632", "identifier": "MB1", "name": "Sandalwood perfume", "rarity": "mythic" };
 
 ;// CONCATENATED MODULE: ./src/Module/Bundles.ts
+// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
+//
+// The game periodically offers free bundle rewards in a popup. This module
+// detects available bundles, navigates to the shop page, and claims them
+// automatically on a timer-based schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -1624,6 +1703,15 @@ class Bundles {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/CumbackContests.ts
+// CumbackContests.ts -- Cumback Contest event handling and auto-collection.
+//
+// Cumback Contests are periodic events that reward returning players. This
+// module parses event page data, tracks timer countdowns, and collects
+// available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Cumback Contest event is active)
+//
 
 class CumbackContests {
     static parse(hhEvent, eventList, hhEventData) {
@@ -1652,6 +1740,15 @@ class CumbackContests {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/DoublePenetration.ts
+// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
+//
+// Double Penetration is a time-limited competitive event with its own fight
+// mechanics. This module tracks event progress, manages fight energy, collects
+// milestone rewards, and handles the event-specific UI interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Double Penetration event is active)
+//
 
 
 
@@ -1823,6 +1920,15 @@ class DoublePenetration {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/KinkyCumpetition.ts
+// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
+//
+// Kinky Cumpetition is a periodic competitive event. This module parses event
+// page data, tracks timer countdowns and girl reward progress, and manages
+// the event refresh schedule.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
+//
 
 class KinkyCumpetition {
     static parse(hhEvent, eventList, hhEventData) {
@@ -1860,6 +1966,15 @@ var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
+//
+// Lively Scene is a time-limited event where the player progresses through
+// scenes to earn rewards. This module tracks scene progression, manages
+// event energy, and collects available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Lively Scene event is active)
+//
 
 
 
@@ -2009,6 +2124,17 @@ class LivelyScene {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/MythicEvent.ts
+// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
+//
+// Mythic events feature special troll bosses with wave-based progression and
+// unique girl shard rewards. This module tracks wave progress, coordinates
+// with Troll.ts for fight prioritization, and manages event-specific timers
+// and girl shard tracking.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Mythic event is active),
+//          Troll.ts (reads event troll priorities)
+//
 
 
 
@@ -2080,6 +2206,16 @@ var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (t
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
+// reward tracking.
+//
+// Path of Attraction is a tiered event where the player collects points to
+// unlock reward tiers. This module tracks tier progress, collects available
+// rewards, and manages the event page navigation and timer scheduling.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Attraction event is active)
+//
 
 
 
@@ -2330,6 +2466,16 @@ PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-po
 PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
 
 ;// CONCATENATED MODULE: ./src/Module/Events/PlusEvents.ts
+// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
+//
+// Plus Events are a category of events that overlay additional information
+// and rewards on top of normal gameplay. This module parses event data,
+// extracts girl shard progress and troll fight priorities, and displays
+// event overlay information in the UI.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Plus Events are active)
+//
 
 
 
@@ -2375,6 +2521,16 @@ class PlusEvent {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/SultryMysteries.ts
+// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and auto-buying.
+//
+// Sultry Mysteries is a time-limited event featuring a special event shop.
+// This module monitors the event shop for refresh timers, detects available
+// items, and automates purchasing when configured. Requires a minimum player
+// level to participate.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Sultry Mysteries event is active)
+//
 
 
 class SultryMysteries {
@@ -2421,6 +2577,26 @@ var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/**
+ * EventModule.ts -- Central coordinator for all time-limited game events.
+ *
+ * This is the backbone of event automation. It detects which events are active on the
+ * game's home or event pages, routes parsing to the correct event-specific handler
+ * (PlusEvent, MythicEvent, BossBang, etc.), and manages shared event state in
+ * sessionStorage (event list, event girls, champion girls).
+ *
+ * Key responsibilities:
+ * - Parse event pages to extract event data and girl reward information.
+ * - Track event lifecycle: detect active events, mark completed events, and clean up
+ *   expired event data.
+ * - Prioritize event girls based on the user-configured troll order.
+ * - Inject UI enhancements: completion badges on the home page, priority labels on
+ *   girl reward tiles, a "collect all" button for event chests.
+ * - Provide countdown timers on the home page for Path of Value / Path of Glory events.
+ *
+ * Called by AutoLoop on each tick. Individual event handlers (in sibling files) contain
+ * the event-type-specific parsing and reward collection logic.
+ */
 
 
 
@@ -2435,6 +2611,11 @@ var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 
 
 class EventModule {
+    /**
+     * Remove stale event data from sessionStorage for the given event ID.
+     * Also prunes expired events, disables timers when no mythic/regular events remain,
+     * and cleans up associated girl and champion lists.
+     */
     static clearEventData(inEventID) {
         //clearTimer('eventMythicNextWave');
         //clearTimer('eventRefreshExpiration');
@@ -3059,6 +3240,15 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
+//
+// Boss Bang is a club-wide cooperative event where members contribute damage
+// to shared bosses. This module parses event page data, tracks boss HP and
+// timers, and automates participation in boss fights when energy is available.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Boss Bang event is active)
+//
 
 
 
@@ -3168,10 +3358,22 @@ class BossBang {
 }
 
 ;// CONCATENATED MODULE: ./src/model/LoveRaid.ts
+// Model representing a Love Raid event instance.
+// Contains the raid target (girl), associated troll/champion/season module,
+// timing (start/end), shard progress, and reward availability flags.
 class LoveRaid {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/LoveRaidManager.ts
+// LoveRaidManager.ts -- Love Raid event: manages raids and tracks girl shards.
+//
+// Love Raids are cooperative events where players raid together for girl shard
+// rewards. This module manages raid participation, tracks collected shards,
+// monitors raid timers, and handles the event page interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Love Raid event is active)
+//
 
 
 
@@ -3368,6 +3570,16 @@ class LoveRaidManager {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/PathOfGlory.ts
+// PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
+//
+// Path of Glory is a tiered event where the player earns points through
+// battles to unlock progressive reward tiers. This module tracks tier
+// progress, checks for claimable rewards, and manages fight energy and
+// timer scheduling for the event.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Glory event is active)
+//
 
 
 
@@ -3480,6 +3692,16 @@ class PathOfGlory {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Events/PathOfValue.ts
+// PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
+//
+// Path of Value is a tiered event similar to Path of Glory and Path of
+// Attraction, with its own point-based tier progression. This module tracks
+// progress through reward tiers, collects available rewards, and manages
+// event-specific timers and energy.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Value event is active)
+//
 
 
 
@@ -3601,6 +3823,18 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Season.ts -- Season (Kiss) game mode: automated fights, opponent selection,
+// and energy tracking.
+//
+// The Season (also known as Kiss) mode is a PvP competition with its own
+// energy system and ranking. This module selects opponents based on win
+// probability (using BDSM calculations), manages season-specific energy,
+// tracks timers, and handles fight automation within the seasonal ladder.
+//
+// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
+//             EventModule.ts (event detection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 
 
 
@@ -4142,6 +4376,15 @@ var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
+//
+// Seasonal events are large-scale, time-limited events that span multiple
+// days. This module tracks seasonal event progress, collects available
+// rewards at each milestone, and manages event timers and page navigation.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Seasonal mega-event is active)
+//
 
 
 
@@ -4489,6 +4732,8 @@ SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
 SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
 
 ;// CONCATENATED MODULE: ./src/Module/Events/index.ts
+// Events/index.ts -- Barrel file re-exporting all event-specific modules.
+// Each module handles a different time-limited game event type.
 
 
 
@@ -4506,6 +4751,16 @@ SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot b
 
 
 ;// CONCATENATED MODULE: ./src/Module/Quest.ts
+// Quest.ts -- Automates questing: accepts quests, handles quest steps, and buys
+// energy if configured.
+//
+// Quests are the main PvE progression system. This module accepts available
+// quests, advances through multi-step quest chains, and optionally purchases
+// quest energy when configured to do so. Tracks quest completion and manages
+// the quest page navigation.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -5241,6 +5496,14 @@ class Champion {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Club.ts
+// Club.ts -- Detects club membership and enables or disables club-related features.
+//
+// Checks whether the player is currently in a club and toggles visibility of
+// club-specific UI elements (e.g. Club Champion buttons). This ensures that
+// club features are only shown when the player has an active membership.
+//
+// Used by: Service/index.ts (main automation loop), ClubChampion.ts
+//
 
 
 
@@ -5278,6 +5541,15 @@ var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisA
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// ClubChampion.ts -- Automates Club Champion cooperative fights.
+//
+// Club Champions are cooperative boss battles shared among club members. This
+// module manages fight scheduling, energy tracking, and automatic participation
+// in club champion rounds. Requires active club membership (see Club.ts).
+//
+// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -5484,6 +5756,15 @@ class ClubChampion {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Contest.ts
+// Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
+//
+// Contests are timed competitive events with milestone rewards. This module
+// checks for claimable contest rewards, tracks contest end timers, and
+// implements the "wait for contest" feature that pauses other automation
+// when a contest requiring specific actions is active.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -5604,6 +5885,14 @@ class Contest {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/DailyGoals.ts
+// DailyGoals.ts -- Automates daily goals: claims rewards and tracks refresh timers.
+//
+// The game offers daily goals with rewards upon completion. This module
+// monitors goal completion status, claims available rewards, and manages
+// the refresh timer so goals are checked at appropriate intervals.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -5833,6 +6122,16 @@ var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Harem.ts -- Harem management: girl list, filtering, and size tracking.
+//
+// The harem is the player's collection of girls, each with stats and upgrade
+// paths. This module provides the core harem functionality: loading the girl
+// list, filtering by various criteria, tracking harem size, and managing
+// the harem page UI interactions.
+//
+// Depends on: HaremGirl.ts (individual girl data)
+// Used by: Service/index.ts (main automation loop), EventModule.ts (girl tracking)
+//
 
 
 
@@ -6425,6 +6724,17 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Troll.ts -- Automates troll battles: energy management, fight selection,
+// reward handling, and mythic event support.
+//
+// Trolls are PvE bosses that cost fight energy to battle. This module manages
+// troll fight scheduling, selects which troll to fight (including event-specific
+// trolls during mythic events), tracks energy regeneration, and processes
+// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
+//
+// Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -7084,6 +7394,16 @@ class Troll {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/GenericBattle.ts
+// GenericBattle.ts -- Handles the battle result page UI across all fight types.
+//
+// When a battle completes (troll, event, league, etc.), this module manages
+// the result page: adds skip buttons, auto-skips fight animations, and parses
+// reward drops. It acts as a shared handler for all battle outcomes rather
+// than being specific to one game mode.
+//
+// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+//          and other fight modules that navigate to battle pages
+//
 
 
 
@@ -7163,6 +7483,23 @@ class GenericBattle {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/TimerHelper.ts
+// TimerHelper.ts
+//
+// Manages named cooldown timers that prevent actions from running too
+// frequently. Each timer is stored as a future timestamp (epoch ms)
+// in the in-memory `Timers` object (persisted to storage as JSON).
+//
+// The AutoLoop checks timers before each action: e.g. "nextLeaguesTime"
+// prevents league fights until energy regenerates. When a module
+// performs an action, it calls setTimer("name", seconds) to schedule
+// the next allowed run.
+//
+// Two check modes:
+//   - checkTimer: returns true if timer is missing OR expired (safe default)
+//   - checkTimerMustExist: returns true only if timer exists AND expired
+//     (used when absence means "not yet initialized", not "ready")
+//
+// Used by: Every module (via AutoLoop), StartService (timer restoration)
 
 
 
@@ -7230,6 +7567,20 @@ function getTimeLeft(name) {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/TimeHelper.ts
+// TimeHelper.ts
+//
+// Time-related utilities: converting between human-readable durations
+// ("2d 05:30:00"), seconds, and the game's localized timer strings
+// (e.g. "2j 5h 30m" in French). Also provides contest-safe-time
+// logic that prevents spending energy too close to a contest end.
+//
+// The game renders timers with locale-specific unit labels (h/m/s in
+// English, j/h/m/s in French, etc.). convertTimeToInt() uses the
+// i18n timer definitions to parse these back into seconds regardless
+// of locale.
+//
+// Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
+//          InfoService (display remaining times)
 
 
 
@@ -7334,6 +7685,9 @@ function randomInterval(min, max) {
 }
 
 ;// CONCATENATED MODULE: ./src/config/HHStoredVars.ts
+// Registry of all stored variables (settings and temporary state) for HHAuto.
+// Defines each variable's storage type (setting vs. temp), default value,
+// validation regex, UI label, and type. Used by the settings menu and storage layer.
 
 
 const HHStoredVars_HHStoredVars = {};
@@ -9803,6 +10157,16 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// HaremGirl.ts -- Individual girl data: stats, upgrade costs, and affection/XP
+// management.
+//
+// Each girl in the harem has stats, levels, affection, and XP. This module
+// handles reading and managing individual girl data, calculating upgrade
+// costs, tracking affection and XP progress, and performing upgrades when
+// configured to do so.
+//
+// Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
+//
 
 
 
@@ -10564,6 +10928,14 @@ var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
+//
+// Harem girls generate soft currency (salary) over time. This module
+// periodically navigates to the harem page and collects accumulated salary
+// earnings, tracking collection timers to avoid unnecessary page loads.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -10628,6 +11000,8 @@ class HaremSalary {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/harem/index.ts
+// harem/index.ts -- Barrel file re-exporting all harem-related modules.
+// Covers girl management, individual girl data, and salary collection.
 
 
 
@@ -10643,6 +11017,15 @@ var RelicManager_awaiter = (undefined && undefined.__awaiter) || function (thisA
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// RelicManager.ts -- Manages labyrinth relics: detects available relics and
+// selects the best options.
+//
+// After completing labyrinth rooms, the player is offered a choice of relics
+// that provide bonuses for the current run. This module evaluates available
+// relic options and selects the optimal one based on configured preferences.
+//
+// Used by: LabyrinthAuto.ts (called after room completion)
+//
 
 
 
@@ -10773,6 +11156,18 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Labyrinth.ts -- Manages the labyrinth dungeon: floor navigation, team management,
+// and timer tracking.
+//
+// The labyrinth is a multi-floor dungeon where the player progresses through
+// rooms of enemies. This module handles navigating between floors, tracking
+// remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
+// for the actual fight logic and RelicManager.ts for relic selection.
+//
+// Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
+//             TeamModule.ts (team setup)
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -11249,6 +11644,23 @@ Labyrinth.HAREM_SELECTED_GIRLS = '.harem-panel-girls .harem-girl-container.selec
 Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 
 ;// CONCATENATED MODULE: ./src/Helper/PageHelper.ts
+// PageHelper.ts
+//
+// Determines which game page the player is currently viewing. The game
+// uses a root element's `page` attribute to identify the view, but the
+// Activities page multiplexes sub-pages (Contests, Missions, Daily
+// Goals, Place of Power) via tabs and query parameters.
+//
+// This helper resolves those ambiguities into a single canonical page
+// ID that AutoLoop and modules can switch on. It also logs unknown
+// page IDs to help detect game updates that add new pages.
+//
+// Why the complexity: The Activities page redesign merged several
+// formerly separate pages into tabs, but automation still needs
+// distinct IDs for each to route actions correctly.
+//
+// Used by: AutoLoop (page routing), StartService (initial setup),
+//          PageNavigationService (navigation targets)
 
 
 
@@ -11333,6 +11745,17 @@ function getPage(checkUnknown = false, checkPop = false) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/PageNavigationService.ts
+// PageNavigationService.ts
+//
+// Centralized page navigation. Translates abstract page IDs into
+// actual URL paths using ConfigHelper, then navigates via
+// window.location after a randomized delay (300-500ms) to look
+// more human-like. Handles Nutaku session token injection.
+//
+// Before navigating, AutoLoop is disabled to prevent firing during
+// the page transition. It re-enables after the new page loads.
+//
+// Used by: Every module that needs to navigate to a game page.
 
 
 
@@ -11531,6 +11954,16 @@ var LabyrinthAuto_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// LabyrinthAuto.ts -- Auto-battle logic for the labyrinth dungeon.
+//
+// Handles the automated fighting within labyrinth floors: selects difficulty
+// levels, initiates fights against enemies, processes battle results, and
+// manages relic selection after completing rooms. Works in tandem with
+// Labyrinth.ts which handles the higher-level floor navigation.
+//
+// Depends on: RelicManager.ts (relic selection after fights)
+// Used by: Labyrinth.ts (called during floor progression)
+//
 
 
 
@@ -11743,6 +12176,17 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// League.ts -- Automates league fights: opponent selection, win probability, and
+// power calculation display.
+//
+// Leagues are the primary PvP mode. This module selects optimal opponents by
+// calculating win probability using the BDSM (Battle Data Simulation Model)
+// system from BDSMHelper, manages fight energy, and displays power calculations
+// in the UI. Supports both regular and boosted fights.
+//
+// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 
 
 
@@ -12465,6 +12909,14 @@ LeagueHelper.SORT_POWER = '1';
 LeagueHelper.SORT_POWERCALC = '2';
 
 ;// CONCATENATED MODULE: ./src/Module/Market.ts
+// Market.ts -- Auto-buys items from the in-game market using soft currency.
+//
+// Periodically checks the market shop for available items and purchases them
+// via AJAX requests using the player's soft currency. Manages purchase
+// cooldowns and tracks spending to avoid over-buying.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -12699,6 +13151,15 @@ class Market {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Missions.ts
+// Missions.ts -- Automates missions: collects completed missions and starts new ones.
+//
+// Missions are time-based tasks that yield rewards. This module checks for
+// completed missions, collects their rewards, and starts the next available
+// mission automatically. Tracks mission durations and schedules collection
+// at the right time.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -12990,6 +13451,15 @@ class Missions {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Pantheon.ts
+// Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
+//
+// The Pantheon is a PvP arena with its own energy system. This module selects
+// opponents, manages Pantheon-specific fight energy, and handles cooldown
+// timers. Similar to League but uses a separate energy pool and ranking system.
+//
+// Depends on: TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 
 
 
@@ -13139,6 +13609,16 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// PentaDrill.ts -- Automates the Penta Drill game mode: fights, energy tracking,
+// and reward collection.
+//
+// Penta Drill is a combat mode with its own energy and reward system. This
+// module manages fight scheduling, tracks available energy, selects opponents,
+// and collects milestone rewards. Handles the time-limited nature of Penta
+// Drill events.
+//
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 
 
 
@@ -13435,6 +13915,18 @@ PentaDrill.LAST_PentaDrill_LEVEL = 63;
 PentaDrill.MIN_MOJO_FIGHT = 8;
 
 ;// CONCATENATED MODULE: ./src/Module/MonthlyCard.ts
+// MonthlyCard.ts -- Updates input validation patterns for monthly card features
+// based on available energy types.
+//
+// Monthly cards grant bonus energy across various game modes. This module
+// dynamically adjusts input validation patterns in the settings UI based on
+// which energy types (league, season, pantheon, etc.) are currently available
+// to the player, ensuring the configuration options stay in sync with unlocked
+// game features.
+//
+// Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -13555,6 +14047,15 @@ var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Pachinko.ts -- Automates free pachinko (gacha) pulls: regular, mythic, and equipment.
+//
+// Pachinko is the game's gacha system with free pulls on a timer. This module
+// tracks cooldowns for each pachinko type (regular, mythic, equipment), navigates
+// to the correct tab, and executes free pulls when available. Does not spend
+// premium currency -- only claims free pulls.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -13941,6 +14442,15 @@ var PlaceOfPower_awaiter = (undefined && undefined.__awaiter) || function (thisA
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// PlaceOfPower.ts -- Automates Place of Power: navigates to active PoPs and
+// collects rewards.
+//
+// Places of Power (PoPs) are map locations that grant periodic rewards. This
+// module detects which PoPs are currently active, navigates to them, and
+// collects available rewards on a timed schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -14399,6 +14909,15 @@ class PlaceOfPower {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Shop.ts
+// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
+// inventory.
+//
+// Handles automated interactions with the in-game equipment shop. Buys
+// desired equipment, sells unwanted items, and manages inventory slots.
+// Tracks shop refresh timers and available currency.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -14441,13 +14960,17 @@ class Shop {
                 var d = JSON.parse(this.dataset.d);
                 HaveExp += d.quantity * d.item.value;
             } });
+            var BoosterIdMap = {};
             $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
                 var d = JSON.parse(this.dataset.d);
                 HaveBooster[d.item.identifier] = d.quantity;
+                if (d.item.id_item)
+                    BoosterIdMap[d.item.identifier] = String(d.item.id_item);
             } });
             setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
             setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
             LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
@@ -15017,6 +15540,14 @@ var Spreadsheet_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
+//
+// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
+// spreadsheets) directly into the game interface. Listens for AJAX responses
+// to inject links at the right time when relevant pages load.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 class Spreadsheet {
@@ -15054,6 +15585,16 @@ Spreadsheet.BDSMPP_CLASS = 'script-blessing-spreadsheet-link';
 Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 
 ;// CONCATENATED MODULE: ./src/Module/TeamModule.ts
+// TeamModule.ts -- Team management: auto-selects optimal teams for different
+// battle modes.
+//
+// Different game modes (league, troll, labyrinth, etc.) benefit from different
+// team compositions. This module automatically selects and switches to the
+// optimal team configuration before each fight type, saving the player from
+// manual team management.
+//
+// Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
+//
 
 
 
@@ -15544,6 +16085,8 @@ class TeamModule {
 }
 
 ;// CONCATENATED MODULE: ./src/Module/index.ts
+// Module/index.ts -- Barrel file re-exporting all game automation modules.
+// Each module handles a specific game feature (fights, events, harem, etc.).
 
 
 
@@ -15572,6 +16115,9 @@ class TeamModule {
 
 
 ;// CONCATENATED MODULE: ./src/config/game/AmourAgentVars.ts
+// Game-variant configuration for Amour Agent.
+// Provides domain-to-environment mapping, troll names, and quest data
+// specific to the Amour Agent game variant.
 class AmourAgent {
     static getEnv() {
         return {
@@ -15594,6 +16140,9 @@ AmourAgent.trollIdMapping = {};
 AmourAgent.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/ComixHaremVars.ts
+// Game-variant configuration for Comix Harem.
+// Provides domain-to-environment mapping, troll names, and quest data
+// specific to the Comix Harem game variant.
 class ComixHarem {
     static getEnv() {
         return {
@@ -15648,6 +16197,9 @@ ComixHarem.trollIdMapping = {};
 ComixHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/GayHaremVars.ts
+// Game-variant configuration for Gay Harem.
+// Provides domain-to-environment mapping, troll names, and quest data
+// specific to the Gay Harem game variant.
 class GayHarem {
     static getEnv() {
         return {
@@ -15712,6 +16264,9 @@ GayHarem.trollIdMapping = {};
 GayHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/GayPornstarHaremVars.ts
+// Game-variant configuration for Gay Pornstar Harem.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Gay Pornstar Harem game variant.
 class GayPornstarHarem {
     static getEnv() {
         return {
@@ -15753,6 +16308,9 @@ GayPornstarHarem.trollIdMapping = { 6: 2, 7: 3, 8: 4, 9: 5, 10: 6, 11: 7, 12: 8 
 GayPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/HentaiHeroesVars.ts
+// Game-variant configuration for Hentai Heroes (the primary/default variant).
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Hentai Heroes game variant.
 class HentaiHeroes {
     static getEnv() {
         return {
@@ -15865,6 +16423,9 @@ HentaiHeroes.sideTrollIdMapping = { 22: 20 };
 HentaiHeroes.lastQuestId = 2116; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/MangaRpgVars.ts
+// Game-variant configuration for Manga RPG.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Manga RPG game variant.
 class MangaRpg {
     static getEnv() {
         return {
@@ -15896,6 +16457,9 @@ MangaRpg.trollIdMapping = { 3: 3 };
 MangaRpg.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/PornstarHaremVars.ts
+// Game-variant configuration for Pornstar Harem.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Pornstar Harem game variant.
 class PornstarHarem {
     static getEnv() {
         return {
@@ -15961,6 +16525,9 @@ PornstarHarem.trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 
 PornstarHarem.lastQuestId = 16100; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/TransPornstarHaremVars.ts
+// Game-variant configuration for Trans Pornstar Harem.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Trans Pornstar Harem game variant.
 class TransPornstarHarem {
     static getEnv() {
         return {
@@ -16003,6 +16570,8 @@ TransPornstarHarem.trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 
 TransPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/index.ts
+// Barrel export for game-variant configuration classes.
+// Re-exports all per-game-variant variable definitions.
 
 
 
@@ -16013,6 +16582,9 @@ TransPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 
 ;// CONCATENATED MODULE: ./src/config/HHEnvVariables.ts
+// Per-environment (game variant) configuration for HHAuto.
+// Detects the current game domain and loads the matching set of page IDs, URLs,
+// CSS selectors, feature flags, and troll/quest data for that variant.
 
 
 
@@ -16464,6 +17036,9 @@ for (var key in GayPornstarHarem.getEnv()) {
 // Object.values(girlsDataList).filter(girl => girl.source?.name == "troll_tier" && girl.source?.group?.id == "7")
 
 ;// CONCATENATED MODULE: ./src/config/InputPattern.ts
+// Regex patterns used for input validation in the HHAuto settings menu.
+// Each pattern constrains what the user can enter in a specific settings field
+// (e.g., timers, thresholds, booster filters).
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 const HHAuto_inputPattern = {
     nWith1000sSeparator: "[0-9" + thousandsSeparator + "]+",
@@ -16744,6 +17319,7 @@ const TK = {
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
+    boosterIdMap: "Temp_boosterIdMap",
     // Troll
     TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
     TrollInvalid: "Temp_TrollInvalid",
@@ -16813,12 +17389,28 @@ const TK = {
 };
 
 ;// CONCATENATED MODULE: ./src/config/index.ts
+// Barrel export for the config module.
+// Re-exports environment variables, stored vars, input patterns, and storage keys.
 
 
 
 
 
 ;// CONCATENATED MODULE: ./src/Helper/NumberHelper.ts
+// NumberHelper.ts
+//
+// Utility functions for formatting and parsing numbers across the UI.
+// Handles thousands separators (locale-aware via toLocaleString) and
+// compact notation (K, M, B, T suffixes) for displaying large values
+// like gold, XP, or damage in a readable way.
+//
+// The rounding modes (ceil/round/floor via `updown`) matter because
+// the game rounds differently by context: reward previews round down
+// to avoid overpromising, cost displays round up to avoid underpaying.
+//
+// Used by: HHMenuHelper (input formatting), RewardHelper (reward
+//          display), InfoService (player info panel)
+/** Event handler for menu inputs that auto-formats with thousands separators. */
 function add1000sSeparator1() {
     var nToFormat = this.value;
     this.value = NumberHelper.add1000sSeparator(nToFormat);
@@ -16864,6 +17456,24 @@ class NumberHelper {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/HHMenuHelper.ts
+// HHMenuHelper.ts
+//
+// Builds and manages the HHAuto settings menu injected into the game page.
+// The menu is a floating panel (div#sMenu) with toggles, dropdowns, and
+// inputs for every automation feature. Responsibilities:
+//
+//   - Creating the menu toggle button and positioning it per page
+//   - Generating the full HTML menu with sections for each module
+//   - Reading user settings from inputs into storage (getMenuValues)
+//   - Writing stored settings back into inputs (setMenuValues)
+//   - Populating dynamic dropdowns (troll targets, league sort, labyrinth)
+//   - Masking sections that depend on disabled parent features
+//
+// Why one large class: The menu is tightly coupled to storage keys
+// (SK/TK) and input patterns. Splitting further would scatter the
+// HTML template across many files without real benefit.
+//
+// Used by: StartService (on init), AutoLoop (button state refresh)
 
 
 
@@ -17747,6 +18357,27 @@ function getMenu() {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/StorageHelper.ts
+// StorageHelper.ts
+//
+// Abstraction layer over browser localStorage and sessionStorage for
+// persisting all HHAuto settings and temporary state. Every stored
+// variable is registered in HHStoredVars (config/HHStoredVars.ts) with
+// a storage type, default value, and optional validation regex.
+//
+// Key design decisions:
+//   - Settings use localStorage (survive tab close); temp vars use
+//     sessionStorage (reset per session) unless the user enables
+//     per-tab isolation (settPerTab), which puts everything in session.
+//   - All keys are prefixed (HHStoredVarPrefixKey) to avoid collisions
+//     with game data in the same storage.
+//   - Write errors (storage full) trigger a log cleanup and one retry.
+//   - Migration logic (migrateHHVars) handles key prefix changes
+//     between script versions.
+//
+// Also provides export/import of settings as JSON files and a popup
+// for selecting which reward types to auto-collect.
+//
+// Used by: Every module and helper in the project.
 
 
 
@@ -18046,6 +18677,22 @@ function getLocalStorageSize() {
 }
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
+/**
+ * Browser detection utilities.
+ *
+ * Parses the browser's User-Agent string to identify the browser name and
+ * version. Used primarily by the debug log exporter (saveHHDebugLog) so
+ * that bug reports include the user's browser environment.
+ */
+/**
+ * Detect the browser name and full version from the given Navigator object.
+ *
+ * Handles Chrome, Firefox, Safari, Opera (OPR), Edge, and IE/Trident.
+ * Returns a human-readable string like "chrome 120.0.6099.130".
+ *
+ * @param nav - The Navigator object (typically `window.navigator`).
+ * @returns A string in the format "<browser> <version>".
+ */
 function getBrowserData(nav) {
     let name, version;
     var ua = nav.userAgent;
@@ -18094,11 +18741,31 @@ function getBrowserData(nav) {
 ;
 
 ;// CONCATENATED MODULE: ./src/Utils/LogUtils.ts
+/**
+ * Logging and debug-export utilities for HHAuto.
+ *
+ * All log entries are persisted in the browser's storage (localStorage /
+ * GM storage) as a JSON object keyed by timestamp + caller name. This
+ * allows the user to review the automation history even after a page reload.
+ *
+ * The log is capped at MAX_LINES entries; older entries are pruned on each
+ * write to keep storage usage bounded.
+ *
+ * Also provides a one-click debug log exporter that bundles all stored
+ * settings, browser info, and log entries into a downloadable JSON file
+ * for sharing in bug reports.
+ */
 
 
 
 
+/** Maximum number of log entries kept in storage before old ones are pruned. */
 const MAX_LINES = 500;
+/**
+ * Wipe all existing log entries from storage and record a single
+ * "cleaned" marker with the storage size before the clean.
+ * Also deletes the cached league opponent list which can grow large.
+ */
 function cleanLogsInStorage() {
     var currentLoggingText = {};
     let currDate = new Date();
@@ -18108,6 +18775,17 @@ function cleanLogsInStorage() {
     // Delete big temp in storage
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
 }
+/**
+ * Write a timestamped log entry to both the browser console and persistent
+ * storage. Automatically detects the calling function name from the stack
+ * trace and uses it as part of the log key.
+ *
+ * Accepts any number of arguments: a single string is stored as-is;
+ * objects are JSON-serialized with circular-reference protection.
+ *
+ * When the stored log exceeds MAX_LINES, the oldest entries are removed.
+ * Duplicate keys within the same millisecond get a numeric suffix.
+ */
 function LogUtils_logHHAuto(...args) {
     var _a;
     const stackTrace = (new Error()).stack || '';
@@ -18125,6 +18803,8 @@ function LogUtils_logHHAuto(...args) {
     var text;
     var currentLoggingText;
     var nbLines;
+    // JSON.stringify replacer that tracks seen objects to avoid
+    // "Converting circular structure to JSON" errors.
     const getCircularReplacer = () => {
         const seen = new WeakSet();
         return (key, value) => {
@@ -18178,6 +18858,13 @@ function LogUtils_logHHAuto(...args) {
     currentLoggingText[prefix] = text;
     setStoredValue(HHStoredVarPrefixKey + TK.Logging, JSON.stringify(currentLoggingText));
 }
+/**
+ * Bundle all HHAuto settings, browser info, script version, and the
+ * stored log into a JSON file, then trigger a browser download.
+ *
+ * The resulting file can be attached to bug reports so developers
+ * can reproduce issues without asking the user for each detail.
+ */
 function saveHHDebugLog() {
     var dataToSave = {};
     var name = 'HH_DebugLog_' + Date.now() + '.log';
@@ -18194,6 +18881,9 @@ function saveHHDebugLog() {
 }
 
 ;// CONCATENATED MODULE: ./src/model/EventGirl.ts
+// Model representing a girl obtainable during an in-game event.
+// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
+// association, shard count, event timing, and mythic status.
 
 
 class EventGirl {
@@ -18295,6 +18985,9 @@ class EventGirl {
 }
 
 ;// CONCATENATED MODULE: ./src/model/LeagueOpponent.ts
+// Model for a league opponent displayed in the league battle screen.
+// Holds the opponent's ID, nickname, power level, and the pre-computed
+// battle simulation result used to decide whether to fight.
 //@ts-check
 class LeagueOpponent {
     // constructor(opponent_id: any,rank: number,nickname: string,level: number,power: number,player_league_points: number,simuPoints: number,nb_boosters: number, kkOpponent:KKLeagueOpponent, simu:BDSMSimu){
@@ -18317,6 +19010,9 @@ class LeagueOpponent {
 }
 
 ;// CONCATENATED MODULE: ./src/model/Mission.ts
+// Models for in-game missions and their rewards.
+// Mission holds the cost, duration, remaining time, completion state,
+// and a reference to the DOM element. MissionRewards describes each reward entry.
 class Mission {
     constructor() {
         this.finished = false;
@@ -18329,6 +19025,9 @@ class MissionRewards {
 }
 
 ;// CONCATENATED MODULE: ./src/model/SeasonOpponent.ts
+// Model for a season (Seasons of Love) opponent.
+// Holds the opponent's ID, nickname, mojo/exp/affection rewards,
+// and the pre-computed battle simulation result.
 class SeasonOpponent {
     constructor(opponent_id, nickname, mojo, exp, aff, simu) {
         this.simu = {};
@@ -18342,6 +19041,8 @@ class SeasonOpponent {
 }
 
 ;// CONCATENATED MODULE: ./src/model/TeamData.ts
+// Model representing the player's team composition and scroll inventory.
+// Contains the list of team girls and counts for each scroll rarity tier.
 class TeamData {
     constructor() {
         this.team = [];
@@ -18350,6 +19051,8 @@ class TeamData {
 }
 
 ;// CONCATENATED MODULE: ./src/model/index.ts
+// Barrel export for the model module.
+// Re-exports all game data models, interfaces, and KK (raw API) types.
 
 
 
@@ -18364,9 +19067,33 @@ class TeamData {
 
 
 ;// CONCATENATED MODULE: ./src/Helper/BDSMHelper.ts
+/**
+ * BDSMHelper.ts - Battle Damage Simulation Model (BDSM)
+ *
+ * Provides a probabilistic battle simulator that predicts win/loss outcomes
+ * for PvP and PvE fights. The simulator models the full combat loop: attack,
+ * critical hits, elemental domination bonuses, tier-4/tier-5 girl skills
+ * (stun, shield, reflect, execute), and heal-on-hit. It explores every
+ * possible crit/non-crit branch per turn, weighting results by probability,
+ * to produce an aggregate win chance and expected league-point distribution.
+ *
+ * Used by League, Season, Troll, and Champion modules to decide whether a
+ * fight is worth taking before spending energy.
+ *
+ * Key concepts:
+ *   - "Domination bonuses" come from elemental rock-paper-scissors matchups.
+ *   - Tier-4 skills scale damage/defense per turn (compound growth).
+ *   - Tier-5 skills are leader-only abilities (stun, shield, reflect, execute).
+ *   - The simulation caps at 50 turns to avoid infinite recursion.
+ */
 
 
 class BDSMHelper {
+    /**
+     * Extract synergy multipliers from a team object. Each element type
+     * provides a different combat bonus (crit damage, crit chance, defense
+     * reduction, or heal-on-hit).
+     */
     static fightBonues(team) {
         return {
             critDamage: team.synergies.find(({ element: { type } }) => type === 'fire').bonus_multiplier,
@@ -18375,6 +19102,15 @@ class BDSMHelper {
             healOnHit: team.synergies.find(({ element: { type } }) => type === 'water').bonus_multiplier
         };
     }
+    /**
+     * Build BDSMPlayer models for the player and opponent from raw game data.
+     * Applies league-specific domination bonuses when `inLeague` is true,
+     * since league fights apply elemental ego/attack bonuses while other
+     * modes do not.
+     *
+     * @returns Object with `player`, `opponent` BDSMPlayer instances
+     *          and the computed `dominanceBonuses`.
+     */
     static getBdsmPlayersData(inHeroData, opponentData, inLeague = false) {
         // player stats
         const playerAtk = inHeroData.damage;
@@ -18397,6 +19133,11 @@ class BDSMHelper {
         return { player: player, opponent: opponent, dominanceBonuses: dominanceBonuses };
     }
 }
+/**
+ * Elemental advantage lookup tables.
+ * - `chance`: elements that grant a crit-chance bonus when facing the listed counter.
+ * - `egoDamage`: elements that grant ego (HP) and attack bonuses when facing the listed counter.
+ */
 BDSMHelper.ELEMENTS = {
     chance: {
         darkness: 'light',
@@ -18415,6 +19156,21 @@ let _player;
 let _opponent;
 let _runs;
 let _cache;
+/**
+ * Run a full probabilistic battle simulation between two players.
+ *
+ * Recursively explores every possible turn outcome (base hit vs. critical hit)
+ * for both sides, weighting each branch by its probability. Returns the
+ * aggregate win/loss probability and a distribution of expected league points.
+ *
+ * The simulation caps at 50 turns to prevent stack overflow on stalemate
+ * scenarios (e.g., high healing, low damage).
+ *
+ * @param player   - The attacker (hero) model.
+ * @param opponent - The defender model.
+ * @param debugEnabled - When true, logs simulation details.
+ * @returns BDSMSimu with win/loss probabilities, point distribution, and scoreClass.
+ */
 function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     if (debugEnabled) {
         // logHHAuto('Running simulation against' + opponent.name, opponent);
@@ -18597,6 +19353,11 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     })
     return skill_tier_4;
 }*/
+/**
+ * Estimate tier-4 skill bonuses from skill_tiers_info.
+ * The exact skill data is not always available from the API, so we estimate
+ * based on the number of skill points invested (0.2% per point for damage).
+ */
 function estimateTier4SkillValue(teamGirlsArray) {
     let skill_tier_4 = { dmg: 0, def: 0 };
     teamGirlsArray.forEach((girl) => {
@@ -18618,6 +19379,15 @@ function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number }
     })
     return skill_tier_5;
 }*/
+/**
+ * Estimate the tier-5 (leader) skill from the first girl's element.
+ * Tier-5 skills are element-dependent:
+ *   - sun/darkness  -> Stun (id 11)
+ *   - stone/light   -> Shield (id 12)
+ *   - psychic/nature -> Reflect (id 13)
+ *   - fire/water    -> Execute (id 14)
+ * Values are estimated from skill points invested since exact data may be unavailable.
+ */
 function estimateTier5SkillValue(teamGirlsArray) {
     let skill_tier_5 = { id: 0, value: 0 };
     const girl = teamGirlsArray[0];
@@ -18673,6 +19443,12 @@ export function calculateSynergiesFromTeamMemberElements(elements) {
 replaced       ELEMENTS
 by ConfigHelper.getHHScriptVars("ELEMENTS")
 */
+/**
+ * Calculate elemental domination bonuses for both sides.
+ * Each element on team A that dominates a matching element on team B
+ * grants +10% ego, +10% attack, or +20% crit chance depending on the
+ * advantage type (egoDamage vs. chance).
+ */
 function calculateDominationBonuses(playerElements, opponentElements) {
     const bonuses = {
         player: {
@@ -18702,14 +19478,29 @@ function calculateDominationBonuses(playerElements, opponentElements) {
     });
     return bonuses;
 }
+/**
+ * Calculate the base crit chance from the harmony stat ratio.
+ * Crit chance is 30% of the player's share of total harmony.
+ */
 function calculateCritChanceShare(ownHarmony, otherHarmony) {
     return 0.3 * ownHarmony / (ownHarmony + otherHarmony);
 }
+/**
+ * Sum a specific skill's percentage_value across all girls in a team.
+ * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
+ */
 function getSkillPercentage(team, id) {
     return 1 + (team.girls.map(e => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/ButtonHelper.ts
+/**
+ * ButtonHelper.ts - Reusable HTML button generators for the game UI
+ *
+ * Produces HTML strings for common action buttons injected into the game
+ * page. These are used by automation modules that need to add navigation
+ * shortcuts (e.g., "Change team" or "Go to Club Champion") to the DOM.
+ */
 
 
 function getGoToChangeTeamButton() {
@@ -18721,6 +19512,18 @@ function getGoToClubChampionButton() {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/HHHelper.ts
+/**
+ * HHHelper.ts - Safe accessor for the game's global JavaScript variables
+ *
+ * The game exposes state on `unsafeWindow` (or `unsafeWindow.shared` in
+ * some builds) as nested objects like `Hero.infos.id` or `Hero.currencies`.
+ * This helper provides get/set access by dot-separated path strings,
+ * automatically resolving environment-specific variable name overrides
+ * through ConfigHelper and prepending the `shared.` prefix when needed.
+ *
+ * This is the primary bridge between the Tampermonkey sandbox and the
+ * game's runtime state.
+ */
 
 
 function prefixIfNeeded(infoSearched) {
@@ -18772,6 +19575,20 @@ function setHHVars(infoSearched, newValue) {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/HeroHelper.ts
+// HeroHelper.ts
+//
+// Provides read access to the player's hero data (class, level, money,
+// kobans) and actions that modify the hero: stat upgrades and booster
+// equipping. Hero data lives on the game's global `window.Hero` (or
+// `window.shared.Hero` on newer builds), accessed via unsafeWindow.
+//
+// Why stat upgrade logic lives here: Upgrading stats is a sequential,
+// recursive process (buy one increment, wait, repeat) that only touches
+// hero data. Keeping it next to the accessors avoids circular deps
+// with the Module layer.
+//
+// Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
+//          BDSM simulator (hero stats for fight prediction)
 var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -18926,7 +19743,19 @@ class HeroHelper {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/PriceHelper.ts
+// PriceHelper.ts
+//
+// Parses human-readable price strings from the game UI back into raw
+// numbers. The game displays large values with suffixes (e.g. "105K",
+// "6.38M", "2.1B"), and this helper reverses that formatting so the
+// script can do arithmetic on actual values.
+//
+// Handles locale differences by treating commas as decimal separators
+// (common in European localizations).
+//
+// Used by: RewardHelper (reward value calculation), Market module
 
+/** Converts a compact price string like "105K" or "6.38M" back to a number. */
 function parsePrice(princeStr) {
     // Parse price to number 105K to 105000, 6.38M to 6380000
     // Replace comma by dots for local supports
@@ -18995,6 +19824,25 @@ export function manageUnits(inText)
 */ 
 
 ;// CONCATENATED MODULE: ./src/Helper/RewardHelper.ts
+// RewardHelper.ts
+//
+// Detects, classifies, and renders in-game reward slots. The game
+// displays rewards in DOM elements with CSS classes like "slot_soft_currency"
+// or data attributes. This helper inspects those elements to determine
+// the reward type (girl shards, currency, energy, equipment, etc.) and
+// quantity, then can render summary HTML for the HHAuto overlay.
+//
+// Also handles the post-battle reward popup: after a troll fight that
+// drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
+// to detect the popup, parse which girl received shards, update stored
+// event progress, and navigate to the next appropriate page.
+//
+// Why MutationObserver: The reward popup is rendered asynchronously by
+// the game after the battle animation. Polling would be wasteful and
+// unreliable; observing attribute changes catches it immediately.
+//
+// Used by: Event modules (progress tracking), PlaceOfPower, Season,
+//          Troll module (post-fight navigation)
 
 
 
@@ -19434,6 +20282,10 @@ class RewardHelper {
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/index.ts
+// Helper/index.ts
+//
+// Barrel export for all Helper modules. Import from 'Helper/index'
+// instead of reaching into individual files.
 
 
 
@@ -19452,6 +20304,9 @@ class RewardHelper {
 
 
 ;// CONCATENATED MODULE: ./src/Utils/Utils.ts
+// General-purpose utility functions for HHAuto.
+// Provides callItOnce (ensures a function executes only once), safeJsonParse,
+// AJAX response interception helpers, and other shared convenience methods.
 
 
 function callItOnce(fn) {
@@ -19606,7 +20461,25 @@ function myfileLoad_onReaderLoad(event) {
 }
 
 ;// CONCATENATED MODULE: ./src/Utils/HHPopup.ts
+/**
+ * Custom popup/modal system for the HHAuto userscript.
+ *
+ * Provides a reusable overlay popup that the script uses for its settings
+ * menu, debug information, and user notifications. The popup is injected
+ * into the game's DOM and styled independently so it doesn't conflict
+ * with the game's own modals.
+ *
+ * The popup is lazily created on first use (createHHPopUp) and then
+ * shown/hidden via display toggling on subsequent calls.
+ *
+ * Also includes a helper to auto-dismiss the game's own popup messages
+ * so they don't block automation.
+ */
 
+/**
+ * Internal helper that targets the popup's DOM elements by well-known IDs
+ * to update content, title, and CSS classes without re-creating the popup.
+ */
 class HHPopup {
     static fillContent(content) {
         const elem = document.getElementById("HHAutoPopupGlobalContent");
@@ -19624,6 +20497,11 @@ class HHPopup {
             elem.className = inClass;
     }
 }
+/**
+ * Show the HHAuto popup with the given CSS class, title, and HTML content.
+ * Creates the popup on first call; on subsequent calls it just makes the
+ * existing popup visible again and updates its contents.
+ */
 function fillHHPopUp(inClass, inTitle, inContent) {
     if (document.getElementById("HHAutoPopupGlobal") === null) {
         createHHPopUp();
@@ -19635,6 +20513,11 @@ function fillHHPopUp(inClass, inTitle, inContent) {
     HHPopup.fillTitle(inTitle);
     HHPopup.fillClasses(inClass);
 }
+/**
+ * Build and inject the popup's HTML structure and CSS into the game page.
+ * Registers a click handler on the close button and an Escape key listener
+ * to hide the popup. Called once; after creation the popup is reused.
+ */
 function createHHPopUp() {
     GM_addStyle('#HHAutoPopupGlobal.HHAutoOverlay { overflow: auto;  z-index:1000;   position: fixed;   top: 0;   bottom: 0;   left: 0;   right: 0;   background: rgba(0, 0, 0, 0.7);   transition: opacity 500ms;     display: flex;   align-items: center; }  '
         + '#HHAutoPopupGlobalPopup {   margin: auto;   padding: 20px;   background: #fff;   border-radius: 5px;   position: relative;   transition: all 5s ease-in-out; }  '
@@ -19666,6 +20549,12 @@ function createHHPopUp() {
         }
     });
 }
+/**
+ * Check whether the HHAuto popup is currently visible.
+ *
+ * @returns The popup's CSS class name string if visible, or `false` if
+ *          the popup doesn't exist or is hidden.
+ */
 function isDisplayedHHPopUp() {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
     const popupGlobalPopup = document.getElementById("HHAutoPopupGlobalPopup");
@@ -19677,6 +20566,7 @@ function isDisplayedHHPopUp() {
     }
     return popupGlobalPopup.className;
 }
+/** Make the HHAuto popup visible (un-hide it). */
 function displayHHPopUp() {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
     if (popupGlobal === null) {
@@ -19685,6 +20575,7 @@ function displayHHPopUp() {
     popupGlobal.style.display = "";
     popupGlobal.style.opacity = '1';
 }
+/** Hide the HHAuto popup without destroying it, so it can be shown again. */
 function maskHHPopUp() {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
     if (popupGlobal !== null) {
@@ -19692,6 +20583,14 @@ function maskHHPopUp() {
         popupGlobal.style.opacity = '0';
     }
 }
+/**
+ * Auto-dismiss the game's own popup messages so they don't block automation.
+ *
+ * Only clicks the close button when the browser tab is focused (or when
+ * `inBurst` is true), to avoid interfering when the user is on another tab.
+ *
+ * @param inBurst - If true, close the popup even when the tab is not focused.
+ */
 function checkAndClosePopup(inBurst) {
     const popUp = $('#popup_message[style*="display: block"]');
     if ((inBurst || isFocused()) && popUp.length > 0) {
@@ -19700,12 +20599,27 @@ function checkAndClosePopup(inBurst) {
 }
 
 ;// CONCATENATED MODULE: ./src/Utils/index.ts
+// Barrel export for the Utils module.
+// Re-exports all utility functions from BrowserUtils, HHPopup, LogUtils, and Utils.
 
 
 
 
 
 ;// CONCATENATED MODULE: ./src/Helper/ConfigHelper.ts
+/**
+ * ConfigHelper.ts - Environment detection and per-environment variable lookup
+ *
+ * The game runs on multiple domains (HH, PH, NPH, etc.), each with
+ * slightly different page IDs, URLs, and feature flags. This helper
+ * detects which environment the script is running on by matching the
+ * current hostname against a known list, then resolves configuration
+ * variables for that environment. When an environment-specific value is
+ * not defined, it falls back to the "global" defaults.
+ *
+ * Almost every other helper and module depends on ConfigHelper to obtain
+ * page IDs, URL paths, element selectors, and feature toggles.
+ */
 
 
 class ConfigHelper {
@@ -19742,6 +20656,18 @@ class ConfigHelper {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AdsService.ts
+// AdsService.ts
+//
+// Manages in-game advertisements that can interfere with automation.
+// When the "show ads in background" setting is enabled, this service
+// pushes ad containers behind the game UI via z-index overrides so
+// they don't block click targets. On non-home pages, ads are
+// repositioned further down the page to avoid overlap.
+//
+// Also detects cross-game promo popups and sex-friends ads that use
+// a different DOM structure than regular ads.
+//
+// Used by: StartService (on page load)
 
 
 
@@ -19787,6 +20713,22 @@ class AdsService {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AutoLoopActions.ts
+// AutoLoopActions.ts
+//
+// Contains all discrete action handlers called by the AutoLoop. Each
+// handler checks whether its preconditions are met (feature enabled,
+// timer expired, energy available, not busy) and if so, triggers the
+// corresponding module action and marks the loop as busy.
+//
+// Handlers are executed in a fixed priority order defined in AutoLoop.ts.
+// Only one action fires per loop iteration (once ctx.busy is true, all
+// subsequent handlers skip). This serialization prevents conflicting
+// navigation and ensures the game page is in a known state.
+//
+// Handler naming convention: handle<Feature>(ctx) where ctx is the
+// shared AutoLoopContext carrying busy state, event data, and energy.
+//
+// Used by: AutoLoop.autoLoop()
 var AutoLoopActions_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -20631,6 +21573,21 @@ function handleGoHome(ctx) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AutoLoopPageHandlers.ts
+// AutoLoopPageHandlers.ts
+//
+// Handles page-specific UI enhancements that run on every loop
+// iteration regardless of whether the automation is "busy". These
+// are read-only or display-only operations that enrich the current
+// page with HHAuto overlays (reward previews, opponent info, timer
+// displays, etc.) without navigating away.
+//
+// Unlike AutoLoopActions (which fire one-at-a-time and navigate),
+// page handlers run unconditionally based on the current page ID.
+// They add informational elements, parse visible data, and set up
+// page-specific features like the league opponent list or labyrinth
+// auto-battle.
+//
+// Used by: AutoLoop.autoLoop() (called after action handlers)
 var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -20885,6 +21842,26 @@ function handlePageSpecific(ctx) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AutoLoop.ts
+// AutoLoop.ts
+//
+// The main automation loop that drives all periodic actions. Runs on
+// a configurable interval (default ~1 second) via setTimeout recursion.
+//
+// Each iteration:
+//   1. Checks if "burst" mode is active (master switch on, not in
+//      paranoia rest, menu not open)
+//   2. If active, runs through all action handlers in priority order
+//      (defined in AutoLoopActions.ts). Only one action fires per
+//      iteration to prevent conflicting navigations.
+//   3. Runs page-specific UI handlers regardless of burst state
+//   4. Manages paranoia flip if enabled
+//   5. Schedules the next iteration
+//
+// Also tracks energy spending across iterations (CheckSpentPoints)
+// to detect when the player manually buys energy, which resets the
+// corresponding cooldown timer.
+//
+// Used by: StartService (initial call), self (recursive setTimeout)
 var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -21091,6 +22068,21 @@ function autoLoop() {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/InfoService.ts
+// InfoService.ts
+//
+// Renders the floating "pInfo" overlay panel that shows the current
+// automation status at a glance: which modules are active, their
+// next scheduled run times, energy counts, and paranoia state.
+//
+// The panel is positioned differently on the home page vs. other
+// pages. On hover it expands to show the full status list. Double-
+// clicking it toggles the master automation switch as a quick
+// shortcut.
+//
+// updateData() is called every loop iteration to refresh the display
+// with current timer values and module states.
+//
+// Used by: StartService (creates the panel), AutoLoop (refreshes it)
 
 
 
@@ -21250,6 +22242,16 @@ function updateData() {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/MouseService.ts
+// MouseService.ts
+//
+// Pauses automation while the user is actively interacting with the
+// page. Binds mousemove, scroll, and mouseup events that set a
+// "mouseBusy" flag for a configurable timeout (default 5s).
+//
+// While mouseBusy is true, AutoLoop skips all actions to avoid
+// interfering with manual gameplay.
+//
+// Used by: StartService (binds events), AutoLoop (checks flag)
 
 
 let mouseBusy = false;
@@ -21269,6 +22271,17 @@ function bindMouseEvents() {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/ParanoiaService.ts
+// ParanoiaService.ts
+//
+// Anti-detection system that alternates between "burst" (active) and
+// "rest" (idle) periods to mimic human play patterns. During rest,
+// all actions stop and the script sits on the home page.
+//
+// Before entering rest, optionally spends remaining energy to avoid
+// wasting regeneration during downtime. Mythic events can bypass
+// paranoia to avoid missing time-limited waves.
+//
+// Used by: AutoLoop (checked every iteration when paranoia is on)
 
 
 
@@ -21581,6 +22594,21 @@ function reviverMap(key, value) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/TooltipService.ts
+// TooltipService.ts
+//
+// Controls the visibility of help tooltips in the HHAuto settings
+// menu. Each menu item has a hidden tooltip span (.tooltipHHtext)
+// that becomes visible on hover when tooltips are enabled.
+//
+// The tooltip positioning logic prevents overflow: if a tooltip would
+// render above the viewport, it shifts down and to the right; if it
+// would extend past the menu's right edge, it shifts left.
+//
+// The `important` flag forces !important CSS when toggling tooltips
+// mid-session (vs. initial page load) to override previously injected
+// styles.
+//
+// Used by: StartService (initial state), menu checkbox handler
 
 
 
@@ -21623,6 +22651,28 @@ function disableToolTipsDisplay(important = false) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/StartService.ts
+// StartService.ts
+//
+// One-time initialization that runs when the script first loads on a
+// game page. Responsibilities:
+//
+//   - Version migration: detects script version changes and runs
+//     data migrations (e.g. consolidating mask reward settings)
+//   - Environment checks: verifies jQuery is loaded, Hero object
+//     exists, and the user is logged in before proceeding
+//   - Menu setup: creates the HHAuto settings menu, populates
+//     dynamic dropdowns (troll targets, league sort, labyrinth),
+//     and binds all event handlers
+//   - UI injection: adds the pInfo overlay, hides cross-game promo
+//     banners, moves ads, and sets up the debug dialog
+//   - Auto-loop start: restores timers from storage, applies
+//     defaults, then kicks off the first autoLoop() call
+//
+// The hardened_start() function is the true entry point, called both
+// immediately and after a 5-second delay as a fallback. It guards
+// against missing jQuery and "Forbidden" error pages.
+//
+// Used by: src/index.ts (entry point)
 
 
 
@@ -21928,6 +22978,25 @@ function start() {
 ;
 
 ;// CONCATENATED MODULE: ./src/Service/index.ts
+/**
+ * Barrel export for the Service layer.
+ *
+ * Re-exports every public symbol from each service module so that the rest
+ * of the codebase can import from `Service/index` instead of reaching into
+ * individual files. Keeping a single entry point makes dependency wiring
+ * easier and keeps import paths short.
+ *
+ * Key services:
+ *  - StartService   -- one-time initialization, menu setup, version migration
+ *  - AutoLoop       -- the main periodic automation loop
+ *  - AutoLoopActions / AutoLoopPageHandlers -- discrete action handlers called by the loop
+ *  - ParanoiaService -- anti-detection pause/resume logic
+ *  - PageNavigationService -- centralized in-game page navigation
+ *  - InfoService    -- player info overlay (pInfo panel)
+ *  - MouseService   -- pause automation while the user interacts with the page
+ *  - AdsService     -- suppress or relocate in-game ads
+ *  - TooltipService -- show/hide HHAuto menu tooltips
+ */
 
 
 
@@ -21941,6 +23010,20 @@ function start() {
 
 
 ;// CONCATENATED MODULE: ./src/index.ts
+// index.ts - HHAuto entry point
+//
+// This is the Tampermonkey userscript entry point. It augments the
+// global Window interface with game-specific properties that the script
+// reads from the page context (via unsafeWindow), then kicks off
+// initialization in two ways:
+//
+//   1. An IIFE that calls hardened_start() immediately on script load
+//   2. A setTimeout fallback that retries after 5 seconds in case the
+//      game's JS hasn't finished loading yet
+//
+// hardened_start() verifies jQuery is available, checks for "Forbidden"
+// error pages, and delegates to start() which sets up the full menu,
+// timers, and auto-loop.
 
 setTimeout(hardened_start, 5000);
 (function () {

@@ -1,3 +1,18 @@
+// HeroHelper.ts
+//
+// Provides read access to the player's hero data (class, level, money,
+// kobans) and actions that modify the hero: stat upgrades and booster
+// equipping. Hero data lives on the game's global `window.Hero` (or
+// `window.shared.Hero` on newer builds), accessed via unsafeWindow.
+//
+// Why stat upgrade logic lives here: Upgrading stats is a sequential,
+// recursive process (buy one increment, wait, repeat) that only touches
+// hero data. Keeping it next to the accessors avoids circular deps
+// with the Module layer.
+//
+// Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
+//          BDSM simulator (hero stats for fight prediction)
+
 import { addNutakuSession, autoLoop } from '../Service/index';
 import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, TK } from '../config/index';

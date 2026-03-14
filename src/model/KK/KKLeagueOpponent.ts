@@ -1,3 +1,7 @@
+// Raw API model for a league opponent as returned by the game's API.
+// Contains boosters, match history, player stats, power, rewards,
+// and team composition data.
+
 export class KKLeagueOpponent {
     boosters: Record<string, unknown>;
     can_fight: boolean;

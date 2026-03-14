@@ -1,3 +1,23 @@
+// RewardHelper.ts
+//
+// Detects, classifies, and renders in-game reward slots. The game
+// displays rewards in DOM elements with CSS classes like "slot_soft_currency"
+// or data attributes. This helper inspects those elements to determine
+// the reward type (girl shards, currency, energy, equipment, etc.) and
+// quantity, then can render summary HTML for the HHAuto overlay.
+//
+// Also handles the post-battle reward popup: after a troll fight that
+// drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
+// to detect the popup, parse which girl received shards, update stored
+// event progress, and navigate to the next appropriate page.
+//
+// Why MutationObserver: The reward popup is rendered asynchronously by
+// the game after the battle animation. Polling would be wasteful and
+// unreliable; observing attribute changes catches it immediately.
+//
+// Used by: Event modules (progress tracking), PlaceOfPower, Season,
+//          Troll module (post-fight navigation)
+
 import { gotoPage } from '../Service/index';
 import { isJSON, logHHAuto } from '../Utils/index';
 import { parsePrice } from "./PriceHelper";
