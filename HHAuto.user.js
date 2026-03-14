@@ -22216,7 +22216,7 @@ function updateData() {
         if (ConfigHelper.getHHScriptVars("isEnabledShop", false) && getStoredValue(HHStoredVarPrefixKey + SK.updateMarket) == "true") {
             Tegzd += '<li>' + getTextForUI("autoBuy", "elementText") + ' : ' + getTimeLeft('nextShopTime') + '</li>';
         }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) == "true" && getTimer('nextAutoEquipBoosterTime') !== -1) {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) == "true") {
             Tegzd += '<li>' + getTextForUI("autoEquipBoosters", "elementText") + ' : ' + getTimeLeft('nextAutoEquipBoosterTime') + '</li>';
         }
         if (ConfigHelper.getHHScriptVars("isEnabledMission", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) == "true") {
