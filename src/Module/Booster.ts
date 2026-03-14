@@ -53,7 +53,15 @@ export class Booster {
     static CURDYCEPS = {"id_item":"319","identifier":"B4","name":"Cordyceps","rarity": "legendary" };
     static SANDALWOOD_PERFUME = {"id_item":"632","identifier":"MB1","name":"Sandalwood perfume","rarity":"mythic"};
     
-    //all following lines credit:Tom208 OCD script  
+    /** Lookup table: identifier -> default booster object (HentaiHeroes IDs). */
+    static BOOSTER_DEFAULTS: Record<string, any> = {
+        B1: Booster.GINSENG_ROOT,
+        B2: Booster.JUJUBES,
+        B3: Booster.CHLORELLA,
+        B4: Booster.CURDYCEPS,
+    };
+
+    //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses () {
         onAjaxResponse(/(action|class)/, (response, opt, xhr, evt) => {
                 setTimeout(async function() {
@@ -266,21 +274,15 @@ export class Booster {
 
         // Try to resolve from player's booster inventory (site-specific id_item)
         const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        const defaultBooster = Booster.BOOSTER_DEFAULTS[identifier] || null;
+        if (!defaultBooster) return null;
+
         if (boosterIdMap[identifier]) {
-            const hardcoded = {B1: Booster.GINSENG_ROOT, B2: Booster.JUJUBES, B3: Booster.CHLORELLA, B4: Booster.CURDYCEPS}[identifier];
-            if (hardcoded) {
-                return { ...hardcoded, id_item: boosterIdMap[identifier] };
-            }
+            return { ...defaultBooster, id_item: boosterIdMap[identifier] };
         }
 
         // Fallback to hardcoded defaults (HentaiHeroes IDs)
-        switch (identifier) {
-            case 'B1': return Booster.GINSENG_ROOT;
-            case 'B2': return Booster.JUJUBES;
-            case 'B3': return Booster.CHLORELLA;
-            case 'B4': return Booster.CURDYCEPS;
-            default: return null;
-        }
+        return defaultBooster;
     }
 
     static parseEquipSlotConfig(): string[] {
@@ -333,27 +335,23 @@ export class Booster {
     }
 
     /**
-     * Returns the longest remaining time (in seconds) among all active normal boosters.
-     * Used to schedule the next auto-equip check after all current boosters have expired.
+     * Returns the longest remaining time (in seconds) among the given active boosters.
+     * If no activeBoosters are passed, reads from storage.
      */
-    static getLongestBoosterRemainingSeconds(): number {
-        const boosterStatus = Booster.getBoosterFromStorage();
-        const serverNow = getHHVars('server_now_ts');
-
-        const activeBoosters = boosterStatus.normal.filter(
-            (booster: any) => booster.endAt > serverNow
-        );
-
+    static getLongestBoosterRemainingSeconds(activeBoosters?: any[]): number {
+        if (!activeBoosters) {
+            const boosterStatus = Booster.getBoosterFromStorage();
+            const serverNow = getHHVars('server_now_ts');
+            activeBoosters = boosterStatus.normal.filter((b: any) => b.endAt > serverNow);
+        }
         if (activeBoosters.length === 0) return 0;
 
+        const serverNow = getHHVars('server_now_ts');
         let longest = 0;
         for (const booster of activeBoosters) {
             const remaining = booster.endAt - serverNow;
-            if (remaining > longest) {
-                longest = remaining;
-            }
+            if (remaining > longest) longest = remaining;
         }
-
         return Math.max(0, Math.floor(longest));
     }
 
@@ -388,14 +386,12 @@ export class Booster {
      *
      * If the player has manually equipped boosters in the meantime, the method detects
      * that slots are full and reschedules accordingly.
+     *
+     * Wrapped in try/finally to guarantee scheduleNextEquipCheck runs even on errors.
      */
     static async autoEquipBoosters(): Promise<boolean> {
-        const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
-        if (!isEnabled) return false;
-
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
-            // All slots filled (possibly by the player manually) — reschedule
             logHHAuto("Auto-equip: All booster slots active.");
             Booster.scheduleNextEquipCheck();
             return false;
@@ -404,32 +400,34 @@ export class Booster {
         logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
 
         let anyEquipped = false;
+        try {
+            for (const nextBoosterId of boostersToEquip) {
+                const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
+                if (!boosterObj) {
+                    logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                    continue;
+                }
 
-        for (const nextBoosterId of boostersToEquip) {
-            const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
-            if (!boosterObj) {
-                logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
-                continue;
-            }
+                if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
+                    logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+                    continue;
+                }
 
-            if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
-                logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
-                continue;
+                const equipped = await HeroHelper.equipBooster(boosterObj);
+                if (equipped) {
+                    logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+                    anyEquipped = true;
+                } else {
+                    logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slot may be occupied.");
+                    break;
+                }
             }
-
-            const equipped = await HeroHelper.equipBooster(boosterObj);
-            if (equipped) {
-                logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
-                anyEquipped = true;
-            } else {
-                logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slot may be occupied.");
-                // Stop trying further boosters — slots are likely full
-                break;
-            }
+        } catch (error) {
+            logHHAuto("Auto-equip: Error during equip loop: " + error);
+        } finally {
+            // Always schedule next check, even on error
+            Booster.scheduleNextEquipCheck();
         }
-
-        // Schedule next check based on longest active booster + random delay
-        Booster.scheduleNextEquipCheck();
         return anyEquipped;
     }
 
@@ -493,7 +491,7 @@ export class Booster {
                     item: booster,
                     usages_remaining: 99 // Unknown, will be refreshed on next market visit
                 });
-                setStoredValue(HHStoredVarPrefixKey+'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
                 logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         } else {
@@ -504,7 +502,7 @@ export class Booster {
                     item: booster,
                     endAt: serverNow + 8 * 3600 // Assume 8 hours remaining, refreshed on next market visit
                 });
-                setStoredValue(HHStoredVarPrefixKey+'Temp_boosterStatus', JSON.stringify(boosterStatus));
+                setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
                 logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         }
@@ -531,10 +529,10 @@ export class Booster {
         return activated && correctTrollTargetted && remainingShards > 10;
     }
 
-    static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, setting: string = 'plusEventMythicSandalWood'): Promise<boolean> {
-        logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, setting=${setting}`);
-        const activatedMythic = getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythic") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood") === "true";
-        const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + "Setting_plusLoveRaid") === "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood") === "true";
+    static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, settingKey: string = SK.plusEventMythicSandalWood): Promise<boolean> {
+        logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, settingKey=${settingKey}`);
+        const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
+        const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         logHHAuto(`equipeSandalWoodIfNeeded: activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
         let eventMythicGirl: EventGirl = null, loveRaid: LoveRaid = null;
         let needForMythic = false, needForLoveRaid = false;
@@ -550,7 +548,7 @@ export class Booster {
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
             if (needForLoveRaid && !needForMythic) {
-                setting = 'plusEventLoveRaidSandalWood';
+                settingKey = SK.plusEventLoveRaidSandalWood;
             }
         }
         logHHAuto(`equipeSandalWoodIfNeeded: needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
@@ -569,8 +567,8 @@ export class Booster {
                     const numberFailure = HeroHelper.getSandalWoodEquipFailure();
                     logHHAuto(`equipeSandalWoodIfNeeded: failure #${numberFailure}`);
                     if (numberFailure >= 3) {
-                        logHHAuto("equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood setting=" + setting);
-                        setStoredValue(HHStoredVarPrefixKey + "Setting_" + setting, 'false');
+                        logHHAuto("equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood settingKey=" + settingKey);
+                        setStoredValue(HHStoredVarPrefixKey + settingKey, 'false');
                     } else {
                         logHHAuto("equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
                         // Server says max boosters equipped - mark it as equipped to prevent retries
@@ -581,7 +579,7 @@ export class Booster {
                 } else {
                     // Reset failure counter on success
                     logHHAuto("equipeSandalWoodIfNeeded: success, resetting failure counter");
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_sandalwoodFailure", 0);
+                    setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodFailure, 0);
                 }
                 return equiped;
             } else {
