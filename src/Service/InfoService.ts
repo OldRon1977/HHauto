@@ -165,6 +165,10 @@ export function updateData() {
         {
             Tegzd += '<li>'+getTextForUI("autoBuy","elementText")+' : '+getTimeLeft('nextShopTime')+'</li>';
         }
+        if (getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) =="true" && getTimer('nextAutoEquipBoosterTime') !== -1)
+        {
+            Tegzd += '<li>'+getTextForUI("autoEquipBoosters","elementText")+' : '+getTimeLeft('nextAutoEquipBoosterTime')+'</li>';
+        }
         if (ConfigHelper.getHHScriptVars("isEnabledMission",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoMission) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoMission","elementText")+' : '+getTimeLeft('nextMissionTime')+'</li>';

@@ -18283,7 +18283,7 @@ function getMenu() {
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitch('autoEquipBoosters')
-            + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+            + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:70px')
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
@@ -22215,6 +22215,9 @@ function updateData() {
         }
         if (ConfigHelper.getHHScriptVars("isEnabledShop", false) && getStoredValue(HHStoredVarPrefixKey + SK.updateMarket) == "true") {
             Tegzd += '<li>' + getTextForUI("autoBuy", "elementText") + ' : ' + getTimeLeft('nextShopTime') + '</li>';
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) == "true" && getTimer('nextAutoEquipBoosterTime') !== -1) {
+            Tegzd += '<li>' + getTextForUI("autoEquipBoosters", "elementText") + ' : ' + getTimeLeft('nextAutoEquipBoosterTime') + '</li>';
         }
         if (ConfigHelper.getHHScriptVars("isEnabledMission", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) == "true") {
             Tegzd += '<li>' + getTextForUI("autoMission", "elementText") + ' : ' + getTimeLeft('nextMissionTime') + '</li>';
