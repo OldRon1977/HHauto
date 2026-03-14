@@ -18,7 +18,6 @@
 // Used by: StartService (on init), AutoLoop (button state refresh)
 
 import { LabyrinthAuto } from '../Module/LabyrinthAuto';
-import { Booster } from '../Module/Booster';
 import { LeagueHelper } from '../Module/League';
 import { LoveRaidManager } from '../Module/index';
 import { setDefaults } from '../Service/index';
@@ -878,10 +877,10 @@ export function getMenu() {
                         + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
                         + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
                     +`</div>`
-                    + (Booster.isAutoEquipAllowed() ? `<div class="internalOptionsRow">`
-                        + hhMenuSwitchWithImg('autoEquipBoosters', 'design/ic_boosters_gray.svg')
-                        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:80px')
-                    +`</div>` : '')
+                    +`<div class="internalOptionsRow">`
+                        + hhMenuSwitch('autoEquipBoosters')
+                        + hhMenuInput('autoEquipBoostersSlots', /^(B[1-4];){0,3}B[1-4]$/, 'text-align:center; width:70px')
+                    +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                         + hhMenuSwitch('updateMarket')

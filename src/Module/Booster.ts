@@ -12,9 +12,6 @@
  * listener keeps this cache in sync with server responses. When the cache becomes stale
  * (e.g. after a failed equip), the next visit to the market page rebuilds it from the DOM.
  *
- * Auto-equip of normal boosters is restricted to a whitelist of player IDs
- * (AUTO_EQUIP_ALLOWED_IDS) because the feature is experimental.
- *
  * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
  *
  * Related modules:
@@ -31,7 +28,8 @@ import {
     getStoredJSON,
     getStoredValue,
     setStoredValue,
-    setTimer
+    setTimer,
+    randomInterval
 } from '../Helper/index';
 import { gotoPage } from '../Service/index';
 import { isJSON, logHHAuto, onAjaxResponse } from '../Utils/index';
@@ -42,8 +40,6 @@ import { EventModule, LoveRaidManager } from './index';
 
 
 const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
-/** Only these player IDs may use the automatic normal-booster equip feature. */
-const AUTO_EQUIP_ALLOWED_IDS = [183406, 4739, 1909];
 
 /**
  * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
@@ -336,8 +332,11 @@ export class Booster {
         return boostersToEquip.slice(0, freeSlots);
     }
 
-    static getShortestBoosterRemainingSeconds(): number {
-        const slotConfig = Booster.parseEquipSlotConfig();
+    /**
+     * Returns the longest remaining time (in seconds) among all active normal boosters.
+     * Used to schedule the next auto-equip check after all current boosters have expired.
+     */
+    static getLongestBoosterRemainingSeconds(): number {
         const boosterStatus = Booster.getBoosterFromStorage();
         const serverNow = getHHVars('server_now_ts');
 
@@ -347,73 +346,91 @@ export class Booster {
 
         if (activeBoosters.length === 0) return 0;
 
-        // Find the shortest remaining time among active boosters matching our config
-        let shortest = Infinity;
+        let longest = 0;
         for (const booster of activeBoosters) {
-            const id = booster.item?.identifier;
-            if (id && slotConfig.includes(id)) {
-                const remaining = booster.endAt - serverNow;
-                if (remaining < shortest) {
-                    shortest = remaining;
-                }
+            const remaining = booster.endAt - serverNow;
+            if (remaining > longest) {
+                longest = remaining;
             }
         }
 
-        return shortest === Infinity ? 0 : Math.max(0, Math.floor(shortest));
+        return Math.max(0, Math.floor(longest));
     }
 
-    static isAutoEquipAllowed(): boolean {
-        const playerId = HeroHelper.getPlayerId();
-        return AUTO_EQUIP_ALLOWED_IDS.includes(playerId);
+    /**
+     * Generates a random delay between 5 minutes and 2 hours (in seconds).
+     * Added to booster expiry time to make auto-equip timing look human.
+     */
+    static getRandomEquipDelay(): number {
+        return randomInterval(5 * 60, 2 * 60 * 60);
     }
 
+    /**
+     * Schedules the next auto-equip check based on the longest-running active booster
+     * plus a random delay (5 min – 2 h). If no boosters are active, schedules immediately
+     * with just the random delay.
+     */
+    static scheduleNextEquipCheck(): void {
+        const longestRemaining = Booster.getLongestBoosterRemainingSeconds();
+        const randomDelay = Booster.getRandomEquipDelay();
+        const totalDelay = longestRemaining + randomDelay;
+
+        const delayMin = Math.floor(totalDelay / 60);
+        logHHAuto("Auto-equip: Next check in " + delayMin + " min (booster expires in "
+            + Math.floor(longestRemaining / 60) + " min + " + Math.floor(randomDelay / 60) + " min random delay).");
+        setTimer('nextAutoEquipBoosterTime', totalDelay);
+    }
+
+    /**
+     * Main auto-equip entry point. Tries to equip all configured boosters that are
+     * missing from the active slots. After equipping (or if all slots are occupied),
+     * schedules the next check based on the longest active booster + random delay.
+     *
+     * If the player has manually equipped boosters in the meantime, the method detects
+     * that slots are full and reschedules accordingly.
+     */
     static async autoEquipBoosters(): Promise<boolean> {
         const isEnabled = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true";
         if (!isEnabled) return false;
-        if (!Booster.isAutoEquipAllowed()) return false;
 
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
-            // All slots filled – set timer to shortest remaining booster time + small buffer
-            const shortestRemaining = Booster.getShortestBoosterRemainingSeconds();
-            if (shortestRemaining > 0) {
-                setTimer('nextAutoEquipBoosterTime', shortestRemaining + 10);
-                logHHAuto("Auto-equip: All booster slots active. Next check in " + shortestRemaining + "s.");
-            }
+            // All slots filled (possibly by the player manually) — reschedule
+            logHHAuto("Auto-equip: All booster slots active.");
+            Booster.scheduleNextEquipCheck();
             return false;
         }
 
         logHHAuto("Auto-equip: Need to equip " + boostersToEquip.length + " booster(s): " + boostersToEquip.join(', '));
 
-        const nextBoosterId = boostersToEquip[0];
-        const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
-        if (!boosterObj) {
-            logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
-            setTimer('nextAutoEquipBoosterTime', 300); // retry in 5 min
-            return false;
+        let anyEquipped = false;
+
+        for (const nextBoosterId of boostersToEquip) {
+            const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
+            if (!boosterObj) {
+                logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                continue;
+            }
+
+            if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
+                logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
+                continue;
+            }
+
+            const equipped = await HeroHelper.equipBooster(boosterObj);
+            if (equipped) {
+                logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
+                anyEquipped = true;
+            } else {
+                logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slot may be occupied.");
+                // Stop trying further boosters — slots are likely full
+                break;
+            }
         }
 
-        if (!HeroHelper.haveBoosterInInventory(boosterObj.identifier)) {
-            logHHAuto("Auto-equip: " + boosterObj.name + " (" + boosterObj.identifier + ") not in inventory, skipping.");
-            setTimer('nextAutoEquipBoosterTime', 900); // retry in 15 min
-            return false;
-        }
-
-        // Set safety timer BEFORE the AJAX call in case the page reloads and the promise never resolves
-        setTimer('nextAutoEquipBoosterTime', 120); // minimum 2 min between attempts
-
-        const equipped = await HeroHelper.equipBooster(boosterObj);
-        if (equipped) {
-            logHHAuto("Auto-equip: Successfully equipped " + boosterObj.name);
-            // Short timer to check if more boosters need equipping
-            setTimer('nextAutoEquipBoosterTime', 30);
-        } else {
-            logHHAuto("Auto-equip: Failed to equip " + boosterObj.name + ". Slots may be full. Next retry in 30 min.");
-            // Likely all slots are already full — long cooldown to prevent spam.
-            // The booster status in storage is stale; force refresh next time we visit the market page.
-            setTimer('nextAutoEquipBoosterTime', 1800); // retry in 30 min
-        }
-        return equipped;
+        // Schedule next check based on longest active booster + random delay
+        Booster.scheduleNextEquipCheck();
+        return anyEquipped;
     }
 
     static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl=null, loveRaid: LoveRaid=null): boolean {
