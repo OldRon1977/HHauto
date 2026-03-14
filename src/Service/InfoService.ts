@@ -165,7 +165,7 @@ export function updateData() {
         {
             Tegzd += '<li>'+getTextForUI("autoBuy","elementText")+' : '+getTimeLeft('nextShopTime')+'</li>';
         }
-        if (getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) =="true" && getTimer('nextAutoEquipBoosterTime') !== -1)
+        if (getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) =="true")
         {
             Tegzd += '<li>'+getTextForUI("autoEquipBoosters","elementText")+' : '+getTimeLeft('nextAutoEquipBoosterTime')+'</li>';
         }
