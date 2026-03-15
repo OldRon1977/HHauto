@@ -1339,17 +1339,16 @@ class Booster {
      * If no activeBoosters are passed, reads from storage.
      */
     static getLongestBoosterRemainingSeconds(activeBoosters) {
+        const now = Math.floor(Date.now() / 1000);
         if (!activeBoosters) {
             const boosterStatus = Booster.getBoosterFromStorage();
-            const serverNow = getHHVars('server_now_ts');
-            activeBoosters = boosterStatus.normal.filter((b) => b.endAt > serverNow);
+            activeBoosters = boosterStatus.normal.filter((b) => b.endAt > now);
         }
         if (activeBoosters.length === 0)
             return 0;
-        const serverNow = getHHVars('server_now_ts');
         let longest = 0;
         for (const booster of activeBoosters) {
-            const remaining = booster.endAt - serverNow;
+            const remaining = booster.endAt - now;
             if (remaining > longest)
                 longest = remaining;
         }
