@@ -22,7 +22,7 @@ import { LeagueHelper } from '../Module/League';
 import { LoveRaidManager } from '../Module/index';
 import { setDefaults } from '../Service/index';
 import { isDisplayedHHPopUp, logHHAuto } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, HHStoredVars } from '../config/index';
+import { HHAuto_inputPattern, HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';
 import { LoveRaid } from '../model/LoveRaid';
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
@@ -280,7 +280,7 @@ export function switchHHMenuButton(isActive)
     var element = document.getElementById("sMenuButton");
     if(element !== null)
     {
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_master") === "false")
+        if (getStoredValue(HHStoredVarPrefixKey+SK.master) === "false")
         {
             element.style["background-color"] = "red";
             element.style["background-image"] = "none";
@@ -450,7 +450,7 @@ export function addEventsOnMenuItems()
 
 
 export function getMenu() {
-    const debugEnabled = getStoredValue(HHStoredVarPrefixKey+"Temp_Debug")==='true';
+    const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
     
     const getLeftColumn = () => {
         return `<div class="optionsColumn" style="min-width: 185px;">`

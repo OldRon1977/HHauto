@@ -143,6 +143,9 @@ export const SK = {
     autoStats: "Setting_autoStats",
     autoStatsSwitch: "Setting_autoStatsSwitch",
     hideOwnedGirls: "Setting_hideOwnedGirls",
+    showHaremAvatarMissingGirls: "Setting_showHaremAvatarMissingGirls",
+    showHaremTools: "Setting_showHaremTools",
+    showHaremSkillsButtons: "Setting_showHaremSkillsButtons",
 
     // Pachinko
     autoFreePachinko: "Setting_autoFreePachinko",
@@ -259,6 +262,9 @@ export const TK = {
     haremGirlPayLast: "Temp_haremGirlPayLast",
     haremGirlSpent: "Temp_haremGirlSpent",
     haremMoneyOnStart: "Temp_haremMoneyOnStart",
+    haremTeam: "Temp_haremTeam",
+    haremTeamScrolls: "Temp_haremTeamScrolls",
+    haremTeamSettings: "Temp_haremTeamSettings",
 
     // Resources
     haveAff: "Temp_haveAff",

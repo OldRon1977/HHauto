@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.1
+// @version      7.30.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -6160,19 +6160,19 @@ class Harem {
     }
     static clearHaremToolVariables() {
         // logHHAuto('clearHaremToolVariables');
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlSpent");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls");
-        deleteStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings");
-        const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed");
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlSpent);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeam);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamScrolls);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings);
+        const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
         if (lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", "none");
+            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, "none");
         }
     }
     static getGirlMapSorted(inSortType = "DateAcquired", inSortReversed = true) {
@@ -6352,7 +6352,7 @@ class Harem {
     }
     static getGirlCount() {
         // Store girls for harem tools
-        let girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")).count : 0;
+        let girlCount = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
         const girlsDataList = getHHVars("girlsDataList", false);
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
         if (girlCount == 0 && girlsDataList) {
@@ -6366,9 +6366,9 @@ class Harem {
     static run() {
         return Harem_awaiter(this, void 0, void 0, function* () {
             try {
-                const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
-                const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
-                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
+                const debugEnabled = true; //getStoredValue(HHStoredVarPrefixKey + TK.Debug") === 'true';
+                const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
+                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
                 if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
                     HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
                     if (!!haremItem && haremGirlMode === 'team') {
@@ -6392,16 +6392,16 @@ class Harem {
                         }
                         if (debugEnabled)
                             LogUtils_logHHAuto("Found skilled girls: ", skilledGirlsScrolls);
-                        setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls", JSON.stringify(skilledGirlsScrolls));
+                        setStoredValue(HHStoredVarPrefixKey + TK.haremTeamScrolls, JSON.stringify(skilledGirlsScrolls));
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHarem"));
                         return true;
                     }
                 }
                 else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
                     if (!!haremItem && haremGirlMode === 'team') {
-                        const team = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
-                        const teamSettings = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings")) : {};
-                        const skilledGirlsScrolls = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamScrolls")) : [];
+                        const team = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, {});
+                        const teamSettings = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeamSettings, {});
+                        const skilledGirlsScrolls = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeamScrolls, []);
                         const userFilter = false; // TODO add user filter to only display
                         let girlListDisplayed;
                         let heroMoney = HeroHelper.getMoney();
@@ -6496,7 +6496,7 @@ class Harem {
             catch ({ errName, message }) {
                 LogUtils_logHHAuto(`ERROR: run harem auto: ${errName}, ${message}`);
                 console.error(message);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                 Harem.clearHaremToolVariables();
             }
             finally {
@@ -6543,10 +6543,10 @@ class Harem {
             GM_registerMenuCommand(getTextForUI(menuIDXp, "elementText"), giveHaremXp);
             GM_registerMenuCommand(getTextForUI(menuIDGifts, "elementText"), giveHaremGifts);
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremAvatarMissingGirls") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremAvatarMissingGirls) === "true") {
             Harem.addGirlImages();
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremTools") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremTools) === "true") {
             Harem.addGoToGirlPageButton();
             Harem.addGirlListMenu();
         }
@@ -6561,19 +6561,19 @@ class Harem {
             // }
             LogUtils_logHHAuto("Go to " + girlToGoTo);
             gotoPage('/girl/' + girlToGoTo, { resource: haremItem });
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             LogUtils_logHHAuto("setting autoloop to false");
         }
-        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", haremItem);
-        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'list');
-        if (!(Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart")) > 0)) {
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, haremItem);
+        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'list');
+        if (!(Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart)) > 0)) {
             LogUtils_logHHAuto('set money to ' + HeroHelper.getMoney());
-            setStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart", HeroHelper.getMoney());
+            setStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart, HeroHelper.getMoney());
         }
         if (payLast)
-            setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast", 'true');
-        setStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList", JSON.stringify(filteredGirlsList));
-        setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
+        setStoredValue(HHStoredVarPrefixKey + TK.filteredGirlsList, JSON.stringify(filteredGirlsList));
+        setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
     }
     ;
     static addGoToGirlPageButton() {
@@ -6673,15 +6673,15 @@ class Harem {
             $('#' + menuIDXp + 'Button').on("click", function () { Harem.fillCurrentGirlItem('experience'); });
             $('#' + menuIDGifts + 'Button').on("click", function () { Harem.fillCurrentGirlItem('affection'); });
             $('#' + menuIDMaxGifts + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection');
             });
             $('#' + menuIDMaxXp + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('experience');
             });
             $('#' + menuIDUpgradeMax + 'Button').on("click", function () {
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection', true);
             });
         };
@@ -6690,12 +6690,12 @@ class Harem {
         $('#' + girlListMenuButtonId).on("click", openGirlMenu);
     }
     static HaremSizeNeedsRefresh(inCustomExpi) {
-        return !isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")) || JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize")).count_date < (new Date().getTime() - inCustomExpi * 1000);
+        return getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count_date: 0 }).count_date < (new Date().getTime() - inCustomExpi * 1000);
     }
     static moduleHaremCountMax() {
         const girlList = getHHVars('girls_data_list', false) || getHHVars('availableGirls', false);
         if (Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMinSizeExpirationSecs")) && girlList !== null) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_HaremSize", JSON.stringify({ count: Object.keys(girlList).length, count_date: new Date().getTime() }));
+            setStoredValue(HHStoredVarPrefixKey + TK.HaremSize, JSON.stringify({ count: Object.keys(girlList).length, count_date: new Date().getTime() }));
             LogUtils_logHHAuto("Harem size updated to : " + Object.keys(girlList).length);
         }
     }
@@ -7183,7 +7183,7 @@ class Troll {
                         //replaceCheatClick();
                         battleButtonX50[0].click();
                         setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) - 50);
+                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
                         LogUtils_logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
                         if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                             // Battle Done.
@@ -7211,7 +7211,7 @@ class Troll {
                         //replaceCheatClick();
                         battleButtonX10[0].click();
                         setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) - 10);
+                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
                         LogUtils_logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
                         if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                             // Battle Done.
@@ -7528,12 +7528,12 @@ function setTimers(timer) {
 function setTimer(name, seconds) {
     var ND = new Date().getTime() + seconds * 1000;
     Timers[name] = ND;
-    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
+    setStoredValue(HHStoredVarPrefixKey + TK.Timers, JSON.stringify(Timers));
     LogUtils_logHHAuto(name + " set to " + TimeHelper.toHHMMSS(ND / 1000 - new Date().getTimezoneOffset() * 60) + ' (' + TimeHelper.toHHMMSS(seconds) + ')');
 }
 function clearTimer(name) {
     delete Timers[name];
-    setStoredValue(HHStoredVarPrefixKey + "Temp_Timers", JSON.stringify(Timers));
+    setStoredValue(HHStoredVarPrefixKey + TK.Timers, JSON.stringify(Timers));
 }
 function checkTimer(name) {
     if (!Timers[name] || Timers[name] < new Date()) {
@@ -7701,17 +7701,332 @@ function randomInterval(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
+;// CONCATENATED MODULE: ./src/config/StorageKeys.ts
+/**
+ * Centralized storage key constants.
+ * Use these instead of raw strings like HHStoredVarPrefixKey+"Setting_autoTrollBattle"
+ * to get autocomplete, refactoring safety, and typo prevention.
+ *
+ * Usage:
+ *   import { SK } from '../config/StorageKeys';
+ *   getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle)
+ */
+// ── Setting_ keys (user settings) ─────────────────────────────────
+const SK = {
+    // Master switch
+    master: "Setting_master",
+    settPerTab: "Setting_settPerTab",
+    spendKobans0: "Setting_spendKobans0",
+    // Troll
+    autoTrollBattle: "Setting_autoTrollBattle",
+    autoTrollThreshold: "Setting_autoTrollThreshold",
+    autoTrollRunThreshold: "Setting_autoTrollRunThreshold",
+    autoTrollSelectedIndex: "Setting_autoTrollSelectedIndex",
+    autoTrollMythicByPassParanoia: "Setting_autoTrollMythicByPassParanoia",
+    autoTrollMythicByPassThreshold: "Setting_autoTrollMythicByPassThreshold",
+    eventTrollOrder: "Setting_eventTrollOrder",
+    useX10Fights: "Setting_useX10Fights",
+    useX10FightsAllowNormalEvent: "Setting_useX10FightsAllowNormalEvent",
+    useX50Fights: "Setting_useX50Fights",
+    useX50FightsAllowNormalEvent: "Setting_useX50FightsAllowNormalEvent",
+    minShardsX10: "Setting_minShardsX10",
+    minShardsX50: "Setting_minShardsX50",
+    kobanBank: "Setting_kobanBank",
+    buyCombat: "Setting_buyCombat",
+    buyCombTimer: "Setting_buyCombTimer",
+    buyMythicCombat: "Setting_buyMythicCombat",
+    buyMythicCombTimer: "Setting_buyMythicCombTimer",
+    buyLoveRaidCombat: "Setting_buyLoveRaidCombat",
+    autoBuyTrollNumber: "Setting_autoBuyTrollNumber",
+    autoBuyMythicTrollNumber: "Setting_autoBuyMythicTrollNumber",
+    autoBuyLoveRaidTrollNumber: "Setting_autoBuyLoveRaidTrollNumber",
+    // Champion
+    autoChamps: "Setting_autoChamps",
+    autoChampsFilter: "Setting_autoChampsFilter",
+    autoChampsForceStart: "Setting_autoChampsForceStart",
+    autoChampsForceStartEventGirl: "Setting_autoChampsForceStartEventGirl",
+    autoChampsGirlThreshold: "Setting_autoChampsGirlThreshold",
+    autoChampsTeamLoop: "Setting_autoChampsTeamLoop",
+    autoChampsTeamKeepSecondLine: "Setting_autoChampsTeamKeepSecondLine",
+    autoChampsUseEne: "Setting_autoChampsUseEne",
+    autoChampAlignTimer: "Setting_autoChampAlignTimer",
+    autoBuildChampsTeam: "Setting_autoBuildChampsTeam",
+    // Club Champion
+    autoClubChamp: "Setting_autoClubChamp",
+    autoClubChampMax: "Setting_autoClubChampMax",
+    autoClubForceStart: "Setting_autoClubForceStart",
+    // League
+    autoLeagues: "Setting_autoLeagues",
+    autoLeaguesCollect: "Setting_autoLeaguesCollect",
+    autoLeaguesThreshold: "Setting_autoLeaguesThreshold",
+    autoLeaguesSecurityThreshold: "Setting_autoLeaguesSecurityThreshold",
+    autoLeaguesRunThreshold: "Setting_autoLeaguesRunThreshold",
+    autoLeaguesBoostedOnly: "Setting_autoLeaguesBoostedOnly",
+    autoLeaguesForceOneFight: "Setting_autoLeaguesForceOneFight",
+    autoLeaguesSelectedIndex: "Setting_autoLeaguesSelectedIndex",
+    autoLeaguesSortIndex: "Setting_autoLeaguesSortIndex",
+    autoLeaguesAllowWinCurrent: "Setting_autoLeaguesAllowWinCurrent",
+    leagueListDisplayPowerCalc: "Setting_leagueListDisplayPowerCalc",
+    // Season
+    autoSeason: "Setting_autoSeason",
+    autoSeasonThreshold: "Setting_autoSeasonThreshold",
+    autoSeasonRunThreshold: "Setting_autoSeasonRunThreshold",
+    autoSeasonBoostedOnly: "Setting_autoSeasonBoostedOnly",
+    autoSeasonCollect: "Setting_autoSeasonCollect",
+    autoSeasonCollectAll: "Setting_autoSeasonCollectAll",
+    autoSeasonCollectablesList: "Setting_autoSeasonCollectablesList",
+    autoSeasonIgnoreNoGirls: "Setting_autoSeasonIgnoreNoGirls",
+    autoSeasonPassReds: "Setting_autoSeasonPassReds",
+    autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
+    seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
+    // Pantheon
+    autoPantheon: "Setting_autoPantheon",
+    autoPantheonThreshold: "Setting_autoPantheonThreshold",
+    autoPantheonRunThreshold: "Setting_autoPantheonRunThreshold",
+    autoPantheonBoostedOnly: "Setting_autoPantheonBoostedOnly",
+    // PentaDrill
+    autoPentaDrill: "Setting_autoPentaDrill",
+    autoPentaDrillThreshold: "Setting_autoPentaDrillThreshold",
+    autoPentaDrillRunThreshold: "Setting_autoPentaDrillRunThreshold",
+    autoPentaDrillBoostedOnly: "Setting_autoPentaDrillBoostedOnly",
+    autoPentaDrillCollect: "Setting_autoPentaDrillCollect",
+    autoPentaDrillCollectAll: "Setting_autoPentaDrillCollectAll",
+    autoPentaDrillCollectablesList: "Setting_autoPentaDrillCollectablesList",
+    // Quest
+    autoQuest: "Setting_autoQuest",
+    autoQuestThreshold: "Setting_autoQuestThreshold",
+    autoSideQuest: "Setting_autoSideQuest",
+    // Mission
+    autoMission: "Setting_autoMission",
+    autoMissionCollect: "Setting_autoMissionCollect",
+    autoMissionKFirst: "Setting_autoMissionKFirst",
+    // Labyrinth
+    autoLabyrinth: "Setting_autoLabyrinth",
+    autoLabyHard: "Setting_autoLabyHard",
+    autoLabySweep: "Setting_autoLabySweep",
+    autoLabyDifficultyIndex: "Setting_autoLabyDifficultyIndex",
+    autoLabyCustomTeamBuilder: "Setting_autoLabyCustomTeamBuilder",
+    // Place of Power
+    autoPowerPlaces: "Setting_autoPowerPlaces",
+    autoPowerPlacesAll: "Setting_autoPowerPlacesAll",
+    autoPowerPlacesIndexFilter: "Setting_autoPowerPlacesIndexFilter",
+    autoPowerPlacesInverted: "Setting_autoPowerPlacesInverted",
+    autoPowerPlacesPrecision: "Setting_autoPowerPlacesPrecision",
+    autoPowerPlacesWaitMax: "Setting_autoPowerPlacesWaitMax",
+    // Shop / Market
+    autoAff: "Setting_autoAff",
+    autoAffW: "Setting_autoAffW",
+    autoExp: "Setting_autoExp",
+    autoExpW: "Setting_autoExpW",
+    maxAff: "Setting_maxAff",
+    maxExp: "Setting_maxExp",
+    maxBooster: "Setting_maxBooster",
+    autoBuyBoosters: "Setting_autoBuyBoosters",
+    autoBuyBoostersFilter: "Setting_autoBuyBoostersFilter",
+    autoEquipBoosters: "Setting_autoEquipBoosters",
+    autoEquipBoostersSlots: "Setting_autoEquipBoostersSlots",
+    updateMarket: "Setting_updateMarket",
+    showMarketTools: "Setting_showMarketTools",
+    // Harem / Salary
+    autoSalary: "Setting_autoSalary",
+    autoSalaryMinSalary: "Setting_autoSalaryMinSalary",
+    autoStats: "Setting_autoStats",
+    autoStatsSwitch: "Setting_autoStatsSwitch",
+    hideOwnedGirls: "Setting_hideOwnedGirls",
+    showHaremAvatarMissingGirls: "Setting_showHaremAvatarMissingGirls",
+    showHaremTools: "Setting_showHaremTools",
+    showHaremSkillsButtons: "Setting_showHaremSkillsButtons",
+    // Pachinko
+    autoFreePachinko: "Setting_autoFreePachinko",
+    // Daily Goals
+    autoDailyGoals: "Setting_autoDailyGoals",
+    autoDailyGoalsCollect: "Setting_autoDailyGoalsCollect",
+    autoDailyGoalsCollectablesList: "Setting_autoDailyGoalsCollectablesList",
+    // Contest
+    autoContest: "Setting_autoContest",
+    waitforContest: "Setting_waitforContest",
+    safeSecondsForContest: "Setting_safeSecondsForContest",
+    // Paranoia
+    paranoia: "Setting_paranoia",
+    paranoiaSettings: "Setting_paranoiaSettings",
+    paranoiaSpendsBefore: "Setting_paranoiaSpendsBefore",
+    // Boosters / Events
+    plusEvent: "Setting_plusEvent",
+    plusEventMythic: "Setting_plusEventMythic",
+    plusEventMythicSandalWood: "Setting_plusEventMythicSandalWood",
+    plusLoveRaid: "Setting_plusLoveRaid",
+    plusEventLoveRaidSandalWood: "Setting_plusEventLoveRaidSandalWood",
+    bossBangEvent: "Setting_bossBangEvent",
+    bossBangMinTeam: "Setting_bossBangMinTeam",
+    collectEventChest: "Setting_collectEventChest",
+    // Seasonal Event
+    autoSeasonalBuyFreeCard: "Setting_autoSeasonalBuyFreeCard",
+    autoSeasonalEventCollect: "Setting_autoSeasonalEventCollect",
+    autoSeasonalEventCollectAll: "Setting_autoSeasonalEventCollectAll",
+    autoSeasonalEventCollectablesList: "Setting_autoSeasonalEventCollectablesList",
+    // Double Penetration Event
+    autodpEventCollect: "Setting_autodpEventCollect",
+    autodpEventCollectAll: "Setting_autodpEventCollectAll",
+    autodpEventCollectablesList: "Setting_autodpEventCollectablesList",
+    // Lively Scene Event
+    autoLivelySceneEventCollect: "Setting_autoLivelySceneEventCollect",
+    autoLivelySceneEventCollectAll: "Setting_autoLivelySceneEventCollectAll",
+    autoLivelySceneEventCollectablesList: "Setting_autoLivelySceneEventCollectablesList",
+    // Path Events
+    autoPoACollect: "Setting_autoPoACollect",
+    autoPoACollectAll: "Setting_autoPoACollectAll",
+    autoPoACollectablesList: "Setting_autoPoACollectablesList",
+    autoPoGCollect: "Setting_autoPoGCollect",
+    autoPoGCollectAll: "Setting_autoPoGCollectAll",
+    autoPoGCollectablesList: "Setting_autoPoGCollectablesList",
+    autoPoVCollect: "Setting_autoPoVCollect",
+    autoPoVCollectAll: "Setting_autoPoVCollectAll",
+    autoPoVCollectablesList: "Setting_autoPoVCollectablesList",
+    // Love Raid
+    autoLoveRaidSelectedIndex: "Setting_autoLoveRaidSelectedIndex",
+    // Bundles
+    autoFreeBundlesCollect: "Setting_autoFreeBundlesCollect",
+    autoFreeBundlesCollectablesList: "Setting_autoFreeBundlesCollectablesList",
+    // Sultry Mysteries
+    sultryMysteriesEventRefreshShop: "Setting_sultryMysteriesEventRefreshShop",
+    // Display / UI
+    showInfo: "Setting_showInfo",
+    showInfoLeft: "Setting_showInfoLeft",
+    showCalculatePower: "Setting_showCalculatePower",
+    showClubButtonInPoa: "Setting_showClubButtonInPoa",
+    showRewardsRecap: "Setting_showRewardsRecap",
+    showTooltips: "Setting_showTooltips",
+    showAdsBack: "Setting_showAdsBack",
+    mousePause: "Setting_mousePause",
+    mousePauseTimeout: "Setting_mousePauseTimeout",
+    collectAllTimer: "Setting_collectAllTimer",
+    compactDailyGoals: "Setting_compactDailyGoals",
+    compactEndedContests: "Setting_compactEndedContests",
+    compactMissions: "Setting_compactMissions",
+    compactPowerPlace: "Setting_compactPowerPlace",
+    invertMissions: "Setting_invertMissions",
+    saveDefaults: "Setting_saveDefaults",
+    // Reward Masks
+    AllMaskRewards: "Setting_AllMaskRewards",
+    PoAMaskRewards: "Setting_PoAMaskRewards",
+    PoGMaskRewards: "Setting_PoGMaskRewards",
+    PoVMaskRewards: "Setting_PoVMaskRewards",
+    SeasonMaskRewards: "Setting_SeasonMaskRewards",
+    SeasonalEventMaskRewards: "Setting_SeasonalEventMaskRewards",
+};
+// ── Temp_ keys (temporary / runtime data) ─────────────────────────
+const TK = {
+    autoLoop: "Temp_autoLoop",
+    autoLoopTimeMili: "Temp_autoLoopTimeMili",
+    Debug: "Temp_Debug",
+    Logging: "Temp_Logging",
+    Timers: "Temp_Timers",
+    LastPageCalled: "Temp_LastPageCalled",
+    CheckSpentPoints: "Temp_CheckSpentPoints",
+    freshStart: "Temp_freshStart",
+    scriptversion: "Temp_scriptversion",
+    pinfo: "Temp_pinfo",
+    // Harem
+    HaremSize: "Temp_HaremSize",
+    filteredGirlsList: "Temp_filteredGirlsList",
+    haremGirlActions: "Temp_haremGirlActions",
+    haremGirlEnd: "Temp_haremGirlEnd",
+    haremGirlLimit: "Temp_haremGirlLimit",
+    haremGirlMode: "Temp_haremGirlMode",
+    haremGirlPayLast: "Temp_haremGirlPayLast",
+    haremGirlSpent: "Temp_haremGirlSpent",
+    haremMoneyOnStart: "Temp_haremMoneyOnStart",
+    haremTeam: "Temp_haremTeam",
+    haremTeamScrolls: "Temp_haremTeamScrolls",
+    haremTeamSettings: "Temp_haremTeamSettings",
+    // Resources
+    haveAff: "Temp_haveAff",
+    haveBooster: "Temp_haveBooster",
+    haveExp: "Temp_haveExp",
+    charLevel: "Temp_charLevel",
+    storeContents: "Temp_storeContents",
+    boosterStatus: "Temp_boosterStatus",
+    boosterIdMap: "Temp_boosterIdMap",
+    // Troll
+    TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
+    TrollInvalid: "Temp_TrollInvalid",
+    trollPoints: "Temp_trollPoints",
+    trollToFight: "Temp_trollToFight",
+    trollWithGirls: "Temp_trollWithGirls",
+    autoTrollBattleSaveQuest: "Temp_autoTrollBattleSaveQuest",
+    // Quest
+    questRequirement: "Temp_questRequirement",
+    MainAdventureWorldID: "Temp_MainAdventureWorldID",
+    SideAdventureWorldID: "Temp_SideAdventureWorldID",
+    // Battle
+    battlePowerRequired: "Temp_battlePowerRequired",
+    burst: "Temp_burst",
+    fought: "Temp_fought",
+    lastActionPerformed: "Temp_lastActionPerformed",
+    // Events
+    eventGirl: "Temp_eventGirl",
+    eventMythicGirl: "Temp_eventMythicGirl",
+    eventsGirlz: "Temp_eventsGirlz",
+    eventsList: "Temp_eventsList",
+    autoChampsEventGirls: "Temp_autoChampsEventGirls",
+    EventFightsBeforeRefresh: "Temp_EventFightsBeforeRefresh",
+    loveRaids: "Temp_loveRaids",
+    raidGirls: "Temp_raidGirls",
+    bossBangTeam: "Temp_bossBangTeam",
+    lseManualCollectAll: "Temp_lseManualCollectAll",
+    poaManualCollectAll: "Temp_poaManualCollectAll",
+    // Champion
+    champBuildTeam: "Temp_champBuildTeam",
+    clubChampLimitReached: "Temp_clubChampLimitReached",
+    // League
+    LeagueHumanLikeRun: "Temp_LeagueHumanLikeRun",
+    LeagueOpponentList: "Temp_LeagueOpponentList",
+    LeagueSavedData: "Temp_LeagueSavedData",
+    LeagueTempOpponentList: "Temp_LeagueTempOpponentList",
+    leaguesTarget: "Temp_leaguesTarget",
+    hideBeatenOppo: "Temp_hideBeatenOppo",
+    // Season
+    SeasonEndDate: "Temp_SeasonEndDate",
+    SeasonHumanLikeRun: "Temp_SeasonHumanLikeRun",
+    SeasonalEventEndDate: "Temp_SeasonalEventEndDate",
+    // Pantheon / PentaDrill
+    PantheonHumanLikeRun: "Temp_PantheonHumanLikeRun",
+    PentaDrillHumanLikeRun: "Temp_PentaDrillHumanLikeRun",
+    // Place of Power
+    PopToStart: "Temp_PopToStart",
+    PopTargeted: "Temp_PopTargeted",
+    PopUnableToStart: "Temp_PopUnableToStart",
+    Totalpops: "Temp_Totalpops",
+    currentlyAvailablePops: "Temp_currentlyAvailablePops",
+    // Path Events
+    PoAEndDate: "Temp_PoAEndDate",
+    PoGEndDate: "Temp_PoGEndDate",
+    PoVEndDate: "Temp_PoVEndDate",
+    // Daily Goals
+    dailyGoalsList: "Temp_dailyGoalsList",
+    // Paranoia
+    NextSwitch: "Temp_NextSwitch",
+    paranoiaLeagueBlocked: "Temp_paranoiaLeagueBlocked",
+    paranoiaQuestBlocked: "Temp_paranoiaQuestBlocked",
+    paranoiaSpendings: "Temp_paranoiaSpendings",
+    // Misc
+    sandalwoodFailure: "Temp_sandalwoodFailure",
+    unkownPagesList: "Temp_unkownPagesList",
+    userLink: "Temp_userLink",
+};
+
 ;// CONCATENATED MODULE: ./src/config/HHStoredVars.ts
 // Registry of all stored variables (settings and temporary state) for HHAuto.
 // Defines each variable's storage type (setting vs. temp), default value,
 // validation regex, UI label, and type. Used by the settings menu and storage layer.
 
 
+
 const HHStoredVars_HHStoredVars = {};
 //Settings Vars
 const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
 //Do not move, has to be first one
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_settPerTab"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.settPerTab] =
     {
         default: "false",
         storage: "localStorage",
@@ -7723,7 +8038,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_settPerTab"] =
         kobanUsing: false
     };
 // Rest of settings vars
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAff"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoAff] =
     {
         default: "500000000",
         storage: "Storage()",
@@ -7734,7 +8049,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAff"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAffW"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoAffW] =
     {
         default: "false",
         storage: "Storage()",
@@ -7745,7 +8060,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoAffW"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoosters"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoosters] =
     {
         default: "false",
         storage: "Storage()",
@@ -7756,7 +8071,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoosters"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoostersFilter"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoostersFilter] =
     {
         default: "B1;B2;B3;B4",
         storage: "Storage()",
@@ -7767,7 +8082,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyBoostersFilter"
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoosters"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoEquipBoosters] =
     {
         default: "false",
         storage: "Storage()",
@@ -7778,7 +8093,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoosters"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoostersSlots"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoEquipBoostersSlots] =
     {
         default: "B1;B2;B3;B4",
         storage: "Storage()",
@@ -7789,7 +8104,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoostersSlots
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChamps"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChamps] =
     {
         default: "false",
         storage: "Storage()",
@@ -7803,7 +8118,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChamps"] =
             clearTimer('nextChampionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampAlignTimer"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampAlignTimer] =
     {
         default: "false",
         storage: "Storage()",
@@ -7814,7 +8129,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampAlignTimer"] 
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsForceStart] =
     {
         default: "false",
         storage: "Storage()",
@@ -7828,7 +8143,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStart"]
             clearTimer('nextChampionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsFilter"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsFilter] =
     {
         default: "1;2;3;4;5;6",
         storage: "Storage()",
@@ -7842,7 +8157,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsFilter"] =
             clearTimer('nextChampionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamLoop"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsTeamLoop] =
     {
         default: "10",
         storage: "Storage()",
@@ -7853,7 +8168,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamLoop"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsGirlThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsGirlThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -7864,7 +8179,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsGirlThreshol
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamKeepSecondLine"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsTeamKeepSecondLine] =
     {
         default: "false",
         storage: "Storage()",
@@ -7875,7 +8190,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsTeamKeepSeco
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsUseEne"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsUseEne] =
     {
         default: "false",
         storage: "Storage()",
@@ -7886,7 +8201,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsUseEne"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuildChampsTeam"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuildChampsTeam] =
     {
         default: "false",
         storage: "Storage()",
@@ -7897,7 +8212,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuildChampsTeam"] 
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showClubButtonInPoa"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showClubButtonInPoa] =
     {
         default: "true",
         storage: "Storage()",
@@ -7908,7 +8223,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showClubButtonInPoa"] 
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChamp"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoClubChamp] =
     {
         default: "false",
         storage: "Storage()",
@@ -7922,7 +8237,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChamp"] =
             clearTimer('nextClubChampionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChampMax"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoClubChampMax] =
     {
         default: "999",
         storage: "Storage()",
@@ -7933,7 +8248,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubChampMax"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubForceStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoClubForceStart] =
     {
         default: "false",
         storage: "Storage()",
@@ -7947,7 +8262,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoClubForceStart"] =
             clearTimer('nextClubChampionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoContest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoContest] =
     {
         default: "false",
         storage: "Storage()",
@@ -7961,7 +8276,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoContest"] =
             clearTimer('nextContestCollectTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactEndedContests"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.compactEndedContests] =
     {
         default: "false",
         storage: "Storage()",
@@ -7972,7 +8287,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactEndedContests"]
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExp"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoExp] =
     {
         default: "500000000",
         storage: "Storage()",
@@ -7983,7 +8298,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExp"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExpW"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoExpW] =
     {
         default: "false",
         storage: "Storage()",
@@ -7994,7 +8309,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoExpW"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreePachinko"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoFreePachinko] =
     {
         default: "false",
         storage: "Storage()",
@@ -8010,7 +8325,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreePachinko"] =
             clearTimer('nextPachinkoEquipTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeagues"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeagues] =
     {
         default: "false",
         storage: "Storage()",
@@ -8024,7 +8339,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeagues"] =
             clearTimer('nextLeaguesTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesAllowWinCurrent"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesAllowWinCurrent] =
     {
         default: "false",
         storage: "Storage()",
@@ -8035,7 +8350,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesAllowWinCur
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -8046,7 +8361,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesCollect"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesBoostedOnly"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly] =
     {
         default: "false",
         storage: "Storage()",
@@ -8057,7 +8372,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesBoostedOnly
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesRunThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8068,7 +8383,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesRunThreshol
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesForceOneFight"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesForceOneFight] =
     {
         default: "false",
         storage: "Storage()",
@@ -8079,7 +8394,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesForceOneFig
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_leagueListDisplayPowerCalc"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.leagueListDisplayPowerCalc] =
     {
         default: "false",
         storage: "Storage()",
@@ -8090,10 +8405,10 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_leagueListDisplayPower
         menuType: "checked",
         kobanUsing: false,
         newValueFunction: function () {
-            deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList");
+            deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSelectedIndex"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesSelectedIndex] =
     {
         default: "0",
         storage: "Storage()",
@@ -8106,7 +8421,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSelectedInd
         customMenuID: "autoLeaguesSelector",
         isValid: /^[0-9]$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSortIndex"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesSortIndex] =
     {
         default: "1",
         storage: "Storage()",
@@ -8119,10 +8434,10 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSortIndex"]
         customMenuID: "autoLeaguesSortMode",
         isValid: /^[0-9]$/,
         newValueFunction: function () {
-            deleteStoredValue(HHStoredVarPrefixKey + "Temp_LeagueOpponentList");
+            deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8133,7 +8448,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesThreshold"]
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSecurityThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLeaguesSecurityThreshold] =
     {
         default: "40",
         storage: "Storage()",
@@ -8144,7 +8459,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLeaguesSecurityThr
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactMissions"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.compactMissions] =
     {
         default: "false",
         storage: "Storage()",
@@ -8155,7 +8470,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactMissions"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMission"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoMission] =
     {
         default: "false",
         storage: "Storage()",
@@ -8169,7 +8484,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMission"] =
             clearTimer('nextMissionTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoMissionCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -8180,7 +8495,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionCollect"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionKFirst"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoMissionKFirst] =
     {
         default: "false",
         storage: "Storage()",
@@ -8191,7 +8506,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoMissionKFirst"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_invertMissions"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.invertMissions] =
     {
         default: "false",
         storage: "Storage()",
@@ -8202,7 +8517,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_invertMissions"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactPowerPlace"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.compactPowerPlace] =
     {
         default: "false",
         storage: "Storage()",
@@ -8213,7 +8528,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactPowerPlace"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlaces"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlaces] =
     {
         default: "false",
         storage: "Storage()",
@@ -8228,7 +8543,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlaces"] =
             PlaceOfPower.cleanTempPopToStart();
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -8243,7 +8558,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesAll"] =
             PlaceOfPower.cleanTempPopToStart();
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesPrecision"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesPrecision] =
     {
         default: "false",
         storage: "Storage()",
@@ -8254,7 +8569,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesPrecisi
         menuType: "checked",
         kobanUsing: false,
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesInverted"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesInverted] =
     {
         default: "false",
         storage: "Storage()",
@@ -8265,7 +8580,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesInverte
         menuType: "checked",
         kobanUsing: false,
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesWaitMax"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesWaitMax] =
     {
         default: "false",
         storage: "Storage()",
@@ -8276,7 +8591,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesWaitMax
         menuType: "checked",
         kobanUsing: false,
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesIndexFilter"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter] =
     {
         default: "1;2;3",
         storage: "Storage()",
@@ -8291,7 +8606,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPowerPlacesIndexFi
             PlaceOfPower.cleanTempPopToStart();
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoQuest] =
     {
         default: "false",
         storage: "Storage()",
@@ -8302,10 +8617,10 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuest"] =
         menuType: "checked",
         kobanUsing: false,
         newValueFunction: function () {
-            deleteStoredValue(HHStoredVarPrefixKey + "Temp_questRequirement");
+            deleteStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSideQuest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSideQuest] =
     {
         default: "false",
         storage: "Storage()",
@@ -8316,7 +8631,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSideQuest"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuestThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoQuestThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8327,7 +8642,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoQuestThreshold"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalary"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSalary] =
     {
         default: "false",
         storage: "Storage()",
@@ -8341,7 +8656,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalary"] =
             clearTimer('nextSalaryTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalaryMinSalary"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSalaryMinSalary] =
     {
         default: "20000",
         storage: "Storage()",
@@ -8355,7 +8670,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSalaryMinSalary"] 
             clearTimer('nextSalaryTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeason"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeason] =
     {
         default: "false",
         storage: "Storage()",
@@ -8369,7 +8684,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeason"] =
             clearTimer('nextSeasonTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -8381,13 +8696,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollect"] =
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoSeasonCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoSeasonCollectablesList);
                     clearTimer('nextSeasonCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -8398,7 +8713,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollectAll"]
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonIgnoreNoGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls] =
     {
         default: "false",
         storage: "Storage()",
@@ -8409,7 +8724,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonIgnoreNoGirl
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_seasonDisplayPowerCalc"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.seasonDisplayPowerCalc] =
     {
         default: "true",
         storage: "Storage()",
@@ -8420,14 +8735,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_seasonDisplayPowerCalc
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonPassReds"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonPassReds] =
     {
         default: "false",
         storage: "Storage()",
@@ -8438,7 +8753,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonPassReds"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8449,7 +8764,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonThreshold"] 
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonRunThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8460,7 +8775,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonRunThreshold
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonBoostedOnly"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
     {
         default: "false",
         storage: "Storage()",
@@ -8471,7 +8786,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonBoostedOnly"
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo] =
     {
         default: "true",
         storage: "Storage()",
@@ -8482,7 +8797,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo"
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrill"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrill] =
     {
         default: "false",
         storage: "Storage()",
@@ -8496,7 +8811,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrill"] =
             clearTimer('nextPentaDrillTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -8509,13 +8824,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollect"
         events: {
             "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList);
                     clearTimer('nextPentaDrillCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -8526,14 +8841,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectA
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8544,7 +8859,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillThreshol
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8555,7 +8870,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThres
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillBoostedOnly"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillBoostedOnly] =
     {
         default: "false",
         storage: "Storage()",
@@ -8566,7 +8881,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPentaDrillBoostedO
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStats"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoStats] =
     {
         default: "500000000",
         storage: "Storage()",
@@ -8577,7 +8892,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStats"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStatsSwitch"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoStatsSwitch] =
     {
         default: "false",
         storage: "Storage()",
@@ -8588,7 +8903,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoStatsSwitch"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollBattle"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollBattle] =
     {
         default: "false",
         storage: "Storage()",
@@ -8599,7 +8914,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollBattle"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollMythicByPassParanoia"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia] =
     {
         default: "false",
         storage: "Storage()",
@@ -8610,7 +8925,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollMythicByPassP
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollSelectedIndex"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollSelectedIndex] =
     {
         default: "0",
         storage: "Storage()",
@@ -8623,7 +8938,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollSelectedIndex
         customMenuID: "autoTrollSelector",
         isValid: /^[0-9]|1[0-5]|98|99$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8634,7 +8949,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollThreshold"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollRunThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollRunThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -8645,7 +8960,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoTrollRunThreshold"
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStartEventGirl"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoChampsForceStartEventGirl] =
     {
         default: "false",
         storage: "Storage()",
@@ -8656,29 +8971,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoChampsForceStartEv
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyCombat"] =
-    {
-        default: "false",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Boolean",
-        getMenu: true,
-        setMenu: true,
-        menuType: "checked",
-        kobanUsing: true
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyCombTimer"] =
-    {
-        default: "16",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Small Integer",
-        getMenu: true,
-        setMenu: true,
-        menuType: "value",
-        kobanUsing: false
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombat"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.buyCombat] =
     {
         default: "false",
         storage: "Storage()",
@@ -8689,7 +8982,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombat"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombTimer"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.buyCombTimer] =
     {
         default: "16",
         storage: "Storage()",
@@ -8700,7 +8993,29 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyMythicCombTimer"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.buyMythicCombat] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: true
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.buyMythicCombTimer] =
+    {
+        default: "16",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoFreeBundlesCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -8712,20 +9027,20 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollect
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollectablesList", getTextForUI("menuDailyCollectableText", "elementText"));
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoFreeBundlesCollectablesList, getTextForUI("menuDailyCollectableText", "elementText"));
                     clearTimer('nextFreeBundlesCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoFreeBundlesCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoFreeBundlesCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_waitforContest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.waitforContest] =
     {
         default: "true",
         storage: "Storage()",
@@ -8740,7 +9055,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_waitforContest"] =
             clearTimer('nextContestTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_safeSecondsForContest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.safeSecondsForContest] =
     {
         default: "120",
         storage: "Storage()",
@@ -8750,7 +9065,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_safeSecondsForContest"
         setMenu: true,
         menuType: "value"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePause"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.mousePause] =
     {
         default: "false",
         storage: "Storage()",
@@ -8761,7 +9076,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePause"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePauseTimeout"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.mousePauseTimeout] =
     {
         default: "5000",
         storage: "Storage()",
@@ -8771,7 +9086,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_mousePauseTimeout"] =
         setMenu: true,
         menuType: "value"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectAllTimer"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.collectAllTimer] =
     {
         default: "12",
         storage: "Storage()",
@@ -8782,7 +9097,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectAllTimer"] =
         menuType: "value",
         isValid: /^[1-9][0-9]|[1-9]$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_eventTrollOrder"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.eventTrollOrder] =
     {
         default: "1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20",
         storage: "Storage()",
@@ -8793,7 +9108,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_eventTrollOrder"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyTrollNumber"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyTrollNumber] =
     {
         default: "20",
         storage: "Storage()",
@@ -8804,7 +9119,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyTrollNumber"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyMythicTrollNumber"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyMythicTrollNumber] =
     {
         default: "20",
         storage: "Storage()",
@@ -8815,7 +9130,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyMythicTrollNumb
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_master"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.master] =
     {
         default: "false",
         storage: "Storage()",
@@ -8826,7 +9141,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_master"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxAff"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
     {
         default: "50000",
         storage: "Storage()",
@@ -8837,7 +9152,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxAff"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxBooster"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
     {
         default: "10",
         storage: "Storage()",
@@ -8848,7 +9163,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxBooster"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxExp"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.maxExp] =
     {
         default: "10000",
         storage: "Storage()",
@@ -8859,7 +9174,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_maxExp"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX10"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX10] =
     {
         default: "10",
         storage: "Storage()",
@@ -8871,7 +9186,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX10"] =
         kobanUsing: false,
         isValid: /^(\d)+$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX50"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX50] =
     {
         default: "50",
         storage: "Storage()",
@@ -8882,7 +9197,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_minShardsX50"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_updateMarket"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.updateMarket] =
     {
         default: "true",
         storage: "Storage()",
@@ -8893,7 +9208,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_updateMarket"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoia"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoia] =
     {
         default: "true",
         storage: "Storage()",
@@ -8907,13 +9222,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoia"] =
             clearTimer('paranoiaSwitch');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSettings"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSettings] =
     {
         default: "140-320/Sleep:28800-30400|Active:250-460|Casual:1500-2700/6:Sleep|8:Casual|10:Active|12:Casual|14:Active|18:Casual|20:Active|22:Casual|24:Sleep",
         storage: "Storage()",
         HHType: "Setting"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSpendsBefore] =
     {
         default: "true",
         storage: "Storage()",
@@ -8924,7 +9239,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore"]
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusLoveRaid"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaid] =
     {
         default: "false",
         storage: "Storage()",
@@ -8936,11 +9251,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusLoveRaid"] =
         kobanUsing: false,
         newValueFunction: function () {
             clearTimer('nextLoveRaidTime');
-            deleteStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids");
-            deleteStoredValue(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex");
+            deleteStoredValue(HHStoredVarPrefixKey + TK.loveRaids);
+            deleteStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex] =
     {
         default: "0",
         storage: "Storage()",
@@ -8953,7 +9268,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIn
         customMenuID: "loveRaidSelector",
         isValid: /^[0-9]|1[0-5]$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyLoveRaidCombat"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.buyLoveRaidCombat] =
     {
         default: "false",
         storage: "Storage()",
@@ -8964,7 +9279,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_buyLoveRaidCombat"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyLoveRaidTrollNumber"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyLoveRaidTrollNumber] =
     {
         default: "20",
         storage: "Storage()",
@@ -8975,7 +9290,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoBuyLoveRaidTrollNu
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSandalWood"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood] =
     {
         default: "false",
         storage: "Storage()",
@@ -8986,7 +9301,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventLoveRaidSanda
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEvent"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusEvent] =
     {
         default: "false",
         storage: "Storage()",
@@ -8997,7 +9312,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEvent"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythic"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusEventMythic] =
     {
         default: "false",
         storage: "Storage()",
@@ -9008,7 +9323,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythic"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusEventMythicSandalWood] =
     {
         default: "false",
         storage: "Storage()",
@@ -9019,7 +9334,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_plusEventMythicSandalW
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autodpEventCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9031,20 +9346,20 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollect"] =
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autodpEventCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autodpEventCollectablesList);
                     clearTimer('nextdpEventCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autodpEventCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autodpEventCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9055,7 +9370,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autodpEventCollectAll"
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9067,20 +9382,20 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCo
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList);
                     clearTimer('nextLivelySceneEventCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9091,7 +9406,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCo
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangEvent"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.bossBangEvent] =
     {
         default: "false",
         storage: "Storage()",
@@ -9102,7 +9417,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangEvent"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangMinTeam"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.bossBangMinTeam] =
     {
         default: "5",
         storage: "Storage()",
@@ -9113,7 +9428,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_bossBangMinTeam"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_sultryMysteriesEventRefreshShop"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop] =
     {
         default: "false",
         storage: "Storage()",
@@ -9124,7 +9439,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_sultryMysteriesEventRe
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectEventChest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.collectEventChest] =
     {
         default: "false",
         storage: "Storage()",
@@ -9135,7 +9450,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_collectEventChest"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_AllMaskRewards"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.AllMaskRewards] =
     {
         default: "false",
         storage: "Storage()",
@@ -9146,7 +9461,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_AllMaskRewards"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalBuyFreeCard"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard] =
     {
         default: "false",
         storage: "Storage()",
@@ -9160,7 +9475,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalBuyFreeCar
             clearTimer('nextSeasonalCardCollectTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showCalculatePower"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showCalculatePower] =
     {
         default: "true",
         storage: "Storage()",
@@ -9171,7 +9486,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showCalculatePower"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showAdsBack"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showAdsBack] =
     {
         default: "true",
         storage: "Storage()",
@@ -9182,7 +9497,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showAdsBack"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showRewardsRecap"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showRewardsRecap] =
     {
         default: "true",
         storage: "Storage()",
@@ -9193,7 +9508,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showRewardsRecap"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_hideOwnedGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.hideOwnedGirls] =
     {
         default: "true",
         storage: "Storage()",
@@ -9204,7 +9519,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_hideOwnedGirls"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfo"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showInfo] =
     {
         default: "true",
         storage: "Storage()",
@@ -9215,7 +9530,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfo"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfoLeft"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showInfoLeft] =
     {
         default: "false",
         storage: "Storage()",
@@ -9226,7 +9541,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showInfoLeft"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremAvatarMissingGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showHaremAvatarMissingGirls] =
     {
         default: "false",
         storage: "Storage()",
@@ -9237,7 +9552,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremAvatarMissing
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremTools"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showHaremTools] =
     {
         default: "true",
         storage: "Storage()",
@@ -9248,7 +9563,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremTools"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showHaremSkillsButtons] =
     {
         default: "true",
         storage: "Storage()",
@@ -9259,7 +9574,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showMarketTools"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showMarketTools] =
     {
         default: "false",
         storage: "Storage()",
@@ -9270,7 +9585,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showMarketTools"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showTooltips"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.showTooltips] =
     {
         default: "true",
         storage: "Storage()",
@@ -9281,7 +9596,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_showTooltips"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_spendKobans0"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.spendKobans0] =
     {
         default: "false",
         storage: "Storage()",
@@ -9292,7 +9607,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_spendKobans0"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_kobanBank"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.kobanBank] =
     {
         default: "1000000",
         storage: "Storage()",
@@ -9303,7 +9618,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_kobanBank"] =
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10Fights"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.useX10Fights] =
     {
         default: "false",
         storage: "Storage()",
@@ -9314,7 +9629,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10Fights"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10FightsAllowNormalEvent"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent] =
     {
         default: "false",
         storage: "Storage()",
@@ -9325,7 +9640,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX10FightsAllowNorma
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50Fights"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.useX50Fights] =
     {
         default: "false",
         storage: "Storage()",
@@ -9336,7 +9651,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50Fights"] =
         menuType: "checked",
         kobanUsing: true
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50FightsAllowNormalEvent"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent] =
     {
         default: "false",
         storage: "Storage()",
@@ -9347,12 +9662,12 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_useX50FightsAllowNorma
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_saveDefaults"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.saveDefaults] =
     {
         storage: "localStorage",
         HHType: "Setting"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheon"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPantheon] =
     {
         default: "false",
         storage: "Storage()",
@@ -9366,7 +9681,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheon"] =
             clearTimer('nextPantheonTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPantheonThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -9377,7 +9692,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonThreshold"
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonRunThreshold"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPantheonRunThreshold] =
     {
         default: "0",
         storage: "Storage()",
@@ -9388,7 +9703,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonRunThresho
         menuType: "value",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonBoostedOnly"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPantheonBoostedOnly] =
     {
         default: "false",
         storage: "Storage()",
@@ -9399,7 +9714,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPantheonBoostedOnl
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyrinth"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyrinth] =
     {
         default: "false",
         storage: "Storage()",
@@ -9413,7 +9728,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyrinth"] =
             clearTimer('nextLabyrinthTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabySweep"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabySweep] =
     {
         default: "false",
         storage: "Storage()",
@@ -9424,7 +9739,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabySweep"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyCustomTeamBuilder"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder] =
     {
         default: "false",
         storage: "Storage()",
@@ -9435,7 +9750,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyCustomTeamBuil
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyHard"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyHard] =
     {
         default: "false",
         storage: "Storage()",
@@ -9446,7 +9761,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyHard"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyDifficultyIndex"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex] =
     {
         default: "0",
         storage: "Storage()",
@@ -9461,7 +9776,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoLabyDifficultyInde
         newValueFunction: function () {
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalEventCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9473,13 +9788,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventColle
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList);
                     clearTimer('nextSeasonalEventCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9490,14 +9805,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventColle
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoSeasonalEventCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoVCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9509,13 +9824,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollect"] =
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoPoVCollectablesList);
                     clearTimer('nextPoVCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoVCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9526,14 +9841,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollectAll"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoVCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoGCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9545,13 +9860,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollect"] =
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoGCollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoPoGCollectablesList);
                     clearTimer('nextPoGCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoGCollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9562,14 +9877,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollectAll"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoGCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoGCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoACollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9581,13 +9896,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollect"] =
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoPoACollectablesList");
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoPoACollectablesList);
                     clearTimer('nextPoACollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoACollectAll] =
     {
         default: "false",
         storage: "Storage()",
@@ -9598,14 +9913,14 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollectAll"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoPoACollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPoACollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Array"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoals"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoDailyGoals] =
     {
         default: "false",
         storage: "Storage()",
@@ -9619,7 +9934,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoals"] =
             //clearTimer('nextLabyrinthTime');
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactDailyGoals"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.compactDailyGoals] =
     {
         default: "false",
         storage: "Storage()",
@@ -9630,7 +9945,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_compactDailyGoals"] =
         menuType: "checked",
         kobanUsing: false
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollect"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoDailyGoalsCollect] =
     {
         default: "false",
         storage: "Storage()",
@@ -9642,13 +9957,13 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollect"
         kobanUsing: false,
         events: { "change": function () {
                 if (this.checked) {
-                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollectablesList", getTextForUI("menuDailyCollectableText", "elementText"));
+                    getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList, getTextForUI("menuDailyCollectableText", "elementText"));
                     clearTimer('nextDailyGoalsCollectTime');
                 }
             }
         }
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollectablesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList] =
     {
         default: JSON.stringify([]),
         storage: "Storage()",
@@ -9656,30 +9971,30 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoDailyGoalsCollecta
         valueType: "Array"
     };
 // Temp vars
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_scriptversion"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.scriptversion] =
     {
         default: "0",
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoLoop"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoLoop] =
     {
         default: "true",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_battlePowerRequired"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.battlePowerRequired] =
     {
         default: "0",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_dailyGoalsList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.dailyGoalsList] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey+"Temp_leaguesTarget"] =
+/*HHStoredVars[HHStoredVarPrefixKey + TK.leaguesTarget] =
     {
     default:"9",
     storage:"sessionStorage",
@@ -9691,49 +10006,49 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_dailyGoalsList"] =
     kobanUsing:false,
     customMenuID:"autoLeaguesSelector"
 };*/
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_lastActionPerformed"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.lastActionPerformed] =
     {
         default: "none",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_questRequirement"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.questRequirement] =
     {
         default: "none",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey+"Temp_userLink"] =
+/*HHStoredVars[HHStoredVarPrefixKey + TK.userLink] =
     {
     default:"none",
     storage:"sessionStorage",
     HHType:"Temp"
 };*/
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoLoopTimeMili"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoLoopTimeMili] =
     {
         default: "1000",
         storage: "Storage()",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_freshStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.freshStart] =
     {
         default: "no",
         storage: "Storage()",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Logging"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.Logging] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Debug"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.Debug] =
     {
         default: "false",
         storage: "sessionStorage",
         valueType: "Boolean",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey+"Temp_trollToFight"] =
+/*HHStoredVars[HHStoredVarPrefixKey + TK.trollToFight] =
     {
     storage:"sessionStorage",
     HHType:"Temp",
@@ -9744,336 +10059,336 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Debug"] =
     kobanUsing:false,
     customMenuID:"autoTrollSelector"
 };*/
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoTrollBattleSaveQuest"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_burst"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.burst] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_charLevel"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_filteredGirlsList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.filteredGirlsList] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlActions"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremGirlActions] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlMode"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremGirlMode] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremMoneyOnStart] =
     {
         default: "0",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlPayLast"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremGirlPayLast] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlEnd"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremGirlEnd] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremGirlLimit"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremGirlLimit] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeam"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeam] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeamScrolls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamScrolls] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haremTeamSettings"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamSettings] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_loveRaids"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventsGirlz"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.eventsGirlz] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventGirl"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.eventGirl] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventMythicGirl"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.eventMythicGirl] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_autoChampsEventGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoChampsEventGirls] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
         //isValid:/^\[({"girl_id":"(\d)+","champ_id":"(\d)+","girl_shards":"(\d)+","girl_name":"([^"])+","event_id":"([^"])+"},?)+\]$/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_raidGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.raidGirls] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_champBuildTeam"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.champBuildTeam] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_clubChampLimitReached"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.clubChampLimitReached] =
     {
         default: "false",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_trollWithGirls"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollWithGirls] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_fought"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.fought] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveAff"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haveAff] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveExp"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haveExp] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_haveBooster"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haveBooster] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_hideBeatenOppo"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.hideBeatenOppo] =
     {
         default: "0",
         storage: "Storage()",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueOpponentList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.LeagueOpponentList] =
     {
         storage: "sessionStorage",
         HHType: "Temp",
         //isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
     };
 /*
-HHStoredVars[HHStoredVarPrefixKey+"Temp_LeagueTempOpponentList"] =
+HHStoredVars[HHStoredVarPrefixKey + TK.LeagueTempOpponentList] =
     {
     storage:"sessionStorage",
     HHType:"Temp",
     isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns|expectedValue)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
 };*/
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaLeagueBlocked"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaQuestBlocked"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaQuestBlocked] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_paranoiaSpendings"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaSpendings] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_pinfo"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pinfo] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopTargeted"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PopTargeted] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopToStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PopToStart] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PopUnableToStart"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PopUnableToStart] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_storeContents"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.storeContents] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Timers"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.Timers] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_NextSwitch"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.NextSwitch] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_Totalpops"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.Totalpops] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_currentlyAvailablePops"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.currentlyAvailablePops] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_CheckSpentPoints"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.CheckSpentPoints] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_eventsList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.eventsList] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_bossBangTeam"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_boosterStatus"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatus] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_sandalwoodFailure"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodFailure] =
     {
         default: "0",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueSavedData"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.LeagueSavedData] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LeagueHumanLikeRun"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.LeagueHumanLikeRun] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_TrollHumanLikeRun"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.TrollHumanLikeRun] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_TrollInvalid"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.TrollInvalid] =
     {
         default: "false",
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_MainAdventureWorldID"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.MainAdventureWorldID] =
     {
         default: "0",
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_SideAdventureWorldID"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.SideAdventureWorldID] =
     {
         default: "0",
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PantheonHumanLikeRun"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PantheonHumanLikeRun] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_SeasonHumanLikeRun"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.SeasonHumanLikeRun] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PentaDrillHumanLikeRun"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_HaremSize"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.HaremSize] =
     {
         storage: "localStorage",
         HHType: "Temp",
         isValid: /{"count":(\d)+,"count_date":(\d)+}/
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_LastPageCalled"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.LastPageCalled] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoAEndDate"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PoAEndDate] =
     {
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoVEndDate"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PoVEndDate] =
     {
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_PoGEndDate"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.PoGEndDate] =
     {
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_poaManualCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.poaManualCollectAll] =
     {
         default: "false",
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_lseManualCollectAll"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.lseManualCollectAll] =
     {
         default: "false",
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_unkownPagesList"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.unkownPagesList] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Temp_trollPoints"] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollPoints] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -10364,7 +10679,7 @@ class HaremGirl {
             var proceedButtonCost = $(".price", proceedButtonMatch);
             var proceedCost = parsePrice(proceedButtonCost[0].innerText);
             var moneyCurrent = HeroHelper.getMoney();
-            setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+            setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
             console.log("Debug girl Quest MONEY for : " + proceedCost);
             if (proceedCost <= moneyCurrent) {
                 // We have money.
@@ -10381,7 +10696,7 @@ class HaremGirl {
             }
         }
         else {
-            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast") == 'true';
+            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) == 'true';
             if (haremGirlPayLast) {
                 // back
                 gotoPage('/girl/' + unsafeWindow.id_girl, { resource: 'affection' }, randomInterval(1500, 2500));
@@ -10409,10 +10724,10 @@ class HaremGirl {
             const userHaremGirlLimit = Math.min(Number(document.getElementById("menuExpLevel").value), 750);
             if ((Number(selectedGirl.level) + 50) <= Number(userHaremGirlLimit)) {
                 HaremGirl.HaremDisplayGirlPopup(haremItem, selectedGirl.name + ' ' + selectedGirl.Xp.cur + "xp, level " + selectedGirl.level + "/" + userHaremGirlLimit, (1) * 5);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", haremItem);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'girl');
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit", userHaremGirlLimit);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, haremItem);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'girl');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit, userHaremGirlLimit);
+                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                 if ((Number(selectedGirl.level) + 50) >= Number(userHaremGirlLimit)) {
                     yield HaremGirl.maxOutButtonAndConfirm(haremItem, selectedGirl);
                     HaremGirl.HaremClearGirlPopup();
@@ -10436,7 +10751,7 @@ class HaremGirl {
             const haremItem = HaremGirl.AFFECTION_TYPE;
             const selectedGirl = HaremGirl.getCurrentGirl();
             HaremGirl.switchTabs(haremItem);
-            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast") == 'true';
+            const haremGirlPayLast = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast) == 'true';
             const canGiftGirl = selectedGirl.nb_grades > selectedGirl.graded;
             const lastGirlGrad = selectedGirl.nb_grades <= (selectedGirl.graded + 1);
             const maxOutButton = HaremGirl.getMaxOutButton(haremItem);
@@ -10551,12 +10866,12 @@ class HaremGirl {
                 const fillGirlGifts = (payLast = false) => {
                     maskHHPopUp();
                     HaremGirl.switchTabs(HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.AFFECTION_TYPE);
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'girl');
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd", 'true');
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.AFFECTION_TYPE);
+                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'girl');
+                    setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
+                    setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                     if (payLast)
-                        setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlPayLast", 'true');
+                        setStoredValue(HHStoredVarPrefixKey + TK.haremGirlPayLast, 'true');
                     setTimeout(HaremGirl.fillAllAffection, randomInterval(500, 800));
                 };
                 $('#' + menuIDMaxGifts + 'Button').on("click", () => {
@@ -10654,10 +10969,10 @@ class HaremGirl {
                 GM_registerMenuCommand(getTextForUI(menuIDXp, "elementText"), giveHaremXp);
             //if(canGiftGirl) // Not supported yet
             //   GM_registerMenuCommand(getTextForUI(menuIDGifts,"elementText"), giveHaremGifts);
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremTools") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremTools) === "true") {
                 HaremGirl.addGirlMenu();
             }
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showHaremSkillsButtons") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremSkillsButtons) === "true") {
                 HaremGirl.showSkillButtons();
             }
         }
@@ -10691,12 +11006,12 @@ class HaremGirl {
     static run() {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             try {
-                //const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
-                const haremItem = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions");
-                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode");
-                const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlEnd") === 'true';
-                const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlLimit");
-                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
+                //const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug") === 'true';
+                const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
+                const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
+                const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd) === 'true';
+                const haremGirlLimit = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlLimit);
+                const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
                 let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
                 const canGiftGirl = HaremGirl.canGiftGirl();
                 const canAwakeGirl = HaremGirl.canAwakeGirl();
@@ -10706,7 +11021,7 @@ class HaremGirl {
                     return false;
                 }
                 LogUtils_logHHAuto("run HaremGirl: " + girl.name + ' (' + girl.id_girl + '), level ' + girl.level + ', rarity: ' + girl.rarity);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 LogUtils_logHHAuto("setting autoloop to false as action to be performed on girl");
                 LogUtils_logHHAuto("Action to be performed (mode: " + haremGirlMode + ") : give " + haremItem);
                 if (haremGirlMode === 'girl') {
@@ -10746,9 +11061,9 @@ class HaremGirl {
                     let remainingGirls = 0;
                     let girlListProgress = '';
                     const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
-                    const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + "Temp_haremMoneyOnStart"));
+                    const moneyOnStart = Number(getStoredValue(HHStoredVarPrefixKey + TK.haremMoneyOnStart));
                     let haremGirlSpent = moneyOnStart > 0 ? moneyOnStart - HeroHelper.getMoney() : 0;
-                    let filteredGirlsList = getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_filteredGirlsList")) : [];
+                    let filteredGirlsList = getStoredJSON(HHStoredVarPrefixKey + TK.filteredGirlsList, []);
                     LogUtils_logHHAuto("filteredGirlsList", filteredGirlsList);
                     if (filteredGirlsList && filteredGirlsList.length > 0) {
                         girlPosInList = filteredGirlsList.indexOf("" + girl.id_girl);
@@ -10801,7 +11116,7 @@ class HaremGirl {
                 else if (haremGirlMode === 'team') {
                     const upgradeSkill = haremItem.indexOf(HaremGirl.SKILLS_TYPE) >= 0;
                     const upgradeEquipment = haremItem.indexOf(HaremGirl.EQUIPMENT_TYPE) >= 0;
-                    let team = getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam") ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam")) : [];
+                    let team = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, {});
                     //logHHAuto(`Team to upgrade (${haremItem})`, team);
                     let nextGirlId = -1;
                     let girlPosInList = 0;
@@ -10846,14 +11161,14 @@ class HaremGirl {
                     }
                 }
                 else {
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     Harem.clearHaremToolVariables();
                 }
             }
             catch ({ errName, message }) {
                 LogUtils_logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
                 console.error(message);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                 Harem.clearHaremToolVariables();
             }
             finally {
@@ -11713,8 +12028,8 @@ function getPage(checkUnknown = false, checkPop = false) {
     var ob = document.getElementById(ConfigHelper.getHHScriptVars("gameID"));
     if (ob === undefined || ob === null) {
         LogUtils_logHHAuto("Unable to find page attribute, stopping script");
-        setStoredValue(HHStoredVarPrefixKey + "Setting_master", "false");
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + SK.master, "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         LogUtils_logHHAuto("setting autoloop to false");
         throw new Error("Unable to find page attribute, stopping script.");
         return "";
@@ -15856,11 +16171,11 @@ class TeamModule {
                     resetCommonGirls: document.getElementById("stuffTeamResetCommonGirls").checked,
                 };
                 LogUtils_logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam", JSON.stringify(team));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'team');
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings", JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                 if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
                 }
@@ -15909,7 +16224,7 @@ class TeamModule {
     }
     static equipAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             LogUtils_logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
             LogUtils_logHHAuto('Equip team');
             $("#EquipAll").attr('disabled', 'disabled');
@@ -15989,7 +16304,7 @@ class TeamModule {
         return girls;
     }
     static assignTopTeam() {
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         LogUtils_logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
             let girlToSelect = best ? i : i + 7;
@@ -17122,314 +17437,6 @@ const HHAuto_inputPattern = {
     minShardsX: "(100|[1-9][0-9]|[0-9])"
 };
 
-;// CONCATENATED MODULE: ./src/config/StorageKeys.ts
-/**
- * Centralized storage key constants.
- * Use these instead of raw strings like HHStoredVarPrefixKey+"Setting_autoTrollBattle"
- * to get autocomplete, refactoring safety, and typo prevention.
- *
- * Usage:
- *   import { SK } from '../config/StorageKeys';
- *   getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle)
- */
-// ── Setting_ keys (user settings) ─────────────────────────────────
-const SK = {
-    // Master switch
-    master: "Setting_master",
-    settPerTab: "Setting_settPerTab",
-    spendKobans0: "Setting_spendKobans0",
-    // Troll
-    autoTrollBattle: "Setting_autoTrollBattle",
-    autoTrollThreshold: "Setting_autoTrollThreshold",
-    autoTrollRunThreshold: "Setting_autoTrollRunThreshold",
-    autoTrollSelectedIndex: "Setting_autoTrollSelectedIndex",
-    autoTrollMythicByPassParanoia: "Setting_autoTrollMythicByPassParanoia",
-    autoTrollMythicByPassThreshold: "Setting_autoTrollMythicByPassThreshold",
-    eventTrollOrder: "Setting_eventTrollOrder",
-    useX10Fights: "Setting_useX10Fights",
-    useX10FightsAllowNormalEvent: "Setting_useX10FightsAllowNormalEvent",
-    useX50Fights: "Setting_useX50Fights",
-    useX50FightsAllowNormalEvent: "Setting_useX50FightsAllowNormalEvent",
-    minShardsX10: "Setting_minShardsX10",
-    minShardsX50: "Setting_minShardsX50",
-    kobanBank: "Setting_kobanBank",
-    buyCombat: "Setting_buyCombat",
-    buyCombTimer: "Setting_buyCombTimer",
-    buyMythicCombat: "Setting_buyMythicCombat",
-    buyMythicCombTimer: "Setting_buyMythicCombTimer",
-    buyLoveRaidCombat: "Setting_buyLoveRaidCombat",
-    autoBuyTrollNumber: "Setting_autoBuyTrollNumber",
-    autoBuyMythicTrollNumber: "Setting_autoBuyMythicTrollNumber",
-    autoBuyLoveRaidTrollNumber: "Setting_autoBuyLoveRaidTrollNumber",
-    // Champion
-    autoChamps: "Setting_autoChamps",
-    autoChampsFilter: "Setting_autoChampsFilter",
-    autoChampsForceStart: "Setting_autoChampsForceStart",
-    autoChampsForceStartEventGirl: "Setting_autoChampsForceStartEventGirl",
-    autoChampsGirlThreshold: "Setting_autoChampsGirlThreshold",
-    autoChampsTeamLoop: "Setting_autoChampsTeamLoop",
-    autoChampsTeamKeepSecondLine: "Setting_autoChampsTeamKeepSecondLine",
-    autoChampsUseEne: "Setting_autoChampsUseEne",
-    autoChampAlignTimer: "Setting_autoChampAlignTimer",
-    autoBuildChampsTeam: "Setting_autoBuildChampsTeam",
-    // Club Champion
-    autoClubChamp: "Setting_autoClubChamp",
-    autoClubChampMax: "Setting_autoClubChampMax",
-    autoClubForceStart: "Setting_autoClubForceStart",
-    // League
-    autoLeagues: "Setting_autoLeagues",
-    autoLeaguesCollect: "Setting_autoLeaguesCollect",
-    autoLeaguesThreshold: "Setting_autoLeaguesThreshold",
-    autoLeaguesSecurityThreshold: "Setting_autoLeaguesSecurityThreshold",
-    autoLeaguesRunThreshold: "Setting_autoLeaguesRunThreshold",
-    autoLeaguesBoostedOnly: "Setting_autoLeaguesBoostedOnly",
-    autoLeaguesForceOneFight: "Setting_autoLeaguesForceOneFight",
-    autoLeaguesSelectedIndex: "Setting_autoLeaguesSelectedIndex",
-    autoLeaguesSortIndex: "Setting_autoLeaguesSortIndex",
-    autoLeaguesAllowWinCurrent: "Setting_autoLeaguesAllowWinCurrent",
-    leagueListDisplayPowerCalc: "Setting_leagueListDisplayPowerCalc",
-    // Season
-    autoSeason: "Setting_autoSeason",
-    autoSeasonThreshold: "Setting_autoSeasonThreshold",
-    autoSeasonRunThreshold: "Setting_autoSeasonRunThreshold",
-    autoSeasonBoostedOnly: "Setting_autoSeasonBoostedOnly",
-    autoSeasonCollect: "Setting_autoSeasonCollect",
-    autoSeasonCollectAll: "Setting_autoSeasonCollectAll",
-    autoSeasonCollectablesList: "Setting_autoSeasonCollectablesList",
-    autoSeasonIgnoreNoGirls: "Setting_autoSeasonIgnoreNoGirls",
-    autoSeasonPassReds: "Setting_autoSeasonPassReds",
-    autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
-    seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
-    // Pantheon
-    autoPantheon: "Setting_autoPantheon",
-    autoPantheonThreshold: "Setting_autoPantheonThreshold",
-    autoPantheonRunThreshold: "Setting_autoPantheonRunThreshold",
-    autoPantheonBoostedOnly: "Setting_autoPantheonBoostedOnly",
-    // PentaDrill
-    autoPentaDrill: "Setting_autoPentaDrill",
-    autoPentaDrillThreshold: "Setting_autoPentaDrillThreshold",
-    autoPentaDrillRunThreshold: "Setting_autoPentaDrillRunThreshold",
-    autoPentaDrillBoostedOnly: "Setting_autoPentaDrillBoostedOnly",
-    autoPentaDrillCollect: "Setting_autoPentaDrillCollect",
-    autoPentaDrillCollectAll: "Setting_autoPentaDrillCollectAll",
-    autoPentaDrillCollectablesList: "Setting_autoPentaDrillCollectablesList",
-    // Quest
-    autoQuest: "Setting_autoQuest",
-    autoQuestThreshold: "Setting_autoQuestThreshold",
-    autoSideQuest: "Setting_autoSideQuest",
-    // Mission
-    autoMission: "Setting_autoMission",
-    autoMissionCollect: "Setting_autoMissionCollect",
-    autoMissionKFirst: "Setting_autoMissionKFirst",
-    // Labyrinth
-    autoLabyrinth: "Setting_autoLabyrinth",
-    autoLabyHard: "Setting_autoLabyHard",
-    autoLabySweep: "Setting_autoLabySweep",
-    autoLabyDifficultyIndex: "Setting_autoLabyDifficultyIndex",
-    autoLabyCustomTeamBuilder: "Setting_autoLabyCustomTeamBuilder",
-    // Place of Power
-    autoPowerPlaces: "Setting_autoPowerPlaces",
-    autoPowerPlacesAll: "Setting_autoPowerPlacesAll",
-    autoPowerPlacesIndexFilter: "Setting_autoPowerPlacesIndexFilter",
-    autoPowerPlacesInverted: "Setting_autoPowerPlacesInverted",
-    autoPowerPlacesPrecision: "Setting_autoPowerPlacesPrecision",
-    autoPowerPlacesWaitMax: "Setting_autoPowerPlacesWaitMax",
-    // Shop / Market
-    autoAff: "Setting_autoAff",
-    autoAffW: "Setting_autoAffW",
-    autoExp: "Setting_autoExp",
-    autoExpW: "Setting_autoExpW",
-    maxAff: "Setting_maxAff",
-    maxExp: "Setting_maxExp",
-    maxBooster: "Setting_maxBooster",
-    autoBuyBoosters: "Setting_autoBuyBoosters",
-    autoBuyBoostersFilter: "Setting_autoBuyBoostersFilter",
-    autoEquipBoosters: "Setting_autoEquipBoosters",
-    autoEquipBoostersSlots: "Setting_autoEquipBoostersSlots",
-    updateMarket: "Setting_updateMarket",
-    showMarketTools: "Setting_showMarketTools",
-    // Harem / Salary
-    autoSalary: "Setting_autoSalary",
-    autoSalaryMinSalary: "Setting_autoSalaryMinSalary",
-    autoStats: "Setting_autoStats",
-    autoStatsSwitch: "Setting_autoStatsSwitch",
-    hideOwnedGirls: "Setting_hideOwnedGirls",
-    // Pachinko
-    autoFreePachinko: "Setting_autoFreePachinko",
-    // Daily Goals
-    autoDailyGoals: "Setting_autoDailyGoals",
-    autoDailyGoalsCollect: "Setting_autoDailyGoalsCollect",
-    autoDailyGoalsCollectablesList: "Setting_autoDailyGoalsCollectablesList",
-    // Contest
-    autoContest: "Setting_autoContest",
-    waitforContest: "Setting_waitforContest",
-    safeSecondsForContest: "Setting_safeSecondsForContest",
-    // Paranoia
-    paranoia: "Setting_paranoia",
-    paranoiaSettings: "Setting_paranoiaSettings",
-    paranoiaSpendsBefore: "Setting_paranoiaSpendsBefore",
-    // Boosters / Events
-    plusEvent: "Setting_plusEvent",
-    plusEventMythic: "Setting_plusEventMythic",
-    plusEventMythicSandalWood: "Setting_plusEventMythicSandalWood",
-    plusLoveRaid: "Setting_plusLoveRaid",
-    plusEventLoveRaidSandalWood: "Setting_plusEventLoveRaidSandalWood",
-    bossBangEvent: "Setting_bossBangEvent",
-    bossBangMinTeam: "Setting_bossBangMinTeam",
-    collectEventChest: "Setting_collectEventChest",
-    // Seasonal Event
-    autoSeasonalBuyFreeCard: "Setting_autoSeasonalBuyFreeCard",
-    autoSeasonalEventCollect: "Setting_autoSeasonalEventCollect",
-    autoSeasonalEventCollectAll: "Setting_autoSeasonalEventCollectAll",
-    autoSeasonalEventCollectablesList: "Setting_autoSeasonalEventCollectablesList",
-    // Double Penetration Event
-    autodpEventCollect: "Setting_autodpEventCollect",
-    autodpEventCollectAll: "Setting_autodpEventCollectAll",
-    autodpEventCollectablesList: "Setting_autodpEventCollectablesList",
-    // Lively Scene Event
-    autoLivelySceneEventCollect: "Setting_autoLivelySceneEventCollect",
-    autoLivelySceneEventCollectAll: "Setting_autoLivelySceneEventCollectAll",
-    autoLivelySceneEventCollectablesList: "Setting_autoLivelySceneEventCollectablesList",
-    // Path Events
-    autoPoACollect: "Setting_autoPoACollect",
-    autoPoACollectAll: "Setting_autoPoACollectAll",
-    autoPoACollectablesList: "Setting_autoPoACollectablesList",
-    autoPoGCollect: "Setting_autoPoGCollect",
-    autoPoGCollectAll: "Setting_autoPoGCollectAll",
-    autoPoGCollectablesList: "Setting_autoPoGCollectablesList",
-    autoPoVCollect: "Setting_autoPoVCollect",
-    autoPoVCollectAll: "Setting_autoPoVCollectAll",
-    autoPoVCollectablesList: "Setting_autoPoVCollectablesList",
-    // Love Raid
-    autoLoveRaidSelectedIndex: "Setting_autoLoveRaidSelectedIndex",
-    // Bundles
-    autoFreeBundlesCollect: "Setting_autoFreeBundlesCollect",
-    autoFreeBundlesCollectablesList: "Setting_autoFreeBundlesCollectablesList",
-    // Sultry Mysteries
-    sultryMysteriesEventRefreshShop: "Setting_sultryMysteriesEventRefreshShop",
-    // Display / UI
-    showInfo: "Setting_showInfo",
-    showInfoLeft: "Setting_showInfoLeft",
-    showCalculatePower: "Setting_showCalculatePower",
-    showClubButtonInPoa: "Setting_showClubButtonInPoa",
-    showRewardsRecap: "Setting_showRewardsRecap",
-    showTooltips: "Setting_showTooltips",
-    showAdsBack: "Setting_showAdsBack",
-    mousePause: "Setting_mousePause",
-    mousePauseTimeout: "Setting_mousePauseTimeout",
-    collectAllTimer: "Setting_collectAllTimer",
-    compactDailyGoals: "Setting_compactDailyGoals",
-    compactEndedContests: "Setting_compactEndedContests",
-    compactMissions: "Setting_compactMissions",
-    compactPowerPlace: "Setting_compactPowerPlace",
-    invertMissions: "Setting_invertMissions",
-    saveDefaults: "Setting_saveDefaults",
-    // Reward Masks
-    AllMaskRewards: "Setting_AllMaskRewards",
-    PoAMaskRewards: "Setting_PoAMaskRewards",
-    PoGMaskRewards: "Setting_PoGMaskRewards",
-    PoVMaskRewards: "Setting_PoVMaskRewards",
-    SeasonMaskRewards: "Setting_SeasonMaskRewards",
-    SeasonalEventMaskRewards: "Setting_SeasonalEventMaskRewards",
-};
-// ── Temp_ keys (temporary / runtime data) ─────────────────────────
-const TK = {
-    autoLoop: "Temp_autoLoop",
-    autoLoopTimeMili: "Temp_autoLoopTimeMili",
-    Debug: "Temp_Debug",
-    Logging: "Temp_Logging",
-    Timers: "Temp_Timers",
-    LastPageCalled: "Temp_LastPageCalled",
-    CheckSpentPoints: "Temp_CheckSpentPoints",
-    freshStart: "Temp_freshStart",
-    scriptversion: "Temp_scriptversion",
-    pinfo: "Temp_pinfo",
-    // Harem
-    HaremSize: "Temp_HaremSize",
-    filteredGirlsList: "Temp_filteredGirlsList",
-    haremGirlActions: "Temp_haremGirlActions",
-    haremGirlEnd: "Temp_haremGirlEnd",
-    haremGirlLimit: "Temp_haremGirlLimit",
-    haremGirlMode: "Temp_haremGirlMode",
-    haremGirlPayLast: "Temp_haremGirlPayLast",
-    haremGirlSpent: "Temp_haremGirlSpent",
-    haremMoneyOnStart: "Temp_haremMoneyOnStart",
-    // Resources
-    haveAff: "Temp_haveAff",
-    haveBooster: "Temp_haveBooster",
-    haveExp: "Temp_haveExp",
-    charLevel: "Temp_charLevel",
-    storeContents: "Temp_storeContents",
-    boosterStatus: "Temp_boosterStatus",
-    boosterIdMap: "Temp_boosterIdMap",
-    // Troll
-    TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
-    TrollInvalid: "Temp_TrollInvalid",
-    trollPoints: "Temp_trollPoints",
-    trollToFight: "Temp_trollToFight",
-    trollWithGirls: "Temp_trollWithGirls",
-    autoTrollBattleSaveQuest: "Temp_autoTrollBattleSaveQuest",
-    // Quest
-    questRequirement: "Temp_questRequirement",
-    MainAdventureWorldID: "Temp_MainAdventureWorldID",
-    SideAdventureWorldID: "Temp_SideAdventureWorldID",
-    // Battle
-    battlePowerRequired: "Temp_battlePowerRequired",
-    burst: "Temp_burst",
-    fought: "Temp_fought",
-    lastActionPerformed: "Temp_lastActionPerformed",
-    // Events
-    eventGirl: "Temp_eventGirl",
-    eventMythicGirl: "Temp_eventMythicGirl",
-    eventsGirlz: "Temp_eventsGirlz",
-    eventsList: "Temp_eventsList",
-    autoChampsEventGirls: "Temp_autoChampsEventGirls",
-    EventFightsBeforeRefresh: "Temp_EventFightsBeforeRefresh",
-    loveRaids: "Temp_loveRaids",
-    raidGirls: "Temp_raidGirls",
-    bossBangTeam: "Temp_bossBangTeam",
-    lseManualCollectAll: "Temp_lseManualCollectAll",
-    poaManualCollectAll: "Temp_poaManualCollectAll",
-    // Champion
-    champBuildTeam: "Temp_champBuildTeam",
-    clubChampLimitReached: "Temp_clubChampLimitReached",
-    // League
-    LeagueHumanLikeRun: "Temp_LeagueHumanLikeRun",
-    LeagueOpponentList: "Temp_LeagueOpponentList",
-    LeagueSavedData: "Temp_LeagueSavedData",
-    LeagueTempOpponentList: "Temp_LeagueTempOpponentList",
-    leaguesTarget: "Temp_leaguesTarget",
-    hideBeatenOppo: "Temp_hideBeatenOppo",
-    // Season
-    SeasonEndDate: "Temp_SeasonEndDate",
-    SeasonHumanLikeRun: "Temp_SeasonHumanLikeRun",
-    SeasonalEventEndDate: "Temp_SeasonalEventEndDate",
-    // Pantheon / PentaDrill
-    PantheonHumanLikeRun: "Temp_PantheonHumanLikeRun",
-    PentaDrillHumanLikeRun: "Temp_PentaDrillHumanLikeRun",
-    // Place of Power
-    PopToStart: "Temp_PopToStart",
-    PopTargeted: "Temp_PopTargeted",
-    PopUnableToStart: "Temp_PopUnableToStart",
-    Totalpops: "Temp_Totalpops",
-    currentlyAvailablePops: "Temp_currentlyAvailablePops",
-    // Path Events
-    PoAEndDate: "Temp_PoAEndDate",
-    PoGEndDate: "Temp_PoGEndDate",
-    PoVEndDate: "Temp_PoVEndDate",
-    // Daily Goals
-    dailyGoalsList: "Temp_dailyGoalsList",
-    // Paranoia
-    NextSwitch: "Temp_NextSwitch",
-    paranoiaLeagueBlocked: "Temp_paranoiaLeagueBlocked",
-    paranoiaQuestBlocked: "Temp_paranoiaQuestBlocked",
-    paranoiaSpendings: "Temp_paranoiaSpendings",
-    // Misc
-    sandalwoodFailure: "Temp_sandalwoodFailure",
-    unkownPagesList: "Temp_unkownPagesList",
-    userLink: "Temp_userLink",
-};
-
 ;// CONCATENATED MODULE: ./src/config/index.ts
 // Barrel export for the config module.
 // Re-exports environment variables, stored vars, input patterns, and storage keys.
@@ -17750,7 +17757,7 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
 function switchHHMenuButton(isActive) {
     var element = document.getElementById("sMenuButton");
     if (element !== null) {
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_master") === "false") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.master) === "false") {
             element.style["background-color"] = "red";
             element.style["background-image"] = "none";
         }
@@ -17878,7 +17885,7 @@ function addEventsOnMenuItems() {
     }
 }
 function getMenu() {
-    const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+    const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
     const getLeftColumn = () => {
         return `<div class="optionsColumn" style="min-width: 185px;">`
             + `<div style="padding:3px; display:flex; flex-direction:column;">`
@@ -19461,7 +19468,7 @@ function estimateTier5SkillValue(teamGirlsArray) {
 /*
 commented        const girlDictionary
 replaced         const girlCount = girlDictionary.size || 800
-              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize")).count:800;
+              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize")).count:800;
               *
 export function calculateSynergiesFromTeamMemberElements(elements) {
     const counts = countElementsInTeam(elements)
@@ -19469,7 +19476,7 @@ export function calculateSynergiesFromTeamMemberElements(elements) {
     // Only care about those not included in the stats already: fire, stone, sun and water
     // Assume max harem synergy
     //const girlDictionary = (typeof(localStorage.HHPNMap) == "undefined") ? new Map(): new Map(JSON.parse(localStorage.HHPNMap));
-    const girlCount = getStoredJSON(HHStoredVarPrefixKey+"Temp_HaremSize", {count:800}).count;
+    const girlCount = getStoredJSON(HHStoredVarPrefixKey+TK.HaremSize", {count:800}).count;
     const girlsPerElement = Math.min(girlCount / 8, 100)
 
     return {
@@ -19649,7 +19656,7 @@ var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 function getHero() {
     var _a, _b;
     if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
-        setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + "Temp_autoLoopTimeMili")));
+        setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
         //logHHAuto(window.wrappedJSObject)
     }
     return (_b = unsafeWindow.shared) === null || _b === void 0 ? void 0 : _b.Hero;
@@ -19661,7 +19668,7 @@ function doStatUpgrades() {
     var stats = [getHHVars('Hero.infos.carac1'), getHHVars('Hero.infos.carac2'), getHHVars('Hero.infos.carac3')];
     var money = HeroHelper.getMoney();
     var count = 0;
-    var M = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoStats"));
+    var M = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() - 1];
     var Limit = HeroHelper.getLevel() * 30; //HeroHelper.getLevel()*19+Math.min(HeroHelper.getLevel(),25)*21;
     var carac = HeroHelper.getClass();
@@ -19732,7 +19739,7 @@ class HeroHelper {
                 itemId = booster.id_item;
             }
             //action=market_equip_booster&id_item=316&type=booster
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             LogUtils_logHHAuto("equipBooster: Equip " + booster.name + " (id_item=" + itemId + "), setting autoloop to false");
             const params = {
                 action: "market_equip_booster",
@@ -19752,13 +19759,13 @@ class HeroHelper {
                         LogUtils_logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
                         HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     }
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     setTimeout(autoLoop, randomInterval(500, 800));
                     LogUtils_logHHAuto(`equipBooster: resolving with ${data.success}`);
                     resolve(data.success);
                 }, function (err) {
                     LogUtils_logHHAuto('equipBooster: AJAX error callback - ' + err);
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     setTimeout(autoLoop, randomInterval(500, 800));
                     HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     LogUtils_logHHAuto('equipBooster: resolving with false');
@@ -20249,7 +20256,7 @@ class RewardHelper {
             if (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id)
                 EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""
-                //|| Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) < 1
+                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
                 || (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)
                 || (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
                 clearTimeout(inCaseTimer);
@@ -20283,7 +20290,7 @@ class RewardHelper {
         });
         if ($('#rewards_popup').length > 0) {
             if ($('#rewards_popup')[0].style.display !== "block" && $('#rewards_popup')[0].style.display !== "") {
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 LogUtils_logHHAuto("setting autoloop to false to wait for troll rewards");
                 observerReward.observe($('#rewards_popup')[0], {
                     childList: false,
@@ -22033,7 +22040,7 @@ function autoLoop() {
             }
             ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
             //check what happen to timer if no more wave before uncommenting
-            /*if (getStoredValue(HHStoredVarPrefixKey+"Setting_plusEventMythic") ==="true" && checkTimerMustExist('eventMythicNextWave'))
+            /*if (getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave'))
             {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
@@ -22210,11 +22217,11 @@ function updateData() {
             Tegzd += PentaDrill.getPinfo();
         }
         /*
-        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollect") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) =="true")
         {
             Tegzd += '<li>Collect POV : '+getTimeLeft('nextPoVCollectTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollect") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) =="true")
         {
             Tegzd += '<li>Collect POG : '+getTimeLeft('nextPoGCollectTime')+'</li>';
         }*/
@@ -22522,8 +22529,8 @@ class ParanoiaService {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollThreshold"));
-                    //             if (getStoredValue(HHStoredVarPrefixKey+"Setting_buyMythicCombat") === "true" || getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollMythicByPassThreshold") === "true")
+                    //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoTrollThreshold));
+                    //             if (getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoTrollMythicByPassThreshold) === "true")
                     //             {
                     //                 trollThreshold = 0;
                     //             }

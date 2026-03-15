@@ -21,7 +21,7 @@ import {
 } from '../Helper/index';
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
 import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKTeamGirl, TeamData } from '../model/index';
 import { Harem, HaremGirl } from './index';
 
@@ -269,11 +269,11 @@ export class TeamModule {
                 };
                 logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
                 
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeam", JSON.stringify(team));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlActions", HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremGirlMode", 'team');
-                setStoredValue(HHStoredVarPrefixKey + "Temp_haremTeamSettings", JSON.stringify(teamSettings));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_lastActionPerformed", Harem.HAREM_UPGRADE_LAST_ACTION);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                 
                 if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
@@ -325,7 +325,7 @@ export class TeamModule {
 
     static equipAllGirls() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             logHHAuto("Setting autoloop to false to let the equip action complete without interruptions.");
 
             logHHAuto('Equip team');
@@ -412,7 +412,7 @@ export class TeamModule {
     }
 
     static assignTopTeam() {
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
             let girlToSelect = best ? i : i + 7;

@@ -510,7 +510,7 @@ export class Troll {
                         //replaceCheatClick();
                         battleButtonX50[0].click();
                         setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) - 50);
+                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
                         logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
                         if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
                             // Battle Done.
@@ -545,7 +545,7 @@ export class Troll {
                         //replaceCheatClick();
                         battleButtonX10[0].click();
                         setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) - 10);
+                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
                         logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
                         if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
                             // Battle Done.

@@ -252,8 +252,8 @@ export class ParanoiaService {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollThreshold"));
-                    //             if (getStoredValue(HHStoredVarPrefixKey+"Setting_buyMythicCombat") === "true" || getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollMythicByPassThreshold") === "true")
+                    //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoTrollThreshold));
+                    //             if (getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoTrollMythicByPassThreshold) === "true")
                     //             {
                     //                 trollThreshold = 0;
                     //             }

@@ -18,7 +18,7 @@
 
 import { PlaceOfPower } from '../Module/index';
 import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, TK } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { ConfigHelper } from "./ConfigHelper";
 import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { queryStringGetParam } from "./UrlHelper";
@@ -29,8 +29,8 @@ export function getPage(checkUnknown = false, checkPop = false):string
     if(ob===undefined || ob === null)
     {
         logHHAuto("Unable to find page attribute, stopping script");
-        setStoredValue(HHStoredVarPrefixKey+"Setting_master", "false");
-        setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
+        setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         throw new Error("Unable to find page attribute, stopping script.");
         return "";

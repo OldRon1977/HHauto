@@ -247,7 +247,7 @@ export async function autoLoop()
         ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
 
         //check what happen to timer if no more wave before uncommenting
-        /*if (getStoredValue(HHStoredVarPrefixKey+"Setting_plusEventMythic") ==="true" && checkTimerMustExist('eventMythicNextWave'))
+        /*if (getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave'))
         {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }

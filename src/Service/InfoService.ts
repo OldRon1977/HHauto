@@ -129,11 +129,11 @@ export function updateData() {
             Tegzd += PentaDrill.getPinfo();
         }
         /*
-        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollect") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) =="true")
         {
             Tegzd += '<li>Collect POV : '+getTimeLeft('nextPoVCollectTime')+'</li>';
         }
-        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollect") =="true")
+        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) =="true")
         {
             Tegzd += '<li>Collect POG : '+getTimeLeft('nextPoGCollectTime')+'</li>';
         }*/

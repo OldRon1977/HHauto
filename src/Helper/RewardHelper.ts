@@ -380,7 +380,7 @@ export class RewardHelper {
             if (eventGirl?.girl_id) EventModule.saveEventGirl(eventGirl);
             if (eventMythicGirl?.girl_id) EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""
-                //|| Number(getStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh")) < 1
+                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
                 || eventGirl?.girl_id && EventModule.checkEvent(eventGirl.event_id)
                 || eventMythicGirl?.girl_id && EventModule.checkEvent(eventMythicGirl.event_id)
             )
@@ -422,7 +422,7 @@ export class RewardHelper {
         {
             if ($('#rewards_popup')[0].style.display !== "block" && $('#rewards_popup')[0].style.display !== "")
             {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false to wait for troll rewards");
                 observerReward.observe($('#rewards_popup')[0], {
                     childList: false

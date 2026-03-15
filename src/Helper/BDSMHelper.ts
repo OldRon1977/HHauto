@@ -425,7 +425,7 @@ function estimateTier5SkillValue(teamGirlsArray): { id: number, value: number } 
 /*
 commented        const girlDictionary
 replaced         const girlCount = girlDictionary.size || 800
-              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_HaremSize")).count:800;
+              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize")).count:800;
               *
 export function calculateSynergiesFromTeamMemberElements(elements) {
     const counts = countElementsInTeam(elements)
@@ -433,7 +433,7 @@ export function calculateSynergiesFromTeamMemberElements(elements) {
     // Only care about those not included in the stats already: fire, stone, sun and water
     // Assume max harem synergy
     //const girlDictionary = (typeof(localStorage.HHPNMap) == "undefined") ? new Map(): new Map(JSON.parse(localStorage.HHPNMap));
-    const girlCount = getStoredJSON(HHStoredVarPrefixKey+"Temp_HaremSize", {count:800}).count;
+    const girlCount = getStoredJSON(HHStoredVarPrefixKey+TK.HaremSize", {count:800}).count;
     const girlsPerElement = Math.min(girlCount / 8, 100)
 
     return {
