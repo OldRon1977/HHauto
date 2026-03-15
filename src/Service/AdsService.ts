@@ -1,7 +1,20 @@
+// AdsService.ts
+//
+// Manages in-game advertisements that can interfere with automation.
+// When the "show ads in background" setting is enabled, this service
+// pushes ad containers behind the game UI via z-index overrides so
+// they don't block click targets. On non-home pages, ads are
+// repositioned further down the page to avoid overlap.
+//
+// Also detects cross-game promo popups and sex-friends ads that use
+// a different DOM structure than regular ads.
+//
+// Used by: StartService (on page load)
+
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { HHStoredVarPrefixKey, SK } from "../config/index";
 
 export class AdsService {
     static closeHomeAds() {
@@ -21,7 +34,7 @@ export class AdsService {
     }
 
     static moveAds(page: string):void {
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showAdsBack") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showAdsBack) === "true") {
             if (page == ConfigHelper.getHHScriptVars("pagesIDHome")) {
                 if (!AdsService.isCrossGameAds() && !AdsService.isSexFriendsAds()) {
                     GM_addStyle('#sliding-popups#sliding-popups { z-index : 1}');

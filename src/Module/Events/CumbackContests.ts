@@ -1,8 +1,17 @@
+// CumbackContests.ts -- Cumback Contest event handling and auto-collection.
+//
+// Cumback Contests are periodic events that reward returning players. This
+// module parses event page data, tracks timer countdowns, and collects
+// available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Cumback Contest event is active)
+//
 import { convertTimeToInt, randomInterval, setTimer } from "../../Helper/index";
-import { KKEventGirl } from "../../model/index";
+import { HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
 
 export class CumbackContests {
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 

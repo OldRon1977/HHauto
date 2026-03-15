@@ -1,8 +1,17 @@
+// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
+//
+// Kinky Cumpetition is a periodic competitive event. This module parses event
+// page data, tracks timer countdowns and girl reward progress, and manages
+// the event refresh schedule.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
+//
 import { convertTimeToInt, randomInterval, setTimer } from "../../Helper/index";
-import { KKEventGirl } from "../../model/index";
+import { HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
 
 export class KinkyCumpetition {
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 

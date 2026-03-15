@@ -1,3 +1,12 @@
+// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
+// inventory.
+//
+// Handles automated interactions with the in-game equipment shop. Buys
+// desired equipment, sells unwanted items, and manages inventory slots.
+// Tracks shop refresh timers and available currency.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     checkTimer,
     convertTimeToInt,
@@ -5,6 +14,7 @@ import {
     getHHVars,
     getPage,
     getStoredValue,
+    getStoredJSON,
     getTextForUI,
     randomInterval,
     setStoredValue,
@@ -12,16 +22,16 @@ import {
     HeroHelper
 } from '../Helper/index';
 import { autoLoop, gotoPage } from '../Service/index';
-import { isJSON, logHHAuto } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey } from '../config/index';
+import { isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
+import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Booster } from "./Booster";
 
 export class Shop {
 
     static isTimeToCheckShop() {
-        const updateMarket = getStoredValue(HHStoredVarPrefixKey+"Setting_updateMarket")  === "true";
+        const updateMarket = getStoredValue(HHStoredVarPrefixKey+SK.updateMarket)  === "true";
         const needBoosterStatus = Booster.needBoosterStatusFromStore();
-        return (updateMarket || needBoosterStatus) && ( getStoredValue(HHStoredVarPrefixKey+"Setting_paranoia") !== "true" || !checkTimer("paranoiaSwitch") )
+        return (updateMarket || needBoosterStatus) && ( getStoredValue(HHStoredVarPrefixKey+SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch") )
     }
 
     static updateShop()
@@ -35,10 +45,10 @@ export class Shop {
         else {
             logHHAuto("Detected Market Screen. Fetching Assortment");
     
-            var assA:any[]=[];
-            var assB:any[]=[];
-            var assG:any[]=[];
-            var assP:any[]=[];
+            var assA:Record<string, unknown>[]=[];
+            var assB:Record<string, unknown>[]=[];
+            var assG:Record<string, unknown>[]=[];
+            var assP:Record<string, unknown>[]=[];
             $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assA.push(JSON.parse(this.dataset.d));});
             $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assB.push(JSON.parse(this.dataset.d));});
             $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assG.push(JSON.parse(this.dataset.d));});
@@ -50,16 +60,18 @@ export class Shop {
             $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveAff+=d.quantity*d.item.value;}});
             $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveExp+=d.quantity*d.item.value;}});
     
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity;}});
+            var BoosterIdMap={};
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = String(d.item.id_item);}});
     
-            setStoredValue(HHStoredVarPrefixKey+"Temp_haveAff", HaveAff);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_haveExp", HaveExp);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_haveBooster", JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
+            setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
+            setStoredValue(HHStoredVarPrefixKey+TK.haveBooster, JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey+TK.boosterIdMap, JSON.stringify(BoosterIdMap));
+
+            logHHAuto('counted '+getStoredValue(HHStoredVarPrefixKey+TK.haveAff)+' Aff, '+getStoredValue(HHStoredVarPrefixKey+TK.haveExp)+' Exp, Booster: ' + JSON.stringify(HaveBooster));
     
-            logHHAuto('counted '+getStoredValue(HHStoredVarPrefixKey+"Temp_haveAff")+' Aff, '+getStoredValue(HHStoredVarPrefixKey+"Temp_haveExp")+' Exp, Booster: ' + JSON.stringify(HaveBooster));
-    
-            setStoredValue(HHStoredVarPrefixKey+"Temp_storeContents", JSON.stringify([assA,assB,assG,assP]));
-            setStoredValue(HHStoredVarPrefixKey+"Temp_charLevel", HeroHelper.getLevel());
+            setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify([assA,assB,assG,assP]));
+            setStoredValue(HHStoredVarPrefixKey+TK.charLevel, HeroHelper.getLevel());
     
             var nshop;
             let shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
@@ -80,8 +92,8 @@ export class Shop {
                 // }
             }
             setTimer('nextShopTime',shopTimer + randomInterval(60,180));
-            if (isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled"))
-                && getPage() === JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled")).page)
+            if (isJSON(getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled))
+                && getPage() === getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:''}).page)
             {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                 logHHAuto("Go to Home after Shopping");
@@ -128,7 +140,7 @@ export class Shop {
             }
     
             let itemsCaracsNb=16;
-            let itemsCaracs:any[]=[];
+            let itemsCaracs:(number | string)[]=[];
             for (let i=1;i<itemsCaracsNb+1;i++)
             {
                 itemsCaracs.push(i);
@@ -139,7 +151,7 @@ export class Shop {
             let itemsLockedStatus=["not_locked","locked"];
     
             let itemsTypeNb=6;
-            let itemsType:any[]=[];
+            let itemsType:number[]=[];
             for (let i=1;i<itemsTypeNb+1;i++)
             {
                 itemsType.push(i);
@@ -584,13 +596,13 @@ export class Shop {
 
         function sellArmorEnded() {
             $("#menuSellHide").css("display","block");
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
         }
     
         function sellArmorItems()
         {
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
 
             logHHAuto('start selling common, rare and epic stuff');

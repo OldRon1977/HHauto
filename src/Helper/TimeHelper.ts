@@ -1,6 +1,21 @@
+// TimeHelper.ts
+//
+// Time-related utilities: converting between human-readable durations
+// ("2d 05:30:00"), seconds, and the game's localized timer strings
+// (e.g. "2j 5h 30m" in French). Also provides contest-safe-time
+// logic that prevents spending energy too close to a contest end.
+//
+// The game renders timers with locale-specific unit labels (h/m/s in
+// English, j/h/m/s in French, etc.). convertTimeToInt() uses the
+// i18n timer definitions to parse these back into seconds regardless
+// of locale.
+//
+// Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
+//          InfoService (display remaining times)
+
 import { Contest } from '../Module/Contest';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK } from '../config/index';
 import { hhTimerLocale, timerDefinitions } from "../i18n/index";
 import { getHHVars } from "./HHHelper";
 import { getStoredValue } from "./StorageHelper";
@@ -9,10 +24,11 @@ import { checkTimerMustExist, getSecondsLeft } from './TimerHelper';
 export class TimeHelper {
 
     static getContestSafeTime(): number {
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_waitforContest") !== "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true") {
             return 0;
         }
-        let safeTime = getStoredValue(HHStoredVarPrefixKey + "Setting_safeSecondsForContest") !== undefined ? Number(getStoredValue(HHStoredVarPrefixKey + "Setting_safeSecondsForContest")) : 120;
+        const safeTimeStr = getStoredValue(HHStoredVarPrefixKey + SK.safeSecondsForContest);
+        let safeTime = safeTimeStr !== undefined ? Number(safeTimeStr) : 120;
         if (isNaN(safeTime) || safeTime < 0) safeTime = 120;
         return safeTime;
     }
@@ -20,7 +36,7 @@ export class TimeHelper {
     static canCollectCompetitionActive(): boolean
     {
         const safeTime = TimeHelper.getContestSafeTime();
-        return getStoredValue(HHStoredVarPrefixKey + "Setting_waitforContest") !== "true" || !((getSecondsLeft('contestRemainingTime')-safeTime) < 0 && getSecondsLeft('nextContestTime') > 0);
+        return getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" || !((getSecondsLeft('contestRemainingTime')-safeTime) < 0 && getSecondsLeft('nextContestTime') > 0);
     }
 
     static toHHMMSS(secs): string  {
@@ -99,7 +115,7 @@ export function convertTimeToInt(remainingTimer: string, failSafe=true): number 
 
 
 export function getLimitTimeBeforeEnd(){
-    return Number(getStoredValue(HHStoredVarPrefixKey+"Setting_collectAllTimer")) * 3600;
+    return Number(getStoredValue(HHStoredVarPrefixKey+SK.collectAllTimer)) * 3600;
 }
 
 

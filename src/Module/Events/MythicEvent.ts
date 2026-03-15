@@ -1,12 +1,23 @@
+// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
+//
+// Mythic events feature special troll bosses with wave-based progression and
+// unique girl shard rewards. This module tracks wave progress, coordinates
+// with Troll.ts for fight prioritization, and manages event-specific timers
+// and girl shard tracking.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Mythic event is active),
+//          Troll.ts (reads event troll priorities)
+//
 import { clearTimer, convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
-import { EventGirl, KKEventGirl } from "../../model/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { EventGirl, HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
 
 export class MythicEvent {
-    static parse(hhEvent: any, eventList: any, hhEventData: any, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
         const eventID = hhEvent.eventId;
-        let Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + "Setting_eventTrollOrder") || '').split(";");
+        let Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
         let refreshTimer = randomInterval(3600, 4000);
 
         let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
@@ -36,7 +47,7 @@ export class MythicEvent {
                     else {
                         setTimer('eventMythicNextWave', nextWave);
                     }
-                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"], true);
+                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"] as number, true);
                     if (remShards !== 0) {
 
                         if (eventGirl.isOnTroll()) {

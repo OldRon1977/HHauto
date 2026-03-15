@@ -1,10 +1,25 @@
+// HeroHelper.ts
+//
+// Provides read access to the player's hero data (class, level, money,
+// kobans) and actions that modify the hero: stat upgrades and booster
+// equipping. Hero data lives on the game's global `window.Hero` (or
+// `window.shared.Hero` on newer builds), accessed via unsafeWindow.
+//
+// Why stat upgrade logic lives here: Upgrading stats is a sequential,
+// recursive process (buy one increment, wait, repeat) that only touches
+// hero data. Keeping it next to the accessors avoids circular deps
+// with the Module layer.
+//
+// Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
+//          BDSM simulator (hero stats for fight prediction)
+
 import { addNutakuSession, autoLoop } from '../Service/index';
 import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKHero } from '../model/index';
 import { ConfigHelper } from './ConfigHelper';
 import { getHHVars } from "./HHHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 
 export function getHero():KKHero
@@ -90,7 +105,7 @@ export class HeroHelper {
     }
 
     static haveBoosterInInventory(idBooster:string) {
-        const HaveBooster=isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_haveBooster"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_haveBooster")):{};
+        const HaveBooster=getStoredJSON(HHStoredVarPrefixKey+TK.haveBooster, {});
         const boosterOwned = HaveBooster.hasOwnProperty(idBooster) ? Number(HaveBooster[idBooster]) : 0;
         return boosterOwned > 0
     }
@@ -145,11 +160,11 @@ export class HeroHelper {
     }
 
     static getSandalWoodEquipFailure(increase:boolean=false){
-        const numberFailureStr:string = getStoredValue(HHStoredVarPrefixKey+"Temp_sandalwoodFailure") ?? '0';
+        const numberFailureStr:string = getStoredValue(HHStoredVarPrefixKey+TK.sandalwoodFailure) ?? '0';
         let numberFailure = numberFailureStr ? Number(numberFailureStr): 0;
         if(isNaN(numberFailure)) numberFailure = 0;
         if(increase) numberFailure = numberFailure + 1;
-        setStoredValue(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", numberFailure);
+        setStoredValue(HHStoredVarPrefixKey+TK.sandalwoodFailure, numberFailure);
         return numberFailure;
     }
 }

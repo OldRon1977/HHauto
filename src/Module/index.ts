@@ -1,3 +1,5 @@
+// Module/index.ts -- Barrel file re-exporting all game automation modules.
+// Each module handles a specific game feature (fights, events, harem, etc.).
 export * from './Booster'
 export * from './Bundles'
 export * from './Champion'

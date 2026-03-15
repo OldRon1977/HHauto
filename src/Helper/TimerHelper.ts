@@ -1,3 +1,21 @@
+// TimerHelper.ts
+//
+// Manages named cooldown timers that prevent actions from running too
+// frequently. Each timer is stored as a future timestamp (epoch ms)
+// in the in-memory `Timers` object (persisted to storage as JSON).
+//
+// The AutoLoop checks timers before each action: e.g. "nextLeaguesTime"
+// prevents league fights until energy regenerates. When a module
+// performs an action, it calls setTimer("name", seconds) to schedule
+// the next allowed run.
+//
+// Two check modes:
+//   - checkTimer: returns true if timer is missing OR expired (safe default)
+//   - checkTimerMustExist: returns true only if timer exists AND expired
+//     (used when absence means "not yet initialized", not "ready")
+//
+// Used by: Every module (via AutoLoop), StartService (timer restoration)
+
 import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey } from '../config/index';
 import { setStoredValue } from "./StorageHelper";

@@ -1,3 +1,16 @@
+/**
+ * ConfigHelper.ts - Environment detection and per-environment variable lookup
+ *
+ * The game runs on multiple domains (HH, PH, NPH, etc.), each with
+ * slightly different page IDs, URLs, and feature flags. This helper
+ * detects which environment the script is running on by matching the
+ * current hostname against a known list, then resolves configuration
+ * variables for that environment. When an environment-specific value is
+ * not defined, it falls back to the "global" defaults.
+ *
+ * Almost every other helper and module depends on ConfigHelper to obtain
+ * page IDs, URL paths, element selectors, and feature toggles.
+ */
 import { fillHHPopUp, logHHAuto } from '../Utils/index';
 import { HHEnvVariables, HHKnownEnvironnements } from '../config/index';
 

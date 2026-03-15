@@ -1,3 +1,11 @@
+// Club.ts -- Detects club membership and enables or disables club-related features.
+//
+// Checks whether the player is currently in a club and toggles visibility of
+// club-specific UI elements (e.g. Club Champion buttons). This ensures that
+// club features are only shown when the player has an active membership.
+//
+// Used by: Service/index.ts (main automation loop), ClubChampion.ts
+//
 import { ConfigHelper, getHHVars } from '../Helper/index';
 import { logHHAuto } from '../Utils/index';
 import { HHEnvVariables } from '../config/index';

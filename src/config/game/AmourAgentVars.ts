@@ -1,3 +1,7 @@
+// Game-variant configuration for Amour Agent.
+// Provides domain-to-environment mapping, troll names, and quest data
+// specific to the Amour Agent game variant.
+
 export class AmourAgent {
     static trollIdMapping = {};
     static lastQuestId = -1; //  TODO update when new quest comes

@@ -1,3 +1,12 @@
+// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
+//
+// Double Penetration is a time-limited competitive event with its own fight
+// mechanics. This module tracks event progress, manages fight energy, collects
+// milestone rewards, and handles the event-specific UI interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Double Penetration event is active)
+//
 import {
     RewardHelper,
     checkTimer,
@@ -6,6 +15,7 @@ import {
     getPage,
     getLimitTimeBeforeEnd,
     getStoredValue,
+    getStoredJSON,
     randomInterval,
     setStoredValue,
     setTimer,
@@ -15,7 +25,8 @@ import {
 } from "../../Helper/index";
 import { autoLoop, gotoPage } from "../../Service/index";
 import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { HHEvent, HHEventData, HHEventList } from "../../model/index";
 
 export class DoublePenetration {
 
@@ -23,7 +34,7 @@ export class DoublePenetration {
         return ConfigHelper.getHHScriptVars("isEnabledDPEvent", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_DP"); // And 10 gilrs
     }
 
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 
@@ -41,7 +52,7 @@ export class DoublePenetration {
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = false;
 
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_autodpEventCollect") === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + "Setting_autodpEventCollectAll") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true") {
             DoublePenetration.goAndCollect(dpRemainingTime);
         }
     }
@@ -49,10 +60,10 @@ export class DoublePenetration {
     static goAndCollect(dpRemainingTime: number, manualCollectAll = false)
     {
         try {
-            const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollectablesList")):[];
+            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autodpEventCollectablesList, []);
 
-            const needToCollectAll =  dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollectAll") === "true";
-            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollect") === "true");
+            const needToCollectAll =  dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollectAll) === "true";
+            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true");
 
             const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
             const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
@@ -63,7 +74,7 @@ export class DoublePenetration {
             {
                 logHHAuto("Checking double penetration event for collectable rewards.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 let buttonsToCollect:HTMLElement[] = [];
                 const listDpEventTiersToClaim = $(dPTierQuery);
 
@@ -118,8 +129,8 @@ export class DoublePenetration {
                             logHHAuto("Double penetration collection finished.");
                             setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                             //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+                            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                         }
                     }
                     collectDpEventRewards();
@@ -130,8 +141,8 @@ export class DoublePenetration {
                     logHHAuto("No double penetration reward to collect.");
                     setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                     //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                     return false;
                 }
             }
@@ -145,7 +156,7 @@ export class DoublePenetration {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab="+ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg')))
         {
             logHHAuto("On Double penetration event.");
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showClubButtonInPoa") === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false))
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false))
             {
                 GM_addStyle('#dp-content .left-container .objectives-container .hard-objective .nc-sub-panel div.buttons .redirect-buttons {flex-direction: column;}');
                 if($(".hard-objective .hh-club-poa").length <= 0) {
@@ -157,7 +168,7 @@ export class DoublePenetration {
                     championsGoal.append(getGoToClubChampionButton());
                 }
             }
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_showRewardsRecap") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
                 DoublePenetration.displayRewardsDiv();
                 DoublePenetration.displayCollectAllButton();
             }

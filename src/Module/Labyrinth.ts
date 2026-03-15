@@ -1,4 +1,16 @@
-import { 
+// Labyrinth.ts -- Manages the labyrinth dungeon: floor navigation, team management,
+// and timer tracking.
+//
+// The labyrinth is a multi-floor dungeon where the player progresses through
+// rooms of enemies. This module handles navigating between floors, tracking
+// remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
+// for the actual fight logic and RelicManager.ts for relic selection.
+//
+// Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
+//             TeamModule.ts (team setup)
+// Used by: Service/index.ts (main automation loop)
+//
+import {
     ConfigHelper,
     TimeHelper,
     convertTimeToInt,
@@ -10,8 +22,8 @@ import {
     randomInterval,
     setStoredValue
 } from '../Helper/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { logHHAuto, safeJsonParse } from '../Utils/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { RelicManager } from './RelicManager';
 
 class LabyrinthOpponent{
@@ -59,7 +71,7 @@ export class Labyrinth {
     }
 
     static moduleBuildTeam():void{
-        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyCustomTeamBuilder") == "true";
+        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
         if (customTeamBuilder && $(`.${Labyrinth.BUILD_BUTTON_ID}`).length == 0) {
             const divButtons = $('<div style="position:absolute;left:-55px;top:-310px;width:150%;display:flex;gap:4px;z-index:1"></div>');
 
@@ -113,7 +125,7 @@ export class Labyrinth {
         // 5   3
         //   4
 
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
 
         $(`.${Labyrinth.BUILD_BUTTON_ID}`).attr('disabled','disabled');
@@ -151,7 +163,7 @@ export class Labyrinth {
 
         $(`.${Labyrinth.BUILD_BUTTON_ID}`).removeAttr('disabled');
 
-        setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
         logHHAuto("setting autoloop to true");
     }
 
@@ -196,7 +208,11 @@ export class Labyrinth {
                 logHHAuto('ERROR, no girl information found');
                 continue;
             }
-            const obj = JSON.parse(tooltipData);
+            const obj = safeJsonParse(tooltipData, null);
+            if (obj === null) {
+                logHHAuto('ERROR, failed to parse girl information');
+                continue;
+            }
             const remainingEgo = Number($('.ego-bar-container span', $(girls[i])).text().replace('%', ''))
             if ((girlClass == 0 || obj.class == girlClass) && remainingEgo > 50) {
                 hardCoreGirls.push($(girls[i]));
@@ -428,12 +444,12 @@ export class Labyrinth {
     }
 
     static findBetter(options: LabyrinthOpponent[]): LabyrinthOpponent{
-        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyHard") == "true";
+        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) == "true";
 
         const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0
         let choosenOption:LabyrinthOpponent|null = null;
         let firstOption:LabyrinthOpponent|null = null;
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled) logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled) logHHAuto("haveGirlWounded " + haveGirlWounded);
         if (debugEnabled) logHHAuto("chooseMoreReward " + chooseMoreReward);

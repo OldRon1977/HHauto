@@ -1,8 +1,26 @@
+// PageHelper.ts
+//
+// Determines which game page the player is currently viewing. The game
+// uses a root element's `page` attribute to identify the view, but the
+// Activities page multiplexes sub-pages (Contests, Missions, Daily
+// Goals, Place of Power) via tabs and query parameters.
+//
+// This helper resolves those ambiguities into a single canonical page
+// ID that AutoLoop and modules can switch on. It also logs unknown
+// page IDs to help detect game updates that add new pages.
+//
+// Why the complexity: The Activities page redesign merged several
+// formerly separate pages into tabs, but automation still needs
+// distinct IDs for each to route actions correctly.
+//
+// Used by: AutoLoop (page routing), StartService (initial setup),
+//          PageNavigationService (navigation targets)
+
 import { PlaceOfPower } from '../Module/index';
 import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { ConfigHelper } from "./ConfigHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { queryStringGetParam } from "./UrlHelper";
 
 export function getPage(checkUnknown = false, checkPop = false):string
@@ -89,11 +107,11 @@ export function getPage(checkUnknown = false, checkPop = false):string
         }
         if (!isKnown && page )
         {
-            let unknownPageList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList")):{};
+            let unknownPageList = getStoredJSON(HHStoredVarPrefixKey+TK.unkownPagesList, {});
             logHHAuto("Page unkown for script : "+page+" / "+window.location.pathname);
             unknownPageList[page] = window.location.pathname;
             //console.log(unknownPageList);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_unkownPagesList", JSON.stringify(unknownPageList));
+            setStoredValue(HHStoredVarPrefixKey+TK.unkownPagesList, JSON.stringify(unknownPageList));
         }
     }
     return page;

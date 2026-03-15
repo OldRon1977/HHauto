@@ -1,3 +1,12 @@
+// Missions.ts -- Automates missions: collects completed missions and starts new ones.
+//
+// Missions are time-based tasks that yield rewards. This module checks for
+// completed missions, collects their rewards, and starts the next available
+// mission automatically. Tracks mission durations and schedules collection
+// at the right time.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     RewardHelper,
     TimeHelper,
@@ -13,7 +22,7 @@ import {
 } from '../Helper/index';
 import { gotoPage } from '../Service/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Mission, MissionRewards } from '../model/index';
 
 export class Missions {
@@ -31,8 +40,8 @@ export class Missions {
     static getSuitableMission(missionsList: Mission[]): Mission
     {
         var msn = missionsList[0];
-        const kFirst = getStoredValue(HHStoredVarPrefixKey + "Setting_autoMissionKFirst") === "true";
-        const invertOrder = getStoredValue(HHStoredVarPrefixKey + "Setting_invertMissions") === "true"; 
+        const kFirst = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionKFirst) === "true";
+        const invertOrder = getStoredValue(HHStoredVarPrefixKey + SK.invertMissions) === "true"; 
         try {   
             for(var m in missionsList)
             {
@@ -67,12 +76,12 @@ export class Missions {
         else
         {
             try {
-                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
                 logHHAuto("On missions page.");
                 if(RewardHelper.closeRewardPopupIfAny()) {
                     return true;
                 }
-                let canCollect = getStoredValue(HHStoredVarPrefixKey+"Setting_autoMissionCollect") ==="true" && $(".mission_button button:visible[rel='claim']").length >0 && TimeHelper.canCollectCompetitionActive();
+                let canCollect = getStoredValue(HHStoredVarPrefixKey+SK.autoMissionCollect) ==="true" && $(".mission_button button:visible[rel='claim']").length >0 && TimeHelper.canCollectCompetitionActive();
                 var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
                 if (debugEnabled) logHHAuto("Missions parsed, mission list is:", missions);
                 if (debugEnabled && missionOngoing != null) logHHAuto("Mission missionOngoing:", missionOngoing);
@@ -252,7 +261,7 @@ export class Missions {
         {
             $("#missions .missions_wrap").removeClass('height-for-ad').removeClass('height-with-ad');
         }
-        if(getStoredValue(HHStoredVarPrefixKey+"Setting_compactMissions") === "true")
+        if(getStoredValue(HHStoredVarPrefixKey+SK.compactMissions) === "true")
         {
             GM_addStyle('#missions .missions_wrap  {'
                 + 'display:flex;'

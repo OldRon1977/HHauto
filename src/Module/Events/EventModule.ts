@@ -1,13 +1,34 @@
+/**
+ * EventModule.ts -- Central coordinator for all time-limited game events.
+ *
+ * This is the backbone of event automation. It detects which events are active on the
+ * game's home or event pages, routes parsing to the correct event-specific handler
+ * (PlusEvent, MythicEvent, BossBang, etc.), and manages shared event state in
+ * sessionStorage (event list, event girls, champion girls).
+ *
+ * Key responsibilities:
+ * - Parse event pages to extract event data and girl reward information.
+ * - Track event lifecycle: detect active events, mark completed events, and clean up
+ *   expired event data.
+ * - Prioritize event girls based on the user-configured troll order.
+ * - Inject UI enhancements: completion badges on the home page, priority labels on
+ *   girl reward tiles, a "collect all" button for event chests.
+ * - Provide countdown timers on the home page for Path of Value / Path of Glory events.
+ *
+ * Called by AutoLoop on each tick. Individual event handlers (in sibling files) contain
+ * the event-type-specific parsing and reward collection logic.
+ */
 import {
     TimeHelper,
     checkTimer,
     checkTimerMustExist,
     clearTimer,
     convertTimeToInt,
-    ConfigHelper, 
-    getLimitTimeBeforeEnd, 
-    getPage, 
-    getSecondsLeft, 
+    ConfigHelper,
+    getLimitTimeBeforeEnd,
+    getPage,
+    getSecondsLeft,
+    getStoredJSON,
     getStoredValue,
     getTextForUI,
     getTimeLeft,
@@ -18,10 +39,12 @@ import {
     setTimer
 } from "../../Helper/index";
 import { gotoPage } from "../../Service/index";
-import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { logHHAuto } from "../../Utils/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import {
     EventGirl,
+    HHEvent,
+    HHEventData,
     KKEventGirl
 } from "../../model/index";
 import { BossBang } from "./BossBang";
@@ -35,16 +58,21 @@ import { PlusEvent } from "./PlusEvents";
 import { SultryMysteries } from "./SultryMysteries";
 
 export class EventModule {
+    /**
+     * Remove stale event data from sessionStorage for the given event ID.
+     * Also prunes expired events, disables timers when no mythic/regular events remain,
+     * and cleans up associated girl and champion lists.
+     */
     static clearEventData(inEventID:string)
     {
         //clearTimer('eventMythicNextWave');
         //clearTimer('eventRefreshExpiration');
         //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
-        let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList")):{};
-        let eventsGirlz: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz")):[];
+        let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+        let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
         let eventGirl = EventModule.getEventGirl();
         let eventMythicGirl = EventModule.getEventMythicGirl();
-        let eventChamps:EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls")):[];
+        let eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
         let hasMythic = false;
         let hasEvent = false;
         for (let prop of Object.keys(eventList))
@@ -52,13 +80,13 @@ export class EventModule {
             if (
                 eventList[prop]["seconds_before_end"]<new Date()
                 ||
-                (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey+"Setting_plusEventMythic") !=="true")
+                (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) !=="true")
                 ||
-                (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey+"Setting_plusEvent") !=="true")
+                (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) !=="true")
                 ||
-                (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey+"Setting_bossBangEvent") !=="true")
+                (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) !=="true")
                 ||
-                (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey+"Setting_sultryMysteriesEventRefreshShop") !=="true")
+                (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey+SK.sultryMysteriesEventRefreshShop) !=="true")
             )
             {
                 delete eventList[prop];
@@ -90,11 +118,11 @@ export class EventModule {
         }
         if (Object.keys(eventList).length === 0)
         {
-            sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventsGirlz');
-            sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventGirl');
-            sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventMythicGirl');
-            sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventsList');
-            sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_autoChampsEventGirls');
+            sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsGirlz);
+            sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventMythicGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
+            sessionStorage.removeItem(HHStoredVarPrefixKey+TK.autoChampsEventGirls);
         }
         else
         {
@@ -112,11 +140,11 @@ export class EventModule {
 
             if(Object.keys(eventChamps).length === 0)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_autoChampsEventGirls');
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.autoChampsEventGirls);
             }
             else
             {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls", JSON.stringify(eventChamps));
+                setStoredValue(HHStoredVarPrefixKey+TK.autoChampsEventGirls, JSON.stringify(eventChamps));
             }
 
 
@@ -132,24 +160,24 @@ export class EventModule {
             });
             if(Object.keys(eventsGirlz).length === 0)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventsGirlz');
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsGirlz);
             }
             else
             {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz", JSON.stringify(eventsGirlz));
+                setStoredValue(HHStoredVarPrefixKey+TK.eventsGirlz, JSON.stringify(eventsGirlz));
             }
 
             if (!eventList.hasOwnProperty(eventGirl.event_id) || eventGirl.event_id ===inEventID)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventGirl');
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventGirl);
             }
 
             if (!eventList.hasOwnProperty(eventMythicGirl.event_id) || eventMythicGirl.event_id === inEventID)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_eventMythicGirl');
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventMythicGirl);
             }
 
-            setStoredValue(HHStoredVarPrefixKey+"Temp_eventsList", JSON.stringify(eventList));
+            setStoredValue(HHStoredVarPrefixKey+TK.eventsList, JSON.stringify(eventList));
         }
     }
 
@@ -175,7 +203,7 @@ export class EventModule {
                                     +`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted',"tooltip")}" />`
                                 +`</div>`);
 
-                    const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList")):{};
+                    const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
                     for (let eventID of Object.keys(eventList))
                     {
                         if (eventList[eventID]["isCompleted"])
@@ -232,14 +260,14 @@ export class EventModule {
                 }
             }
             queryEventTabCheck[0].setAttribute('parsed', 'true');
-            const hhEventData:any = unsafeWindow.event_data || unsafeWindow.current_event;
+            const hhEventData: HHEventData = unsafeWindow.event_data || unsafeWindow.current_event;
             logHHAuto(`On event page : ${eventID} (${hhEventData?.event_name || ''})`);
             EventModule.clearEventData(eventID);
             //let eventsGirlz=[];
-            let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList")):{};
-            let eventsGirlz: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz")):[];
-            let eventChamps: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls")):[];
-            let Priority: string[] =(getStoredValue(HHStoredVarPrefixKey+"Setting_eventTrollOrder") || '').split(";");
+            let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+            let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
+            let eventChamps: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
+            let Priority: string[] =(getStoredValue(HHStoredVarPrefixKey+SK.eventTrollOrder) || '').split(";");
             if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
                 logHHAuto("Error getting current event Data from HH.");
             }
@@ -291,11 +319,11 @@ export class EventModule {
             }
             if(Object.keys(eventList).length >0)
             {
-                setStoredValue(HHStoredVarPrefixKey+"Temp_eventsList", JSON.stringify(eventList));
+                setStoredValue(HHStoredVarPrefixKey+TK.eventsList, JSON.stringify(eventList));
             }
             else
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+"Temp_eventsList");
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
             }
             eventsGirlz = eventsGirlz.filter(function (a) {
                 var a_weighted = Number(Priority.indexOf(''+a.troll_id));
@@ -333,12 +361,12 @@ export class EventModule {
                         //logHHAuto({log:"Sorted EventGirls",eventGirlz:eventsGirlz});
                     }
 
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz", JSON.stringify(eventsGirlz));
+                    setStoredValue(HHStoredVarPrefixKey+TK.eventsGirlz, JSON.stringify(eventsGirlz));
                     EventModule.saveEventGirl(eventsGirlz[0]);
                 }
                 if (eventChamps.length>0)
                 {
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls", JSON.stringify(eventChamps));
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoChampsEventGirls, JSON.stringify(eventChamps));
                 }
                 queryEventTabCheck[0].setAttribute('parsed', 'true');
                 //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", "20000");
@@ -369,19 +397,19 @@ export class EventModule {
         var chosenTroll = Number(eventGirlz.troll_id)
         logHHAuto("ET: " + chosenTroll);
         if (!eventGirlz.is_mythic) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_eventGirl", JSON.stringify(eventGirlz));
+            setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
         } else {
-            // setStoredValue(HHStoredVarPrefixKey + "Temp_eventGirl", JSON.stringify(eventGirlz)); // TODO remove when migration is done
-            setStoredValue(HHStoredVarPrefixKey + "Temp_eventMythicGirl", JSON.stringify(eventGirlz));
+            // setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz)); // TODO remove when migration is done
+            setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
         }
     }
 
     static getEventGirl(): EventGirl{
-        return isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventGirl")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventGirl")) : {}
+        return getStoredJSON<EventGirl>(HHStoredVarPrefixKey + TK.eventGirl, {} as EventGirl)
     }
 
     static getEventMythicGirl(): EventGirl{
-        return isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventMythicGirl")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventMythicGirl")) : {}
+        return getStoredJSON<EventGirl>(HHStoredVarPrefixKey + TK.eventMythicGirl, {} as EventGirl)
     }
 
     static getEventType(inEventID:string){
@@ -400,12 +428,12 @@ export class EventModule {
         return "";
     }
 
-    static getEvent(inEventID:string){
+    static getEvent(inEventID:string): HHEvent {
         const eventType = EventModule.getEventType(inEventID);
-        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey+"Setting_plusEvent") ==="true";
-        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+"Setting_plusEventMythic") ==="true";
-        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+"Setting_bossBangEvent") ==="true";
-        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+"Setting_sultryMysteriesEventRefreshShop") === "true" && SultryMysteries.isEnabled();
+        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true";
+        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true";
+        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) ==="true";
+        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+SK.sultryMysteriesEventRefreshShop) === "true" && SultryMysteries.isEnabled();
         const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
         const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg'));
         const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
@@ -430,7 +458,7 @@ export class EventModule {
 
     static getEventIDsByType(inType:string):string[] {
         let eventIDs:string[] = [];
-        let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) : {};
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         for (let eventID of Object.keys(eventList))
         {
             if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
@@ -442,7 +470,7 @@ export class EventModule {
 
     static isEventActive(inEventID:string)
     {
-        let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) : {};
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
             return eventList[inEventID]["seconds_before_end"]>new Date()
         }
@@ -451,7 +479,7 @@ export class EventModule {
 
     static checkEvent(inEventID:string)
     {
-        let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList")):{};
+        let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
         const hhEvent = EventModule.getEvent(inEventID);
         if(!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled)
         {
@@ -506,7 +534,7 @@ export class EventModule {
 
     static hideOwnedGilrs() 
     {
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_hideOwnedGirls") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.hideOwnedGirls) === "true") {
             if ($('.nc-event-list-reward.already-owned').length > 10 && $('.nc-event-list-reward.girl_ico').length > 30) {
                 $('.nc-event-list-reward.already-owned').parent().hide();
             }
@@ -519,8 +547,8 @@ export class EventModule {
         const baseQuery:string = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
         EventModule.displayPrioInDailyMissionGirl(baseQuery);
 
-        let eventGirlz:EventGirl[]=isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz")):[];
-        let eventChamps:EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls")):[];
+        let eventGirlz:EventGirl[]=getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
+        let eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
         //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
         if ( eventGirlz.length >0 || eventChamps.length >0)
         {
@@ -635,7 +663,7 @@ export class EventModule {
     }
     static collectEventChestIfPossible()
     {
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_collectEventChest") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey+SK.collectEventChest) === "true") {
             const eventChestId = "#extra-rewards-claim-btn:not([disabled])";
             if ($(eventChestId).length > 0) {
                 logHHAuto("Collect event chest");
@@ -724,44 +752,44 @@ export class EventModule {
             }
             parseForEventId(dpEventQuery,eventIDs);
 
-            if(getStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollect") === "true" && $(dpEventQuery).length == 0)
+            if(getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true" && $(dpEventQuery).length == 0)
             {
                 logHHAuto("No double penetration event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autodpEventCollect", "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect, "false");
             }
             // LivelyScene
             parseForEventId(livelySceneEventQuery,eventIDs);
 
-            if (getStoredValue(HHStoredVarPrefixKey +"Setting_autoLivelySceneEventCollect") === "true" && $(livelySceneEventQuery).length == 0)
+            if (getStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length == 0)
             {
                 logHHAuto("No Lively Scene event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey +"Setting_autoLivelySceneEventCollect", "false");
+                setStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect, "false");
             }
             queryResults=$(seasonalEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollect") === "true" || getStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollectAll") === "true") && queryResults.length == 0)
+            if((getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true") && queryResults.length == 0)
             {
                 logHHAuto("No seasonal event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollect", "false");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoSeasonalEventCollectAll", "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect, "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll, "false");
             }
             queryResults=$(povEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollect") === "true" || getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollectAll") === "true") && queryResults.length == 0)
+            if((getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true") && queryResults.length == 0)
             {
                 logHHAuto("No pov event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollect", "false");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollectAll", "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect, "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll, "false");
             }
             queryResults=$(pogEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollect") === "true" || getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollectAll") === "true") && queryResults.length == 0)
+            if((getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true") && queryResults.length == 0)
             {
                 logHHAuto("No pog event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollect", "false");
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoPoGCollectAll", "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect, "false");
+                setStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll, "false");
             }
         }
 /*
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsList")) : {};
+            const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) : {};
             for (const eventIDStored of Object.keys(eventList)) {
                 //console.log(eventID);
                 if (!ongoingEventIDs.includes(eventIDStored)) {

@@ -1,3 +1,8 @@
+// Helper/index.ts
+//
+// Barrel export for all Helper modules. Import from 'Helper/index'
+// instead of reaching into individual files.
+
 export * from './BDSMHelper'
 export * from './ButtonHelper'
 export * from './ConfigHelper'

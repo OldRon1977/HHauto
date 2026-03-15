@@ -1,3 +1,12 @@
+// Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
+//
+// Contests are timed competitive events with milestone rewards. This module
+// checks for claimable contest rewards, tracks contest end timers, and
+// implements the "wait for contest" feature that pauses other automation
+// when a contest requiring specific actions is active.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     ConfigHelper,
     TimeHelper,
@@ -11,11 +20,11 @@ import {
 } from '../Helper/index';
 import { gotoPage } from "../Service/index";
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK } from '../config/index';
 
 export class Contest {
     static getPinfo() {
-        const color = getStoredValue(HHStoredVarPrefixKey + "Setting_waitforContest") !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
+        const color = getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
         return `<li style='color:${color}'>Contest end : ${getTimeLeft('contestRemainingTime')}  / Next : ${getTimeLeft('nextContestTime')}</li>`;
     }
     static getClaimsButton(){
@@ -100,7 +109,7 @@ export class Contest {
         return !checkTimerMustExist('contestRemainingTime') && checkTimerMustExist('nextContestTime');
     }
     static styles(){
-        if(getStoredValue(HHStoredVarPrefixKey+"Setting_compactEndedContests") === "true")
+        if(getStoredValue(HHStoredVarPrefixKey+SK.compactEndedContests) === "true")
         {
             const contestsContainerPath = '#contests > div > div.left_part > .scroll_area > .contest > .contest_header.ended';
             GM_addStyle(contestsContainerPath + ' {'

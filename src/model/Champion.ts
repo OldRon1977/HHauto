@@ -1,3 +1,7 @@
+// Model representing a Champion (boss encounter) in the game.
+// Tracks the champion's index, timer state, whether it has been started,
+// impression level, filter membership, and associated event girls.
+
 export class ChampionModel {
     index: number;
     timer: number=-1;

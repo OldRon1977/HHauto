@@ -1,3 +1,12 @@
+// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
+//
+// Lively Scene is a time-limited event where the player progresses through
+// scenes to earn rewards. This module tracks scene progression, manages
+// event energy, and collects available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Lively Scene event is active)
+//
 import {
     ConfigHelper,
     randomInterval,
@@ -5,6 +14,7 @@ import {
     convertTimeToInt,
     getLimitTimeBeforeEnd,
     getStoredValue,
+    getStoredJSON,
     checkTimer,
     getHHVars,
     RewardHelper,
@@ -14,8 +24,8 @@ import {
 } from "../../Helper/index";
 import { autoLoop, gotoPage } from "../../Service/index";
 import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
-import { KKPuzzlePieces } from "../../model/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { HHEvent, HHEventData, HHEventList, KKPuzzlePieces } from "../../model/index";
 
 export class LivelyScene {
 
@@ -23,7 +33,7 @@ export class LivelyScene {
         return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
     }
 
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 
@@ -41,10 +51,10 @@ export class LivelyScene {
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
 
-        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + "Temp_lseManualCollectAll") === 'true';
+        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
 
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollect") === "true" || manualCollectAll
-            || remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectAll") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" || manualCollectAll
+            || remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true") {
             LivelyScene.goAndCollect(remainingTime, manualCollectAll);
         }
 
@@ -53,9 +63,9 @@ export class LivelyScene {
     static parseClaimableRewards(remainingTime: number, manualCollectAll = false) {
         const claimablePieces: KKPuzzlePieces[] = [];
         const puzzlePieces: KKPuzzlePieces[] = getHHVars('current_event.event_data.puzzle_pieces');
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectablesList")) : [];
-        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollectAll") === "true";
-        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + "Setting_autoLivelySceneEventCollect") === "true");
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
+        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
+        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
 
         // logHHAuto("Checking double penetration event for collectable rewards.");
 
@@ -80,12 +90,12 @@ export class LivelyScene {
     {
         try {
             const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
-            if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + "Temp_lseManualCollectAll", 'true');
+            if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
 
             if (rewards.length > 0) {
                 logHHAuto("Going to collect rewards.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
 
                 for (let currentReward = 0; currentReward < rewards.length; currentReward++) {
                     const reward = rewards[currentReward];
@@ -110,15 +120,15 @@ export class LivelyScene {
             else {
                 logHHAuto("No (more) LivelyScene reward to collect .");
                 setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                setStoredValue(HHStoredVarPrefixKey + "Temp_lseManualCollectAll", 'false');
+                setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
                 //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                // setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "true");
-                //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + "Temp_autoLoopTimeMili")));
+                // setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 return false;
             }
         } catch ({ errName, message }) {
             logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
-            setStoredValue(HHStoredVarPrefixKey + "Temp_lseManualCollectAll", 'false');
+            setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
         }
         return false;
     }
@@ -144,7 +154,7 @@ export class LivelyScene {
     static run(){
         LivelyScene.displayCollectAllButton();
 
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showRewardsRecap") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
             const puzzlePieces: KKPuzzlePieces[] = getHHVars('current_event.event_data.puzzle_pieces');
             if (puzzlePieces.length > 0) {
 

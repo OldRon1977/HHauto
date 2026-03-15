@@ -1,7 +1,19 @@
+// PageNavigationService.ts
+//
+// Centralized page navigation. Translates abstract page IDs into
+// actual URL paths using ConfigHelper, then navigates via
+// window.location after a randomized delay (300-500ms) to look
+// more human-like. Handles Nutaku session token injection.
+//
+// Before navigating, AutoLoop is disabled to prevent firing during
+// the page transition. It re-enables after the new page loads.
+//
+// Used by: Every module that needs to navigate to a game page.
+
 import { ConfigHelper, getPage, queryStringGetParam, randomInterval, setStoredValue, setTimer, url_add_param } from '../Helper/index';
 import { QuestHelper } from '../Module/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 
 // Returns true if on correct page.
 export function gotoPage(page,inArgs={},delay = -1)
@@ -163,7 +175,7 @@ export function gotoPage(page,inArgs={},delay = -1)
 
         togoto = addNutakuSession(togoto) as string;
 
-        setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         logHHAuto('GotoPage : '+togoto+' in '+delay+'ms.');
         setTimeout(function () {window.location.href = window.location.origin + togoto;},delay);
@@ -199,5 +211,5 @@ export function addNutakuSession(togoto: string | Array<string> | Object): strin
 function setLastPageCalled(inPage: string)
 {
     //console.log("testingHome : setting to : "+JSON.stringify({page:inPage, dateTime:new Date().getTime()}));
-    setStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled", JSON.stringify({page:inPage, dateTime:new Date().getTime()}));
+    setStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled, JSON.stringify({page:inPage, dateTime:new Date().getTime()}));
 }

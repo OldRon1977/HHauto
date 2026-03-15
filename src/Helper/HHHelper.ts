@@ -1,3 +1,15 @@
+/**
+ * HHHelper.ts - Safe accessor for the game's global JavaScript variables
+ *
+ * The game exposes state on `unsafeWindow` (or `unsafeWindow.shared` in
+ * some builds) as nested objects like `Hero.infos.id` or `Hero.currencies`.
+ * This helper provides get/set access by dot-separated path strings,
+ * automatically resolving environment-specific variable name overrides
+ * through ConfigHelper and prepending the `shared.` prefix when needed.
+ *
+ * This is the primary bridge between the Tampermonkey sandbox and the
+ * game's runtime state.
+ */
 import { logHHAuto } from '../Utils/index';
 import { ConfigHelper } from "./ConfigHelper";
 

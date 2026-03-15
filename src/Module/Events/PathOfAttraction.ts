@@ -1,6 +1,17 @@
+// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
+// reward tracking.
+//
+// Path of Attraction is a tiered event where the player collects points to
+// unlock reward tiers. This module tracks tier progress, collects available
+// rewards, and manages the event page navigation and timer scheduling.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Attraction event is active)
+//
 import {
     ConfigHelper,
     getStoredValue,
+    getStoredJSON,
     getPage,
     getGoToClubChampionButton,
     RewardHelper,
@@ -15,7 +26,8 @@ import {
 } from "../../Helper/index";
 import { autoLoop } from "../../Service/index";
 import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { HHEvent, HHEventData, HHEventList } from "../../model/index";
 
 class PoaReward {
     tier=0;
@@ -39,11 +51,11 @@ export class PathOfAttraction {
     static getRemainingTime(){
         const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
     
-        if ( $(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+"Temp_PoAEndDate") === undefined) )
+        if ( $(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.PoAEndDate) === undefined) )
         {
             const poATimer = Number(convertTimeToInt($(poATimerRequest).text()));
             setTimer("PoARemainingTime",poATimer);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_PoAEndDate",Math.ceil(new Date().getTime()/1000)+poATimer);
+            setStoredValue(HHStoredVarPrefixKey+TK.PoAEndDate,Math.ceil(new Date().getTime()/1000)+poATimer);
         }
     }
     static runOld(){
@@ -60,7 +72,7 @@ export class PathOfAttraction {
         }
     }
 
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
 
         PathOfAttraction.getRemainingTime();
@@ -68,7 +80,7 @@ export class PathOfAttraction {
         logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
 
         let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
-        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoACollectAll") === "true") {
+        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
             refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
         }
         logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
@@ -92,19 +104,19 @@ export class PathOfAttraction {
                 }
             }
 
-            const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + "Temp_poaManualCollectAll") === 'true';
+            const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
             const poAEnd = getSecondsLeft("PoARemainingTime");
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoACollect") === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoACollectAll") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
                 await PathOfAttraction.goAndCollect(manualCollectAll);
             }
         }
     }
     static styles(){
-        if (getStoredValue(HHStoredVarPrefixKey +"Setting_AllMaskRewards") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey +SK.AllMaskRewards) === "true")
         {
             setTimeout(PathOfAttraction.Hide,500);
         }
-        if (getStoredValue(HHStoredVarPrefixKey + "Setting_showRewardsRecap") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true")
         {
             PathOfAttraction.displayRewardsDiv();
         }
@@ -190,14 +202,14 @@ export class PathOfAttraction {
 
     static async goAndCollect(manualCollectAll = false)
     {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
-        const needToCollect = getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoACollect") === "true";
-        const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoACollectAll") === "true";
-        if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + "Temp_poaManualCollectAll", 'true');
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+        const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
+        const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true";
+        if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
 
         if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll)
         {
-            const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoACollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoACollectablesList")):[];
+            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoPoACollectablesList, []);
     
             logHHAuto("Checking Path of Attraction for collectable rewards.");
             
@@ -229,7 +241,7 @@ export class PathOfAttraction {
             if(numberTiers > 0 && (freeClaimableTiers.length > 0 || paidClaimableTiers.length > 0))
             {
                 logHHAuto(`Collecting rewards, ${freeClaimableTiers.length + paidClaimableTiers.length} rewards to collect , setting autoloop to false`);
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 $(".scroll-area.poa").animate({scrollLeft: 0});
                 await TimeHelper.sleep(randomInterval(300,800));
 
@@ -253,21 +265,21 @@ export class PathOfAttraction {
                 }
 
                 logHHAuto("Path of Attraction collection finished.");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                 return true;
             }
             else
             {
                 logHHAuto("No Path of Attraction reward to collect.");
-                setStoredValue(HHStoredVarPrefixKey + "Temp_poaManualCollectAll", 'false');
+                setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'false');
             }
         }
         return false;
     }
 
     static Hide(){
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey +"Setting_AllMaskRewards") === "true")
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey +SK.AllMaskRewards) === "true")
         {
             let arrayz;
             let nbReward;

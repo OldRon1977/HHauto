@@ -1,3 +1,12 @@
+// ClubChampion.ts -- Automates Club Champion cooperative fights.
+//
+// Club Champions are cooperative boss battles shared among club members. This
+// module manages fight scheduling, energy tracking, and automatic participation
+// in club champion rounds. Requires active club membership (see Club.ts).
+//
+// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     TimeHelper,
     convertTimeToInt,
@@ -14,7 +23,7 @@ import {
 } from '../Helper/index';
 import { gotoPage } from "../Service/index";
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Champion } from './index';
 import { QuestHelper } from "./Quest";
 
@@ -66,7 +75,7 @@ export class ClubChampion {
             {
                 nextClubChampionTime = randomInterval(15*60, 17*60);
             }
-            else if (secsToNextTimer > 7200 && getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubForceStart") === "true")
+            else if (secsToNextTimer > 7200 && getStoredValue(HHStoredVarPrefixKey+SK.autoClubForceStart) === "true")
             {
                 nextClubChampionTime = randomInterval(115*60, 125*60);
             }
@@ -97,7 +106,7 @@ export class ClubChampion {
 
     static resetTimerIfNeeded(): void{
         if ($('button[rel=perform].blue_button_L').length>0 && $('.champions-bottom__rest').length == 0
-            && getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubChamp") === "true") {
+            && getStoredValue(HHStoredVarPrefixKey+SK.autoClubChamp) === "true") {
             const champTimeLeft = getSecondsLeft('nextClubChampionTime');
             if (champTimeLeft > 60) {
                 logHHAuto("Club champion seems available, reduce next timer to 30-60s.");
@@ -128,7 +137,7 @@ export class ClubChampion {
             else
             {
                 const clubChamptionFightActive: boolean = getHHVars('championData.fight.active') || false;
-                const clubChamptionParticipants:any[] = getHHVars('championData.fight.participants') || {};
+                const clubChamptionParticipants:{id_member: number | string; challenge_count: number; [key: string]: unknown}[] = getHHVars('championData.fight.participants') || {};
                 const playerId = HeroHelper.getPlayerId();
                 const userStarted = clubChamptionParticipants.find(participant => participant.id_member == playerId)
                 const playerStarted = clubChamptionFightActive && userStarted && userStarted.challenge_count > 0;
@@ -140,7 +149,7 @@ export class ClubChampion {
                 {
                     logHHAuto("No tickets!");
                     const nextTime = randomInterval(3600, 4000);
-                    if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoChamps") ==="true") {
+                    if (getStoredValue(HHStoredVarPrefixKey+SK.autoChamps) ==="true") {
                         // No ticket for boths
                         setTimer('nextChampionTime', nextTime);
                     }
@@ -149,10 +158,10 @@ export class ClubChampion {
                 }
                 else
                 {
-                    if ((!clubChamptionFightActive || !playerStarted) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoBuildChampsTeam") === "true") {
-                        const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam");
+                    if ((!clubChamptionFightActive || !playerStarted) && getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
+                        const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
                         if (tempChampBuildTeam == "club") {
-                            deleteStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam");
+                            deleteStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
                         } else {
                             logHHAuto("Build team before start");
                             if ($("#updateChampTeamButton").length == 0) {
@@ -163,7 +172,7 @@ export class ClubChampion {
                                 logHHAuto('Cannot build team, no free draft available. Starting champion without building team');
                             } else {
                                 $("#updateChampTeamButton").trigger("click"); // Auto loop false
-                                setStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam", "club");
+                                setStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam, "club");
                                 await TimeHelper.sleep(randomInterval(2000, 5000));
                                 return true; // In next loop started after team build, start champ without building team again
                             }
@@ -182,7 +191,7 @@ export class ClubChampion {
         }
         else if (page==ConfigHelper.getHHScriptVars("pagesIDClub"))
         {
-            deleteStoredValue(HHStoredVarPrefixKey+"Temp_clubChampLimitReached");
+            deleteStoredValue(HHStoredVarPrefixKey+TK.clubChampLimitReached);
             logHHAuto('on clubs');
             const onChampTab = $("div.club-champion-members-challenges:visible").length === 1;
             if (!onChampTab) {
@@ -194,7 +203,7 @@ export class ClubChampion {
             let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
             let noTimer = secsToNextTimer === -1;
     
-            if ((Started || getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubForceStart") === "true") && noTimer)
+            if ((Started || getStoredValue(HHStoredVarPrefixKey+SK.autoClubForceStart) === "true") && noTimer)
             {
                 let ticketUsed = 0;
                 let ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
@@ -202,7 +211,7 @@ export class ClubChampion {
                 {
                     ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
                 }
-                let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubChampMax"));
+                let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoClubChampMax));
                 //console.log(maxTickets, ticketUsed);
                 if (maxTickets > ticketUsed )
                 {
@@ -213,7 +222,7 @@ export class ClubChampion {
                 else
                 {
                     logHHAuto("Max tickets to use on Club Champ reached.");
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_clubChampLimitReached", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.clubChampLimitReached, "true");
                     setTimer('nextClubChampionTime', randomInterval(4*60*60, 5*60*60));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     return false;
@@ -236,7 +245,7 @@ export class ClubChampion {
      * @private
      */
     static _setTimer(nextClubChampionTime: number): void {
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoChamps") ==="true" && getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampAlignTimer") === "true") {
+        if (getStoredValue(HHStoredVarPrefixKey+SK.autoChamps) ==="true" && getStoredValue(HHStoredVarPrefixKey+SK.autoChampAlignTimer) === "true") {
             const champTimeLeft = getSecondsLeft('nextChampionTime');
             if(nextClubChampionTime > 10 && champTimeLeft < 1200 && nextClubChampionTime < 1200) { // align settings
                 // 20 min for standard wait time

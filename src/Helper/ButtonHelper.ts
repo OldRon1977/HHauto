@@ -1,3 +1,10 @@
+/**
+ * ButtonHelper.ts - Reusable HTML button generators for the game UI
+ *
+ * Produces HTML strings for common action buttons injected into the game
+ * page. These are used by automation modules that need to add navigation
+ * shortcuts (e.g., "Change team" or "Go to Club Champion") to the DOM.
+ */
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 

@@ -1,3 +1,7 @@
+// Model representing a girl obtainable during an in-game event.
+// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
+// association, shard count, event timing, and mythic status.
+
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { logHHAuto } from "../Utils/LogUtils";
 import { KKEventGirl } from "./index";

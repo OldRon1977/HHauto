@@ -1,3 +1,11 @@
+// Champion.ts -- Automates the Champions game mode.
+//
+// Handles map navigation, ticket-based fights, and reward collection for the
+// Champions feature. Manages fight energy (tickets), selects opponents, and
+// tracks cooldown timers between rounds.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import { get } from 'jquery';
 import {
     convertTimeToInt,
@@ -5,6 +13,7 @@ import {
     getHHVars,
     getPage,
     getSecondsLeft,
+    getStoredJSON,
     getStoredValue,
     getTextForUI,
     randomInterval,
@@ -15,8 +24,8 @@ import {
     deleteStoredValue
 } from '../Helper/index';
 import { gotoPage } from "../Service/index";
-import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { getHHAjax, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { ChampionModel } from "../model/index";
 import { EventModule } from "./Events/index";
 import { QuestHelper } from "./Quest";
@@ -57,9 +66,9 @@ export class Champion {
             });
             return poses;
         }
-        var getChampMaxLoop = function(){return getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsTeamLoop") !== undefined ? getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsTeamLoop") : 10;}
-        var getMinGirlPower = function(){return getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsGirlThreshold") !== undefined ? getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsGirlThreshold") : 50000;}
-        var getChampSecondLine = function(){return getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsTeamKeepSecondLine") === 'true';}
+        var getChampMaxLoop = function() { return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamLoop) ?? 10; }
+        var getMinGirlPower = function() { return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsGirlThreshold) ?? 50000; }
+        var getChampSecondLine = function(){return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamKeepSecondLine) === 'true';}
 
         //let champTeamButton = '<div style="position: absolute;left: 330px;top: 10px;width:90px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("ChampTeamButton","tooltip")+'</span><label class="myButton" id="ChampTeamButton">'+getTextForUI("ChampTeamButton","elementText")+'</label></div>';
         GM_addStyle('.girl-box__draggable.switching {background-color: #ffb827;}');
@@ -235,7 +244,7 @@ export class Champion {
                 $('#updateChampTeamButton').removeAttr('disabled').text( getTextForUI("updateChampTeamButton","elementText") +' x'+maxLoops);
                 if ($(confirmDraftButtonQuery).length > 0) $(confirmDraftButtonQuery).trigger('click');
 
-                if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoBuildChampsTeam") === "true") {
+                if (getStoredValue(HHStoredVarPrefixKey+SK.autoBuildChampsTeam) === "true") {
                     logHHAuto('Auto team ended, sort girls after build');
                     await TimeHelper.sleep(randomInterval(800, 1200));
                     Champion.orderTeam(champTeam);
@@ -247,7 +256,7 @@ export class Champion {
         };
 
         var findBestTeam = function() {
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
 
             maxLoops = getChampMaxLoop();
@@ -274,11 +283,11 @@ export class Champion {
     }
 
     static getChampionListFromMap(): ChampionModel[] {
-        const Filter = (getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsFilter")||'').split(';').map(s=>Number(s));
+        const Filter = (getStoredValue(HHStoredVarPrefixKey+SK.autoChampsFilter)||'').split(';').map(s=>Number(s));
         const championMap: ChampionModel[] = [];
-        // const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + "Setting_autoChampsForceStart") === "true";
-        const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey + "Setting_autoChampsForceStartEventGirl") === "true";
-        const autoChampsEventGirls = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_autoChampsEventGirls")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_autoChampsEventGirls")) : [];
+        // const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
+        const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStartEventGirl) === "true";
+        const autoChampsEventGirls = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
         const championWithEventGirl = autoChampsEventGirls.map(a => Number(a.champ_id));
         $('span.stage-bar-tier').each(function(i, tier){    
             const champion = new ChampionModel(i, (tier.getAttribute("hh_title")||'').split('/')[0].replace(/[^0-9]/gi, ''), Filter.includes(i+1));
@@ -399,16 +408,16 @@ export class Champion {
                 // champion-healing-tooltip='{"amount":"1,123,123","impression_info":"9,123,123/99,999,999"}'
                 // champion-healing-tooltip='{"impression_info":"0/99,999,999"}'
                 const tooltipData = $('.stage-progress-bar-wrapper[champion-healing-tooltip]').attr('champion-healing-tooltip') || '{"impression_info":"0/1"}';
-                const impressionDone = ((JSON.parse(tooltipData)).impression_info || '0/1').split('/')[0] || '0';
+                const impressionDone = ((safeJsonParse<any>(tooltipData, {})).impression_info || '0/1').split('/')[0] || '0';
                 var TCount=Number($('div.input-field > span')[1].innerText.split(' / ')[1]);
                 var ECount= QuestHelper.getEnergy();
-                logHHAuto("T:"+TCount+" E:"+ECount+" "+(getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsUseEne") ==="true")+" Imp:"+impressionDone);
+                logHHAuto("T:"+TCount+" E:"+ECount+" "+(getStoredValue(HHStoredVarPrefixKey+SK.autoChampsUseEne) ==="true")+" Imp:"+impressionDone);
                 if ( TCount==0)
                 {
                     logHHAuto("No tickets!");
                     const nextTime = randomInterval(3600, 4000);
                     setTimer('nextChampionTime', nextTime);
-                    if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubChamp") ==="true") {
+                    if (getStoredValue(HHStoredVarPrefixKey+SK.autoClubChamp) ==="true") {
                         // no ticket for both
                         setTimer('nextClubChampionTime', nextTime);
                     }
@@ -416,10 +425,10 @@ export class Champion {
                 }
                 else
                 {
-                    if (impressionDone == 0 && getStoredValue(HHStoredVarPrefixKey + "Setting_autoBuildChampsTeam") === "true") {
-                        const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam");
+                    if (impressionDone == 0 && getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
+                        const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
                         if (tempChampBuildTeam == "champ_" + champTeamId) {
-                            deleteStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam");
+                            deleteStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
                         } else {
                             logHHAuto("Build team before start");
                             if ($("#updateChampTeamButton").length == 0) {
@@ -430,7 +439,7 @@ export class Champion {
                                 logHHAuto('Cannot build team, no free draft available. Starting champion without building team');
                             } else {
                                 $("#updateChampTeamButton").trigger("click"); // Auto loop false
-                                setStoredValue(HHStoredVarPrefixKey + "Temp_champBuildTeam", "champ_" + champTeamId);
+                                setStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam, "champ_" + champTeamId);
                                 await TimeHelper.sleep(randomInterval(2000, 5000));
                                 return true; // In next loop started after team build, start champ without building team again
                             }
@@ -449,9 +458,9 @@ export class Champion {
             logHHAuto('on champion map');
 
             const championMap = Champion.getChampionListFromMap();
-            const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsForceStartEventGirl") === "true";
-            const autoChampsEventGirls = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_autoChampsEventGirls")):[];
-            const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsForceStart") === "true";
+            const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStartEventGirl) === "true";
+            const autoChampsEventGirls = getStoredJSON(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
+            const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStart) === "true";
 
             for (let i=0;i<championMap.length;i++)
             {
@@ -476,15 +485,14 @@ export class Champion {
                     if ( autoChampGirlInEvent && $(firstLockedLevelOfChampRequest).length > 0 )
                     {
                         let firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
+                        let parsedFirstLockedLevelOfChamp = safeJsonParse(firstLockedLevelOfChamp, null);
                         if
                             (
-                                firstLockedLevelOfChamp !== undefined
-                                && isJSON(firstLockedLevelOfChamp)
-                                && JSON.parse(firstLockedLevelOfChamp||'').stage.girl_shards
-                                && JSON.parse(firstLockedLevelOfChamp||'').stage.girl_shards.length > 0
+                                parsedFirstLockedLevelOfChamp !== null
+                                && parsedFirstLockedLevelOfChamp.stage.girl_shards
+                                && parsedFirstLockedLevelOfChamp.stage.girl_shards.length > 0
                             )
                         {
-                            let parsedFirstLockedLevelOfChamp = JSON.parse(firstLockedLevelOfChamp||'');
                             for (let girlIt = 0;girlIt < parsedFirstLockedLevelOfChamp.stage.girl_shards.length; girlIt++)
                             {
                                 if (autoChampGirlsIds.includes(parsedFirstLockedLevelOfChamp.stage.girl_shards[girlIt].id_girl) )
@@ -533,8 +541,8 @@ export class Champion {
 
     static findNextChamptionTime(championMap: ChampionModel[]=undefined) {
         if (getPage() == ConfigHelper.getHHScriptVars("pagesIDChampionsMap")) {
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
-            const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampsForceStart") === "true";
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+            const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStart) === "true";
             var minTime = -1; // less than 15min
             var minTimeEnded = -1;
             var currTime: number;
@@ -590,9 +598,9 @@ export class Champion {
      * @private
      */
     static _setTimer(nextChampionTime: number): void {
-        if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoClubChamp") === "true" 
-            && getStoredValue(HHStoredVarPrefixKey+"Setting_autoChampAlignTimer") === "true" 
-            && getStoredValue(HHStoredVarPrefixKey+"Temp_clubChampLimitReached") !== "true")
+        if (getStoredValue(HHStoredVarPrefixKey+SK.autoClubChamp) === "true" 
+            && getStoredValue(HHStoredVarPrefixKey+SK.autoChampAlignTimer) === "true" 
+            && getStoredValue(HHStoredVarPrefixKey+TK.clubChampLimitReached) !== "true")
             {
             const champClubTimeLeft = getSecondsLeft('nextClubChampionTime');
             if(nextChampionTime > 10 && champClubTimeLeft < 1200 && nextChampionTime < 1200) { // align settings

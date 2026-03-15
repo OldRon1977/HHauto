@@ -1,15 +1,19 @@
+// Raw API model for a Penta Drill opponent entry.
+// Contains the opponent's player info (ID, nickname, power) and
+// associated battle rewards.
+
 export class KKPentaDrillOpponents {
     player: {
-        id_fighter: any;
-        nickname: any;
-        total_power: any;
+        id_fighter: number | string;
+        nickname: string;
+        total_power: number;
     }
     rewards: {
-        loot: any;
-        rewards: any;
+        loot: boolean;
+        rewards: Record<string, unknown>[];
         team:{
-            value: any;
-            type: any;
+            value: number | string;
+            type: string;
         }[];
     }
 }

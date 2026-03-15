@@ -1,17 +1,27 @@
+// LoveRaidManager.ts -- Love Raid event: manages raids and tracks girl shards.
+//
+// Love Raids are cooperative events where players raid together for girl shard
+// rewards. This module manages raid participation, tracks collected shards,
+// monitors raid timers, and handles the event page interactions.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Love Raid event is active)
+//
 import {
     checkTimer,
     ConfigHelper,
     getPage,
     getStoredValue,
+    getStoredJSON,
     randomInterval,
     setStoredValue,
-    setTimer, 
+    setTimer,
     getTextForUI,
     getTimeLeft,
     clearTimer} from "../../Helper/index";
     import { gotoPage } from "../../Service/index";
     import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { EventGirl } from "../../model/EventGirl";
 import { LoveRaid } from "../../model/LoveRaid";
 import { KKLoveRaid } from "../../model/index";
@@ -50,7 +60,7 @@ export class LoveRaidManager {
         return raids.sort((a, b) => (a.seconds_until_event_end - b.seconds_until_event_end))[0] || null;
     }
     static getAllRaids(): LoveRaid[] {
-        let raids: LoveRaid[] = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids")) : [];
+        let raids: LoveRaid[] = getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
         return raids;
     }
     static getTrollRaids(): LoveRaid[]{
@@ -63,7 +73,7 @@ export class LoveRaidManager {
         return LoveRaidManager.getAllRaids().filter(raid => raid.raid_module_type === 'season');
     }
     static saveLoveRaids(raids: LoveRaid[]){
-        setStoredValue(HHStoredVarPrefixKey + "Temp_loveRaids", JSON.stringify(raids));
+        setStoredValue(HHStoredVarPrefixKey + TK.loveRaids, JSON.stringify(raids));
     }
 
     static getRaidToFight(raids: LoveRaid[]=[], logging=false): LoveRaid | undefined {
@@ -72,7 +82,7 @@ export class LoveRaidManager {
         }
         let raid: LoveRaid | undefined = undefined;
 
-        let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLoveRaidSelectedIndex");
+        let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
         if (autoRaidSelectedIndex === undefined || autoRaidSelectedIndex === '') {
             autoRaidSelectedIndex = 0;
         } else if(autoRaidSelectedIndex != 0) {
@@ -111,7 +121,7 @@ export class LoveRaidManager {
         return raid;
     }
     static parseRaids(raidNotStarted = false): LoveRaid[] {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const raids: LoveRaid[] = [];
         const kkRaids: KKLoveRaid[] = love_raids != undefined ? love_raids : [];
 
@@ -187,14 +197,14 @@ export class LoveRaidManager {
         return raids.length > 0 ? raids.sort((a, b) => (a.seconds_until_event_start - b.seconds_until_event_start))[0] : undefined;
     }
     static getRaidGirls(): EventGirl[]{
-        let raidsGirls: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_raidGirls")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_raidGirls")) : [];      
+        let raidsGirls: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.raidGirls, []);
         return raidsGirls;
     }
     static isEnabled(){
         return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);// && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
     }
     static isActivated(){
-        return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + "Setting_plusLoveRaid") === "true";
+        return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
     }
     static styles(){
         $('.love-raids-container').removeClass('height-for-ad');

@@ -1,5 +1,15 @@
-import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
-import { 
+// LabyrinthAuto.ts -- Auto-battle logic for the labyrinth dungeon.
+//
+// Handles the automated fighting within labyrinth floors: selects difficulty
+// levels, initiates fights against enemies, processes battle results, and
+// manages relic selection after completing rooms. Works in tandem with
+// Labyrinth.ts which handles the higher-level floor navigation.
+//
+// Depends on: RelicManager.ts (relic selection after fights)
+// Used by: Labyrinth.ts (called during floor progression)
+//
+import { HHStoredVarPrefixKey, SK, TK } from "../config/index";
+import {
     ConfigHelper,
     getStoredValue,
     queryStringGetParam,
@@ -7,7 +17,7 @@ import {
     RewardHelper,
     setStoredValue,
     setTimer,
-    TimeHelper 
+    TimeHelper
 } from "../Helper/index";
 import { getPage } from "../Helper/PageHelper";
 import { gotoPage } from "../Service/PageNavigationService";
@@ -25,7 +35,7 @@ export class LabyrinthAuto {
     debugEnabled: boolean;
 
     constructor() {
-        this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
     }
 
     async run(): Promise<boolean> {
@@ -40,7 +50,7 @@ export class LabyrinthAuto {
                 await TimeHelper.sleep(randomInterval(2000, 4000));
                 return true;
             } else {
-                const chooseDifficulty = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyDifficultyIndex") || LabyrinthAuto.EASY;
+                const chooseDifficulty = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex) || LabyrinthAuto.EASY;
                 const difficultyToSelect = LabyrinthAuto.LABYRINTH_SELECTOR[parseInt(chooseDifficulty)];
                 const buttonToSelect = $(`.difficulty-button.difficulty-${difficultyToSelect}:not([disabled])`);
 
@@ -95,10 +105,10 @@ export class LabyrinthAuto {
                 }
             }
 
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             if (this.debugEnabled) logHHAuto("setting autoloop to false");
 
-            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabySweep") == "true";
+            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) == "true";
 
             const sweepFloorButton = $('#sweeping-floor:not([disabled])');
             if (autoLabySweep && sweepFloorButton.length > 0) {
@@ -134,7 +144,7 @@ export class LabyrinthAuto {
                 logHHAuto("Go and fight labyrinth :" + templeID);
                 let labyrinthBattleButton = $("#pre-battle .buttons-container .blue_button_L");
                 if (labyrinthBattleButton.length > 0) {
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     logHHAuto("setting autoloop to false");
                     labyrinthBattleButton[0].click();
                 }
@@ -147,7 +157,7 @@ export class LabyrinthAuto {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDEditLabyrinthTeam"));
             } else {
                 logHHAuto("Error in parsing, disable laby.");
-                setStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyrinth", false);
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth, false);
             }
             return true;
         }
@@ -156,7 +166,7 @@ export class LabyrinthAuto {
             const numberOfGirlsRemaining = Labyrinth.getRemainingNumberOfGirl();
             logHHAuto(`Number of girls remaining: ${numberOfGirlsRemaining}`);
             if (numberOfGirlsRemaining >= 7) {
-                const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + "Setting_autoLabyCustomTeamBuilder") == "true";
+                const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
                 if (customTeamBuilder) {
                     Labyrinth.moduleBuildTeam();
                     await TimeHelper.sleep(randomInterval(200, 400));

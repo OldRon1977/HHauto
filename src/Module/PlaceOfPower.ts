@@ -1,9 +1,19 @@
+// PlaceOfPower.ts -- Automates Place of Power: navigates to active PoPs and
+// collects rewards.
+//
+// Places of Power (PoPs) are map locations that grant periodic rewards. This
+// module detects which PoPs are currently active, navigates to them, and
+// collects available rewards on a timed schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     clearTimer,
     convertTimeToInt,
     ConfigHelper,
     getPage,
     getStoredValue,
+    getStoredJSON,
     randomInterval,
     setStoredValue,
     setTimer,
@@ -14,7 +24,7 @@ import {
 } from '../Helper/index';
 import { autoLoop, gotoPage } from '../Service/index';
 import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Harem } from './index';
 
 export class PlaceOfPower {
@@ -38,11 +48,11 @@ export class PlaceOfPower {
     }
 
     static isActivated() {
-        return PlaceOfPower.isEnabled() && getStoredValue(HHStoredVarPrefixKey + "Setting_autoPowerPlaces") === "true";
+        return PlaceOfPower.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlaces) === "true";
     }
 
     static styles(){
-        if(getStoredValue(HHStoredVarPrefixKey+"Setting_compactPowerPlace") === "true")
+        if(getStoredValue(HHStoredVarPrefixKey+SK.compactPowerPlace) === "true")
         {
             const popPagePath = '#pop #pop_info .pop_list';
             const popBtnPath = popPagePath +' .pop-action-btn';
@@ -116,28 +126,28 @@ export class PlaceOfPower {
         }
     }
     static addPopToUnableToStart(popIndex,message){
-        var popUnableToStart=getStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart")?getStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart"):"";
+        var popUnableToStart = getStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart) ?? "";
         logHHAuto(message);
         if (popUnableToStart === "")
         {
-            setStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart", String(popIndex));
+            setStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart, String(popIndex));
         }
         else
         {
-            setStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart", popUnableToStart+";"+String(popIndex));
+            setStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart, popUnableToStart+";"+String(popIndex));
         }
     }
     static cleanTempPopToStart()
     {
-        sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_PopUnableToStart');
-        sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_popToStart');
+        sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopUnableToStart);
+        sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopToStart);
     }
     static removePopFromPopToStart(index)
     {
         var epop;
         var popToSart;
         var newPopToStart;
-        popToSart= getStoredValue(HHStoredVarPrefixKey+"Temp_PopToStart")?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_PopToStart")):[];
+        popToSart= getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
         newPopToStart=[];
         for (epop of popToSart)
         {
@@ -146,7 +156,7 @@ export class PlaceOfPower {
                 newPopToStart.push(epop);
             }
         }
-        setStoredValue(HHStoredVarPrefixKey+"Temp_PopToStart", JSON.stringify(newPopToStart));
+        setStoredValue(HHStoredVarPrefixKey+TK.PopToStart, JSON.stringify(newPopToStart));
     }
 
     static async collectAndUpdate()
@@ -161,13 +171,13 @@ export class PlaceOfPower {
         else
         {
             logHHAuto("On powerplaces main page.");
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
 
-            setStoredValue(HHStoredVarPrefixKey+"Temp_Totalpops", $("div.pop_list div[pop_id]").length); //Count how many different POPs there are and store them locally
-            logHHAuto("totalpops : "+getStoredValue(HHStoredVarPrefixKey+"Temp_Totalpops"));
+            setStoredValue(HHStoredVarPrefixKey+TK.Totalpops, $("div.pop_list div[pop_id]").length); //Count how many different POPs there are and store them locally
+            logHHAuto("totalpops : "+getStoredValue(HHStoredVarPrefixKey+TK.Totalpops));
             var newFilter="";
-            if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesInverted") === "true")
+            if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesInverted) === "true")
             {
                 // starting from last one.
                 $("div.pop_list div[pop_id]").each(function(){newFilter=';'+$(this).attr('pop_id')+newFilter;});
@@ -176,11 +186,11 @@ export class PlaceOfPower {
             {
                 $("div.pop_list div[pop_id]").each(function(){newFilter=newFilter+';'+$(this).attr('pop_id');});
             }
-            if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesAll") === "true")
+            if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesAll) === "true")
             {
-                setStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesIndexFilter", newFilter.substring(1));
+                setStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesIndexFilter, newFilter.substring(1));
             }
-            setStoredValue(HHStoredVarPrefixKey+"Temp_currentlyAvailablePops",newFilter.substring(1))
+            setStoredValue(HHStoredVarPrefixKey+TK.currentlyAvailablePops,newFilter.substring(1))
             //collect all
             let buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
             if ($(buttonClaimQuery).length >0)
@@ -195,8 +205,10 @@ export class PlaceOfPower {
 
 
 
-            var filteredPops = getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesIndexFilter")?getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesIndexFilter").split(";"):[];
-            var popUnableToStart = getStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart")?getStoredValue(HHStoredVarPrefixKey+"Temp_PopUnableToStart").split(";"):[];
+            const filteredPopsStr = getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesIndexFilter);
+            var filteredPops = filteredPopsStr ? filteredPopsStr.split(";") : [];
+            const popUnableToStartStr = getStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart);
+            var popUnableToStart = popUnableToStartStr ? popUnableToStartStr.split(";") : [];
             //logHHAuto("filteredPops : "+filteredPops);
             var PopToStart:number[]=[];
             $("div.pop_thumb[status='pending_reward']").each(function()
@@ -248,7 +260,7 @@ export class PlaceOfPower {
                     //force check of PowerPlaces every 7 hours // TODO: check time 20min != 7h
                     setTimer('minPowerPlacesTime',randomInterval(20*60, 25*60));
                 }
-                else if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesWaitMax") === "true" && maxTime != -1)
+                else if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesWaitMax) === "true" && maxTime != -1)
                 {
                     setTimer('minPowerPlacesTime',Number(maxTime) + randomInterval(2*60, 5*60));
                 }
@@ -278,18 +290,18 @@ export class PlaceOfPower {
             });
             if (PopToStart.length === 0)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_PopUnableToStart');
+                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopUnableToStart);
             }
             logHHAuto("build popToStart : "+PopToStart);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_PopToStart", JSON.stringify(PopToStart));
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")));
+            setStoredValue(HHStoredVarPrefixKey+TK.PopToStart, JSON.stringify(PopToStart));
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
             return false;
         }
     }
 
     
-    static girlPower(powerRemaining:number, girlList:any[], selectedGirls:any[]):any[] {
+    static girlPower(powerRemaining:number, girlList:{id: number; power: number}[], selectedGirls:{id: number; power: number}[]):{id: number; power: number}[] {
         let subList = girlList;
         if (subList.length>0){
             let currentGirl = subList.pop();
@@ -307,14 +319,14 @@ export class PlaceOfPower {
     {
         if(getPage() !== "powerplace"+index)
         {
-            if (getStoredValue(HHStoredVarPrefixKey + "Temp_PopTargeted") != null && index === getStoredValue(HHStoredVarPrefixKey + "Temp_PopTargeted")) {
+            if (getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted) != null && index === getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted)) {
                 PlaceOfPower.addPopToUnableToStart(index, "Navigation to powerplace" + index + " page failed back to home page.");
                 PlaceOfPower.removePopFromPopToStart(index);
-                deleteStoredValue(HHStoredVarPrefixKey + "Temp_PopTargeted");
+                deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
             } else {
                 logHHAuto("Navigating to powerplace" + index + " page.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", index: index });
-                setStoredValue(HHStoredVarPrefixKey + "Temp_PopTargeted", index);
+                setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
             }
             // return busy
             return true;
@@ -322,8 +334,8 @@ export class PlaceOfPower {
         else
         {
             logHHAuto("On powerplace"+index+" page.");
-            deleteStoredValue(HHStoredVarPrefixKey + "Temp_PopTargeted");
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey+"Temp_Debug")==='true';
+            deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
 
             //getting reward in case failed on main page
             var querySelectorText = "button[rel='pop_claim']:not([style*='display:none']):not([style*='display: none'])";
@@ -332,7 +344,7 @@ export class PlaceOfPower {
                 $(querySelectorText).trigger("click");
                 logHHAuto("Claimed powerplace"+index);
                 await TimeHelper.sleep(randomInterval(200, 500));
-                if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesAll") !== "true")
+                if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesAll) !== "true")
                 {
                     PlaceOfPower.cleanTempPopToStart();
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"));
@@ -348,7 +360,7 @@ export class PlaceOfPower {
             }
 
 
-            if (getStoredValue(HHStoredVarPrefixKey+"Setting_autoPowerPlacesPrecision") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesPrecision) === "true") {
                 if (document.getElementsByClassName("acting-power-text").length>0) {
                     PlaceOfPower.selectGirls()
                     await TimeHelper.sleep(randomInterval(200, 500));
@@ -437,14 +449,14 @@ export class PlaceOfPower {
 
     static selectGirls()
     {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey+"Temp_Debug")==='true';
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
 
         // How much power is needed
         const powerNeeded = PlaceOfPower.getPowerNeeded();
 
         // Goal is to select girls which add to required power without going over
         // Once completed, if the time will be under 7.5 hours, proceed
-        let girlsList:any[] = [];
+        let girlsList:{id: number; power: number}[] = [];
         if (document.querySelectorAll('[girl]').length>0) {
             let availGirls = document.querySelectorAll('[girl]');
             availGirls.forEach(girl=>{
@@ -471,10 +483,10 @@ export class PlaceOfPower {
         };
     }
 
-    static chooseGirlsTeam(powerText:number, girlsList:any[])
+    static chooseGirlsTeam(powerText:number, girlsList:{id: number; power: number}[])
     {
         //Debug can be enabled by manually setting "HHAuto_Temp_Debug" to true in browser console
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey+"Temp_Debug")==='true';
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
         let startTime = 0;
         if (debugEnabled) {
             logHHAuto("PoP debug is enabled");
@@ -482,7 +494,7 @@ export class PlaceOfPower {
             startTime = performance.now();
         }
 
-        let girlOptions:any[] = [];
+        let girlOptions:{id: number; power: number}[][] = [];
 
         for (let i = girlsList.length - 1; i >= 0; i--) {
             const loopGirls = girlsList.slice(0, i + 1);
@@ -492,7 +504,7 @@ export class PlaceOfPower {
         };
 
         let teamScore = 0;
-        let chosenTeam:any[] = [];
+        let chosenTeam:{id: number; power: number}[] = [];
         girlOptions.forEach((theseGirls) => {
             let thisPower = 0;
             theseGirls.forEach((girl) => {
@@ -524,7 +536,7 @@ export class PlaceOfPower {
             const endTime = performance.now();
             logHHAuto("PoP precision: calculating this team took "+ (endTime-startTime) +"ms");
             let teamPower = 0;
-            chosenTeam.forEach((girl:any) => {
+            chosenTeam.forEach((girl) => {
                 teamPower += girl.power;
             });
             logHHAuto("PoP teamPower:" + teamPower);

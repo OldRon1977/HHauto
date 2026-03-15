@@ -1,11 +1,21 @@
+// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
+//
+// Boss Bang is a club-wide cooperative event where members contribute damage
+// to shared bosses. This module parses event page data, tracks boss HP and
+// timers, and automates participation in boss fights when energy is available.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Boss Bang event is active)
+//
 import { ConfigHelper, convertTimeToInt, getPage, getStoredValue, randomInterval, setStoredValue, setTimer, TimeHelper } from "../../Helper/index";
 import { addNutakuSession, gotoPage } from "../../Service/index";
 import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { HHEvent, HHEventData, HHEventList } from "../../model/index";
 import { EventModule } from "./EventModule";
 
 export class BossBang {
-    static parse(hhEvent: any, eventList: any, hhEventData: any) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 
@@ -21,7 +31,7 @@ export class BossBang {
         eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
         let teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
         let teamFound = false;
-        const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + "Setting_bossBangMinTeam");
+        const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
         if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
             // Do not trigger event if not all teams are set
             for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
@@ -34,7 +44,7 @@ export class BossBang {
                         if (!teamz.hasClass('.selected-hero-team')) teamz.click();
                         teamFound = true;
                         logHHAuto("Select team " + (teamIndex + 1) + ", Ego: " + parseInt(teamEgo.text()));
-                        setStoredValue(HHStoredVarPrefixKey + "Temp_bossBangTeam", teamIndex);
+                        setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, teamIndex);
                         return true;
                     }
                 } else {
@@ -45,13 +55,13 @@ export class BossBang {
         }
         else if (eventList[eventID]["isCompleted"]) {
             logHHAuto("Boss bang completed, disabled boss bang event setting");
-            setStoredValue(HHStoredVarPrefixKey + "Setting_bossBangEvent", false);
+            setStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent, false);
         }
         else {
             logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
         }
         if (!teamFound) {
-            setStoredValue(HHStoredVarPrefixKey + "Temp_bossBangTeam", -1);
+            setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, -1);
         }
     }
 
@@ -63,24 +73,24 @@ export class BossBang {
         {
             logHHAuto("Click get rewards bang fight");
             rewardsButton.trigger('click');
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         }
         else if(skipFightButton.length > 0)
         {
             logHHAuto("Click skip boss bang fight");
             skipFightButton.trigger('click');
             setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         }
     }
 
     static async goToFightPage(bossbangEventID: string) {
         if(getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") ){
-            const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey+"Temp_bossBangTeam"));
+            const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey+TK.bossBangTeam));
             let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
             if(teamIndexFound >= 0 && bangButton.length > 0) {
                 logHHAuto("Go to boss bang fight page");
-                setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 location.href = addNutakuSession(bangButton.attr('href')) as string;
                 await TimeHelper.sleep(randomInterval(3000, 5000));
                 return true;

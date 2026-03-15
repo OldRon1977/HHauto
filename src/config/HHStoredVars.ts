@@ -1,3 +1,7 @@
+// Registry of all stored variables (settings and temporary state) for HHAuto.
+// Defines each variable's storage type (setting vs. temp), default value,
+// validation regex, UI label, and type. Used by the settings menu and storage layer.
+
 import {
     clearTimer,
     deleteStoredValue,
@@ -58,6 +62,28 @@ HHStoredVars[HHStoredVarPrefixKey+"Setting_autoBuyBoosters"] =
 HHStoredVars[HHStoredVarPrefixKey+"Setting_autoBuyBoostersFilter"] =
     {
     default:"B1;B2;B3;B4",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"List",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoosters"] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoostersSlots"] =
+    {
+    default:"B1;B1;B2;B4",
     storage:"Storage()",
     HHType:"Setting",
     valueType:"List",

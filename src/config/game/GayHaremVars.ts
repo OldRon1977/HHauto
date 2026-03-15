@@ -1,3 +1,7 @@
+// Game-variant configuration for Gay Harem.
+// Provides domain-to-environment mapping, troll names, and quest data
+// specific to the Gay Harem game variant.
+
 export class GayHarem {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Bella
     static trollIdMapping = {};

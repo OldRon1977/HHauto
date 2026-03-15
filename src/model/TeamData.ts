@@ -1,3 +1,6 @@
+// Model representing the player's team composition and scroll inventory.
+// Contains the list of team girls and counts for each scroll rarity tier.
+
 import { KKTeamGirl } from "./KK/KKTeamGirl";
 
 export class TeamData {

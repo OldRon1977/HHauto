@@ -1,8 +1,17 @@
+// DailyGoals.ts -- Automates daily goals: claims rewards and tracks refresh timers.
+//
+// The game offers daily goals with rewards upon completion. This module
+// monitors goal completion status, claims available rewards, and manages
+// the refresh timer so goals are checked at appropriate intervals.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     RewardHelper,
     checkTimer,
     ConfigHelper,
     getPage,
+    getStoredJSON,
     getStoredValue,
     randomInterval,
     setStoredValue,
@@ -11,12 +20,12 @@ import {
 } from '../Helper/index';
 import { gotoPage } from "../Service/index";
 import { callItOnce, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { KKDailyGoal } from '../model/index';
 
 export class DailyGoals {
     static isAutoDailyGoalsActivated(): boolean{
-        return getStoredValue(HHStoredVarPrefixKey + "Setting_autoDailyGoals") === "true";
+        return getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoals) === "true";
     }
 
     static getNewGoalsTimer() {
@@ -33,7 +42,7 @@ export class DailyGoals {
         if ($("#daily_goals #ad_activities").length) {
             $("#daily_goals .daily-goals-objectives-container").removeClass('height-for-ad').removeClass('height-with-ad');
         }
-        if(getStoredValue(HHStoredVarPrefixKey+"Setting_compactDailyGoals") === "true")
+        if(getStoredValue(HHStoredVarPrefixKey+SK.compactDailyGoals) === "true")
         {
             const dailGoalsContainerPath = '#daily_goals .daily-goals-container .daily-goals-left-part .daily-goals-objectives-container';
             GM_addStyle(dailGoalsContainerPath + ' {'
@@ -80,16 +89,16 @@ export class DailyGoals {
     }
     static goAndCollect(): boolean
     {
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autoDailyGoalsCollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autoDailyGoalsCollectablesList")):[];
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList, []);
         //console.log(rewardsToCollect.length);
-        if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autoDailyGoalsCollect") === "true")
+        if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true")
         {
             //console.log(getPage());
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals"))
             {
                 try{
                     logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     const nextDailyGoalsTimer = DailyGoals.getNewGoalsTimer();
                     let buttonsToCollect:HTMLElement[] = [];
                     const listDailyGoalsTiersToClaim = $("#daily_goals .progress-section .progress-bar-rewards-container .progress-bar-reward");
@@ -198,13 +207,13 @@ export class DailyGoals {
             logHHAuto("Can't parse Daily Goals");
         }
 
-        setStoredValue(HHStoredVarPrefixKey + "Temp_dailyGoalsList", JSON.stringify(supportedGoals));
+        setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(supportedGoals));
         logHHAuto("Daily Goals", supportedGoals);
         return supportedGoals;
     }
 
     static _isDailyGoalType(anchor: string, update: boolean) {
-        let dailyGoals: KKDailyGoal[] = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_dailyGoalsList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_dailyGoalsList")) : [];
+        let dailyGoals: KKDailyGoal[] = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
         let find = false;
         if (dailyGoals && dailyGoals.length > 0) {
             for (let currentTier = 0; currentTier < dailyGoals.length; currentTier++) {
@@ -218,7 +227,7 @@ export class DailyGoals {
                     }
             }
             if (find)
-                setStoredValue(HHStoredVarPrefixKey + "Temp_dailyGoalsList", JSON.stringify(dailyGoals));
+                setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(dailyGoals));
         }
         return find;
     }

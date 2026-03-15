@@ -1,3 +1,26 @@
+// StartService.ts
+//
+// One-time initialization that runs when the script first loads on a
+// game page. Responsibilities:
+//
+//   - Version migration: detects script version changes and runs
+//     data migrations (e.g. consolidating mask reward settings)
+//   - Environment checks: verifies jQuery is loaded, Hero object
+//     exists, and the user is logged in before proceeding
+//   - Menu setup: creates the HHAuto settings menu, populates
+//     dynamic dropdowns (troll targets, league sort, labyrinth),
+//     and binds all event handlers
+//   - UI injection: adds the pInfo overlay, hides cross-game promo
+//     banners, moves ads, and sets up the debug dialog
+//   - Auto-loop start: restores timers from storage, applies
+//     defaults, then kicks off the first autoLoop() call
+//
+// The hardened_start() function is the true entry point, called both
+// immediately and after a 5-second delay as a fallback. It guards
+// against missing jQuery and "Forbidden" error pages.
+//
+// Used by: src/index.ts (entry point)
+
 import {
     addEventsOnMenuItems,
     ConfigHelper,
@@ -10,6 +33,7 @@ import {
     getMenuValues,
     getPage,
     getStorageItem,
+    getStoredJSON,
     getStoredValue,
     getTextForUI,
     getTimeLeft,
@@ -51,7 +75,9 @@ import {
 } from '../Utils/index';
 import {
     HHStoredVarPrefixKey,
-    HHStoredVars
+    HHStoredVars,
+    SK,
+    TK
 } from '../config/index';
 import { AdsService } from './AdsService';
 import { autoLoop, getBurst } from "./AutoLoop";
@@ -67,28 +93,28 @@ var debugMenuID;
 export class StartService {
     static checkVersion()
     {
-        let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + "Temp_scriptversion");
+        let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
         if (previousScriptVersion != GM.info.script.version) {
             // run action on new script version
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
-            setStoredValue(HHStoredVarPrefixKey + "Temp_scriptversion", GM.info.script.version);
+            setStoredValue(HHStoredVarPrefixKey + TK.scriptversion, GM.info.script.version);
 
             if ('7.26.0' === GM.info.script.version) {
                 // sett all mask rewards to true if any of the previous individual mask rewards where true
                 let maskReward = false;
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_PoAMaskRewards") === "true") maskReward = true;
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_PoVMaskRewards") === "true") maskReward = true;
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_PoGMaskRewards") === "true") maskReward = true;
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_SeasonMaskRewards") === "true") maskReward = true;
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_SeasonalEventMaskRewards") === "true") maskReward = true;
-                setStoredValue(HHStoredVarPrefixKey + "Setting_AllMaskRewards", maskReward);
+                if (getStoredValue(HHStoredVarPrefixKey + SK.PoAMaskRewards) === "true") maskReward = true;
+                if (getStoredValue(HHStoredVarPrefixKey + SK.PoVMaskRewards) === "true") maskReward = true;
+                if (getStoredValue(HHStoredVarPrefixKey + SK.PoGMaskRewards) === "true") maskReward = true;
+                if (getStoredValue(HHStoredVarPrefixKey + SK.SeasonMaskRewards) === "true") maskReward = true;
+                if (getStoredValue(HHStoredVarPrefixKey + SK.SeasonalEventMaskRewards) === "true") maskReward = true;
+                setStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards, maskReward);
 
                 // delete old individual mask rewards settings
-                deleteStoredValue(HHStoredVarPrefixKey + "Setting_PoAMaskRewards");
-                deleteStoredValue(HHStoredVarPrefixKey + "Setting_PoVMaskRewards");
-                deleteStoredValue(HHStoredVarPrefixKey + "Setting_PoGMaskRewards");
-                deleteStoredValue(HHStoredVarPrefixKey + "Setting_SeasonMaskRewards");
-                deleteStoredValue(HHStoredVarPrefixKey + "Setting_SeasonalEventMaskRewards");
+                deleteStoredValue(HHStoredVarPrefixKey + SK.PoAMaskRewards);
+                deleteStoredValue(HHStoredVarPrefixKey + SK.PoVMaskRewards);
+                deleteStoredValue(HHStoredVarPrefixKey + SK.PoGMaskRewards);
+                deleteStoredValue(HHStoredVarPrefixKey + SK.SeasonMaskRewards);
+                deleteStoredValue(HHStoredVarPrefixKey + SK.SeasonalEventMaskRewards);
             }
         }
     }
@@ -183,13 +209,13 @@ export function start() {
     
     const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
     const id_world = getHHVars('Hero.infos.questing.id_world');
-    if (isMainAdventure) setStoredValue(HHStoredVarPrefixKey + "Temp_MainAdventureWorldID", id_world); 
-    else setStoredValue(HHStoredVarPrefixKey + "Temp_SideAdventureWorldID", id_world); 
+    if (isMainAdventure) setStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID, id_world);
+    else setStoredValue(HHStoredVarPrefixKey + TK.SideAdventureWorldID, id_world);
 
-    if (getStoredValue(HHStoredVarPrefixKey + "Setting_leagueListDisplayPowerCalc") !== "true" && getStoredValue(HHStoredVarPrefixKey + "Setting_autoLeaguesSortIndex") !== LeagueHelper.SORT_POWERCALC)
+    if (getStoredValue(HHStoredVarPrefixKey + SK.leagueListDisplayPowerCalc) !== "true" && getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSortIndex) !== LeagueHelper.SORT_POWERCALC)
     {
         // remove big var not removed from previous version
-        deleteStoredValue(HHStoredVarPrefixKey+"Temp_LeagueOpponentList");
+        deleteStoredValue(HHStoredVarPrefixKey+TK.LeagueOpponentList);
     }
 
     $('.redirect.gay').hide();
@@ -198,14 +224,14 @@ export function start() {
     $('#starter_offer').hide();
     $('#starter_offer_background').hide();
 
-    if (getStoredValue(HHStoredVarPrefixKey+"Temp_Timers"))
+    if (getStoredValue(HHStoredVarPrefixKey+TK.Timers))
     {
-        setTimers(JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_Timers")));
+        setTimers(getStoredJSON(HHStoredVarPrefixKey+TK.Timers, {}));
     }
     // clearEventData("onlyCheckEventsHHScript");
     setDefaults();
 
-    if (getStoredValue(HHStoredVarPrefixKey+"Setting_mousePause") === "true") {
+    if (getStoredValue(HHStoredVarPrefixKey+SK.mousePause) === "true") {
         bindMouseEvents();
     }
 
@@ -254,7 +280,7 @@ export function start() {
     if (isMainAdventure) {
         lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
     } else {
-        lastTrollIdAvailable = Troll.getLastTrollIdAvailable(false, Number(getStoredValue(HHStoredVarPrefixKey + "Temp_MainAdventureWorldID")));
+        lastTrollIdAvailable = Troll.getLastTrollIdAvailable(false, Number(getStoredValue(HHStoredVarPrefixKey + TK.MainAdventureWorldID)));
     }
     hhAutoMenu.fillTrollSelectMenu(lastTrollIdAvailable);
     hhAutoMenu.fillLoveRaidSelectMenu();
@@ -369,22 +395,22 @@ export function start() {
         currentInput.addEventListener('invalid', () => {
             currentInput.style.backgroundColor = "red";
             //document.getElementById("master").checked = false;
-            //setStoredValue(HHStoredVarPrefixKey+"Setting_master", "false");
+            //setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
         });
         currentInput.checkValidity();
     });
 
 
 
-    setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
-    if (typeof getStoredValue(HHStoredVarPrefixKey+"Temp_freshStart") == "undefined" || isNaN(Number(getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoopTimeMili")))) {
+    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+    if (typeof getStoredValue(HHStoredVarPrefixKey+TK.freshStart) == "undefined" || isNaN(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)))) {
         setDefaults(true);
     }
 
     if (getBurst())
     {
         Market.doShopping();
-        if ( getStoredValue(HHStoredVarPrefixKey+"Setting_autoStatsSwitch") ==="true" )
+        if ( getStoredValue(HHStoredVarPrefixKey+SK.autoStatsSwitch) ==="true" )
         {
             doStatUpgrades();
         }
@@ -395,22 +421,22 @@ export function start() {
         function Alive()
         {
             if(window.top) window.top.postMessage({ImAlive:true},'*');
-            if (getStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop") =="true")
+            if (getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) =="true")
             {
                 setTimeout(Alive,2000);
             }
         }
         Alive();
     }
-    if (isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled")) && JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled")).page?.indexOf(".html") > 0 )
+    if (getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0}).page?.indexOf(".html") > 0 )
     {
         //console.log("testingHome : setting to : "+getPage());
-        setStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled", JSON.stringify({page:getPage(), dateTime:new Date().getTime()}));
+        setStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled, JSON.stringify({page:getPage(), dateTime:new Date().getTime()}));
     }
-    if (isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled")) && JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled")).page === ConfigHelper.getHHScriptVars("pagesIDHome"))
+    if (getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0}).page === ConfigHelper.getHHScriptVars("pagesIDHome"))
     {
         //console.log("testingHome : delete");
-        deleteStoredValue(HHStoredVarPrefixKey+"Temp_LastPageCalled");
+        deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
     }
     getPage(true);
     setTimeout(autoLoop,1000);

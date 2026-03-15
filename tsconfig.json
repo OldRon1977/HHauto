@@ -3,7 +3,8 @@
     "outDir": "./built",
     "allowJs": true,
     "target": "es6",
-    "module": "es2020"
+    "module": "es2020",
+    "lib": ["ES2023", "DOM"]
   },
   "include": ["src/**/*.ts", "spec/**/*.ts"]
 }

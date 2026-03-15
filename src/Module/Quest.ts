@@ -1,3 +1,13 @@
+// Quest.ts -- Automates questing: accepts quests, handles quest steps, and buys
+// energy if configured.
+//
+// Quests are the main PvE progression system. This module accepts available
+// quests, advances through multi-step quest chains, and optionally purchases
+// quest energy when configured to do so. Tracks quest completion and manages
+// the quest page navigation.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 import {
     checkTimer,
     ConfigHelper,
@@ -12,7 +22,7 @@ import {
 } from '../Helper/index';
 import { autoLoop, gotoPage } from '../Service/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 
 export class QuestHelper {
     static SITE_QUEST_PAGE = '/side-quests.html';
@@ -26,8 +36,8 @@ export class QuestHelper {
     }
 
     static getNextQuestLink():string|undefined {
-        const mainQuest = getStoredValue(HHStoredVarPrefixKey+"Setting_autoQuest") === "true";
-        const sideQuest = ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSideQuest") === "true";
+        const mainQuest = getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true";
+        const sideQuest = ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true";
         let nextQuestUrl = QuestHelper.getMainQuestUrl();
 
         if ((mainQuest && sideQuest && (nextQuestUrl.includes("world"))) || (!mainQuest && sideQuest))
@@ -58,8 +68,8 @@ export class QuestHelper {
         // Check if at correct page.
         let page = getPage();
         let mainQuestUrl = QuestHelper.getMainQuestUrl();
-        let doMainQuest = getStoredValue(HHStoredVarPrefixKey+"Setting_autoQuest") === "true" && !mainQuestUrl.includes("world");
-        if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+"Setting_autoSideQuest") === "true") {
+        let doMainQuest = getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
+        if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true") {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
             if (quests.length > 0) {
                 logHHAuto("Navigating to side quest.");
@@ -130,7 +140,7 @@ export class QuestHelper {
                 else
                 {
                     logHHAuto("Quest requires "+proceedCost+" Energy to proceed.");
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_questRequirement", "*"+proceedCost);
+                    setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "*"+proceedCost);
                     return;
                 }
             }
@@ -145,26 +155,26 @@ export class QuestHelper {
                 else
                 {
                     logHHAuto("Need "+proceedCost+" Money to proceed.");
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_questRequirement", "$"+proceedCost);
+                    setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "$"+proceedCost);
                     return;
                 }
             }
             //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "use_item") {
             logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
             //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "battle") {
             logHHAuto("Quest need battle...");
-            setStoredValue(HHStoredVarPrefixKey+"Temp_questRequirement", "battle");
+            setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "battle");
             // Proceed to battle troll.
             //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "finish") {
@@ -172,7 +182,7 @@ export class QuestHelper {
         }
         else if (proceedType === "end_archive") {
             logHHAuto("Reached end of current archive. Proceeding to next archive.");
-            //setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
@@ -184,26 +194,26 @@ export class QuestHelper {
                 return;
             }
             logHHAuto("Reached end of current play. Proceeding to next play.");
-            //setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "outfit") {
             logHHAuto("Change outfit needed.");
             // TODO manage ?
-            setStoredValue(HHStoredVarPrefixKey + "Temp_questRequirement", "outfit");
+            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "outfit");
         }
         else {
             logHHAuto("Could not identify given resume button.");
-            setStoredValue(HHStoredVarPrefixKey+"Temp_questRequirement", "unknownQuestButton");
+            setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "unknownQuestButton");
             return;
         }
-        setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+        setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         setTimeout(function ()
                     {
             proceedButtonMatch.click();
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "true");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
             logHHAuto("setting autoloop to true");
             setTimeout(autoLoop,randomInterval(800,1200));
         },randomInterval(500,800));

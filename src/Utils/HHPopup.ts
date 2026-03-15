@@ -1,5 +1,24 @@
+/**
+ * Custom popup/modal system for the HHAuto userscript.
+ *
+ * Provides a reusable overlay popup that the script uses for its settings
+ * menu, debug information, and user notifications. The popup is injected
+ * into the game's DOM and styled independently so it doesn't conflict
+ * with the game's own modals.
+ *
+ * The popup is lazily created on first use (createHHPopUp) and then
+ * shown/hidden via display toggling on subsequent calls.
+ *
+ * Also includes a helper to auto-dismiss the game's own popup messages
+ * so they don't block automation.
+ */
+
 import { isFocused } from "./Utils";
 
+/**
+ * Internal helper that targets the popup's DOM elements by well-known IDs
+ * to update content, title, and CSS classes without re-creating the popup.
+ */
 class HHPopup {
     static fillContent(content:string) {
         const elem = document.getElementById("HHAutoPopupGlobalContent");
@@ -15,6 +34,11 @@ class HHPopup {
     }
 }
 
+/**
+ * Show the HHAuto popup with the given CSS class, title, and HTML content.
+ * Creates the popup on first call; on subsequent calls it just makes the
+ * existing popup visible again and updates its contents.
+ */
 export function fillHHPopUp(inClass:string,inTitle:string, inContent:string)
 {
     if (document.getElementById("HHAutoPopupGlobal") === null)
@@ -30,6 +54,11 @@ export function fillHHPopUp(inClass:string,inTitle:string, inContent:string)
     HHPopup.fillClasses(inClass);
 }
 
+/**
+ * Build and inject the popup's HTML structure and CSS into the game page.
+ * Registers a click handler on the close button and an Escape key listener
+ * to hide the popup. Called once; after creation the popup is reused.
+ */
 export function createHHPopUp()
 {
     GM_addStyle('#HHAutoPopupGlobal.HHAutoOverlay { overflow: auto;  z-index:1000;   position: fixed;   top: 0;   bottom: 0;   left: 0;   right: 0;   background: rgba(0, 0, 0, 0.7);   transition: opacity 500ms;     display: flex;   align-items: center; }  '
@@ -65,6 +94,12 @@ export function createHHPopUp()
     });
 }
 
+/**
+ * Check whether the HHAuto popup is currently visible.
+ *
+ * @returns The popup's CSS class name string if visible, or `false` if
+ *          the popup doesn't exist or is hidden.
+ */
 export function isDisplayedHHPopUp()
 {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
@@ -80,6 +115,7 @@ export function isDisplayedHHPopUp()
     return popupGlobalPopup.className;
 }
 
+/** Make the HHAuto popup visible (un-hide it). */
 export function displayHHPopUp()
 {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
@@ -91,6 +127,7 @@ export function displayHHPopUp()
     popupGlobal.style.opacity = '1';
 }
 
+/** Hide the HHAuto popup without destroying it, so it can be shown again. */
 export function maskHHPopUp()
 {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
@@ -101,6 +138,14 @@ export function maskHHPopUp()
     }
 }
 
+/**
+ * Auto-dismiss the game's own popup messages so they don't block automation.
+ *
+ * Only clicks the close button when the browser tab is focused (or when
+ * `inBurst` is true), to avoid interfering when the user is on another tab.
+ *
+ * @param inBurst - If true, close the popup even when the tab is not focused.
+ */
 export function checkAndClosePopup(inBurst)
 {
     const popUp = $('#popup_message[style*="display: block"]');

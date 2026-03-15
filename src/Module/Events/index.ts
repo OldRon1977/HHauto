@@ -1,3 +1,5 @@
+// Events/index.ts -- Barrel file re-exporting all event-specific modules.
+// Each module handles a different time-limited game event type.
 export * from './BossBang'
 export * from './CumbackContests'
 export * from './DoublePenetration'

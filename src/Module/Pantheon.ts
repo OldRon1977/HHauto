@@ -1,3 +1,12 @@
+// Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
+//
+// The Pantheon is a PvP arena with its own energy system. This module selects
+// opponents, manages Pantheon-specific fight energy, and handles cooldown
+// timers. Similar to League but uses a separate energy pool and ranking system.
+//
+// Depends on: TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     RewardHelper,
     checkTimer,
@@ -15,7 +24,7 @@ import {
 } from '../Helper/index';
 import { gotoPage, ParanoiaService } from '../Service/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Booster } from "./Booster";
 import { DailyGoals } from './DailyGoals';
 
@@ -30,11 +39,11 @@ export class Pantheon {
     }
 
     static getPinfo() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonRunThreshold")) || 0;
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
 
         let Tegzd = '';
-        const boostLimited = getStoredValue(HHStoredVarPrefixKey+"Setting_autoPantheonBoostedOnly") === "true" && !Booster.haveBoosterEquiped();
+        const boostLimited = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
         if(boostLimited) {
             Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
         }else {
@@ -62,13 +71,13 @@ export class Pantheon {
     }
 
     static isTimeToFight(){
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonRunThreshold")) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+"Temp_PantheonHumanLikeRun") === "true";
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
+        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun) === "true";
 
         const energyAboveThreshold = humanLikeRun && Pantheon.getEnergy() > threshold || Pantheon.getEnergy() > Math.max(threshold, runThreshold-1);
         const paranoiaSpending = Pantheon.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('worship') > 0;
-        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+"Setting_autoPantheonBoostedOnly") === "true";
+        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
 
         const isDailyGoal = DailyGoals.isPantheonDailyGoal();
@@ -92,9 +101,9 @@ export class Pantheon {
             logHHAuto("Remaining worship : "+ current_worship);
             if ( current_worship > 0 )
             {
-                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheonRunThreshold")) || 0;
+                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
                 if (runThreshold > 0) {
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_PantheonHumanLikeRun", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun, "true");
                 }
                 let pantheonButton = $("#pantheon_tab_container .bottom-container .blue_button_L.pantheon-pre-battle-btn");
                 let templeID = queryStringGetParam(new URL(pantheonButton[0].getAttribute("href")||'',window.location.origin).search, 'id_opponent');
@@ -135,14 +144,14 @@ export class Pantheon {
             if (pantheonTempleBattleButton.length >0)
             {
                 //replaceCheatClick();
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 pantheonTempleBattleButton[0].click();
             }
             else
             {
                 logHHAuto("Issue to find temple battle button retry in 60secs. Disabling pantheon battle.");
-                setStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheon", "false");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoPantheon, "false");
                 setTimer('nextPantheonTime', randomInterval(60, 70));
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }

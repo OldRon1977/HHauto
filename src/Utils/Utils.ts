@@ -1,3 +1,7 @@
+// General-purpose utility functions for HHAuto.
+// Provides callItOnce (ensures a function executes only once), safeJsonParse,
+// AJAX response interception helpers, and other shared convenience methods.
+
 import { getStorageItem } from '../Helper/index';
 import { logHHAuto } from "./LogUtils";
 
@@ -88,6 +92,15 @@ export function isJSON(str: any)
     str = str.replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']');
     str = str.replace(/(?:^|:|,)(?:\s*\[)+/g, '');
     return (/^[\],:{}\s]*$/).test(str);
+}
+
+export function safeJsonParse<T>(json: string | undefined | null, defaultValue: T, reviver?: (key: string, value: any) => any): T {
+    if (json === undefined || json === null) return defaultValue;
+    try {
+        return reviver ? JSON.parse(json, reviver) : JSON.parse(json);
+    } catch (e) {
+        return defaultValue;
+    }
 }
 
 

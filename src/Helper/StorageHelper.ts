@@ -1,13 +1,41 @@
+// StorageHelper.ts
+//
+// Abstraction layer over browser localStorage and sessionStorage for
+// persisting all HHAuto settings and temporary state. Every stored
+// variable is registered in HHStoredVars (config/HHStoredVars.ts) with
+// a storage type, default value, and optional validation regex.
+//
+// Key design decisions:
+//   - Settings use localStorage (survive tab close); temp vars use
+//     sessionStorage (reset per session) unless the user enables
+//     per-tab isolation (settPerTab), which puts everything in session.
+//   - All keys are prefixed (HHStoredVarPrefixKey) to avoid collisions
+//     with game data in the same storage.
+//   - Write errors (storage full) trigger a log cleanup and one retry.
+//   - Migration logic (migrateHHVars) handles key prefix changes
+//     between script versions.
+//
+// Also provides export/import of settings as JSON files and a popup
+// for selecting which reward types to auto-collect.
+//
+// Used by: Every module and helper in the project.
+
 import { setDefaults } from '../Service/index';
-import { cleanLogsInStorage, fillHHPopUp, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, HHStoredVars } from '../config/index';
+import { cleanLogsInStorage, fillHHPopUp, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
+import { HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';
 import { ConfigHelper } from "./ConfigHelper";
 import { getMenuValues } from "./HHMenuHelper";
 import { getTextForUI } from "./LanguageHelper";
 
+export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: string, value: any) => any): T {
+    const val = getStoredValue(key);
+    if (val === undefined || val === null) return defaultValue;
+    return safeJsonParse(val, defaultValue, reviver);
+}
+
 export function getStorage()
 {
-    return getStoredValue(HHStoredVarPrefixKey+"Setting_settPerTab") === "true"?sessionStorage:localStorage;
+    return getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true"?sessionStorage:localStorage;
 }
 
 export function getStoredValue(inVarName: string)
@@ -51,7 +79,7 @@ export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,ext
 {
     let storageType;
     let storageName;
-    let currentStorageName = getStoredValue(HHStoredVarPrefixKey+"Setting_settPerTab") ==="true"?"sessionStorage":"localStorage";
+    let currentStorageName = getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) ==="true"?"sessionStorage":"localStorage";
     let variableName;
     let storageItem;
     let varType;
@@ -68,7 +96,7 @@ export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,ext
             {
                 storageName = currentStorageName;
             }
-            if (variableName !== HHStoredVarPrefixKey + "Temp_Logging")
+            if (variableName !== HHStoredVarPrefixKey + TK.Logging)
             {
                 dataToSave[storageName+"."+variableName] = getStoredValue(variableName);
             }
@@ -76,7 +104,7 @@ export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,ext
     }
     if (extractLog)
     {
-        dataToSave[HHStoredVarPrefixKey+"Temp_Logging"] = JSON.parse(sessionStorage.getItem(HHStoredVarPrefixKey+'Temp_Logging') || '');
+        dataToSave[HHStoredVarPrefixKey+TK.Logging] = safeJsonParse(sessionStorage.getItem(HHStoredVarPrefixKey+'Temp_Logging'), {});
     }
     return dataToSave;
 }
@@ -157,13 +185,10 @@ function haveHHAutoSettings() {
 
 export function getUserHHStoredVarDefault(inVarName)
 {
-    if (isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_saveDefaults")))
+    const currentDefaults = getStoredJSON(HHStoredVarPrefixKey+SK.saveDefaults, null);
+    if (currentDefaults !== null && currentDefaults[inVarName] !== undefined)
     {
-        let currentDefaults = JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_saveDefaults"));
-        if (currentDefaults !== null && currentDefaults[inVarName] !== undefined)
-        {
-            return currentDefaults[inVarName];
-        }
+        return currentDefaults[inVarName];
     }
     return null;
 }
@@ -177,12 +202,12 @@ export function saveHHStoredVarsDefaults()
     for(var i of Object.keys(dataToSave))
     {
         let variableName = i.split(".")[1];
-        if (variableName !== HHStoredVarPrefixKey+"Setting_saveDefaults" && HHStoredVars[variableName].default !== dataToSave[i])
+        if (variableName !== HHStoredVarPrefixKey+SK.saveDefaults && HHStoredVars[variableName].default !== dataToSave[i])
         {
             savedHHStoredVars[variableName] = dataToSave[i];
         }
     }
-    setStoredValue(HHStoredVarPrefixKey+"Setting_saveDefaults", JSON.stringify(savedHHStoredVars));
+    setStoredValue(HHStoredVarPrefixKey+SK.saveDefaults, JSON.stringify(savedHHStoredVars));
     logHHAuto("HHStoredVar defaults saved !");
 }
 
@@ -263,7 +288,7 @@ export function debugDeleteAllVars()
     });
     Object.keys(sessionStorage).forEach((key) =>
                                         {
-        if (key.startsWith(HHStoredVarPrefixKey+"Temp_") && key !== HHStoredVarPrefixKey+"Temp_Logging")
+        if (key.startsWith(HHStoredVarPrefixKey+"Temp_") && key !== HHStoredVarPrefixKey+TK.Logging)
         {
             sessionStorage.removeItem(key);
         }
@@ -304,7 +329,7 @@ export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextFo
         +    '<div style="display:flex;">'
         let count = 0;
         const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
-        const rewardsToCollect = isJSON(getStoredValue(inVarName))?JSON.parse(getStoredValue(inVarName)):[];
+        const rewardsToCollect = getStoredJSON(inVarName, []);
         for (let currentItem of Object.keys(possibleRewards))
         {
             //console.log(currentItem,possibleRewards[currentItem]);

@@ -1,3 +1,13 @@
+// PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
+//
+// Path of Value is a tiered event similar to Path of Glory and Path of
+// Attraction, with its own point-based tier progression. This module tracks
+// progress through reward tiers, collects available rewards, and manages
+// event-specific timers and energy.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Value event is active)
+//
 import {
     RewardHelper,
     TimeHelper,
@@ -9,35 +19,36 @@ import {
     getPage,
     getSecondsLeft,
     getStoredValue,
+    getStoredJSON,
     randomInterval,
     setStoredValue,
-    setTimer, 
+    setTimer,
     HeroHelper} from "../../Helper/index";
     import { gotoPage } from "../../Service/index";
     import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { EventModule } from "./EventModule";
 
 export class PathOfValue {
     static getRemainingTime(){
         const poVTimerRequest = '#pov_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
 
-        if ( $(poVTimerRequest).length > 0 && (getSecondsLeft("PoVRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+"Temp_PoVEndDate") === undefined) )
+        if ( $(poVTimerRequest).length > 0 && (getSecondsLeft("PoVRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.PoVEndDate) === undefined) )
         {
             const poVTimer = Number(convertTimeToInt($(poVTimerRequest).text()));
             setTimer("PoVRemainingTime",poVTimer);
-            setStoredValue(HHStoredVarPrefixKey+"Temp_PoVEndDate",Math.ceil(new Date().getTime()/1000)+poVTimer);
+            setStoredValue(HHStoredVarPrefixKey+TK.PoVEndDate,Math.ceil(new Date().getTime()/1000)+poVTimer);
         }
     }
     static displayRemainingTime()
     {
-        EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey+"Temp_PoVEndDate");
+        EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey+TK.PoVEndDate);
     }
     static isEnabled(){
         return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
     }
     static getRewardButtonToCollect(): HTMLElement[] {
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPoVCollectablesList")) : [];
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
 
         let buttonsToCollect: HTMLElement[] = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
@@ -73,7 +84,7 @@ export class PathOfValue {
             const povEnd = getSecondsLeft("PoVRemainingTime");
             logHHAuto("PoV end in " + TimeHelper.debugDate(povEnd));
 
-            if (checkTimer('nextPoVCollectAllTime') && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollectAll") === "true")
+            if (checkTimer('nextPoVCollectAllTime') && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true")
             {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
@@ -90,11 +101,11 @@ export class PathOfValue {
                     setTimer('nextPoVCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                 }
             }
-            if (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPoVCollect") === "true")
+            if (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) === "true")
             {
                 logHHAuto("Checking Path of Valor for collectable rewards.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 let buttonsToCollect:HTMLElement[] = PathOfValue.getRewardButtonToCollect();
 
                 if (buttonsToCollect.length >0)

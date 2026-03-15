@@ -1,3 +1,7 @@
+// Game-variant configuration for Manga RPG.
+// Provides domain-to-environment mapping, troll ID remapping, troll names,
+// and quest data specific to the Manga RPG game variant.
+
 export class MangaRpg {
     static trollIdMapping = { 3: 3 };
     static lastQuestId = -1; //  TODO update when new quest comes

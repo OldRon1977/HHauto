@@ -1,3 +1,7 @@
+// Raw API model for a girl in the player's harem.
+// Maps directly to the harem girl object in the game's API responses,
+// including level, affection, shards, grades, and salary timing.
+
 export class KKHaremGirl {
     id_member: any;
     id_girl: any;

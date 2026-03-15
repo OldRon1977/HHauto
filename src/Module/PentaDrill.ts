@@ -1,3 +1,13 @@
+// PentaDrill.ts -- Automates the Penta Drill game mode: fights, energy tracking,
+// and reward collection.
+//
+// Penta Drill is a combat mode with its own energy and reward system. This
+// module manages fight scheduling, tracks available energy, selects opponents,
+// and collects milestone rewards. Handles the time-limited nature of Penta
+// Drill events.
+//
+// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+//
 import {
     checkTimer,
     ConfigHelper,
@@ -6,6 +16,7 @@ import {
     getPage,
     getSecondsLeft,
     getStoredValue,
+    getStoredJSON,
     getTextForUI,
     getTimeLeft,
     randomInterval,
@@ -20,7 +31,7 @@ import {
     ParanoiaService
 } from "../Service/index";
 import { getHHAjax, isJSON, logHHAuto } from "../Utils/index";
-import { HHStoredVarPrefixKey } from "../config/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../config/index";
 import { KKPentaDrillOpponents } from '../model/index';
 import { Booster } from "./Booster";
 
@@ -46,11 +57,11 @@ export class PentaDrill {
     }
 
     static getPinfo() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPentaDrillThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThreshold")) || 0;
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
 
         let Tegzd = '';
-        const boostLimited = getStoredValue(HHStoredVarPrefixKey +"Setting_autoPentaDrillBoostedOnly") === "true" && !Booster.haveBoosterEquiped();
+        const boostLimited = getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrillBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
         if(boostLimited) {
             Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
         }else {
@@ -74,13 +85,13 @@ export class PentaDrill {
     }
 
     static isTimeToFight() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPentaDrillThreshold")) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThreshold")) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+"Temp_PentaDrillHumanLikeRun") === "true";
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
+        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.PentaDrillHumanLikeRun) === "true";
 
         const energyAboveThreshold = humanLikeRun && PentaDrill.getEnergy() > threshold || PentaDrill.getEnergy() > Math.max(threshold, runThreshold-1);
         const paranoiaSpending = PentaDrill.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('drill') > 0;
-        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+"Setting_autoPentaDrillBoostedOnly") === "true";
+        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
 
         if(checkTimer('nextPentaDrillTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
@@ -92,7 +103,7 @@ export class PentaDrill {
 
     static moduleSimPentaDrillBattle(): KKPentaDrillOpponents | undefined
     {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + "Temp_Debug") === 'true';
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         try
         {
             const opponents:KKPentaDrillOpponents[] = unsafeWindow.opponents_list as KKPentaDrillOpponents[];
@@ -133,10 +144,10 @@ export class PentaDrill {
             else
             {
                 const chosenID = chosenOpponent.player.id_fighter;
-                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + "Setting_autoPentaDrillRunThreshold")) || 0;
+                const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
                 const opponentButton = $('.opponent-info-container a[href*=' + chosenID + ']');
                 if (runThreshold > 0) {
-                    setStoredValue(HHStoredVarPrefixKey+"Temp_PentaDrillHumanLikeRun", "true");
+                    setStoredValue(HHStoredVarPrefixKey+TK.PentaDrillHumanLikeRun, "true");
                 }
                 const toGoTo: string = opponentButton.attr('href') || ''
                 if(toGoTo=='') {
@@ -144,7 +155,7 @@ export class PentaDrill {
                     setTimer('nextPentaDrillTime',randomInterval(30*60, 35*60));
                     return false;
                 }
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
                 location.href = addNutakuSession(toGoTo) as string;
@@ -162,7 +173,7 @@ export class PentaDrill {
                 return false;
             }
             performButton.trigger('click');
-            setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
             await TimeHelper.sleep(randomInterval(2000, 3000));
             //setTimer('nextPentaDrillTime',10);
@@ -217,7 +228,7 @@ export class PentaDrill {
 
     static goAndCollect()
     {
-        const rewardsToCollect = isJSON(getStoredValue(HHStoredVarPrefixKey+"Setting_autoPentaDrillCollectablesList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Setting_autoPentaDrillCollectablesList")):[];
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoPentaDrillCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrill"))
         {
@@ -225,7 +236,7 @@ export class PentaDrill {
             const PentaDrillEnd = getSecondsLeft("pentaDrillRemainingTime");
             logHHAuto("PentaDrill end in " + TimeHelper.debugDate(PentaDrillEnd));
 
-            if (checkTimer('nextPentaDrillCollectAllTime') && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPentaDrillCollectAll") === "true")
+            if (checkTimer('nextPentaDrillCollectAllTime') && PentaDrillEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollectAll) === "true")
             {
                 if($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
@@ -242,17 +253,17 @@ export class PentaDrill {
                     setTimer('nextPentaDrillCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                 }
             }
-            if (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey+"Setting_autoPentaDrillCollect") === "true")
+            if (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollect) === "true")
             {
                 logHHAuto("Going to collect PentaDrill.");
                 logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey+"Temp_autoLoop", "false");
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
 
                 const isPassPaid = $("#get_penta_pass_btn:visible").length === 0;
                 const freeSlotQuery = ".free_reward .slot";
                 const paidSlotQuery = ".pass_reward .slot";
 
-                let buttonsToCollect: any[] = [];
+                let buttonsToCollect: HTMLElement[] = [];
                 const listPentaDrillTiersToClaim = $(".rewards_container_penta_drill .rewards_pair:has(.btn_claim)");
                 logHHAuto('Found ' + listPentaDrillTiersToClaim.length + ' rewards available for collection before filtering');
 
@@ -332,7 +343,7 @@ export class PentaDrill {
         }
     }
     static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey +"Setting_AllMaskRewards") === "true")
+        if (getStoredValue(HHStoredVarPrefixKey +SK.AllMaskRewards) === "true")
         {
             PentaDrill.maskReward();
         }

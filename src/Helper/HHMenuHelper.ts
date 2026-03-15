@@ -1,3 +1,22 @@
+// HHMenuHelper.ts
+//
+// Builds and manages the HHAuto settings menu injected into the game page.
+// The menu is a floating panel (div#sMenu) with toggles, dropdowns, and
+// inputs for every automation feature. Responsibilities:
+//
+//   - Creating the menu toggle button and positioning it per page
+//   - Generating the full HTML menu with sections for each module
+//   - Reading user settings from inputs into storage (getMenuValues)
+//   - Writing stored settings back into inputs (setMenuValues)
+//   - Populating dynamic dropdowns (troll targets, league sort, labyrinth)
+//   - Masking sections that depend on disabled parent features
+//
+// Why one large class: The menu is tightly coupled to storage keys
+// (SK/TK) and input patterns. Splitting further would scatter the
+// HTML template across many files without real benefit.
+//
+// Used by: StartService (on init), AutoLoop (button state refresh)
+
 import { LabyrinthAuto } from '../Module/LabyrinthAuto';
 import { LeagueHelper } from '../Module/League';
 import { LoveRaidManager } from '../Module/index';
@@ -857,6 +876,10 @@ export function getMenu() {
                         + hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
                         + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
                         + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
+                    +`</div>`
+                    +`<div class="internalOptionsRow">`
+                        + hhMenuSwitch('autoEquipBoosters')
+                        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:70px')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')

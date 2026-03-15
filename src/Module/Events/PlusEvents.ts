@@ -1,13 +1,23 @@
+// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
+//
+// Plus Events are a category of events that overlay additional information
+// and rewards on top of normal gameplay. This module parses event data,
+// extracts girl shard progress and troll fight priorities, and displays
+// event overlay information in the UI.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Plus Events are active)
+//
 import { convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
 import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey } from "../../config/index";
-import { EventGirl, KKEventGirl } from "../../model/index";
+import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { EventGirl, HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
 import { EventModule } from "./EventModule";
 
 export class PlusEvent {
-    static parse(hhEvent: any, eventList: any, hhEventData: any, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
         const eventID = hhEvent.eventId;
-        let Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + "Setting_eventTrollOrder") || '').split(";");
+        let Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
         let refreshTimer = randomInterval(3600, 4000);
 
         let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
@@ -25,7 +35,7 @@ export class PlusEvent {
             let girlData: KKEventGirl = allEventGirlz[currIndex];
             if (girlData.shards < 100) {
                 eventList[eventID]["isCompleted"] = false;
-                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
+                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"] as number);
 
                 if (eventGirl.isOnTroll()) {
                     logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);

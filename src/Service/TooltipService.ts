@@ -1,11 +1,27 @@
+// TooltipService.ts
+//
+// Controls the visibility of help tooltips in the HHAuto settings
+// menu. Each menu item has a hidden tooltip span (.tooltipHHtext)
+// that becomes visible on hover when tooltips are enabled.
+//
+// The tooltip positioning logic prevents overflow: if a tooltip would
+// render above the viewport, it shifts down and to the right; if it
+// would extend past the menu's right edge, it shifts left.
+//
+// The `important` flag forces !important CSS when toggling tooltips
+// mid-session (vs. initial page load) to override previously injected
+// styles.
+//
+// Used by: StartService (initial state), menu checkbox handler
+
 import { getStoredValue } from '../Helper/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK } from '../config/index';
 
 export function manageToolTipsDisplay(important=false)
 {
 
-    if(getStoredValue(HHStoredVarPrefixKey+"Setting_showTooltips") === "true")
+    if(getStoredValue(HHStoredVarPrefixKey+SK.showTooltips) === "true")
     {
         enableToolTipsDisplay(important);
     }

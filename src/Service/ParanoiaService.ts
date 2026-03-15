@@ -1,8 +1,21 @@
+// ParanoiaService.ts
+//
+// Anti-detection system that alternates between "burst" (active) and
+// "rest" (idle) periods to mimic human play patterns. During rest,
+// all actions stop and the script sits on the home page.
+//
+// Before entering rest, optionally spends remaining energy to avoid
+// wasting regeneration during downtime. Mythic events can bypass
+// paranoia to avoid missing time-limited waves.
+//
+// Used by: AutoLoop (checked every iteration when paranoia is on)
+
 import {
     ConfigHelper,
     getHHVars,
     getHero,
     getSecondsLeft,
+    getStoredJSON,
     getStoredValue,
     getTimer,
     randomInterval,
@@ -19,7 +32,7 @@ import {
     Troll
 } from '../Module/index';
 import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { EventGirl } from '../model/index';
 import { getBurst } from "./AutoLoop";
 import { gotoPage } from "./PageNavigationService";
@@ -33,21 +46,21 @@ export class ParanoiaService {
     {
         var pSpendings=new Map<string, number>([]);
         // not set
-        if ( getStoredValue(HHStoredVarPrefixKey+"Temp_paranoiaSpendings") === undefined)
+        if ( getStoredValue(HHStoredVarPrefixKey+TK.paranoiaSpendings) === undefined)
         {
             return -1;
         }
         else
         {
-            pSpendings = JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_paranoiaSpendings"),reviverMap);
+            pSpendings = getStoredJSON(HHStoredVarPrefixKey+TK.paranoiaSpendings, new Map(), reviverMap);
         }
 
-        if ( getStoredValue(HHStoredVarPrefixKey+"Temp_paranoiaQuestBlocked") !== undefined && pSpendings.has('quest'))
+        if ( getStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked) !== undefined && pSpendings.has('quest'))
         {
             pSpendings.delete('quest');
         }
 
-        if ( getStoredValue(HHStoredVarPrefixKey+"Temp_paranoiaLeagueBlocked") !== undefined && pSpendings.has('challenge'))
+        if ( getStoredValue(HHStoredVarPrefixKey+TK.paranoiaLeagueBlocked) !== undefined && pSpendings.has('challenge'))
         {
             pSpendings.delete('challenge');
         }
@@ -72,20 +85,20 @@ export class ParanoiaService {
 
     static clearParanoiaSpendings() {
         ParanoiaService.countParanoiaLoop = 0;
-        sessionStorage.removeItem(HHStoredVarPrefixKey + 'Temp_paranoiaSpendings');
-        sessionStorage.removeItem(HHStoredVarPrefixKey + 'Temp_NextSwitch');
-        sessionStorage.removeItem(HHStoredVarPrefixKey + 'Temp_paranoiaQuestBlocked');
-        sessionStorage.removeItem(HHStoredVarPrefixKey + 'Temp_paranoiaLeagueBlocked');
+        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaSpendings);
+        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.NextSwitch);
+        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
+        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
     }
 
     static updatedParanoiaSpendings(inSpendingFunction, inSpent) {
         var currentPSpendings = new Map<string, number>([]);
         // not set
-        if (getStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaSpendings") === undefined) {
+        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
             return -1;
         }
         else {
-            currentPSpendings = JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaSpendings"), reviverMap);
+            currentPSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
             if (currentPSpendings.has(inSpendingFunction)) {
                 let currValue = currentPSpendings.get(inSpendingFunction) || 0;
                 currValue -= inSpent;
@@ -99,7 +112,7 @@ export class ParanoiaService {
                 }
             }
             logHHAuto("Remains to spend before Paranoia : " + JSON.stringify(currentPSpendings, replacerMap));
-            setStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaSpendings", JSON.stringify(currentPSpendings, replacerMap));
+            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(currentPSpendings, replacerMap));
 
         }
     }
@@ -113,12 +126,13 @@ export class ParanoiaService {
         var currentEnergy;
         var maxEnergy;
         var toNextSwitch;
-        if (getStoredValue(HHStoredVarPrefixKey + "Temp_NextSwitch") !== undefined && getStoredValue(HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore") === "true") {
-            toNextSwitch = Number((getStoredValue(HHStoredVarPrefixKey + "Temp_NextSwitch") - new Date().getTime()) / 1000);
+        const tempNextSwitch = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+        if (tempNextSwitch !== undefined && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
+            toNextSwitch = Number((Number(tempNextSwitch) - new Date().getTime()) / 1000);
 
             //if autoLeague is on
             if (LeagueHelper.isAutoLeagueActivated()) {
-                if (getStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaLeagueBlocked") === undefined) {
+                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.challenge.next_refresh_ts'))) / Number(getHHVars('Hero.energies.challenge.seconds_per_point')));
                     currentEnergy = LeagueHelper.getEnergy();
                     maxEnergy = LeagueHelper.getEnergyMax();
@@ -135,8 +149,8 @@ export class ParanoiaService {
                 }
             }
             //if autoquest is on
-            if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + "Setting_autoQuest") === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoSideQuest") === "true"))) {
-                if (getStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaQuestBlocked") === undefined) {
+            if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true"))) {
+                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.quest.next_refresh_ts'))) / Number(getHHVars('Hero.energies.quest.seconds_per_point')));
                     currentEnergy = QuestHelper.getEnergy();
                     maxEnergy = QuestHelper.getEnergyMax();
@@ -153,7 +167,7 @@ export class ParanoiaService {
                 }
             }
             //if autoTrollBattle is on
-            if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoTrollBattle") === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
+            if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.fight.next_refresh_ts'))) / Number(getHHVars('Hero.energies.fight.seconds_per_point')));
                 currentEnergy = Troll.getEnergy();
                 maxEnergy = Troll.getEnergyMax();
@@ -169,8 +183,8 @@ export class ParanoiaService {
                 }
             }
             //if autoSeason is on
-            if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeason") === "true") {
-                if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoSeasonIgnoreNoGirls") === "true") {
+            if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true") {
                     logHHAuto('Season auto is on but ignore fights when no girls to win, no spending kisses.')
                 } else {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.kiss.next_refresh_ts'))) / Number(getHHVars('Hero.energies.kiss.seconds_per_point')));
@@ -189,7 +203,7 @@ export class ParanoiaService {
                 }
             }
             //if autoPantheon is on
-            if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + "Setting_autoPantheon") === "true") {
+            if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true") {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.worship.next_refresh_ts'))) / Number(getHHVars('Hero.energies.worship.seconds_per_point')));
                 currentEnergy = Pantheon.getEnergy();
                 maxEnergy = Pantheon.getEnergyMax();
@@ -206,14 +220,14 @@ export class ParanoiaService {
             }
 
             logHHAuto("Setting paranoia spending to : " + JSON.stringify(paranoiaSpendings, replacerMap));
-            setStoredValue(HHStoredVarPrefixKey + "Temp_paranoiaSpendings", JSON.stringify(paranoiaSpendings, replacerMap));
+            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(paranoiaSpendings, replacerMap));
         }
     }
 
     static flipParanoia() {
         var burst = getBurst();
 
-        var Setting = getStoredValue(HHStoredVarPrefixKey + "Setting_paranoiaSettings");
+        var Setting = getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSettings);
 
         var S1 = Setting.split('/').map(s => s.split('|').map(s => s.split(':')));
 
@@ -225,16 +239,17 @@ export class ParanoiaService {
         if (burst) {
             var periods = Object.assign({}, ...S1[1].map((d) => ({ [d[0]]: d[1].split('-') })));
 
-            toNextSwitch = getStoredValue(HHStoredVarPrefixKey + "Temp_NextSwitch") ? Number((getStoredValue(HHStoredVarPrefixKey + "Temp_NextSwitch") - new Date().getTime()) / 1000) : randomInterval(Number(periods[period][0]), Number(periods[period][1]));
+            const nextSwitchVal = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+            toNextSwitch = nextSwitchVal ? Number((Number(nextSwitchVal) - new Date().getTime()) / 1000) : randomInterval(Number(periods[period][0]), Number(periods[period][1]));
 
             //match mythic new wave with end of sleep
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoTrollMythicByPassParanoia") === "true" && getTimer("eventMythicNextWave") !== -1 && toNextSwitch > getSecondsLeft("eventMythicNextWave")) {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true" && getTimer("eventMythicNextWave") !== -1 && toNextSwitch > getSecondsLeft("eventMythicNextWave")) {
                 logHHAuto("Forced rest only until next mythic wave.");
                 toNextSwitch = getSecondsLeft("eventMythicNextWave");
             }
 
             //bypass Paranoia if ongoing mythic
-            if (getStoredValue(HHStoredVarPrefixKey + "Setting_autoTrollMythicByPassParanoia") === "true") {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
                     //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+"Setting_autoTrollThreshold"));
@@ -262,20 +277,20 @@ export class ParanoiaService {
                 }
             }
 
-            if (ParanoiaService.checkParanoiaSpendings() === -1 && getStoredValue(HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore") === "true") {
-                setStoredValue(HHStoredVarPrefixKey + "Temp_NextSwitch", new Date().getTime() + toNextSwitch * 1000);
+            if (ParanoiaService.checkParanoiaSpendings() === -1 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
+                setStoredValue(HHStoredVarPrefixKey + TK.NextSwitch, new Date().getTime() + toNextSwitch * 1000);
                 ParanoiaService.setParanoiaSpendings();
                 return;
             }
 
-            if (ParanoiaService.checkParanoiaSpendings() === 0 || getStoredValue(HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore") === "false") {
+            if (ParanoiaService.checkParanoiaSpendings() === 0 || getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "false") {
                 ParanoiaService.clearParanoiaSpendings();
                 PlaceOfPower.cleanTempPopToStart();
                 //going into hiding
-                setStoredValue(HHStoredVarPrefixKey + "Temp_burst", "false");
+                setStoredValue(HHStoredVarPrefixKey + TK.burst, "false");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + "Setting_paranoiaSpendsBefore") === "true") {
+            else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
                 // manage wrong values in storage to avoid infinite loop
                 ParanoiaService.countParanoiaLoop++;
                 // logHHAuto(`checkParanoiaSpendings() = ${checkParanoiaSpendings()}, reached ${ParanoiaService.countParanoiaLoop} times`);
@@ -299,22 +314,22 @@ export class ParanoiaService {
         else {
             //if (getPage()!=ConfigHelper.getHHScriptVars("pagesIDHome")) return;
             //going to work
-            setStoredValue(HHStoredVarPrefixKey + "Temp_autoLoop", "false");
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
-            setStoredValue(HHStoredVarPrefixKey + "Temp_burst", "true");
+            setStoredValue(HHStoredVarPrefixKey + TK.burst, "true");
             var b = S1[0][0][0].split('-');
             toNextSwitch = randomInterval(Number(b[0]), Number(b[1]));
         }
         var ND = new Date().getTime() + toNextSwitch * 1000;
         var message = period + (burst ? " rest" : " burst");
         logHHAuto("PARANOIA: " + message);
-        setStoredValue(HHStoredVarPrefixKey + "Temp_pinfo", message);
+        setStoredValue(HHStoredVarPrefixKey + TK.pinfo, message);
 
         setTimer('paranoiaSwitch', toNextSwitch);
         //force recheck non completed event after paranoia
-        if (getStoredValue(HHStoredVarPrefixKey + "Temp_burst") == "true") {
+        if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
             /*
-            let eventList = isJSON(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+"Temp_eventsList")):{};
+            let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
             for (let eventID of Object.keys(eventList))
             {
                 //console.log(eventID);
@@ -324,12 +339,12 @@ export class ParanoiaService {
                     //console.log("expire");
                     if(Object.keys(eventList).length >0)
                     {
-                        setStoredValue(HHStoredVarPrefixKey+"Temp_eventsList", JSON.stringify(eventList));
+                        setStoredValue(HHStoredVarPrefixKey+TK.eventsList, JSON.stringify(eventList));
                     }
                 }
             }
             */
-            //sessionStorage.removeItem(HHStoredVarPrefixKey+"Temp_eventsList");
+            //sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
     }

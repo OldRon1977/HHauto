@@ -1,14 +1,34 @@
+// RewardHelper.ts
+//
+// Detects, classifies, and renders in-game reward slots. The game
+// displays rewards in DOM elements with CSS classes like "slot_soft_currency"
+// or data attributes. This helper inspects those elements to determine
+// the reward type (girl shards, currency, energy, equipment, etc.) and
+// quantity, then can render summary HTML for the HHAuto overlay.
+//
+// Also handles the post-battle reward popup: after a troll fight that
+// drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
+// to detect the popup, parse which girl received shards, update stored
+// event progress, and navigate to the next appropriate page.
+//
+// Why MutationObserver: The reward popup is rendered asynchronously by
+// the game after the battle animation. Polling would be wasteful and
+// unreliable; observing attribute changes catches it immediately.
+//
+// Used by: Event modules (progress tracking), PlaceOfPower, Season,
+//          Troll module (post-fight navigation)
+
 import { gotoPage } from '../Service/index';
 import { isJSON, logHHAuto } from '../Utils/index';
 import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
-import { getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 import { EventModule, LoveRaidManager, SeasonalEvent } from '../Module/index';
 import { queryStringGetParam } from "./UrlHelper";
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { EventGirl } from '../model/EventGirl';
 
 export class RewardHelper {
@@ -273,7 +293,7 @@ export class RewardHelper {
         let inCaseTimer = setTimeout(function(){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));}, 60000); //in case of issue
         function parseReward()
         {
-            let eventsGirlz: EventGirl[] = isJSON(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsGirlz")) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + "Temp_eventsGirlz")) : [];
+            let eventsGirlz: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
             let eventGirl: EventGirl = EventModule.getEventGirl();
             let eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
             if (!eventsGirlz || eventsGirlz.length == 0)
@@ -356,7 +376,7 @@ export class RewardHelper {
             if (needLoveRaidUpdate) {
                 LoveRaidManager.saveLoveRaids(loveRaid);
             }
-            setStoredValue(HHStoredVarPrefixKey+"Temp_eventsGirlz", JSON.stringify(eventsGirlz));
+            setStoredValue(HHStoredVarPrefixKey+TK.eventsGirlz, JSON.stringify(eventsGirlz));
             if (eventGirl?.girl_id) EventModule.saveEventGirl(eventGirl);
             if (eventMythicGirl?.girl_id) EventModule.saveEventGirl(eventMythicGirl);
             if (renewEvent !== ""
