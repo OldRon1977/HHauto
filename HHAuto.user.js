@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.0
+// @version      7.30.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -210,8 +210,8 @@ HHAuto_ToolTips.en['buyCombat'] = { version: "5.6.24", elementText: "Buy comb. f
 HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Combats", tooltip: "(Integer)<br>X last hours of event" };
 HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & Leg. Boosters", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Allow to buy booster in the market (if not going under Koban bank value)" };
 HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(values separated by ;)<br>Set list of codes of booster to buy, order is respected.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura" };
-HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.29.16", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
-HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.29.16", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
+HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
+HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.30.0", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
 HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pass 3 reds", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Use kobans to renew Season opponents if 3 reds" };
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
@@ -7780,7 +7780,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoosters"] =
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + "Setting_autoEquipBoostersSlots"] =
     {
-        default: "B1;B1;B2;B4",
+        default: "B1;B2;B3;B4",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "List",
@@ -20819,9 +20819,9 @@ function handleEventParsing(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
         if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEvents", false) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event" || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"))
             &&
-                ((ctx.eventIDs.length > 0 && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
+                ((ctx.eventIDs.length > 0 && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
                     ||
-                        (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length))) {
+                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length))) {
             LogUtils_logHHAuto("Going to check on events.");
             ctx.busy = true;
             ctx.busy = yield EventModule.parseEventPage(ctx.eventIDs[0]);
@@ -20881,8 +20881,8 @@ function handleHaremSize(ctx) {
         if (ctx.busy === false
             && isAutoLoopActive()
             && Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMaxSizeExpirationSecs"))
-            && getPage() !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
-            && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
+            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
+            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
             && (ctx.lastActionPerformed === "none")) {
             //console.log(! isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)),JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)).count_date,new Date().getTime() + ConfigHelper.getHHScriptVars("HaremSizeExpirationSecs") * 1000);
             // Update girl count
@@ -20945,12 +20945,12 @@ function handleGenericBattle(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
         if (ctx.busy === false
             &&
-                (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-                    || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-                    || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-                    || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-                    || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-                    || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle"))
+                (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
+                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
+                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
+                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
+                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
+                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle"))
             && isAutoLoopActive() && ctx.canCollectCompetitionActive) {
             ctx.busy = true;
             GenericBattle.doBattle();
@@ -21032,7 +21032,7 @@ function handleTrollBattle(ctx) {
                     // end run
                     setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "false");
                 }
-                /*if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
+                /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
                 {
                     logHHAuto("Go to home after troll fight");
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -21260,7 +21260,7 @@ function handleLeague(ctx) {
                 }
                 //logHHAuto("reset lastActionPerformed from league");
                 ctx.lastActionPerformed = "none";
-                /*if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
+                /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
                 {
                     logHHAuto("Go to home after league fight");
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -21551,7 +21551,7 @@ function handleLabyrinth(ctx) {
 function handleSalary(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
         if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSalary", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) === "true"
-            && getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")
+            && ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")
             && (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch"))
             && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "salary")) {
             if (checkTimer("nextSalaryTime")) {
@@ -21569,9 +21569,9 @@ function handleBossBangParse(ctx) {
             && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
             &&
                 ((ctx.bossBangEventIDs.length > 0
-                    && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
+                    && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
                     ||
-                        (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")
+                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")
                             && $('#contains_all #events #boss_bang .completed-event').length === 0)) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event")) {
             LogUtils_logHHAuto("Going to parse boss bang event.");
             ctx.busy = yield EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
@@ -21586,9 +21586,9 @@ function handleBossBangFight(ctx) {
             && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
             &&
                 ((ctx.bossBangEventIDs.length > 0
-                    && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
+                    && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
                     ||
-                        (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")
+                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")
                             && $('#contains_all #events #boss_bang .completed-event').length === 0)) && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "bossBang") && checkTimer('nextBossBangTime')) {
             LogUtils_logHHAuto("Going to fight boss bang.");
             ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
@@ -21601,8 +21601,8 @@ function handleGoHome(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
         const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
         if (ctx.busy === false
-            && getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")
-            && getPage() === lastPageCalled.page
+            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDHome")
+            && ctx.currentPage === lastPageCalled.page
             && (new Date().getTime() - lastPageCalled.dateTime) > ConfigHelper.getHHScriptVars("minSecsBeforeGoHomeAfterActions") * 1000) {
             //console.log("testingHome : GotoHome : "+getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled));
             LogUtils_logHHAuto("Back to home page at the end of actions");
@@ -21646,7 +21646,7 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
-        switch (getPage()) {
+        switch (ctx.currentPage) {
             case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
                 if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true") {
                     LeagueHelper.moduleSimLeague = callItOnce(LeagueHelper.moduleSimLeague);
@@ -21775,13 +21775,12 @@ function handlePageSpecific(ctx) {
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDHarem"):
                 Harem.moduleHarem();
-                // Harem.run = callItOnce(Harem.run);
-                // busy = await Harem.run();
+                Harem.run = callItOnce(Harem.run);
+                ctx.busy = yield Harem.run();
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
                 HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
                 HaremGirl.moduleHaremGirl();
-                HaremGirl.showSkillButtons();
                 HaremGirl.run = callItOnce(HaremGirl.run);
                 ctx.busy = yield HaremGirl.run();
                 break;
@@ -21801,6 +21800,8 @@ function handlePageSpecific(ctx) {
             case ConfigHelper.getHHScriptVars("pagesIDWaifu"):
                 Harem.moduleHaremExportGirlsData();
                 Harem.moduleHaremCountMax();
+                Harem.run = callItOnce(Harem.run);
+                ctx.busy = yield Harem.run();
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDContests"):
                 DailyGoals.parse = callItOnce(DailyGoals.parse);
@@ -22019,6 +22020,7 @@ function autoLoop() {
             canCollectCompetitionActive: false,
             eventIDs: [],
             bossBangEventIDs: [],
+            currentPage: getPage(),
         };
         if (burst && !mouseBusy /*|| checkTimer('nextMissionTime')*/) {
             if (!checkTimer("paranoiaSwitch")) {

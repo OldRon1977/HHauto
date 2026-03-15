@@ -19,7 +19,6 @@ import {
     RewardHelper,
     checkTimer,
     ConfigHelper,
-    getPage,
     getStoredValue,
     getTimer,
     randomInterval
@@ -39,14 +38,11 @@ import {
     EventModule,
     Harem,
     HaremGirl,
-    HaremSalary,
     Labyrinth,
-    LabyrinthAuto,
     LeagueHelper,
     LivelyScene,
     LoveRaidManager,
     Pachinko,
-    Pantheon,
     PathOfAttraction,
     PathOfGlory,
     PathOfValue,
@@ -70,7 +66,7 @@ import {
 } from './index';
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
-    switch (getPage())
+    switch (ctx.currentPage)
     {
         case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
             if (getStoredValue(HHStoredVarPrefixKey+SK.showCalculatePower) === "true")
@@ -221,13 +217,12 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             break;
         case ConfigHelper.getHHScriptVars("pagesIDHarem"):
             Harem.moduleHarem();
-            // Harem.run = callItOnce(Harem.run);
-            // busy = await Harem.run();
+            Harem.run = callItOnce(Harem.run);
+            ctx.busy = await Harem.run();
             break;
         case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
             HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
             HaremGirl.moduleHaremGirl();
-            HaremGirl.showSkillButtons();
             HaremGirl.run = callItOnce(HaremGirl.run);
             ctx.busy = await HaremGirl.run();
             break;
@@ -247,6 +242,8 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
         case ConfigHelper.getHHScriptVars("pagesIDWaifu"):
             Harem.moduleHaremExportGirlsData();
             Harem.moduleHaremCountMax();
+            Harem.run = callItOnce(Harem.run);
+            ctx.busy = await Harem.run();
             break;
         case ConfigHelper.getHHScriptVars("pagesIDContests"):
             DailyGoals.parse = callItOnce(DailyGoals.parse);

@@ -18,17 +18,13 @@
 import { AutoLoopContext } from './AutoLoopContext';
 import { ModuleHandlerDescriptor } from '../model/IModule';
 import {
-    RewardHelper,
-    TimeHelper,
     checkTimer,
     checkTimerMustExist,
-    clearTimer,
     deleteStoredValue,
     ConfigHelper,
     getHHVars,
     getHero,
     getLimitTimeBeforeEnd,
-    getPage,
     getSecondsLeft,
     getStoredValue,
     getStoredJSON,
@@ -36,7 +32,6 @@ import {
     randomInterval,
     setStoredValue,
     setTimer,
-    switchHHMenuButton,
     HeroHelper
 } from '../Helper/index';
 import { PentaDrill } from '../Module/PentaDrill';
@@ -45,25 +40,19 @@ import {
     BossBang,
     Bundles,
     Champion,
-    Club,
     ClubChampion,
     Contest,
     DailyGoals,
-    DailyGoalsIcon,
-    DoublePenetration,
     EventModule,
     GenericBattle,
     Harem,
-    HaremGirl,
     HaremSalary,
     Labyrinth,
     LabyrinthAuto,
     LeagueHelper,
-    LivelyScene,
     Missions,
     Pachinko,
     Pantheon,
-    PathOfAttraction,
     PathOfGlory,
     PathOfValue,
     PlaceOfPower,
@@ -72,16 +61,11 @@ import {
     Season,
     SeasonalEvent,
     Shop,
-    TeamModule,
     Troll
 } from '../Module/index';
 import {
-    callItOnce,
-    checkAndClosePopup,
     getHHAjax,
-    isJSON,
     logHHAuto,
-    safeJsonParse
 } from '../Utils/index';
 import {
     HHStoredVarPrefixKey,
@@ -129,9 +113,9 @@ export async function handleEventParsing(ctx: AutoLoopContext): Promise<void> {
         ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEvents",false) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event" || (getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) === "true" && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true") )
         &&
         (
-            (ctx.eventIDs.length > 0 && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
+            (ctx.eventIDs.length > 0 && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
             ||
-            (getPage()===ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length)
+            (ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length)
         )
     )
     {
@@ -195,8 +179,8 @@ export async function handleHaremSize(ctx: AutoLoopContext): Promise<void> {
         ctx.busy === false
         && isAutoLoopActive()
         && Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMaxSizeExpirationSecs"))
-        && getPage() !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
-        && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
+        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
+        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
         && (ctx.lastActionPerformed === "none")
     ) {
         //console.log(! isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)),JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)).count_date,new Date().getTime() + ConfigHelper.getHHScriptVars("HaremSizeExpirationSecs") * 1000);
@@ -272,12 +256,12 @@ export async function handleGenericBattle(ctx: AutoLoopContext): Promise<void> {
             ctx.busy === false
             &&
             (
-                getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-                || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-                || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-                || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-                || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-                || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")
+                ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
+                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
+                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
+                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
+                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
+                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")
             )
             && isAutoLoopActive() && ctx.canCollectCompetitionActive
         )
@@ -376,7 +360,7 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 // end run
                 setStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun, "false");
             }
-            /*if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
+            /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
             {
                 logHHAuto("Go to home after troll fight");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -628,7 +612,7 @@ export async function handleLeague(ctx: AutoLoopContext): Promise<void> {
             }
             //logHHAuto("reset lastActionPerformed from league");
             ctx.lastActionPerformed = "none";
-            /*if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
+            /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
             {
                 logHHAuto("Go to home after league fight");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -944,7 +928,7 @@ export async function handleLabyrinth(ctx: AutoLoopContext): Promise<void> {
 // 30. handleSalary - lines 948-958
 export async function handleSalary(ctx: AutoLoopContext): Promise<void> {
     if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSalary",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSalary) === "true"
-        && getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")
+        && ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")
         && ( getStoredValue(HHStoredVarPrefixKey+SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch") )
         && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "salary"))
     {
@@ -965,11 +949,11 @@ export async function handleBossBangParse(ctx: AutoLoopContext): Promise<void> {
         (
             (
                 ctx.bossBangEventIDs.length > 0
-                && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")
+                && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent")
             )
             ||
             (
-                getPage()===ConfigHelper.getHHScriptVars("pagesIDEvent")
+                ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent")
                 && $('#contains_all #events #boss_bang .completed-event').length === 0
             )
         ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event")
@@ -990,11 +974,11 @@ export async function handleBossBangFight(ctx: AutoLoopContext): Promise<void> {
         (
             (
                 ctx.bossBangEventIDs.length > 0
-                && getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")
+                && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent")
             )
             ||
             (
-                getPage()===ConfigHelper.getHHScriptVars("pagesIDEvent")
+                ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent")
                 && $('#contains_all #events #boss_bang .completed-event').length === 0
             )
         ) && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "bossBang") && checkTimer('nextBossBangTime')
@@ -1011,8 +995,8 @@ export async function handleGoHome(ctx: AutoLoopContext): Promise<void> {
     const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0});
     if (
         ctx.busy === false
-        && getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")
-        && getPage() === lastPageCalled.page
+        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDHome")
+        && ctx.currentPage === lastPageCalled.page
         && (new Date().getTime() - lastPageCalled.dateTime) > ConfigHelper.getHHScriptVars("minSecsBeforeGoHomeAfterActions") * 1000
     )
     {

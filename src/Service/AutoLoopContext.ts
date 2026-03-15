@@ -17,4 +17,6 @@ export interface AutoLoopContext {
     eventIDs: string[];
     /** Detected boss bang event IDs on the page */
     bossBangEventIDs: string[];
+    /** The current page the user is on */
+    currentPage: string;
 }

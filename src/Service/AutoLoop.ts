@@ -229,6 +229,7 @@ export async function autoLoop()
         canCollectCompetitionActive: false,
         eventIDs: [],
         bossBangEventIDs: [],
+        currentPage: getPage(),
     };
 
     if (burst && !mouseBusy /*|| checkTimer('nextMissionTime')*/)
