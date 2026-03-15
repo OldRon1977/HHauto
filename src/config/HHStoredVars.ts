@@ -83,7 +83,7 @@ HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoosters"] =
 };
 HHStoredVars[HHStoredVarPrefixKey+"Setting_autoEquipBoostersSlots"] =
     {
-    default:"B1;B1;B2;B4",
+    default:"B1;B2;B3;B4",
     storage:"Storage()",
     HHType:"Setting",
     valueType:"List",
