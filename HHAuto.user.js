@@ -1483,6 +1483,12 @@ class Booster {
             LogUtils_logHHAuto("needSandalWoodEquipped: skipping - equip on cooldown");
             return false;
         }
+        // If no market data cached yet, signal that we need a market visit first.
+        // Troll.ts will navigate to the shop page, which caches booster data.
+        if (!Booster.hasBoosterDataFromMarket()) {
+            LogUtils_logHHAuto("needSandalWoodEquipped: No market data cached. Need market visit to check Sandalwood inventory.");
+            return true;
+        }
         let needForMythic = false, needForLoveRaid = false;
         if (activatedMythic) {
             if (!eventMythicGirl) {

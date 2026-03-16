@@ -220,6 +220,26 @@ describe("Booster", function() {
     });
   });
 
+  describe("needSandalWoodEquipped", function() {
+    it("returns false when no settings active", function() {
+      expect(Booster.needSandalWoodEquipped(1)).toBeFalsy();
+    });
+
+    it("returns true when sandalwood activated but no market data cached", function() {
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+      // No boosterIdMap or haveBooster in sessionStorage
+      expect(Booster.needSandalWoodEquipped(1)).toBeTruthy();
+    });
+
+    it("returns false when on cooldown even without market data", function() {
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+      Booster.setEquipCooldown(300);
+      expect(Booster.needSandalWoodEquipped(1)).toBeFalsy();
+    });
+  });
+
   describe("equipeSandalWoodIfNeeded", function() {
 
     beforeEach(function() {
