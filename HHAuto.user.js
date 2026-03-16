@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.4
+// @version      7.30.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -527,6 +527,7 @@ HHAuto_ToolTips.en['Power'] = { version: "5.6.56", elementText: "Power", tooltip
 HHAuto_ToolTips.en['upgrade_cost'] = { version: "5.6.56", elementText: "Upgrade cost", tooltip: "" };
 HHAuto_ToolTips.en['haremGiveXP'] = { version: "6.2.0", elementText: "Fill current XP of filtered girls", tooltip: "Use max out button XP on current level for filtered girls" };
 HHAuto_ToolTips.en['haremGiveMaxXP'] = { version: "7.28.0", elementText: "Fill all XP of filtered girls", tooltip: "Use max all out button XP on current level for filtered girls" };
+HHAuto_ToolTips.en['haremGiveSkill'] = { version: "7.30.5", elementText: "Give all skill of filtered girls", tooltip: "Max upgrade of this skill for filtered girls" };
 HHAuto_ToolTips.en['haremGiveGifts'] = { version: "6.2.0", elementText: "Fill current affection of filtered girls", tooltip: "Use max out button affection on current level for filtered girls" };
 HHAuto_ToolTips.en['haremGiveMaxGifts'] = { version: "6.11.0", elementText: "Fill all affection of filtered girls", tooltip: "Give all affection for filtered girls, pay for necessary grades<br/>Not pay last grade" };
 HHAuto_ToolTips.en['haremUpgradeMax'] = { version: "6.11.0", elementText: "Full upgrade of filtered girls", tooltip: "Perform all upgrades for filtered girls (including last one), give necessary affections" };
@@ -6689,11 +6690,13 @@ class Harem {
             const menuIDGifts = "haremGiveGifts";
             const menuIDMaxGifts = "haremGiveMaxGifts";
             const menuIDUpgradeMax = "haremUpgradeMax";
+            const menuIDSkills = "haremGiveSkill";
             const menuIDMaxXpButton = createMenuButton(menuIDMaxXp);
             const menuIDXpButton = createMenuButton(menuIDXp);
             const menuIDGiftsButton = createMenuButton(menuIDGifts);
             const menuIDMaxGiftsButton = createMenuButton(menuIDMaxGifts);
             const menuIDUpgradeMaxButton = createMenuButton(menuIDUpgradeMax);
+            const menuIDSkillsButton = createMenuButton(menuIDSkills);
             const imgPath = ConfigHelper.getHHScriptVars("baseImgPath");
             const girlListMenu = '<div style="padding:50px; display:flex;flex-direction:column;width:400px">'
                 // +    '<p id="HaremGirlListMenuText">'+getTextForUI("girlListMenu","elementText")+'</p>'
@@ -6710,6 +6713,12 @@ class Harem {
                 + '<div style="padding:10px">' + menuIDGiftsButton + '</div>'
                 + '<div style="padding:10px">' + menuIDMaxGiftsButton + '</div>'
                 + '<div style="padding:10px">' + menuIDUpgradeMaxButton + '</div>'
+                + '</div>'
+                + '</div>'
+                + '<div class="optionsBoxWithTitle">'
+                + '<div class="optionsBoxTitle"><span class="optionsBoxTitle">' + getTextForUI("skills", "elementText") + '</span></div>'
+                + '<div class="optionsBox">'
+                + '<div style="padding:10px">' + menuIDSkillsButton + '</div>'
                 + '</div>'
                 + '</div>'
                 // +    '<div class="optionsBoxWithTitle">' // TODO fixme
@@ -6733,6 +6742,10 @@ class Harem {
             $('#' + menuIDUpgradeMax + 'Button').on("click", function () {
                 setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection', true);
+            });
+            $('#' + menuIDSkills + 'Button').on("click", function () {
+                setStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd, 'true');
+                Harem.fillCurrentGirlItem('skills', true);
             });
         };
         $('#harem_left').append(girlListMenuButton);
@@ -11143,6 +11156,14 @@ class HaremGirl {
                     else if (haremGirlEnd && haremItem == HaremGirl.EXPERIENCE_TYPE) {
                         HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                         yield HaremGirl.fillAllExperience();
+                    }
+                    else if (haremItem == HaremGirl.SKILLS_TYPE) {
+                        HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        LogUtils_logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
+                        yield HaremGirl.fullSkillsUpgrade();
+                        yield TimeHelper.sleep(randomInterval(400, 700));
                     }
                     else {
                         const canMaxOut = HaremGirl.getMaxOutButton(haremItem).length > 0;

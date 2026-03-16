@@ -612,6 +612,7 @@ export class HaremGirl {
                     }
                 // } else if (haremItem == HaremGirl.EQUIPMENT_TYPE) {
                 // } else if (haremItem == HaremGirl.SKILLS_TYPE) {
+
                 } else {
                     logHHAuto('ERROR, no action found to be executed. ', { haremItem: haremItem, canGiftGirl: canGiftGirl, canAwakeGirl: canAwakeGirl });
                     Harem.clearHaremToolVariables();
@@ -652,6 +653,16 @@ export class HaremGirl {
                 } else if (haremGirlEnd && haremItem == HaremGirl.EXPERIENCE_TYPE ) {
                     HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                     await HaremGirl.fillAllExperience();
+
+                } else if (haremItem == HaremGirl.SKILLS_TYPE) {
+                    HaremGirl.HaremDisplayGirlPopup(haremItem, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+
+                    HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
+                    await TimeHelper.sleep(randomInterval(400, 700));
+
+                    logHHAuto('Upgrade skills, Scroll available: ' + $('.main-skill-block .available-resources .resource-value').text());
+                    await HaremGirl.fullSkillsUpgrade();
+                    await TimeHelper.sleep(randomInterval(400, 700));
                 } else {
                     const canMaxOut = HaremGirl.getMaxOutButton(haremItem).length > 0;
                     if (nextGirlId < 0) girlListProgress += lastGirlListProgress;

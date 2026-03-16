@@ -564,12 +564,14 @@ export class Harem {
             const menuIDGifts = "haremGiveGifts";
             const menuIDMaxGifts = "haremGiveMaxGifts";
             const menuIDUpgradeMax = "haremUpgradeMax";
+            const menuIDSkills = "haremGiveSkill";
 
             const menuIDMaxXpButton = createMenuButton(menuIDMaxXp);
             const menuIDXpButton = createMenuButton(menuIDXp);
             const menuIDGiftsButton = createMenuButton(menuIDGifts);
             const menuIDMaxGiftsButton = createMenuButton(menuIDMaxGifts);
             const menuIDUpgradeMaxButton = createMenuButton(menuIDUpgradeMax);
+            const menuIDSkillsButton = createMenuButton(menuIDSkills);
             const imgPath = ConfigHelper.getHHScriptVars("baseImgPath");
 
             
@@ -588,6 +590,12 @@ export class Harem {
             +         '<div style="padding:10px">'+menuIDGiftsButton+'</div>'
             +         '<div style="padding:10px">'+menuIDMaxGiftsButton+'</div>'
             +         '<div style="padding:10px">'+menuIDUpgradeMaxButton+'</div>'
+            +       '</div>'
+            +    '</div>'
+            +    '<div class="optionsBoxWithTitle">'
+            +       '<div class="optionsBoxTitle"><span class="optionsBoxTitle">' + getTextForUI("skills", "elementText") + '</span></div>'
+            +       '<div class="optionsBox">'
+            +         '<div style="padding:10px">' + menuIDSkillsButton + '</div>'
             +       '</div>'
             +    '</div>'
             // +    '<div class="optionsBoxWithTitle">' // TODO fixme
@@ -610,6 +618,10 @@ export class Harem {
             $('#'+menuIDUpgradeMax+'Button').on("click", function() {
                 setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
                 Harem.fillCurrentGirlItem('affection', true);
+            });
+            $('#'+menuIDSkills+'Button').on("click", function() {
+                setStoredValue(HHStoredVarPrefixKey+TK.haremGirlEnd, 'true');
+                Harem.fillCurrentGirlItem('skills', true);
             });
         };
         $('#harem_left').append(girlListMenuButton);

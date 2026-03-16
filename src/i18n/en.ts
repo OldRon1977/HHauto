@@ -343,6 +343,7 @@ HHAuto_ToolTips.en['Power'] = {version: "5.6.56", elementText: "Power", tooltip:
 HHAuto_ToolTips.en['upgrade_cost'] = {version: "5.6.56", elementText: "Upgrade cost", tooltip: ""};
 HHAuto_ToolTips.en['haremGiveXP'] = {version: "6.2.0", elementText: "Fill current XP of filtered girls", tooltip: "Use max out button XP on current level for filtered girls"};
 HHAuto_ToolTips.en['haremGiveMaxXP'] = {version: "7.28.0", elementText: "Fill all XP of filtered girls", tooltip: "Use max all out button XP on current level for filtered girls"};
+HHAuto_ToolTips.en['haremGiveSkill'] = { version: "7.30.5", elementText: "Give all skill of filtered girls", tooltip: "Max upgrade of this skill for filtered girls"};
 HHAuto_ToolTips.en['haremGiveGifts'] = {version: "6.2.0", elementText: "Fill current affection of filtered girls", tooltip: "Use max out button affection on current level for filtered girls"};
 HHAuto_ToolTips.en['haremGiveMaxGifts'] = {version: "6.11.0", elementText: "Fill all affection of filtered girls", tooltip: "Give all affection for filtered girls, pay for necessary grades<br/>Not pay last grade"};
 HHAuto_ToolTips.en['haremUpgradeMax'] = {version: "6.11.0", elementText: "Full upgrade of filtered girls", tooltip: "Perform all upgrades for filtered girls (including last one), give necessary affections"};
