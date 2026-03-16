@@ -61,7 +61,7 @@ export class Shop {
             $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveExp+=d.quantity*d.item.value;}});
     
             var BoosterIdMap={};
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = String(d.item.id_item);}});
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}});
     
             setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
@@ -69,6 +69,12 @@ export class Shop {
             setStoredValue(HHStoredVarPrefixKey+TK.boosterIdMap, JSON.stringify(BoosterIdMap));
 
             logHHAuto('counted '+getStoredValue(HHStoredVarPrefixKey+TK.haveAff)+' Aff, '+getStoredValue(HHStoredVarPrefixKey+TK.haveExp)+' Exp, Booster: ' + JSON.stringify(HaveBooster));
+            // Debug: log each booster found in player inventory with id_item and quantity
+            for (const [identifier, data] of Object.entries(BoosterIdMap)) {
+                const qty = HaveBooster[identifier] || 0;
+                const entry = data as any;
+                logHHAuto(`  Booster inventory: ${entry.name} [${identifier}] id_item=${entry.id_item} rarity=${entry.rarity} qty=${qty}`);
+            }
     
             setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify([assA,assB,assG,assP]));
             setStoredValue(HHStoredVarPrefixKey+TK.charLevel, HeroHelper.getLevel());

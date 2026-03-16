@@ -6,6 +6,19 @@ import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 import { Timers, setTimer, checkTimer } from '../../src/Helper/TimerHelper';
 import { MockHelper } from "../testHelpers/MockHelpers";
 
+// Test fixtures — booster objects are no longer hardcoded statics on Booster class
+const TEST_GINSENG = {id_item: "316", identifier: "B1", name: "Ginseng root", rarity: "legendary"};
+const TEST_SANDALWOOD = {id_item: "632", identifier: "MB1", name: "Sandalwood perfume", rarity: "mythic"};
+
+/** Sets up boosterIdMap in sessionStorage so getBoosterByIdentifier can resolve boosters */
+function setupBoosterIdMap(boosters: any[] = [TEST_GINSENG, TEST_SANDALWOOD]) {
+    const map = {};
+    for (const b of boosters) {
+        map[b.identifier] = { id_item: b.id_item, identifier: b.identifier, name: b.name, rarity: b.rarity };
+    }
+    sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_boosterIdMap", JSON.stringify(map));
+}
+
 describe("Booster", function() {
   afterEach(() => {
     localStorage.clear();
@@ -120,13 +133,61 @@ describe("Booster", function() {
     });
   });
 
+  describe("hasBoosterDataFromMarket", function() {
+    it("returns false when no data cached", function() {
+      expect(Booster.hasBoosterDataFromMarket()).toBeFalsy();
+    });
+
+    it("returns true when both boosterIdMap and haveBooster are cached", function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterIdMap", '{}');
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{}');
+      expect(Booster.hasBoosterDataFromMarket()).toBeTruthy();
+    });
+
+    it("returns false when only one is cached", function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterIdMap", '{}');
+      expect(Booster.hasBoosterDataFromMarket()).toBeFalsy();
+    });
+  });
+
+  describe("getBoosterByIdentifier", function() {
+    it("returns null when no market data", function() {
+      expect(Booster.getBoosterByIdentifier('B1')).toBeNull();
+    });
+
+    it("resolves from boosterIdMap (new format)", function() {
+      setupBoosterIdMap();
+      const result = Booster.getBoosterByIdentifier('B1');
+      expect(result).toBeDefined();
+      expect(result.identifier).toBe('B1');
+      expect(result.id_item).toBe('316');
+      expect(result.rarity).toBe('legendary');
+    });
+
+    it("resolves mythic from boosterIdMap", function() {
+      setupBoosterIdMap();
+      const result = Booster.getBoosterByIdentifier('MB1');
+      expect(result).toBeDefined();
+      expect(result.identifier).toBe('MB1');
+      expect(result.rarity).toBe('mythic');
+    });
+
+    it("handles old boosterIdMap format (string id_item)", function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterIdMap", JSON.stringify({B1: "316"}));
+      const result = Booster.getBoosterByIdentifier('B1');
+      expect(result).toBeDefined();
+      expect(result.id_item).toBe('316');
+      expect(result.identifier).toBe('B1');
+    });
+  });
+
   describe("markBoosterAsEquippedInStorage", function() {
     beforeEach(function() {
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_boosterStatus", JSON.stringify({normal: [], mythic:[]}));
     });
 
     it("marks mythic booster as equipped", function() {
-      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+      Booster.markBoosterAsEquippedInStorage(TEST_SANDALWOOD);
       const status = Booster.getBoosterFromStorage();
       expect(status.mythic.length).toBe(1);
       expect(status.mythic[0].item.identifier).toBe('MB1');
@@ -135,7 +196,7 @@ describe("Booster", function() {
     });
 
     it("marks normal booster as equipped", function() {
-      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
+      Booster.markBoosterAsEquippedInStorage(TEST_GINSENG);
       const status = Booster.getBoosterFromStorage();
       expect(status.normal.length).toBe(1);
       expect(status.normal[0].item.identifier).toBe('B1');
@@ -145,15 +206,15 @@ describe("Booster", function() {
     });
 
     it("does not duplicate mythic booster", function() {
-      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
-      Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+      Booster.markBoosterAsEquippedInStorage(TEST_SANDALWOOD);
+      Booster.markBoosterAsEquippedInStorage(TEST_SANDALWOOD);
       const status = Booster.getBoosterFromStorage();
       expect(status.mythic.length).toBe(1);
     });
 
     it("does not duplicate normal booster", function() {
-      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
-      Booster.markBoosterAsEquippedInStorage(Booster.GINSENG_ROOT);
+      Booster.markBoosterAsEquippedInStorage(TEST_GINSENG);
+      Booster.markBoosterAsEquippedInStorage(TEST_GINSENG);
       const status = Booster.getBoosterFromStorage();
       expect(status.normal.length).toBe(1);
     });
@@ -174,6 +235,8 @@ describe("Booster", function() {
       const boosters = '{"B1":123,"B2":123,"B3":123,"B4":123,"MB1":123,"MB2":123,"MB3":123,"MB4":123}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", '0');
+      // Set up market data so Sandalwood can be resolved
+      setupBoosterIdMap();
     });
 
     function setGirl(mythic:boolean, troll:number, shards:number){
@@ -274,7 +337,7 @@ describe("Booster", function() {
 
         const result = await Booster.equipeSandalWoodIfNeeded(99);
         expect(result).toBeFalsy();
-        // equipBooster increments 2→3, then equipeSandalWoodIfNeeded reads 3 → deactivates
+        // equipBooster increments 2->3, then equipeSandalWoodIfNeeded reads 3 -> deactivates
         expect(HeroHelper.getSandalWoodEquipFailure()).toBe(3);
         expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('false');
       });

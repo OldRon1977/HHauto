@@ -8,9 +8,13 @@
  *   - Equipping Sandalwood Perfume (mythic booster) before troll fights when farming
  *     mythic event girls or love raid girls, to double shard drops
  *
- * Booster state is stored as JSON in browser storage under TK.boosterStatus. The AJAX
- * listener keeps this cache in sync with server responses. When the cache becomes stale
- * (e.g. after a failed equip), the next visit to the market page rebuilds it from the DOM.
+ * Booster IDs are resolved exclusively from market data (shop visit). No hardcoded
+ * fallback IDs are used. The script navigates to the market first to read and cache
+ * the player's booster inventory before attempting to equip.
+ *
+ * Each game variant (HentaiHeroes, ComixHarem, PornstarHarem, etc.) runs on its own
+ * hostname, so browser localStorage is already isolated per game. No special multi-game
+ * handling is needed beyond ensuring market data is cached before equipping.
  *
  * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
  *
@@ -47,19 +51,8 @@ const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
  * All methods are static. Booster state lives in browser storage, not on the class instance.
  */
 export class Booster {
-    static GINSENG_ROOT = {"id_item":"316","identifier":"B1","name":"Ginseng root", "rarity":"legendary"};
-    static JUJUBES = {"id_item":"317","identifier":"B2","name":"Jujubes","rarity": "legendary"};
-    static CHLORELLA = {"id_item":"318","identifier":"B3","name":"Chlorella","rarity": "legendary"};
-    static CURDYCEPS = {"id_item":"319","identifier":"B4","name":"Cordyceps","rarity": "legendary" };
-    static SANDALWOOD_PERFUME = {"id_item":"632","identifier":"MB1","name":"Sandalwood perfume","rarity":"mythic"};
-    
-    /** Lookup table: identifier -> default booster object (HentaiHeroes IDs). */
-    static BOOSTER_DEFAULTS: Record<string, any> = {
-        B1: Booster.GINSENG_ROOT,
-        B2: Booster.JUJUBES,
-        B3: Booster.CHLORELLA,
-        B4: Booster.CURDYCEPS,
-    };
+    /** Sandalwood identifier constant — id_item is resolved from market data or env config at runtime. */
+    static SANDALWOOD_IDENTIFIER = "MB1";
 
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses () {
@@ -237,7 +230,7 @@ export class Booster {
             return /*boosterStatus.mythic.length > 0 ||*/ boosterStatus.normal.some((booster) => booster.endAt > serverNow)
         }else {
             return boosterStatus.mythic.some((booster) => booster.item.identifier === boosterCode)
-            || boosterStatus.normal.some((booster) => booster.item.identifier === boosterCode && booster.endAt > serverNow) 
+            || boosterStatus.normal.some((booster) => booster.item.identifier === boosterCode && booster.endAt > serverNow)
         }
     }
 
@@ -255,34 +248,62 @@ export class Booster {
         setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
     }
 
+    /**
+     * Checks whether booster data from a market visit is available in cache.
+     * Both boosterIdMap (player inventory IDs) and haveBooster (inventory counts)
+     * must be populated for auto-equip to work reliably.
+     */
+    static hasBoosterDataFromMarket(): boolean {
+        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, null);
+        const haveBooster = getStoredJSON(HHStoredVarPrefixKey + TK.haveBooster, null);
+        return boosterIdMap !== null && haveBooster !== null;
+    }
+
+    /**
+     * Resolves a booster by its identifier (e.g. "B1", "MB1") using cached market data.
+     * Returns null if no market data is available — NO hardcoded fallback IDs.
+     *
+     * Resolution order:
+     *   1. Shop merchant inventory (storeContents) — full item data from shop page
+     *   2. Player booster inventory (boosterIdMap) — full item data from player inventory
+     */
     static getBoosterByIdentifier(identifier: string): any {
-        // Try to resolve from shop data first (site-specific id_item)
+        // Try to resolve from shop merchant inventory (storeContents)
         const storeData = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, null);
         if (storeData && Array.isArray(storeData[1])) {
             const shopBooster = storeData[1].find(
-                (b: any) => b.item && b.item.identifier === identifier && b.item.rarity === 'legendary'
+                (b: any) => b.item && b.item.identifier === identifier
             );
             if (shopBooster) {
-                return {
+                const resolved = {
                     id_item: shopBooster.item.id_item || shopBooster.id_item,
                     identifier: shopBooster.item.identifier,
                     name: shopBooster.item.name,
                     rarity: shopBooster.item.rarity
                 };
+                logHHAuto(`getBoosterByIdentifier: "${identifier}" resolved from storeContents → id_item=${resolved.id_item}, name=${resolved.name}`);
+                return resolved;
             }
         }
 
-        // Try to resolve from player's booster inventory (site-specific id_item)
+        // Try to resolve from player's booster inventory (boosterIdMap — now stores full item data)
         const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
-        const defaultBooster = Booster.BOOSTER_DEFAULTS[identifier] || null;
-        if (!defaultBooster) return null;
-
-        if (boosterIdMap[identifier]) {
-            return { ...defaultBooster, id_item: boosterIdMap[identifier] };
+        const entry = boosterIdMap[identifier];
+        if (entry) {
+            // boosterIdMap now stores { id_item, identifier, name, rarity }
+            if (typeof entry === 'object' && entry.id_item) {
+                logHHAuto(`getBoosterByIdentifier: "${identifier}" resolved from boosterIdMap → id_item=${entry.id_item}, name=${entry.name}`);
+                return { ...entry };
+            }
+            // Backward compat: old format stored just the id_item string
+            if (typeof entry === 'string') {
+                return { id_item: entry, identifier, name: identifier, rarity: 'legendary' };
+            }
         }
 
-        // Fallback to hardcoded defaults (HentaiHeroes IDs)
-        return defaultBooster;
+        // No market data available — do NOT fall back to hardcoded IDs
+        logHHAuto(`getBoosterByIdentifier: No market data for "${identifier}". Visit the market first.`);
+        return null;
     }
 
     static parseEquipSlotConfig(): string[] {
@@ -364,7 +385,7 @@ export class Booster {
 
     /**
      * Schedules the next auto-equip check based on the longest-running active booster
-     * plus a random delay (5 min – 2 h). If no boosters are active, schedules immediately
+     * plus a random delay (5 min - 2 h). If no boosters are active, schedules immediately
      * with just the random delay.
      */
     static scheduleNextEquipCheck(): void {
@@ -379,16 +400,24 @@ export class Booster {
     }
 
     /**
-     * Main auto-equip entry point. Tries to equip all configured boosters that are
-     * missing from the active slots. After equipping (or if all slots are occupied),
-     * schedules the next check based on the longest active booster + random delay.
-     *
-     * If the player has manually equipped boosters in the meantime, the method detects
-     * that slots are full and reschedules accordingly.
-     *
-     * Wrapped in try/finally to guarantee scheduleNextEquipCheck runs even on errors.
+     * Main auto-equip entry point. First ensures market data is cached (navigates to
+     * market if needed). Then equips all configured boosters that are missing from
+     * active slots. Schedules the next check based on the longest active booster + random delay.
      */
     static async autoEquipBoosters(): Promise<boolean> {
+        // Debug: dump cached booster inventory data
+        const cachedIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        const cachedInventory = getStoredJSON(HHStoredVarPrefixKey + TK.haveBooster, {});
+        logHHAuto("Auto-equip: Cached boosterIdMap = " + JSON.stringify(cachedIdMap));
+        logHHAuto("Auto-equip: Cached haveBooster (qty) = " + JSON.stringify(cachedInventory));
+
+        // Ensure we have booster data from the market before trying to equip
+        if (!Booster.hasBoosterDataFromMarket()) {
+            logHHAuto("Auto-equip: No booster data from market. Navigating to market first.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
+            return true; // Signal busy — the market visit will cache the data, next loop will equip
+        }
+
         const boostersToEquip = Booster.getBoostersToEquip();
         if (boostersToEquip.length === 0) {
             logHHAuto("Auto-equip: All booster slots active.");
@@ -403,7 +432,7 @@ export class Booster {
             for (const nextBoosterId of boostersToEquip) {
                 const boosterObj = Booster.getBoosterByIdentifier(nextBoosterId);
                 if (!boosterObj) {
-                    logHHAuto("Auto-equip: Unknown booster identifier: " + nextBoosterId);
+                    logHHAuto("Auto-equip: Could not resolve booster " + nextBoosterId + " from market data, skipping.");
                     continue;
                 }
 
@@ -428,6 +457,14 @@ export class Booster {
             Booster.scheduleNextEquipCheck();
         }
         return anyEquipped;
+    }
+
+    /**
+     * Resolves the Sandalwood Perfume booster object from market data.
+     * Returns null if market data is not available.
+     */
+    static getSandalwoodBooster(): any {
+        return Booster.getBoosterByIdentifier(Booster.SANDALWOOD_IDENTIFIER);
     }
 
     static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl=null, loveRaid: LoveRaid=null): boolean {
@@ -464,8 +501,8 @@ export class Booster {
     }
 
     static ownedSandalwoodAndNotEquiped(): boolean {
-        const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_PERFUME.identifier);
-        const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_PERFUME.identifier);
+        const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_IDENTIFIER);
+        const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_IDENTIFIER);
         logHHAuto(`ownedSandalwoodAndNotEquiped: owned=${ownedSandalwood}, equipped=${equipedSandalwood}, result=${ownedSandalwood && !equipedSandalwood}`);
         return ownedSandalwood && !equipedSandalwood;
     }
@@ -481,7 +518,7 @@ export class Booster {
 
     static markBoosterAsEquippedInStorage(booster: any) {
         const boosterStatus = Booster.getBoosterFromStorage();
-        const isMythic = parseInt(booster.id_item) >= 632;
+        const isMythic = booster.rarity === 'mythic' || (booster.identifier && booster.identifier.startsWith('MB'));
 
         if (isMythic) {
             const alreadyTracked = boosterStatus.mythic.some(b => b.item?.identifier === booster.identifier);
@@ -558,9 +595,17 @@ export class Booster {
                     logHHAuto("equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");
                     return false;
                 }
+
+                // Resolve Sandalwood booster from market data
+                const sandalwoodBooster = Booster.getSandalwoodBooster();
+                if (!sandalwoodBooster) {
+                    logHHAuto("equipeSandalWoodIfNeeded: No market data for Sandalwood. Visit the market first.");
+                    return false;
+                }
+
                 // Equip a new one
-                logHHAuto("equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(SANDALWOOD_PERFUME)");
-                const equiped: boolean = await HeroHelper.equipBooster(Booster.SANDALWOOD_PERFUME);
+                logHHAuto("equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(Sandalwood)");
+                const equiped: boolean = await HeroHelper.equipBooster(sandalwoodBooster);
                 logHHAuto(`equipeSandalWoodIfNeeded: equipBooster returned ${equiped}`);
                 if (!equiped) {
                     const numberFailure = HeroHelper.getSandalWoodEquipFailure();
@@ -571,7 +616,7 @@ export class Booster {
                     } else {
                         logHHAuto("equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
                         // Server says max boosters equipped - mark it as equipped to prevent retries
-                        Booster.markBoosterAsEquippedInStorage(Booster.SANDALWOOD_PERFUME);
+                        Booster.markBoosterAsEquippedInStorage(sandalwoodBooster);
                         // Set cooldown to prevent spamming equip attempts
                         Booster.setEquipCooldown(5 * 60);
                     }

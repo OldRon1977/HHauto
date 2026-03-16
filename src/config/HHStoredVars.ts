@@ -2311,6 +2311,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatus] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.boosterIdMap] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodFailure] =
 {
     default:"0",
