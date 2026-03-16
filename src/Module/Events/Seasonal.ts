@@ -209,6 +209,14 @@ export class SeasonalEvent {
             // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
             SeasonalEvent.displayCollectAllButton()
         }
+
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
+                width: 77px;}`
+        );
+
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers .double-tier .mega-tier {
+                margin: 1rem 0 0;}`
+        );
     }
     static hasUnclaimedRewards(): boolean{
         return $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH + ', ' + SeasonalEvent.SEASONAL_REWARD_PATH).length > 0
