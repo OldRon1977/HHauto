@@ -4,31 +4,38 @@ about: Create a report to help us improve
 title: Bug [Script version] - Bug description
 labels: bug
 assignees: ''
-
 ---
+
+**Script version:**
+**Game:** HH / GH / CxH / PSH
+**Browser:** (e.g. Chrome 120, Firefox 115)
 
 **Describe the bug**
 A clear and concise description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Activated options**
+Screenshot of your script settings, or list the relevant options.
+
+**Steps to reproduce**
+1. Enable option '...'
+2. Navigate to '...' page
+3. Wait for script action '...'
+4. Observe: ...
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+What should happen instead?
+
+**Reproducibility**
+Always / Sometimes / Only once
+
+**Debug log**
+Please attach the debug log file. To create it:
+1. Open the script menu (top right)
+2. Click "Export Debug Log"
+3. Attach the downloaded file to this issue
+
+**Console errors (F12) — optional**
+Open browser console (F12) and paste any errors starting with "HHAuto" here.
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**System:**
-- **OS:** Windows, Linux or MacOS?
-- **Browser:** Chrome, Internet Explorer, Microsoft Edge, Safari, Firefox and the actual release number
-- **Script-Helper:** Do you use Tampermonkey or any other script helper? Version?
-- **Script-Version:** Version of the script?
-- **Actual activated options:** : What are the options activated ? (can be a screenshot)
-
-**Additional context**
-Add any other context about the problem here.
+If applicable, add screenshots to help explain the problem.
