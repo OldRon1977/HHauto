@@ -4013,7 +4013,7 @@ class Season {
                     if (doDisplay) {
                         seasonButton.prepend(`<div class="matchRatingNew ${simu.scoreClass}"><img id="powerLevelScouter" src=${powerCalcImages[simu.scoreClass]}>${NumberHelper.nRounding(100 * simu.win, 2, -1)}%</div>`);
                     }
-                    yield TimeHelper.sleep(randomInterval(200, 400)); // avoid blocking UI thread and let it update with new elements
+                    yield TimeHelper.sleep(randomInterval(10, 30)); // avoid blocking UI thread and let it update with new elements
                 }
                 var { numberOfReds, chosenIndex } = Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
                 const chosenID = chosenIndex >= 0 ? (_c = opponentDatas[chosenIndex].player) === null || _c === void 0 ? void 0 : _c.id_fighter : chosenIndex;
@@ -12821,27 +12821,32 @@ class LeagueHelper {
             const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
             const Hero = getHero();
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            let SimPower = function () {
-                return League_awaiter(this, void 0, void 0, function* () {
-                    if (allOpponentsSimDisplayed) {
-                        // logHHAuto("Stop simu");
-                        return;
-                    }
-                    const opponents_list = getHHVars("opponents_list");
-                    if (!opponents_list) {
-                        LogUtils_logHHAuto('ERROR: Can\'t find opponent list');
-                        return;
-                    }
-                    let heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
-                    const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
-                    const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
-                    let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-                    let opponentsPowerListChanged = false;
-                    for (let opponentIndex = 0; opponentIndex < opponents_list.length; opponentIndex++) {
-                        let opponents = opponents_list[opponentIndex];
-                        if (LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents)) {
+            const opponents_list = getHHVars("opponents_list");
+            if (!opponents_list) {
+                LogUtils_logHHAuto('ERROR: Can\'t find opponent list');
+                return;
+            }
+            else {
+                const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
+                const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
+                const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
+                const opponentsToSimulate = opponents_list.filter(opponents => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
+                let SimPower = function () {
+                    return League_awaiter(this, void 0, void 0, function* () {
+                        if (allOpponentsSimDisplayed) {
+                            // logHHAuto("Stop simu");
+                            return;
+                        }
+                        if (debugEnabled)
+                            LogUtils_logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
+                        let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+                        let opponentsPowerListChanged = false;
+                        for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
+                            let opponents = opponentsToSimulate[opponentIndex];
                             let simu;
                             let leagueOpponent;
+                            if (debugEnabled)
+                                LogUtils_logHHAuto(`Simulating opponent ${opponentIndex + 1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
                             if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
                                 try {
                                     leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponents.player.id_fighter);
@@ -12870,17 +12875,16 @@ class LeagueHelper {
                                 opponentsPowerListChanged = true;
                             }
                             LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
-                            yield TimeHelper.sleep(randomInterval(200, 400));
+                            yield TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
                         }
-                    }
-                    if (opponentsPowerListChanged) {
-                        LogUtils_logHHAuto('Save opponent list for later');
-                        setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
-                    }
-                    //CSS
-                });
-            };
-            SimPower();
+                        if (opponentsPowerListChanged) {
+                            LogUtils_logHHAuto('Save opponent list for later');
+                            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+                        }
+                    });
+                };
+                SimPower();
+            }
             let listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
             if (document.getElementById("HHListUpdate") === null) {
                 $(".leagues_middle_header_script").append(listUpdateStatus);
@@ -13076,6 +13080,7 @@ class LeagueHelper {
                 usePowerCalc = false;
             }
         }
+        let opponentsPowerListChanged = false;
         let canUseSimu = usePowerCalc && !!opponents_list && !!heroFighter;
         tableRow.each(function () {
             fightButton = $('a', $(this));
@@ -13114,10 +13119,16 @@ class LeagueHelper {
                     // $('.boosters', $(this)).children().length,
                     // opponents,
                     simu);
+                    opponentsPowerList.opponentsList.push(leagueOpponent);
+                    opponentsPowerListChanged = true;
                 }
                 Data.push(leagueOpponent);
             }
         });
+        if (opponentsPowerListChanged) {
+            LogUtils_logHHAuto('Save updated opponent list for later');
+            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+        }
         const hasScriptChangedPowerAfter = !LeagueHelper.hasVanillaPowerColumn();
         if (!hasScriptChangedPowerBefore && hasScriptChangedPowerAfter) {
             if (isFirstCall) {

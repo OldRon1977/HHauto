@@ -176,7 +176,7 @@ export class Season {
                 {
                     seasonButton.prepend(`<div class="matchRatingNew ${simu.scoreClass}"><img id="powerLevelScouter" src=${powerCalcImages[simu.scoreClass]}>${NumberHelper.nRounding(100*simu.win, 2, -1)}%</div>`);
                 }
-                await TimeHelper.sleep(randomInterval(200, 400)); // avoid blocking UI thread and let it update with new elements
+                await TimeHelper.sleep(randomInterval(10, 30)); // avoid blocking UI thread and let it update with new elements
             }
 
             var { numberOfReds, chosenIndex } = Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
