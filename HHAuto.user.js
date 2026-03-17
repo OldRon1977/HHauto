@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.6
+// @version      7.31.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -254,8 +254,9 @@ HHAuto_ToolTips.en['autoSeasonTitle'] = { version: "5.6.24", elementText: "Seaso
 HHAuto_ToolTips.en['autoSeason'] = { version: "5.6.24", elementText: "Enable", tooltip: "if enabled : Automatically fight in Seasons (Opponent chosen following PowerCalculation)" };
 HHAuto_ToolTips.en['autoSeasonCollect'] = { version: "5.6.24", elementText: "Collect", tooltip: "if enabled : Automatically collect Seasons ( if multiple to collect, will collect one per kiss usage)" };
 HHAuto_ToolTips.en['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Collect all", tooltip: "if enabled : Automatically collect all items before end of season (configured with Collect all timer)" };
-HHAuto_ToolTips.en['autoSeasonIgnoreNoGirls'] = { version: "7.27.0", elementText: "Ignore if no girls", tooltip: "if enabled : Do not perform any fight in season if no girls nor skin to win on season fight reward (useful for love raids)" };
+HHAuto_ToolTips.en['autoSeasonIgnoreNoGirls'] = { version: "7.31.0", elementText: "Ignore if no event girls", tooltip: "if enabled : Do not perform any fight in season if no girls nor skin to win on season fight reward (useful for love raids)<br>This do not take into account the season reward, ie tier" };
 HHAuto_ToolTips.en['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "Minimum kiss to keep" };
+HHAuto_ToolTips.en['autoSeasonMaxTier'] = { version: "7.31.0", elementText: "Max Tier", tooltip: "Maximum tier to stop at in season. <br>Will not have effect if Ignore no girl is checked" };
 HHAuto_ToolTips.en['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum kiss fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in season" };
 HHAuto_ToolTips.en['autoSeasonSkipLowMojo'] = { version: "7.10.0", elementText: "Skip low Mojo", tooltip: "If enabled : Not fight when mojo reward is less than 8 and season level is less than 63. Will still fight to not loose kiss." };
@@ -3983,7 +3984,6 @@ class Season {
             const opponentDatas = unsafeWindow.opponents;
             let doDisplay = false;
             let seasonOpponents = [];
-            let hasGirlToWin = false;
             try {
                 // TODO update
                 if ($("div.matchRatingNew img#powerLevelScouter").length != 3) {
@@ -4002,10 +4002,6 @@ class Season {
                     //console.timeEnd('calculateBattleProbabilities' + index);
                     seasonOpponents[index] = new SeasonOpponent((_b = opponentDatas[index].player) === null || _b === void 0 ? void 0 : _b.id_fighter, opponent.name, Number($(".slot_victory_points .amount", opponentBlock).text()), // mojo
                     Number($(".slot_season_xp_girl .amount", opponentBlock).text()), Number($(".slot_season_affection_girl .amount", opponentBlock).text()), simu);
-                    const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
-                    if (girlShardsReward.length > 0) {
-                        hasGirlToWin = true;
-                    }
                     const seasonButton = $('.player-panel-buttons .opponent_perform_button_container .green_button_L.btn_season_perform', opponentBlock);
                     seasonButton.contents().filter(function () { return this.nodeType === 3; }).remove();
                     seasonButton.find('span').remove();
@@ -4035,10 +4031,6 @@ class Season {
                     catch (err) {
                         LogUtils_logHHAuto('Error when dispaly chosen opponent');
                     }
-                }
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true" && !hasGirlToWin) {
-                    LogUtils_logHHAuto("Ignoring season fights as no girl to win on fight reward");
-                    chosenIndex = -1;
                 }
                 return chosenIndex < 0 ? chosenIndex : chosenID;
             }
@@ -4163,6 +4155,18 @@ class Season {
             if (page === ConfigHelper.getHHScriptVars("pagesIDSeasonArena")) {
                 LogUtils_logHHAuto("On season arena page.");
                 Season.stylesBattle();
+                const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
+                const maxTier = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
+                const stopIfNoEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true";
+                const maxTierReached = isMaxTierSet && Season.getTierLevel() >= maxTier;
+                if (maxTierReached && !stopIfNoEventGirl) {
+                    LogUtils_logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}), not fighting anymore in season.`);
+                    setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                    return true;
+                }
+                if (maxTierReached && stopIfNoEventGirl) {
+                    LogUtils_logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}) but "Stop if no event girl" enabled, will check for event girls.`);
+                }
                 var chosenID = yield Season.moduleSimSeasonBattle(true);
                 if (chosenID === -2) {
                     //change opponents and reload
@@ -4191,6 +4195,15 @@ class Season {
                 else {
                     const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
                     const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
+                    const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
+                    if (girlShardsReward.length > 0) {
+                        LogUtils_logHHAuto("Girl shard reward found for chosen opponent");
+                    }
+                    if (stopIfNoEventGirl && girlShardsReward.length <= 0) {
+                        LogUtils_logHHAuto("Ignoring season fights as no girl to win on fight reward");
+                        setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                        return false;
+                    }
                     if (runThreshold > 0) {
                         setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, "true");
                     }
@@ -7844,6 +7857,8 @@ const SK = {
     autoSeasonPassReds: "Setting_autoSeasonPassReds",
     autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
     seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
+    autoSeasonMaxTier: "Setting_autoSeasonMaxTier",
+    autoSeasonMaxTierNb: "Setting_autoSeasonMaxTierNb",
     // Pantheon
     autoPantheon: "Setting_autoPantheon",
     autoPantheonThreshold: "Setting_autoPantheonThreshold",
@@ -8840,6 +8855,27 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonRunThreshold] =
         setMenu: true,
         menuType: "value",
         kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTier] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb] =
+    {
+        default: "63",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value"
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
     {
@@ -17520,6 +17556,7 @@ const HHAuto_inputPattern = {
     eventTrollOrder: "([1-2][0-9]|[1-9])(;([1-2][0-9]|[1-9]))*",
     autoBuyTrollNumber: "200|1[0-9][0-9]|[1-9]?[0-9]",
     autoSeasonThreshold: "[0-9]",
+    autoSeasonMaxTierNb: "[1-7][0-9]|[1-9]",
     autoSeasonRunThreshold: "10|[0-9]",
     autoPentaDrillThreshold: "[0-9]",
     autoPentaDrillRunThreshold: "10|[0-9]",
@@ -18237,6 +18274,18 @@ function getMenu() {
             + hhMenuSwitch('autoSeasonPassReds', '', true)
             + hhMenuSwitch('autoSeasonBoostedOnly')
             + hhMenuSwitch('autoSeasonSkipLowMojo')
+            + `<div class="labelAndButton" style="width: 70px;">`
+            + `<span class="HHMenuItemName">${getTextForUI("autoSeasonMaxTier", "elementText")}</span>`
+            + `<div class="tooltipHH">`
+            + `<span class="tooltipHHtext">${getTextForUI("autoSeasonMaxTier", "tooltip")}</span>`
+            + `<label class="switch">`
+            + `<input id="autoSeasonMaxTier" type="checkbox">`
+            + `<span class="slider round">`
+            + `</span>`
+            + `</label>`
+            + `<input style="text-align:center; width:20px" id="autoSeasonMaxTierNb" required pattern="${HHAuto_inputPattern.autoSeasonMaxTierNb}" type="text">`
+            + `</div>`
+            + `</div>`
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuInputWithImg('autoSeasonThreshold', HHAuto_inputPattern.autoSeasonThreshold, 'text-align:center; width:30px', 'pictures/design/ic_kiss.png', 'numeric')

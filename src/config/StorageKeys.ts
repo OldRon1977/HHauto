@@ -81,6 +81,8 @@ export const SK = {
     autoSeasonPassReds: "Setting_autoSeasonPassReds",
     autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
     seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
+    autoSeasonMaxTier: "Setting_autoSeasonMaxTier",
+    autoSeasonMaxTierNb: "Setting_autoSeasonMaxTierNb",
 
     // Pantheon
     autoPantheon: "Setting_autoPantheon",

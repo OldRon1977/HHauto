@@ -130,7 +130,6 @@ export class Season {
         const opponentDatas = unsafeWindow.opponents;
         let doDisplay=false;
         let seasonOpponents:SeasonOpponent[]=[];
-        let hasGirlToWin = false;
         try
         {
             // TODO update
@@ -162,10 +161,6 @@ export class Season {
                     Number($(".slot_season_affection_girl .amount", opponentBlock).text()), 
                     simu
                 );
-                const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
-                if(girlShardsReward.length > 0) {
-                    hasGirlToWin = true;
-                }
 
                 const seasonButton = $('.player-panel-buttons .opponent_perform_button_container .green_button_L.btn_season_perform', opponentBlock);
                 seasonButton.contents().filter(function() {return this.nodeType===3;}).remove();
@@ -204,10 +199,6 @@ export class Season {
                 }catch(err){
                     logHHAuto('Error when dispaly chosen opponent');
                 }
-            }
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true" && !hasGirlToWin) {
-                logHHAuto("Ignoring season fights as no girl to win on fight reward");
-                chosenIndex = -1;
             }
 
             return chosenIndex < 0 ? chosenIndex : chosenID;
@@ -341,7 +332,20 @@ export class Season {
         {
             logHHAuto("On season arena page.");
             Season.stylesBattle();
-    
+
+            const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
+            const maxTier = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
+            const stopIfNoEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true";
+            const maxTierReached = isMaxTierSet && Season.getTierLevel() >= maxTier;
+            if (maxTierReached && !stopIfNoEventGirl) {
+                logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}), not fighting anymore in season.`);
+                setTimer('nextSeasonTime', randomInterval(30*60, 35*60));
+                return true;
+            }
+            if (maxTierReached && stopIfNoEventGirl) {
+                logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}) but "Stop if no event girl" enabled, will check for event girls.`);
+            }
+
             var chosenID = await Season.moduleSimSeasonBattle(true);
             if (chosenID === -2 )
             {
@@ -376,6 +380,15 @@ export class Season {
             {
                 const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
                 const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
+
+                const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
+                if (girlShardsReward.length > 0) { logHHAuto("Girl shard reward found for chosen opponent"); }
+                if (stopIfNoEventGirl && girlShardsReward.length <= 0) {
+                    logHHAuto("Ignoring season fights as no girl to win on fight reward");
+                    setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                    return false;
+                }
+
                 if (runThreshold > 0) {
                     setStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun, "true");
                 }
