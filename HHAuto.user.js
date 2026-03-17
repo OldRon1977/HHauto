@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.31.0
+// @version      7.31.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -13155,8 +13155,10 @@ class LeagueHelper {
                     // $('.boosters', $(this)).children().length,
                     // opponents,
                     simu);
-                    opponentsPowerList.opponentsList.push(leagueOpponent);
-                    opponentsPowerListChanged = true;
+                    if (opponentsPowerList && opponentsPowerList.opponentsList) {
+                        opponentsPowerList.opponentsList.push(leagueOpponent);
+                        opponentsPowerListChanged = true;
+                    }
                 }
                 Data.push(leagueOpponent);
             }
@@ -15277,9 +15279,20 @@ class PlaceOfPower {
                     }
                     querySelectorText = "button.blue_button_L[rel='pop_action']:not([disabled])";
                     if ($(querySelectorText).length > 0) {
-                        document.querySelector(querySelectorText).click();
-                        LogUtils_logHHAuto("Started powerplace" + index);
-                        yield TimeHelper.sleep(randomInterval(2500, 3000));
+                        LogUtils_logHHAuto("Starting powerplace" + index);
+                        yield new Promise((resolve) => {
+                            $(querySelectorText).trigger('click');
+                            var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+                                // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
+                                let match = settings.data.match(/PlaceOfPower&action=start/);
+                                if (match === null)
+                                    return;
+                                $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
+                                resolve(true);
+                            };
+                            // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
+                            $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
+                        });
                     }
                     else if ($("button.blue_button_L[rel='pop_action'][disabled]").length > 0 && $("div.grid_view div.pop_selected").length > 0) {
                         PlaceOfPower.addPopToUnableToStart(index, "Unable to start Pop " + index + " not enough girls available.");

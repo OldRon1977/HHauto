@@ -597,8 +597,10 @@ export class LeagueHelper {
                         simu
                     );
 
-                    opponentsPowerList.opponentsList.push(leagueOpponent);
-                    opponentsPowerListChanged = true;
+                    if (opponentsPowerList && opponentsPowerList.opponentsList) {
+                        opponentsPowerList.opponentsList.push(leagueOpponent);
+                        opponentsPowerListChanged = true;
+                    }
                 }
                 Data.push(leagueOpponent);
             }

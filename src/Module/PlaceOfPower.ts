@@ -413,9 +413,22 @@ export class PlaceOfPower {
                 querySelectorText = "button.blue_button_L[rel='pop_action']:not([disabled])"
                 if ($(querySelectorText).length>0)
                 {
-                    (<HTMLElement>document.querySelector(querySelectorText)).click();
-                    logHHAuto("Started powerplace" + index);
-                    await TimeHelper.sleep(randomInterval(2500, 3000));
+                    logHHAuto("Starting powerplace" + index);
+                    
+                    await new Promise((resolve) => {
+                        $(querySelectorText).trigger('click');
+
+                        var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+                            // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
+                            let match = settings.data.match(/PlaceOfPower&action=start/);
+                            if (match === null) return;
+
+                            $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
+                            resolve(true);
+                        };
+                        // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
+                        $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
+                    });
                 }
                 else if ($("button.blue_button_L[rel='pop_action'][disabled]").length >0 && $("div.grid_view div.pop_selected").length >0)
                 {
