@@ -770,6 +770,7 @@ export function getMenu() {
                     +`<div class="internalOptionsRow separator">`
                         + hhMenuSwitch('plusLoveRaid')
                         + hhMenuSelect('loveRaidSelector')
+                        + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
                         + hhMenuSwitch('buyLoveRaidCombat', '', true)
                         + hhMenuInput('autoBuyLoveRaidTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventLoveRaidSandalWood')
