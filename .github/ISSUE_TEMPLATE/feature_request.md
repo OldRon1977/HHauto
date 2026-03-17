@@ -6,6 +6,8 @@ labels: new feature
 assignees: ''
 ---
 
+> **Important:** Please submit only one feature request per issue. Do not mix feature requests with bug reports. This helps with tracking and prioritization.
+
 **Game:** HH / GH / CxH / PSH
 **Game section:** (e.g. Troll, Season, Harem, Market, Labyrinth, ...)
 
