@@ -490,6 +490,8 @@ export class Troll {
                         ) // eventGirl available and buy comb true
                         || (eventTrollGirl?.is_mythic && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true"
                         )
+                        || (loveRaid?.girl_to_win && getStoredValue(HHStoredVarPrefixKey+SK.autoTrollLoveRaidByPassThreshold) === "true"
+                        )
                     );
 
                     const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);

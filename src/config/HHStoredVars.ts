@@ -1245,6 +1245,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSpendsBefore] =
     menuType:"checked",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaid] =
     {
     default:"false",

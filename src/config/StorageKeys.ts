@@ -170,6 +170,7 @@ export const SK = {
     plusEventMythic: "Setting_plusEventMythic",
     plusEventMythicSandalWood: "Setting_plusEventMythicSandalWood",
     plusLoveRaid: "Setting_plusLoveRaid",
+    autoTrollLoveRaidByPassThreshold: "Setting_autoTrollLoveRaidByPassThreshold",
     plusEventLoveRaidSandalWood: "Setting_plusEventLoveRaidSandalWood",
     bossBangEvent: "Setting_bossBangEvent",
     bossBangMinTeam: "Setting_bossBangMinTeam",
