@@ -6,6 +6,8 @@ labels: enhancement
 assignees: ''
 ---
 
+> **Important:** Please submit only one enhancement per issue. Do not mix enhancements with bug reports. This helps with tracking and prioritization.
+
 **Game:** HH / GH / CxH / PSH
 
 **Which feature is concerned?**
