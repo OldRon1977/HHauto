@@ -6,6 +6,8 @@ labels: bug
 assignees: ''
 ---
 
+> **Important:** Please report only one bug per issue. Do not mix bugs with feature requests. This helps with tracking and prioritization.
+
 **Script version:**
 **Game:** HH / GH / CxH / PSH
 **Browser:** (e.g. Chrome 120, Firefox 115)
