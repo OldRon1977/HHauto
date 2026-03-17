@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.5
+// @version      7.30.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -238,6 +238,7 @@ HHAuto_ToolTips.en['lastTrollWithGirls'] = { version: "5.32.0", elementText: "La
 HHAuto_ToolTips.en['autoChampsForceStartEventGirl'] = { version: "5.6.98", elementText: "Event force", tooltip: "if enabled, will fight for event girl champion even if not started. Champions will need to be activated and champions to be in the filter." };
 HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.25.0", elementText: "+Raid", tooltip: "If enabled : ignore selected troll when raid Of Love available, done AFTER events and after last/first troll with girls option" };
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.25.6", elementText: "Raid selector", tooltip: "Select girl to be targetted during Love Raid, Will be reset to first option when girl won or event ends." };
+HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.30.6", elementText: "Bypass reserve", tooltip: "When enabled, Love Raid fights will bypass the fight reserve (threshold) as long as a raid girl is available — same behavior as Mythic events." };
 HHAuto_ToolTips.en['buyLoveRaidCombat'] = { version: "7.25.6", elementText: "Buy comb.for Raid", tooltip: "<p style = 'color:red'>/ !\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p > If enabled: <br>Buying combat point during Love Raid event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementText: "Raid auto buy", tooltip: "Number of combat points to be bought during an love raid event" };
 HHAuto_ToolTips.en['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before LoveRaid fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };
@@ -7231,7 +7232,8 @@ class Troll {
                     const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
                     let bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
                         && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
-                        || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"));
+                        || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
+                        || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
                     const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
                     if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
                         && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
@@ -7918,6 +7920,7 @@ const SK = {
     plusEventMythic: "Setting_plusEventMythic",
     plusEventMythicSandalWood: "Setting_plusEventMythicSandalWood",
     plusLoveRaid: "Setting_plusLoveRaid",
+    autoTrollLoveRaidByPassThreshold: "Setting_autoTrollLoveRaidByPassThreshold",
     plusEventLoveRaidSandalWood: "Setting_plusEventLoveRaidSandalWood",
     bossBangEvent: "Setting_bossBangEvent",
     bossBangMinTeam: "Setting_bossBangMinTeam",
@@ -9294,6 +9297,17 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSettings] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSpendsBefore] =
     {
         default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold] =
+    {
+        default: "false",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Boolean",
@@ -18285,6 +18299,7 @@ function getMenu() {
             + `<div class="internalOptionsRow separator">`
             + hhMenuSwitch('plusLoveRaid')
             + hhMenuSelect('loveRaidSelector')
+            + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
             + hhMenuSwitch('buyLoveRaidCombat', '', true)
             + hhMenuInput('autoBuyLoveRaidTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
             + hhMenuSwitch('plusEventLoveRaidSandalWood')
@@ -21101,7 +21116,9 @@ function handleTrollBattle(ctx) {
                     // Love raid available
                     (LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
                         &&
-                            (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy))) {
+                            (energyAboveThreshold
+                                || Troll.canBuyFightForRaid(loveRaid, false).canBuy
+                                || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true" && ctx.currentPower > 0)))) {
                 LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
                 setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
                 ctx.busy = true;
