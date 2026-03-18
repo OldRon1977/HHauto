@@ -21,6 +21,7 @@ export const HHAuto_inputPattern = {
     eventTrollOrder:"([1-2][0-9]|[1-9])(;([1-2][0-9]|[1-9]))*",
     autoBuyTrollNumber:"200|1[0-9][0-9]|[1-9]?[0-9]",
     autoSeasonThreshold:"[0-9]",
+    autoSeasonMaxTierNb:"[1-7][0-9]|[1-9]",
     autoSeasonRunThreshold:"10|[0-9]",
     autoPentaDrillThreshold:"[0-9]",
     autoPentaDrillRunThreshold:"10|[0-9]",

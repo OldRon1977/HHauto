@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.30.6
+// @version      7.31.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -254,8 +254,9 @@ HHAuto_ToolTips.en['autoSeasonTitle'] = { version: "5.6.24", elementText: "Seaso
 HHAuto_ToolTips.en['autoSeason'] = { version: "5.6.24", elementText: "Enable", tooltip: "if enabled : Automatically fight in Seasons (Opponent chosen following PowerCalculation)" };
 HHAuto_ToolTips.en['autoSeasonCollect'] = { version: "5.6.24", elementText: "Collect", tooltip: "if enabled : Automatically collect Seasons ( if multiple to collect, will collect one per kiss usage)" };
 HHAuto_ToolTips.en['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Collect all", tooltip: "if enabled : Automatically collect all items before end of season (configured with Collect all timer)" };
-HHAuto_ToolTips.en['autoSeasonIgnoreNoGirls'] = { version: "7.27.0", elementText: "Ignore if no girls", tooltip: "if enabled : Do not perform any fight in season if no girls nor skin to win on season fight reward (useful for love raids)" };
+HHAuto_ToolTips.en['autoSeasonIgnoreNoGirls'] = { version: "7.31.0", elementText: "Ignore if no event girls", tooltip: "if enabled : Do not perform any fight in season if no girls nor skin to win on season fight reward (useful for love raids)<br>This do not take into account the season reward, ie tier" };
 HHAuto_ToolTips.en['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "Minimum kiss to keep" };
+HHAuto_ToolTips.en['autoSeasonMaxTier'] = { version: "7.31.0", elementText: "Max Tier", tooltip: "Maximum tier to stop at in season. <br>Will not have effect if Ignore no girl is checked" };
 HHAuto_ToolTips.en['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum kiss fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in season" };
 HHAuto_ToolTips.en['autoSeasonSkipLowMojo'] = { version: "7.10.0", elementText: "Skip low Mojo", tooltip: "If enabled : Not fight when mojo reward is less than 8 and season level is less than 63. Will still fight to not loose kiss." };
@@ -3983,7 +3984,6 @@ class Season {
             const opponentDatas = unsafeWindow.opponents;
             let doDisplay = false;
             let seasonOpponents = [];
-            let hasGirlToWin = false;
             try {
                 // TODO update
                 if ($("div.matchRatingNew img#powerLevelScouter").length != 3) {
@@ -4002,10 +4002,6 @@ class Season {
                     //console.timeEnd('calculateBattleProbabilities' + index);
                     seasonOpponents[index] = new SeasonOpponent((_b = opponentDatas[index].player) === null || _b === void 0 ? void 0 : _b.id_fighter, opponent.name, Number($(".slot_victory_points .amount", opponentBlock).text()), // mojo
                     Number($(".slot_season_xp_girl .amount", opponentBlock).text()), Number($(".slot_season_affection_girl .amount", opponentBlock).text()), simu);
-                    const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
-                    if (girlShardsReward.length > 0) {
-                        hasGirlToWin = true;
-                    }
                     const seasonButton = $('.player-panel-buttons .opponent_perform_button_container .green_button_L.btn_season_perform', opponentBlock);
                     seasonButton.contents().filter(function () { return this.nodeType === 3; }).remove();
                     seasonButton.find('span').remove();
@@ -4013,7 +4009,7 @@ class Season {
                     if (doDisplay) {
                         seasonButton.prepend(`<div class="matchRatingNew ${simu.scoreClass}"><img id="powerLevelScouter" src=${powerCalcImages[simu.scoreClass]}>${NumberHelper.nRounding(100 * simu.win, 2, -1)}%</div>`);
                     }
-                    yield TimeHelper.sleep(randomInterval(200, 400)); // avoid blocking UI thread and let it update with new elements
+                    yield TimeHelper.sleep(randomInterval(10, 30)); // avoid blocking UI thread and let it update with new elements
                 }
                 var { numberOfReds, chosenIndex } = Season.getBestOppo(seasonOpponents, Season.getEnergy(), Season.getEnergyMax());
                 const chosenID = chosenIndex >= 0 ? (_c = opponentDatas[chosenIndex].player) === null || _c === void 0 ? void 0 : _c.id_fighter : chosenIndex;
@@ -4035,10 +4031,6 @@ class Season {
                     catch (err) {
                         LogUtils_logHHAuto('Error when dispaly chosen opponent');
                     }
-                }
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true" && !hasGirlToWin) {
-                    LogUtils_logHHAuto("Ignoring season fights as no girl to win on fight reward");
-                    chosenIndex = -1;
                 }
                 return chosenIndex < 0 ? chosenIndex : chosenID;
             }
@@ -4163,6 +4155,18 @@ class Season {
             if (page === ConfigHelper.getHHScriptVars("pagesIDSeasonArena")) {
                 LogUtils_logHHAuto("On season arena page.");
                 Season.stylesBattle();
+                const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
+                const maxTier = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
+                const stopIfNoEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonIgnoreNoGirls) === "true";
+                const maxTierReached = isMaxTierSet && Season.getTierLevel() >= maxTier;
+                if (maxTierReached && !stopIfNoEventGirl) {
+                    LogUtils_logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}), not fighting anymore in season.`);
+                    setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                    return true;
+                }
+                if (maxTierReached && stopIfNoEventGirl) {
+                    LogUtils_logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}) but "Stop if no event girl" enabled, will check for event girls.`);
+                }
                 var chosenID = yield Season.moduleSimSeasonBattle(true);
                 if (chosenID === -2) {
                     //change opponents and reload
@@ -4191,6 +4195,15 @@ class Season {
                 else {
                     const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
                     const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
+                    const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
+                    if (girlShardsReward.length > 0) {
+                        LogUtils_logHHAuto("Girl shard reward found for chosen opponent");
+                    }
+                    if (stopIfNoEventGirl && girlShardsReward.length <= 0) {
+                        LogUtils_logHHAuto("Ignoring season fights as no girl to win on fight reward");
+                        setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                        return false;
+                    }
                     if (runThreshold > 0) {
                         setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, "true");
                     }
@@ -7844,6 +7857,8 @@ const SK = {
     autoSeasonPassReds: "Setting_autoSeasonPassReds",
     autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
     seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
+    autoSeasonMaxTier: "Setting_autoSeasonMaxTier",
+    autoSeasonMaxTierNb: "Setting_autoSeasonMaxTierNb",
     // Pantheon
     autoPantheon: "Setting_autoPantheon",
     autoPantheonThreshold: "Setting_autoPantheonThreshold",
@@ -8840,6 +8855,27 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonRunThreshold] =
         setMenu: true,
         menuType: "value",
         kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTier] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb] =
+    {
+        default: "63",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value"
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
     {
@@ -12821,27 +12857,32 @@ class LeagueHelper {
             const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
             const Hero = getHero();
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            let SimPower = function () {
-                return League_awaiter(this, void 0, void 0, function* () {
-                    if (allOpponentsSimDisplayed) {
-                        // logHHAuto("Stop simu");
-                        return;
-                    }
-                    const opponents_list = getHHVars("opponents_list");
-                    if (!opponents_list) {
-                        LogUtils_logHHAuto('ERROR: Can\'t find opponent list');
-                        return;
-                    }
-                    let heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
-                    const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
-                    const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
-                    let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-                    let opponentsPowerListChanged = false;
-                    for (let opponentIndex = 0; opponentIndex < opponents_list.length; opponentIndex++) {
-                        let opponents = opponents_list[opponentIndex];
-                        if (LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents)) {
+            const opponents_list = getHHVars("opponents_list");
+            if (!opponents_list) {
+                LogUtils_logHHAuto('ERROR: Can\'t find opponent list');
+                return;
+            }
+            else {
+                const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
+                const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
+                const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
+                const opponentsToSimulate = opponents_list.filter(opponents => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
+                let SimPower = function () {
+                    return League_awaiter(this, void 0, void 0, function* () {
+                        if (allOpponentsSimDisplayed) {
+                            // logHHAuto("Stop simu");
+                            return;
+                        }
+                        if (debugEnabled)
+                            LogUtils_logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
+                        let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+                        let opponentsPowerListChanged = false;
+                        for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
+                            let opponents = opponentsToSimulate[opponentIndex];
                             let simu;
                             let leagueOpponent;
+                            if (debugEnabled)
+                                LogUtils_logHHAuto(`Simulating opponent ${opponentIndex + 1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
                             if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
                                 try {
                                     leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponents.player.id_fighter);
@@ -12870,17 +12911,16 @@ class LeagueHelper {
                                 opponentsPowerListChanged = true;
                             }
                             LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
-                            yield TimeHelper.sleep(randomInterval(200, 400));
+                            yield TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
                         }
-                    }
-                    if (opponentsPowerListChanged) {
-                        LogUtils_logHHAuto('Save opponent list for later');
-                        setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
-                    }
-                    //CSS
-                });
-            };
-            SimPower();
+                        if (opponentsPowerListChanged) {
+                            LogUtils_logHHAuto('Save opponent list for later');
+                            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+                        }
+                    });
+                };
+                SimPower();
+            }
             let listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
             if (document.getElementById("HHListUpdate") === null) {
                 $(".leagues_middle_header_script").append(listUpdateStatus);
@@ -13076,6 +13116,7 @@ class LeagueHelper {
                 usePowerCalc = false;
             }
         }
+        let opponentsPowerListChanged = false;
         let canUseSimu = usePowerCalc && !!opponents_list && !!heroFighter;
         tableRow.each(function () {
             fightButton = $('a', $(this));
@@ -13114,10 +13155,18 @@ class LeagueHelper {
                     // $('.boosters', $(this)).children().length,
                     // opponents,
                     simu);
+                    if (opponentsPowerList && opponentsPowerList.opponentsList) {
+                        opponentsPowerList.opponentsList.push(leagueOpponent);
+                        opponentsPowerListChanged = true;
+                    }
                 }
                 Data.push(leagueOpponent);
             }
         });
+        if (opponentsPowerListChanged) {
+            LogUtils_logHHAuto('Save updated opponent list for later');
+            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+        }
         const hasScriptChangedPowerAfter = !LeagueHelper.hasVanillaPowerColumn();
         if (!hasScriptChangedPowerBefore && hasScriptChangedPowerAfter) {
             if (isFirstCall) {
@@ -15230,9 +15279,20 @@ class PlaceOfPower {
                     }
                     querySelectorText = "button.blue_button_L[rel='pop_action']:not([disabled])";
                     if ($(querySelectorText).length > 0) {
-                        document.querySelector(querySelectorText).click();
-                        LogUtils_logHHAuto("Started powerplace" + index);
-                        yield TimeHelper.sleep(randomInterval(2500, 3000));
+                        LogUtils_logHHAuto("Starting powerplace" + index);
+                        yield new Promise((resolve) => {
+                            $(querySelectorText).trigger('click');
+                            var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+                                // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
+                                let match = settings.data.match(/PlaceOfPower&action=start/);
+                                if (match === null)
+                                    return;
+                                $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
+                                resolve(true);
+                            };
+                            // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
+                            $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
+                        });
                     }
                     else if ($("button.blue_button_L[rel='pop_action'][disabled]").length > 0 && $("div.grid_view div.pop_selected").length > 0) {
                         PlaceOfPower.addPopToUnableToStart(index, "Unable to start Pop " + index + " not enough girls available.");
@@ -17509,6 +17569,7 @@ const HHAuto_inputPattern = {
     eventTrollOrder: "([1-2][0-9]|[1-9])(;([1-2][0-9]|[1-9]))*",
     autoBuyTrollNumber: "200|1[0-9][0-9]|[1-9]?[0-9]",
     autoSeasonThreshold: "[0-9]",
+    autoSeasonMaxTierNb: "[1-7][0-9]|[1-9]",
     autoSeasonRunThreshold: "10|[0-9]",
     autoPentaDrillThreshold: "[0-9]",
     autoPentaDrillRunThreshold: "10|[0-9]",
@@ -18226,6 +18287,18 @@ function getMenu() {
             + hhMenuSwitch('autoSeasonPassReds', '', true)
             + hhMenuSwitch('autoSeasonBoostedOnly')
             + hhMenuSwitch('autoSeasonSkipLowMojo')
+            + `<div class="labelAndButton" style="width: 70px;">`
+            + `<span class="HHMenuItemName">${getTextForUI("autoSeasonMaxTier", "elementText")}</span>`
+            + `<div class="tooltipHH">`
+            + `<span class="tooltipHHtext">${getTextForUI("autoSeasonMaxTier", "tooltip")}</span>`
+            + `<label class="switch">`
+            + `<input id="autoSeasonMaxTier" type="checkbox">`
+            + `<span class="slider round">`
+            + `</span>`
+            + `</label>`
+            + `<input style="text-align:center; width:20px" id="autoSeasonMaxTierNb" required pattern="${HHAuto_inputPattern.autoSeasonMaxTierNb}" type="text">`
+            + `</div>`
+            + `</div>`
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuInputWithImg('autoSeasonThreshold', HHAuto_inputPattern.autoSeasonThreshold, 'text-align:center; width:30px', 'pictures/design/ic_kiss.png', 'numeric')

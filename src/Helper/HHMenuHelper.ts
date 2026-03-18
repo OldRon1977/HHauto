@@ -697,6 +697,18 @@ export function getMenu() {
                             + hhMenuSwitch('autoSeasonPassReds', '', true)
                             + hhMenuSwitch('autoSeasonBoostedOnly')
                             + hhMenuSwitch('autoSeasonSkipLowMojo')
+                            +`<div class="labelAndButton" style="width: 70px;">`
+                                +`<span class="HHMenuItemName">${getTextForUI("autoSeasonMaxTier","elementText")}</span>`
+                                +`<div class="tooltipHH">`
+                                    +`<span class="tooltipHHtext">${getTextForUI("autoSeasonMaxTier","tooltip")}</span>`
+                                    +`<label class="switch">`
+                                        +`<input id="autoSeasonMaxTier" type="checkbox">`
+                                        +`<span class="slider round">`
+                                        +`</span>`
+                                    +`</label>`
+                                    +`<input style="text-align:center; width:20px" id="autoSeasonMaxTierNb" required pattern="${HHAuto_inputPattern.autoSeasonMaxTierNb}" type="text">`
+                                +`</div>`
+                            +`</div>`
                         +`</div>`
                         +`<div class="internalOptionsRow">`
                             + hhMenuInputWithImg('autoSeasonThreshold', HHAuto_inputPattern.autoSeasonThreshold, 'text-align:center; width:30px', 'pictures/design/ic_kiss.png', 'numeric' )

@@ -779,6 +779,27 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonRunThreshold] =
     menuType:"value",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTier] =
+{
+    default: "false",
+    storage: "Storage()",
+    HHType: "Setting",
+    valueType: "Boolean",
+    getMenu: true,
+    setMenu: true,
+    menuType: "checked",
+    kobanUsing: false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb] =
+{
+    default: "63",
+    storage: "Storage()",
+    HHType: "Setting",
+    valueType: "Small Integer",
+    getMenu: true,
+    setMenu: true,
+    menuType: "value"
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
     {
     default:"false",
