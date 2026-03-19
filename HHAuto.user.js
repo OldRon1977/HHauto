@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.31.1
+// @version      7.32.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3943,11 +3943,20 @@ class Season {
         if (runThreshold > 0) {
             Tegzd += ' (' + threshold + '<' + Season.getEnergy() + '<=' + runThreshold + ')';
         }
+        const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
+        const maxTierNb = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
         if (runThreshold > 0 && Season.getEnergy() < runThreshold) {
             Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
         }
         else {
-            Tegzd += ' : ' + getTimeLeft('nextSeasonTime');
+            const timeLeft = getTimeLeft('nextSeasonTime');
+            Tegzd += ' : ' + timeLeft;
+            if (isMaxTierSet && timeLeft === "Time's up!") {
+                Tegzd += ' (Max Tier ' + maxTierNb + ')';
+            }
+        }
+        if (isMaxTierSet) {
+            Tegzd += ' [≤T' + maxTierNb + ']';
         }
         if (boostLimited) {
             Tegzd += ' ' + getTextForUI("boostMissing", "elementText") + '</li>';
@@ -7644,7 +7653,7 @@ function getSecondsLeft(name) {
     }
 }
 function getTimeLeft(name) {
-    const timerWaitingCompet = ['nextPachinkoTime', 'nextPachinko2Time', 'nextPachinkoEquipTime', 'nextSeasonTime', 'nextLeaguesTime'];
+    const timerWaitingCompet = ['nextPachinkoTime', 'nextPachinko2Time', 'nextPachinkoEquipTime', 'nextSeasonTime', 'nextLeaguesTime', 'nextChampionTime', 'nextClubChampionTime', 'nextLabyrinthTime', 'nextPentaDrillTime', 'nextPantheonTime'];
     if (!Timers[name]) {
         if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0) {
             return "Wait for contest";
@@ -21197,7 +21206,9 @@ function handleTrollBattle(ctx) {
                 ctx.busy = true;
                 if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) !== "true" || getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)[0] !== 'P') {
                     ctx.busy = yield Troll.doBossBattle();
-                    ctx.lastActionPerformed = "troll";
+                    if (ctx.busy) {
+                        ctx.lastActionPerformed = "troll";
+                    }
                 }
                 else {
                     LogUtils_logHHAuto("AutoBattle disabled for power collection for AutoQuest.");

@@ -348,7 +348,9 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
             if (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) !== "true" || getStoredValue(HHStoredVarPrefixKey+TK.questRequirement)[0] !== 'P')
             {
                 ctx.busy = await Troll.doBossBattle();
-                ctx.lastActionPerformed = "troll";
+                if (ctx.busy) {
+                    ctx.lastActionPerformed = "troll";
+                }
             }
             else
             {

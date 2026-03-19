@@ -88,7 +88,7 @@ export function getSecondsLeft(name)
 
 export function getTimeLeft(name)
 {
-    const timerWaitingCompet = ['nextPachinkoTime','nextPachinko2Time','nextPachinkoEquipTime','nextSeasonTime','nextLeaguesTime'];
+    const timerWaitingCompet = ['nextPachinkoTime','nextPachinko2Time','nextPachinkoEquipTime','nextSeasonTime','nextLeaguesTime','nextChampionTime','nextClubChampionTime','nextLabyrinthTime','nextPentaDrillTime','nextPantheonTime'];
     if (!Timers[name])
     {
         if (!TimeHelper.canCollectCompetitionActive() && timerWaitingCompet.indexOf(name) >= 0)
