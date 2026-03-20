@@ -171,6 +171,14 @@ export class HHMenu {
         sortsOptions.add(this._createHtmlOption(LeagueHelper.SORT_POWERCALC, getTextForUI("autoLeaguesPowerCalc", "elementText")));
     }
 
+    fillRaidStarsMenu() {
+        var raidStarsOptions = <HTMLSelectElement>document.getElementById("raidStarsSelector");
+        raidStarsOptions.add(this._createHtmlOption('0', getTextForUI("raidStarsOff", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('3', getTextForUI("raidStars3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('5', getTextForUI("raidStars5", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('6', getTextForUI("raidStars6", "elementText")));
+    }
+
     fillLabyDifficultyMenu() {
         var sortsOptions = <HTMLSelectElement>document.getElementById("autoLabyDifficulty");
         sortsOptions.add(this._createHtmlOption(LabyrinthAuto.EASY, getTextForUI("autoLabyDifficultyEasy", "elementText")));
@@ -770,6 +778,7 @@ export function getMenu() {
                         + hhMenuSwitch('buyCombat', '', true)
                         + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
+                        + hhMenuSwitch('plusEventSandalWood')
                     +`</div>`
                     +`<div class="internalOptionsRow separator">`
                         + hhMenuSwitch('plusEventMythic')
@@ -783,6 +792,7 @@ export function getMenu() {
                         + hhMenuSwitch('plusLoveRaid')
                         + hhMenuSelect('loveRaidSelector')
                         + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
+                        + hhMenuSelect('raidStarsSelector', 'width:75px;')
                         + hhMenuSwitch('buyLoveRaidCombat', '', true)
                         + hhMenuInput('autoBuyLoveRaidTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventLoveRaidSandalWood')

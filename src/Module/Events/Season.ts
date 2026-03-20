@@ -88,10 +88,19 @@ export class Season {
         if (runThreshold > 0) {
             Tegzd += ' ('+threshold+'<'+Season.getEnergy()+'<='+runThreshold+')';
         }
+        const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
+        const maxTierNb = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
         if(runThreshold > 0  && Season.getEnergy() < runThreshold) {
             Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
         }else {
-            Tegzd += ' : ' + getTimeLeft('nextSeasonTime');
+            const timeLeft = getTimeLeft('nextSeasonTime');
+            Tegzd += ' : ' + timeLeft;
+            if (isMaxTierSet && timeLeft === "Time's up!") {
+                Tegzd += ' (Max Tier ' + maxTierNb + ')';
+            }
+        }
+        if (isMaxTierSet) {
+            Tegzd += ' [≤T' + maxTierNb + ']';
         }
         if (boostLimited) {
             Tegzd += ' ' + getTextForUI("boostMissing","elementText") + '</li>';

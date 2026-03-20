@@ -18,4 +18,6 @@ export class LoveRaid {
     skin_to_win: boolean;
     shards_left: number;
     girl_skin_shards: number;
+    isMythic: boolean;
+    girlGrade: number; // Star grade of the raid girl (e.g. 3=rare, 5=legendary, 6=mythic)
 }

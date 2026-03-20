@@ -61,6 +61,19 @@ export class LoveRaidManager {
     }
     static getAllRaids(): LoveRaid[] {
         let raids: LoveRaid[] = getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
+        // Backfill girlGrade for raids stored before v7.32.2
+        // Old event_name format: "GirlName <Graded>" e.g. "Luna 5" or "Luna 3★"
+        for (const raid of raids) {
+            if (raid.girlGrade === undefined || raid.girlGrade === 0) {
+                const trailingMatch = raid.event_name?.match(/(\d+)\s*★?\s*$/);
+                const trailingNumber = trailingMatch ? Number(trailingMatch[1]) : 0;
+                if (trailingNumber > 0) {
+                    raid.girlGrade = trailingNumber;
+                } else if (raid.isMythic) {
+                    raid.girlGrade = 6;
+                }
+            }
+        }
         return raids;
     }
     static getTrollRaids(): LoveRaid[]{
@@ -80,6 +93,7 @@ export class LoveRaidManager {
         if(!raids || raids.length === 0) {
             raids = LoveRaidManager.getTrollRaids();
         }
+
         let raid: LoveRaid | undefined = undefined;
 
         let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
@@ -141,7 +155,11 @@ export class LoveRaidManager {
                     if (debugEnabled && kkRaid.girl_data?.shards >= 100) {
                         logHHAuto(`Girl won, may have skin to win, ignore for now`);
                     }
-                    raid.event_name = (kkRaid.girl_data?.name || kkRaid.event_name || kkRaid.id_girl) + ' ' + (kkRaid.girl_data?.Graded || '');
+                    // nb_grades = number of star slots (3=rare, 5=legendary, 6=mythic)
+                    // Graded is a string of star symbols (e.g. "☆☆☆"), graded = completed awakenings
+                    raid.girlGrade = Number(kkRaid.girl_data?.nb_grades) || 0;
+                    raid.isMythic = kkRaid.girl_data?.rarity === 'mythic' || raid.girlGrade >= 6;
+                    raid.event_name = (kkRaid.girl_data?.name || kkRaid.event_name || kkRaid.id_girl) + ' ' + raid.girlGrade + '★';
                     raid.raid_module_type = kkRaid.raid_module_type;
                     raid.seconds_until_event_end = Number(kkRaid.seconds_until_event_end);
                     raid.seconds_until_event_start = Number(kkRaid.seconds_until_event_start);
@@ -205,6 +223,25 @@ export class LoveRaidManager {
     }
     static isActivated(){
         return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
+    }
+    /**
+     * Returns the minimum girl grade for +Raid Stars filtering.
+     * Stored value is the grade directly: 0 = off, 3 = rare+, 5 = legendary+, 6 = mythic only.
+     */
+    static getMinRaidStars(): number {
+        if (!LoveRaidManager.isEnabled()) return 0;
+        const val = Number(getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic));
+        return isNaN(val) ? 0 : val;
+    }
+    static isRaidStarsActivated(): boolean {
+        return LoveRaidManager.getMinRaidStars() > 0;
+    }
+    /** @deprecated Use isRaidStarsActivated() — kept for backward compat */
+    static isMythicActivated(){
+        return LoveRaidManager.isRaidStarsActivated();
+    }
+    static isAnyActivated(){
+        return LoveRaidManager.isActivated() || LoveRaidManager.isRaidStarsActivated();
     }
     static styles(){
         $('.love-raids-container').removeClass('height-for-ad');

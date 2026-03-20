@@ -170,6 +170,7 @@ export const SK = {
     // Boosters / Events
     plusEvent: "Setting_plusEvent",
     plusEventMythic: "Setting_plusEventMythic",
+    plusEventSandalWood: "Setting_plusEventSandalWood",
     plusEventMythicSandalWood: "Setting_plusEventMythicSandalWood",
     plusLoveRaid: "Setting_plusLoveRaid",
     autoTrollLoveRaidByPassThreshold: "Setting_autoTrollLoveRaidByPassThreshold",
@@ -207,6 +208,7 @@ export const SK = {
 
     // Love Raid
     autoLoveRaidSelectedIndex: "Setting_autoLoveRaidSelectedIndex",
+    plusLoveRaidMythic: "Setting_autoLoveRaidMythicOnly", // now stores min grade (0=off, 3, 5, 6) instead of boolean
 
     // Bundles
     autoFreeBundlesCollect: "Setting_autoFreeBundlesCollect",

@@ -192,9 +192,10 @@ export class Booster {
                         if (sandalwood && mythicUpdated && sandalwoodEnded) {
                             const isMultibattle = parseInt(number_of_battles||'') > 1
                             logHHAuto("sandalwood may be ended need a new one");
+                            const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
                             const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-                            const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
-                            if (activatedMythic && EventModule.getEventMythicGirl().is_mythic || activatedLoveRaid && LoveRaidManager.getRaidToFight().girl_to_win) {
+                            const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+                            if (activatedEvent && EventModule.getEventGirl()?.girl_id || activatedMythic && EventModule.getEventMythicGirl().is_mythic || activatedLoveRaid && LoveRaidManager.getRaidToFight()?.girl_to_win) {
                                 if (isMultibattle) {
                                     // TODO go to market if sandalwood not ended, continue. If ended, buy a new one
                                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
@@ -209,13 +210,14 @@ export class Booster {
     }
 
     static needBoosterStatusFromStore() {
+        const isEventAutoSandalWood = getStoredValue(HHStoredVarPrefixKey+SK.plusEventSandalWood) === "true";
         const isMythicAutoSandalWood = getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythicSandalWood) === "true";
         const isLoveRaidAutoSandalWood = getStoredValue(HHStoredVarPrefixKey+SK.plusEventLoveRaidSandalWood) === "true";
         const isLeagueWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesBoostedOnly) === "true";
         const isSeasonWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonBoostedOnly) === "true";
         const isPantheonWithBooster = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true";
         const isAutoEquipBoosters = getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) === "true";
-        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isMythicAutoSandalWood || isLoveRaidAutoSandalWood || isAutoEquipBoosters;
+        return isLeagueWithBooster || isSeasonWithBooster || isPantheonWithBooster || isEventAutoSandalWood || isMythicAutoSandalWood || isLoveRaidAutoSandalWood || isAutoEquipBoosters;
     }
 
     static getBoosterFromStorage(){
@@ -468,10 +470,11 @@ export class Booster {
     }
 
     static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl=null, loveRaid: LoveRaid=null): boolean {
+        const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-        const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
-        if(!activatedMythic && !activatedLoveRaid) {
-            // if neither mythic nor love raid auto sandalwood is activated, no need to check
+        const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+        if(!activatedEvent && !activatedMythic && !activatedLoveRaid) {
+            // if no auto sandalwood is activated, no need to check
             return false;
         }
 
@@ -488,7 +491,10 @@ export class Booster {
             return true;
         }
 
-        let needForMythic = false, needForLoveRaid = false;
+        let needForEvent = false, needForMythic = false, needForLoveRaid = false;
+        if (activatedEvent) {
+            needForEvent = Booster.needSandalWoodEvent(nextTrollChoosen);
+        }
         if (activatedMythic) {
             if(!eventMythicGirl) {
                 eventMythicGirl = EventModule.getEventMythicGirl();
@@ -504,7 +510,7 @@ export class Booster {
         }
 
 
-        return ((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
+        return ((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
     }
 
     static ownedSandalwoodAndNotEquiped(): boolean {
@@ -551,6 +557,21 @@ export class Booster {
         }
     }
 
+    static needSandalWoodEvent(nextTrollChoosen: number, eventGirl: EventGirl = null): boolean {
+        if (!eventGirl) {
+            eventGirl = EventModule.getEventGirl();
+        }
+        if (!eventGirl?.girl_id || eventGirl.is_mythic) return false;
+        const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
+        const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
+        const remainingShards = Number(100 - Number(eventGirl.shards));
+        if (remainingShards <= 10) {
+            logHHAuto(`Not equipping sandalwood for event, only ${remainingShards} shards remaining`);
+        }
+
+        return activated && correctTrollTargetted && remainingShards > 10;
+    }
+
     static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null): boolean {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
@@ -562,7 +583,8 @@ export class Booster {
         return activated && correctTrollTargetted && remainingShards > 10;
     }
     static needSandalWoodLoveRaid(nextTrollChoosen: number, loveRaid: LoveRaid = null): boolean {
-        const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+        if (!loveRaid) return false;
+        const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
         const remainingShards = Number(100 - Number(loveRaid.girl_shards));
         if(remainingShards <= 10) {
@@ -574,29 +596,39 @@ export class Booster {
 
     static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, settingKey: string = SK.plusEventMythicSandalWood): Promise<boolean> {
         logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, settingKey=${settingKey}`);
+        const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-        const activatedLoveRaid = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
-        logHHAuto(`equipeSandalWoodIfNeeded: activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
+        const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+        logHHAuto(`equipeSandalWoodIfNeeded: activatedEvent=${activatedEvent}, activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
         let eventMythicGirl: EventGirl = null, loveRaid: LoveRaid = null;
-        let needForMythic = false, needForLoveRaid = false;
+        let needForEvent = false, needForMythic = false, needForLoveRaid = false;
+        if (activatedEvent) {
+            needForEvent = Booster.needSandalWoodEvent(nextTrollChoosen);
+            if (needForEvent) {
+                settingKey = SK.plusEventSandalWood;
+            }
+        }
         if (activatedMythic) {
             if (!eventMythicGirl) {
                 eventMythicGirl = EventModule.getEventMythicGirl();
             }
             needForMythic = Booster.needSandalWoodMythic(nextTrollChoosen, eventMythicGirl);
+            if (needForMythic) {
+                settingKey = SK.plusEventMythicSandalWood;
+            }
         }
         if (activatedLoveRaid) {
             if (!loveRaid) {
                 loveRaid = LoveRaidManager.getRaidToFight();
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
-            if (needForLoveRaid && !needForMythic) {
+            if (needForLoveRaid && !needForMythic && !needForEvent) {
                 settingKey = SK.plusEventLoveRaidSandalWood;
             }
         }
-        logHHAuto(`equipeSandalWoodIfNeeded: needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
+        logHHAuto(`equipeSandalWoodIfNeeded: needForEvent=${needForEvent}, needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
         try {
-            if (((needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
+            if (((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
                 // Check cooldown before attempting equip
                 if (Booster.isEquipOnCooldown()) {
                     logHHAuto("equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");

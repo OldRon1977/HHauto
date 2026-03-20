@@ -1277,6 +1277,19 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold] =
     menuType:"checked",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaidMythic] =
+    {
+    default:"0",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    customMenuID:"raidStarsSelector",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false,
+    isValid: /^[0356]$/
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaid] =
     {
     default:"false",
@@ -1351,6 +1364,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.plusEvent] =
     kobanUsing:false
 };
 HHStoredVars[HHStoredVarPrefixKey + SK.plusEventMythic] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.plusEventSandalWood] =
     {
     default:"false",
     storage:"Storage()",

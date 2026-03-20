@@ -105,7 +105,13 @@ export class Troll {
 
     static isTrollFightActivated(){
         return Troll.isEnabled() &&
-        (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true")
+        (
+            getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+            || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true"
+            || getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
+            || getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
+            || LoveRaidManager.isAnyActivated()
+        )
     }
 
     static getLastTrollIdAvailable(logging = false, id_world: number = undefined): number {
@@ -169,7 +175,13 @@ export class Troll {
         const lastTrollIdAvailable = Troll.getLastTrollIdAvailable(logging);
         const eventGirl = EventModule.getEventGirl();
         const eventMythicGirl = EventModule.getEventMythicGirl();
-        const loveRaids:LoveRaid[] = LoveRaidManager.isActivated() ? LoveRaidManager.getTrollRaids() : [];
+        const allTrollRaids:LoveRaid[] = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+        const minRaidStars = LoveRaidManager.getMinRaidStars();
+        const raidStarsRaids:LoveRaid[] = minRaidStars > 0 ? allTrollRaids.filter(raid => raid.girlGrade >= minRaidStars) : [];
+        // +Raid Stars minimum applies globally: +Raid also respects the grade floor
+        const loveRaids:LoveRaid[] = LoveRaidManager.isActivated()
+            ? allTrollRaids.filter(raid => minRaidStars > 0 ? raid.girlGrade >= minRaidStars : true)
+            : [];
         if (debugEnabled && logging) {
             logHHAuto('eventGirl', eventGirl);
             logHHAuto('eventMythicGirl', eventMythicGirl);
@@ -180,11 +192,18 @@ export class Troll {
             if (logging) logHHAuto("Mythic Event troll fight");
             TTF = Troll.getTrollIdFromEvent(eventMythicGirl);
         }
+        else if (raidStarsRaids.length > 0){
+            if (logging) logHHAuto("Raid Stars troll fight (min grade " + minRaidStars + ")");
+            const loveRaid = LoveRaidManager.getRaidToFight(raidStarsRaids, logging);
+            if (loveRaid) {
+                TTF = loveRaid.trollId;
+            }
+        }
         else if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && !checkTimer("eventGoing") && eventGirl.girl_id && !eventGirl.is_mythic) {
             if (logging) logHHAuto("Event troll fight");
             TTF = Troll.getTrollIdFromEvent(eventGirl);
         }
-        else if (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99) {
+        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
             if (trollWithGirls === undefined || trollWithGirls.length === 0) {
                 if (logging) logHHAuto("No troll with girls from storage, parsing game info ...");
                 trollWithGirls = Troll.getTrollWithGirls();
@@ -219,20 +238,23 @@ export class Troll {
         }
         else if (LoveRaidManager.isActivated() && loveRaids.length > 0){
             const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
-            TTF = loveRaid.trollId;
+            if (loveRaid) {
+                TTF = loveRaid.trollId;
+            }
         }
-        else if(autoTrollSelectedIndex > 0 && autoTrollSelectedIndex < 98)
+        else if(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && autoTrollSelectedIndex > 0 && autoTrollSelectedIndex < 98)
         {
             TTF=autoTrollSelectedIndex;
             if (logging) logHHAuto("Custom troll fight.");
         }
-        else
+        else if(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true")
         {
             TTF = lastTrollIdAvailable;
             if (logging) logHHAuto("Last troll fight: " + TTF);
         }
 
-        if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && logging)
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+            && getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && logging)
         {
             TTF = lastTrollIdAvailable;
             logHHAuto("Last troll fight for quest item: " + TTF);
@@ -242,12 +264,23 @@ export class Troll {
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         if (TTF <= 0) {
-            TTF = lastTrollIdAvailable > 0 ? lastTrollIdAvailable : 1;
-            if (logging) logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+                // Only fallback to last troll if normal troll fighting is enabled
+                TTF = lastTrollIdAvailable > 0 ? lastTrollIdAvailable : 1;
+                if (logging) logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
+            } else {
+                // Events/Raids only mode — no target available, skip fight
+                if (logging) logHHAuto("No event/raid troll target available, skipping.");
+                return 0;
+            }
         }
-        if (!trollz.hasOwnProperty(TTF) && !sideTrollz.hasOwnProperty(TTF)) {
+        if (TTF > 0 && !trollz.hasOwnProperty(TTF) && !sideTrollz.hasOwnProperty(TTF)) {
             if (logging) logHHAuto("Error: New troll implemented '"+TTF+"' (List to be updated) or wrong troll target found");
-            TTF = 1;
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+                TTF = 1;
+            } else {
+                return 0;
+            }
         }
         return TTF;
     }
@@ -266,7 +299,7 @@ export class Troll {
         {
             const eventGirl = EventModule.getEventGirl();
             const eventMythicGirl = EventModule.getEventMythicGirl();
-            const loveRaid = LoveRaidManager.getRaidToFight(LoveRaidManager.getTrollRaids(), false);
+            const loveRaid = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getRaidToFight(LoveRaidManager.getTrollRaids(), false) : undefined;
             //logHHAuto("No power for battle.");
             if (
                 !Troll.canBuyFight(eventGirl).canBuy && !Troll.canBuyFight(eventMythicGirl).canBuy &&
@@ -286,13 +319,18 @@ export class Troll {
         const currentPage = getPage();
 
         if (!TTF || TTF <= 0) {
-            if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
-                logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
-                TTF = 1;
-            }else {
-                logHHAuto(`ERROR: Invalid troll N°${TTF}, do not fight, retry...`);
-                setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "true");
-                return true;
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+                if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
+                    logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
+                    TTF = 1;
+                } else {
+                    logHHAuto(`ERROR: Invalid troll N°${TTF}, do not fight, retry...`);
+                    setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "true");
+                    return true;
+                }
+            } else {
+                logHHAuto("No troll target found (events/raids only mode), skipping fight.");
+                return false;
             }
         }
 
@@ -434,8 +472,9 @@ export class Troll {
                     return true;
                 }
 
-                if (LoveRaidManager.isActivated()) {
-                    loveRaid = LoveRaidManager.getTrollRaids().find(raid => raid.trollId === TTF);
+                if (LoveRaidManager.isAnyActivated()) {
+                    const trollRaids = LoveRaidManager.getTrollRaids();
+                    loveRaid = trollRaids.find(raid => raid.trollId === TTF);
                     if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
                         logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
                         clearTimer('nextLoveRaidTime');
@@ -754,7 +793,7 @@ export class Troll {
         {
             if (
                     getStoredValue(HHStoredVarPrefixKey +SK.buyLoveRaidCombat) =="true"
-                    && getStoredValue(HHStoredVarPrefixKey +SK.plusLoveRaid) ==="true"
+                    && LoveRaidManager.isAnyActivated()
                     && raid.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
                     && raid.id_girl
                 )

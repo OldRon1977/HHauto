@@ -135,7 +135,7 @@ export async function handleEventParsing(ctx: AutoLoopContext): Promise<void> {
 export async function handleMythicWave(ctx: AutoLoopContext): Promise<void> {
     if (ctx.busy === false && isAutoLoopActive() && ctx.canCollectCompetitionActive
         && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave') && getSecondsLeft("eventMythicGoing") > 0
-        && Troll.isTrollFightActivated())
+        && Troll.isEnabled())
     {
         logHHAuto("Mythic wave !");
         ctx.lastActionPerformed = "troll";
@@ -277,7 +277,7 @@ export async function handleLoveRaid(ctx: AutoLoopContext): Promise<void> {
         name: "Time to go and check raids.",
         action: "loveraid",
         requiresCompetition: true,
-        isReady: () => LoveRaidManager.isActivated() && checkTimer('nextLoveRaidTime'),
+        isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
         execute: () => LoveRaidManager.parse(),
     });
 }
@@ -295,12 +295,24 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
         //logHHAuto("fight amount: "+currentPower+" troll threshold: "+threshold+" paranoia fight: "+Number(checkParanoiaSpendings('fight')));
         const eventGirl: EventGirl = EventModule.getEventGirl();
         const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
-        const loveRaid: LoveRaid = LoveRaidManager.getRaidToFight();
+        const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+        const minRaidStars = LoveRaidManager.getMinRaidStars();
+        const raidStarsFiltered = minRaidStars > 0 ? allTrollRaids.filter(r => r.girlGrade >= minRaidStars) : [];
+        const raidStarsRaid: LoveRaid = raidStarsFiltered.length > 0
+            ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
+            : undefined;
+        // +Raid Stars minimum applies globally: +Raid also respects the grade floor
+        const loveRaidFiltered = LoveRaidManager.isActivated()
+            ? allTrollRaids.filter(r => minRaidStars > 0 ? r.girlGrade >= minRaidStars : true) : [];
+        const loveRaid: LoveRaid = loveRaidFiltered.length > 0
+            ? LoveRaidManager.getRaidToFight(loveRaidFiltered)
+            : undefined;
         if
             (
-                //normal case
+                //normal case (only when autoTrollBattle is ON)
                 (
-                    ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired))
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                    && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired))
                     && ctx.currentPower > 0
                     &&
                     (
@@ -308,7 +320,7 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                         || getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true"
                     )
                 )
-                || ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0 //paranoiaspendings to do
+                || getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0 //paranoiaspendings to do
                 ||
                 (
                     // mythic Event Girl available and fights available
@@ -317,6 +329,16 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                     (
                         ctx.currentPower > 0 //has fight => bypassing paranoia
                         || Troll.canBuyFight(eventMythicGirl, false).canBuy // can buy fights
+                    )
+                )
+                ||
+                (
+                    // Raid Stars: raid with girl grade >= configured minimum (independent, bypasses threshold)
+                    (raidStarsRaid?.id_girl)
+                    &&
+                    (
+                        ctx.currentPower > 0
+                        || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy
                     )
                 )
                 ||
@@ -331,7 +353,7 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 )
                 ||
                 (
-                    // Love raid available
+                    // Non-mythic Love raid available
                     (LoveRaidManager.isActivated() && loveRaid?.id_girl)
                     &&
                     (
@@ -348,14 +370,24 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
             if (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) !== "true" || getStoredValue(HHStoredVarPrefixKey+TK.questRequirement)[0] !== 'P')
             {
                 ctx.busy = await Troll.doBossBattle();
-                ctx.lastActionPerformed = "troll";
+                if (ctx.busy) {
+                    ctx.lastActionPerformed = "troll";
+                }
             }
-            else
+            else if (getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) === "true")
             {
                 logHHAuto("AutoBattle disabled for power collection for AutoQuest.");
                 (<HTMLInputElement>document.getElementById("autoTrollBattle")).checked = false;
                 setStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle, "false");
                 ctx.busy = false;
+            }
+            else
+            {
+                // Events/Raids only mode — quest power collection does not block
+                ctx.busy = await Troll.doBossBattle();
+                if (ctx.busy) {
+                    ctx.lastActionPerformed = "troll";
+                }
             }
         }
         else

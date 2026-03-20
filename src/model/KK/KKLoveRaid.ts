@@ -11,7 +11,10 @@ export class KKLoveRaid {
   end_datetime: string;
   event_name: string;
   girl_data: {
-    Graded: number;
+    Graded: string; // string of star symbols (e.g. "☆☆☆"), NOT a number
+    graded: number; // completed awakenings (0 for unowned girls)
+    nb_grades: number; // number of star slots = visible stars (3=rare, 5=legendary, 6=mythic)
+    rarity: string; // "common", "rare", "epic", "legendary", "mythic"
     shards: number;
     id_girl: number | string;
     name: string;

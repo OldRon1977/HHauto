@@ -99,6 +99,8 @@ export class StartService {
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
             setStoredValue(HHStoredVarPrefixKey + TK.scriptversion, GM.info.script.version);
 
+            // +Raid Stars migration handled below (outside version check)
+
             if ('7.26.0' === GM.info.script.version) {
                 // sett all mask rewards to true if any of the previous individual mask rewards where true
                 let maskReward = false;
@@ -229,6 +231,22 @@ export function start() {
         setTimers(getStoredJSON(HHStoredVarPrefixKey+TK.Timers, {}));
     }
     // clearEventData("onlyCheckEventsHHScript");
+
+    // Migrate +Raid Stars stored value to grade-based format (runs every load)
+    // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"3"), valid grades ("0"/"3"/"5"/"6")
+    const raidStarsVal = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic);
+    if (raidStarsVal !== undefined && raidStarsVal !== null) {
+        const gradeMap: Record<string, string> = {
+            "true": "6", "false": "0",   // old boolean format
+            "1": "3", "2": "5", "4": "5" // old selectedIndex format (1→3★, 2→5★)
+            // "0","3","5","6" are already valid grade values
+        };
+        if (gradeMap[raidStarsVal] !== undefined) {
+            setStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic, gradeMap[raidStarsVal]);
+            logHHAuto("Migrated +Raid Stars value '" + raidStarsVal + "' → '" + gradeMap[raidStarsVal] + "'");
+        }
+    }
+
     setDefaults();
 
     if (getStoredValue(HHStoredVarPrefixKey+SK.mousePause) === "true") {
@@ -284,6 +302,7 @@ export function start() {
     }
     hhAutoMenu.fillTrollSelectMenu(lastTrollIdAvailable);
     hhAutoMenu.fillLoveRaidSelectMenu();
+    hhAutoMenu.fillRaidStarsMenu();
 
     // Add league options
     hhAutoMenu.fillLeagueSelectMenu();
