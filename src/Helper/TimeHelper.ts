@@ -61,9 +61,42 @@ export class TimeHelper {
         return JSON.stringify({days:days,hours:hours,minutes:minutes,seconds:seconds});
     }
 
-    static sleep(waitTime) {
+
+    /**
+     * Pauses execution for a specified duration.
+     * @param waitTime - The number of milliseconds to sleep.
+     * @returns A promise that resolves after the specified wait time.
+     */
+    static sleep(waitTime: number): Promise<void> {
         return new Promise((resolve) => {
             setTimeout(resolve, waitTime);
+        });
+    }
+
+    /**
+     * Waits for an AJAX request that matches a specified pattern to complete.
+     * It optionally executes a provided action function before starting the wait, 
+     * and returns a Promise that resolves to true when the matching AJAX request finishes.
+     * 
+     * @param action : An optional function to execute before waiting for the AJAX request. If provided and callable, it runs immediately.
+     * @param ajaxPattern : A string pattern (likely a regex or substring) used to match against the AJAX request's data to identify the specific request to wait for.
+     * @returns A Promise that resolves to true when an AJAX request completes whose data matches the ajaxPattern. The promise remains pending until a matching request finishes.
+     */
+    static async waitForAjaxEnd(action: () => void, ajaxPattern: string): Promise<boolean> {
+        return await new Promise((resolve) => {
+            if (typeof action === 'function') {
+                action();
+            }
+
+            var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+                let match = settings.data.match(ajaxPattern);
+                if (match === null) return;
+
+                $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
+                resolve(true);
+            };
+            // check all ajax responses to find the one corresponding to pattern, then resolve the promise to continue the code execution
+            $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
         });
     }
 }

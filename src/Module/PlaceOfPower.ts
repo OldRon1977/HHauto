@@ -415,20 +415,10 @@ export class PlaceOfPower {
                 {
                     logHHAuto("Starting powerplace" + index);
                     
-                    await new Promise((resolve) => {
+                    // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
+                    await TimeHelper.waitForAjaxEnd(() => {
                         $(querySelectorText).trigger('click');
-
-                        var checkAjaxCompleteOnStartPop = function (event, request, settings) {
-                            // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
-                            let match = settings.data.match(/PlaceOfPower&action=start/);
-                            if (match === null) return;
-
-                            $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
-                            resolve(true);
-                        };
-                        // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
-                        $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
-                    });
+                    }, "PlaceOfPower&action=start"); // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
                 }
                 else if ($("button.blue_button_L[rel='pop_action'][disabled]").length >0 && $("div.grid_view div.pop_selected").length >0)
                 {
