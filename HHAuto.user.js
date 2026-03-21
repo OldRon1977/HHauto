@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.32.3
+// @version      7.32.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -4667,6 +4667,7 @@ class SeasonalEvent {
                                 if (!manualCollectAll) {
                                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                                 }
+                                SeasonalEvent.removeCollectAllButtonIfNeeded();
                             }
                         }
                         collectSeasonalEventRewards();
@@ -4676,7 +4677,10 @@ class SeasonalEvent {
                         LogUtils_logHHAuto("No SeasonalEvent reward to collect.");
                         setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
                         setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        if (!manualCollectAll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        }
+                        SeasonalEvent.removeCollectAllButtonIfNeeded();
                         return false;
                     }
                 }
@@ -4757,6 +4761,20 @@ class SeasonalEvent {
             button.one('click', () => {
                 SeasonalEvent.goAndCollect(true);
             });
+            $('button[rel="claim"]').on('click', () => {
+                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
+                setTimeout(() => {
+                    if (!SeasonalEvent.hasUnclaimedRewards()) {
+                        $('#SeasonalCollectAll').remove();
+                        divTooltip.remove();
+                    }
+                }, 1000);
+            });
+        }
+    }
+    static removeCollectAllButtonIfNeeded() {
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+            $('#SeasonalCollectAll').remove();
         }
     }
     static displayGirlsMileStones() {
@@ -7805,6 +7823,15 @@ function getTimeLeft(name) {
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
 //          InfoService (display remaining times)
+var TimeHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 
 
 
@@ -7847,9 +7874,41 @@ class TimeHelper {
         let seconds = sec_num % 60;
         return JSON.stringify({ days: days, hours: hours, minutes: minutes, seconds: seconds });
     }
+    /**
+     * Pauses execution for a specified duration.
+     * @param waitTime - The number of milliseconds to sleep.
+     * @returns A promise that resolves after the specified wait time.
+     */
     static sleep(waitTime) {
         return new Promise((resolve) => {
             setTimeout(resolve, waitTime);
+        });
+    }
+    /**
+     * Waits for an AJAX request that matches a specified pattern to complete.
+     * It optionally executes a provided action function before starting the wait,
+     * and returns a Promise that resolves to true when the matching AJAX request finishes.
+     *
+     * @param action : An optional function to execute before waiting for the AJAX request. If provided and callable, it runs immediately.
+     * @param ajaxPattern : A string pattern (likely a regex or substring) used to match against the AJAX request's data to identify the specific request to wait for.
+     * @returns A Promise that resolves to true when an AJAX request completes whose data matches the ajaxPattern. The promise remains pending until a matching request finishes.
+     */
+    static waitForAjaxEnd(action, ajaxPattern) {
+        return TimeHelper_awaiter(this, void 0, void 0, function* () {
+            return yield new Promise((resolve) => {
+                if (typeof action === 'function') {
+                    action();
+                }
+                var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+                    let match = settings.data.match(ajaxPattern);
+                    if (match === null)
+                        return;
+                    $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
+                    resolve(true);
+                };
+                // check all ajax responses to find the one corresponding to pattern, then resolve the promise to continue the code execution
+                $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
+            });
         });
     }
 }
@@ -15435,19 +15494,10 @@ class PlaceOfPower {
                     querySelectorText = "button.blue_button_L[rel='pop_action']:not([disabled])";
                     if ($(querySelectorText).length > 0) {
                         LogUtils_logHHAuto("Starting powerplace" + index);
-                        yield new Promise((resolve) => {
+                        // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
+                        yield TimeHelper.waitForAjaxEnd(() => {
                             $(querySelectorText).trigger('click');
-                            var checkAjaxCompleteOnStartPop = function (event, request, settings) {
-                                // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
-                                let match = settings.data.match(/PlaceOfPower&action=start/);
-                                if (match === null)
-                                    return;
-                                $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
-                                resolve(true);
-                            };
-                            // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
-                            $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
-                        });
+                        }, "PlaceOfPower&action=start"); // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
                     }
                     else if ($("button.blue_button_L[rel='pop_action'][disabled]").length > 0 && $("div.grid_view div.pop_selected").length > 0) {
                         PlaceOfPower.addPopToUnableToStart(index, "Unable to start Pop " + index + " not enough girls available.");

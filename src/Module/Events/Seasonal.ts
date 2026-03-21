@@ -164,6 +164,7 @@ export class SeasonalEvent {
                             if (!manualCollectAll) {
                                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                             }
+                            SeasonalEvent.removeCollectAllButtonIfNeeded();
                         }
                     }
                     collectSeasonalEventRewards();
@@ -174,7 +175,10 @@ export class SeasonalEvent {
                     logHHAuto("No SeasonalEvent reward to collect.");
                     setTimer('nextSeasonalEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                     setTimer('nextSeasonalEventCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    if (!manualCollectAll) {
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    }
+                    SeasonalEvent.removeCollectAllButtonIfNeeded();
                     return false;
                 }
             }
@@ -273,6 +277,21 @@ export class SeasonalEvent {
             button.one('click', () => {
                 SeasonalEvent.goAndCollect(true);
             });
+
+            $('button[rel="claim"]').on('click', () => {
+                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
+                setTimeout(() => {
+                    if (!SeasonalEvent.hasUnclaimedRewards()) {
+                        $('#SeasonalCollectAll').remove();
+                        divTooltip.remove();
+                    }
+                }, 1000);
+            });
+        }
+    }
+    static removeCollectAllButtonIfNeeded(){
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+            $('#SeasonalCollectAll').remove();
         }
     }
     static displayGirlsMileStones() {
