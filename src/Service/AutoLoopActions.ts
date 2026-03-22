@@ -353,13 +353,12 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 )
                 ||
                 (
-                    // Non-mythic Love raid available
+                    // +Raid: user-selected Love raid (independent from troll threshold)
                     (LoveRaidManager.isActivated() && loveRaid?.id_girl)
                     &&
                     (
-                        energyAboveThreshold
+                        ctx.currentPower > 0
                         || Troll.canBuyFightForRaid(loveRaid, false).canBuy
-                        || (getStoredValue(HHStoredVarPrefixKey+SK.autoTrollLoveRaidByPassThreshold) === "true" && ctx.currentPower > 0)
                     )
                 )
             )

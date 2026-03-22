@@ -21463,12 +21463,11 @@ function handleTrollBattle(ctx) {
                             ))
                 ||
                     (
-                    // Non-mythic Love raid available
+                    // +Raid: user-selected Love raid (independent from troll threshold)
                     (LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
                         &&
-                            (energyAboveThreshold
-                                || Troll.canBuyFightForRaid(loveRaid, false).canBuy
-                                || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true" && ctx.currentPower > 0)))) {
+                            (ctx.currentPower > 0
+                                || Troll.canBuyFightForRaid(loveRaid, false).canBuy))) {
                 LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
                 setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
                 ctx.busy = true;
