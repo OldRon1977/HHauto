@@ -137,7 +137,8 @@ export class HHMenu {
     fillLoveRaidSelectMenu() {
         var loveRaidOptions = <HTMLSelectElement>document.getElementById("loveRaidSelector");
         try {
-            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("firstEndingRaid", "elementText")));
+            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
+            loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
 
             LoveRaidManager.getTrollRaids().forEach((raid:LoveRaid) => {
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
@@ -771,6 +772,7 @@ export function getMenu() {
                         + hhMenuSwitch('useX50Fights', '', true)
                         + hhMenuSwitch('useX50FightsAllowNormalEvent')
                         + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
+                        + hhMenuSwitch('plusGirlSkins')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitch('plusEvent')

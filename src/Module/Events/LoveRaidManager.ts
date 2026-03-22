@@ -94,42 +94,62 @@ export class LoveRaidManager {
             raids = LoveRaidManager.getTrollRaids();
         }
 
+        const plusGirlSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
         let raid: LoveRaid | undefined = undefined;
 
-        let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
+        let autoRaidSelectedIndex: string = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
         if (autoRaidSelectedIndex === undefined || autoRaidSelectedIndex === '') {
-            autoRaidSelectedIndex = 0;
-        } else if(autoRaidSelectedIndex != 0) {
+            autoRaidSelectedIndex = '0';
+        } else if(autoRaidSelectedIndex !== '0' && autoRaidSelectedIndex !== 'first') {
             const autoRaidSelectedIndexArray = autoRaidSelectedIndex.split('_');
             if (autoRaidSelectedIndexArray.length !== 2) {
                 if (logging) logHHAuto('Saved raid index is malformed, resetting to default');
-                autoRaidSelectedIndex = 0;
+                autoRaidSelectedIndex = '0';
             } else {
-                autoRaidSelectedIndex = Number(autoRaidSelectedIndexArray[0]);
-                raid = raids.find(raid => raid.trollId === autoRaidSelectedIndex);
-                if (!raid || raid.id_girl != autoRaidSelectedIndexArray[1]) {
+                const selectedTrollId = Number(autoRaidSelectedIndexArray[0]);
+                const selectedGirlId = autoRaidSelectedIndexArray[1];
+                raid = raids.find(raid => raid.trollId === selectedTrollId);
+                if (!raid || String(raid.id_girl) !== selectedGirlId) {
                     if (logging) logHHAuto('Saved raid is no longer valid or new girl, resetting to default');
-                    autoRaidSelectedIndex = 0;
+                    autoRaidSelectedIndex = '0';
                 }
             }
         }
-        if (logging && raid) {
-            logHHAuto(`LoveRaid troll fight: ${raid.trollId} selected  with girl ${raid.id_girl} to win`);
+
+        // Check if selected raid's girl is done (shards complete + skins done or not wanted)
+        if (raid && raid.girl_shards >= 100) {
+            const skinsDone = !raid.skin_to_win;
+            if (!plusGirlSkins || skinsDone) {
+                if (logging) logHHAuto(`Raid girl ${raid.id_girl} completed (shards: ${raid.girl_shards}, skins done: ${skinsDone}, +Girl Skins: ${plusGirlSkins}), resetting selector`);
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+                autoRaidSelectedIndex = '0';
+                raid = undefined;
+            } else {
+                if (logging) logHHAuto(`Raid girl ${raid.id_girl} won but still has skins to collect (+Girl Skins ON)`);
+            }
         }
 
-        if (autoRaidSelectedIndex == 0) {
+        if (logging && raid) {
+            logHHAuto(`LoveRaid troll fight: ${raid.trollId} selected with girl ${raid.id_girl} to win`);
+        }
+
+        // "first" = First ending raid (old default behavior)
+        if (autoRaidSelectedIndex === 'first') {
             const raidWithGirls = raids.filter(raid => raid.girl_shards < 100);
             if (raidWithGirls.length > 0) {
                 raid = raidWithGirls[0];
-            } else raid = raids[0];
-
-            if (logging) {
-                if (raidWithGirls) {
-                    logHHAuto(`LoveRaid troll fight: ${raid.trollId} with girl ${raid.id_girl} to win`);
-                } else {
-                    logHHAuto(`LoveRaid troll fight: ${raid.trollId} with skin for girl ${raid.id_girl} to win`);
-                }
+            } else if (plusGirlSkins) {
+                raid = raids.find(r => r.skin_to_win) || undefined;
             }
+            if (logging && raid) {
+                logHHAuto(`LoveRaid first ending raid: troll ${raid.trollId} with girl ${raid.id_girl}`);
+            }
+        }
+
+        // Default "Choose a girl" (0) = no automatic fight
+        if (autoRaidSelectedIndex === '0') {
+            if (logging) logHHAuto('Raid selector is "Choose a girl" — no automatic raid fight');
+            raid = undefined;
         }
 
         return raid;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.32.4
+// @version      7.32.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -237,7 +237,8 @@ HHAuto_ToolTips.en['firstTrollWithGirls'] = { version: "5.32.0", elementText: "F
 HHAuto_ToolTips.en['lastTrollWithGirls'] = { version: "5.32.0", elementText: "Last troll with girl" };
 HHAuto_ToolTips.en['autoChampsForceStartEventGirl'] = { version: "5.6.98", elementText: "Event force", tooltip: "if enabled, will fight for event girl champion even if not started. Champions will need to be activated and champions to be in the filter." };
 HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", tooltip: "Fight Love Raids independently from Auto Troll and Events.<br>Raids are prioritized after Events but before normal Trolls." };
-HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.25.6", elementText: "Raid selector", tooltip: "Select girl to be targetted during Love Raid, Will be reset to first option when girl won or event ends." };
+HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)." };
+HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.32.1", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid fights as long as a raid girl is available." };
 HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.32.3", elementText: "+Raid Stars", tooltip: "Fight Love Raids by minimum girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event." };
 HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.32.3", elementText: "Off" };
@@ -247,6 +248,7 @@ HHAuto_ToolTips.en['raidStars6'] = { version: "7.32.3", elementText: "6 ★★�
 HHAuto_ToolTips.en['buyLoveRaidCombat'] = { version: "7.25.6", elementText: "Buy comb.for Raid", tooltip: "<p style = 'color:red'>/ !\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p > If enabled: <br>Buying combat point during Love Raid event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementText: "Raid auto buy", tooltip: "Number of combat points to be bought during an love raid event" };
 HHAuto_ToolTips.en['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before LoveRaid fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };
+HHAuto_ToolTips.en['chooseARaid'] = { version: "7.32.5", elementText: "Choose a girl" };
 HHAuto_ToolTips.en['firstEndingRaid'] = { version: "7.25.6", elementText: "First ending raid" };
 HHAuto_ToolTips.en['loveRaidTitle'] = { version: "7.25.5", elementText: "Love Raid" };
 HHAuto_ToolTips.en['plusEvent'] = { version: "7.32.1", elementText: "+Event", tooltip: "Fight regular event trolls independently from Auto Troll.<br>Respects energy threshold." };
@@ -3552,46 +3554,66 @@ class LoveRaidManager {
         if (!raids || raids.length === 0) {
             raids = LoveRaidManager.getTrollRaids();
         }
+        const plusGirlSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
         let raid = undefined;
         let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
         if (autoRaidSelectedIndex === undefined || autoRaidSelectedIndex === '') {
-            autoRaidSelectedIndex = 0;
+            autoRaidSelectedIndex = '0';
         }
-        else if (autoRaidSelectedIndex != 0) {
+        else if (autoRaidSelectedIndex !== '0' && autoRaidSelectedIndex !== 'first') {
             const autoRaidSelectedIndexArray = autoRaidSelectedIndex.split('_');
             if (autoRaidSelectedIndexArray.length !== 2) {
                 if (logging)
                     LogUtils_logHHAuto('Saved raid index is malformed, resetting to default');
-                autoRaidSelectedIndex = 0;
+                autoRaidSelectedIndex = '0';
             }
             else {
-                autoRaidSelectedIndex = Number(autoRaidSelectedIndexArray[0]);
-                raid = raids.find(raid => raid.trollId === autoRaidSelectedIndex);
-                if (!raid || raid.id_girl != autoRaidSelectedIndexArray[1]) {
+                const selectedTrollId = Number(autoRaidSelectedIndexArray[0]);
+                const selectedGirlId = autoRaidSelectedIndexArray[1];
+                raid = raids.find(raid => raid.trollId === selectedTrollId);
+                if (!raid || String(raid.id_girl) !== selectedGirlId) {
                     if (logging)
                         LogUtils_logHHAuto('Saved raid is no longer valid or new girl, resetting to default');
-                    autoRaidSelectedIndex = 0;
+                    autoRaidSelectedIndex = '0';
                 }
             }
         }
-        if (logging && raid) {
-            LogUtils_logHHAuto(`LoveRaid troll fight: ${raid.trollId} selected  with girl ${raid.id_girl} to win`);
+        // Check if selected raid's girl is done (shards complete + skins done or not wanted)
+        if (raid && raid.girl_shards >= 100) {
+            const skinsDone = !raid.skin_to_win;
+            if (!plusGirlSkins || skinsDone) {
+                if (logging)
+                    LogUtils_logHHAuto(`Raid girl ${raid.id_girl} completed (shards: ${raid.girl_shards}, skins done: ${skinsDone}, +Girl Skins: ${plusGirlSkins}), resetting selector`);
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+                autoRaidSelectedIndex = '0';
+                raid = undefined;
+            }
+            else {
+                if (logging)
+                    LogUtils_logHHAuto(`Raid girl ${raid.id_girl} won but still has skins to collect (+Girl Skins ON)`);
+            }
         }
-        if (autoRaidSelectedIndex == 0) {
+        if (logging && raid) {
+            LogUtils_logHHAuto(`LoveRaid troll fight: ${raid.trollId} selected with girl ${raid.id_girl} to win`);
+        }
+        // "first" = First ending raid (old default behavior)
+        if (autoRaidSelectedIndex === 'first') {
             const raidWithGirls = raids.filter(raid => raid.girl_shards < 100);
             if (raidWithGirls.length > 0) {
                 raid = raidWithGirls[0];
             }
-            else
-                raid = raids[0];
-            if (logging) {
-                if (raidWithGirls) {
-                    LogUtils_logHHAuto(`LoveRaid troll fight: ${raid.trollId} with girl ${raid.id_girl} to win`);
-                }
-                else {
-                    LogUtils_logHHAuto(`LoveRaid troll fight: ${raid.trollId} with skin for girl ${raid.id_girl} to win`);
-                }
+            else if (plusGirlSkins) {
+                raid = raids.find(r => r.skin_to_win) || undefined;
             }
+            if (logging && raid) {
+                LogUtils_logHHAuto(`LoveRaid first ending raid: troll ${raid.trollId} with girl ${raid.id_girl}`);
+            }
+        }
+        // Default "Choose a girl" (0) = no automatic fight
+        if (autoRaidSelectedIndex === '0') {
+            if (logging)
+                LogUtils_logHHAuto('Raid selector is "Choose a girl" — no automatic raid fight');
+            raid = undefined;
         }
         return raid;
     }
@@ -8118,6 +8140,8 @@ const SK = {
     paranoia: "Setting_paranoia",
     paranoiaSettings: "Setting_paranoiaSettings",
     paranoiaSpendsBefore: "Setting_paranoiaSpendsBefore",
+    // Girl Skins (applies to Events and Raids)
+    plusGirlSkins: "Setting_plusGirlSkins",
     // Boosters / Events
     plusEvent: "Setting_plusEvent",
     plusEventMythic: "Setting_plusEventMythic",
@@ -9523,6 +9547,17 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSettings] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSpendsBefore] =
     {
         default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusGirlSkins] =
+    {
+        default: "false",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Boolean",
@@ -17996,7 +18031,8 @@ class HHMenu {
     fillLoveRaidSelectMenu() {
         var loveRaidOptions = document.getElementById("loveRaidSelector");
         try {
-            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("firstEndingRaid", "elementText")));
+            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
+            loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
             LoveRaidManager.getTrollRaids().forEach((raid) => {
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
                 loveRaidOptions.add(option);
@@ -18565,6 +18601,7 @@ function getMenu() {
             + hhMenuSwitch('useX50Fights', '', true)
             + hhMenuSwitch('useX50FightsAllowNormalEvent')
             + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
+            + hhMenuSwitch('plusGirlSkins')
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitch('plusEvent')

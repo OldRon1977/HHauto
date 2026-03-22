@@ -167,6 +167,9 @@ export const SK = {
     paranoiaSettings: "Setting_paranoiaSettings",
     paranoiaSpendsBefore: "Setting_paranoiaSpendsBefore",
 
+    // Girl Skins (applies to Events and Raids)
+    plusGirlSkins: "Setting_plusGirlSkins",
+
     // Boosters / Events
     plusEvent: "Setting_plusEvent",
     plusEventMythic: "Setting_plusEventMythic",
