@@ -3662,8 +3662,7 @@ class LoveRaidManager {
                     raid.end_datetime = kkRaid.end_datetime;
                     raid.shards_left = Number(kkRaid.tranche_data.shards_left);
                     if (kkRaid.status == 'ongoing' && (((_j = (_h = (_g = kkRaid.girl_data) === null || _g === void 0 ? void 0 : _g.source) === null || _h === void 0 ? void 0 : _h.anchor_source) === null || _j === void 0 ? void 0 : _j.disabled) || ((_m = (_l = (_k = kkRaid.girl_data) === null || _k === void 0 ? void 0 : _k.source) === null || _l === void 0 ? void 0 : _l.anchor_win_from) === null || _m === void 0 ? void 0 : _m.disabled))) {
-                        LogUtils_logHHAuto(`Raid source not yet available, ignoring raid (${(_p = (_o = kkRaid.girl_data) === null || _o === void 0 ? void 0 : _o.source) === null || _p === void 0 ? void 0 : _p.sentence})`);
-                        continue;
+                        LogUtils_logHHAuto(`Raid source display disabled, still parsing raid (${(_p = (_o = kkRaid.girl_data) === null || _o === void 0 ? void 0 : _o.source) === null || _p === void 0 ? void 0 : _p.sentence})`);
                     }
                     if ($('.raid-card')[index].classList.contains('multiple-girl')) {
                         let girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);

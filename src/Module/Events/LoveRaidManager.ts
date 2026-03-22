@@ -196,8 +196,7 @@ export class LoveRaidManager {
                     raid.shards_left = Number(kkRaid.tranche_data.shards_left);
 
                     if (kkRaid.status == 'ongoing' && (kkRaid.girl_data?.source?.anchor_source?.disabled || kkRaid.girl_data?.source?.anchor_win_from?.disabled)) {
-                        logHHAuto(`Raid source not yet available, ignoring raid (${kkRaid.girl_data?.source?.sentence})`);
-                        continue;
+                        logHHAuto(`Raid source display disabled, still parsing raid (${kkRaid.girl_data?.source?.sentence})`);
                     }
 
                     if ($('.raid-card')[index].classList.contains('multiple-girl')) {
