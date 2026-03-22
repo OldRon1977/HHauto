@@ -1120,14 +1120,16 @@ class Booster {
     static waitForBattleResponse() {
         if (Booster._battleResponseReady) {
             Booster._battleResponseReady = false;
+            LogUtils_logHHAuto('[SW-DEBUG] waitForBattleResponse: flag was already set, returning immediately');
             return Promise.resolve();
         }
+        LogUtils_logHHAuto('[SW-DEBUG] waitForBattleResponse: waiting for AJAX response (10s timeout)...');
         return new Promise((resolve, reject) => {
             Booster._battleResponseResolve = resolve;
             setTimeout(() => {
                 if (Booster._battleResponseResolve === resolve) {
                     Booster._battleResponseResolve = null;
-                    LogUtils_logHHAuto('waitForBattleResponse: timed out after 10s');
+                    LogUtils_logHHAuto('[SW-DEBUG] waitForBattleResponse: TIMED OUT after 10s — proceeding anyway');
                     resolve(); // resolve anyway to avoid blocking
                 }
             }, 10000);
@@ -1137,6 +1139,7 @@ class Booster {
      * Resets the battle response flag and resolver. Must be called BEFORE each battle button click.
      */
     static resetBattleResponseFlag() {
+        LogUtils_logHHAuto('[SW-DEBUG] resetBattleResponseFlag: clearing flag and resolver before battle click');
         Booster._battleResponseReady = false;
         Booster._battleResponseResolve = null;
     }
@@ -1146,11 +1149,13 @@ class Booster {
      */
     static notifyBattleResponseProcessed() {
         if (Booster._battleResponseResolve) {
+            LogUtils_logHHAuto('[SW-DEBUG] notifyBattleResponseProcessed: resolver waiting → resolving promise now');
             const resolve = Booster._battleResponseResolve;
             Booster._battleResponseResolve = null;
             resolve();
         }
         else {
+            LogUtils_logHHAuto('[SW-DEBUG] notifyBattleResponseProcessed: no resolver waiting → setting flag for later');
             Booster._battleResponseReady = true;
         }
     }
@@ -1180,7 +1185,7 @@ class Booster {
                                 // Track max usages for Sandalwood on equip
                                 if (((_a = clonedData.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1' && clonedData.usages_remaining != null) {
                                     setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodMaxUsages, String(clonedData.usages_remaining));
-                                    LogUtils_logHHAuto(`Sandalwood equipped with ${clonedData.usages_remaining} doses`);
+                                    LogUtils_logHHAuto(`[SW-DEBUG] Sandalwood equipped via AJAX: usages_remaining=${clonedData.usages_remaining}, saved to TK.sandalwoodMaxUsages`);
                                 }
                             }
                             else {
@@ -1226,34 +1231,38 @@ class Booster {
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles || '') > 1;
                         const dosesBeforeFight = sandalwood.usages_remaining;
+                        LogUtils_logHHAuto(`[SW-DEBUG] AJAX do_battles_trolls: isMultibattle=${isMultibattle}, number_of_battles=${number_of_battles}, dosesBeforeFight=${dosesBeforeFight}`);
                         const { rewards } = response;
                         if (rewards && rewards.data && rewards.data.shards) {
                             let dosesConsumed = 0;
-                            rewards.data.shards.forEach(({ previous_value, value }) => {
+                            rewards.data.shards.forEach(({ previous_value, value }, idx) => {
+                                const shardsDropped = value - previous_value;
+                                LogUtils_logHHAuto(`[SW-DEBUG] shard drop[${idx}]: previous=${previous_value}, value=${value}, shardsDropped=${shardsDropped}`);
                                 if (isMultibattle) {
-                                    // Sandalwood doubles each shard drop (1→2).
-                                    // Total shards = normal drops + sandalwood bonus doses (capped by remaining doses).
-                                    const shardsDropped = value - previous_value;
-                                    // Each doubled drop = 1 dose. Odd total means sandalwood ran out mid-batch.
                                     const isOdd = shardsDropped % 2 === 1;
                                     if (isOdd) {
-                                        // Sandalwood definitely expired: it doubled some drops then ran out.
-                                        // doses consumed = dosesBeforeFight (all remaining were used up)
+                                        LogUtils_logHHAuto(`[SW-DEBUG] shard drop[${idx}]: ODD (${shardsDropped}) → Sandalwood expired mid-batch, all ${dosesBeforeFight} doses consumed`);
                                         dosesConsumed = dosesBeforeFight;
                                     }
                                     else {
-                                        // Even: assume all drops were doubled → doses = shardsDropped / 2
-                                        dosesConsumed += Math.floor(shardsDropped / 2);
+                                        const dosesDelta = Math.floor(shardsDropped / 2);
+                                        LogUtils_logHHAuto(`[SW-DEBUG] shard drop[${idx}]: EVEN (${shardsDropped}) → ${dosesDelta} doses consumed`);
+                                        dosesConsumed += dosesDelta;
                                     }
                                 }
                                 else {
+                                    LogUtils_logHHAuto(`[SW-DEBUG] shard drop[${idx}]: single battle → 1 dose consumed`);
                                     dosesConsumed++;
                                 }
                             });
                             // Cap at doses available before fight
+                            const uncappedDoses = dosesConsumed;
                             dosesConsumed = Math.min(dosesConsumed, dosesBeforeFight);
+                            if (uncappedDoses !== dosesConsumed) {
+                                LogUtils_logHHAuto(`[SW-DEBUG] dose cap applied: uncapped=${uncappedDoses}, capped=${dosesConsumed}`);
+                            }
                             sandalwood.usages_remaining -= dosesConsumed;
-                            LogUtils_logHHAuto(`Sandalwood dose tracking: before=${dosesBeforeFight}, consumed=${dosesConsumed}, remaining=${sandalwood.usages_remaining}`);
+                            LogUtils_logHHAuto(`[SW-DEBUG] Sandalwood dose tracking: before=${dosesBeforeFight}, consumed=${dosesConsumed}, remaining=${sandalwood.usages_remaining}, ended=${sandalwood.usages_remaining <= 0}`);
                             mythicUpdated = true;
                             sandalwoodEnded = sandalwood.usages_remaining <= 0;
                         }
@@ -1302,7 +1311,7 @@ class Booster {
                     try {
                         if (sandalwood && mythicUpdated && sandalwoodEnded) {
                             const isMultibattle = parseInt(number_of_battles || '') > 1;
-                            LogUtils_logHHAuto("sandalwood may be ended need a new one");
+                            LogUtils_logHHAuto("[SW-DEBUG] sandalwood may be ended, need a new one");
                             const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
                             const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
                             const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
@@ -1562,8 +1571,9 @@ class Booster {
         const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
+        LogUtils_logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: troll=${nextTrollChoosen}, activatedEvent=${activatedEvent}, activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
         if (!activatedEvent && !activatedMythic && !activatedLoveRaid) {
-            // if no auto sandalwood is activated, no need to check
+            LogUtils_logHHAuto('[SW-DEBUG] needSandalWoodEquipped: no auto-sandalwood activated, skipping');
             return false;
         }
         // Don't try to equip if we're on cooldown from a recent failure
@@ -1593,10 +1603,12 @@ class Booster {
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
         }
+        LogUtils_logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: needForEvent=${needForEvent}, needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
         // Proactive depletion check: if Sandalwood is equipped but has 0 doses remaining,
         // remove it from boosterStatus so ownedSandalwoodAndNotEquiped() triggers re-equip.
         if (needForEvent || needForMythic || needForLoveRaid) {
             const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+            LogUtils_logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: proactive depletion check, dosesRemaining=${dosesRemaining}`);
             if (dosesRemaining !== null && dosesRemaining <= 0) {
                 LogUtils_logHHAuto('needSandalWoodEquipped: Sandalwood depleted (0 doses), removing from boosterStatus to trigger re-equip');
                 const boosterStatus = Booster.getBoosterFromStorage();
@@ -1609,7 +1621,7 @@ class Booster {
     static ownedSandalwoodAndNotEquiped() {
         const ownedSandalwood = HeroHelper.haveBoosterInInventory(Booster.SANDALWOOD_IDENTIFIER);
         const equipedSandalwood = Booster.haveBoosterEquiped(Booster.SANDALWOOD_IDENTIFIER);
-        LogUtils_logHHAuto(`ownedSandalwoodAndNotEquiped: owned=${ownedSandalwood}, equipped=${equipedSandalwood}, result=${ownedSandalwood && !equipedSandalwood}`);
+        LogUtils_logHHAuto(`[SW-DEBUG] ownedSandalwoodAndNotEquiped: owned=${ownedSandalwood}, equipped=${equipedSandalwood}, result=${ownedSandalwood && !equipedSandalwood}`);
         return ownedSandalwood && !equipedSandalwood;
     }
     static isEquipOnCooldown() {
@@ -1656,7 +1668,7 @@ class Booster {
         const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
         const remainingShards = Number(100 - Number(eventGirl.shards));
         if (remainingShards <= 10) {
-            LogUtils_logHHAuto(`Not equipping sandalwood for event, only ${remainingShards} shards remaining`);
+            LogUtils_logHHAuto(`[SW-DEBUG] Not equipping sandalwood for event, only ${remainingShards} shards remaining`);
         }
         return activated && correctTrollTargetted && remainingShards > 10;
     }
@@ -1665,7 +1677,7 @@ class Booster {
         const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
         const remainingShards = Number(100 - Number(eventMythicGirl.shards));
         if (remainingShards <= 10) {
-            LogUtils_logHHAuto(`Not equipping sandalwood for mythic, only ${remainingShards} shards remaining`);
+            LogUtils_logHHAuto(`[SW-DEBUG] Not equipping sandalwood for mythic, only ${remainingShards} shards remaining`);
         }
         return activated && correctTrollTargetted && remainingShards > 10;
     }
@@ -1676,17 +1688,17 @@ class Booster {
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
         const remainingShards = Number(100 - Number(loveRaid.girl_shards));
         if (remainingShards <= 10) {
-            LogUtils_logHHAuto(`Not equipping sandalwood for love raid, only ${remainingShards} shards remaining`);
+            LogUtils_logHHAuto(`[SW-DEBUG] Not equipping sandalwood for love raid, only ${remainingShards} shards remaining`);
         }
         return activated && correctTrollTargetted && remainingShards > 10;
     }
     static equipeSandalWoodIfNeeded(nextTrollChoosen, settingKey = SK.plusEventMythicSandalWood) {
         return __awaiter(this, void 0, void 0, function* () {
-            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, settingKey=${settingKey}`);
+            LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: called for troll ${nextTrollChoosen}, settingKey=${settingKey}`);
             const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
             const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
             const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
-            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: activatedEvent=${activatedEvent}, activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
+            LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: activatedEvent=${activatedEvent}, activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
             let eventMythicGirl = null, loveRaid = null;
             let needForEvent = false, needForMythic = false, needForLoveRaid = false;
             if (activatedEvent) {
@@ -1713,33 +1725,33 @@ class Booster {
                     settingKey = SK.plusEventLoveRaidSandalWood;
                 }
             }
-            LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: needForEvent=${needForEvent}, needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
+            LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: needForEvent=${needForEvent}, needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
             try {
                 if (((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped())) {
                     // Check cooldown before attempting equip
                     if (Booster.isEquipOnCooldown()) {
-                        LogUtils_logHHAuto("equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");
+                        LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: on cooldown, skipping equip attempt");
                         return false;
                     }
                     // Resolve Sandalwood booster from market data
                     const sandalwoodBooster = Booster.getSandalwoodBooster();
                     if (!sandalwoodBooster) {
-                        LogUtils_logHHAuto("equipeSandalWoodIfNeeded: No market data for Sandalwood. Visit the market first.");
+                        LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: No market data for Sandalwood. Visit the market first.");
                         return false;
                     }
                     // Equip a new one
-                    LogUtils_logHHAuto("equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(Sandalwood)");
+                    LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: calling HeroHelper.equipBooster(Sandalwood)");
                     const equiped = yield HeroHelper.equipBooster(sandalwoodBooster);
-                    LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: equipBooster returned ${equiped}`);
+                    LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: equipBooster returned ${equiped}`);
                     if (!equiped) {
                         const numberFailure = HeroHelper.getSandalWoodEquipFailure();
-                        LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: failure #${numberFailure}`);
+                        LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: failure #${numberFailure}`);
                         if (numberFailure >= 3) {
-                            LogUtils_logHHAuto("equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood settingKey=" + settingKey);
+                            LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood settingKey=" + settingKey);
                             setStoredValue(HHStoredVarPrefixKey + settingKey, 'false');
                         }
                         else {
-                            LogUtils_logHHAuto("equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
+                            LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
                             // Server says max boosters equipped - mark it as equipped to prevent retries
                             Booster.markBoosterAsEquippedInStorage(sandalwoodBooster);
                             // Set cooldown to prevent spamming equip attempts
@@ -1748,17 +1760,17 @@ class Booster {
                     }
                     else {
                         // Reset failure counter on success
-                        LogUtils_logHHAuto("equipeSandalWoodIfNeeded: success, resetting failure counter");
+                        LogUtils_logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: success, resetting failure counter");
                         setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodFailure, 0);
                     }
                     return equiped;
                 }
                 else {
-                    LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: conditions not met, no equip needed`);
+                    LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: conditions not met, no equip needed`);
                 }
             }
             catch (error) {
-                LogUtils_logHHAuto(`equipeSandalWoodIfNeeded: caught error: ${error}`);
+                LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: caught error: ${error}`);
                 return Promise.resolve(false);
             }
             return Promise.resolve(false);
@@ -1782,30 +1794,42 @@ class Booster {
      * The most restrictive constraint wins.
      */
     static getRecommendedBatchSize(minRemainingShards, dosesRemaining, userSettings) {
+        LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: minRemainingShards=${minRemainingShards}, dosesRemaining=${dosesRemaining}, settings=${JSON.stringify(userSettings)}`);
         let maxBatch = 50;
         // User preference caps
-        if (!userSettings.useX50)
+        if (!userSettings.useX50) {
             maxBatch = 10;
-        if (!userSettings.useX10)
+            LogUtils_logHHAuto('[SW-DEBUG] batch cap: useX50=false → max 10');
+        }
+        if (!userSettings.useX10) {
             maxBatch = 1;
+            LogUtils_logHHAuto('[SW-DEBUG] batch cap: useX10=false → max 1');
+        }
         // If Sandalwood is not equipped, no dose-based restrictions apply
-        if (dosesRemaining === null)
+        if (dosesRemaining === null) {
+            LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: no Sandalwood equipped → returning ${maxBatch}`);
             return maxBatch;
+        }
         // Dose-based limits (check most restrictive first)
         if (dosesRemaining <= userSettings.sandalwoodDosesX1Limit) {
+            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: doses ${dosesRemaining} <= dosesX1Limit ${userSettings.sandalwoodDosesX1Limit} → max 1`);
             maxBatch = 1;
         }
         else if (dosesRemaining <= userSettings.sandalwoodDosesX10Limit && maxBatch > 10) {
+            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: doses ${dosesRemaining} <= dosesX10Limit ${userSettings.sandalwoodDosesX10Limit} → max 10`);
             maxBatch = 10;
         }
         // Shard-based limits: collectedShards = 100 - minRemainingShards
         const collectedShards = 100 - minRemainingShards;
         if (collectedShards >= userSettings.sandalwoodShardsX1Limit) {
+            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: collectedShards ${collectedShards} >= shardsX1Limit ${userSettings.sandalwoodShardsX1Limit} → max 1`);
             maxBatch = 1;
         }
         else if (collectedShards >= userSettings.sandalwoodShardsX10Limit && maxBatch > 10) {
+            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: collectedShards ${collectedShards} >= shardsX10Limit ${userSettings.sandalwoodShardsX10Limit} → max 10`);
             maxBatch = 10;
         }
+        LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: final recommendation → ${maxBatch}`);
         return maxBatch;
     }
 }
@@ -7401,18 +7425,22 @@ class Troll {
                     return false;
                 }
             }
-            if (Booster.needSandalWoodEquipped(TTF)) {
+            const needSW = Booster.needSandalWoodEquipped(TTF);
+            LogUtils_logHHAuto(`[SW-DEBUG] Troll fight entry: TTF=${TTF}, needSandalWoodEquipped=${needSW}, currentPage=${currentPage}`);
+            if (needSW) {
                 if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                    LogUtils_logHHAuto('Go to Shop page to update booster status');
+                    LogUtils_logHHAuto('[SW-DEBUG] Go to Shop page to update booster status');
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                     return true;
                 }
                 else {
-                    LogUtils_logHHAuto('Updating booster status');
+                    LogUtils_logHHAuto('[SW-DEBUG] On shop page, collecting boosters from market');
                     Booster.collectBoostersFromMarket();
+                    LogUtils_logHHAuto('[SW-DEBUG] Attempting to equip Sandalwood...');
                     const equipped = yield Booster.equipeSandalWoodIfNeeded(TTF);
+                    LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded returned: ${equipped}`);
                     if (equipped) {
-                        LogUtils_logHHAuto('Updating booster status after new booster equipped before fight');
+                        LogUtils_logHHAuto('[SW-DEBUG] Sandalwood newly equipped, refreshing booster status from market');
                         Booster.collectBoostersFromMarket();
                     }
                 }
@@ -7564,6 +7592,7 @@ class Troll {
                             || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
                         // Sandalwood batch-sizing: compute recommended batch based on doses + shards
                         const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+                        LogUtils_logHHAuto(`[SW-DEBUG] CrushThemFights: eventShards=${remainingEventShards}, raidShards=${remainingLoveRaidShards}, totalRemaining=${remainingShards}, dosesRemaining=${dosesRemaining}, isMythic=${eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic}, power=${currentPower}`);
                         const recommendedBatch = Booster.getRecommendedBatchSize(Math.min(remainingEventShards || 100, remainingLoveRaidShards || 100), dosesRemaining, {
                             useX50: getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true",
                             useX10: getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true",
@@ -7572,9 +7601,7 @@ class Troll {
                             sandalwoodDosesX10Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit)) || 6,
                             sandalwoodDosesX1Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit)) || 3,
                         });
-                        if (dosesRemaining !== null) {
-                            LogUtils_logHHAuto(`Sandalwood batch sizing: doses=${dosesRemaining}, recommendedBatch=${recommendedBatch}, remainingShards=${remainingShards}`);
-                        }
+                        LogUtils_logHHAuto(`[SW-DEBUG] CrushThemFights: recommendedBatch=${recommendedBatch}`);
                         const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
                         if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
                             && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
@@ -7598,12 +7625,15 @@ class Troll {
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
+                            LogUtils_logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
+                            LogUtils_logHHAuto('[SW-DEBUG] x50: battle response received, done');
                             return;
                         }
                         else {
                             if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                                LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                                const x50BlockedBy = recommendedBatch < 50 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                                LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x50BlockedBy}`);
                             }
                         }
                         const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
@@ -7629,12 +7659,15 @@ class Troll {
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
+                            LogUtils_logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
+                            LogUtils_logHHAuto('[SW-DEBUG] x10: battle response received, done');
                             return;
                         }
                         else {
                             if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
-                                LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                                const x10BlockedBy = recommendedBatch < 10 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                                LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x10BlockedBy}`);
                             }
                         }
                     }

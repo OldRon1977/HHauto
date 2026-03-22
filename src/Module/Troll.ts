@@ -340,18 +340,22 @@ export class Troll {
             }
         }
 
-        if (Booster.needSandalWoodEquipped(TTF))
+        const needSW = Booster.needSandalWoodEquipped(TTF);
+        logHHAuto(`[SW-DEBUG] Troll fight entry: TTF=${TTF}, needSandalWoodEquipped=${needSW}, currentPage=${currentPage}`);
+        if (needSW)
         {
             if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                logHHAuto('Go to Shop page to update booster status');
+                logHHAuto('[SW-DEBUG] Go to Shop page to update booster status');
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                 return true;
             } else {
-                logHHAuto('Updating booster status');
+                logHHAuto('[SW-DEBUG] On shop page, collecting boosters from market');
                 Booster.collectBoostersFromMarket();
+                logHHAuto('[SW-DEBUG] Attempting to equip Sandalwood...');
                 const equipped = await Booster.equipeSandalWoodIfNeeded(TTF);
+                logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded returned: ${equipped}`);
                 if(equipped) {
-                    logHHAuto('Updating booster status after new booster equipped before fight');
+                    logHHAuto('[SW-DEBUG] Sandalwood newly equipped, refreshing booster status from market');
                     Booster.collectBoostersFromMarket();
                 }
             }
@@ -541,6 +545,7 @@ export class Troll {
 
                     // Sandalwood batch-sizing: compute recommended batch based on doses + shards
                     const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+                    logHHAuto(`[SW-DEBUG] CrushThemFights: eventShards=${remainingEventShards}, raidShards=${remainingLoveRaidShards}, totalRemaining=${remainingShards}, dosesRemaining=${dosesRemaining}, isMythic=${eventTrollGirl?.is_mythic}, power=${currentPower}`);
                     const recommendedBatch = Booster.getRecommendedBatchSize(
                         Math.min(remainingEventShards || 100, remainingLoveRaidShards || 100),
                         dosesRemaining,
@@ -553,9 +558,7 @@ export class Troll {
                             sandalwoodDosesX1Limit: Number(getStoredValue(HHStoredVarPrefixKey+SK.sandalwoodDosesX1Limit)) || 3,
                         }
                     );
-                    if (dosesRemaining !== null) {
-                        logHHAuto(`Sandalwood batch sizing: doses=${dosesRemaining}, recommendedBatch=${recommendedBatch}, remainingShards=${remainingShards}`);
-                    }
+                    logHHAuto(`[SW-DEBUG] CrushThemFights: recommendedBatch=${recommendedBatch}`);
 
                     const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
                     if (getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true"
@@ -584,14 +587,17 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
+                        logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
                         await Booster.waitForBattleResponse();
+                        logHHAuto('[SW-DEBUG] x50: battle response received, done');
                         return;
                     }
                     else
                     {
                         if (getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true")
                         {
-                            logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            const x50BlockedBy = recommendedBatch < 50 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                            logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x50BlockedBy}`);
                         }
                     }
 
@@ -622,14 +628,17 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
+                        logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
                         await Booster.waitForBattleResponse();
+                        logHHAuto('[SW-DEBUG] x10: battle response received, done');
                         return;
                     }
                     else
                     {
                         if (getStoredValue(HHStoredVarPrefixKey+SK.useX10Fights) === "true")
                         {
-                            logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            const x10BlockedBy = recommendedBatch < 10 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                            logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x10BlockedBy}`);
                         }
                     }
                 }
