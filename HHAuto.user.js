@@ -3570,11 +3570,20 @@ class LoveRaidManager {
             else {
                 const selectedTrollId = Number(autoRaidSelectedIndexArray[0]);
                 const selectedGirlId = autoRaidSelectedIndexArray[1];
-                raid = raids.find(raid => raid.trollId === selectedTrollId);
-                if (!raid || String(raid.id_girl) !== selectedGirlId) {
-                    if (logging)
-                        LogUtils_logHHAuto('Saved raid is no longer valid or new girl, resetting to default');
-                    autoRaidSelectedIndex = '0';
+                raid = raids.find(raid => raid.trollId === selectedTrollId && String(raid.id_girl) === selectedGirlId);
+                if (!raid) {
+                    // Girl not in this filtered list — check ALL troll raids before resetting
+                    const allRaids = LoveRaidManager.getTrollRaids();
+                    const existsElsewhere = allRaids.find(r => r.trollId === selectedTrollId && String(r.id_girl) === selectedGirlId);
+                    if (!existsElsewhere) {
+                        if (logging)
+                            LogUtils_logHHAuto('Saved raid is no longer valid, resetting to default');
+                        autoRaidSelectedIndex = '0';
+                    }
+                    else {
+                        if (logging)
+                            LogUtils_logHHAuto('Selected raid girl not in this filtered list, skipping (not resetting)');
+                    }
                 }
             }
         }
@@ -7095,10 +7104,8 @@ class Troll {
         const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
         const minRaidStars = LoveRaidManager.getMinRaidStars();
         const raidStarsRaids = minRaidStars > 0 ? allTrollRaids.filter(raid => raid.girlGrade >= minRaidStars) : [];
-        // +Raid Stars minimum applies globally: +Raid also respects the grade floor
-        const loveRaids = LoveRaidManager.isActivated()
-            ? allTrollRaids.filter(raid => minRaidStars > 0 ? raid.girlGrade >= minRaidStars : true)
-            : [];
+        // +Raid: user-selected girl bypasses grade filter, auto-mode ("first") respects it
+        const loveRaids = LoveRaidManager.isActivated() ? allTrollRaids : [];
         if (debugEnabled && logging) {
             LogUtils_logHHAuto('eventGirl', eventGirl);
             LogUtils_logHHAuto('eventMythicGirl', eventMythicGirl);
@@ -21416,11 +21423,9 @@ function handleTrollBattle(ctx) {
             const raidStarsRaid = raidStarsFiltered.length > 0
                 ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
                 : undefined;
-            // +Raid Stars minimum applies globally: +Raid also respects the grade floor
-            const loveRaidFiltered = LoveRaidManager.isActivated()
-                ? allTrollRaids.filter(r => minRaidStars > 0 ? r.girlGrade >= minRaidStars : true) : [];
-            const loveRaid = loveRaidFiltered.length > 0
-                ? LoveRaidManager.getRaidToFight(loveRaidFiltered)
+            // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
+            const loveRaid = LoveRaidManager.isActivated()
+                ? LoveRaidManager.getRaidToFight(allTrollRaids)
                 : undefined;
             if (
             //normal case (only when autoTrollBattle is ON)

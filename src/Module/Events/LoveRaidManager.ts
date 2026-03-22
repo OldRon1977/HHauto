@@ -108,10 +108,17 @@ export class LoveRaidManager {
             } else {
                 const selectedTrollId = Number(autoRaidSelectedIndexArray[0]);
                 const selectedGirlId = autoRaidSelectedIndexArray[1];
-                raid = raids.find(raid => raid.trollId === selectedTrollId);
-                if (!raid || String(raid.id_girl) !== selectedGirlId) {
-                    if (logging) logHHAuto('Saved raid is no longer valid or new girl, resetting to default');
-                    autoRaidSelectedIndex = '0';
+                raid = raids.find(raid => raid.trollId === selectedTrollId && String(raid.id_girl) === selectedGirlId);
+                if (!raid) {
+                    // Girl not in this filtered list — check ALL troll raids before resetting
+                    const allRaids = LoveRaidManager.getTrollRaids();
+                    const existsElsewhere = allRaids.find(r => r.trollId === selectedTrollId && String(r.id_girl) === selectedGirlId);
+                    if (!existsElsewhere) {
+                        if (logging) logHHAuto('Saved raid is no longer valid, resetting to default');
+                        autoRaidSelectedIndex = '0';
+                    } else {
+                        if (logging) logHHAuto('Selected raid girl not in this filtered list, skipping (not resetting)');
+                    }
                 }
             }
         }

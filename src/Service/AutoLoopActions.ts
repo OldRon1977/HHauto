@@ -301,11 +301,9 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
         const raidStarsRaid: LoveRaid = raidStarsFiltered.length > 0
             ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
             : undefined;
-        // +Raid Stars minimum applies globally: +Raid also respects the grade floor
-        const loveRaidFiltered = LoveRaidManager.isActivated()
-            ? allTrollRaids.filter(r => minRaidStars > 0 ? r.girlGrade >= minRaidStars : true) : [];
-        const loveRaid: LoveRaid = loveRaidFiltered.length > 0
-            ? LoveRaidManager.getRaidToFight(loveRaidFiltered)
+        // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
+        const loveRaid: LoveRaid = LoveRaidManager.isActivated()
+            ? LoveRaidManager.getRaidToFight(allTrollRaids)
             : undefined;
         if
             (

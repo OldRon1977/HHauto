@@ -178,10 +178,8 @@ export class Troll {
         const allTrollRaids:LoveRaid[] = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
         const minRaidStars = LoveRaidManager.getMinRaidStars();
         const raidStarsRaids:LoveRaid[] = minRaidStars > 0 ? allTrollRaids.filter(raid => raid.girlGrade >= minRaidStars) : [];
-        // +Raid Stars minimum applies globally: +Raid also respects the grade floor
-        const loveRaids:LoveRaid[] = LoveRaidManager.isActivated()
-            ? allTrollRaids.filter(raid => minRaidStars > 0 ? raid.girlGrade >= minRaidStars : true)
-            : [];
+        // +Raid: user-selected girl bypasses grade filter, auto-mode ("first") respects it
+        const loveRaids:LoveRaid[] = LoveRaidManager.isActivated() ? allTrollRaids : [];
         if (debugEnabled && logging) {
             logHHAuto('eventGirl', eventGirl);
             logHHAuto('eventMythicGirl', eventMythicGirl);
