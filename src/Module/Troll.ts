@@ -340,18 +340,22 @@ export class Troll {
             }
         }
 
-        if (Booster.needSandalWoodEquipped(TTF))
+        const needSW = Booster.needSandalWoodEquipped(TTF);
+        logHHAuto(`[SW-DEBUG] Troll fight entry: TTF=${TTF}, needSandalWoodEquipped=${needSW}, currentPage=${currentPage}`);
+        if (needSW)
         {
             if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                logHHAuto('Go to Shop page to update booster status');
+                logHHAuto('[SW-DEBUG] Go to Shop page to update booster status');
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                 return true;
             } else {
-                logHHAuto('Updating booster status');
+                logHHAuto('[SW-DEBUG] On shop page, collecting boosters from market');
                 Booster.collectBoostersFromMarket();
+                logHHAuto('[SW-DEBUG] Attempting to equip Sandalwood...');
                 const equipped = await Booster.equipeSandalWoodIfNeeded(TTF);
+                logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded returned: ${equipped}`);
                 if(equipped) {
-                    logHHAuto('Updating booster status after new booster equipped before fight');
+                    logHHAuto('[SW-DEBUG] Sandalwood newly equipped, refreshing booster status from market');
                     Booster.collectBoostersFromMarket();
                 }
             }
@@ -365,7 +369,7 @@ export class Troll {
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF))
         {
             // On the battle screen.
-            Troll.CrushThemFights();
+            await Troll.CrushThemFights();
             return true;
         }
         else
@@ -381,7 +385,7 @@ export class Troll {
         }
     }
 
-    static CrushThemFights()
+    static async CrushThemFights()
     {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
             // On battle page.
@@ -539,6 +543,23 @@ export class Troll {
                         )
                     );
 
+                    // Sandalwood batch-sizing: compute recommended batch based on doses + shards
+                    const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+                    logHHAuto(`[SW-DEBUG] CrushThemFights: eventShards=${remainingEventShards}, raidShards=${remainingLoveRaidShards}, totalRemaining=${remainingShards}, dosesRemaining=${dosesRemaining}, isMythic=${eventTrollGirl?.is_mythic}, power=${currentPower}`);
+                    const recommendedBatch = Booster.getRecommendedBatchSize(
+                        Math.min(remainingEventShards || 100, remainingLoveRaidShards || 100),
+                        dosesRemaining,
+                        {
+                            useX50: getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true",
+                            useX10: getStoredValue(HHStoredVarPrefixKey+SK.useX10Fights) === "true",
+                            sandalwoodShardsX10Limit: Number(getStoredValue(HHStoredVarPrefixKey+SK.sandalwoodShardsX10Limit)) || 80,
+                            sandalwoodShardsX1Limit: Number(getStoredValue(HHStoredVarPrefixKey+SK.sandalwoodShardsX1Limit)) || 95,
+                            sandalwoodDosesX10Limit: Number(getStoredValue(HHStoredVarPrefixKey+SK.sandalwoodDosesX10Limit)) || 6,
+                            sandalwoodDosesX1Limit: Number(getStoredValue(HHStoredVarPrefixKey+SK.sandalwoodDosesX1Limit)) || 3,
+                        }
+                    );
+                    logHHAuto(`[SW-DEBUG] CrushThemFights: recommendedBatch=${recommendedBatch}`);
+
                     const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
                     if (getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true"
                         && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
@@ -548,6 +569,7 @@ export class Troll {
                             || bypassThreshold
                         )
                         && (eventTrollGirl?.is_mythic || getStoredValue(HHStoredVarPrefixKey+SK.useX50FightsAllowNormalEvent) === "true")
+                        && recommendedBatch >= 50
                     )
                     {
                         logHHAuto("Going to crush 50 times: "+trollz[Number(TTF)]+' for '+battleButtonX50Price+' kobans.');
@@ -555,6 +577,7 @@ export class Troll {
                         setHHVars('Hero.infos.hc_confirm',true);
                         // We have the power.
                         //replaceCheatClick();
+                        Booster.resetBattleResponseFlag();
                         battleButtonX50[0].click();
                         setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
                         //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
@@ -564,13 +587,17 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
+                        logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
+                        await Booster.waitForBattleResponse();
+                        logHHAuto('[SW-DEBUG] x50: battle response received, done');
                         return;
                     }
                     else
                     {
                         if (getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true")
                         {
-                            logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            const x50BlockedBy = recommendedBatch < 50 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                            logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x50BlockedBy}`);
                         }
                     }
 
@@ -583,6 +610,7 @@ export class Troll {
                             || bypassThreshold
                         )
                         && (eventTrollGirl?.is_mythic || getStoredValue(HHStoredVarPrefixKey+SK.useX10FightsAllowNormalEvent) === "true")
+                        && recommendedBatch >= 10
                     )
                     {
                         logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
@@ -590,6 +618,7 @@ export class Troll {
                         setHHVars('Hero.infos.hc_confirm',true);
                         // We have the power.
                         //replaceCheatClick();
+                        Booster.resetBattleResponseFlag();
                         battleButtonX10[0].click();
                         setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
                         //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
@@ -599,13 +628,17 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
+                        logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
+                        await Booster.waitForBattleResponse();
+                        logHHAuto('[SW-DEBUG] x10: battle response received, done');
                         return;
                     }
                     else
                     {
                         if (getStoredValue(HHStoredVarPrefixKey+SK.useX10Fights) === "true")
                         {
-                            logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            const x10BlockedBy = recommendedBatch < 10 ? ` (SW batch cap: ${recommendedBatch})` : '';
+                            logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x10BlockedBy}`);
                         }
                     }
                 }
