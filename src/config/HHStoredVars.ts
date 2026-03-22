@@ -1328,7 +1328,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex] =
     menuType: "value",
     kobanUsing: false,
     customMenuID: "loveRaidSelector",
-    isValid: /^[0-9]|1[0-5]$/
+    isValid: /^(0|first|\d+_\d+)$/
 };
 HHStoredVars[HHStoredVarPrefixKey + SK.buyLoveRaidCombat] =
 {
