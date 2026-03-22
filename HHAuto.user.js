@@ -7194,6 +7194,12 @@ class Troll {
         }
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
+        if (TTF > 0 && TTF > lastTrollIdAvailable) {
+            LogUtils_logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
+            setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+            TTF = 0;
+        }
         if (TTF <= 0) {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
                 // Only fallback to last troll if normal troll fighting is enabled
