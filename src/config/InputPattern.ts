@@ -43,5 +43,6 @@ export const HHAuto_inputPattern = {
     menuSellNumber:"[0-9]+",
     autoClubChampMax:"[0-9]+",
     menuExpLevel:"[1-4]?[0-9]?[0-9]",
-    minShardsX:"(100|[1-9][0-9]|[0-9])"
+    minShardsX:"(100|[1-9][0-9]|[0-9])",
+    sandalwoodLimit:"(100|[1-9][0-9]|[0-9])"
 }

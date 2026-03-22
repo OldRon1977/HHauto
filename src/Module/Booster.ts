@@ -54,10 +54,59 @@ export class Booster {
     /** Sandalwood identifier constant — id_item is resolved from market data or env config at runtime. */
     static SANDALWOOD_IDENTIFIER = "MB1";
 
+    /** Flag: true if AJAX response arrived before waitForBattleResponse() was called */
+    private static _battleResponseReady: boolean = false;
+    /** Resolver: set when waitForBattleResponse() is waiting; called by notifyBattleResponseProcessed() */
+    private static _battleResponseResolve: (() => void) | null = null;
+
+    /**
+     * Waits for the AJAX battle response to be processed.
+     * If the response already arrived (flag set), returns immediately.
+     * Otherwise creates a Promise with 10s timeout.
+     */
+    static waitForBattleResponse(): Promise<void> {
+        if (Booster._battleResponseReady) {
+            Booster._battleResponseReady = false;
+            return Promise.resolve();
+        }
+        return new Promise<void>((resolve, reject) => {
+            Booster._battleResponseResolve = resolve;
+            setTimeout(() => {
+                if (Booster._battleResponseResolve === resolve) {
+                    Booster._battleResponseResolve = null;
+                    logHHAuto('waitForBattleResponse: timed out after 10s');
+                    resolve(); // resolve anyway to avoid blocking
+                }
+            }, 10000);
+        });
+    }
+
+    /**
+     * Resets the battle response flag and resolver. Must be called BEFORE each battle button click.
+     */
+    static resetBattleResponseFlag(): void {
+        Booster._battleResponseReady = false;
+        Booster._battleResponseResolve = null;
+    }
+
+    /**
+     * Called at the end of the AJAX handler after processing battle results.
+     * Either resolves a waiting promise or sets the flag for future waitForBattleResponse() calls.
+     */
+    static notifyBattleResponseProcessed(): void {
+        if (Booster._battleResponseResolve) {
+            const resolve = Booster._battleResponseResolve;
+            Booster._battleResponseResolve = null;
+            resolve();
+        } else {
+            Booster._battleResponseReady = true;
+        }
+    }
+
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses () {
         onAjaxResponse(/(action|class)/, (response, opt, xhr, evt) => {
-                setTimeout(async function() {
+                (async function() {
                     const boosterStatus = Booster.getBoosterFromStorage();
 
                     const searchParams = new URLSearchParams(opt.data)
@@ -81,6 +130,11 @@ export class Booster {
 
                             if (isMythic) {
                                 boosterStatus.mythic.push(clonedData)
+                                // Track max usages for Sandalwood on equip
+                                if (clonedData.item?.identifier === 'MB1' && clonedData.usages_remaining != null) {
+                                    setStoredValue(HHStoredVarPrefixKey+TK.sandalwoodMaxUsages, String(clonedData.usages_remaining));
+                                    logHHAuto(`Sandalwood equipped with ${clonedData.usages_remaining} doses`);
+                                }
                             } else {
                                 boosterStatus.normal.push({...clonedData, endAt: clonedData.lifetime})
                             }
@@ -127,19 +181,33 @@ export class Booster {
 
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles||'') > 1
+                        const dosesBeforeFight = sandalwood.usages_remaining;
                         const {rewards} = response
                         if (rewards && rewards.data && rewards.data.shards) {
-                            let drops = 0
+                            let dosesConsumed = 0
                             rewards.data.shards.forEach(({previous_value, value}) => {
                                 if (isMultibattle) {
-                                    // Can't reliably determine how many drops, assume MD where each drop would be 1 shard.
-                                    const shardsDropped = value - previous_value
-                                    drops += Math.floor(shardsDropped/2)
+                                    // Sandalwood doubles each shard drop (1→2).
+                                    // Total shards = normal drops + sandalwood bonus doses (capped by remaining doses).
+                                    const shardsDropped = value - previous_value;
+                                    // Each doubled drop = 1 dose. Odd total means sandalwood ran out mid-batch.
+                                    const isOdd = shardsDropped % 2 === 1;
+                                    if (isOdd) {
+                                        // Sandalwood definitely expired: it doubled some drops then ran out.
+                                        // doses consumed = dosesBeforeFight (all remaining were used up)
+                                        dosesConsumed = dosesBeforeFight;
+                                    } else {
+                                        // Even: assume all drops were doubled → doses = shardsDropped / 2
+                                        dosesConsumed += Math.floor(shardsDropped / 2);
+                                    }
                                 } else {
-                                    drops++
+                                    dosesConsumed++
                                 }
                             })
-                            sandalwood.usages_remaining -= drops
+                            // Cap at doses available before fight
+                            dosesConsumed = Math.min(dosesConsumed, dosesBeforeFight);
+                            sandalwood.usages_remaining -= dosesConsumed
+                            logHHAuto(`Sandalwood dose tracking: before=${dosesBeforeFight}, consumed=${dosesConsumed}, remaining=${sandalwood.usages_remaining}`);
                             mythicUpdated = true
                             sandalwoodEnded = sandalwood.usages_remaining <= 0;
                         }
@@ -205,7 +273,11 @@ export class Booster {
                     } catch(err) {
                         logHHAuto('Catch error during equip sandalwood for mythic' + err);
                     }
-                }, 200);
+
+                    if (action === 'do_battles_trolls') {
+                        Booster.notifyBattleResponseProcessed();
+                    }
+                })();
         })
     }
 
@@ -510,6 +582,18 @@ export class Booster {
         }
 
 
+        // Proactive depletion check: if Sandalwood is equipped but has 0 doses remaining,
+        // remove it from boosterStatus so ownedSandalwoodAndNotEquiped() triggers re-equip.
+        if (needForEvent || needForMythic || needForLoveRaid) {
+            const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+            if (dosesRemaining !== null && dosesRemaining <= 0) {
+                logHHAuto('needSandalWoodEquipped: Sandalwood depleted (0 doses), removing from boosterStatus to trigger re-equip');
+                const boosterStatus = Booster.getBoosterFromStorage();
+                boosterStatus.mythic = boosterStatus.mythic.filter(b => b.item?.identifier !== 'MB1');
+                setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+            }
+        }
+
         return ((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
     }
 
@@ -673,5 +757,61 @@ export class Booster {
             return Promise.resolve(false);
         }
         return Promise.resolve(false);
+    }
+
+    /**
+     * Returns the number of remaining Sandalwood doses from boosterStatus.
+     * Returns null if Sandalwood is not currently equipped.
+     */
+    static getSandalwoodDosesRemaining(): number | null {
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const sandalwood = boosterStatus.mythic.find(b => b.item?.identifier === 'MB1');
+        if (!sandalwood) return null;
+        return sandalwood.usages_remaining;
+    }
+
+    /**
+     * Determines the maximum recommended batch size (1, 10, or 50) based on
+     * remaining shards, Sandalwood doses, and user settings.
+     *
+     * The most restrictive constraint wins.
+     */
+    static getRecommendedBatchSize(
+        minRemainingShards: number,
+        dosesRemaining: number | null,
+        userSettings: {
+            useX50: boolean;
+            useX10: boolean;
+            sandalwoodShardsX10Limit: number;
+            sandalwoodShardsX1Limit: number;
+            sandalwoodDosesX10Limit: number;
+            sandalwoodDosesX1Limit: number;
+        }
+    ): 1 | 10 | 50 {
+        let maxBatch: 1 | 10 | 50 = 50;
+
+        // User preference caps
+        if (!userSettings.useX50) maxBatch = 10;
+        if (!userSettings.useX10) maxBatch = 1;
+
+        // If Sandalwood is not equipped, no dose-based restrictions apply
+        if (dosesRemaining === null) return maxBatch;
+
+        // Dose-based limits (check most restrictive first)
+        if (dosesRemaining <= userSettings.sandalwoodDosesX1Limit) {
+            maxBatch = 1;
+        } else if (dosesRemaining <= userSettings.sandalwoodDosesX10Limit && maxBatch > 10) {
+            maxBatch = 10;
+        }
+
+        // Shard-based limits: collectedShards = 100 - minRemainingShards
+        const collectedShards = 100 - minRemainingShards;
+        if (collectedShards >= userSettings.sandalwoodShardsX1Limit) {
+            maxBatch = 1;
+        } else if (collectedShards >= userSettings.sandalwoodShardsX10Limit && maxBatch > 10) {
+            maxBatch = 10;
+        }
+
+        return maxBatch;
     }
 }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.32.5
+// @version      7.33.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -440,6 +440,10 @@ HHAuto_ToolTips.en['useX50FightsAllowNormalEvent'] = { version: "5.6.24", elemen
 HHAuto_ToolTips.en['autoBuy'] = { version: "5.6.24", elementText: "Market" };
 HHAuto_ToolTips.en['minShardsX50'] = { version: "5.6.24", elementText: "Min. shards x50", tooltip: "Only use x50 button if remaining shards of current girl is equal or above this limit." };
 HHAuto_ToolTips.en['minShardsX10'] = { version: "5.6.24", elementText: "Min. shards x10", tooltip: "Only use x10 button if remaining shards of current girl is equal or above this limit." };
+HHAuto_ToolTips.en['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementText: "SW shards x10 limit", tooltip: "When collected shards reach this percentage, downgrade from x50 to x10 battles to avoid wasting Sandalwood doses." };
+HHAuto_ToolTips.en['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW shards x1 limit", tooltip: "When collected shards reach this percentage, downgrade from x10 to x1 battles to avoid wasting Sandalwood doses." };
+HHAuto_ToolTips.en['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x50 to x10 battles." };
+HHAuto_ToolTips.en['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x10 to x1 battles." };
 HHAuto_ToolTips.en['mythicGirlNext'] = { version: "5.6.24", elementText: "Mythic girl wave" };
 HHAuto_ToolTips.en['RefreshOppoList'] = { version: "5.6.24", elementText: "Refresh Opponent list", tooltip: "Allow to force a refresh of opponent list." };
 HHAuto_ToolTips.en['HideBeatenOppo'] = { version: "5.7.1", elementText: "Hide", tooltip: "Allow to hide beaten opponent from the list." };
@@ -663,6 +667,10 @@ HHAuto_ToolTips.fr['useX50Fights'] = { version: "5.6.24", elementText: "Combats 
 HHAuto_ToolTips.fr['autoBuy'] = { version: "5.6.24", elementText: "Marché" };
 HHAuto_ToolTips.fr['minShardsX50'] = { version: "5.6.24", elementText: "Frags min. x50", tooltip: "Utiliser le bouton x50 si le nombre de fragments restant est supérieur ou égal à..." };
 HHAuto_ToolTips.fr['minShardsX10'] = { version: "5.6.24", elementText: "Frags min. x10", tooltip: "Utiliser le bouton x10 si le nombre de fragments restant est supérieur ou égal à..." };
+HHAuto_ToolTips.fr['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementText: "SW frags x10 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x50 à x10 combats pour éviter le gaspillage de doses Sandalwood." };
+HHAuto_ToolTips.fr['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW frags x1 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x10 à x1 combats pour éviter le gaspillage de doses Sandalwood." };
+HHAuto_ToolTips.fr['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x50 à x10 combats." };
+HHAuto_ToolTips.fr['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x10 à x1 combats." };
 HHAuto_ToolTips.fr['autoMissionKFirst'] = { version: "5.6.24", elementText: "Prioriser Kobans", tooltip: "Si activé : commence par les missions qui rapportent des kobans." };
 HHAuto_ToolTips.fr['povpogTitle'] = { version: "5.6.133", elementText: "Voie de la Valeur/Gloire" };
 HHAuto_ToolTips.fr['skills'] = { version: "7.16.0", elementText: "Compétences" };
@@ -1104,11 +1112,53 @@ const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
  * All methods are static. Booster state lives in browser storage, not on the class instance.
  */
 class Booster {
+    /**
+     * Waits for the AJAX battle response to be processed.
+     * If the response already arrived (flag set), returns immediately.
+     * Otherwise creates a Promise with 10s timeout.
+     */
+    static waitForBattleResponse() {
+        if (Booster._battleResponseReady) {
+            Booster._battleResponseReady = false;
+            return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+            Booster._battleResponseResolve = resolve;
+            setTimeout(() => {
+                if (Booster._battleResponseResolve === resolve) {
+                    Booster._battleResponseResolve = null;
+                    LogUtils_logHHAuto('waitForBattleResponse: timed out after 10s');
+                    resolve(); // resolve anyway to avoid blocking
+                }
+            }, 10000);
+        });
+    }
+    /**
+     * Resets the battle response flag and resolver. Must be called BEFORE each battle button click.
+     */
+    static resetBattleResponseFlag() {
+        Booster._battleResponseReady = false;
+        Booster._battleResponseResolve = null;
+    }
+    /**
+     * Called at the end of the AJAX handler after processing battle results.
+     * Either resolves a waiting promise or sets the flag for future waitForBattleResponse() calls.
+     */
+    static notifyBattleResponseProcessed() {
+        if (Booster._battleResponseResolve) {
+            const resolve = Booster._battleResponseResolve;
+            Booster._battleResponseResolve = null;
+            resolve();
+        }
+        else {
+            Booster._battleResponseReady = true;
+        }
+    }
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses() {
         onAjaxResponse(/(action|class)/, (response, opt, xhr, evt) => {
-            setTimeout(function () {
-                var _a, _b;
+            (function () {
+                var _a, _b, _c;
                 return __awaiter(this, void 0, void 0, function* () {
                     const boosterStatus = Booster.getBoosterFromStorage();
                     const searchParams = new URLSearchParams(opt.data);
@@ -1127,6 +1177,11 @@ class Booster {
                             const clonedData = Object.assign({}, boosterData);
                             if (isMythic) {
                                 boosterStatus.mythic.push(clonedData);
+                                // Track max usages for Sandalwood on equip
+                                if (((_a = clonedData.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1' && clonedData.usages_remaining != null) {
+                                    setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodMaxUsages, String(clonedData.usages_remaining));
+                                    LogUtils_logHHAuto(`Sandalwood equipped with ${clonedData.usages_remaining} doses`);
+                                }
                             }
                             else {
                                 boosterStatus.normal.push(Object.assign(Object.assign({}, clonedData), { endAt: clonedData.lifetime }));
@@ -1170,20 +1225,35 @@ class Booster {
                     });
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles || '') > 1;
+                        const dosesBeforeFight = sandalwood.usages_remaining;
                         const { rewards } = response;
                         if (rewards && rewards.data && rewards.data.shards) {
-                            let drops = 0;
+                            let dosesConsumed = 0;
                             rewards.data.shards.forEach(({ previous_value, value }) => {
                                 if (isMultibattle) {
-                                    // Can't reliably determine how many drops, assume MD where each drop would be 1 shard.
+                                    // Sandalwood doubles each shard drop (1→2).
+                                    // Total shards = normal drops + sandalwood bonus doses (capped by remaining doses).
                                     const shardsDropped = value - previous_value;
-                                    drops += Math.floor(shardsDropped / 2);
+                                    // Each doubled drop = 1 dose. Odd total means sandalwood ran out mid-batch.
+                                    const isOdd = shardsDropped % 2 === 1;
+                                    if (isOdd) {
+                                        // Sandalwood definitely expired: it doubled some drops then ran out.
+                                        // doses consumed = dosesBeforeFight (all remaining were used up)
+                                        dosesConsumed = dosesBeforeFight;
+                                    }
+                                    else {
+                                        // Even: assume all drops were doubled → doses = shardsDropped / 2
+                                        dosesConsumed += Math.floor(shardsDropped / 2);
+                                    }
                                 }
                                 else {
-                                    drops++;
+                                    dosesConsumed++;
                                 }
                             });
-                            sandalwood.usages_remaining -= drops;
+                            // Cap at doses available before fight
+                            dosesConsumed = Math.min(dosesConsumed, dosesBeforeFight);
+                            sandalwood.usages_remaining -= dosesConsumed;
+                            LogUtils_logHHAuto(`Sandalwood dose tracking: before=${dosesBeforeFight}, consumed=${dosesConsumed}, remaining=${sandalwood.usages_remaining}`);
                             mythicUpdated = true;
                             sandalwoodEnded = sandalwood.usages_remaining <= 0;
                         }
@@ -1236,7 +1306,7 @@ class Booster {
                             const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
                             const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
                             const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
-                            if (activatedEvent && ((_a = EventModule.getEventGirl()) === null || _a === void 0 ? void 0 : _a.girl_id) || activatedMythic && EventModule.getEventMythicGirl().is_mythic || activatedLoveRaid && ((_b = LoveRaidManager.getRaidToFight()) === null || _b === void 0 ? void 0 : _b.girl_to_win)) {
+                            if (activatedEvent && ((_b = EventModule.getEventGirl()) === null || _b === void 0 ? void 0 : _b.girl_id) || activatedMythic && EventModule.getEventMythicGirl().is_mythic || activatedLoveRaid && ((_c = LoveRaidManager.getRaidToFight()) === null || _c === void 0 ? void 0 : _c.girl_to_win)) {
                                 if (isMultibattle) {
                                     // TODO go to market if sandalwood not ended, continue. If ended, buy a new one
                                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
@@ -1247,8 +1317,11 @@ class Booster {
                     catch (err) {
                         LogUtils_logHHAuto('Catch error during equip sandalwood for mythic' + err);
                     }
+                    if (action === 'do_battles_trolls') {
+                        Booster.notifyBattleResponseProcessed();
+                    }
                 });
-            }, 200);
+            })();
         });
     }
     static needBoosterStatusFromStore() {
@@ -1520,6 +1593,17 @@ class Booster {
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
         }
+        // Proactive depletion check: if Sandalwood is equipped but has 0 doses remaining,
+        // remove it from boosterStatus so ownedSandalwoodAndNotEquiped() triggers re-equip.
+        if (needForEvent || needForMythic || needForLoveRaid) {
+            const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+            if (dosesRemaining !== null && dosesRemaining <= 0) {
+                LogUtils_logHHAuto('needSandalWoodEquipped: Sandalwood depleted (0 doses), removing from boosterStatus to trigger re-equip');
+                const boosterStatus = Booster.getBoosterFromStorage();
+                boosterStatus.mythic = boosterStatus.mythic.filter(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) !== 'MB1'; });
+                setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+            }
+        }
         return ((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
     }
     static ownedSandalwoodAndNotEquiped() {
@@ -1680,9 +1764,57 @@ class Booster {
             return Promise.resolve(false);
         });
     }
+    /**
+     * Returns the number of remaining Sandalwood doses from boosterStatus.
+     * Returns null if Sandalwood is not currently equipped.
+     */
+    static getSandalwoodDosesRemaining() {
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const sandalwood = boosterStatus.mythic.find(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1'; });
+        if (!sandalwood)
+            return null;
+        return sandalwood.usages_remaining;
+    }
+    /**
+     * Determines the maximum recommended batch size (1, 10, or 50) based on
+     * remaining shards, Sandalwood doses, and user settings.
+     *
+     * The most restrictive constraint wins.
+     */
+    static getRecommendedBatchSize(minRemainingShards, dosesRemaining, userSettings) {
+        let maxBatch = 50;
+        // User preference caps
+        if (!userSettings.useX50)
+            maxBatch = 10;
+        if (!userSettings.useX10)
+            maxBatch = 1;
+        // If Sandalwood is not equipped, no dose-based restrictions apply
+        if (dosesRemaining === null)
+            return maxBatch;
+        // Dose-based limits (check most restrictive first)
+        if (dosesRemaining <= userSettings.sandalwoodDosesX1Limit) {
+            maxBatch = 1;
+        }
+        else if (dosesRemaining <= userSettings.sandalwoodDosesX10Limit && maxBatch > 10) {
+            maxBatch = 10;
+        }
+        // Shard-based limits: collectedShards = 100 - minRemainingShards
+        const collectedShards = 100 - minRemainingShards;
+        if (collectedShards >= userSettings.sandalwoodShardsX1Limit) {
+            maxBatch = 1;
+        }
+        else if (collectedShards >= userSettings.sandalwoodShardsX10Limit && maxBatch > 10) {
+            maxBatch = 10;
+        }
+        return maxBatch;
+    }
 }
 /** Sandalwood identifier constant — id_item is resolved from market data or env config at runtime. */
 Booster.SANDALWOOD_IDENTIFIER = "MB1";
+/** Flag: true if AJAX response arrived before waitForBattleResponse() was called */
+Booster._battleResponseReady = false;
+/** Resolver: set when waitForBattleResponse() is waiting; called by notifyBattleResponseProcessed() */
+Booster._battleResponseResolve = null;
 
 ;// CONCATENATED MODULE: ./src/Module/Bundles.ts
 // Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
@@ -7291,7 +7423,7 @@ class Troll {
             //console.log(getPage());
             if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF)) {
                 // On the battle screen.
-                Troll.CrushThemFights();
+                yield Troll.CrushThemFights();
                 return true;
             }
             else {
@@ -7308,235 +7440,256 @@ class Troll {
     }
     static CrushThemFights() {
         var _a;
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
-            // On battle page.
-            LogUtils_logHHAuto("On Pre battle page.");
-            let TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
-            const trollz = ConfigHelper.getHHScriptVars("trollzList");
-            let battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
-            let battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
-            let battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
-            let battleButtonX10Price = Number(battleButtonX10.attr('price'));
-            let battleButtonX50Price = Number(battleButtonX50.attr('price'));
-            // let Hero=getHero();
-            let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
-            let previousPower = (_a = getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) !== null && _a !== void 0 ? _a : 0;
-            let currentPower = Troll.getEnergy();
-            var checkPreviousFightDone = function () {
-                // The goal of this function is to detect slow server response to avoid loop without fight
-                if (previousPower > 0 && previousPower == currentPower) {
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    LogUtils_logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
-                }
-            };
-            //check if girl still available at troll in case of event
-            if (TTF !== null) {
-                let eventTrollGirl;
-                const eventGirl = EventModule.getEventGirl();
-                const eventMythicGirl = EventModule.getEventMythicGirl();
-                let loveRaid = null;
-                const rewardGirlz = $("#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]");
-                const trollGirlRewards = rewardGirlz.attr('data-rewards') || '';
-                const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
-                if (eventMythicGirl.girl_id && TTF === eventMythicGirl.troll_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
-                    eventTrollGirl = eventMythicGirl;
-                    if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventMythicGirl.girl_id)) {
-                        LogUtils_logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
-                        EventModule.parseEventPage(eventMythicGirl.event_id);
-                        return true;
+        return Troll_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
+                // On battle page.
+                LogUtils_logHHAuto("On Pre battle page.");
+                let TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
+                const trollz = ConfigHelper.getHHScriptVars("trollzList");
+                let battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
+                let battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
+                let battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
+                let battleButtonX10Price = Number(battleButtonX10.attr('price'));
+                let battleButtonX50Price = Number(battleButtonX50.attr('price'));
+                // let Hero=getHero();
+                let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+                let previousPower = (_a = getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) !== null && _a !== void 0 ? _a : 0;
+                let currentPower = Troll.getEnergy();
+                var checkPreviousFightDone = function () {
+                    // The goal of this function is to detect slow server response to avoid loop without fight
+                    if (previousPower > 0 && previousPower == currentPower) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                        LogUtils_logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
                     }
-                }
-                if (eventGirl.girl_id && TTF === eventGirl.troll_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true") {
-                    eventTrollGirl = eventGirl;
-                    if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventGirl.girl_id)) {
-                        LogUtils_logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
-                        EventModule.parseEventPage(eventGirl.event_id);
-                        return true;
+                };
+                //check if girl still available at troll in case of event
+                if (TTF !== null) {
+                    let eventTrollGirl;
+                    const eventGirl = EventModule.getEventGirl();
+                    const eventMythicGirl = EventModule.getEventMythicGirl();
+                    let loveRaid = null;
+                    const rewardGirlz = $("#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]");
+                    const trollGirlRewards = rewardGirlz.attr('data-rewards') || '';
+                    const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+                    if (eventMythicGirl.girl_id && TTF === eventMythicGirl.troll_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
+                        eventTrollGirl = eventMythicGirl;
+                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventMythicGirl.girl_id)) {
+                            LogUtils_logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            EventModule.parseEventPage(eventMythicGirl.event_id);
+                            return true;
+                        }
                     }
-                }
-                if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
-                    LogUtils_logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
-                    let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
-                    trollWithGirls[TTF] = 0;
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
-                    const newTroll = Troll.getTrollIdToFight();
-                    if (TTF != newTroll) {
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
-                        return true;
+                    if (eventGirl.girl_id && TTF === eventGirl.troll_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true") {
+                        eventTrollGirl = eventGirl;
+                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventGirl.girl_id)) {
+                            LogUtils_logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            EventModule.parseEventPage(eventGirl.event_id);
+                            return true;
+                        }
                     }
-                    else {
-                        LogUtils_logHHAuto(`Same troll found, go for it.`);
+                    if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
+                        LogUtils_logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
+                        let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+                        trollWithGirls[TTF] = 0;
+                        setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
+                        const newTroll = Troll.getTrollIdToFight();
+                        if (TTF != newTroll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
+                            return true;
+                        }
+                        else {
+                            LogUtils_logHHAuto(`Same troll found, go for it.`);
+                        }
                     }
-                }
-                let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
-                if ((canBuyFightsResult.canBuy && currentPower === 0)
-                    ||
-                        (canBuyFightsResult.canBuy
-                            && currentPower < 50
-                            && canBuyFightsResult.max === 50
-                            && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
-                            && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))
-                    ||
-                        (canBuyFightsResult.canBuy
-                            && currentPower < 10
-                            && canBuyFightsResult.max === 20
-                            && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
-                            && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))) {
-                    Troll.RechargeCombat(canBuyFightsResult);
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
-                    return true;
-                }
-                if (LoveRaidManager.isAnyActivated()) {
-                    const trollRaids = LoveRaidManager.getTrollRaids();
-                    loveRaid = trollRaids.find(raid => raid.trollId === TTF);
-                    if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
-                        LogUtils_logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
-                        clearTimer('nextLoveRaidTime');
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
-                        return true;
-                    }
-                    const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid);
-                    if ((canBuyFightsResultLoveRaid.canBuy && currentPower === 0)
+                    let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
+                    if ((canBuyFightsResult.canBuy && currentPower === 0)
                         ||
-                            (canBuyFightsResultLoveRaid.canBuy
+                            (canBuyFightsResult.canBuy
                                 && currentPower < 50
-                                && canBuyFightsResultLoveRaid.max === 50
+                                && canBuyFightsResult.max === 50
                                 && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                                && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
-                                && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
+                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))
                         ||
-                            (canBuyFightsResultLoveRaid.canBuy
+                            (canBuyFightsResult.canBuy
                                 && currentPower < 10
-                                && canBuyFightsResultLoveRaid.max === 20
+                                && canBuyFightsResult.max === 20
                                 && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                                && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
-                                && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))) {
-                        Troll.RechargeCombat(canBuyFightsResultLoveRaid);
+                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
+                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))) {
+                        Troll.RechargeCombat(canBuyFightsResult);
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
                         return true;
                     }
-                }
-                if ((Number.isInteger(eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards) || (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win))
-                    && battleButtonX10.length > 0
-                    && battleButtonX50.length > 0
-                    && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) !== "true") {
-                    const remainingEventShards = eventTrollGirl ? Number(100 - (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards)) : 0;
-                    const remainingLoveRaidShards = loveRaid ? Number(100 - (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_shards)) : 0;
-                    const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
-                    let bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
-                        && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
-                        || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
-                        || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
-                    const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
-                    if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                        && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
-                        && (battleButtonX50Price === 0 || HeroHelper.getKoban() >= battleButtonX50Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
-                        && currentPower >= 50
-                        && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
-                            || bypassThreshold)
-                        && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
-                        LogUtils_logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
-                        setHHVars('Hero.infos.hc_confirm', true);
-                        // We have the power.
-                        //replaceCheatClick();
-                        battleButtonX50[0].click();
-                        setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
-                        LogUtils_logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                            // Battle Done.
-                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                    if (LoveRaidManager.isAnyActivated()) {
+                        const trollRaids = LoveRaidManager.getTrollRaids();
+                        loveRaid = trollRaids.find(raid => raid.trollId === TTF);
+                        if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
+                            LogUtils_logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
+                            clearTimer('nextLoveRaidTime');
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
+                            return true;
                         }
-                        RewardHelper.ObserveAndGetGirlRewards();
-                        return;
+                        const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid);
+                        if ((canBuyFightsResultLoveRaid.canBuy && currentPower === 0)
+                            ||
+                                (canBuyFightsResultLoveRaid.canBuy
+                                    && currentPower < 50
+                                    && canBuyFightsResultLoveRaid.max === 50
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+                            ||
+                                (canBuyFightsResultLoveRaid.canBuy
+                                    && currentPower < 10
+                                    && canBuyFightsResultLoveRaid.max === 20
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))) {
+                            Troll.RechargeCombat(canBuyFightsResultLoveRaid);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
+                            return true;
+                        }
+                    }
+                    if ((Number.isInteger(eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards) || (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win))
+                        && battleButtonX10.length > 0
+                        && battleButtonX50.length > 0
+                        && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) !== "true") {
+                        const remainingEventShards = eventTrollGirl ? Number(100 - (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards)) : 0;
+                        const remainingLoveRaidShards = loveRaid ? Number(100 - (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_shards)) : 0;
+                        const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
+                        let bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
+                            && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
+                            || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
+                            || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
+                        // Sandalwood batch-sizing: compute recommended batch based on doses + shards
+                        const dosesRemaining = Booster.getSandalwoodDosesRemaining();
+                        const recommendedBatch = Booster.getRecommendedBatchSize(Math.min(remainingEventShards || 100, remainingLoveRaidShards || 100), dosesRemaining, {
+                            useX50: getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true",
+                            useX10: getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true",
+                            sandalwoodShardsX10Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodShardsX10Limit)) || 80,
+                            sandalwoodShardsX1Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodShardsX1Limit)) || 95,
+                            sandalwoodDosesX10Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit)) || 6,
+                            sandalwoodDosesX1Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit)) || 3,
+                        });
+                        if (dosesRemaining !== null) {
+                            LogUtils_logHHAuto(`Sandalwood batch sizing: doses=${dosesRemaining}, recommendedBatch=${recommendedBatch}, remainingShards=${remainingShards}`);
+                        }
+                        const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                            && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
+                            && (battleButtonX50Price === 0 || HeroHelper.getKoban() >= battleButtonX50Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
+                            && currentPower >= 50
+                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
+                                || bypassThreshold)
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
+                            && recommendedBatch >= 50) {
+                            LogUtils_logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
+                            setHHVars('Hero.infos.hc_confirm', true);
+                            // We have the power.
+                            //replaceCheatClick();
+                            Booster.resetBattleResponseFlag();
+                            battleButtonX50[0].click();
+                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+                            //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
+                            LogUtils_logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                // Battle Done.
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                            }
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            yield Booster.waitForBattleResponse();
+                            return;
+                        }
+                        else {
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
+                                LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            }
+                        }
+                        const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
+                            && minShardsX10 && Number.isInteger(Number(minShardsX10)) && remainingShards >= Number(minShardsX10)
+                            && (battleButtonX10Price === 0 || HeroHelper.getKoban() >= battleButtonX10Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
+                            && currentPower >= 10
+                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
+                                || bypassThreshold)
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
+                            && recommendedBatch >= 10) {
+                            LogUtils_logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            setHHVars('Hero.infos.hc_confirm', true);
+                            // We have the power.
+                            //replaceCheatClick();
+                            Booster.resetBattleResponseFlag();
+                            battleButtonX10[0].click();
+                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+                            //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
+                            LogUtils_logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                // Battle Done.
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                            }
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            yield Booster.waitForBattleResponse();
+                            return;
+                        }
+                        else {
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
+                                LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            }
+                        }
+                    }
+                    //Crushing one by one
+                    if (currentPower > 0) {
+                        if ($('#pre-battle div.battle-buttons a.single-battle-button[disabled]').length > 0) {
+                            LogUtils_logHHAuto("Battle Button seems disabled, force reload of page.");
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
+                        }
+                        if (battleButton === undefined || battleButton.length === 0) {
+                            LogUtils_logHHAuto("Battle Button was undefined. Disabling all auto-battle.");
+                            document.getElementById("autoTrollBattle").checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
+                            //document.getElementById("autoArenaCheckbox").checked = false;
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                document.getElementById("autoQuest").checked = false;
+                                setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
+                                LogUtils_logHHAuto("Auto-quest disabled since it requires battle and auto-battle has errors.");
+                            }
+                            return;
+                        }
+                        LogUtils_logHHAuto("Crushing: " + trollz[Number(TTF)]);
+                        //console.log(battleButton);
+                        //replaceCheatClick();
+                        checkPreviousFightDone();
+                        setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
+                        battleButton[0].click();
                     }
                     else {
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                            LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                        }
-                    }
-                    const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
-                    if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                        && minShardsX10 && Number.isInteger(Number(minShardsX10)) && remainingShards >= Number(minShardsX10)
-                        && (battleButtonX10Price === 0 || HeroHelper.getKoban() >= battleButtonX10Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
-                        && currentPower >= 10
-                        && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
-                            || bypassThreshold)
-                        && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
-                        LogUtils_logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                        setHHVars('Hero.infos.hc_confirm', true);
-                        // We have the power.
-                        //replaceCheatClick();
-                        battleButtonX10[0].click();
-                        setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                        //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
-                        LogUtils_logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                        // We need more power.
+                        const battle_price = 1; // TODO what is the expected value here ?
+                        LogUtils_logHHAuto(`Battle requires ${battle_price} power, having ${currentPower}.`);
+                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, battle_price);
                         if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                            // Battle Done.
-                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "P" + battle_price);
                         }
-                        RewardHelper.ObserveAndGetGirlRewards();
-                        return;
-                    }
-                    else {
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
-                            LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                        }
-                    }
-                }
-                //Crushing one by one
-                if (currentPower > 0) {
-                    if ($('#pre-battle div.battle-buttons a.single-battle-button[disabled]').length > 0) {
-                        LogUtils_logHHAuto("Battle Button seems disabled, force reload of page.");
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                         return;
                     }
-                    if (battleButton === undefined || battleButton.length === 0) {
-                        LogUtils_logHHAuto("Battle Button was undefined. Disabling all auto-battle.");
-                        document.getElementById("autoTrollBattle").checked = false;
-                        setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
-                        //document.getElementById("autoArenaCheckbox").checked = false;
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                            document.getElementById("autoQuest").checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
-                            LogUtils_logHHAuto("Auto-quest disabled since it requires battle and auto-battle has errors.");
-                        }
-                        return;
-                    }
-                    LogUtils_logHHAuto("Crushing: " + trollz[Number(TTF)]);
-                    //console.log(battleButton);
-                    //replaceCheatClick();
-                    checkPreviousFightDone();
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
-                    battleButton[0].click();
                 }
                 else {
-                    // We need more power.
-                    const battle_price = 1; // TODO what is the expected value here ?
-                    LogUtils_logHHAuto(`Battle requires ${battle_price} power, having ${currentPower}.`);
-                    setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, battle_price);
-                    if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "P" + battle_price);
-                    }
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    return;
+                    checkPreviousFightDone();
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
+                    //replaceCheatClick();
+                    battleButton[0].click();
                 }
             }
             else {
-                checkPreviousFightDone();
-                setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
-                //replaceCheatClick();
-                battleButton[0].click();
+                LogUtils_logHHAuto('Unable to identify page.');
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                return;
             }
-        }
-        else {
-            LogUtils_logHHAuto('Unable to identify page.');
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             return;
-        }
-        return;
+        });
     }
     static RechargeCombat(canBuyResult) {
         const Hero = getHero();
@@ -8032,6 +8185,10 @@ const SK = {
     useX50FightsAllowNormalEvent: "Setting_useX50FightsAllowNormalEvent",
     minShardsX10: "Setting_minShardsX10",
     minShardsX50: "Setting_minShardsX50",
+    sandalwoodShardsX10Limit: "Setting_sandalwoodShardsX10Limit",
+    sandalwoodShardsX1Limit: "Setting_sandalwoodShardsX1Limit",
+    sandalwoodDosesX10Limit: "Setting_sandalwoodDosesX10Limit",
+    sandalwoodDosesX1Limit: "Setting_sandalwoodDosesX1Limit",
     kobanBank: "Setting_kobanBank",
     buyCombat: "Setting_buyCombat",
     buyCombTimer: "Setting_buyCombTimer",
@@ -8319,6 +8476,7 @@ const TK = {
     paranoiaSpendings: "Temp_paranoiaSpendings",
     // Misc
     sandalwoodFailure: "Temp_sandalwoodFailure",
+    sandalwoodMaxUsages: "Temp_sandalwoodMaxUsages",
     unkownPagesList: "Temp_unkownPagesList",
     userLink: "Temp_userLink",
 };
@@ -9523,6 +9681,61 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX50] =
         valueType: "Small Integer",
         getMenu: true,
         setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX10Limit] =
+    {
+        default: "80",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX1Limit] =
+    {
+        default: "95",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit] =
+    {
+        default: "6",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit] =
+    {
+        default: "3",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Small Integer",
+        getMenu: true,
+        setMenu: true,
+        menuType: "value",
+        kobanUsing: false
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodMaxUsages] =
+    {
+        default: "11",
+        storage: "sessionStorage",
+        HHType: "Temp",
+        valueType: "Small Integer",
+        getMenu: false,
+        setMenu: false,
         menuType: "value",
         kobanUsing: false
     };
@@ -17844,7 +18057,8 @@ const HHAuto_inputPattern = {
     menuSellNumber: "[0-9]+",
     autoClubChampMax: "[0-9]+",
     menuExpLevel: "[1-4]?[0-9]?[0-9]",
-    minShardsX: "(100|[1-9][0-9]|[0-9])"
+    minShardsX: "(100|[1-9][0-9]|[0-9])",
+    sandalwoodLimit: "(100|[1-9][0-9]|[0-9])"
 };
 
 ;// CONCATENATED MODULE: ./src/config/index.ts
@@ -18620,6 +18834,12 @@ function getMenu() {
             + hhMenuSwitch('useX50FightsAllowNormalEvent')
             + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
             + hhMenuSwitch('plusGirlSkins')
+            + `</div>`
+            + `<div class="internalOptionsRow">`
+            + hhMenuInput('sandalwoodShardsX10Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
+            + hhMenuInput('sandalwoodShardsX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
+            + hhMenuInput('sandalwoodDosesX10Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
+            + hhMenuInput('sandalwoodDosesX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
             + `</div>`
             + `<div class="internalOptionsRow">`
             + hhMenuSwitch('plusEvent')

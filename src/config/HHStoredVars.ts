@@ -1224,6 +1224,61 @@ HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX50] =
     menuType:"value",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX10Limit] =
+    {
+    default:"80",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX1Limit] =
+    {
+    default:"95",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit] =
+    {
+    default:"6",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit] =
+    {
+    default:"3",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodMaxUsages] =
+    {
+    default:"11",
+    storage:"sessionStorage",
+    HHType:"Temp",
+    valueType:"Small Integer",
+    getMenu:false,
+    setMenu:false,
+    menuType:"value",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.updateMarket] =
     {
     default:"true",

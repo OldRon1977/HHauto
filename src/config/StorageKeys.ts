@@ -29,6 +29,10 @@ export const SK = {
     useX50FightsAllowNormalEvent: "Setting_useX50FightsAllowNormalEvent",
     minShardsX10: "Setting_minShardsX10",
     minShardsX50: "Setting_minShardsX50",
+    sandalwoodShardsX10Limit: "Setting_sandalwoodShardsX10Limit",
+    sandalwoodShardsX1Limit: "Setting_sandalwoodShardsX1Limit",
+    sandalwoodDosesX10Limit: "Setting_sandalwoodDosesX10Limit",
+    sandalwoodDosesX1Limit: "Setting_sandalwoodDosesX1Limit",
     kobanBank: "Setting_kobanBank",
     buyCombat: "Setting_buyCombat",
     buyCombTimer: "Setting_buyCombTimer",
@@ -359,6 +363,7 @@ export const TK = {
 
     // Misc
     sandalwoodFailure: "Temp_sandalwoodFailure",
+    sandalwoodMaxUsages: "Temp_sandalwoodMaxUsages",
     unkownPagesList: "Temp_unkownPagesList",
     userLink: "Temp_userLink",
 } as const;
