@@ -17944,6 +17944,7 @@ class NumberHelper {
 
 
 
+
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -18046,7 +18047,11 @@ class HHMenu {
         try {
             loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
             loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
+            const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
             LoveRaidManager.getTrollRaids().forEach((raid) => {
+                if (raid.trollId > lastTrollIdAvailable) {
+                    return; // Skip raids on locked trolls
+                }
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
                 loveRaidOptions.add(option);
             });

@@ -19,6 +19,7 @@
 
 import { LabyrinthAuto } from '../Module/LabyrinthAuto';
 import { LeagueHelper } from '../Module/League';
+import { Troll } from '../Module/Troll';
 import { LoveRaidManager } from '../Module/index';
 import { setDefaults } from '../Service/index';
 import { isDisplayedHHPopUp, logHHAuto } from '../Utils/index';
@@ -140,7 +141,11 @@ export class HHMenu {
             loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
             loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
 
+            const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
             LoveRaidManager.getTrollRaids().forEach((raid:LoveRaid) => {
+                if (raid.trollId > lastTrollIdAvailable) {
+                    return; // Skip raids on locked trolls
+                }
                 const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
                 loveRaidOptions.add(option);
             });
