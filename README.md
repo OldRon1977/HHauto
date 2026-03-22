@@ -120,8 +120,69 @@ Filtered raids (from `+Raid Stars`) take priority over regular events and normal
 
 With this setup, the script will **never** fight a normal troll or a low-rarity raid girl. It will only spend energy on Mythic girls in events and raids.
 
-#### Additional Fixes in v7.32.x
+#### Additional Changes in v7.32.x
 
 - **v7.32.1**: Fixed `+Mythic Raid` blocking all subsequent auto-loop handlers when no raid target was found. Added Season Max Tier display. Extended timer handling for Champion, ClubChampion, Labyrinth, PentaDrill, and Pantheon.
 - **v7.32.2**: Replaced boolean `+Mythic Raid` toggle with `+Raid Stars` grade dropdown. Added migration from old boolean setting to grade index.
 - **v7.32.3**: Fixed girl grade detection — now uses `nb_grades` field which returns the correct visible star count (3=rare, 5=legendary, 6=mythic).
+- **v7.32.4**: Added reusable `waitForAjaxEnd` function. Fixed reward collection redirect when no rewards found (#1496).
+- **v7.32.5**: Added `+Girl Skins` toggle to include skin-only trolls in fight targets. Fixed raid selector reset behavior when user-selected girl is filtered by grade or page reloads.
+- **v7.32.5 Fixes**: Fixed raids with disabled source being incorrectly skipped during ongoing events. Fixed `+Raid` energy condition to bypass troll threshold for Cluster 3 raids. Prevented fighting locked trolls and filtered them from the raid selector dropdown.
+
+---
+
+### v7.33.0 — Sandalwood Proactive Re-equip & Intelligent Batch Sizing
+
+A new **Proactive Re-equip** system for the Sandalwood Perfume booster (MB1) that automatically detects when the booster is depleted and re-equips a new one from the market — without waiting for the next scheduled booster check. Additionally, the script now intelligently limits fight batch sizes (x50/x10/x1) based on remaining Sandalwood doses to avoid wasting the booster on oversized batches.
+
+#### The Problem (before v7.33.0)
+
+When Sandalwood Perfume expired mid-fight sequence, the script continued fighting without the booster active. This wasted potential shard drops because the game only drops shards when the booster is equipped. Large batch fights (x50/x10) were particularly wasteful — a x50 batch with only 3 doses remaining would consume all doses in the first few fights and run the remaining 47 fights without the booster.
+
+There was also a race condition: the fight logic could proceed before the AJAX response from a batch fight was fully processed, causing dose tracking to be out of sync.
+
+#### How It Works
+
+**1. Dose Tracking**
+
+When Sandalwood is equipped via the market, the script stores the `usages_remaining` value from the server response. After each fight, it tracks how many doses were consumed by analyzing the shard drops:
+- Each shard drop costs exactly 1 dose
+- An **odd** shard count from a batch fight means Sandalwood definitively expired mid-batch
+- An **even** shard count means `shards / 2` doses were consumed (capped at doses available before the fight)
+
+The dose count is stored in sessionStorage and refreshed from the server whenever the market is visited (`collectBoostersFromMarket`).
+
+**2. Proactive Re-equip**
+
+Before each fight, `needSandalWoodEquipped()` checks if the tracked dose count has reached 0. If so, it removes the depleted booster from the internal booster status, which triggers the existing equip logic to visit the market and equip a fresh Sandalwood automatically — no manual intervention needed.
+
+**3. Intelligent Batch Sizing**
+
+The script now calculates the maximum safe batch size before each fight using `getRecommendedBatchSize()`. It picks the **most restrictive** limit from:
+- **Remaining doses**: Not enough doses for a x50? Downgrade to x10. Not enough for x10? Use x1.
+- **Remaining shards until limit**: Close to your shard target? Use smaller batches to avoid overshooting.
+- **User preferences**: Your x50/x10 toggle settings are still respected.
+
+This means the script gradually transitions from x50 → x10 → x1 as Sandalwood runs low, maximizing efficiency.
+
+**4. Race-Condition Fix (Flag+Resolver Pattern)**
+
+For batch fights (x50/x10), the script now uses a synchronization mechanism:
+- `resetBattleResponseFlag()` is called before clicking the fight button
+- `waitForBattleResponse()` pauses until the AJAX response is fully processed (with a 30s timeout)
+- This ensures dose tracking is always up-to-date before the next batch decision
+
+#### New Settings
+
+Four configurable thresholds control when batch downsizing kicks in:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| SW Shards x10 Limit | 80 | Shards collected before downgrading from x10 to x1 |
+| SW Shards x1 Limit | 95 | Shards collected before stopping x1 fights |
+| SW Doses x10 Limit | 6 | Minimum doses required to use x10 batch |
+| SW Doses x1 Limit | 3 | Minimum doses required to use x1 batch |
+
+#### Debug Logging
+
+This release includes temporary `[SW-DEBUG]` tagged console logging throughout the Sandalwood flow. This logging covers dose tracking, batch-size decisions, re-equip triggers, and AJAX synchronization. It will be removed once the feature has been fully validated in production.
