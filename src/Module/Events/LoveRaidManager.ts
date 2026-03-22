@@ -98,6 +98,7 @@ export class LoveRaidManager {
         let raid: LoveRaid | undefined = undefined;
 
         let autoRaidSelectedIndex: string = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
+        logHHAuto(`getRaidToFight: selector="${autoRaidSelectedIndex}", raids=${raids.length}, raidIds=[${raids.map(r=>r.trollId+'_'+r.id_girl).join(',')}]`);
         if (autoRaidSelectedIndex === undefined || autoRaidSelectedIndex === '') {
             autoRaidSelectedIndex = '0';
         } else if(autoRaidSelectedIndex !== '0' && autoRaidSelectedIndex !== 'first') {

@@ -284,6 +284,8 @@ export async function handleLoveRaid(ctx: AutoLoopContext): Promise<void> {
 
 // 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
 export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
+    // DEBUG: log preconditions for troll battle
+    logHHAuto(`handleTrollBattle preconditions: busy=${ctx.busy}, isTrollFightActivated=${Troll.isTrollFightActivated()}, autoLoop=${isAutoLoopActive()}, competition=${ctx.canCollectCompetitionActive}, lastAction=${ctx.lastActionPerformed}, power=${ctx.currentPower}`);
     if(ctx.busy === false && Troll.isTrollFightActivated()
     && isAutoLoopActive() && ctx.canCollectCompetitionActive
     && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "troll" || ctx.lastActionPerformed === "quest"))

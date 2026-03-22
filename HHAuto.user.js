@@ -3557,6 +3557,7 @@ class LoveRaidManager {
         const plusGirlSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
         let raid = undefined;
         let autoRaidSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex);
+        LogUtils_logHHAuto(`getRaidToFight: selector="${autoRaidSelectedIndex}", raids=${raids.length}, raidIds=[${raids.map(r => r.trollId + '_' + r.id_girl).join(',')}]`);
         if (autoRaidSelectedIndex === undefined || autoRaidSelectedIndex === '') {
             autoRaidSelectedIndex = '0';
         }
@@ -21406,6 +21407,8 @@ function handleLoveRaid(ctx) {
 // 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
 function handleTrollBattle(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
+        // DEBUG: log preconditions for troll battle
+        LogUtils_logHHAuto(`handleTrollBattle preconditions: busy=${ctx.busy}, isTrollFightActivated=${Troll.isTrollFightActivated()}, autoLoop=${isAutoLoopActive()}, competition=${ctx.canCollectCompetitionActive}, lastAction=${ctx.lastActionPerformed}, power=${ctx.currentPower}`);
         if (ctx.busy === false && Troll.isTrollFightActivated()
             && isAutoLoopActive() && ctx.canCollectCompetitionActive
             && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "troll" || ctx.lastActionPerformed === "quest")) {
