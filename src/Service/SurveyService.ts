@@ -31,7 +31,6 @@ import {
 
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe1_iM197Xfq2kEKR2jBA64_r28BpOerTlMywVfMEmsvXvDMQ/formResponse';
 const GOOGLE_FORM_ENTRY = 'entry.875507092';
-const GITHUB_DISCUSSION_URL = 'https://github.com/Roukys/HHauto/discussions/1509';
 const MAX_REMIND_COUNT = 3;
 
 export class SurveyService {
@@ -135,17 +134,6 @@ export class SurveyService {
         });
     }
 
-    /**
-     * Open GitHub Discussion with the export pre-filled as a comment body.
-     */
-    static openGitHubDiscussion(data: string): void {
-        const body = encodeURIComponent("```\n" + data + "\n```");
-        const url = `${GITHUB_DISCUSSION_URL}#new_comment_field`;
-        window.open(url, '_blank');
-
-        // Copy to clipboard as well since GitHub doesn't support pre-filled comment bodies
-        SurveyService.copyToClipboard(data, true);
-    }
 
     /**
      * Copy the export to clipboard.
@@ -196,7 +184,6 @@ export class SurveyService {
             + '<p style="margin-bottom:10px; font-size:11px;">This is <b>completely anonymous</b> — we only collect ON/OFF status of settings, your script version, and site name. No personal data.</p>'
             + '<div style="display:flex; flex-direction:column; gap:8px; margin-top:15px;">'
             +   '<label class="myButton" id="surveyShareAnon" style="text-align:center; cursor:pointer; padding:8px;">&#x1f4e4; Share anonymously (Google Form)</label>'
-            +   '<label class="myButton" id="surveyShareGH" style="text-align:center; cursor:pointer; padding:8px;">&#x1f4ac; Share on GitHub Discussion</label>'
             +   '<label class="myButton" id="surveyCopy" style="text-align:center; cursor:pointer; padding:8px;">&#x1f4cb; Copy to clipboard</label>'
             + '</div>'
             + '<div style="display:flex; justify-content:space-between; margin-top:15px; font-size:11px;">'
@@ -213,11 +200,6 @@ export class SurveyService {
 
         $('#surveyShareAnon').off('click').on('click', function() {
             SurveyService.sendToGoogleForm(data);
-        });
-        $('#surveyShareGH').off('click').on('click', function() {
-            SurveyService.openGitHubDiscussion(data);
-            SurveyService.markAsShown();
-            SurveyService.showThankYouGH();
         });
         $('#surveyCopy').off('click').on('click', function() {
             SurveyService.copyToClipboard(data);
@@ -237,15 +219,6 @@ export class SurveyService {
             '<div style="padding:10px; color:#333; text-align:center;">'
             + '<p style="font-size:16px; margin-bottom:10px;">&#x2705; Thank you!</p>'
             + '<p>Your settings have been submitted anonymously. This helps us make HHAuto better!</p>'
-            + '</div>'
-        );
-    }
-
-    private static showThankYouGH(): void {
-        fillHHPopUp("settingsSurvey", "HHAuto Settings Survey",
-            '<div style="padding:10px; color:#333; text-align:center;">'
-            + '<p style="font-size:16px; margin-bottom:10px;">&#x2705; Thank you!</p>'
-            + '<p>Your settings have been copied to clipboard. Please paste them into the GitHub Discussion comment box that just opened.</p>'
             + '</div>'
         );
     }
