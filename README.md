@@ -186,3 +186,20 @@ Four configurable thresholds control when batch downsizing kicks in:
 #### Debug Logging
 
 This release includes temporary `[SW-DEBUG]` tagged console logging throughout the Sandalwood flow. This logging covers dose tracking, batch-size decisions, re-equip triggers, and AJAX synchronization. It will be removed once the feature has been fully validated in production.
+
+#### v7.33.1 — Settings Survey
+
+A voluntary, anonymous **Settings Survey** has been added to help us understand which features are actually used. With 163 configurable settings and no telemetry, this is the only way to identify unused features we can safely simplify or remove.
+
+**How it works:**
+- After a version upgrade, a one-time popup asks you to share your settings
+- You can also trigger it manually via the **"Settings Survey"** button in the menu
+- Two options: **Google Form** (one-click automatic submit) or **Copy to clipboard** (full control)
+- "Remind me later" (up to 3 times) or "Don't ask again" to permanently dismiss
+
+**What is collected:**
+- Script version and site hostname
+- For each setting: `ON`, `OFF`, `DEFAULT`, or `CHANGED`
+- **No user IDs, no personal data, no gameplay information**
+
+**Note:** Tampermonkey may ask for permission to send data. Temporary or one-time rights are sufficient — no need to grant permanent ones.
