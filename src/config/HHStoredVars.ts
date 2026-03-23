@@ -2553,3 +2553,8 @@ HHStoredVars[HHStoredVarPrefixKey + TK.surveyDismissCount] =
     storage: "localStorage",
     HHType: "Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.surveyLastHash] =
+    {
+    storage: "localStorage",
+    HHType: "Temp"
+};

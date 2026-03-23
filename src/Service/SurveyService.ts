@@ -6,12 +6,15 @@
 //
 // Triggered once after a version upgrade. Users can:
 //   - Share anonymously via Google Form (POST with GM_xmlhttpRequest)
-//   - Share on GitHub Discussion (opens pre-filled URL)
 //   - Copy to clipboard
 //   - Dismiss (permanently) or "Remind me later" (up to 3 times)
 //
 // Only boolean ON/OFF/DEFAULT categories are sent, plus the script
 // version and site hostname. No personal data is collected.
+//
+// Anti-spam: a hash of the settings data is stored after each
+// successful send. Duplicate submissions are silently skipped
+// (the "Thank you" popup still appears to avoid revealing the check).
 
 import {
     getStoredValue,
@@ -106,8 +109,21 @@ export class SurveyService {
 
     /**
      * Send the export to Google Forms via GM_xmlhttpRequest (bypasses CORS).
+     * Silently skips if settings haven't changed since last submission.
      */
     static sendToGoogleForm(data: string): void {
+        // Hash only the settings lines (skip the Date line which changes daily)
+        const hashInput = data.split('\n').filter(l => !l.startsWith('Date:')).join('\n');
+        const hash = SurveyService.hashString(hashInput);
+        const lastHash = getStoredValue(HHStoredVarPrefixKey + TK.surveyLastHash);
+
+        if (lastHash === hash) {
+            logHHAuto("Settings survey skipped: settings unchanged since last submission.");
+            SurveyService.markAsShown();
+            SurveyService.showThankYou();
+            return;
+        }
+
         const formData = `${GOOGLE_FORM_ENTRY}=${encodeURIComponent(data)}`;
 
         GM_xmlhttpRequest({
@@ -120,6 +136,7 @@ export class SurveyService {
             onload: function(response: { status: number }) {
                 if (response.status === 200) {
                     logHHAuto("Settings survey submitted successfully via Google Form.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.surveyLastHash, hash);
                     SurveyService.markAsShown();
                     SurveyService.showThankYou();
                 } else {
@@ -231,6 +248,19 @@ export class SurveyService {
             + '<p>Your settings data has been copied to the clipboard. You can paste it anywhere you like (e.g. a GitHub issue or discussion).</p>'
             + '</div>'
         );
+    }
+
+    /**
+     * Simple string hash (djb2). Not cryptographic, just for
+     * detecting whether settings have changed between submissions.
+     */
+    private static hashString(str: string): string {
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) + hash) + str.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return String(hash >>> 0); // Unsigned
     }
 
     private static showError(): void {

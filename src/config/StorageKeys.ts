@@ -370,4 +370,5 @@ export const TK = {
     // Survey
     surveyShown: "Temp_surveyShown",
     surveyDismissCount: "Temp_surveyDismissCount",
+    surveyLastHash: "Temp_surveyLastHash",
 } as const;
