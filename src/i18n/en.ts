@@ -301,6 +301,7 @@ HHAuto_ToolTips.en['ExportGirlsData'] = {version: "5.6.24", elementText: "⤓", 
 HHAuto_ToolTips.en['autoFreeBundlesCollect'] = {version: "5.16.0", elementText: "Collect free bundles", tooltip: "Collect free bundles."};
 HHAuto_ToolTips.en['mousePause'] = {version: "5.6.135", elementText: "Mouse Pause", tooltip: "Pause script activity for 5 seconds when mouse movement is detected. Helps stop script from interrupting manual actions. (in ms, 5000ms=5s)"};
 HHAuto_ToolTips.en['saveDefaults'] = {version: "5.6.24", elementText: "Save defaults", tooltip: "Save your own defaults values for new tabs."};
+HHAuto_ToolTips.en['settingsSurvey'] = {version: "7.33.1", elementText: "Settings Survey", tooltip: "Share your settings anonymously to help us identify unused features."};
 HHAuto_ToolTips.en['autoGiveAff'] = {version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Aff to girls in order ( you can use OCD script to filter )."};
 HHAuto_ToolTips.en['autoGiveExp'] = {version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Exp to girls in order ( you can use OCD script to filter )."};
 HHAuto_ToolTips.en['autoPantheonTitle'] = {version: "5.6.24", elementText: "Pantheon", tooltip: ""};

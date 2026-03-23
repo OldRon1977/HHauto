@@ -482,6 +482,7 @@ export function getMenu() {
                 +`</div>`
                 +`<div class="internalOptionsRow" style="padding:3px">`
                     + hhButton('saveDefaults', 'saveDefaults')
+                    + hhButton('settingsSurvey', 'settingsSurvey')
                 +`</div>`
             +`</div>`
             +`<div class="optionsBoxWithTitle">`

@@ -102,12 +102,6 @@ export class StartService {
 
             // +Raid Stars migration handled below (outside version check)
 
-            // Show settings survey after version upgrade
-            if (SurveyService.shouldShowSurvey()) {
-                // Delay to let the page finish loading before showing popup
-                setTimeout(() => SurveyService.showSurveyPopup(), 3000);
-            }
-
             if ('7.26.0' === GM.info.script.version) {
                 // sett all mask rewards to true if any of the previous individual mask rewards where true
                 let maskReward = false;
@@ -465,7 +459,20 @@ export function start() {
         deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
     }
     getPage(true);
-    setTimeout(autoLoop,1000);
+
+    // Settings survey: show popup on version upgrade, delay autoLoop while visible
+    if (SurveyService.shouldShowSurvey()) {
+        SurveyService.showSurveyPopup();
+        setTimeout(autoLoop, 30000);
+    } else {
+        setTimeout(autoLoop, 1000);
+    }
+
+    // Manual survey button
+    $("#settingsSurvey").on("click", function() {
+        SurveyService.showSurveyPopup();
+    });
+
     GM_registerMenuCommand(getTextForUI("translate","elementText"),manageTranslationPopUp);
 
 };
