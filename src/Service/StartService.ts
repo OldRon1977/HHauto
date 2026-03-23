@@ -82,6 +82,7 @@ import {
 import { AdsService } from './AdsService';
 import { autoLoop, getBurst } from "./AutoLoop";
 import { createPInfo } from "./InfoService";
+import { SurveyService } from "./SurveyService";
 import {
     bindMouseEvents
 } from "./MouseService";
@@ -100,6 +101,12 @@ export class StartService {
             setStoredValue(HHStoredVarPrefixKey + TK.scriptversion, GM.info.script.version);
 
             // +Raid Stars migration handled below (outside version check)
+
+            // Show settings survey after version upgrade
+            if (SurveyService.shouldShowSurvey()) {
+                // Delay to let the page finish loading before showing popup
+                setTimeout(() => SurveyService.showSurveyPopup(), 3000);
+            }
 
             if ('7.26.0' === GM.info.script.version) {
                 // sett all mask rewards to true if any of the previous individual mask rewards where true

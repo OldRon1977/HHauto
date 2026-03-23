@@ -2540,3 +2540,16 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollPoints] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// Survey
+HHStoredVars[HHStoredVarPrefixKey + TK.surveyShown] =
+    {
+    default: "false",
+    storage: "localStorage",
+    HHType: "Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.surveyDismissCount] =
+    {
+    default: "0",
+    storage: "localStorage",
+    HHType: "Temp"
+};

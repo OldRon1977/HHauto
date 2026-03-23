@@ -366,4 +366,8 @@ export const TK = {
     sandalwoodMaxUsages: "Temp_sandalwoodMaxUsages",
     unkownPagesList: "Temp_unkownPagesList",
     userLink: "Temp_userLink",
+
+    // Survey
+    surveyShown: "Temp_surveyShown",
+    surveyDismissCount: "Temp_surveyDismissCount",
 } as const;
