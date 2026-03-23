@@ -182,6 +182,7 @@ export class SurveyService {
         return '<div style="padding:10px; max-width:500px; color:#333;">'
             + '<p style="margin-bottom:10px;">Help us improve HHAuto! We\'d like to know which settings you actually use so we can simplify the script.</p>'
             + '<p style="margin-bottom:10px; font-size:11px;">This is <b>completely anonymous</b> — we only collect ON/OFF status of settings, your script version, and site name. No personal data.</p>'
+            + '<p style="margin-bottom:10px; font-size:11px; padding:6px; background:#fff3cd; border:1px solid #ffc107; border-radius:4px;"><b>Note:</b> Tampermonkey may ask for permission to send data. Select <b>"Temporarily allow"</b> to proceed.</p>'
             + '<div style="display:flex; flex-direction:column; gap:8px; margin-top:15px;">'
             +   '<label class="myButton" id="surveyShareAnon" style="text-align:center; cursor:pointer; padding:8px;">&#x1f4e4; Share anonymously (Google Form)</label>'
             +   '<label class="myButton" id="surveyCopy" style="text-align:center; cursor:pointer; padding:8px;">&#x1f4cb; Copy to clipboard</label>'
