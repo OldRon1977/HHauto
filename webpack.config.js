@@ -40,6 +40,9 @@ module.exports = {
               }
         })],
     },
+    performance: {
+        hints: false,
+    },
     plugins: [
         new webpack.BannerPlugin({
             banner: bannerBuiled,

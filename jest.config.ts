@@ -179,7 +179,9 @@ const config: Config = {
   // A map from regular expressions to paths to transformers
   // transform: undefined,
   transform: {
-    '^.+\\.ts?$': 'ts-jest',
+    '^.+\\.ts?$': ['ts-jest', {
+      tsconfig: 'tsconfig.jest.json',
+    }],
   },
   transformIgnorePatterns: ['<rootDir>/node_modules/'],
 
