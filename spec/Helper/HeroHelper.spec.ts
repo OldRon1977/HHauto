@@ -15,6 +15,7 @@ describe("HeroHelper", function() {
 
   describe("getHero", function() {
     it("No Hero", function() {
+      unsafeWindow.shared.Hero = undefined;
       expect(getHero()).toBeUndefined();
     });
     it("Test with string", function() {
