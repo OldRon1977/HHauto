@@ -379,4 +379,71 @@ describe("Booster", function() {
       });
     });
   });
+
+  describe("getRecommendedBatchSize", function() {
+    const defaultSettings = {
+      useX50: true,
+      useX10: true,
+      sandalwoodShardsX10Limit: 80,
+      sandalwoodShardsX1Limit: 95,
+      sandalwoodDosesX10Limit: 6,
+      sandalwoodDosesX1Limit: 3,
+    };
+
+    it("returns 50 when no Sandalwood equipped (dosesRemaining=null)", function() {
+      const result = Booster.getRecommendedBatchSize(100, null, defaultSettings);
+      expect(result).toBe(50);
+    });
+
+    it("returns 50 with plenty of doses and low shards", function() {
+      const result = Booster.getRecommendedBatchSize(80, 50, defaultSettings);
+      expect(result).toBe(50);
+    });
+
+    it("returns 10 when doses <= dosesX10Limit but > dosesX1Limit", function() {
+      const result = Booster.getRecommendedBatchSize(80, 5, defaultSettings);
+      expect(result).toBe(10);
+    });
+
+    it("returns 1 when doses <= dosesX1Limit", function() {
+      const result = Booster.getRecommendedBatchSize(80, 2, defaultSettings);
+      expect(result).toBe(1);
+    });
+
+    it("returns 10 when collected shards >= shardsX10Limit but < shardsX1Limit", function() {
+      // collectedShards = 100 - minRemainingShards = 100 - 15 = 85, >= 80
+      const result = Booster.getRecommendedBatchSize(15, 50, defaultSettings);
+      expect(result).toBe(10);
+    });
+
+    it("returns 1 when collected shards >= shardsX1Limit", function() {
+      // collectedShards = 100 - 3 = 97, >= 95
+      const result = Booster.getRecommendedBatchSize(3, 50, defaultSettings);
+      expect(result).toBe(1);
+    });
+
+    it("returns 10 when useX50 is false", function() {
+      const settings = { ...defaultSettings, useX50: false };
+      const result = Booster.getRecommendedBatchSize(100, null, settings);
+      expect(result).toBe(10);
+    });
+
+    it("returns 1 when useX10 is false", function() {
+      const settings = { ...defaultSettings, useX10: false };
+      const result = Booster.getRecommendedBatchSize(100, null, settings);
+      expect(result).toBe(1);
+    });
+
+    it("dose limit takes priority when more restrictive than shard limit", function() {
+      // doses=2 → max 1, shards=80 → would be 50
+      const result = Booster.getRecommendedBatchSize(80, 2, defaultSettings);
+      expect(result).toBe(1);
+    });
+
+    it("shard limit takes priority when more restrictive than dose limit", function() {
+      // doses=50 → max 50, collectedShards=97 → max 1
+      const result = Booster.getRecommendedBatchSize(3, 50, defaultSettings);
+      expect(result).toBe(1);
+    });
+  });
 });

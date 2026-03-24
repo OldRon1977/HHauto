@@ -4,7 +4,11 @@
 // settings they actually use. Data is collected to identify unused
 // features that can be removed to reduce complexity.
 //
-// Triggered once after a version upgrade. Users can:
+// Version-gated: The popup only appears when SURVEY_ACTIVE_IN_VERSION
+// is set to a specific version string AND the current script version
+// matches. Set to "0" to deactivate (default).
+//
+// Users can:
 //   - Share anonymously via Google Form (POST with GM_xmlhttpRequest)
 //   - Copy to clipboard
 //   - Dismiss (permanently) or "Remind me later" (up to 3 times)
@@ -36,15 +40,34 @@ const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe1_iM197Xfq2k
 const GOOGLE_FORM_ENTRY = 'entry.875507092';
 const MAX_REMIND_COUNT = 3;
 
+/**
+ * Set to a specific version (e.g. "7.34.0") to activate the survey popup
+ * for that version. Set to "0" to deactivate (default).
+ */
+const SURVEY_ACTIVE_IN_VERSION = "0";
+
 export class SurveyService {
 
     /**
      * Check whether the survey popup should be shown.
-     * Called from StartService after a version upgrade is detected.
+     * Only active when SURVEY_ACTIVE_IN_VERSION matches the current script version.
+     * Dismiss counters reset automatically when activated for a new version.
      */
     static shouldShowSurvey(): boolean {
-        const alreadyShown = getStoredValue(HHStoredVarPrefixKey + TK.surveyShown);
-        if (alreadyShown === "true") return false;
+        if (SURVEY_ACTIVE_IN_VERSION === "0") return false;
+
+        const currentVersion = GM.info.script.version;
+        if (currentVersion !== SURVEY_ACTIVE_IN_VERSION) return false;
+
+        // Reset dismiss state when activated for a new version
+        const shownForVersion = getStoredValue(HHStoredVarPrefixKey + TK.surveyShown);
+        if (shownForVersion !== "0" && shownForVersion !== SURVEY_ACTIVE_IN_VERSION) {
+            // Different version was tracked before → reset for the new activation
+            setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, "0");
+            setStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount, "0");
+        }
+
+        if (shownForVersion === SURVEY_ACTIVE_IN_VERSION) return false;
 
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
         if (dismissCount >= MAX_REMIND_COUNT) return false;
@@ -165,10 +188,10 @@ export class SurveyService {
     }
 
     /**
-     * Mark survey as permanently shown (won't appear again).
+     * Mark survey as shown for the current active version (won't appear again for this version).
      */
     static markAsShown(): void {
-        setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, "true");
+        setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, SURVEY_ACTIVE_IN_VERSION);
     }
 
     /**

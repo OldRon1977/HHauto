@@ -25,6 +25,7 @@ export class MockHelper{
     }
 
     static mockHeroLevel(heroLevel: number) {
+        if (!unsafeWindow.shared) unsafeWindow.shared = {} as any;
         unsafeWindow.shared.Hero = {
             name: "TOTO",
             infos: {

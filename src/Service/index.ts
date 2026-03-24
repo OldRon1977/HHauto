@@ -19,6 +19,7 @@
  */
 export * from './AdsService'
 export * from './AutoLoop'
+export * from './FeaturePopupService'
 export * from './AutoLoopActions'
 export * from './AutoLoopContext'
 export * from './AutoLoopPageHandlers'
