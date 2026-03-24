@@ -6730,8 +6730,8 @@ class Harem {
                 const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
                 const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
                 if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
-                    HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
                     if (!!haremItem && haremGirlMode === 'team') {
+                        HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
                         if (debugEnabled)
                             LogUtils_logHHAuto("Waifu page detected, get girls with skills");
                         const girlDictionary = getHHVars("girls_data_list");
@@ -11623,9 +11623,6 @@ class HaremGirl {
             if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremTools) === "true") {
                 HaremGirl.addGirlMenu();
             }
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremSkillsButtons) === "true") {
-                HaremGirl.showSkillButtons();
-            }
         }
         catch ({ errName, message }) {
             LogUtils_logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
@@ -11633,7 +11630,7 @@ class HaremGirl {
         }
     }
     static showSkillButtons() {
-        const showSkillButtons = true; // Todo add settings
+        const showSkillButtons = getStoredValue(HHStoredVarPrefixKey + SK.showHaremSkillsButtons) === "true";
         if (showSkillButtons && $('.hhsingleskill').length <= 0) {
             $('.skill-upgrade-row ').each((index, row) => {
                 const rowHasButton = $('button.blue_button_L:not([disabled])', $(row)).length > 0;
@@ -22535,6 +22532,7 @@ function handlePageSpecific(ctx) {
             case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
                 HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
                 HaremGirl.moduleHaremGirl();
+                HaremGirl.showSkillButtons();
                 HaremGirl.run = callItOnce(HaremGirl.run);
                 ctx.busy = yield HaremGirl.run();
                 break;
