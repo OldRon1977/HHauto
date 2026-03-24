@@ -529,9 +529,6 @@ export class HaremGirl {
             if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremTools) === "true") {
                 HaremGirl.addGirlMenu();
             }
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showHaremSkillsButtons) === "true") {
-                HaremGirl.showSkillButtons();
-            }
 
         } catch ({ errName, message }) {
             logHHAuto(`ERROR: Can't add menu girl: ${errName}, ${message}`);
@@ -540,7 +537,7 @@ export class HaremGirl {
     }
 
     static showSkillButtons() {
-        const showSkillButtons = true; // Todo add settings
+        const showSkillButtons = getStoredValue(HHStoredVarPrefixKey + SK.showHaremSkillsButtons) === "true";
         if (showSkillButtons && $('.hhsingleskill').length <= 0) {
             $('.skill-upgrade-row ').each((index, row) => {
                 const rowHasButton = $('button.blue_button_L:not([disabled])', $(row)).length > 0;

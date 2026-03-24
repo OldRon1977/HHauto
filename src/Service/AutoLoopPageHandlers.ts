@@ -223,6 +223,7 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
         case ConfigHelper.getHHScriptVars("pagesIDGirlPage"):
             HaremGirl.moduleHaremGirl = callItOnce(HaremGirl.moduleHaremGirl);
             HaremGirl.moduleHaremGirl();
+            HaremGirl.showSkillButtons();
             HaremGirl.run = callItOnce(HaremGirl.run);
             ctx.busy = await HaremGirl.run();
             break;
