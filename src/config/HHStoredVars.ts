@@ -2543,7 +2543,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollPoints] =
 // Survey
 HHStoredVars[HHStoredVarPrefixKey + TK.surveyShown] =
     {
-    default: "false",
+    default: "0",
     storage: "localStorage",
     HHType: "Temp"
 };
@@ -2555,6 +2555,19 @@ HHStoredVars[HHStoredVarPrefixKey + TK.surveyDismissCount] =
 };
 HHStoredVars[HHStoredVarPrefixKey + TK.surveyLastHash] =
     {
+    storage: "localStorage",
+    HHType: "Temp"
+};
+// Feature Popup (What's New)
+HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupShown] =
+    {
+    default: "0",
+    storage: "localStorage",
+    HHType: "Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
+    {
+    default: "0",
     storage: "localStorage",
     HHType: "Temp"
 };

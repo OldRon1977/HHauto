@@ -371,4 +371,8 @@ export const TK = {
     surveyShown: "Temp_surveyShown",
     surveyDismissCount: "Temp_surveyDismissCount",
     surveyLastHash: "Temp_surveyLastHash",
+
+    // Feature Popup (What's New)
+    featurePopupShown: "Temp_featurePopupShown",
+    featurePopupDismissCount: "Temp_featurePopupDismissCount",
 } as const;

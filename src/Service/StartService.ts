@@ -82,6 +82,7 @@ import {
 import { AdsService } from './AdsService';
 import { autoLoop, getBurst } from "./AutoLoop";
 import { createPInfo } from "./InfoService";
+import { FeaturePopupService } from "./FeaturePopupService";
 import { SurveyService } from "./SurveyService";
 import {
     bindMouseEvents
@@ -460,8 +461,11 @@ export function start() {
     }
     getPage(true);
 
-    // Settings survey: show popup on version upgrade, delay autoLoop while visible
-    if (SurveyService.shouldShowSurvey()) {
+    // Version-gated popups: show at most one auto-popup, delay autoLoop while visible
+    if (FeaturePopupService.shouldShowPopup()) {
+        FeaturePopupService.showPopup();
+        setTimeout(autoLoop, 30000);
+    } else if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
         setTimeout(autoLoop, 30000);
     } else {
