@@ -12,6 +12,7 @@ import {
     ConfigHelper,
     HeroHelper,
     getHero,
+    getHHVars,
     getPage,
     getTextForUI,
     hhButton,
@@ -20,6 +21,8 @@ import {
     setStoredValue
 } from '../Helper/index';
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
+import { TeamBuilderService, ScoringMode } from '../Service/TeamBuilderService';
+import { GirlData, ElementType } from '../Service/TeamScoringService';
 import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKTeamGirl, TeamData } from '../model/index';
@@ -451,6 +454,58 @@ export class TeamModule {
     }
 
     static setTopTeam(sumFormulaType: number) {
+        const availableGirls = getHHVars("availableGirls", false);
+
+        if (availableGirls && Array.isArray(availableGirls) && availableGirls.length > 0) {
+            TeamModule.setTopTeamV2(sumFormulaType as ScoringMode, availableGirls);
+        } else {
+            logHHAuto('availableGirls not found, falling back to legacy team selection');
+            TeamModule.setTopTeamLegacy(sumFormulaType);
+        }
+    }
+
+    private static setTopTeamV2(mode: ScoringMode, availableGirls: any[]) {
+        const playerLevel = Number(HeroHelper.getLevel());
+
+        // Map availableGirls to GirlData interface
+        const girls: GirlData[] = availableGirls.map(g => ({
+            id_girl: Number(g.id_girl),
+            name: g.name || '',
+            carac1: Number(g.carac1 || 0),
+            carac2: Number(g.carac2 || 0),
+            carac3: Number(g.carac3 || 0),
+            level: Number(g.level || 1),
+            element: (g.element_data?.type || g.element || 'fire') as ElementType,
+            rarity: (g.rarity || 'common') as any,
+            graded: Number(g.graded || 0),
+            nb_grades: Number(g.nb_grades || 0),
+            caracs: g.caracs ? {
+                carac1: Number(g.caracs.carac1 || 0),
+                carac2: Number(g.caracs.carac2 || 0),
+                carac3: Number(g.caracs.carac3 || 0),
+            } : undefined,
+            skill_tiers_info: g.skill_tiers_info,
+        }));
+
+        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
+
+        if (!result) {
+            logHHAuto('Not enough girls for team selection v2 (mode ' + mode + '), falling back to legacy');
+            TeamModule.setTopTeamLegacy(mode);
+            return;
+        }
+
+        const deckID = result.girls.map(g => g.id_girl);
+        const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
+        const dist = TeamBuilderService.getElementDistribution(result);
+        const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
+        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Elements: ${distStr}, Synergy: ${result.synergyValue.toFixed(3)}`);
+
+        // UI update: same approach as legacy — hide non-selected, show + number selected
+        TeamModule.updateTeamUI(deckID);
+    }
+
+    private static setTopTeamLegacy(sumFormulaType: number) {
         let arr = $('div[id_girl]');
         let numTop = 16;
         if (numTop > arr.length) numTop = arr.length;
@@ -464,28 +519,22 @@ export class TeamModule {
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             const tooltipData = $('.girl_img', $(arr[i])).attr(<string>ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
-            //const girlData = Harem.getGirlData(gID);
             if (tooltipData == '') {
                 logHHAuto('ERROR, no girl information found');
                 return;
             }
             let obj = JSON.parse(tooltipData);
-            //sum formula
             let tempGrades = obj.graded2;
-            //console.log(obj,tempGrades);
             let countTotalGrades = (tempGrades.match(/<g/g) || []).length;
             let countFreeGrades = (tempGrades.match(/grey/g) || []).length;
             let currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
-            //console.log(currentStat);
             if (sumFormulaType == 1) {
                 currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
             } else if (sumFormulaType == 2) {
                 currentStat = (obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3) / obj.level * levelPlayer / (1 + 0.3 * (countTotalGrades - countFreeGrades)) * (1 + 0.3 * (countTotalGrades));
             }
-            //console.log(obj.level,levelPlayer,countTotalGrades,countFreeGrades);
-            //console.log(currentStat);
-            let lowNum = 0; //num
-            let lowStat = deckStat[0]; //stat
+            let lowNum = 0;
+            let lowStat = deckStat[0];
             for (let j = 1; j < deckID.length; j++) {
                 if (deckStat[j] < lowStat) {
                     lowNum = j;
@@ -499,7 +548,6 @@ export class TeamModule {
         }
         let tmpID = 0;
         let tmpStat = 0;
-        //console.log(deckStat,deckID);
         for (let i = 0; i < deckStat.length; i++) {
             for (let j = i; j < deckStat.length; j++) {
                 if (deckStat[j] > deckStat[i]) {
@@ -512,7 +560,12 @@ export class TeamModule {
                 }
             }
         }
-        //console.log(deckStat,deckID);
+
+        TeamModule.updateTeamUI(deckID);
+    }
+
+    private static updateTeamUI(deckID: number[]) {
+        const arr = $('div[id_girl]');
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {
@@ -523,7 +576,7 @@ export class TeamModule {
         }
         let mainTeamPanel = $(ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .change-team-panel .panel-body > .harem-panel-girls');
         for (let j = 0; j < deckID.length; j++) {
-            let newDiv
+            let newDiv;
             let arrSort = $('div[id_girl=' + deckID[j] + ']');
             if ($(arrSort[0]).find('.topNumber').length == 0) {
                 newDiv = document.createElement("div");
@@ -535,7 +588,6 @@ export class TeamModule {
             $(arrSort[0]).find('.topNumber')[0];
             newDiv.innerText = j + 1;
             newDiv.setAttribute('position', j + 1);
-            // Go to girl update page on double click
             newDiv.setAttribute("ondblclick", "window.location.href='/characters/" + deckID[j] + "'");
             mainTeamPanel.append(arrSort[0]);
         }
