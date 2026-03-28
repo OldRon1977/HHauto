@@ -17345,7 +17345,7 @@ class TeamModule {
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
         LogUtils_logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Elements: ${distStr}, Synergy: ${result.synergyValue.toFixed(3)}`);
         // UI update: same approach as legacy — hide non-selected, show + number selected
-        TeamModule.updateTeamUI(deckID);
+        TeamModule.updateTeamUI(deckID, result);
     }
     static setTopTeamLegacy(sumFormulaType) {
         let arr = $('div[id_girl]');
@@ -17406,7 +17406,7 @@ class TeamModule {
         }
         TeamModule.updateTeamUI(deckID);
     }
-    static updateTeamUI(deckID) {
+    static updateTeamUI(deckID, teamResult) {
         const arr = $('div[id_girl]');
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
@@ -17430,10 +17430,42 @@ class TeamModule {
                 newDiv = $(arrSort[0]).find('.topNumber')[0];
             }
             $(arrSort[0]).find('.topNumber')[0];
-            newDiv.innerText = j + 1;
+            // Show position label with element emoji and leader skill
+            if (teamResult && j < teamResult.girls.length) {
+                const girl = teamResult.girls[j];
+                const emoji = TeamModule.ELEMENT_EMOJI[girl.element] || '';
+                if (j === 0) {
+                    newDiv.innerText = `${emoji} ★ ${teamResult.leaderTier5.name}`;
+                }
+                else {
+                    newDiv.innerText = `${j + 1} ${emoji}`;
+                }
+            }
+            else {
+                newDiv.innerText = j + 1;
+            }
             newDiv.setAttribute('position', j + 1);
             newDiv.setAttribute("ondblclick", "window.location.href='/characters/" + deckID[j] + "'");
             mainTeamPanel.append(arrSort[0]);
+        }
+        // Show team synergy info panel
+        $('.hhTeamSynergyInfo').remove();
+        if (teamResult) {
+            const dist = TeamBuilderService.getElementDistribution(teamResult);
+            const distHtml = dist.map(d => {
+                const emoji = TeamModule.ELEMENT_EMOJI[d.element] || '';
+                return `${emoji}${d.count}`;
+            }).join(' ');
+            const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
+                position: absolute; top: 60px; left: 60%; width: 160px; z-index: 10;
+                background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px;
+                border-radius: 4px; font-size: 11px; line-height: 1.4;
+            ">
+                <div style="font-weight:bold; margin-bottom: 2px;">Team Synergy</div>
+                <div>Leader: ${teamResult.leaderTier5.name} (${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
+                <div>Elements: ${distHtml}</div>
+            </div>`);
+            $("#contains_all section").append(synergyInfo);
         }
         if (document.getElementById("AssignTopTeam") !== null) {
             return;
@@ -17445,6 +17477,10 @@ class TeamModule {
         }
     }
 }
+TeamModule.ELEMENT_EMOJI = {
+    fire: '🔥', water: '💧', nature: '🌿', stone: '🪨',
+    sun: '☀️', darkness: '🌑', psychic: '🔮', light: '✨',
+};
 
 ;// CONCATENATED MODULE: ./src/Module/index.ts
 // Module/index.ts -- Barrel file re-exporting all game automation modules.
