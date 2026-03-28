@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.33.2
+// @version      7.34.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8519,6 +8519,9 @@ const TK = {
     surveyShown: "Temp_surveyShown",
     surveyDismissCount: "Temp_surveyDismissCount",
     surveyLastHash: "Temp_surveyLastHash",
+    // Feature Popup (What's New)
+    featurePopupShown: "Temp_featurePopupShown",
+    featurePopupDismissCount: "Temp_featurePopupDismissCount",
 };
 
 ;// CONCATENATED MODULE: ./src/config/HHStoredVars.ts
@@ -11029,7 +11032,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollPoints] =
 // Survey
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.surveyShown] =
     {
-        default: "false",
+        default: "0",
         storage: "localStorage",
         HHType: "Temp"
     };
@@ -11041,6 +11044,19 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.surveyDismissCount] =
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.surveyLastHash] =
     {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+// Feature Popup (What's New)
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupShown] =
+    {
+        default: "0",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
+    {
+        default: "0",
         storage: "localStorage",
         HHType: "Temp"
     };
@@ -16618,6 +16634,274 @@ Spreadsheet.LINK_CLASS = 'hhauto-spreadsheet-link';
 Spreadsheet.BDSMPP_CLASS = 'script-blessing-spreadsheet-link';
 Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 
+;// CONCATENATED MODULE: ./src/Service/TeamScoringService.ts
+// TeamScoringService.ts -- Scoring engine for team selection v2.
+//
+// Provides element synergy calculations, Tier-5 leader skill evaluation,
+// and stat scoring for two modes:
+//   - "Current Best": uses current stats (blessed), filters Mythic + Legendary only
+//   - "Best Possible": projects stats to max level + full grades for ALL girls
+// Synergy bonus multiplier per girl of each element in the team
+const ELEMENT_SYNERGY_PER_GIRL = {
+    fire: { field: 'critDamage', bonus: 0.10 },
+    water: { field: 'healOnHit', bonus: 0.03 },
+    nature: { field: 'ego', bonus: 0.03 },
+    stone: { field: 'critChance', bonus: 0.02 },
+    sun: { field: 'defReduce', bonus: 0.02 },
+    darkness: { field: 'damage', bonus: 0.02 },
+    psychic: { field: 'defense', bonus: 0.02 },
+    light: { field: 'harmony', bonus: 0.02 },
+};
+// Tier-5 skill mapping by element, with priority ranking
+const ELEMENT_TO_TIER5 = {
+    fire: { id: 14, name: 'Execute', priority: 4 },
+    water: { id: 14, name: 'Execute', priority: 4 },
+    sun: { id: 11, name: 'Stun', priority: 3 },
+    darkness: { id: 11, name: 'Stun', priority: 3 },
+    stone: { id: 12, name: 'Shield', priority: 2 },
+    light: { id: 12, name: 'Shield', priority: 2 },
+    psychic: { id: 13, name: 'Reflect', priority: 1 },
+    nature: { id: 13, name: 'Reflect', priority: 1 },
+};
+// Rarities allowed for "Current Best" mode
+const HIGH_RARITIES = new Set(['mythic', 'legendary']);
+class TeamScoringService {
+    /**
+     * Get the raw stat sum for a girl (carac1 + carac2 + carac3).
+     * Uses caracs sub-object if available, falls back to direct fields.
+     */
+    static getStatSum(girl) {
+        if (girl.caracs) {
+            return girl.caracs.carac1 + girl.caracs.carac2 + girl.caracs.carac3;
+        }
+        return girl.carac1 + girl.carac2 + girl.carac3;
+    }
+    /**
+     * Score a girl for "Current Best" mode.
+     * Simply returns the current stat sum (already includes blessings).
+     */
+    static scoreCurrentBest(girl) {
+        return TeamScoringService.getStatSum(girl);
+    }
+    /**
+     * Score a girl for "Best Possible" mode.
+     * Projects stats to max level and full grades.
+     *
+     * Formula:
+     *   potential = currentStats / level × playerLevel / (1 + 0.3 × currentGrades) × (1 + 0.3 × maxGrades)
+     */
+    static scoreBestPossible(girl, playerLevel) {
+        const currentStats = TeamScoringService.getStatSum(girl);
+        const level = girl.level || 1;
+        const currentGrades = girl.graded || 0;
+        const maxGrades = girl.nb_grades || 0;
+        // Avoid division by zero; a level-1 girl still gets projected
+        const levelFactor = playerLevel / Math.max(level, 1);
+        const gradeDeflator = 1 + 0.3 * currentGrades;
+        const gradeInflator = 1 + 0.3 * maxGrades;
+        return (currentStats * levelFactor / gradeDeflator) * gradeInflator;
+    }
+    /**
+     * Filter girls for "Current Best" mode: only Mythic and Legendary.
+     */
+    static filterHighRarity(girls) {
+        return girls.filter(g => HIGH_RARITIES.has(g.rarity));
+    }
+    /**
+     * Get the Tier-5 skill info for a given element.
+     */
+    static getTier5Skill(element) {
+        return ELEMENT_TO_TIER5[element];
+    }
+    /**
+     * Calculate synergy bonuses for a set of elements (one per team member).
+     */
+    static calculateSynergies(elements) {
+        const synergies = {
+            critDamage: 0,
+            healOnHit: 0,
+            ego: 0,
+            critChance: 0,
+            defReduce: 0,
+            damage: 0,
+            defense: 0,
+            harmony: 0,
+        };
+        for (const element of elements) {
+            const mapping = ELEMENT_SYNERGY_PER_GIRL[element];
+            if (mapping) {
+                synergies[mapping.field] += mapping.bonus;
+            }
+        }
+        return synergies;
+    }
+    /**
+     * Calculate a numeric "synergy value" for a team composition.
+     * Weighs each synergy type by its combat impact.
+     *
+     * Fire (critDamage) weighs highest because +10% per girl is 5× the
+     * per-girl bonus of other elements.
+     */
+    static calculateSynergyValue(elements) {
+        const syn = TeamScoringService.calculateSynergies(elements);
+        // Weights reflect relative combat impact
+        // Fire critDamage is already 5× higher per girl, so weight=1 is sufficient
+        return (syn.critDamage * 1.0 + // Fire: 10% per girl
+            syn.critChance * 2.0 + // Stone: 2% per girl, but crit chance is valuable
+            syn.defReduce * 2.0 + // Sun: 2% per girl, reduces enemy defense
+            syn.healOnHit * 1.5 + // Water: 3% per girl
+            syn.damage * 1.5 + // Darkness: 2% per girl
+            syn.ego * 1.0 + // Nature: 3% per girl
+            syn.defense * 1.0 + // Psychic: 2% per girl
+            syn.harmony * 1.0 // Light: 2% per girl
+        );
+    }
+    /**
+     * Score a girl's contribution to a team, considering both stats and
+     * the synergy bonus she adds.
+     *
+     * @param girl        - The girl to score
+     * @param teamElements - Elements already in the team (before adding this girl)
+     * @param statScore   - Pre-calculated stat score (from scoreCurrentBest or scoreBestPossible)
+     * @param maxStatInPool - The highest stat score in the entire girl pool (for normalization)
+     * @param synergyWeight - How much synergy counts vs raw stats (0-1, default 0.05 = 5%)
+     */
+    static scoreWithSynergy(girl, teamElements, statScore, maxStatInPool, synergyWeight = 0.05) {
+        // Synergy delta: how much adding this girl improves team synergy
+        const currentSynergyValue = TeamScoringService.calculateSynergyValue(teamElements);
+        const newSynergyValue = TeamScoringService.calculateSynergyValue([...teamElements, girl.element]);
+        const synergyDelta = newSynergyValue - currentSynergyValue;
+        // Normalize synergy delta relative to max stat so they're comparable
+        const normalizedSynergyBonus = maxStatInPool > 0
+            ? (synergyDelta / maxStatInPool) * maxStatInPool
+            : 0;
+        return statScore + synergyWeight * normalizedSynergyBonus;
+    }
+    /**
+     * Rank leader candidates by Tier-5 skill priority.
+     * Among girls with equal Tier-5 priority, pick the one with highest stats.
+     */
+    static rankLeaderCandidates(girls, statScores) {
+        return [...girls].sort((a, b) => {
+            const tier5A = TeamScoringService.getTier5Skill(a.element);
+            const tier5B = TeamScoringService.getTier5Skill(b.element);
+            // Primary: Tier-5 priority (Execute > Stun > Shield > Reflect)
+            if (tier5A.priority !== tier5B.priority) {
+                return tier5B.priority - tier5A.priority;
+            }
+            // Secondary: stat score
+            const scoreA = statScores.get(a.id_girl) || 0;
+            const scoreB = statScores.get(b.id_girl) || 0;
+            return scoreB - scoreA;
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Service/TeamBuilderService.ts
+// TeamBuilderService.ts -- Builds optimal 7-girl teams using greedy
+// synergy-aware selection.
+//
+// Two modes:
+//   Mode 1 "Current Best": Mythic+Legendary only, current blessed stats
+//   Mode 2 "Best Possible": All girls, projected stats at max level+grades
+//
+// Algorithm:
+//   1. Score all girls individually
+//   2. Pre-filter to top 50 candidates
+//   3. Select Leader from top 25 by Tier-5 skill priority
+//   4. Fill slots 2-7 greedily, maximizing (stat + synergy bonus)
+
+const TEAM_SIZE = 7;
+const CANDIDATE_POOL_SIZE = 50;
+const LEADER_POOL_SIZE = 25;
+class TeamBuilderService {
+    /**
+     * Build the optimal team for the given mode.
+     *
+     * @param allGirls    - All available girls (from availableGirls or tooltip)
+     * @param mode        - 1 = Current Best, 2 = Best Possible
+     * @param playerLevel - Player's current level (needed for mode 2)
+     * @param synergyWeight - How much synergy affects selection (0-1, default 0.05)
+     * @returns TeamResult with the selected 7 girls, or null if not enough girls
+     */
+    static buildTeam(allGirls, mode, playerLevel, synergyWeight = 0.05) {
+        // Phase 1: Filter by mode
+        const candidates = mode === 1
+            ? TeamScoringService.filterHighRarity(allGirls)
+            : allGirls;
+        if (candidates.length < TEAM_SIZE) {
+            return null;
+        }
+        // Phase 2: Score all candidates
+        const scoreMap = new Map();
+        for (const girl of candidates) {
+            const score = mode === 1
+                ? TeamScoringService.scoreCurrentBest(girl)
+                : TeamScoringService.scoreBestPossible(girl, playerLevel);
+            scoreMap.set(girl.id_girl, score);
+        }
+        // Phase 3: Sort by score descending, take top pool
+        const sorted = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
+        const pool = sorted.slice(0, CANDIDATE_POOL_SIZE);
+        // Find max stat for normalization in synergy scoring
+        const maxStat = scoreMap.get(pool[0].id_girl) || 1;
+        // Phase 4: Select Leader from top 25
+        const leaderCandidates = pool.slice(0, LEADER_POOL_SIZE);
+        const rankedLeaders = TeamScoringService.rankLeaderCandidates(leaderCandidates, scoreMap);
+        const leader = rankedLeaders[0];
+        // Phase 5: Greedy fill slots 2-7
+        const team = [leader];
+        const teamElements = [leader.element];
+        const used = new Set([leader.id_girl]);
+        for (let slot = 1; slot < TEAM_SIZE; slot++) {
+            let bestGirl = null;
+            let bestCombinedScore = -Infinity;
+            for (const candidate of pool) {
+                if (used.has(candidate.id_girl))
+                    continue;
+                const statScore = scoreMap.get(candidate.id_girl) || 0;
+                const combinedScore = TeamScoringService.scoreWithSynergy(candidate, teamElements, statScore, maxStat, synergyWeight);
+                if (combinedScore > bestCombinedScore) {
+                    bestCombinedScore = combinedScore;
+                    bestGirl = candidate;
+                }
+            }
+            if (!bestGirl)
+                break;
+            team.push(bestGirl);
+            teamElements.push(bestGirl.element);
+            used.add(bestGirl.id_girl);
+        }
+        if (team.length < TEAM_SIZE) {
+            return null;
+        }
+        // Build result
+        const statScores = team.map(g => scoreMap.get(g.id_girl) || 0);
+        const synergyValue = TeamScoringService.calculateSynergyValue(teamElements);
+        const leaderTier5 = TeamScoringService.getTier5Skill(leader.element);
+        return {
+            girls: team,
+            statScores,
+            synergyValue,
+            leaderTier5,
+            elements: teamElements,
+        };
+    }
+    /**
+     * Get a summary of element distribution in the team.
+     * Returns a map of element -> count, sorted by count descending.
+     */
+    static getElementDistribution(team) {
+        const counts = new Map();
+        for (const el of team.elements) {
+            counts.set(el, (counts.get(el) || 0) + 1);
+        }
+        return Array.from(counts.entries())
+            .map(([element, count]) => ({ element, count }))
+            .sort((a, b) => b.count - a.count);
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Module/TeamModule.ts
 // TeamModule.ts -- Team management: auto-selects optimal teams for different
 // battle modes.
@@ -16629,6 +16913,7 @@ Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 //
 // Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
 //
+
 
 
 
@@ -17015,6 +17300,54 @@ class TeamModule {
         }
     }
     static setTopTeam(sumFormulaType) {
+        const availableGirls = getHHVars("availableGirls", false);
+        if (availableGirls && Array.isArray(availableGirls) && availableGirls.length > 0) {
+            TeamModule.setTopTeamV2(sumFormulaType, availableGirls);
+        }
+        else {
+            LogUtils_logHHAuto('availableGirls not found, falling back to legacy team selection');
+            TeamModule.setTopTeamLegacy(sumFormulaType);
+        }
+    }
+    static setTopTeamV2(mode, availableGirls) {
+        const playerLevel = Number(HeroHelper.getLevel());
+        // Map availableGirls to GirlData interface
+        const girls = availableGirls.map(g => {
+            var _a;
+            return ({
+                id_girl: Number(g.id_girl),
+                name: g.name || '',
+                carac1: Number(g.carac1 || 0),
+                carac2: Number(g.carac2 || 0),
+                carac3: Number(g.carac3 || 0),
+                level: Number(g.level || 1),
+                element: (((_a = g.element_data) === null || _a === void 0 ? void 0 : _a.type) || g.element || 'fire'),
+                rarity: (g.rarity || 'common'),
+                graded: Number(g.graded || 0),
+                nb_grades: Number(g.nb_grades || 0),
+                caracs: g.caracs ? {
+                    carac1: Number(g.caracs.carac1 || 0),
+                    carac2: Number(g.caracs.carac2 || 0),
+                    carac3: Number(g.caracs.carac3 || 0),
+                } : undefined,
+                skill_tiers_info: g.skill_tiers_info,
+            });
+        });
+        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
+        if (!result) {
+            LogUtils_logHHAuto('Not enough girls for team selection v2 (mode ' + mode + '), falling back to legacy');
+            TeamModule.setTopTeamLegacy(mode);
+            return;
+        }
+        const deckID = result.girls.map(g => g.id_girl);
+        const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
+        const dist = TeamBuilderService.getElementDistribution(result);
+        const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
+        LogUtils_logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Elements: ${distStr}, Synergy: ${result.synergyValue.toFixed(3)}`);
+        // UI update: same approach as legacy — hide non-selected, show + number selected
+        TeamModule.updateTeamUI(deckID);
+    }
+    static setTopTeamLegacy(sumFormulaType) {
         let arr = $('div[id_girl]');
         let numTop = 16;
         if (numTop > arr.length)
@@ -17029,29 +17362,23 @@ class TeamModule {
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             const tooltipData = $('.girl_img', $(arr[i])).attr(ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
-            //const girlData = Harem.getGirlData(gID);
             if (tooltipData == '') {
                 LogUtils_logHHAuto('ERROR, no girl information found');
                 return;
             }
             let obj = JSON.parse(tooltipData);
-            //sum formula
             let tempGrades = obj.graded2;
-            //console.log(obj,tempGrades);
             let countTotalGrades = (tempGrades.match(/<g/g) || []).length;
             let countFreeGrades = (tempGrades.match(/grey/g) || []).length;
             let currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
-            //console.log(currentStat);
             if (sumFormulaType == 1) {
                 currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
             }
             else if (sumFormulaType == 2) {
                 currentStat = (obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3) / obj.level * levelPlayer / (1 + 0.3 * (countTotalGrades - countFreeGrades)) * (1 + 0.3 * (countTotalGrades));
             }
-            //console.log(obj.level,levelPlayer,countTotalGrades,countFreeGrades);
-            //console.log(currentStat);
-            let lowNum = 0; //num
-            let lowStat = deckStat[0]; //stat
+            let lowNum = 0;
+            let lowStat = deckStat[0];
             for (let j = 1; j < deckID.length; j++) {
                 if (deckStat[j] < lowStat) {
                     lowNum = j;
@@ -17065,7 +17392,6 @@ class TeamModule {
         }
         let tmpID = 0;
         let tmpStat = 0;
-        //console.log(deckStat,deckID);
         for (let i = 0; i < deckStat.length; i++) {
             for (let j = i; j < deckStat.length; j++) {
                 if (deckStat[j] > deckStat[i]) {
@@ -17078,7 +17404,10 @@ class TeamModule {
                 }
             }
         }
-        //console.log(deckStat,deckID);
+        TeamModule.updateTeamUI(deckID);
+    }
+    static updateTeamUI(deckID) {
+        const arr = $('div[id_girl]');
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {
@@ -17103,7 +17432,6 @@ class TeamModule {
             $(arrSort[0]).find('.topNumber')[0];
             newDiv.innerText = j + 1;
             newDiv.setAttribute('position', j + 1);
-            // Go to girl update page on double click
             newDiv.setAttribute("ondblclick", "window.location.href='/characters/" + deckID[j] + "'");
             mainTeamPanel.append(arrSort[0]);
         }
@@ -22861,6 +23189,139 @@ function autoLoop() {
     });
 }
 
+;// CONCATENATED MODULE: ./src/Service/FeaturePopupService.ts
+// FeaturePopupService.ts
+//
+// Version-gated "What's New" popup to inform users about important changes
+// such as breaking changes, reset settings, or new features that require
+// attention.
+//
+// Activation: Set FEATURE_POPUP_VERSION to a specific version string
+// (e.g. "7.34.2") to show the popup for that version. Set to "0" to
+// deactivate (default). The popup only appears when the current script
+// version matches FEATURE_POPUP_VERSION exactly.
+//
+// Users can:
+//   - "Remind me later" (up to MAX_REMIND_COUNT times)
+//   - "Close" (permanently dismiss for this version)
+//
+// When activated for a new version, dismiss counters reset automatically.
+
+
+
+const MAX_REMIND_COUNT = 3;
+/**
+ * Set to a specific version (e.g. "7.34.2") to activate the feature popup
+ * for that version. Set to "0" to deactivate (default).
+ */
+const FEATURE_POPUP_VERSION = "0";
+/**
+ * Title shown in the popup header.
+ */
+const FEATURE_POPUP_TITLE = "What's New in HHAuto";
+/**
+ * HTML content for the feature popup.
+ * Update this each time you activate the popup for a new version.
+ *
+ * Example:
+ * const FEATURE_POPUP_CONTENT = `
+ *   <div style="padding:10px; max-width:500px; color:#333;">
+ *     <h3 style="margin-top:0;">v7.34.2 Changes</h3>
+ *     <ul>
+ *       <li><b>Breaking:</b> Sandalwood settings have been reset to defaults
+ *           to prevent unintended koban spending.</li>
+ *       <li><b>New:</b> Love Raid grade filter now supports 6-star mythic girls.</li>
+ *     </ul>
+ *     <p style="font-size:11px; color:#666;">
+ *       Please review your settings after this update.
+ *     </p>
+ *   </div>
+ * `;
+ */
+const FEATURE_POPUP_CONTENT = `
+  <div style="padding:10px; max-width:500px; color:#333;">
+    <p>No new feature notes for this version.</p>
+  </div>
+`;
+class FeaturePopupService {
+    /**
+     * Check whether the feature popup should be shown.
+     * Only active when FEATURE_POPUP_VERSION matches the current script version.
+     * Dismiss counters reset automatically when activated for a new version.
+     */
+    static shouldShowPopup() {
+        if (FEATURE_POPUP_VERSION === "0")
+            return false;
+        const currentVersion = GM.info.script.version;
+        if (currentVersion !== FEATURE_POPUP_VERSION)
+            return false;
+        // Reset dismiss state when activated for a new version
+        const shownForVersion = getStoredValue(HHStoredVarPrefixKey + TK.featurePopupShown);
+        if (shownForVersion !== "0" && shownForVersion !== FEATURE_POPUP_VERSION) {
+            setStoredValue(HHStoredVarPrefixKey + TK.featurePopupShown, "0");
+            setStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount, "0");
+        }
+        if (shownForVersion === FEATURE_POPUP_VERSION)
+            return false;
+        const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
+        if (dismissCount >= MAX_REMIND_COUNT)
+            return false;
+        return true;
+    }
+    /**
+     * Show the feature popup.
+     */
+    static showPopup() {
+        const content = FeaturePopupService.buildPopupContent();
+        fillHHPopUp("featurePopup", FEATURE_POPUP_TITLE, content);
+        FeaturePopupService.bindPopupEvents();
+    }
+    /**
+     * Mark popup as shown for the current active version.
+     */
+    static markAsShown() {
+        setStoredValue(HHStoredVarPrefixKey + TK.featurePopupShown, FEATURE_POPUP_VERSION);
+    }
+    /**
+     * Increment dismiss counter for "Remind me later".
+     */
+    static remindLater() {
+        const count = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
+        setStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount, String(count + 1));
+        LogUtils_logHHAuto(`Feature popup postponed (${count + 1}/${MAX_REMIND_COUNT}).`);
+        maskHHPopUp();
+    }
+    /**
+     * Permanently dismiss the popup for this version.
+     */
+    static dismiss() {
+        FeaturePopupService.markAsShown();
+        LogUtils_logHHAuto("Feature popup dismissed for version " + FEATURE_POPUP_VERSION + ".");
+        maskHHPopUp();
+    }
+    // ── Private helpers ──
+    static buildPopupContent() {
+        const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
+        const remainingReminders = MAX_REMIND_COUNT - dismissCount;
+        return FEATURE_POPUP_CONTENT
+            + '<div style="display:flex; justify-content:space-between; margin-top:15px; padding:0 10px 10px 10px; font-size:12px;">'
+            + (remainingReminders > 0
+                ? '<a id="featurePopupRemind" href="#" style="color:#666;">Remind me later (' + remainingReminders + ' left)</a>'
+                : '<span></span>')
+            + '<label class="myButton" id="featurePopupClose" style="cursor:pointer; padding:6px 16px;">Close</label>'
+            + '</div>';
+    }
+    static bindPopupEvents() {
+        $('#featurePopupRemind').off('click').on('click', function (e) {
+            e.preventDefault();
+            FeaturePopupService.remindLater();
+        });
+        $('#featurePopupClose').off('click').on('click', function () {
+            FeaturePopupService.dismiss();
+        });
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Service/InfoService.ts
 // InfoService.ts
 //
@@ -23397,7 +23858,11 @@ function reviverMap(key, value) {
 // settings they actually use. Data is collected to identify unused
 // features that can be removed to reduce complexity.
 //
-// Triggered once after a version upgrade. Users can:
+// Version-gated: The popup only appears when SURVEY_ACTIVE_IN_VERSION
+// is set to a specific version string AND the current script version
+// matches. Set to "0" to deactivate (default).
+//
+// Users can:
 //   - Share anonymously via Google Form (POST with GM_xmlhttpRequest)
 //   - Copy to clipboard
 //   - Dismiss (permanently) or "Remind me later" (up to 3 times)
@@ -23413,18 +23878,35 @@ function reviverMap(key, value) {
 
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe1_iM197Xfq2kEKR2jBA64_r28BpOerTlMywVfMEmsvXvDMQ/formResponse';
 const GOOGLE_FORM_ENTRY = 'entry.875507092';
-const MAX_REMIND_COUNT = 3;
+const SurveyService_MAX_REMIND_COUNT = 3;
+/**
+ * Set to a specific version (e.g. "7.34.0") to activate the survey popup
+ * for that version. Set to "0" to deactivate (default).
+ */
+const SURVEY_ACTIVE_IN_VERSION = "0";
 class SurveyService {
     /**
      * Check whether the survey popup should be shown.
-     * Called from StartService after a version upgrade is detected.
+     * Only active when SURVEY_ACTIVE_IN_VERSION matches the current script version.
+     * Dismiss counters reset automatically when activated for a new version.
      */
     static shouldShowSurvey() {
-        const alreadyShown = getStoredValue(HHStoredVarPrefixKey + TK.surveyShown);
-        if (alreadyShown === "true")
+        if (SURVEY_ACTIVE_IN_VERSION === "0")
+            return false;
+        const currentVersion = GM.info.script.version;
+        if (currentVersion !== SURVEY_ACTIVE_IN_VERSION)
+            return false;
+        // Reset dismiss state when activated for a new version
+        const shownForVersion = getStoredValue(HHStoredVarPrefixKey + TK.surveyShown);
+        if (shownForVersion !== "0" && shownForVersion !== SURVEY_ACTIVE_IN_VERSION) {
+            // Different version was tracked before → reset for the new activation
+            setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, "0");
+            setStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount, "0");
+        }
+        if (shownForVersion === SURVEY_ACTIVE_IN_VERSION)
             return false;
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
-        if (dismissCount >= MAX_REMIND_COUNT)
+        if (dismissCount >= SurveyService_MAX_REMIND_COUNT)
             return false;
         return true;
     }
@@ -23532,10 +24014,10 @@ class SurveyService {
         }
     }
     /**
-     * Mark survey as permanently shown (won't appear again).
+     * Mark survey as shown for the current active version (won't appear again for this version).
      */
     static markAsShown() {
-        setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, "true");
+        setStoredValue(HHStoredVarPrefixKey + TK.surveyShown, SURVEY_ACTIVE_IN_VERSION);
     }
     /**
      * Increment dismiss counter for "Remind me later".
@@ -23543,7 +24025,7 @@ class SurveyService {
     static remindLater() {
         const count = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
         setStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount, String(count + 1));
-        LogUtils_logHHAuto(`Settings survey postponed (${count + 1}/${MAX_REMIND_COUNT}).`);
+        LogUtils_logHHAuto(`Settings survey postponed (${count + 1}/${SurveyService_MAX_REMIND_COUNT}).`);
         maskHHPopUp();
     }
     /**
@@ -23557,7 +24039,7 @@ class SurveyService {
     // ── Private helpers ──
     static buildPopupContent() {
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
-        const remainingReminders = MAX_REMIND_COUNT - dismissCount;
+        const remainingReminders = SurveyService_MAX_REMIND_COUNT - dismissCount;
         return '<div style="padding:10px; max-width:500px; color:#333;">'
             + '<p style="margin-bottom:10px;">Help us improve HHAuto! We\'d like to know which settings you actually use so we can optimize the script.</p>'
             + '<p style="margin-bottom:10px; font-size:11px;">This is <b>completely anonymous</b> — we only collect ON/OFF status of settings, your script version, and site name. No personal data or IDs.</p>'
@@ -23710,6 +24192,7 @@ function disableToolTipsDisplay(important = false) {
 // against missing jQuery and "Forbidden" error pages.
 //
 // Used by: src/index.ts (entry point)
+
 
 
 
@@ -24026,8 +24509,12 @@ function start() {
         deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
     }
     getPage(true);
-    // Settings survey: show popup on version upgrade, delay autoLoop while visible
-    if (SurveyService.shouldShowSurvey()) {
+    // Version-gated popups: show at most one auto-popup, delay autoLoop while visible
+    if (FeaturePopupService.shouldShowPopup()) {
+        FeaturePopupService.showPopup();
+        setTimeout(autoLoop, 30000);
+    }
+    else if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
         setTimeout(autoLoop, 30000);
     }
@@ -24062,6 +24549,9 @@ function start() {
  *  - AdsService     -- suppress or relocate in-game ads
  *  - TooltipService -- show/hide HHAuto menu tooltips
  */
+
+
+
 
 
 
