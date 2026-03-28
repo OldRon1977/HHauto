@@ -17457,7 +17457,7 @@ class TeamModule {
                 return `${emoji}${d.count}`;
             }).join(' ');
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 60%; width: 160px; z-index: 10;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 160px; z-index: 10;
                 background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px;
                 border-radius: 4px; font-size: 11px; line-height: 1.4;
             ">
