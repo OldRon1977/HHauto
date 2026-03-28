@@ -16,6 +16,82 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.34.0 — Smarter Team Selection
+
+The **"Current Best"** and **"Possible Best"** buttons on the Edit Team page now use an improved team selection algorithm. Instead of simply picking the 16 girls with the highest stat totals, the script now builds an optimized 7-girl team that considers element synergies, leader skill quality, and overall team composition.
+
+#### The Problem (before v7.34.0)
+
+The old algorithm ranked every girl individually by their stat sum (carac1 + carac2 + carac3) and showed the top 16. It had no awareness of:
+- **Element synergies** — a team of 7 Fire girls gives +70% crit damage, while a mixed team might give a more balanced but weaker overall bonus
+- **Leader position** — the girl in slot 1 determines the Tier-5 skill for the entire team (Execute, Stun, Shield, or Reflect), but the old algorithm just placed the highest-stat girl there regardless of element
+- **Team composition** — two girls with identical stats but different elements contribute very differently to a team
+
+#### How the New Algorithm Works
+
+**1. Leader Selection (from Top 25)**
+
+The algorithm first looks at the top 25 girls by stats and selects the best leader based on Tier-5 skill priority:
+
+| Leader Element | Tier-5 Skill | Priority |
+|---|---|---|
+| Fire / Water | **Execute** (instant kill below HP threshold) | Highest |
+| Sun / Darkness | **Stun** (enemy loses turns) | High |
+| Stone / Light | **Shield** (% of max HP as shield) | Medium |
+| Psychic / Nature | **Reflect** (returns % damage) | Low |
+
+This means the leader may have fewer raw stat points than other team members — that is intentional. An Execute skill can end fights that raw stats alone would lose.
+
+**2. Synergy-Aware Team Building (Slots 2–7)**
+
+After selecting the leader, the algorithm fills the remaining 6 slots one by one. For each slot, it picks the girl that maximizes a combined score of:
+- **Individual stats** (90–95% of the score)
+- **Element synergy bonus** (5–10% of the score) — how much adding this girl's element improves the team's overall bonuses
+
+Element bonuses per girl in the team:
+
+| Element | Bonus per Girl | Effect |
+|---|---|---|
+| Fire (Eccentric) | **+10%** | Critical Hit Damage |
+| Water (Sensual) | +3% | Heal on Hit |
+| Nature (Exhibitionist) | +3% | Ego (HP) |
+| Stone (Physical) | +2% | Critical Hit Chance |
+| Sun (Playful) | +2% | Reduce Enemy Defense |
+| Darkness (Dominatrix) | +2% | Damage |
+| Psychic (Submissive) | +2% | Defense |
+| Light (Voyeur) | +2% | Harmony |
+
+Fire has the highest single-girl impact (+10% vs +2–3%), so the algorithm naturally favors Fire girls when stats are close.
+
+**3. Two Modes**
+
+| Mode | Filter | Score | Use Case |
+|---|---|---|---|
+| **Current Best** | Mythic + Legendary only | Current blessed stats | "What's my strongest team right now?" |
+| **Possible Best** | All girls (including Level 1) | Projected stats at max level + full grades | "Which girls should I invest in?" |
+
+In "Possible Best" mode, a Level 1 Mythic with 6 stars can outrank a fully maxed Epic because its stat ceiling is much higher.
+
+**4. Visual Feedback**
+
+After clicking "Current Best" or "Possible Best", the UI now shows:
+- Element icons on each team member
+- The leader's Tier-5 skill name (e.g. "★ Execute")
+- A synergy info panel with the team's element distribution
+
+#### FAQ
+
+**Q: Why does my leader have fewer points than girl #2?**
+A: The leader determines the Tier-5 skill for the entire team. An Execute leader (Fire/Water) with 29,000 points is stronger than a Reflect leader (Psychic/Nature) with 31,000 points, because Execute can instantly end fights.
+
+**Q: Why does the algorithm only show 7 girls instead of 16?**
+A: The new algorithm optimizes a complete 7-girl team composition. The old algorithm showed 16 individual rankings without team optimization. The 7 girls shown are the optimal team — click "Assign first 7" to use them.
+
+**Q: What if the new algorithm doesn't work on my page?**
+A: The algorithm requires `availableGirls` data, which is only present on the Edit Team page. If the data is not available, the script automatically falls back to the previous algorithm.
+
+---
+
 ### v7.30.0 — Auto-Equip Legendary Boosters
 
 A new **Auto-Equip** feature has been added that automatically equips legendary boosters from your inventory when a booster slot is empty or has expired.

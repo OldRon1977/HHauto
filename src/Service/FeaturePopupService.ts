@@ -35,7 +35,7 @@ const MAX_REMIND_COUNT = 3;
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "0";
+const FEATURE_POPUP_VERSION: string = "7.34.0";
 
 /**
  * Title shown in the popup header.
@@ -63,7 +63,17 @@ const FEATURE_POPUP_TITLE = "What's New in HHAuto";
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:500px; color:#333;">
-    <p>No new feature notes for this version.</p>
+    <h3 style="margin-top:0;">v7.34.0 — Smarter Team Selection</h3>
+    <p>The <b>"Current Best"</b> and <b>"Possible Best"</b> buttons now use an improved algorithm that considers <b>element synergies</b> and <b>leader skills</b> when building your team.</p>
+    <ul style="padding-left:18px;">
+      <li><b>Leader optimization:</b> The girl in position 1 is chosen for the best Tier-5 skill (Execute > Stun > Shield > Reflect), not just highest stats. This means the leader may have fewer points than other team members — that is intentional.</li>
+      <li><b>Element synergies:</b> The algorithm considers how element bonuses (crit damage, crit chance, heal, etc.) stack across all 7 team members.</li>
+      <li><b>Visual info:</b> Element icons and a synergy info panel now show why the algorithm chose each girl.</li>
+    </ul>
+    <p style="font-size:11px; color:#666;">
+      For full details, see the
+      <a href="https://github.com/Roukys/HHauto#v7340--smarter-team-selection" target="_blank" style="color:#3366cc;">changelog on GitHub</a>.
+    </p>
   </div>
 `;
 
