@@ -23,7 +23,7 @@ import {
     getStoredJSON
 } from '../../Helper/index';
 import { addNutakuSession, gotoPage } from '../../Service/index';
-import { fillHHPopUp, getHHAjax, isJSON, logHHAuto, maskHHPopUp } from '../../Utils/index';
+import { fillHHPopUp, getHHAjax, logHHAuto } from '../../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../../config/index';
 import { KKHaremGirl, KKHaremSalaryGirl, TeamData } from '../../model/index';
 import { HaremFilter, HaremGirl } from '../index';

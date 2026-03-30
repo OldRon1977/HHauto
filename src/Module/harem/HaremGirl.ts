@@ -24,7 +24,7 @@ import {
 } from "../../Helper/index";
 import { Harem } from "../index";
 import { gotoPage } from "../../Service/index";
-import { displayHHPopUp, fillHHPopUp, isJSON, logHHAuto, maskHHPopUp } from "../../Utils/index";
+import { displayHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from "../../Utils/index";
 import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { KKHaremGirl, TeamData } from "../../model/index";
 
@@ -747,9 +747,9 @@ export class HaremGirl {
             console.error(message);
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
             Harem.clearHaremToolVariables();
-        } finally {
             return false;
         }
+        return false;
     }
 
     static async singleSkillsUpgrade(skillId: string) {
