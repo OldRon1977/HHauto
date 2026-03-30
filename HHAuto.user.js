@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.0
+// @version      7.34.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -23250,7 +23250,7 @@ const MAX_REMIND_COUNT = 3;
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "7.34.0";
+const FEATURE_POPUP_VERSION = "7.34.1";
 /**
  * Title shown in the popup header.
  */
@@ -24555,18 +24555,14 @@ function start() {
         deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
     }
     getPage(true);
-    // Version-gated popups: show at most one auto-popup, delay autoLoop while visible
+    // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {
         FeaturePopupService.showPopup();
-        setTimeout(autoLoop, 30000);
     }
-    else if (SurveyService.shouldShowSurvey()) {
+    if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
-        setTimeout(autoLoop, 30000);
     }
-    else {
-        setTimeout(autoLoop, 1000);
-    }
+    setTimeout(autoLoop, 1000);
     // Manual survey button
     $("#settingsSurvey").on("click", function () {
         SurveyService.showSurveyPopup();

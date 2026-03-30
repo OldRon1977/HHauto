@@ -461,16 +461,16 @@ export function start() {
     }
     getPage(true);
 
-    // Version-gated popups: show at most one auto-popup, delay autoLoop while visible
+    // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {
         FeaturePopupService.showPopup();
-        setTimeout(autoLoop, 30000);
-    } else if (SurveyService.shouldShowSurvey()) {
-        SurveyService.showSurveyPopup();
-        setTimeout(autoLoop, 30000);
-    } else {
-        setTimeout(autoLoop, 1000);
     }
+
+    if (SurveyService.shouldShowSurvey()) {
+        SurveyService.showSurveyPopup();
+    }
+
+    setTimeout(autoLoop, 1000);
 
     // Manual survey button
     $("#settingsSurvey").on("click", function() {
