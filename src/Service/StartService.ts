@@ -195,6 +195,7 @@ export function start() {
     if (unsafeWindow.shared?.Hero === undefined)
     {
         logHHAuto('???no Hero???');
+        started = false;
         $('.hh_logo').trigger('click');
         setTimeout(hardened_start,5000);
         return;
