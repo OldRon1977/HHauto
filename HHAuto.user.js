@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.3
+// @version      7.34.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -6169,8 +6169,12 @@ class Contest {
             LogUtils_logHHAuto(`Found ${contest_list.length} contest to be collected`);
             if (contest_list.length > 0) {
                 const firstContestEnded = contest_list.first();
-                LogUtils_logHHAuto(`Collected contest id : ${(_a = firstContestEnded.parents('.contest')) === null || _a === void 0 ? void 0 : _a.attr('id_contest')}.`);
+                const contestContainer = firstContestEnded.parents('.contest');
+                LogUtils_logHHAuto(`Collected contest id : ${contestContainer === null || contestContainer === void 0 ? void 0 : contestContainer.attr('id_contest')}.`);
                 firstContestEnded.trigger('click');
+                // Remove the claimed contest from the DOM so setTimers() won't
+                // see stale claim buttons and create an infinite collect loop.
+                contestContainer.remove();
                 if (contest_list.length > 1) {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
                     return true;

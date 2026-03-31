@@ -47,8 +47,12 @@ export class Contest {
             if ( contest_list.length > 0)
             {
                 const firstContestEnded = contest_list.first();
-                logHHAuto(`Collected contest id : ${firstContestEnded.parents('.contest')?.attr('id_contest') }.`);
+                const contestContainer = firstContestEnded.parents('.contest');
+                logHHAuto(`Collected contest id : ${contestContainer?.attr('id_contest') }.`);
                 firstContestEnded.trigger('click');
+                // Remove the claimed contest from the DOM so setTimers() won't
+                // see stale claim buttons and create an infinite collect loop.
+                contestContainer.remove();
                 if ( contest_list.length > 1 )
                 {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
