@@ -6155,7 +6155,6 @@ class Contest {
         return $(".contest .ended button[rel='claim']");
     }
     static run() {
-        var _a;
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
             LogUtils_logHHAuto("Navigating to contests page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
@@ -24254,6 +24253,9 @@ function disableToolTipsDisplay(important = false) {
 
 var started = false;
 var debugMenuID;
+var heroRetryTimer = null;
+var heroRetryCount = 0;
+const HERO_MAX_RETRIES = 15;
 class StartService {
     static checkVersion() {
         let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
@@ -24339,12 +24341,22 @@ function hardened_start() {
 function start() {
     var _a, _b;
     if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
-        LogUtils_logHHAuto('???no Hero???');
+        heroRetryCount++;
+        if (heroRetryCount > HERO_MAX_RETRIES) {
+            LogUtils_logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Giving up. Try reloading the page.');
+            return;
+        }
+        LogUtils_logHHAuto('???no Hero??? (attempt ' + heroRetryCount + '/' + HERO_MAX_RETRIES + ')');
         started = false;
-        $('.hh_logo').trigger('click');
-        setTimeout(hardened_start, 5000);
+        heroRetryTimer = setTimeout(hardened_start, 5000);
         return;
     }
+    // Hero available, cancel any pending retry and reset counter
+    if (heroRetryTimer !== null) {
+        clearTimeout(heroRetryTimer);
+        heroRetryTimer = null;
+    }
+    heroRetryCount = 0;
     if ($("a[rel='phoenix_member_login']").length > 0) {
         LogUtils_logHHAuto('Not logged in, please login first!');
         return;
@@ -24627,10 +24639,7 @@ function start() {
 // error pages, and delegates to start() which sets up the full menu,
 // timers, and auto-loop.
 
-setTimeout(hardened_start, 5000);
-(function () {
-    hardened_start();
-})();
+hardened_start();
 
 /******/ })()
 ;
