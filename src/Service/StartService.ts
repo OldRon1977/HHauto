@@ -91,6 +91,9 @@ import { disableToolTipsDisplay, enableToolTipsDisplay, manageToolTipsDisplay } 
 
 var started=false;
 var debugMenuID;
+var heroRetryTimer: ReturnType<typeof setTimeout> | null = null;
+var heroRetryCount = 0;
+const HERO_MAX_RETRIES = 15;
 
 export class StartService {
     static checkVersion()
@@ -194,12 +197,22 @@ export function start() {
 
     if (unsafeWindow.shared?.Hero === undefined)
     {
-        logHHAuto('???no Hero???');
+        heroRetryCount++;
+        if (heroRetryCount > HERO_MAX_RETRIES) {
+            logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Giving up. Try reloading the page.');
+            return;
+        }
+        logHHAuto('???no Hero??? (attempt ' + heroRetryCount + '/' + HERO_MAX_RETRIES + ')');
         started = false;
-        $('.hh_logo').trigger('click');
-        setTimeout(hardened_start,5000);
+        heroRetryTimer = setTimeout(hardened_start, 5000);
         return;
     }
+    // Hero available, cancel any pending retry and reset counter
+    if (heroRetryTimer !== null) {
+        clearTimeout(heroRetryTimer);
+        heroRetryTimer = null;
+    }
+    heroRetryCount = 0;
     if($("a[rel='phoenix_member_login']").length > 0)
     {    
         logHHAuto('Not logged in, please login first!');

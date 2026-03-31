@@ -82,8 +82,4 @@ declare global {
     }
 }
 
-setTimeout(hardened_start,5000);
-
-(function () {
-    hardened_start();
-})();
+hardened_start();
