@@ -485,6 +485,10 @@ export class TeamModule {
                 carac3: Number(g.caracs.carac3 || 0),
             } : undefined,
             skill_tiers_info: g.skill_tiers_info,
+            zodiac: g.zodiac ? g.zodiac.substring(3).trim() : undefined,
+            hairColor: g.hair_color1 || undefined,
+            eyeColor: g.eye_color1 || undefined,
+            position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
         }));
 
         const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
@@ -499,7 +503,7 @@ export class TeamModule {
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
         const dist = TeamBuilderService.getElementDistribution(result);
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
-        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Elements: ${distStr}, Synergy: ${result.synergyValue.toFixed(3)}`);
+        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}`);
 
         // UI update: same approach as legacy — hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
@@ -569,6 +573,10 @@ export class TeamModule {
         sun: '☀️', darkness: '🌑', psychic: '🔮', light: '✨',
     };
 
+    private static readonly TRAIT_EMOJI: Record<string, string> = {
+        eyeColor: '👁', hairColor: '💇', zodiac: '♋', position: '🔄',
+    };
+
     private static updateTeamUI(deckID: number[], teamResult?: TeamResult) {
         const arr = $('div[id_girl]');
         for (let i = arr.length - 1; i > -1; i--) {
@@ -619,12 +627,17 @@ export class TeamModule {
                 return `${emoji}${d.count}`;
             }).join(' ');
 
+            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '🎯';
+            const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 160px; z-index: 10;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 180px; z-index: 10;
                 background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px;
                 border-radius: 4px; font-size: 11px; line-height: 1.4;
             ">
-                <div style="font-weight:bold; margin-bottom: 2px;">Team Synergy</div>
+                <div style="font-weight:bold; margin-bottom: 2px;">Team Info</div>
+                <div>${traitEmoji} ${teamResult.traitValue || '?'} (${teamResult.traitMatchCount}/7)</div>
+                <div>Tier 3: ${tier3Pct}%</div>
                 <div>Leader: ${teamResult.leaderTier5.name} (${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
                 <div>Elements: ${distHtml}</div>
             </div>`);

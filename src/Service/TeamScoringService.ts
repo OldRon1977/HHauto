@@ -1,12 +1,15 @@
-// TeamScoringService.ts -- Scoring engine for team selection v2.
+// TeamScoringService.ts -- Scoring engine for team selection v3.
 //
-// Provides element synergy calculations, Tier-5 leader skill evaluation,
-// and stat scoring for two modes:
-//   - "Current Best": uses current stats (blessed), filters Mythic + Legendary only
-//   - "Best Possible": projects stats to max level + full grades for ALL girls
+// Provides Tier 3 trait matching, element synergy calculations,
+// and leader skill evaluation for team optimization.
+//
+// Two modes (both filter Mythic + Legendary only):
+//   - "Current Best": uses current stats (blessed)
+//   - "Best Possible": projects stats to max level + full grades
 
 export type ElementType = 'fire' | 'water' | 'nature' | 'stone' | 'sun' | 'darkness' | 'psychic' | 'light';
 export type RarityType = 'starting' | 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
+export type TraitCategory = 'eyeColor' | 'hairColor' | 'zodiac' | 'position';
 
 export interface GirlData {
     id_girl: number;
@@ -25,6 +28,11 @@ export interface GirlData {
         carac2: number;
         carac3: number;
     };
+    // Trait fields for Tier 3 matching
+    zodiac?: string;
+    hairColor?: string;
+    eyeColor?: string;
+    position?: string;
 }
 
 export interface SynergyBonuses {
@@ -41,7 +49,14 @@ export interface SynergyBonuses {
 export interface Tier5Skill {
     id: number;           // 11=Stun, 12=Shield, 13=Reflect, 14=Execute
     name: string;
-    priority: number;     // higher = better (Execute=4, Stun=3, Shield=2, Reflect=1)
+    priority: number;     // higher = better (Shield=4, Stun=3, Execute=2, Reflect=1)
+}
+
+export interface TraitGroupResult {
+    traitCategory: TraitCategory;
+    traitValue: string;
+    girls: GirlData[];
+    score: number;        // count × avg_stats, with position penalty
 }
 
 // Synergy bonus multiplier per girl of each element in the team
@@ -57,19 +72,48 @@ const ELEMENT_SYNERGY_PER_GIRL: Record<ElementType, { field: keyof SynergyBonuse
 };
 
 // Tier-5 skill mapping by element, with priority ranking
+// Priority: Shield (light/stone) > Stun (sun/darkness) > Execute (fire/water) > Reflect
 const ELEMENT_TO_TIER5: Record<ElementType, Tier5Skill> = {
-    fire:      { id: 14, name: 'Execute', priority: 4 },
-    water:     { id: 14, name: 'Execute', priority: 4 },
+    light:     { id: 12, name: 'Shield',  priority: 4 },
+    stone:     { id: 12, name: 'Shield',  priority: 4 },
     sun:       { id: 11, name: 'Stun',    priority: 3 },
     darkness:  { id: 11, name: 'Stun',    priority: 3 },
-    stone:     { id: 12, name: 'Shield',  priority: 2 },
-    light:     { id: 12, name: 'Shield',  priority: 2 },
+    fire:      { id: 14, name: 'Execute', priority: 2 },
+    water:     { id: 14, name: 'Execute', priority: 2 },
     psychic:   { id: 13, name: 'Reflect', priority: 1 },
     nature:    { id: 13, name: 'Reflect', priority: 1 },
 };
 
-// Rarities allowed for "Current Best" mode
+// Each element's Tier 3 bonus is based on a specific trait category.
+// Girls from the same element pair share the same trait category.
+const ELEMENT_TO_TRAIT_CATEGORY: Record<ElementType, TraitCategory> = {
+    darkness: 'eyeColor',   // Black
+    fire:     'eyeColor',   // Red
+    light:    'hairColor',  // White
+    nature:   'hairColor',  // Green
+    stone:    'zodiac',     // Orange
+    psychic:  'zodiac',     // Purple
+    water:    'position',   // Blue
+    sun:      'position',   // Yellow
+};
+
+// Element pairs that share a trait category
+const ELEMENT_PAIRS: Array<{ elements: [ElementType, ElementType]; trait: TraitCategory }> = [
+    { elements: ['darkness', 'fire'],    trait: 'eyeColor' },
+    { elements: ['light', 'nature'],     trait: 'hairColor' },
+    { elements: ['stone', 'psychic'],    trait: 'zodiac' },
+    { elements: ['water', 'sun'],        trait: 'position' },
+];
+
+// Position penalty factor (position trait reduces attack stats via equipment)
+const POSITION_TRAIT_PENALTY = 0.80;
+
+// Rarities allowed for team selection (both modes)
 const HIGH_RARITIES: Set<RarityType> = new Set(['mythic', 'legendary']);
+
+// Tier 3 bonus per matching teammate: 1.0% for Mythic, 0.8% for Legendary
+const TIER3_BONUS_MYTHIC = 0.01;
+const TIER3_BONUS_LEGENDARY = 0.008;
 
 export class TeamScoringService {
 
@@ -105,7 +149,6 @@ export class TeamScoringService {
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
 
-        // Avoid division by zero; a level-1 girl still gets projected
         const levelFactor = playerLevel / Math.max(level, 1);
         const gradeDeflator = 1 + 0.3 * currentGrades;
         const gradeInflator = 1 + 0.3 * maxGrades;
@@ -114,7 +157,7 @@ export class TeamScoringService {
     }
 
     /**
-     * Filter girls for "Current Best" mode: only Mythic and Legendary.
+     * Filter girls: only Mythic and Legendary (both modes).
      */
     static filterHighRarity(girls: GirlData[]): GirlData[] {
         return girls.filter(g => HIGH_RARITIES.has(g.rarity));
@@ -126,6 +169,109 @@ export class TeamScoringService {
     static getTier5Skill(element: ElementType): Tier5Skill {
         return ELEMENT_TO_TIER5[element];
     }
+
+    // ─── Trait / Tier 3 Logic ─────────────────────────────────────────
+
+    /**
+     * Get the trait category for a girl based on her element.
+     */
+    static getTraitCategory(element: ElementType): TraitCategory {
+        return ELEMENT_TO_TRAIT_CATEGORY[element];
+    }
+
+    /**
+     * Get the trait value for a girl based on her element's trait category.
+     * Returns undefined if the trait data is not available.
+     */
+    static getTraitValue(girl: GirlData): string | undefined {
+        const category = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
+        switch (category) {
+            case 'eyeColor':  return girl.eyeColor;
+            case 'hairColor': return girl.hairColor;
+            case 'zodiac':    return girl.zodiac;
+            case 'position':  return girl.position;
+        }
+    }
+
+    /**
+     * Calculate the total Tier 3 bonus percentage for a team.
+     *
+     * Each girl checks how many teammates share her element pair's trait value.
+     * Mythic: 1.0% per matching teammate, Legendary: 0.8% per matching teammate.
+     * The bonus is calculated per girl and summed for the team total.
+     */
+    static calculateTier3TeamBonus(team: GirlData[]): number {
+        let totalBonus = 0;
+
+        for (const girl of team) {
+            const category = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
+            const myValue = TeamScoringService.getTraitValue(girl);
+            if (!myValue) continue;
+
+            let matchCount = 0;
+            for (const teammate of team) {
+                if (teammate.id_girl === girl.id_girl) continue;
+                const teammateCategory = ELEMENT_TO_TRAIT_CATEGORY[teammate.element];
+                if (teammateCategory !== category) continue;
+                const teammateValue = TeamScoringService.getTraitValue(teammate);
+                if (teammateValue === myValue) {
+                    matchCount++;
+                }
+            }
+
+            const bonusPerMatch = girl.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
+            totalBonus += matchCount * bonusPerMatch;
+        }
+
+        return totalBonus;
+    }
+
+    /**
+     * Find all possible trait groups from a pool of girls.
+     *
+     * For each element pair, groups girls by their shared trait value
+     * and scores each group. Position groups receive a penalty.
+     *
+     * Returns groups sorted by score descending.
+     */
+    static findTraitGroups(girls: GirlData[]): TraitGroupResult[] {
+        const results: TraitGroupResult[] = [];
+
+        for (const pair of ELEMENT_PAIRS) {
+            const pairGirls = girls.filter(g => pair.elements.includes(g.element));
+            if (pairGirls.length === 0) continue;
+
+            // Group by trait value
+            const groups = new Map<string, GirlData[]>();
+            for (const girl of pairGirls) {
+                const value = TeamScoringService.getTraitValue(girl);
+                if (!value) continue;
+                if (!groups.has(value)) groups.set(value, []);
+                groups.get(value)!.push(girl);
+            }
+
+            for (const [traitValue, groupGirls] of groups) {
+                const avgStats = groupGirls.reduce((sum, g) => sum + TeamScoringService.getStatSum(g), 0) / groupGirls.length;
+                let score = groupGirls.length * avgStats;
+
+                // Position trait penalty (reduces attack stats via equipment)
+                if (pair.trait === 'position') {
+                    score *= POSITION_TRAIT_PENALTY;
+                }
+
+                results.push({
+                    traitCategory: pair.trait,
+                    traitValue,
+                    girls: groupGirls,
+                    score,
+                });
+            }
+        }
+
+        return results.sort((a, b) => b.score - a.score);
+    }
+
+    // ─── Synergy Calculations (secondary factor) ─────────────────────
 
     /**
      * Calculate synergy bonuses for a set of elements (one per team member).
@@ -155,36 +301,25 @@ export class TeamScoringService {
     /**
      * Calculate a numeric "synergy value" for a team composition.
      * Weighs each synergy type by its combat impact.
-     *
-     * Fire (critDamage) weighs highest because +10% per girl is 5× the
-     * per-girl bonus of other elements.
      */
     static calculateSynergyValue(elements: ElementType[]): number {
         const syn = TeamScoringService.calculateSynergies(elements);
 
-        // Weights reflect relative combat impact
-        // Fire critDamage is already 5× higher per girl, so weight=1 is sufficient
         return (
-            syn.critDamage * 1.0 +     // Fire: 10% per girl
-            syn.critChance * 2.0 +      // Stone: 2% per girl, but crit chance is valuable
-            syn.defReduce  * 2.0 +      // Sun: 2% per girl, reduces enemy defense
-            syn.healOnHit  * 1.5 +      // Water: 3% per girl
-            syn.damage     * 1.5 +      // Darkness: 2% per girl
-            syn.ego        * 1.0 +      // Nature: 3% per girl
-            syn.defense    * 1.0 +      // Psychic: 2% per girl
-            syn.harmony    * 1.0        // Light: 2% per girl
+            syn.critDamage * 1.0 +
+            syn.critChance * 2.0 +
+            syn.defReduce  * 2.0 +
+            syn.healOnHit  * 1.5 +
+            syn.damage     * 1.5 +
+            syn.ego        * 1.0 +
+            syn.defense    * 1.0 +
+            syn.harmony    * 1.0
         );
     }
 
     /**
      * Score a girl's contribution to a team, considering both stats and
-     * the synergy bonus she adds.
-     *
-     * @param girl        - The girl to score
-     * @param teamElements - Elements already in the team (before adding this girl)
-     * @param statScore   - Pre-calculated stat score (from scoreCurrentBest or scoreBestPossible)
-     * @param maxStatInPool - The highest stat score in the entire girl pool (for normalization)
-     * @param synergyWeight - How much synergy counts vs raw stats (0-1, default 0.05 = 5%)
+     * the synergy bonus she adds. Used as tiebreaker when filling remaining slots.
      */
     static scoreWithSynergy(
         girl: GirlData,
@@ -193,12 +328,10 @@ export class TeamScoringService {
         maxStatInPool: number,
         synergyWeight: number = 0.05
     ): number {
-        // Synergy delta: how much adding this girl improves team synergy
         const currentSynergyValue = TeamScoringService.calculateSynergyValue(teamElements);
         const newSynergyValue = TeamScoringService.calculateSynergyValue([...teamElements, girl.element]);
         const synergyDelta = newSynergyValue - currentSynergyValue;
 
-        // Normalize synergy delta relative to max stat so they're comparable
         const normalizedSynergyBonus = maxStatInPool > 0
             ? (synergyDelta / maxStatInPool) * maxStatInPool
             : 0;
@@ -206,27 +339,74 @@ export class TeamScoringService {
         return statScore + synergyWeight * normalizedSynergyBonus;
     }
 
+    // ─── Leader Selection ────────────────────────────────────────────
+
     /**
-     * Rank leader candidates by Tier-5 skill priority.
-     * Among girls with equal Tier-5 priority, pick the one with highest stats.
+     * Rank leader candidates by element priority (Shield > Stun > Execute > Reflect).
+     * Leader must be Mythic. Among same priority: prefer trait match, then highest stats.
+     *
+     * @param traitCategory - The team's chosen trait category
+     * @param traitValue    - The team's chosen trait value
      */
     static rankLeaderCandidates(
         girls: GirlData[],
-        statScores: Map<number, number>
+        statScores: Map<number, number>,
+        traitCategory?: TraitCategory,
+        traitValue?: string
+    ): GirlData[] {
+        // Only Mythic girls can be leaders
+        const mythicGirls = girls.filter(g => g.rarity === 'mythic');
+        if (mythicGirls.length === 0) {
+            // Fallback: allow all girls if no mythics available
+            return TeamScoringService._sortLeaderCandidates(girls, statScores, traitCategory, traitValue);
+        }
+        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue);
+    }
+
+    private static _sortLeaderCandidates(
+        girls: GirlData[],
+        statScores: Map<number, number>,
+        traitCategory?: TraitCategory,
+        traitValue?: string
     ): GirlData[] {
         return [...girls].sort((a, b) => {
-            const tier5A = TeamScoringService.getTier5Skill(a.element);
-            const tier5B = TeamScoringService.getTier5Skill(b.element);
+            const tier5A = ELEMENT_TO_TIER5[a.element];
+            const tier5B = ELEMENT_TO_TIER5[b.element];
 
-            // Primary: Tier-5 priority (Execute > Stun > Shield > Reflect)
+            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect)
             if (tier5A.priority !== tier5B.priority) {
                 return tier5B.priority - tier5A.priority;
             }
 
-            // Secondary: stat score
+            // Secondary: trait match bonus (does the leader match the team's trait?)
+            if (traitCategory && traitValue) {
+                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
+                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
+                if (aMatches !== bMatches) {
+                    return aMatches ? -1 : 1;
+                }
+            }
+
+            // Tertiary: stat score
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;
         });
+    }
+
+    /**
+     * Check if a leader candidate matches the team's trait.
+     * The leader's own element determines her trait category —
+     * she only matches if her element uses the same trait category as the team.
+     */
+    private static _leaderMatchesTrait(
+        girl: GirlData,
+        teamTraitCategory: TraitCategory,
+        teamTraitValue: string
+    ): boolean {
+        const girlCategory = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
+        if (girlCategory !== teamTraitCategory) return false;
+        const girlValue = TeamScoringService.getTraitValue(girl);
+        return girlValue === teamTraitValue;
     }
 }
