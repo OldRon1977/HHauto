@@ -60,7 +60,7 @@ export class HaremGirl {
     }
 
     static SKILL_BUTTON_SELECTOR = "#skills .skill-upgrade button.blue_button_L:not([disabled])";
-    static SKILL_BUTTON_SELECTOR_PRIO = "#skills .skill-upgrade [skill-id='2'] button.blue_button_L:not([disabled]),#skills .skill-upgrade [skill-id='4'] button.blue_button_L:not([disabled])";
+    static SKILL_ORDER_PRIO = [2,5,4,8];
 
     static getCurrentGirl(): KKHaremGirl {
         return unsafeWindow.girl;
@@ -770,8 +770,12 @@ export class HaremGirl {
 
     static async fullSkillsUpgrade(maxTier=5) {
         try {
-            let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR_PRIO).first(); // First percentage skills
-            if(skillButton.length == 0) {
+            let skillButton:JQuery<HTMLElement> | null = null;
+            for(let i=0; i< HaremGirl.SKILL_ORDER_PRIO.length; i++) {
+                skillButton = $(`#skills .skill-upgrade [skill-id='${HaremGirl.SKILL_ORDER_PRIO[i]}'] button.blue_button_L:not([disabled])`).first();
+                if (skillButton.length > 0) break; // break loop at first found skill to upgrade
+            }
+            if (!skillButton || skillButton.length == 0) {
                 skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
             }
             if(skillButton.length > 0) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.7
+// @version      7.34.8
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -11871,8 +11871,13 @@ class HaremGirl {
     static fullSkillsUpgrade(maxTier = 5) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             try {
-                let skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR_PRIO).first(); // First percentage skills
-                if (skillButton.length == 0) {
+                let skillButton = null;
+                for (let i = 0; i < HaremGirl.SKILL_ORDER_PRIO.length; i++) {
+                    skillButton = $(`#skills .skill-upgrade [skill-id='${HaremGirl.SKILL_ORDER_PRIO[i]}'] button.blue_button_L:not([disabled])`).first();
+                    if (skillButton.length > 0)
+                        break; // break loop at first found skill to upgrade
+                }
+                if (!skillButton || skillButton.length == 0) {
                     skillButton = $(HaremGirl.SKILL_BUTTON_SELECTOR).first();
                 }
                 if (skillButton.length > 0) {
@@ -11947,7 +11952,7 @@ HaremGirl.SCROLLS_NEED_4 = {
     'common_1': 9
 };
 HaremGirl.SKILL_BUTTON_SELECTOR = "#skills .skill-upgrade button.blue_button_L:not([disabled])";
-HaremGirl.SKILL_BUTTON_SELECTOR_PRIO = "#skills .skill-upgrade [skill-id='2'] button.blue_button_L:not([disabled]),#skills .skill-upgrade [skill-id='4'] button.blue_button_L:not([disabled])";
+HaremGirl.SKILL_ORDER_PRIO = [2, 5, 4, 8];
 
 ;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
 var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
