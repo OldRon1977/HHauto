@@ -709,7 +709,9 @@ export function getMenu() {
                             + hhMenuSwitch('autoSeasonIgnoreNoGirls')
                         +`</div>`
                         +`<div class="internalOptionsRow">`
+                            + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
                             + hhMenuSwitch('autoSeasonPassReds', '', true)
+                            + `</div>`
                             + hhMenuSwitch('autoSeasonBoostedOnly')
                             + hhMenuSwitch('autoSeasonSkipLowMojo')
                             +`<div class="labelAndButton" style="width: 70px;">`
@@ -772,12 +774,14 @@ export function getMenu() {
                         + `<div style="border-left:1px solid #ffa23e;height:36px;"> </div>`
                     +`</div>`
                     +`<div class="internalOptionsRow">`
+                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
                         + hhMenuSwitch('useX10Fights', '', true)
                         + hhMenuSwitch('useX10FightsAllowNormalEvent')
                         + hhMenuInput('minShardsX10', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
                         + hhMenuSwitch('useX50Fights', '', true)
                         + hhMenuSwitch('useX50FightsAllowNormalEvent')
                         + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
+                        + `</div>`
                         + hhMenuSwitch('plusGirlSkins')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
@@ -789,9 +793,11 @@ export function getMenu() {
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitch('plusEvent')
                         + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
+                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
                         + hhMenuSwitch('buyCombat', '', true)
-                        + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
+                        + `</div>`
+                        + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventSandalWood')
                     +`</div>`
                     +`<div class="internalOptionsRow separator">`
