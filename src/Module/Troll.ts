@@ -444,7 +444,7 @@ export class Troll {
                 {
                     logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
                     let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
-                    trollWithGirls[TTF] = 0;
+                    trollWithGirls[TTF - 1] = 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                     const newTroll = Troll.getTrollIdToFight();
                     if (TTF != newTroll) {
