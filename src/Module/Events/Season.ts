@@ -393,9 +393,13 @@ export class Season {
                 const girlShardsReward = $(".slot.girl_ico[data-rewards]", opponentBlock);
                 if (girlShardsReward.length > 0) { logHHAuto("Girl shard reward found for chosen opponent"); }
                 if (stopIfNoEventGirl && girlShardsReward.length <= 0) {
-                    logHHAuto("Ignoring season fights as no girl to win on fight reward");
-                    setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
-                    return false;
+                    if (!isMaxTierSet || maxTierReached) {
+                        logHHAuto("Ignoring season fights as no girl to win on fight reward");
+                        setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
+                        return false;
+                    } else {
+                        logHHAuto("Below max tier, fighting regardless of event girls.");
+                    }
                 }
 
                 if (runThreshold > 0) {
