@@ -293,6 +293,7 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 | `src/Service/TeamScoringService.ts` | `filterHighRarity()` | Rarity filter: Mythic (6★) + Legendary (5★ only) |
 | `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Stat scoring for both modes |
 | `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier 3 trait matching bonus |
+| `src/Service/TeamScoringService.ts` | `estimateTier3Delta()` | Marginal tier 3 bonus for per-slot comparison |
 | `src/Service/TeamScoringService.ts` | `findTraitGroups()` | Group girls by element pair + shared trait value |
 | `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Element synergy calculation |
 | `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader ranking: Mythic only, Tier-5 priority |
@@ -385,7 +386,9 @@ Process:
   3. Score all candidates, sort descending, take top 50
   4. Find best trait group (element pair + shared trait value, min 3 girls)
   5. Select leader from pool (Mythic only, Shield > Stun > Execute > Reflect)
-  6. Fill slots 2-7: first from trait group by stats, then greedy with synergy
+  6. Fill slots 2-7: unified per-slot comparison (statScore + synergyDelta + tier3Delta)
+     — trait-group and non-group girls compete directly on each slot
+     — high-stat blessed girls can beat weak trait-group members
   7. Calculate Tier 3 bonus (1.0% Mythic / 0.8% Legendary per trait match)
   8. Show 7 girls with element emojis, leader skill, trait + synergy info panel
   9. Add "Assign Top Team" button
@@ -439,3 +442,4 @@ healOnHit   = synergies.find(type === 'water').bonus_multiplier
 | v7.34.0 | v2: synergy-aware greedy algorithm with leader Tier-5 optimization, element UI overlay, legacy fallback. PR #1519. |
 | v7.34.7 | v3: Tier-3 trait-group optimization, trait matching with element pairs, trait info panel. |
 | v7.34.13 | Rarity filter: exclude 3-star legendaries, only 5★ Legendary + 6★ Mythic considered. |
+| v7.34.14 | Unified slot-fill: per-slot comparison with tier 3 delta, blessed girls can beat weak trait members. |

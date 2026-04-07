@@ -1,7 +1,7 @@
 # Team-Algorithmus Design
 
 Implementierung der verbesserten Team-Auswahl (Issue #1340).
-Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-07 | Version: 7.34.13
+Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-07 | Version: 7.34.14
 
 ---
 
@@ -52,7 +52,7 @@ setTopTeam(mode)
            c. Sortiere nach Score, nimm Top 50
            d. Finde beste Trait-Gruppe (Element-Paar + gemeinsamer Trait-Wert)
            e. Leader aus Pool (nur Mythic, Tier-5 Prioritaet)
-           f. Slots 2-7: erst Trait-Gruppe, dann Greedy mit Synergie
+           f. Slots 2-7: unified Vergleich (Stats + Synergie + Tier-3-Delta)
         3. updateTeamUI(deckID, teamResult)
 ```
 
@@ -147,18 +147,46 @@ Sortierung der Leader-Kandidaten:
 Team-Mitglieder. Ein Shield-Leader mit 29.000 Punkten ist staerker
 als ein Reflect-Leader mit 31.000 Punkten.
 
-### Phase 6: Greedy Slot-Fill (Positionen 2-7)
+### Phase 6: Unified Slot-Fill (Positionen 2-7)
 
-1. Zuerst: Girls aus der besten Trait-Gruppe (sortiert nach Stats)
-2. Dann: verbleibende Slots aus dem Pool mit Combined-Score:
+Fuer jeden Slot werden **alle** verbleibenden Kandidaten im Pool bewertet.
+Trait-Gruppen-Girls und Nicht-Gruppen-Girls konkurrieren direkt:
 
 ```
-combinedScore = statScore + synergyWeight * synergyDelta
+combinedScore = synergyScore + tier3Delta
+
+synergyScore  = statScore + synergyWeight * synergyDelta
+tier3Delta    = marginalPct * teamStatTotal
 ```
 
-- `statScore`: Individueller Score (Mode 1 oder Mode 2)
-- `synergyDelta`: Verbesserung des Team-Synergie-Werts durch dieses Girl
-- `synergyWeight`: Default 0.05 (5%)
+#### Tier-3-Delta-Berechnung (estimateTier3Delta)
+
+Berechnet den Stat-aequivalenten Wert des marginalen Tier-3-Bonus:
+
+```
+existingTraitCount = Anzahl Team-Mitglieder die traitCategory + traitValue matchen
+K = existingTraitCount
+
+newGirlBonus  = K * bonusPerMatch(candidate.rarity)
+existingBoost = Summe(bonusPerMatch(teammate.rarity)) fuer jeden Trait-Teammate
+
+marginalPct   = newGirlBonus + existingBoost
+tier3Delta    = marginalPct * teamStatTotal
+```
+
+- Kandidaten die nicht zur Trait-Gruppe gehoeren: `tier3Delta = 0`
+- `teamStatTotal` wird pro Slot neu berechnet
+- Trait-Girls haben einen Vorteil der mit der Anzahl bestehender
+  Trait-Matches quadratisch waechst
+
+**Konsequenz:** Eine Girl mit +40% Blessing-Bonus (z.B. 14.000 Stats)
+schlaegt eine Trait-Girl mit 10.000 Stats, wenn der Tier-3-Bonus den
+Stat-Gap nicht kompensiert. Umgekehrt gewinnt die Trait-Girl bei
+ausreichend vielen Trait-Matches im Team.
+
+**Cold-Start:** Die erste Trait-Girl hat `tier3Delta = 0` (keine
+bestehenden Trait-Teammates). Sie muss rein auf Stats und Synergie
+konkurrieren. Ab der zweiten Trait-Girl waechst der Bonus.
 
 ### Phase 7: UI-Anzeige
 
@@ -328,3 +356,4 @@ staerker sein als ein Team mit maximalen Einzel-Stats ohne Trait-Match.
 | v7.34.0 | v2: Synergie-optimierter Greedy-Algorithmus mit Leader Tier-5 (PR #1519) |
 | v7.34.7 | v3: Tier-3-Trait-Gruppen-Optimierung, Trait-Matching, Trait-Info-Panel |
 | v7.34.13 | Rarity-Filter: 3-Sterne-Legendaries ausgeschlossen, nur 5★ Legendary + 6★ Mythic |
+| v7.34.14 | Unified Slot-Fill: Trait-Girls vs Nicht-Gruppen-Girls per-Slot-Vergleich mit Tier-3-Delta |
