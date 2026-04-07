@@ -16741,7 +16741,13 @@ class TeamScoringService {
      * Filter girls: only Mythic and Legendary (both modes).
      */
     static filterHighRarity(girls) {
-        return girls.filter(g => HIGH_RARITIES.has(g.rarity));
+        return girls.filter(g => {
+            if (g.rarity === 'mythic')
+                return true;
+            if (g.rarity === 'legendary')
+                return g.nb_grades >= 5;
+            return false;
+        });
     }
     /**
      * Get the Tier-5 skill info for a given element.

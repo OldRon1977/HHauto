@@ -79,10 +79,10 @@ describe('TeamScoringService', () => {
     });
 
     describe('filterHighRarity', () => {
-        it('should keep only mythic and legendary girls', () => {
+        it('should keep mythic and 5-star legendary girls', () => {
             const girls = [
-                makeGirl({ id_girl: 1, rarity: 'mythic' }),
-                makeGirl({ id_girl: 2, rarity: 'legendary' }),
+                makeGirl({ id_girl: 1, rarity: 'mythic', nb_grades: 6 }),
+                makeGirl({ id_girl: 2, rarity: 'legendary', nb_grades: 5 }),
                 makeGirl({ id_girl: 3, rarity: 'epic' }),
                 makeGirl({ id_girl: 4, rarity: 'rare' }),
                 makeGirl({ id_girl: 5, rarity: 'common' }),
@@ -90,6 +90,17 @@ describe('TeamScoringService', () => {
             const filtered = TeamScoringService.filterHighRarity(girls);
             expect(filtered).toHaveLength(2);
             expect(filtered.map(g => g.id_girl)).toEqual([1, 2]);
+        });
+
+        it('should exclude 3-star legendary girls', () => {
+            const girls = [
+                makeGirl({ id_girl: 1, rarity: 'legendary', nb_grades: 3 }),
+                makeGirl({ id_girl: 2, rarity: 'legendary', nb_grades: 5 }),
+                makeGirl({ id_girl: 3, rarity: 'mythic', nb_grades: 6 }),
+            ];
+            const filtered = TeamScoringService.filterHighRarity(girls);
+            expect(filtered).toHaveLength(2);
+            expect(filtered.map(g => g.id_girl)).toEqual([2, 3]);
         });
 
         it('should return empty array when no high-rarity girls exist', () => {
