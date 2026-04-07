@@ -16,37 +16,64 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
-### v7.34.0 — Smarter Team Selection
+### v7.34 — Smarter Team Selection
 
-The **"Current Best"** and **"Possible Best"** buttons on the Edit Team page now use an improved team selection algorithm. Instead of simply picking the 16 girls with the highest stat totals, the script now builds an optimized 7-girl team that considers element synergies, leader skill quality, and overall team composition.
+The **"Current Best"** and **"Possible Best"** buttons on the Edit Team page now use an advanced team selection algorithm. Instead of simply picking the 16 girls with the highest stat totals, the script builds an optimized 7-girl team that considers Tier-3 trait matching, element synergies, leader skill quality, rarity filtering, and blessing-aware stat comparison.
 
-#### The Problem (before v7.34.0)
+#### The Problem (before v7.34)
 
 The old algorithm ranked every girl individually by their stat sum (carac1 + carac2 + carac3) and showed the top 16. It had no awareness of:
+- **Tier-3 trait matching** — girls sharing a trait value within an element pair gain a team-wide percentage bonus
 - **Element synergies** — a team of 7 Fire girls gives +70% crit damage, while a mixed team might give a more balanced but weaker overall bonus
 - **Leader position** — the girl in slot 1 determines the Tier-5 skill for the entire team (Execute, Stun, Shield, or Reflect), but the old algorithm just placed the highest-stat girl there regardless of element
-- **Team composition** — two girls with identical stats but different elements contribute very differently to a team
+- **Rarity filtering** — 3-star legendaries and lower rarities were included despite having no realistic chance of being optimal
+- **Blessings vs traits** — a girl with a +40% blessing bonus could be excluded in favor of a weaker girl that matched a trait group
 
-#### How the New Algorithm Works
+#### How the Algorithm Works
 
-**1. Leader Selection (from Top 25)**
+**1. Rarity Filter (both modes)**
 
-The algorithm first looks at the top 25 girls by stats and selects the best leader based on Tier-5 skill priority:
+Only girls with meaningful stat potential are considered:
+- **Mythic** (6 stars max): always included
+- **Legendary** (5 stars max): included
+- **Legendary** (3 stars max): excluded
+- **All other rarities**: excluded
+
+**2. Leader Selection (Mythic only)**
+
+The algorithm selects the best Mythic leader based on Tier-5 skill priority:
 
 | Leader Element | Tier-5 Skill | Priority |
 |---|---|---|
-| Fire / Water | **Execute** (instant kill below HP threshold) | Highest |
+| Light / Stone | **Shield** (% of max HP as shield) | Highest |
 | Sun / Darkness | **Stun** (enemy loses turns) | High |
-| Stone / Light | **Shield** (% of max HP as shield) | Medium |
+| Fire / Water | **Execute** (instant kill below HP threshold) | Medium |
 | Psychic / Nature | **Reflect** (returns % damage) | Low |
 
-This means the leader may have fewer raw stat points than other team members — that is intentional. An Execute skill can end fights that raw stats alone would lose.
+Among same-priority leaders, the algorithm prefers those matching the team's trait group, then highest stats.
 
-**2. Synergy-Aware Team Building (Slots 2–7)**
+**3. Tier-3 Trait Matching**
 
-After selecting the leader, the algorithm fills the remaining 6 slots one by one. For each slot, it picks the girl that maximizes a combined score of:
-- **Individual stats** (90–95% of the score)
-- **Element synergy bonus** (5–10% of the score) — how much adding this girl's element improves the team's overall bonuses
+Elements are paired, and each pair shares a trait category. Girls within a pair that share the same trait value gain a bonus:
+
+| Element Pair | Trait Category |
+|---|---|
+| Darkness + Fire | Eye Color |
+| Light + Nature | Hair Color |
+| Stone + Psychic | Zodiac |
+| Water + Sun | Position |
+
+Bonus per matching teammate: **1.0%** (Mythic) / **0.8%** (Legendary). With a full team of 7 matching girls, the bonus can reach up to ~7%.
+
+**4. Smart Slot-Fill (Slots 2–7)**
+
+Each slot is filled by comparing **all** remaining candidates — trait-group girls and non-group girls compete directly. Each candidate is scored by:
+
+- **Stat score** — current blessed stats (Current Best) or projected max stats (Possible Best)
+- **Synergy delta** — how much adding this girl's element improves team synergy (5% weight)
+- **Tier-3 delta** — the estimated stat-equivalent value of the Tier-3 bonus she would add
+
+This means a girl with a +40% blessing bonus will be selected over a weaker trait-group member when the tier-3 bonus doesn't compensate for the stat gap. But trait-group girls still win when the bonus outweighs the difference.
 
 Element bonuses per girl in the team:
 
@@ -61,31 +88,32 @@ Element bonuses per girl in the team:
 | Psychic (Submissive) | +2% | Defense |
 | Light (Voyeur) | +2% | Harmony |
 
-Fire has the highest single-girl impact (+10% vs +2–3%), so the algorithm naturally favors Fire girls when stats are close.
+**5. Two Modes**
 
-**3. Two Modes**
+| Mode | Score | Use Case |
+|---|---|---|
+| **Current Best** | Current blessed stats | "What's my strongest team right now?" |
+| **Possible Best** | Projected stats at max level + full grades | "Which girls should I invest in?" |
 
-| Mode | Filter | Score | Use Case |
-|---|---|---|---|
-| **Current Best** | Mythic + Legendary only | Current blessed stats | "What's my strongest team right now?" |
-| **Possible Best** | All girls (including Level 1) | Projected stats at max level + full grades | "Which girls should I invest in?" |
+Both modes filter to 5-star Legendary + 6-star Mythic only.
 
-In "Possible Best" mode, a Level 1 Mythic with 6 stars can outrank a fully maxed Epic because its stat ceiling is much higher.
+**6. Visual Feedback**
 
-**4. Visual Feedback**
-
-After clicking "Current Best" or "Possible Best", the UI now shows:
+After clicking "Current Best" or "Possible Best", the UI shows:
 - Element icons on each team member
-- The leader's Tier-5 skill name (e.g. "★ Execute")
-- A synergy info panel with the team's element distribution
+- The leader's Tier-5 skill name (e.g. "✨ ★ Shield")
+- A synergy info panel with trait match count, Tier-3 bonus %, leader skill, and element distribution
 
 #### FAQ
 
 **Q: Why does my leader have fewer points than girl #2?**
-A: The leader determines the Tier-5 skill for the entire team. An Execute leader (Fire/Water) with 29,000 points is stronger than a Reflect leader (Psychic/Nature) with 31,000 points, because Execute can instantly end fights.
+A: The leader determines the Tier-5 skill for the entire team. A Shield leader (Light/Stone) with 29,000 points is stronger than a Reflect leader (Psychic/Nature) with 31,000 points.
+
+**Q: Why is a blessed girl selected over a trait-matching girl?**
+A: The algorithm compares the tier-3 bonus value against the stat difference. If a blessed girl has +40% higher stats, the ~2-4% tier-3 bonus from the weaker trait girl doesn't compensate. The blessed girl contributes more to team power.
 
 **Q: Why does the algorithm only show 7 girls instead of 16?**
-A: The new algorithm optimizes a complete 7-girl team composition. The old algorithm showed 16 individual rankings without team optimization. The 7 girls shown are the optimal team — click "Assign first 7" to use them.
+A: The algorithm optimizes a complete 7-girl team composition. The old algorithm showed 16 individual rankings without team optimization. The 7 girls shown are the optimal team — click "Assign first 7" to use them.
 
 **Q: What if the new algorithm doesn't work on my page?**
 A: The algorithm requires `availableGirls` data, which is only present on the Edit Team page. If the data is not available, the script automatically falls back to the previous algorithm.
