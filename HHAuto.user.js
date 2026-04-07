@@ -16898,6 +16898,44 @@ class TeamScoringService {
             : 0;
         return statScore + synergyWeight * normalizedSynergyBonus;
     }
+    // ─── Tier 3 Delta Estimation ────────────────────────────────────
+    /**
+     * Estimate the stat-equivalent value of adding a candidate to the team,
+     * considering the marginal Tier 3 bonus she would provide.
+     *
+     * Returns 0 if the candidate does not match the target trait.
+     * Otherwise returns marginalPct × teamStatTotal, where marginalPct
+     * accounts for both the new girl's bonus and the boost to existing
+     * trait teammates.
+     */
+    static estimateTier3Delta(candidate, currentTeam, traitCategory, traitValue, teamStatTotal) {
+        const candidateCategory = ELEMENT_TO_TRAIT_CATEGORY[candidate.element];
+        if (candidateCategory !== traitCategory)
+            return 0;
+        const candidateValue = TeamScoringService.getTraitValue(candidate);
+        if (candidateValue !== traitValue)
+            return 0;
+        // Count existing trait-matching teammates and sum their bonus rates
+        let existingTraitCount = 0;
+        let existingBoostSum = 0;
+        for (const member of currentTeam) {
+            const memberCategory = ELEMENT_TO_TRAIT_CATEGORY[member.element];
+            if (memberCategory !== traitCategory)
+                continue;
+            const memberValue = TeamScoringService.getTraitValue(member);
+            if (memberValue !== traitValue)
+                continue;
+            existingTraitCount++;
+            existingBoostSum += member.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
+        }
+        // New girl sees existingTraitCount matches
+        const candidateBonusRate = candidate.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
+        const newGirlBonus = existingTraitCount * candidateBonusRate;
+        // Each existing trait teammate gains +1 match from this girl
+        const existingBoost = existingBoostSum;
+        const marginalPct = newGirlBonus + existingBoost;
+        return marginalPct * teamStatTotal;
+    }
     // ─── Leader Selection ────────────────────────────────────────────
     /**
      * Rank leader candidates by element priority (Shield > Stun > Execute > Reflect).
@@ -17016,42 +17054,31 @@ class TeamBuilderService {
         // Phase 4: Select Leader
         const rankedLeaders = TeamScoringService.rankLeaderCandidates(pool, scoreMap, traitCategory, traitValue);
         const leader = rankedLeaders[0];
-        // Phase 5: Fill slots 2-7
+        // Phase 5: Fill slots 2-7 (unified: trait group + stats + synergy + tier 3)
         const team = [leader];
         const teamElements = [leader.element];
         const used = new Set([leader.id_girl]);
-        // First: add girls from the best trait group (sorted by stats)
-        const traitGroupSorted = [...traitGroupGirls].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-        for (const girl of traitGroupSorted) {
-            if (team.length >= TEAM_SIZE)
-                break;
-            if (used.has(girl.id_girl))
-                continue;
-            team.push(girl);
-            teamElements.push(girl.element);
-            used.add(girl.id_girl);
-        }
-        // Then: fill remaining slots from pool by stats (with synergy as tiebreaker)
-        if (team.length < TEAM_SIZE) {
-            for (let slot = team.length; slot < TEAM_SIZE; slot++) {
-                let bestGirl = null;
-                let bestCombinedScore = -Infinity;
-                for (const candidate of pool) {
-                    if (used.has(candidate.id_girl))
-                        continue;
-                    const statScore = scoreMap.get(candidate.id_girl) || 0;
-                    const combinedScore = TeamScoringService.scoreWithSynergy(candidate, teamElements, statScore, maxStat, 0.05);
-                    if (combinedScore > bestCombinedScore) {
-                        bestCombinedScore = combinedScore;
-                        bestGirl = candidate;
-                    }
+        for (let slot = 1; slot < TEAM_SIZE; slot++) {
+            let bestGirl = null;
+            let bestCombinedScore = -Infinity;
+            const teamStatTotal = team.reduce((sum, g) => sum + (scoreMap.get(g.id_girl) || 0), 0);
+            for (const candidate of pool) {
+                if (used.has(candidate.id_girl))
+                    continue;
+                const statScore = scoreMap.get(candidate.id_girl) || 0;
+                const synergyScore = TeamScoringService.scoreWithSynergy(candidate, teamElements, statScore, maxStat, 0.05);
+                const tier3Delta = TeamScoringService.estimateTier3Delta(candidate, team, traitCategory, traitValue, teamStatTotal);
+                const combinedScore = synergyScore + tier3Delta;
+                if (combinedScore > bestCombinedScore) {
+                    bestCombinedScore = combinedScore;
+                    bestGirl = candidate;
                 }
-                if (!bestGirl)
-                    break;
-                team.push(bestGirl);
-                teamElements.push(bestGirl.element);
-                used.add(bestGirl.id_girl);
             }
+            if (!bestGirl)
+                break;
+            team.push(bestGirl);
+            teamElements.push(bestGirl.element);
+            used.add(bestGirl.id_girl);
         }
         if (team.length < TEAM_SIZE) {
             return null;

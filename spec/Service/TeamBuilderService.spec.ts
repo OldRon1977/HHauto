@@ -136,7 +136,7 @@ describe('TeamBuilderService', () => {
 
     describe('Trait-based team selection', () => {
 
-        it('should prefer girls from the best trait group', () => {
+        it('should prefer girls from the best trait group when stats are similar', () => {
             // 6 fire/darkness girls with blue eyes (strong trait group)
             const traitGirls = makeTraitPool(6).map((g, i) => ({
                 ...g, id_girl: 100 + i, carac1: 4000, carac2: 3000, carac3: 2000,
@@ -148,22 +148,49 @@ describe('TeamBuilderService', () => {
                 carac1: 4500, carac2: 3500, carac3: 2500, hairColor: 'blonde',
             });
 
-            // 3 stone girls with higher stats but no trait match
-            const nonTraitGirls = [
-                makeGirl({ id_girl: 200, element: 'stone', rarity: 'mythic', carac1: 5000, carac2: 4000, carac3: 3000, zodiac: 'Aries' }),
-                makeGirl({ id_girl: 201, element: 'stone', rarity: 'mythic', carac1: 5000, carac2: 4000, carac3: 3000, zodiac: 'Taurus' }),
-                makeGirl({ id_girl: 202, element: 'psychic', rarity: 'mythic', carac1: 5000, carac2: 4000, carac3: 3000, zodiac: 'Gemini' }),
-            ];
+            // 1 stone girl with slightly higher stats but no trait match
+            const nonTraitGirl = makeGirl({
+                id_girl: 200, element: 'stone', rarity: 'mythic',
+                carac1: 4200, carac2: 3200, carac3: 2200, zodiac: 'Aries',
+            });
 
             const result = TeamBuilderService.buildTeam(
-                [...traitGirls, leader, ...nonTraitGirls], 1, 100
+                [...traitGirls, leader, nonTraitGirl], 1, 100
             )!;
 
-            // Most team members should be from the trait group (blue eyes fire/darkness)
+            // Most team members should be from the trait group
+            // (the one non-trait girl may take a slot due to cold-start, but trait dominates)
             const traitMembers = result.girls.filter(g =>
                 (g.element === 'fire' || g.element === 'darkness') && g.eyeColor === 'blue'
             );
             expect(traitMembers.length).toBeGreaterThanOrEqual(5);
+        });
+
+        it('should prefer high-stat non-group girl over weak trait-group girl', () => {
+            // 6 fire/darkness girls with blue eyes but weak stats
+            const traitGirls = makeTraitPool(6).map((g, i) => ({
+                ...g, id_girl: 100 + i, carac1: 3000, carac2: 2000, carac3: 1000,
+            }));
+
+            // 1 light mythic leader
+            const leader = makeGirl({
+                id_girl: 50, element: 'light', rarity: 'mythic',
+                carac1: 4500, carac2: 3500, carac3: 2500, hairColor: 'blonde',
+            });
+
+            // 1 psychic girl with +40% blessed stats, no trait match
+            const blessedGirl = makeGirl({
+                id_girl: 300, element: 'psychic', rarity: 'mythic',
+                carac1: 5600, carac2: 4200, carac3: 4200, zodiac: 'Cancer',
+            });
+
+            const result = TeamBuilderService.buildTeam(
+                [...traitGirls, leader, blessedGirl], 1, 100
+            )!;
+
+            // The blessed girl should be in the team despite not matching the trait
+            const hasBlessedGirl = result.girls.some(g => g.id_girl === 300);
+            expect(hasBlessedGirl).toBe(true);
         });
 
         it('should include trait info in TeamResult', () => {

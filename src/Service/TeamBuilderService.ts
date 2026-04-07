@@ -105,50 +105,42 @@ export class TeamBuilderService {
         );
         const leader = rankedLeaders[0];
 
-        // Phase 5: Fill slots 2-7
+        // Phase 5: Fill slots 2-7 (unified: trait group + stats + synergy + tier 3)
         const team: GirlData[] = [leader];
         const teamElements: ElementType[] = [leader.element];
         const used = new Set<number>([leader.id_girl]);
 
-        // First: add girls from the best trait group (sorted by stats)
-        const traitGroupSorted = [...traitGroupGirls].sort(
-            (a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0)
-        );
+        for (let slot = 1; slot < TEAM_SIZE; slot++) {
+            let bestGirl: GirlData | null = null;
+            let bestCombinedScore = -Infinity;
 
-        for (const girl of traitGroupSorted) {
-            if (team.length >= TEAM_SIZE) break;
-            if (used.has(girl.id_girl)) continue;
-            team.push(girl);
-            teamElements.push(girl.element);
-            used.add(girl.id_girl);
-        }
+            const teamStatTotal = team.reduce(
+                (sum, g) => sum + (scoreMap.get(g.id_girl) || 0), 0
+            );
 
-        // Then: fill remaining slots from pool by stats (with synergy as tiebreaker)
-        if (team.length < TEAM_SIZE) {
-            for (let slot = team.length; slot < TEAM_SIZE; slot++) {
-                let bestGirl: GirlData | null = null;
-                let bestCombinedScore = -Infinity;
+            for (const candidate of pool) {
+                if (used.has(candidate.id_girl)) continue;
 
-                for (const candidate of pool) {
-                    if (used.has(candidate.id_girl)) continue;
+                const statScore = scoreMap.get(candidate.id_girl) || 0;
+                const synergyScore = TeamScoringService.scoreWithSynergy(
+                    candidate, teamElements, statScore, maxStat, 0.05
+                );
+                const tier3Delta = TeamScoringService.estimateTier3Delta(
+                    candidate, team, traitCategory, traitValue, teamStatTotal
+                );
+                const combinedScore = synergyScore + tier3Delta;
 
-                    const statScore = scoreMap.get(candidate.id_girl) || 0;
-                    const combinedScore = TeamScoringService.scoreWithSynergy(
-                        candidate, teamElements, statScore, maxStat, 0.05
-                    );
-
-                    if (combinedScore > bestCombinedScore) {
-                        bestCombinedScore = combinedScore;
-                        bestGirl = candidate;
-                    }
+                if (combinedScore > bestCombinedScore) {
+                    bestCombinedScore = combinedScore;
+                    bestGirl = candidate;
                 }
-
-                if (!bestGirl) break;
-
-                team.push(bestGirl);
-                teamElements.push(bestGirl.element);
-                used.add(bestGirl.id_girl);
             }
+
+            if (!bestGirl) break;
+
+            team.push(bestGirl);
+            teamElements.push(bestGirl.element);
+            used.add(bestGirl.id_girl);
         }
 
         if (team.length < TEAM_SIZE) {

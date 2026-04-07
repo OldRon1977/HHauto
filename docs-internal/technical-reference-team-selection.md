@@ -1,7 +1,7 @@
 # Technical Reference: Team Selection Data & API
 
 Reference document for Issue #1340 — Improved team selection.
-Based on data analysis performed 2026-03-24.
+Based on data analysis performed 2026-03-24. Last updated: 2026-04-07.
 
 ---
 
@@ -37,7 +37,7 @@ Type: Array of girl objects
 | `figure` | number | | |
 | `level` | number | `750` | Current level |
 | `level_cap` | number | | Maximum possible level |
-| `nb_grades` | number | | Total grade slots |
+| `nb_grades` | number | | Total grade slots (3 or 5 for legendary, 6 for mythic) |
 | `graded` | number | | Current grade count |
 | `graded2` | string | | HTML string with grade icons (contains `<g` and `grey` for counting) |
 | `fav_graded` | number | | |
@@ -286,20 +286,23 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 ## 5. Relevant Source Files
 
-### Team Selection (v2 — implemented in v7.34.0)
+### Team Selection (v3 — current as of v7.34.13)
 
 | File | Key Function | Purpose |
 |------|-------------|---------|
+| `src/Service/TeamScoringService.ts` | `filterHighRarity()` | Rarity filter: Mythic (6★) + Legendary (5★ only) |
 | `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Stat scoring for both modes |
+| `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier 3 trait matching bonus |
+| `src/Service/TeamScoringService.ts` | `findTraitGroups()` | Group girls by element pair + shared trait value |
 | `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Element synergy calculation |
-| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader ranking by Tier-5 priority |
-| `src/Service/TeamBuilderService.ts` | `buildTeam()` | Main entry: greedy team builder |
+| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader ranking: Mythic only, Tier-5 priority |
+| `src/Service/TeamBuilderService.ts` | `buildTeam()` | Main entry: filter, trait groups, leader, slot-fill |
 | `src/Service/TeamBuilderService.ts` | `getElementDistribution()` | Element count summary for UI |
-| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v2 if availableGirls present, else legacy |
+| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v3 if availableGirls present, else legacy |
 | `src/Module/TeamModule.ts` | `setTopTeamV2()` | Maps game data to GirlData[], calls TeamBuilderService |
 | `src/Module/TeamModule.ts` | `setTopTeamLegacy()` | Old tooltip-based algorithm (fallback) |
-| `src/Module/TeamModule.ts` | `updateTeamUI()` | Shared UI logic with synergy overlay |
-| `src/Module/TeamModule.ts` | `moduleChangeTeam()` | Button setup — lines 37-57 |
+| `src/Module/TeamModule.ts` | `updateTeamUI()` | Shared UI logic with synergy + trait info overlay |
+| `src/Module/TeamModule.ts` | `moduleChangeTeam()` | Button setup (Current Best, Possible Best, Unequip) |
 | `src/Module/TeamModule.ts` | `assignTopTeam()` | Assigns selected top team |
 | `src/Module/TeamModule.ts` | `getSelectedGirls()` | Reads current team members |
 
@@ -307,7 +310,7 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 | File | Tests | Purpose |
 |------|-------|---------|
-| `spec/Service/TeamScoringService.spec.ts` | 27 | Synergies, Tier-5, scoring, filtering |
+| `spec/Service/TeamScoringService.spec.ts` | 52 | Synergies, Tier-5, scoring, filtering, Tier-3 traits |
 | `spec/Service/TeamBuilderService.spec.ts` | 14 | Team building, modes, leader selection |
 
 ### Girl Data Loading
@@ -356,38 +359,48 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 ## 6. setTopTeam Logic
 
-### v2 (active when `availableGirls` is available)
+### v3 (active when `availableGirls` is available)
 
 ```
 Data source: getHHVars("availableGirls") — 62 fields per girl
 
+Rarity filter (both modes):
+  Mythic (nb_grades = 6):    always included
+  Legendary (nb_grades = 5): included
+  Legendary (nb_grades = 3): excluded
+  All other rarities:        excluded
+
 Mode 1 ("Current Best"):
-  Filter: Mythic + Legendary only
   Score:  caracs.carac1 + caracs.carac2 + caracs.carac3
+          (already blessed values)
 
 Mode 2 ("Best Possible"):
-  Filter: All girls
   Score:  (carac1 + carac2 + carac3) / level * playerLevel
           / (1 + 0.3 * graded) * (1 + 0.3 * nb_grades)
 
 Process:
-  1. Map availableGirls to GirlData[] (element via element_data.type)
-  2. Score all candidates, sort descending, take top 50
-  3. Select leader from top 25 by Tier-5 priority (Execute > Stun > Shield > Reflect)
-  4. Fill slots 2-7 greedily: pick girl maximizing (statScore + 5% * synergyDelta)
-  5. Show 7 girls with element emojis, leader skill label, synergy info panel
-  6. Add "Assign Top Team" button
+  1. Map availableGirls to GirlData[]
+     (element via element_data.type, traits via zodiac/hair_color1/eye_color1/position_img)
+  2. Filter to Mythic (6★) + Legendary (5★ only)
+  3. Score all candidates, sort descending, take top 50
+  4. Find best trait group (element pair + shared trait value, min 3 girls)
+  5. Select leader from pool (Mythic only, Shield > Stun > Execute > Reflect)
+  6. Fill slots 2-7: first from trait group by stats, then greedy with synergy
+  7. Calculate Tier 3 bonus (1.0% Mythic / 0.8% Legendary per trait match)
+  8. Show 7 girls with element emojis, leader skill, trait + synergy info panel
+  9. Add "Assign Top Team" button
 ```
 
 ### Legacy (fallback when `availableGirls` is unavailable)
 
 ```
 Data source: data-new-girl-tooltip — 11 fields per girl (DOM parsing)
+No rarity filter, no trait matching, no leader skill optimization.
 
 Process:
   1. Iterate all div[id_girl] elements on page
   2. Parse tooltip JSON from .girl_img child
-  3. Calculate score per girl (same formulas as v2)
+  3. Calculate score per girl (same stat formulas as v3)
   4. Keep top 16 in sorted arrays (deckID, deckStat)
   5. Hide non-top girls, show top 16 with rank numbers
   6. Add "Assign Top Team" button
@@ -419,19 +432,10 @@ healOnHit   = synergies.find(type === 'water').bonus_multiplier
 
 ---
 
-## 8. Debug Branch
-
-Branch `feature/debug-blessing-data` on `origin` contains temporary console.log statements in:
-- `src/Module/Spreadsheet.ts` — logs blessing API response
-- `src/Module/TeamModule.ts` — logs availableGirls[0] and first 3 tooltip girls
-- `src/Module/harem/Harem.ts` — logs first girl when loading on Edit Team page
-
-These must be removed before any production changes.
-
----
-
-## 9. Version History
+## 8. Version History
 
 | Version | Change |
 |---------|--------|
-| v7.34.0 | Team selection v2: synergy-aware greedy algorithm with leader Tier-5 optimization, element UI overlay, legacy fallback. PR #1519. |
+| v7.34.0 | v2: synergy-aware greedy algorithm with leader Tier-5 optimization, element UI overlay, legacy fallback. PR #1519. |
+| v7.34.7 | v3: Tier-3 trait-group optimization, trait matching with element pairs, trait info panel. |
+| v7.34.13 | Rarity filter: exclude 3-star legendaries, only 5★ Legendary + 6★ Mythic considered. |

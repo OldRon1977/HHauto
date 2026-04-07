@@ -316,6 +316,74 @@ describe('TeamScoringService', () => {
         });
     });
 
+    // ─── Tier 3 Delta Estimation Tests ─────────────────────────────
+
+    describe('estimateTier3Delta', () => {
+        it('should return 0 when candidate does not match trait category', () => {
+            const candidate = makeGirl({ element: 'light', hairColor: 'blonde' }); // hairColor category
+            const team = [makeGirl({ id_girl: 2, element: 'fire', eyeColor: 'blue' })];
+            const delta = TeamScoringService.estimateTier3Delta(
+                candidate, team, 'eyeColor', 'blue', 10000
+            );
+            expect(delta).toBe(0);
+        });
+
+        it('should return 0 when candidate has wrong trait value', () => {
+            const candidate = makeGirl({ element: 'fire', eyeColor: 'green' });
+            const team = [makeGirl({ id_girl: 2, element: 'fire', eyeColor: 'blue' })];
+            const delta = TeamScoringService.estimateTier3Delta(
+                candidate, team, 'eyeColor', 'blue', 10000
+            );
+            expect(delta).toBe(0);
+        });
+
+        it('should return 0 when no existing trait teammates', () => {
+            const candidate = makeGirl({ element: 'fire', eyeColor: 'blue', rarity: 'mythic' });
+            const team = [makeGirl({ id_girl: 2, element: 'light', hairColor: 'blonde' })];
+            const delta = TeamScoringService.estimateTier3Delta(
+                candidate, team, 'eyeColor', 'blue', 10000
+            );
+            expect(delta).toBe(0);
+        });
+
+        it('should calculate correct delta with one existing mythic trait teammate', () => {
+            const candidate = makeGirl({ id_girl: 1, element: 'fire', eyeColor: 'blue', rarity: 'mythic' });
+            const team = [makeGirl({ id_girl: 2, element: 'darkness', eyeColor: 'blue', rarity: 'mythic' })];
+            // newGirlBonus = 1 * 0.01 = 0.01
+            // existingBoost = 0.01 (one mythic teammate)
+            // marginalPct = 0.02
+            // delta = 0.02 * 10000 = 200
+            const delta = TeamScoringService.estimateTier3Delta(
+                candidate, team, 'eyeColor', 'blue', 10000
+            );
+            expect(delta).toBeCloseTo(200, 2);
+        });
+
+        it('should handle mixed mythic/legendary existing teammates', () => {
+            const candidate = makeGirl({ id_girl: 1, element: 'fire', eyeColor: 'blue', rarity: 'mythic' });
+            const team = [
+                makeGirl({ id_girl: 2, element: 'darkness', eyeColor: 'blue', rarity: 'mythic' }),
+                makeGirl({ id_girl: 3, element: 'fire', eyeColor: 'blue', rarity: 'legendary' }),
+            ];
+            // newGirlBonus = 2 * 0.01 = 0.02
+            // existingBoost = 0.01 + 0.008 = 0.018
+            // marginalPct = 0.038
+            // delta = 0.038 * 60000 = 2280
+            const delta = TeamScoringService.estimateTier3Delta(
+                candidate, team, 'eyeColor', 'blue', 60000
+            );
+            expect(delta).toBeCloseTo(2280, 2);
+        });
+
+        it('should scale with teamStatTotal', () => {
+            const candidate = makeGirl({ id_girl: 1, element: 'fire', eyeColor: 'blue', rarity: 'mythic' });
+            const team = [makeGirl({ id_girl: 2, element: 'darkness', eyeColor: 'blue', rarity: 'mythic' })];
+            const delta1 = TeamScoringService.estimateTier3Delta(candidate, team, 'eyeColor', 'blue', 10000);
+            const delta2 = TeamScoringService.estimateTier3Delta(candidate, team, 'eyeColor', 'blue', 50000);
+            expect(delta2).toBe(delta1 * 5);
+        });
+    });
+
     // ─── Synergy Tests ───────────────────────────────────────────────
 
     describe('calculateSynergies', () => {
