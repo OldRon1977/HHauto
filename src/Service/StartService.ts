@@ -437,7 +437,13 @@ export function start() {
 
 
 
-    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+    // Don't re-enable autoLoop if a harem tool flow (Stuff Team, Give XP, etc.)
+    // is in progress — these multi-page flows rely on autoLoop staying disabled
+    // to prevent action handlers from interrupting with page navigations.
+    const activeHaremFlow = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
+    if (!activeHaremFlow) {
+        setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+    }
     if (typeof getStoredValue(HHStoredVarPrefixKey+TK.freshStart) == "undefined" || isNaN(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)))) {
         setDefaults(true);
     }

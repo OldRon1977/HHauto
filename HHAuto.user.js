@@ -6536,6 +6536,8 @@ class Harem {
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeam);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamScrolls);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings);
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+        LogUtils_logHHAuto("clearHaremToolVariables: re-enabling autoLoop.");
         const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
         if (lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
             setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, "none");
@@ -6854,7 +6856,7 @@ class Harem {
                             return true;
                         }
                         else {
-                            // Harem.clearHaremToolVariables();
+                            Harem.clearHaremToolVariables();
                         }
                     }
                 }
@@ -24780,7 +24782,13 @@ function start() {
         });
         currentInput.checkValidity();
     });
-    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+    // Don't re-enable autoLoop if a harem tool flow (Stuff Team, Give XP, etc.)
+    // is in progress — these multi-page flows rely on autoLoop staying disabled
+    // to prevent action handlers from interrupting with page navigations.
+    const activeHaremFlow = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
+    if (!activeHaremFlow) {
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+    }
     if (typeof getStoredValue(HHStoredVarPrefixKey + TK.freshStart) == "undefined" || isNaN(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)))) {
         setDefaults(true);
     }

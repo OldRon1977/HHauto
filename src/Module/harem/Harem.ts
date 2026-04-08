@@ -50,6 +50,9 @@ export class Harem {
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamScrolls);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings);
         
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+        logHHAuto("clearHaremToolVariables: re-enabling autoLoop.");
+
         const lastActionPerformed:string = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
         if(lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
             setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, "none");
@@ -279,7 +282,7 @@ export class Harem {
             const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
             const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
-                
+
                 if (!!haremItem && haremGirlMode === 'team') {
                     HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
                     if (debugEnabled) logHHAuto("Waifu page detected, get girls with skills");
@@ -398,7 +401,7 @@ export class Harem {
                         gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EQUIPMENT_TYPE) }, randomInterval(1500, 2500));
                         return true;
                     } else {
-                        // Harem.clearHaremToolVariables();
+                        Harem.clearHaremToolVariables();
                     }
                 }
             }
