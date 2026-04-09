@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.16
+// @version      7.35.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -11728,6 +11728,7 @@ class HaremGirl {
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                         $('#girl-equip').trigger('click');
                         yield TimeHelper.sleep(randomInterval(400, 700));
+                        yield HaremGirl.optimizeEquipmentSlots(girl);
                     }
                     if (upgradeSkill) {
                         HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
@@ -11835,6 +11836,116 @@ class HaremGirl {
         catch (error) {
             LogUtils_logHHAuto("Can't remove popup_message_harem");
         }
+    }
+    static optimizeEquipmentSlots(girl) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            const equipmentSlots = $('.equipment_slot');
+            const slotCount = equipmentSlots.length;
+            LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+            const scoreItem = (item) => {
+                const c = item.caracs;
+                const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+                let resonanceMatches = 0;
+                if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
+                    const rb = item.resonance_bonuses;
+                    if (rb.class && String(rb.class.identifier) === String(girl.class))
+                        resonanceMatches++;
+                    if (rb.element && String(rb.element.identifier) === String(girl.element))
+                        resonanceMatches++;
+                    if (rb.figure && String(rb.figure.identifier) === String(girl.figure))
+                        resonanceMatches++;
+                }
+                return { caracSum, resonanceMatches };
+            };
+            for (let i = 0; i < slotCount; i++) {
+                const slot = equipmentSlots.eq(i);
+                slot.trigger('click');
+                yield TimeHelper.sleep(randomInterval(300, 500));
+                const equippedEl = slot.find('.slot[data-d]');
+                let equippedData = null;
+                if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
+                    equippedData = JSON.parse(equippedEl.attr('data-d'));
+                }
+                const inventoryItems = [];
+                $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
+                    const raw = $(this).attr('data-d');
+                    if (!raw)
+                        return;
+                    const data = JSON.parse(raw);
+                    if (data.caracs && data.type === 'girl_armor') {
+                        inventoryItems.push({ data });
+                    }
+                });
+                if (inventoryItems.length === 0) {
+                    LogUtils_logHHAuto(`Slot ${i}: no inventory items available, skipping`);
+                    continue;
+                }
+                inventoryItems.sort((a, b) => {
+                    const sa = scoreItem(a.data);
+                    const sb = scoreItem(b.data);
+                    if (sb.caracSum !== sa.caracSum)
+                        return sb.caracSum - sa.caracSum;
+                    if (sb.resonanceMatches !== sa.resonanceMatches)
+                        return sb.resonanceMatches - sa.resonanceMatches;
+                    const ca = a.data.caracs;
+                    const cb = b.data.caracs;
+                    return ((cb.carac1 || 0) + (cb.carac2 || 0) + (cb.carac3 || 0)) - ((ca.carac1 || 0) + (ca.carac2 || 0) + (ca.carac3 || 0));
+                });
+                const best = inventoryItems[0];
+                if (!best)
+                    continue;
+                const bestScore = scoreItem(best.data);
+                let shouldReplace = false;
+                if (!equippedData || !equippedData.caracs) {
+                    shouldReplace = true;
+                }
+                else {
+                    const equippedScore = scoreItem(equippedData);
+                    if (bestScore.caracSum > equippedScore.caracSum) {
+                        shouldReplace = true;
+                    }
+                    else if (bestScore.caracSum === equippedScore.caracSum && bestScore.resonanceMatches > equippedScore.resonanceMatches) {
+                        shouldReplace = true;
+                    }
+                }
+                if (shouldReplace) {
+                    const armorId = best.data.id_girl_armor;
+                    LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${best.data.level} ${best.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${armorId})`);
+                    yield new Promise((resolve) => {
+                        $.ajax({
+                            url: '/ajax.php',
+                            type: 'POST',
+                            data: {
+                                action: 'girl_equipment_equip',
+                                id_girl: girl.id_girl,
+                                id_girl_armor: armorId,
+                                sort_by: 'rarity',
+                                sorting_order: 'asc'
+                            },
+                            dataType: 'json',
+                            success: function (data) {
+                                if (data && data.success) {
+                                    LogUtils_logHHAuto(`Slot ${i}: equipped successfully`);
+                                }
+                                else {
+                                    LogUtils_logHHAuto(`Slot ${i}: equip response: ${JSON.stringify(data)}`);
+                                }
+                                resolve();
+                            },
+                            error: function (xhr, status, error) {
+                                LogUtils_logHHAuto(`Slot ${i}: equip HTTP error: ${status} ${error} (${xhr.status})`);
+                                resolve();
+                            }
+                        });
+                    });
+                    yield TimeHelper.sleep(randomInterval(300, 500));
+                }
+                else {
+                    LogUtils_logHHAuto(`Slot ${i}: current item is optimal`);
+                }
+            }
+            LogUtils_logHHAuto('Equipment optimization complete');
+        });
     }
 }
 HaremGirl.AFFECTION_TYPE = 'affection';
