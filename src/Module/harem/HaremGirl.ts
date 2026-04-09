@@ -901,35 +901,30 @@ export class HaremGirl {
                 const armorId = best.data.id_girl_armor;
                 logHHAuto(`Slot ${i}: replacing with better item (L${best.data.level} ${best.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${armorId})`);
 
-                const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
-                window.history.replaceState(null, '', addNutakuSession('/girl/' + girl.id_girl + '?resource=equipment') as string);
-
                 await new Promise<void>((resolve) => {
-                    const timeout = setTimeout(() => {
-                        logHHAuto(`Slot ${i}: equip timed out after 10s`);
-                        resolve();
-                    }, 10000);
-
-                    getHHAjax()({
-                        action: 'girl_equipment_equip',
-                        id_girl: String(girl.id_girl),
-                        id_girl_armor: String(armorId)
-                    }, function (data: any) {
-                        clearTimeout(timeout);
-                        if (data && data.success) {
-                            logHHAuto(`Slot ${i}: equipped successfully`);
-                        } else {
-                            logHHAuto(`Slot ${i}: equip failed, response: ${JSON.stringify(data)}`);
+                    $.ajax({
+                        url: '/ajax.php',
+                        type: 'POST',
+                        data: {
+                            action: 'girl_equipment_equip',
+                            id_girl: girl.id_girl,
+                            id_girl_armor: armorId
+                        },
+                        dataType: 'json',
+                        success: function (data: any) {
+                            if (data && data.success) {
+                                logHHAuto(`Slot ${i}: equipped successfully`);
+                            } else {
+                                logHHAuto(`Slot ${i}: equip response: ${JSON.stringify(data)}`);
+                            }
+                            resolve();
+                        },
+                        error: function (xhr: any, status: string, error: string) {
+                            logHHAuto(`Slot ${i}: equip HTTP error: ${status} ${error} (${xhr.status})`);
+                            resolve();
                         }
-                        resolve();
-                    }, function (error: any) {
-                        clearTimeout(timeout);
-                        logHHAuto(`Slot ${i}: equip error: ${error}`);
-                        resolve();
                     });
                 });
-
-                window.history.replaceState(null, '', addNutakuSession(currentPath) as string);
                 await TimeHelper.sleep(randomInterval(300, 500));
             } else {
                 logHHAuto(`Slot ${i}: current item is optimal`);
