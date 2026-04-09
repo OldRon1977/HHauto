@@ -908,7 +908,9 @@ export class HaremGirl {
                         data: {
                             action: 'girl_equipment_equip',
                             id_girl: girl.id_girl,
-                            id_girl_armor: armorId
+                            id_girl_armor: armorId,
+                            sort_by: 'rarity',
+                            sorting_order: 'asc'
                         },
                         dataType: 'json',
                         success: function (data: any) {
