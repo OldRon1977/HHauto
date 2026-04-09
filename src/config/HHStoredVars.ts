@@ -2234,6 +2234,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamSettings] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
     storage:"sessionStorage",
