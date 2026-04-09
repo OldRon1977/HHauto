@@ -440,10 +440,6 @@ HHAuto_ToolTips.en['useX50FightsAllowNormalEvent'] = { version: "5.6.24", elemen
 HHAuto_ToolTips.en['autoBuy'] = { version: "5.6.24", elementText: "Market" };
 HHAuto_ToolTips.en['minShardsX50'] = { version: "5.6.24", elementText: "Min. shards x50", tooltip: "Only use x50 button if remaining shards of current girl is equal or above this limit." };
 HHAuto_ToolTips.en['minShardsX10'] = { version: "5.6.24", elementText: "Min. shards x10", tooltip: "Only use x10 button if remaining shards of current girl is equal or above this limit." };
-HHAuto_ToolTips.en['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementText: "SW shards x10 limit", tooltip: "When collected shards reach this percentage, downgrade from x50 to x10 battles to avoid wasting Sandalwood doses." };
-HHAuto_ToolTips.en['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW shards x1 limit", tooltip: "When collected shards reach this percentage, downgrade from x10 to x1 battles to avoid wasting Sandalwood doses." };
-HHAuto_ToolTips.en['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x50 to x10 battles." };
-HHAuto_ToolTips.en['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x10 to x1 battles." };
 HHAuto_ToolTips.en['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min shards", tooltip: "Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = always equip Sandalwood." };
 HHAuto_ToolTips.en['mythicGirlNext'] = { version: "5.6.24", elementText: "Mythic girl wave" };
 HHAuto_ToolTips.en['RefreshOppoList'] = { version: "5.6.24", elementText: "Refresh Opponent list", tooltip: "Allow to force a refresh of opponent list." };
@@ -669,10 +665,6 @@ HHAuto_ToolTips.fr['useX50Fights'] = { version: "5.6.24", elementText: "Combats 
 HHAuto_ToolTips.fr['autoBuy'] = { version: "5.6.24", elementText: "Marché" };
 HHAuto_ToolTips.fr['minShardsX50'] = { version: "5.6.24", elementText: "Frags min. x50", tooltip: "Utiliser le bouton x50 si le nombre de fragments restant est supérieur ou égal à..." };
 HHAuto_ToolTips.fr['minShardsX10'] = { version: "5.6.24", elementText: "Frags min. x10", tooltip: "Utiliser le bouton x10 si le nombre de fragments restant est supérieur ou égal à..." };
-HHAuto_ToolTips.fr['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementText: "SW frags x10 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x50 à x10 combats pour éviter le gaspillage de doses Sandalwood." };
-HHAuto_ToolTips.fr['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW frags x1 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x10 à x1 combats pour éviter le gaspillage de doses Sandalwood." };
-HHAuto_ToolTips.fr['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x50 à x10 combats." };
-HHAuto_ToolTips.fr['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x10 à x1 combats." };
 HHAuto_ToolTips.fr['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW frags min.", tooltip: "Ne plus équiper Sandalwood quand les fragments restants atteignent cette valeur ou moins. 0 = toujours équiper Sandalwood." };
 HHAuto_ToolTips.fr['autoMissionKFirst'] = { version: "5.6.24", elementText: "Prioriser Kobans", tooltip: "Si activé : commence par les missions qui rapportent des kobans." };
 HHAuto_ToolTips.fr['povpogTitle'] = { version: "5.6.133", elementText: "Voie de la Valeur/Gloire" };
@@ -1801,51 +1793,6 @@ class Booster {
         if (!sandalwood)
             return null;
         return sandalwood.usages_remaining;
-    }
-    /**
-     * Determines the maximum recommended batch size (1, 10, or 50) based on
-     * remaining shards, Sandalwood doses, and user settings.
-     *
-     * The most restrictive constraint wins.
-     */
-    static getRecommendedBatchSize(minRemainingShards, dosesRemaining, userSettings) {
-        LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: minRemainingShards=${minRemainingShards}, dosesRemaining=${dosesRemaining}, settings=${JSON.stringify(userSettings)}`);
-        let maxBatch = 50;
-        // User preference caps
-        if (!userSettings.useX50) {
-            maxBatch = 10;
-            LogUtils_logHHAuto('[SW-DEBUG] batch cap: useX50=false → max 10');
-        }
-        if (!userSettings.useX10) {
-            maxBatch = 1;
-            LogUtils_logHHAuto('[SW-DEBUG] batch cap: useX10=false → max 1');
-        }
-        // If Sandalwood is not equipped, no dose-based restrictions apply
-        if (dosesRemaining === null) {
-            LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: no Sandalwood equipped → returning ${maxBatch}`);
-            return maxBatch;
-        }
-        // Dose-based limits (check most restrictive first)
-        if (dosesRemaining <= userSettings.sandalwoodDosesX1Limit) {
-            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: doses ${dosesRemaining} <= dosesX1Limit ${userSettings.sandalwoodDosesX1Limit} → max 1`);
-            maxBatch = 1;
-        }
-        else if (dosesRemaining <= userSettings.sandalwoodDosesX10Limit && maxBatch > 10) {
-            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: doses ${dosesRemaining} <= dosesX10Limit ${userSettings.sandalwoodDosesX10Limit} → max 10`);
-            maxBatch = 10;
-        }
-        // Shard-based limits: collectedShards = 100 - minRemainingShards
-        const collectedShards = 100 - minRemainingShards;
-        if (collectedShards >= userSettings.sandalwoodShardsX1Limit) {
-            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: collectedShards ${collectedShards} >= shardsX1Limit ${userSettings.sandalwoodShardsX1Limit} → max 1`);
-            maxBatch = 1;
-        }
-        else if (collectedShards >= userSettings.sandalwoodShardsX10Limit && maxBatch > 10) {
-            LogUtils_logHHAuto(`[SW-DEBUG] batch cap: collectedShards ${collectedShards} >= shardsX10Limit ${userSettings.sandalwoodShardsX10Limit} → max 10`);
-            maxBatch = 10;
-        }
-        LogUtils_logHHAuto(`[SW-DEBUG] getRecommendedBatchSize: final recommendation → ${maxBatch}`);
-        return maxBatch;
     }
 }
 /** Sandalwood identifier constant — id_item is resolved from market data or env config at runtime. */
@@ -7615,18 +7562,6 @@ class Troll {
                             && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
                             || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
                             || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
-                        // Sandalwood batch-sizing: compute recommended batch based on doses + shards
-                        const dosesRemaining = Booster.getSandalwoodDosesRemaining();
-                        LogUtils_logHHAuto(`[SW-DEBUG] CrushThemFights: eventShards=${remainingEventShards}, raidShards=${remainingLoveRaidShards}, totalRemaining=${remainingShards}, dosesRemaining=${dosesRemaining}, isMythic=${eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic}, power=${currentPower}`);
-                        const recommendedBatch = Booster.getRecommendedBatchSize(Math.min(remainingEventShards || 100, remainingLoveRaidShards || 100), dosesRemaining, {
-                            useX50: getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true",
-                            useX10: getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true",
-                            sandalwoodShardsX10Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodShardsX10Limit)) || 80,
-                            sandalwoodShardsX1Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodShardsX1Limit)) || 95,
-                            sandalwoodDosesX10Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit)) || 6,
-                            sandalwoodDosesX1Limit: Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit)) || 3,
-                        });
-                        LogUtils_logHHAuto(`[SW-DEBUG] CrushThemFights: recommendedBatch=${recommendedBatch}`);
                         const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
                         if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
                             && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
@@ -7634,8 +7569,7 @@ class Troll {
                             && currentPower >= 50
                             && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
                                 || bypassThreshold)
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
-                            && recommendedBatch >= 50) {
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
                             setHHVars('Hero.infos.hc_confirm', true);
                             // We have the power.
@@ -7657,8 +7591,7 @@ class Troll {
                         }
                         else {
                             if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                                const x50BlockedBy = recommendedBatch < 50 ? ` (SW batch cap: ${recommendedBatch})` : '';
-                                LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x50BlockedBy}`);
+                                LogUtils_logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
                             }
                         }
                         const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
@@ -7668,8 +7601,7 @@ class Troll {
                             && currentPower >= 10
                             && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
                                 || bypassThreshold)
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
-                            && recommendedBatch >= 10) {
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
                             setHHVars('Hero.infos.hc_confirm', true);
                             // We have the power.
@@ -7691,8 +7623,7 @@ class Troll {
                         }
                         else {
                             if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
-                                const x10BlockedBy = recommendedBatch < 10 ? ` (SW batch cap: ${recommendedBatch})` : '';
-                                LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}${x10BlockedBy}`);
+                                LogUtils_logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
                             }
                         }
                     }
@@ -8243,10 +8174,6 @@ const SK = {
     useX50FightsAllowNormalEvent: "Setting_useX50FightsAllowNormalEvent",
     minShardsX10: "Setting_minShardsX10",
     minShardsX50: "Setting_minShardsX50",
-    sandalwoodShardsX10Limit: "Setting_sandalwoodShardsX10Limit",
-    sandalwoodShardsX1Limit: "Setting_sandalwoodShardsX1Limit",
-    sandalwoodDosesX10Limit: "Setting_sandalwoodDosesX10Limit",
-    sandalwoodDosesX1Limit: "Setting_sandalwoodDosesX1Limit",
     sandalwoodMinShardsThreshold: "Setting_sandalwoodMinShardsThreshold",
     kobanBank: "Setting_kobanBank",
     buyCombat: "Setting_buyCombat",
@@ -9742,50 +9669,6 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX10] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.minShardsX50] =
     {
         default: "50",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Small Integer",
-        getMenu: true,
-        setMenu: true,
-        menuType: "value",
-        kobanUsing: false
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX10Limit] =
-    {
-        default: "80",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Small Integer",
-        getMenu: true,
-        setMenu: true,
-        menuType: "value",
-        kobanUsing: false
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodShardsX1Limit] =
-    {
-        default: "95",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Small Integer",
-        getMenu: true,
-        setMenu: true,
-        menuType: "value",
-        kobanUsing: false
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX10Limit] =
-    {
-        default: "6",
-        storage: "Storage()",
-        HHType: "Setting",
-        valueType: "Small Integer",
-        getMenu: true,
-        setMenu: true,
-        menuType: "value",
-        kobanUsing: false
-    };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit] =
-    {
-        default: "3",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Small Integer",
@@ -19520,12 +19403,6 @@ function getMenu() {
             + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
             + `</div>`
             + hhMenuSwitch('plusGirlSkins')
-            + `</div>`
-            + `<div class="internalOptionsRow">`
-            + hhMenuInput('sandalwoodShardsX10Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
-            + hhMenuInput('sandalwoodShardsX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
-            + hhMenuInput('sandalwoodDosesX10Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
-            + hhMenuInput('sandalwoodDosesX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
             + hhMenuInput('sandalwoodMinShardsThreshold', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
             + `</div>`
             + `<div class="internalOptionsRow">`
