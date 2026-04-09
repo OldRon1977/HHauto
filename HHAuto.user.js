@@ -23429,9 +23429,6 @@ const FEATURE_POPUP_CONTENT = `
       <li><b>10</b> = stop equipping when ≤10 shards remain</li>
     </ul>
     <p><b>Example:</b> You set it to <b>3</b>. The script equips Sandalwood until only 3 or fewer shards are needed, then fights without it.</p>
-    <p style="font-size:11px; color:#666;">
-      The previous batch-sizing settings (SW shards x10/x1, SW doses x10/x1) have been removed as only x1 fights are currently used.
-    </p>
   </div>
 `;
 class FeaturePopupService {
