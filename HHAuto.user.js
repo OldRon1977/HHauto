@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.16
+// @version      7.35.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -474,6 +474,7 @@ HHAuto_ToolTips.en['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText
 HHAuto_ToolTips.en['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Reset Rare girls", tooltip: "Reset Rare girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Reset Common girls", tooltip: "Reset Common girls to ket more orbs" };
 HHAuto_ToolTips.en['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Un-equip all Before", tooltip: "Remove all equipment from girls before starting" };
+HHAuto_ToolTips.en['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimize equipment", tooltip: "After auto-equip, check each slot and replace items with better alternatives.<br/>Prioritizes highest stat total, then resonance matches, then individual stats." };
 HHAuto_ToolTips.en['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skill points:<br/>(needed/owned)" };
 HHAuto_ToolTips.en['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Main girl up to 5th skill<br />Other girls up to 4th skill" };
 HHAuto_ToolTips.en['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Enough bulbs owned" };
@@ -704,6 +705,7 @@ HHAuto_ToolTips.fr['mythicGirlNext'] = { version: "5.6.24", elementText: "Vague 
 HHAuto_ToolTips.fr['PachinkoFillOrbs'] = { version: "5.6.134", elementText: 'Remplir orbes', tooltip: "Remplir le champs avec toutes les orbes disponibles." };
 HHAuto_ToolTips.fr['collectAllTimer'] = { version: "6.15.8", elementText: "Timer Tout collecter (en heure)", tooltip: "Nombre d'heure avant la fin de l'evenement pour collecter toutes les récompenses (Faible temps peu entrainer un echec de collecte), Nécéssite une activation sur chaque évenement (POV, POG, season)" };
 HHAuto_ToolTips.fr['collectAllButton'] = { version: "7.3.0", elementText: "Tout réclamer", tooltip: "Réclame toutes les récompenses de manière automatique" };
+HHAuto_ToolTips.fr['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimiser équipement", tooltip: "Après l'équipement automatique, vérifie chaque emplacement et remplace les items par de meilleures alternatives.<br/>Priorise la somme de stats la plus élevée, puis les bonus de résonance, puis les stats individuelles." };
 HHAuto_ToolTips.fr['latestTroll'] = { version: "7.23.0", elementText: "Dernier troll de l'aventure principale", tooltip: "" };
 HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Aventure principale", tooltip: "" };
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Aventure secondaire", tooltip: "" };
@@ -775,6 +777,7 @@ HHAuto_ToolTips.de['maxAff'] = { version: "5.6.24", elementText: "Max AnziehungK
 HHAuto_ToolTips.de['OpponentListBuilding'] = { version: "5.6.24", elementText: "Gegnerliste wird erstellt", tooltip: "" };
 HHAuto_ToolTips.de['OpponentParsed'] = { version: "5.6.24", elementText: "Gegner analysiert", tooltip: "" };
 HHAuto_ToolTips.de['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min. Shards", tooltip: "Kein Sandalwood mehr ausrüsten, wenn verbleibende Shards diesen Wert erreichen oder unterschreiten. 0 = Sandalwood immer ausrüsten." };
+HHAuto_ToolTips.de['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Equipment optimieren", tooltip: "Nach dem Auto-Equip jeden Slot prüfen und Items durch bessere Alternativen ersetzen.<br/>Priorisiert höchste Stat-Summe, dann Resonance-Matches, dann Einzel-Stats." };
 HHAuto_ToolTips.de['povTitle'] = { version: "5.20.3", elementText: "Pfad der Tapferkeit (PoV)" };
 HHAuto_ToolTips.de['pogTitle'] = { version: "5.20.3", elementText: "Pfad des Ruhmes (PoG)" };
 
@@ -857,6 +860,7 @@ HHAuto_ToolTips.es['timerResetSelector'] = { version: "5.6.24", elementText: "Se
 HHAuto_ToolTips.es['timerResetButton'] = { version: "5.6.24", elementText: "Restablecer", tooltip: "Establece el temporizador a 0." };
 HHAuto_ToolTips.es['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Tiempo restante" };
 HHAuto_ToolTips.es['timerResetNoTimer'] = { version: "5.6.24", elementText: "No hay temporizador seleccionado", tooltip: "" };
+HHAuto_ToolTips.es['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimizar equipamiento", tooltip: "Después del auto-equipar, revisa cada ranura y reemplaza items con mejores alternativas.<br/>Prioriza la suma total de stats, luego coincidencias de resonancia, luego stats individuales." };
 HHAuto_ToolTips.es['povTitle'] = { version: "5.20.3", elementText: "Camino del Valor" };
 HHAuto_ToolTips.es['pogTitle'] = { version: "5.20.3", elementText: "Camino de la Gloria" };
 
@@ -8390,6 +8394,7 @@ const TK = {
     haremTeam: "Temp_haremTeam",
     haremTeamScrolls: "Temp_haremTeamScrolls",
     haremTeamSettings: "Temp_haremTeamSettings",
+    haremTeamOptimizeEquipment: "Temp_haremTeamOptimizeEquipment",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -11728,6 +11733,10 @@ class HaremGirl {
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
                         $('#girl-equip').trigger('click');
                         yield TimeHelper.sleep(randomInterval(400, 700));
+                        const optimizeEquipment = getStoredValue(HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment) === 'true';
+                        if (optimizeEquipment) {
+                            yield HaremGirl.optimizeEquipmentSlots(girl);
+                        }
                     }
                     if (upgradeSkill) {
                         HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
@@ -11835,6 +11844,89 @@ class HaremGirl {
         catch (error) {
             LogUtils_logHHAuto("Can't remove popup_message_harem");
         }
+    }
+    static optimizeEquipmentSlots(girl) {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            const RARITY_ORDER = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
+            const equipmentSlots = $('.equipment_slot');
+            const slotCount = equipmentSlots.length;
+            LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+            for (let i = 0; i < slotCount; i++) {
+                const slot = equipmentSlots.eq(i);
+                slot.trigger('click');
+                yield TimeHelper.sleep(randomInterval(300, 500));
+                const equippedEl = slot.find('.slot[data-d]');
+                let equippedData = null;
+                if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
+                    equippedData = JSON.parse(equippedEl.attr('data-d'));
+                }
+                const inventoryItems = [];
+                $('.right-section .slot[data-d]').each(function () {
+                    const raw = $(this).attr('data-d');
+                    if (!raw)
+                        return;
+                    const data = JSON.parse(raw);
+                    if (data.caracs) {
+                        inventoryItems.push({ el: $(this), data });
+                    }
+                });
+                if (inventoryItems.length === 0) {
+                    LogUtils_logHHAuto(`Slot ${i}: no inventory items available, skipping`);
+                    continue;
+                }
+                const scoreItem = (item) => {
+                    const c = item.caracs;
+                    const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+                    let resonanceMatches = 0;
+                    if (item.resonance_bonuses) {
+                        const rb = item.resonance_bonuses;
+                        if (rb.class && String(rb.class.identifier) === String(girl.class))
+                            resonanceMatches++;
+                        if (rb.element && String(rb.element.identifier) === String(girl.element))
+                            resonanceMatches++;
+                        if (rb.figure && String(rb.figure.identifier) === String(girl.figure))
+                            resonanceMatches++;
+                    }
+                    return { caracSum, resonanceMatches };
+                };
+                const bestInventory = inventoryItems.sort((a, b) => {
+                    const sa = scoreItem(a.data);
+                    const sb = scoreItem(b.data);
+                    if (sb.caracSum !== sa.caracSum)
+                        return sb.caracSum - sa.caracSum;
+                    if (sb.resonanceMatches !== sa.resonanceMatches)
+                        return sb.resonanceMatches - sa.resonanceMatches;
+                    const ca = a.data.caracs;
+                    const cb = b.data.caracs;
+                    return ((cb.carac1 || 0) + (cb.carac2 || 0) + (cb.carac3 || 0)) - ((ca.carac1 || 0) + (ca.carac2 || 0) + (ca.carac3 || 0));
+                })[0];
+                if (!bestInventory)
+                    continue;
+                const bestScore = scoreItem(bestInventory.data);
+                let shouldReplace = false;
+                if (!equippedData || !equippedData.caracs) {
+                    shouldReplace = true;
+                }
+                else {
+                    const equippedScore = scoreItem(equippedData);
+                    if (bestScore.caracSum > equippedScore.caracSum) {
+                        shouldReplace = true;
+                    }
+                    else if (bestScore.caracSum === equippedScore.caracSum && bestScore.resonanceMatches > equippedScore.resonanceMatches) {
+                        shouldReplace = true;
+                    }
+                }
+                if (shouldReplace) {
+                    LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
+                    bestInventory.el.trigger('click');
+                    yield TimeHelper.sleep(randomInterval(300, 500));
+                }
+                else {
+                    LogUtils_logHHAuto(`Slot ${i}: current item is optimal`);
+                }
+            }
+            LogUtils_logHHAuto('Equipment optimization complete');
+        });
     }
 }
 HaremGirl.AFFECTION_TYPE = 'affection';
@@ -17224,6 +17316,7 @@ class TeamModule {
             <div class="rowLine">
                 ${hhMenuSwitch('unequipGirlsBefore')}
                 ${hhMenuSwitch('StuffTeamEquipment')}
+                ${hhMenuSwitch('StuffTeamOptimizeEquipment')}
                 ${hhMenuSwitch('StuffTeamSkills')}
             </div>
             <hr/>
@@ -17253,6 +17346,7 @@ class TeamModule {
         fillHHPopUp("stuffTeamMenu", getTextForUI("StuffTeam", "elementText"), stuffTeamMenu);
         document.getElementById("unequipGirlsBefore").checked = true;
         document.getElementById("StuffTeamEquipment").checked = true;
+        document.getElementById("StuffTeamOptimizeEquipment").checked = false;
         document.getElementById("StuffTeamSkills").checked = true;
         $("#stuffTeamSubmit").on("click", function () {
             LogUtils_logHHAuto('Stuff from edit team');
@@ -17267,10 +17361,12 @@ class TeamModule {
                     resetCommonGirls: document.getElementById("stuffTeamResetCommonGirls").checked,
                 };
                 LogUtils_logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
+                const optimizeEquipment = document.getElementById("StuffTeamOptimizeEquipment").checked;
                 setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
                 setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
                 setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
                 setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment, String(optimizeEquipment));
                 setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                 if (teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));

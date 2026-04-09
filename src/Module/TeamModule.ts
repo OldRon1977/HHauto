@@ -224,6 +224,7 @@ export class TeamModule {
             <div class="rowLine">
                 ${hhMenuSwitch('unequipGirlsBefore')}
                 ${hhMenuSwitch('StuffTeamEquipment')}
+                ${hhMenuSwitch('StuffTeamOptimizeEquipment')}
                 ${hhMenuSwitch('StuffTeamSkills')}
             </div>
             <hr/>
@@ -254,6 +255,7 @@ export class TeamModule {
 
         (<HTMLInputElement>document.getElementById("unequipGirlsBefore")).checked = true;
         (<HTMLInputElement>document.getElementById("StuffTeamEquipment")).checked = true;
+        (<HTMLInputElement>document.getElementById("StuffTeamOptimizeEquipment")).checked = false;
         (<HTMLInputElement>document.getElementById("StuffTeamSkills")).checked = true;
 
 
@@ -272,10 +274,13 @@ export class TeamModule {
                 };
                 logHHAuto('Team settings: ' + JSON.stringify(teamSettings));
                 
+                const optimizeEquipment = (<HTMLInputElement>document.getElementById("StuffTeamOptimizeEquipment")).checked;
+
                 setStoredValue(HHStoredVarPrefixKey + TK.haremTeam, JSON.stringify(team));
                 setStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions, HaremGirl.SKILLS_TYPE + '_' + HaremGirl.EQUIPMENT_TYPE);
                 setStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode, 'team');
                 setStoredValue(HHStoredVarPrefixKey + TK.haremTeamSettings, JSON.stringify(teamSettings));
+                setStoredValue(HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment, String(optimizeEquipment));
                 setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, Harem.HAREM_UPGRADE_LAST_ACTION);
                 
                 if(teamSettings.resetCommonGirls || teamSettings.resetRareGirls || teamSettings.resetEpicGirls || teamSettings.resetLegendaryGirls || teamSettings.resetMythicGirls) {

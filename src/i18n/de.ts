@@ -64,5 +64,6 @@ HHAuto_ToolTips.de['maxAff'] = { version: "5.6.24", elementText: "Max AnziehungK
 HHAuto_ToolTips.de['OpponentListBuilding'] = { version: "5.6.24", elementText: "Gegnerliste wird erstellt", tooltip: ""};
 HHAuto_ToolTips.de['OpponentParsed'] = { version: "5.6.24", elementText: "Gegner analysiert", tooltip: ""};
 HHAuto_ToolTips.de['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min. Shards", tooltip: "Kein Sandalwood mehr ausrüsten, wenn verbleibende Shards diesen Wert erreichen oder unterschreiten. 0 = Sandalwood immer ausrüsten."};
+HHAuto_ToolTips.de['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Equipment optimieren", tooltip: "Nach dem Auto-Equip jeden Slot prüfen und Items durch bessere Alternativen ersetzen.<br/>Priorisiert höchste Stat-Summe, dann Resonance-Matches, dann Einzel-Stats." };
 HHAuto_ToolTips.de['povTitle'] = { version: "5.20.3", elementText: "Pfad der Tapferkeit (PoV)"};
 HHAuto_ToolTips.de['pogTitle'] = { version: "5.20.3", elementText: "Pfad des Ruhmes (PoG)"};

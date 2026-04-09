@@ -715,6 +715,10 @@ export class HaremGirl {
                     $('#girl-equip').trigger('click');
                     await TimeHelper.sleep(randomInterval(400, 700));
 
+                    const optimizeEquipment = getStoredValue(HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment) === 'true';
+                    if (optimizeEquipment) {
+                        await HaremGirl.optimizeEquipmentSlots(girl);
+                    }
                 }
                 if (upgradeSkill) {
                     HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
@@ -815,12 +819,95 @@ export class HaremGirl {
     static HaremClearGirlPopup(retry = false)
     {
         try {
-            $("#popup_message_harem").remove(); 
+            $("#popup_message_harem").remove();
             if($("#popup_message_harem").length > 0 && !retry) {
                 setTimeout(() => { HaremGirl.HaremClearGirlPopup(true)}, 1500);
             }
         } catch (error) {
             logHHAuto("Can't remove popup_message_harem");
         }
+    }
+
+    static async optimizeEquipmentSlots(girl: KKHaremGirl) {
+        const RARITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
+        const equipmentSlots = $('.equipment_slot');
+        const slotCount = equipmentSlots.length;
+
+        logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+
+        for (let i = 0; i < slotCount; i++) {
+            const slot = equipmentSlots.eq(i);
+            slot.trigger('click');
+            await TimeHelper.sleep(randomInterval(300, 500));
+
+            const equippedEl = slot.find('.slot[data-d]');
+            let equippedData: any = null;
+            if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
+                equippedData = JSON.parse(equippedEl.attr('data-d')!);
+            }
+
+            const inventoryItems: { el: JQuery<HTMLElement>, data: any }[] = [];
+            $('.right-section .slot[data-d]').each(function () {
+                const raw = $(this).attr('data-d');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (data.caracs) {
+                    inventoryItems.push({ el: $(this), data });
+                }
+            });
+
+            if (inventoryItems.length === 0) {
+                logHHAuto(`Slot ${i}: no inventory items available, skipping`);
+                continue;
+            }
+
+            const scoreItem = (item: any): { caracSum: number, resonanceMatches: number } => {
+                const c = item.caracs;
+                const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+                let resonanceMatches = 0;
+                if (item.resonance_bonuses) {
+                    const rb = item.resonance_bonuses;
+                    if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
+                    if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
+                    if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
+                }
+                return { caracSum, resonanceMatches };
+            };
+
+            const bestInventory = inventoryItems.sort((a, b) => {
+                const sa = scoreItem(a.data);
+                const sb = scoreItem(b.data);
+                if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
+                if (sb.resonanceMatches !== sa.resonanceMatches) return sb.resonanceMatches - sa.resonanceMatches;
+                const ca = a.data.caracs;
+                const cb = b.data.caracs;
+                return ((cb.carac1||0)+(cb.carac2||0)+(cb.carac3||0)) - ((ca.carac1||0)+(ca.carac2||0)+(ca.carac3||0));
+            })[0];
+
+            if (!bestInventory) continue;
+
+            const bestScore = scoreItem(bestInventory.data);
+            let shouldReplace = false;
+
+            if (!equippedData || !equippedData.caracs) {
+                shouldReplace = true;
+            } else {
+                const equippedScore = scoreItem(equippedData);
+                if (bestScore.caracSum > equippedScore.caracSum) {
+                    shouldReplace = true;
+                } else if (bestScore.caracSum === equippedScore.caracSum && bestScore.resonanceMatches > equippedScore.resonanceMatches) {
+                    shouldReplace = true;
+                }
+            }
+
+            if (shouldReplace) {
+                logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
+                bestInventory.el.trigger('click');
+                await TimeHelper.sleep(randomInterval(300, 500));
+            } else {
+                logHHAuto(`Slot ${i}: current item is optimal`);
+            }
+        }
+        logHHAuto('Equipment optimization complete');
     }
 }

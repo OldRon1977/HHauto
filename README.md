@@ -16,6 +16,31 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.0 — Optimized Equipment Selection
+
+The **Stuff Team** feature now offers an optional **"Optimize equipment"** toggle. When enabled, the bot checks each equipment slot after the game's auto-equip and replaces items with better alternatives from the inventory.
+
+**How it works:**
+- After the game's built-in auto-equip runs, the bot iterates through all 6 equipment slots
+- For each slot, it compares the equipped item against all available inventory items
+- Items are ranked by total stat sum (carac1 + carac2 + carac3 + damage + defense + ego), which naturally reflects both item level and rarity
+- If two items have equal stats, the one with more resonance matches (class, theme, pose) wins
+
+**Selection priority:**
+1. Highest total stat sum (a Level 9 Mythic can beat a Level 10 Legendary)
+2. Most resonance bonus matches with the girl (class, element, figure)
+3. Highest individual combat stats (carac1 + carac2 + carac3)
+
+| Setting | Default | Location |
+|---------|---------|----------|
+| Optimize equipment | Off | Stuff Team popup (between "Give equipment" and "Give skills") |
+
+The toggle defaults to **off** to preserve the existing fast behavior. Enabling it adds a few seconds per girl but ensures optimal equipment selection.
+
+Closes #1538
+
+---
+
 ### v7.34.16 — Configurable Sandalwood Min Shards Threshold
 
 The hardcoded threshold of 10 remaining shards — which prevented Sandalwood from being equipped near the end of girl farming — has been replaced with a user-configurable setting **"SW min shards"** (visible next to the +Girl Skins switch).
