@@ -28,8 +28,6 @@ The **Stuff Team** equipment selection has been improved. After the game's built
 
 No new settings required — the optimization runs automatically as part of "Give equipment".
 
-See [#1538](https://github.com/Roukys/HHauto/issues/1538)
-
 ---
 
 ### v7.34.16 — Configurable Sandalwood Min Shards Threshold

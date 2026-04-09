@@ -35,7 +35,7 @@ const MAX_REMIND_COUNT = 3;
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "7.34.16";
+const FEATURE_POPUP_VERSION: string = "7.35.0";
 
 /**
  * Title shown in the popup header.
@@ -64,12 +64,11 @@ const FEATURE_POPUP_TITLE = "What's New in HHAuto";
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:500px; color:#333;">
     <h3 style="margin-top:0;">v7.34.16 — New Setting: "SW min shards"</h3>
-    <p>Controls when Sandalwood stops being equipped based on remaining shards (only relevant if auto Sandalwood is enabled).</p>
-    <ul style="padding-left:18px;">
-      <li><b>0</b> (default) = no shard limit, Sandalwood is used until the girl is complete</li>
-      <li><b>10</b> = stop equipping when ≤10 shards remain</li>
-    </ul>
-    <p><b>Example:</b> You set it to <b>3</b>. The script equips Sandalwood until only 3 or fewer shards are needed, then fights without it.</p>
+    <p>Controls when Sandalwood stops being equipped based on remaining shards.
+    <b>0</b> (default) = no limit, Sandalwood is used until the girl is complete.</p>
+    <p><b>Example:</b> Setting it to <b>1</b> means Sandalwood is equipped until only 1 shard remains.</p>
+    <h3>v7.35.0 — Optimized Equipment Selection</h3>
+    <p>"Give equipment" now checks each slot after auto-equip and replaces items with better alternatives from your inventory. Items are ranked by total stats, with resonance matches as tiebreaker. No new settings required.</p>
   </div>
 `;
 
