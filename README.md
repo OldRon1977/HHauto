@@ -18,26 +18,17 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ### v7.35.0 — Optimized Equipment Selection
 
-The **Stuff Team** feature now offers an optional **"Optimize equipment"** toggle. When enabled, the bot checks each equipment slot after the game's auto-equip and replaces items with better alternatives from the inventory.
+The **Stuff Team** equipment selection has been improved. After the game's built-in auto-equip runs, the bot now checks each of the 6 equipment slots and replaces items with better alternatives from your inventory.
 
 **How it works:**
-- After the game's built-in auto-equip runs, the bot iterates through all 6 equipment slots
-- For each slot, it compares the equipped item against all available inventory items
-- Items are ranked by total stat sum (carac1 + carac2 + carac3 + damage + defense + ego), which naturally reflects both item level and rarity
+- For each slot, the equipped item is compared against all available inventory items
+- Items are ranked by their total combined stats, which naturally reflects both item level and rarity (a Level 9 Mythic can beat a Level 10 Legendary)
 - If two items have equal stats, the one with more resonance matches (class, theme, pose) wins
+- As a final tiebreaker, the item with higher combat stats is preferred
 
-**Selection priority:**
-1. Highest total stat sum (a Level 9 Mythic can beat a Level 10 Legendary)
-2. Most resonance bonus matches with the girl (class, element, figure)
-3. Highest individual combat stats (carac1 + carac2 + carac3)
+No new settings required — the optimization runs automatically as part of "Give equipment".
 
-| Setting | Default | Location |
-|---------|---------|----------|
-| Optimize equipment | Off | Stuff Team popup (between "Give equipment" and "Give skills") |
-
-The toggle defaults to **off** to preserve the existing fast behavior. Enabling it adds a few seconds per girl but ensures optimal equipment selection.
-
-Closes #1538
+See [#1538](https://github.com/Roukys/HHauto/issues/1538)
 
 ---
 

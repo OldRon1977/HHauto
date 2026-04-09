@@ -274,7 +274,6 @@ export const TK = {
     haremTeam: "Temp_haremTeam",
     haremTeamScrolls: "Temp_haremTeamScrolls",
     haremTeamSettings: "Temp_haremTeamSettings",
-    haremTeamOptimizeEquipment: "Temp_haremTeamOptimizeEquipment",
 
     // Resources
     haveAff: "Temp_haveAff",

@@ -77,6 +77,5 @@ HHAuto_ToolTips.es['timerResetSelector'] = { version: "5.6.24", elementText: "Se
 HHAuto_ToolTips.es['timerResetButton'] = { version: "5.6.24", elementText: "Restablecer", tooltip: "Establece el temporizador a 0."};
 HHAuto_ToolTips.es['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Tiempo restante"};
 HHAuto_ToolTips.es['timerResetNoTimer'] = { version: "5.6.24", elementText: "No hay temporizador seleccionado", tooltip: ""};
-HHAuto_ToolTips.es['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimizar equipamiento", tooltip: "Después del auto-equipar, revisa cada ranura y reemplaza items con mejores alternativas.<br/>Prioriza la suma total de stats, luego coincidencias de resonancia, luego stats individuales." };
 HHAuto_ToolTips.es['povTitle'] = { version: "5.20.3", elementText: "Camino del Valor"};
 HHAuto_ToolTips.es['pogTitle'] = { version: "5.20.3", elementText: "Camino de la Gloria"};

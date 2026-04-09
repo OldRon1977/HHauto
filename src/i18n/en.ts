@@ -290,7 +290,6 @@ HHAuto_ToolTips.en['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText
 HHAuto_ToolTips.en['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Reset Rare girls", tooltip: "Reset Rare girls to ket more orbs" };
 HHAuto_ToolTips.en['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Reset Common girls", tooltip: "Reset Common girls to ket more orbs" };
 HHAuto_ToolTips.en['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Un-equip all Before", tooltip: "Remove all equipment from girls before starting" };
-HHAuto_ToolTips.en['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimize equipment", tooltip: "After auto-equip, check each slot and replace items with better alternatives.<br/>Prioritizes highest stat total, then resonance matches, then individual stats." };
 HHAuto_ToolTips.en['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skill points:<br/>(needed/owned)"};
 HHAuto_ToolTips.en['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Main girl up to 5th skill<br />Other girls up to 4th skill"};
 HHAuto_ToolTips.en['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Enough bulbs owned"};

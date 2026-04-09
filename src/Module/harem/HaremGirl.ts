@@ -715,10 +715,7 @@ export class HaremGirl {
                     $('#girl-equip').trigger('click');
                     await TimeHelper.sleep(randomInterval(400, 700));
 
-                    const optimizeEquipment = getStoredValue(HHStoredVarPrefixKey + TK.haremTeamOptimizeEquipment) === 'true';
-                    if (optimizeEquipment) {
-                        await HaremGirl.optimizeEquipmentSlots(girl);
-                    }
+                    await HaremGirl.optimizeEquipmentSlots(girl);
                 }
                 if (upgradeSkill) {
                     HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);

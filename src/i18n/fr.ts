@@ -145,7 +145,6 @@ HHAuto_ToolTips.fr['mythicGirlNext'] = { version: "5.6.24", elementText: "Vague 
 HHAuto_ToolTips.fr['PachinkoFillOrbs'] = {version: "5.6.134", elementText: 'Remplir orbes', tooltip: "Remplir le champs avec toutes les orbes disponibles."};
 HHAuto_ToolTips.fr['collectAllTimer'] = {version: "6.15.8", elementText: "Timer Tout collecter (en heure)", tooltip: "Nombre d'heure avant la fin de l'evenement pour collecter toutes les récompenses (Faible temps peu entrainer un echec de collecte), Nécéssite une activation sur chaque évenement (POV, POG, season)"};
 HHAuto_ToolTips.fr['collectAllButton'] = { version: "7.3.0", elementText: "Tout réclamer", tooltip: "Réclame toutes les récompenses de manière automatique" };
-HHAuto_ToolTips.fr['StuffTeamOptimizeEquipment'] = { version: "7.35.0", elementText: "Optimiser équipement", tooltip: "Après l'équipement automatique, vérifie chaque emplacement et remplace les items par de meilleures alternatives.<br/>Priorise la somme de stats la plus élevée, puis les bonus de résonance, puis les stats individuelles." };
 HHAuto_ToolTips.fr['latestTroll'] = { version: "7.23.0", elementText: "Dernier troll de l'aventure principale", tooltip: "" };
 HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Aventure principale", tooltip: "" };
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Aventure secondaire", tooltip: "" };
