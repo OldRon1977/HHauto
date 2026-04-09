@@ -11931,6 +11931,10 @@ class HaremGirl {
                                 LogUtils_logHHAuto(`Slot ${i}: equip failed, response: ${JSON.stringify(data)}`);
                             }
                             resolve();
+                        }, function (error) {
+                            clearTimeout(timeout);
+                            LogUtils_logHHAuto(`Slot ${i}: equip error: ${error}`);
+                            resolve();
                         });
                     });
                     window.history.replaceState(null, '', addNutakuSession(currentPath));

@@ -922,6 +922,10 @@ export class HaremGirl {
                             logHHAuto(`Slot ${i}: equip failed, response: ${JSON.stringify(data)}`);
                         }
                         resolve();
+                    }, function (error: any) {
+                        clearTimeout(timeout);
+                        logHHAuto(`Slot ${i}: equip error: ${error}`);
+                        resolve();
                     });
                 });
 
