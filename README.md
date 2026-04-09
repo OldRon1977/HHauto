@@ -16,6 +16,18 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.34.16 — Configurable Sandalwood Min Shards Threshold
+
+The hardcoded threshold of 10 remaining shards — which prevented Sandalwood from being equipped near the end of girl farming — has been replaced with a user-configurable setting **"SW min shards"** (visible next to the +Girl Skins switch).
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| SW min shards | 0 | Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = no limit, Sandalwood is used until the girl is complete. |
+
+The previous batch-sizing settings (SW shards x10/x1 limit, SW doses x10/x1 limit) and `getRecommendedBatchSize()` have been removed as only x1 fights are currently used.
+
+---
+
 ### v7.34 — Smarter Team Selection
 
 The **"Current Best"** and **"Possible Best"** buttons on the Edit Team page now use an advanced team selection algorithm. Instead of simply picking the 16 girls with the highest stat totals, the script builds an optimized 7-girl team that considers Tier-3 trait matching, element synergies, leader skill quality, rarity filtering, and blessing-aware stat comparison.
@@ -139,9 +151,9 @@ A voluntary, anonymous **Settings Survey** has been added to help us understand 
 
 ---
 
-### v7.33.0 — Sandalwood Proactive Re-equip & Intelligent Batch Sizing
+### v7.33.0 — Sandalwood Proactive Re-equip
 
-A new **Proactive Re-equip** system for the Sandalwood Perfume booster (MB1) that automatically detects when the booster is depleted and re-equips a new one from the market — without waiting for the next scheduled booster check. Additionally, the script now intelligently limits fight batch sizes (x50/x10/x1) based on remaining Sandalwood doses to avoid wasting the booster on oversized batches.
+A new **Proactive Re-equip** system for the Sandalwood Perfume booster (MB1) that automatically detects when the booster is depleted and re-equips a new one from the market — without waiting for the next scheduled booster check.
 
 #### The Problem (before v7.33.0)
 
@@ -164,32 +176,12 @@ The dose count is stored in sessionStorage and refreshed from the server wheneve
 
 Before each fight, `needSandalWoodEquipped()` checks if the tracked dose count has reached 0. If so, it removes the depleted booster from the internal booster status, which triggers the existing equip logic to visit the market and equip a fresh Sandalwood automatically — no manual intervention needed.
 
-**3. Intelligent Batch Sizing**
-
-The script now calculates the maximum safe batch size before each fight using `getRecommendedBatchSize()`. It picks the **most restrictive** limit from:
-- **Remaining doses**: Not enough doses for a x50? Downgrade to x10. Not enough for x10? Use x1.
-- **Remaining shards until limit**: Close to your shard target? Use smaller batches to avoid overshooting.
-- **User preferences**: Your x50/x10 toggle settings are still respected.
-
-This means the script gradually transitions from x50 → x10 → x1 as Sandalwood runs low, maximizing efficiency.
-
-**4. Race-Condition Fix (Flag+Resolver Pattern)**
+**3. Race-Condition Fix (Flag+Resolver Pattern)**
 
 For batch fights (x50/x10), the script now uses a synchronization mechanism:
 - `resetBattleResponseFlag()` is called before clicking the fight button
 - `waitForBattleResponse()` pauses until the AJAX response is fully processed (with a 30s timeout)
 - This ensures dose tracking is always up-to-date before the next batch decision
-
-#### New Settings
-
-Four configurable thresholds control when batch downsizing kicks in:
-
-| Setting | Default | Purpose |
-|---------|---------|---------|
-| SW Shards x10 Limit | 80 | Shards collected before downgrading from x10 to x1 |
-| SW Shards x1 Limit | 95 | Shards collected before stopping x1 fights |
-| SW Doses x10 Limit | 6 | Minimum doses required to use x10 batch |
-| SW Doses x1 Limit | 3 | Minimum doses required to use x1 batch |
 
 #### Debug Logging
 
