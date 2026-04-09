@@ -18200,7 +18200,8 @@ class TransPornstarHarem {
             'CEO Ramona',
             'Mama Bee',
             'Officer Jolie',
-            'Ariel in Wonderland'];
+            'Ariel in Wonderland',
+            'Rex & Kate'];
     }
     static getTrollGirlsId() {
         return [
@@ -18214,13 +18215,14 @@ class TransPornstarHarem {
             [['692804877', '984917842', '581358076'], ['397703278', '704166982', '483645616'], ['349968569', '970429531', '954328841']],
             [[0], [0], [0]],
             [[0], [0], [0]],
+            [[0], [0], [0]],
         ];
     }
     static updateFeatures(envVariables) {
         envVariables.isEnabledSpreadsheets = false;
     }
 }
-TransPornstarHarem.trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 11: 8, 13: 9, 14: 10 };
+TransPornstarHarem.trollIdMapping = { 2: 1, 3: 2, 5: 3, 6: 4, 7: 5, 8: 6, 9: 7, 11: 8, 13: 9, 14: 10, 15: 11 };
 TransPornstarHarem.lastQuestId = -1; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/index.ts
