@@ -33,6 +33,7 @@ export const SK = {
     sandalwoodShardsX1Limit: "Setting_sandalwoodShardsX1Limit",
     sandalwoodDosesX10Limit: "Setting_sandalwoodDosesX10Limit",
     sandalwoodDosesX1Limit: "Setting_sandalwoodDosesX1Limit",
+    sandalwoodMinShardsThreshold: "Setting_sandalwoodMinShardsThreshold",
     kobanBank: "Setting_kobanBank",
     buyCombat: "Setting_buyCombat",
     buyCombTimer: "Setting_buyCombTimer",

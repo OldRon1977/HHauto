@@ -654,6 +654,15 @@ export class Booster {
         }
     }
 
+    /**
+     * Returns the user-configured minimum shards threshold for Sandalwood.
+     * When remaining shards fall to this value or below, Sandalwood won't be equipped.
+     * Default 0 = always equip Sandalwood.
+     */
+    static getSandalwoodMinShardsThreshold(): number {
+        return Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodMinShardsThreshold)) || 0;
+    }
+
     static needSandalWoodEvent(nextTrollChoosen: number, eventGirl: EventGirl = null): boolean {
         if (!eventGirl) {
             eventGirl = EventModule.getEventGirl();
@@ -662,33 +671,36 @@ export class Booster {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
         const remainingShards = Number(100 - Number(eventGirl.shards));
-        if (remainingShards <= 10) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for event, only ${remainingShards} shards remaining`);
+        const threshold = Booster.getSandalwoodMinShardsThreshold();
+        if (remainingShards <= threshold) {
+            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for event, only ${remainingShards} shards remaining (threshold: ${threshold})`);
         }
 
-        return activated && correctTrollTargetted && remainingShards > 10;
+        return activated && correctTrollTargetted && remainingShards > threshold;
     }
 
     static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null): boolean {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
         const remainingShards = Number(100 - Number(eventMythicGirl.shards));
-        if (remainingShards <= 10) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for mythic, only ${remainingShards} shards remaining`);
+        const threshold = Booster.getSandalwoodMinShardsThreshold();
+        if (remainingShards <= threshold) {
+            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for mythic, only ${remainingShards} shards remaining (threshold: ${threshold})`);
         }
 
-        return activated && correctTrollTargetted && remainingShards > 10;
+        return activated && correctTrollTargetted && remainingShards > threshold;
     }
     static needSandalWoodLoveRaid(nextTrollChoosen: number, loveRaid: LoveRaid = null): boolean {
         if (!loveRaid) return false;
         const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
         const remainingShards = Number(100 - Number(loveRaid.girl_shards));
-        if(remainingShards <= 10) {
-            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for love raid, only ${remainingShards} shards remaining`);
+        const threshold = Booster.getSandalwoodMinShardsThreshold();
+        if (remainingShards <= threshold) {
+            logHHAuto(`[SW-DEBUG] Not equipping sandalwood for love raid, only ${remainingShards} shards remaining (threshold: ${threshold})`);
         }
 
-        return activated && correctTrollTargetted && remainingShards > 10;
+        return activated && correctTrollTargetted && remainingShards > threshold;
     }
 
     static async equipeSandalWoodIfNeeded(nextTrollChoosen: number, settingKey: string = SK.plusEventMythicSandalWood): Promise<boolean> {

@@ -1268,6 +1268,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodDosesX1Limit] =
     menuType:"value",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.sandalwoodMinShardsThreshold] =
+    {
+    default:"0",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodMaxUsages] =
     {
     default:"11",

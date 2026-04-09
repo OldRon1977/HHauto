@@ -789,6 +789,7 @@ export function getMenu() {
                         + hhMenuInput('sandalwoodShardsX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
                         + hhMenuInput('sandalwoodDosesX10Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
                         + hhMenuInput('sandalwoodDosesX1Limit', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
+                        + hhMenuInput('sandalwoodMinShardsThreshold', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
                     +`</div>`
                     +`<div class="internalOptionsRow">`
                         + hhMenuSwitch('plusEvent')

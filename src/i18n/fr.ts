@@ -110,6 +110,7 @@ HHAuto_ToolTips.fr['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementTex
 HHAuto_ToolTips.fr['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW frags x1 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x10 à x1 combats pour éviter le gaspillage de doses Sandalwood."};
 HHAuto_ToolTips.fr['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x50 à x10 combats."};
 HHAuto_ToolTips.fr['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x10 à x1 combats."};
+HHAuto_ToolTips.fr['sandalwoodMinShardsThreshold'] = { version: "7.34.15", elementText: "SW frags min.", tooltip: "Ne plus équiper Sandalwood quand les fragments restants atteignent cette valeur ou moins. 0 = toujours équiper Sandalwood."};
 HHAuto_ToolTips.fr['autoMissionKFirst'] = { version: "5.6.24", elementText: "Prioriser Kobans", tooltip: "Si activé : commence par les missions qui rapportent des kobans."};
 HHAuto_ToolTips.fr['povpogTitle'] = { version: "5.6.133", elementText: "Voie de la Valeur/Gloire" };
 HHAuto_ToolTips.fr['skills'] = { version: "7.16.0", elementText: "Compétences" };
