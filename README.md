@@ -16,6 +16,8 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.1 — New troll "Rex & Kate" added for Trans Pornstar Harem
+
 ### v7.35.0 — Optimized Equipment Selection
 
 The **Stuff Team** equipment selection has been improved. After the game's built-in auto-equip runs, the bot now checks each of the 6 equipment slots and replaces items with better alternatives from your inventory.
