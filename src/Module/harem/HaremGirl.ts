@@ -24,7 +24,7 @@ import {
 } from "../../Helper/index";
 import { Harem } from "../index";
 import { gotoPage } from "../../Service/index";
-import { displayHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from "../../Utils/index";
+import { displayHHPopUp, fillHHPopUp, getHHAjax, logHHAuto, maskHHPopUp } from "../../Utils/index";
 import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { KKHaremGirl, TeamData } from "../../model/index";
 
@@ -826,11 +826,23 @@ export class HaremGirl {
     }
 
     static async optimizeEquipmentSlots(girl: KKHaremGirl) {
-        const RARITY_ORDER: Record<string, number> = { common: 0, rare: 1, epic: 2, legendary: 3, mythic: 4 };
         const equipmentSlots = $('.equipment_slot');
         const slotCount = equipmentSlots.length;
 
         logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+
+        const scoreItem = (item: any): { caracSum: number, resonanceMatches: number } => {
+            const c = item.caracs;
+            const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+            let resonanceMatches = 0;
+            if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
+                const rb = item.resonance_bonuses;
+                if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
+                if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
+                if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
+            }
+            return { caracSum, resonanceMatches };
+        };
 
         for (let i = 0; i < slotCount; i++) {
             const slot = equipmentSlots.eq(i);
@@ -843,13 +855,13 @@ export class HaremGirl {
                 equippedData = JSON.parse(equippedEl.attr('data-d')!);
             }
 
-            const inventoryItems: { el: JQuery<HTMLElement>, data: any }[] = [];
-            $('.right-section .slot[data-d]').each(function () {
+            const inventoryItems: { data: any }[] = [];
+            $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
                 const raw = $(this).attr('data-d');
                 if (!raw) return;
                 const data = JSON.parse(raw);
-                if (data.caracs) {
-                    inventoryItems.push({ el: $(this), data });
+                if (data.caracs && data.type === 'girl_armor') {
+                    inventoryItems.push({ data });
                 }
             });
 
@@ -858,20 +870,7 @@ export class HaremGirl {
                 continue;
             }
 
-            const scoreItem = (item: any): { caracSum: number, resonanceMatches: number } => {
-                const c = item.caracs;
-                const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
-                let resonanceMatches = 0;
-                if (item.resonance_bonuses) {
-                    const rb = item.resonance_bonuses;
-                    if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
-                    if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
-                    if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
-                }
-                return { caracSum, resonanceMatches };
-            };
-
-            const bestInventory = inventoryItems.sort((a, b) => {
+            inventoryItems.sort((a, b) => {
                 const sa = scoreItem(a.data);
                 const sb = scoreItem(b.data);
                 if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
@@ -879,11 +878,12 @@ export class HaremGirl {
                 const ca = a.data.caracs;
                 const cb = b.data.caracs;
                 return ((cb.carac1||0)+(cb.carac2||0)+(cb.carac3||0)) - ((ca.carac1||0)+(ca.carac2||0)+(ca.carac3||0));
-            })[0];
+            });
 
-            if (!bestInventory) continue;
+            const best = inventoryItems[0];
+            if (!best) continue;
 
-            const bestScore = scoreItem(bestInventory.data);
+            const bestScore = scoreItem(best.data);
             let shouldReplace = false;
 
             if (!equippedData || !equippedData.caracs) {
@@ -898,8 +898,23 @@ export class HaremGirl {
             }
 
             if (shouldReplace) {
-                logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
-                bestInventory.el.trigger('click');
+                const armorId = best.data.id_girl_armor;
+                logHHAuto(`Slot ${i}: replacing with better item (L${best.data.level} ${best.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${armorId})`);
+
+                await new Promise<void>((resolve) => {
+                    getHHAjax()({
+                        action: 'girl_equipment_equip',
+                        id_girl: girl.id_girl,
+                        id_girl_armor: armorId
+                    }, function (data: any) {
+                        if (data && data.success) {
+                            logHHAuto(`Slot ${i}: equipped successfully`);
+                        } else {
+                            logHHAuto(`Slot ${i}: equip failed`);
+                        }
+                        resolve();
+                    });
+                });
                 await TimeHelper.sleep(randomInterval(300, 500));
             } else {
                 logHHAuto(`Slot ${i}: current item is optimal`);
