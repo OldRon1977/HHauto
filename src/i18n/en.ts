@@ -260,7 +260,7 @@ HHAuto_ToolTips.en['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementTex
 HHAuto_ToolTips.en['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW shards x1 limit", tooltip: "When collected shards reach this percentage, downgrade from x10 to x1 battles to avoid wasting Sandalwood doses."};
 HHAuto_ToolTips.en['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x50 to x10 battles."};
 HHAuto_ToolTips.en['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x10 to x1 battles."};
-HHAuto_ToolTips.en['sandalwoodMinShardsThreshold'] = { version: "7.34.15", elementText: "SW min shards", tooltip: "Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = always equip Sandalwood."};
+HHAuto_ToolTips.en['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min shards", tooltip: "Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = always equip Sandalwood."};
 HHAuto_ToolTips.en['mythicGirlNext'] = { version: "5.6.24", elementText: "Mythic girl wave"};
 HHAuto_ToolTips.en['RefreshOppoList'] = { version: "5.6.24", elementText: "Refresh Opponent list", tooltip: "Allow to force a refresh of opponent list."};
 HHAuto_ToolTips.en['HideBeatenOppo'] = { version: "5.7.1", elementText: "Hide", tooltip: "Allow to hide beaten opponent from the list."};

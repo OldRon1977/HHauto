@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.34.15
+// @version      7.34.16
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -444,7 +444,7 @@ HHAuto_ToolTips.en['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementTex
 HHAuto_ToolTips.en['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW shards x1 limit", tooltip: "When collected shards reach this percentage, downgrade from x10 to x1 battles to avoid wasting Sandalwood doses." };
 HHAuto_ToolTips.en['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x50 to x10 battles." };
 HHAuto_ToolTips.en['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limit", tooltip: "When remaining Sandalwood doses drop to this number or below, downgrade from x10 to x1 battles." };
-HHAuto_ToolTips.en['sandalwoodMinShardsThreshold'] = { version: "7.34.15", elementText: "SW min shards", tooltip: "Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = always equip Sandalwood." };
+HHAuto_ToolTips.en['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min shards", tooltip: "Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = always equip Sandalwood." };
 HHAuto_ToolTips.en['mythicGirlNext'] = { version: "5.6.24", elementText: "Mythic girl wave" };
 HHAuto_ToolTips.en['RefreshOppoList'] = { version: "5.6.24", elementText: "Refresh Opponent list", tooltip: "Allow to force a refresh of opponent list." };
 HHAuto_ToolTips.en['HideBeatenOppo'] = { version: "5.7.1", elementText: "Hide", tooltip: "Allow to hide beaten opponent from the list." };
@@ -673,7 +673,7 @@ HHAuto_ToolTips.fr['sandalwoodShardsX10Limit'] = { version: "7.33.0", elementTex
 HHAuto_ToolTips.fr['sandalwoodShardsX1Limit'] = { version: "7.33.0", elementText: "SW frags x1 limite", tooltip: "Quand les fragments collectés atteignent ce pourcentage, réduire de x10 à x1 combats pour éviter le gaspillage de doses Sandalwood." };
 HHAuto_ToolTips.fr['sandalwoodDosesX10Limit'] = { version: "7.33.0", elementText: "SW doses x10 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x50 à x10 combats." };
 HHAuto_ToolTips.fr['sandalwoodDosesX1Limit'] = { version: "7.33.0", elementText: "SW doses x1 limite", tooltip: "Quand les doses Sandalwood restantes descendent à ce nombre ou en dessous, réduire de x10 à x1 combats." };
-HHAuto_ToolTips.fr['sandalwoodMinShardsThreshold'] = { version: "7.34.15", elementText: "SW frags min.", tooltip: "Ne plus équiper Sandalwood quand les fragments restants atteignent cette valeur ou moins. 0 = toujours équiper Sandalwood." };
+HHAuto_ToolTips.fr['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW frags min.", tooltip: "Ne plus équiper Sandalwood quand les fragments restants atteignent cette valeur ou moins. 0 = toujours équiper Sandalwood." };
 HHAuto_ToolTips.fr['autoMissionKFirst'] = { version: "5.6.24", elementText: "Prioriser Kobans", tooltip: "Si activé : commence par les missions qui rapportent des kobans." };
 HHAuto_ToolTips.fr['povpogTitle'] = { version: "5.6.133", elementText: "Voie de la Valeur/Gloire" };
 HHAuto_ToolTips.fr['skills'] = { version: "7.16.0", elementText: "Compétences" };
@@ -782,7 +782,7 @@ HHAuto_ToolTips.de['autoAff'] = { version: "5.6.24", elementText: "Min Geld verb
 HHAuto_ToolTips.de['maxAff'] = { version: "5.6.24", elementText: "Max AnziehungKauf", tooltip: "Maximum an Anziehung die gekauft wird" };
 HHAuto_ToolTips.de['OpponentListBuilding'] = { version: "5.6.24", elementText: "Gegnerliste wird erstellt", tooltip: "" };
 HHAuto_ToolTips.de['OpponentParsed'] = { version: "5.6.24", elementText: "Gegner analysiert", tooltip: "" };
-HHAuto_ToolTips.de['sandalwoodMinShardsThreshold'] = { version: "7.34.15", elementText: "SW min. Shards", tooltip: "Kein Sandalwood mehr ausrüsten, wenn verbleibende Shards diesen Wert erreichen oder unterschreiten. 0 = Sandalwood immer ausrüsten." };
+HHAuto_ToolTips.de['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min. Shards", tooltip: "Kein Sandalwood mehr ausrüsten, wenn verbleibende Shards diesen Wert erreichen oder unterschreiten. 0 = Sandalwood immer ausrüsten." };
 HHAuto_ToolTips.de['povTitle'] = { version: "5.20.3", elementText: "Pfad der Tapferkeit (PoV)" };
 HHAuto_ToolTips.de['pogTitle'] = { version: "5.20.3", elementText: "Pfad des Ruhmes (PoG)" };
 
