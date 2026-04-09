@@ -22,8 +22,8 @@ The **Stuff Team** equipment selection has been improved. After the game's built
 
 **How it works:**
 - For each slot, the equipped item is compared against all available inventory items
-- Items are ranked by their total combined stats, which naturally reflects both item level and rarity (a Level 9 Mythic can beat a Level 10 Legendary)
-- If two items have equal stats, the one with more resonance matches (class, theme, pose) wins
+- Items are ranked by their total combined stats — this naturally reflects both item level and rarity (a Level 9 Mythic can beat a Level 10 Legendary)
+- If two items have equal stats, the one with more resonance matches wins
 - As a final tiebreaker, the item with higher combat stats is preferred
 
 No new settings required — the optimization runs automatically as part of "Give equipment".
@@ -39,8 +39,6 @@ The hardcoded threshold of 10 remaining shards — which prevented Sandalwood fr
 | Setting | Default | Purpose |
 |---------|---------|---------|
 | SW min shards | 0 | Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = no limit, Sandalwood is used until the girl is complete. |
-
-The previous batch-sizing settings (SW shards x10/x1 limit, SW doses x10/x1 limit) and `getRecommendedBatchSize()` have been removed as only x1 fights are currently used.
 
 ---
 
