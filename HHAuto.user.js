@@ -11911,21 +11911,29 @@ class HaremGirl {
                 if (shouldReplace) {
                     const armorId = best.data.id_girl_armor;
                     LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${best.data.level} ${best.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${armorId})`);
+                    const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
+                    window.history.replaceState(null, '', addNutakuSession('/girl/' + girl.id_girl + '?resource=equipment'));
                     yield new Promise((resolve) => {
+                        const timeout = setTimeout(() => {
+                            LogUtils_logHHAuto(`Slot ${i}: equip timed out after 10s`);
+                            resolve();
+                        }, 10000);
                         getHHAjax()({
                             action: 'girl_equipment_equip',
-                            id_girl: girl.id_girl,
-                            id_girl_armor: armorId
+                            id_girl: String(girl.id_girl),
+                            id_girl_armor: String(armorId)
                         }, function (data) {
+                            clearTimeout(timeout);
                             if (data && data.success) {
                                 LogUtils_logHHAuto(`Slot ${i}: equipped successfully`);
                             }
                             else {
-                                LogUtils_logHHAuto(`Slot ${i}: equip failed`);
+                                LogUtils_logHHAuto(`Slot ${i}: equip failed, response: ${JSON.stringify(data)}`);
                             }
                             resolve();
                         });
                     });
+                    window.history.replaceState(null, '', addNutakuSession(currentPath));
                     yield TimeHelper.sleep(randomInterval(300, 500));
                 }
                 else {
