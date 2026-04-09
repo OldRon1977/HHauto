@@ -38,6 +38,9 @@ The hardcoded threshold of 10 remaining shards — which prevented Sandalwood fr
 |---------|---------|---------|
 | SW min shards | 0 | Stop equipping Sandalwood when remaining shards fall to this value or below. 0 = no limit, Sandalwood is used until the girl is complete. |
 
+- Default is 0 = Sandalwood is always equipped
+- Users who want the old behavior can set it to 10
+- Example: setting it to 1 means Sandalwood is equipped until only 1 shard remains
 ---
 
 ### v7.34 — Smarter Team Selection
