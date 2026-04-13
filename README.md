@@ -16,6 +16,10 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.2 — Fix auto-equip boosters loop
+
+Fixed a bug where auto-equip boosters could enter an infinite loop navigating to the shop page repeatedly without caching booster inventory data.
+
 ### v7.35.1 — New troll "Rex & Kate" added for Trans Pornstar Harem
 
 ### v7.35.0 — Optimized Equipment Selection

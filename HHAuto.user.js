@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.1
+// @version      7.35.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -23127,6 +23127,9 @@ function handlePageSpecific(ctx) {
                     Booster.collectBoostersFromMarket = callItOnce(Booster.collectBoostersFromMarket);
                     setTimeout(Booster.collectBoostersFromMarket, 200);
                 }
+                if (!Booster.hasBoosterDataFromMarket()) {
+                    setTimeout(() => Shop.updateShop(), 300);
+                }
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDHome"):
                 setTimeout(Season.displayRemainingTime, 500);
@@ -23509,7 +23512,7 @@ const MAX_REMIND_COUNT = 3;
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "7.35.1";
+const FEATURE_POPUP_VERSION = "7.35.2";
 /**
  * Title shown in the popup header.
  */
