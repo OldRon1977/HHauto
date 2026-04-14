@@ -901,7 +901,11 @@ export class HaremGirl {
             }
             const slotIndex = equippedData?.slot_index ?? (i + 1);
             slotItems.push({ slotIndex, equippedData });
-            logHHAuto(`Slot ${i}: slot_index=${slotIndex}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} (id=${equippedData.id_girl_armor})` : 'empty'}`);
+            if (equippedData) {
+                logHHAuto(`Slot ${i}: data-d keys=${JSON.stringify(Object.keys(equippedData))}, slot_index=${slotIndex}, L${equippedData.level} ${equippedData.rarity}`);
+            } else {
+                logHHAuto(`Slot ${i}: no data-d, slot_index=${slotIndex}`);
+            }
         }
 
         for (let i = 0; i < slotCount; i++) {
