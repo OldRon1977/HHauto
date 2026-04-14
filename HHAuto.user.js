@@ -11737,10 +11737,9 @@ class HaremGirl {
                                 },
                                 dataType: 'json',
                                 success: function (data) {
+                                    var _a;
                                     if (data && data.success) {
-                                        LogUtils_logHHAuto(`Auto-equip via API successful for ${girl.name}`);
-                                        LogUtils_logHHAuto(`equip_all response keys: ${JSON.stringify(Object.keys(data))}`);
-                                        LogUtils_logHHAuto(`equip_all response: ${JSON.stringify(data)}`);
+                                        LogUtils_logHHAuto(`Auto-equip via API successful for ${girl.name}, ${((_a = data.equipped_armor_ids) === null || _a === void 0 ? void 0 : _a.length) || 0} slots equipped`);
                                         resolve(data);
                                     }
                                     else {
@@ -11929,39 +11928,17 @@ class HaremGirl {
                 LogUtils_logHHAuto('No equip_all response, skipping optimization');
                 return;
             }
-            // Try to extract equipped item IDs from the equip_all response
-            // We don't know the exact structure yet, so we log and try common patterns
+            // Extract equipped item IDs from equip_all response
+            // Response structure: equipped_armor_ids[].id_girl_armor_equipped = inventory item ID for equip API
             let equippedItemIds = [];
-            if (equipAllResponse.items && Array.isArray(equipAllResponse.items)) {
-                equippedItemIds = equipAllResponse.items
-                    .filter((item) => item && item.id_girl_armor)
-                    .map((item) => String(item.id_girl_armor));
-                LogUtils_logHHAuto(`Found ${equippedItemIds.length} equipped items from response.items`);
-            }
-            if (equippedItemIds.length === 0 && equipAllResponse.equipped_armors && Array.isArray(equipAllResponse.equipped_armors)) {
-                equippedItemIds = equipAllResponse.equipped_armors
-                    .filter((item) => item && item.id_girl_armor)
-                    .map((item) => String(item.id_girl_armor));
-                LogUtils_logHHAuto(`Found ${equippedItemIds.length} equipped items from response.equipped_armors`);
-            }
-            // Fallback: try reading from DOM (may work if page was already loaded)
-            if (equippedItemIds.length === 0) {
-                const equipmentSlots = $('.equipment_slot');
-                for (let i = 0; i < equipmentSlots.length; i++) {
-                    const equippedEl = equipmentSlots.eq(i).find('.slot[data-d]');
-                    if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
-                        const data = JSON.parse(equippedEl.attr('data-d'));
-                        if (data.id_girl_armor) {
-                            equippedItemIds.push(String(data.id_girl_armor));
-                        }
-                    }
-                }
-                if (equippedItemIds.length > 0) {
-                    LogUtils_logHHAuto(`Found ${equippedItemIds.length} equipped items from DOM fallback`);
-                }
+            if (equipAllResponse.equipped_armor_ids && Array.isArray(equipAllResponse.equipped_armor_ids)) {
+                equippedItemIds = equipAllResponse.equipped_armor_ids
+                    .filter((entry) => entry && entry.id_girl_armor_equipped)
+                    .map((entry) => String(entry.id_girl_armor_equipped));
+                LogUtils_logHHAuto(`Found ${equippedItemIds.length} equipped items from equipped_armor_ids`);
             }
             if (equippedItemIds.length === 0) {
-                LogUtils_logHHAuto('No equipped item IDs found, cannot optimize. Check equip_all response log above.');
+                LogUtils_logHHAuto('No equipped item IDs found in equip_all response, cannot optimize.');
                 return;
             }
             // For each equipped item, re-equip it as probe to get the full inventory for that slot

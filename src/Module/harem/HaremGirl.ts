@@ -724,9 +724,7 @@ export class HaremGirl {
                             dataType: 'json',
                             success: function (data: any) {
                                 if (data && data.success) {
-                                    logHHAuto(`Auto-equip via API successful for ${girl.name}`);
-                                    logHHAuto(`equip_all response keys: ${JSON.stringify(Object.keys(data))}`);
-                                    logHHAuto(`equip_all response: ${JSON.stringify(data)}`);
+                                    logHHAuto(`Auto-equip via API successful for ${girl.name}, ${data.equipped_armor_ids?.length || 0} slots equipped`);
                                     resolve(data);
                                 } else {
                                     logHHAuto(`Auto-equip via API response: ${JSON.stringify(data)}`);
@@ -912,43 +910,19 @@ export class HaremGirl {
             return;
         }
 
-        // Try to extract equipped item IDs from the equip_all response
-        // We don't know the exact structure yet, so we log and try common patterns
+        // Extract equipped item IDs from equip_all response
+        // Response structure: equipped_armor_ids[].id_girl_armor_equipped = inventory item ID for equip API
         let equippedItemIds: string[] = [];
 
-        if (equipAllResponse.items && Array.isArray(equipAllResponse.items)) {
-            equippedItemIds = equipAllResponse.items
-                .filter((item: any) => item && item.id_girl_armor)
-                .map((item: any) => String(item.id_girl_armor));
-            logHHAuto(`Found ${equippedItemIds.length} equipped items from response.items`);
-        }
-
-        if (equippedItemIds.length === 0 && equipAllResponse.equipped_armors && Array.isArray(equipAllResponse.equipped_armors)) {
-            equippedItemIds = equipAllResponse.equipped_armors
-                .filter((item: any) => item && item.id_girl_armor)
-                .map((item: any) => String(item.id_girl_armor));
-            logHHAuto(`Found ${equippedItemIds.length} equipped items from response.equipped_armors`);
-        }
-
-        // Fallback: try reading from DOM (may work if page was already loaded)
-        if (equippedItemIds.length === 0) {
-            const equipmentSlots = $('.equipment_slot');
-            for (let i = 0; i < equipmentSlots.length; i++) {
-                const equippedEl = equipmentSlots.eq(i).find('.slot[data-d]');
-                if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
-                    const data = JSON.parse(equippedEl.attr('data-d')!);
-                    if (data.id_girl_armor) {
-                        equippedItemIds.push(String(data.id_girl_armor));
-                    }
-                }
-            }
-            if (equippedItemIds.length > 0) {
-                logHHAuto(`Found ${equippedItemIds.length} equipped items from DOM fallback`);
-            }
+        if (equipAllResponse.equipped_armor_ids && Array.isArray(equipAllResponse.equipped_armor_ids)) {
+            equippedItemIds = equipAllResponse.equipped_armor_ids
+                .filter((entry: any) => entry && entry.id_girl_armor_equipped)
+                .map((entry: any) => String(entry.id_girl_armor_equipped));
+            logHHAuto(`Found ${equippedItemIds.length} equipped items from equipped_armor_ids`);
         }
 
         if (equippedItemIds.length === 0) {
-            logHHAuto('No equipped item IDs found, cannot optimize. Check equip_all response log above.');
+            logHHAuto('No equipped item IDs found in equip_all response, cannot optimize.');
             return;
         }
 
