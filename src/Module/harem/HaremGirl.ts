@@ -23,8 +23,8 @@ import {
     getStoredJSON
 } from "../../Helper/index";
 import { Harem } from "../index";
-import { addNutakuSession, gotoPage } from "../../Service/index";
-import { displayHHPopUp, fillHHPopUp, getHHAjax, logHHAuto, maskHHPopUp } from "../../Utils/index";
+import { gotoPage } from "../../Service/index";
+import { displayHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from "../../Utils/index";
 import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { KKHaremGirl, TeamData } from "../../model/index";
 
@@ -825,112 +825,133 @@ export class HaremGirl {
         }
     }
 
+    private static equipItem(girlId: number | string, armorId: number | string): Promise<any> {
+        return new Promise((resolve) => {
+            $.ajax({
+                url: '/ajax.php',
+                type: 'POST',
+                data: {
+                    action: 'girl_equipment_equip',
+                    id_girl: girlId,
+                    id_girl_armor: armorId,
+                    sort_by: 'rarity',
+                    sorting_order: 'asc'
+                },
+                dataType: 'json',
+                success: function (data: any) { resolve(data); },
+                error: function () { resolve(null); }
+            });
+        });
+    }
+
+    private static scoreItem(item: any, girl: KKHaremGirl): { caracSum: number, resonanceMatches: number } {
+        const c = item.caracs;
+        const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
+        let resonanceMatches = 0;
+        if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
+            const rb = item.resonance_bonuses;
+            if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
+            if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
+            if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
+        }
+        return { caracSum, resonanceMatches };
+    }
+
+    private static findBestItem(items: any[], girl: KKHaremGirl): any {
+        if (items.length === 0) return null;
+        return items.sort((a, b) => {
+            const sa = HaremGirl.scoreItem(a, girl);
+            const sb = HaremGirl.scoreItem(b, girl);
+            if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
+            if (sb.resonanceMatches !== sa.resonanceMatches) return sb.resonanceMatches - sa.resonanceMatches;
+            return ((b.caracs.carac1||0)+(b.caracs.carac2||0)+(b.caracs.carac3||0))
+                 - ((a.caracs.carac1||0)+(a.caracs.carac2||0)+(a.caracs.carac3||0));
+        })[0];
+    }
+
+    private static isBetter(candidate: any, current: any, girl: KKHaremGirl): boolean {
+        if (!current || !current.caracs) return true;
+        const sc = HaremGirl.scoreItem(candidate, girl);
+        const se = HaremGirl.scoreItem(current, girl);
+        if (sc.caracSum > se.caracSum) return true;
+        if (sc.caracSum === se.caracSum && sc.resonanceMatches > se.resonanceMatches) return true;
+        return false;
+    }
+
     static async optimizeEquipmentSlots(girl: KKHaremGirl) {
         const equipmentSlots = $('.equipment_slot');
         const slotCount = equipmentSlots.length;
 
         logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
 
-        const scoreItem = (item: any): { caracSum: number, resonanceMatches: number } => {
-            const c = item.caracs;
-            const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
-            let resonanceMatches = 0;
-            if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
-                const rb = item.resonance_bonuses;
-                if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
-                if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
-                if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
-            }
-            return { caracSum, resonanceMatches };
-        };
-
         for (let i = 0; i < slotCount; i++) {
             const slot = equipmentSlots.eq(i);
             slot.trigger('click');
             await TimeHelper.sleep(randomInterval(300, 500));
 
+            // Read currently equipped item from DOM
             const equippedEl = slot.find('.slot[data-d]');
             let equippedData: any = null;
             if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
                 equippedData = JSON.parse(equippedEl.attr('data-d')!);
             }
 
-            const inventoryItems: { data: any }[] = [];
+            // Get any visible inventory item ID to make the initial API call
+            let probeArmorId: string | null = null;
             $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
+                if (probeArmorId) return;
                 const raw = $(this).attr('data-d');
                 if (!raw) return;
                 const data = JSON.parse(raw);
-                if (data.caracs && data.type === 'girl_armor') {
-                    inventoryItems.push({ data });
+                if (data.id_girl_armor && data.type === 'girl_armor') {
+                    probeArmorId = data.id_girl_armor;
                 }
             });
 
-            if (inventoryItems.length === 0) {
+            if (!probeArmorId) {
                 logHHAuto(`Slot ${i}: no inventory items available, skipping`);
                 continue;
             }
 
-            inventoryItems.sort((a, b) => {
-                const sa = scoreItem(a.data);
-                const sb = scoreItem(b.data);
-                if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
-                if (sb.resonanceMatches !== sa.resonanceMatches) return sb.resonanceMatches - sa.resonanceMatches;
-                const ca = a.data.caracs;
-                const cb = b.data.caracs;
-                return ((cb.carac1||0)+(cb.carac2||0)+(cb.carac3||0)) - ((ca.carac1||0)+(ca.carac2||0)+(ca.carac3||0));
-            });
-
-            const best = inventoryItems[0];
-            if (!best) continue;
-
-            const bestScore = scoreItem(best.data);
-            let shouldReplace = false;
-
-            if (!equippedData || !equippedData.caracs) {
-                shouldReplace = true;
-            } else {
-                const equippedScore = scoreItem(equippedData);
-                if (bestScore.caracSum > equippedScore.caracSum) {
-                    shouldReplace = true;
-                } else if (bestScore.caracSum === equippedScore.caracSum && bestScore.resonanceMatches > equippedScore.resonanceMatches) {
-                    shouldReplace = true;
-                }
-            }
-
-            if (shouldReplace) {
-                const armorId = best.data.id_girl_armor;
-                logHHAuto(`Slot ${i}: replacing with better item (L${best.data.level} ${best.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${armorId})`);
-
-                await new Promise<void>((resolve) => {
-                    $.ajax({
-                        url: '/ajax.php',
-                        type: 'POST',
-                        data: {
-                            action: 'girl_equipment_equip',
-                            id_girl: girl.id_girl,
-                            id_girl_armor: armorId,
-                            sort_by: 'rarity',
-                            sorting_order: 'asc'
-                        },
-                        dataType: 'json',
-                        success: function (data: any) {
-                            if (data && data.success) {
-                                logHHAuto(`Slot ${i}: equipped successfully`);
-                            } else {
-                                logHHAuto(`Slot ${i}: equip response: ${JSON.stringify(data)}`);
-                            }
-                            resolve();
-                        },
-                        error: function (xhr: any, status: string, error: string) {
-                            logHHAuto(`Slot ${i}: equip HTTP error: ${status} ${error} (${xhr.status})`);
-                            resolve();
-                        }
-                    });
-                });
+            // Step 1: Equip any visible item to get the full inventory from the API
+            const probeResponse = await HaremGirl.equipItem(girl.id_girl, probeArmorId);
+            if (!probeResponse || !probeResponse.success) {
+                logHHAuto(`Slot ${i}: probe equip failed`);
                 await TimeHelper.sleep(randomInterval(300, 500));
-            } else {
-                logHHAuto(`Slot ${i}: current item is optimal`);
+                continue;
             }
+
+            // Build full candidate list from API response
+            const candidates: any[] = [...(probeResponse.inventory_armor || [])];
+            if (probeResponse.unequipped_armor) {
+                candidates.push(probeResponse.unequipped_armor);
+            }
+            const currentlyEquipped = probeResponse.equipped_armor || null;
+
+            if (candidates.length === 0) {
+                logHHAuto(`Slot ${i}: no alternative items from API`);
+                await TimeHelper.sleep(randomInterval(300, 500));
+                continue;
+            }
+
+            // Step 2: Find the absolute best from the complete inventory
+            const best = HaremGirl.findBestItem(candidates, girl);
+
+            if (best && HaremGirl.isBetter(best, currentlyEquipped, girl)) {
+                const bestScore = HaremGirl.scoreItem(best, girl);
+                logHHAuto(`Slot ${i}: equipping best item (L${best.level} ${best.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${best.id_girl_armor})`);
+
+                const equipResponse = await HaremGirl.equipItem(girl.id_girl, best.id_girl_armor);
+                if (equipResponse && equipResponse.success) {
+                    logHHAuto(`Slot ${i}: equipped successfully`);
+                } else {
+                    logHHAuto(`Slot ${i}: equip failed`);
+                }
+            } else {
+                const eqScore = currentlyEquipped ? HaremGirl.scoreItem(currentlyEquipped, girl) : null;
+                logHHAuto(`Slot ${i}: current item is optimal (L${currentlyEquipped?.level} ${currentlyEquipped?.rarity}, score=${eqScore?.caracSum})`);
+            }
+            await TimeHelper.sleep(randomInterval(300, 500));
         }
         logHHAuto('Equipment optimization complete');
     }
