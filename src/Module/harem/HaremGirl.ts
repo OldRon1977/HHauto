@@ -916,8 +916,8 @@ export class HaremGirl {
 
         if (equipAllResponse.equipped_armor_ids && Array.isArray(equipAllResponse.equipped_armor_ids)) {
             equippedItemIds = equipAllResponse.equipped_armor_ids
-                .filter((entry: any) => entry && entry.id_girl_armor_equipped)
-                .map((entry: any) => String(entry.id_girl_armor_equipped));
+                .filter((entry: any) => entry && entry.id_girl_armor)
+                .map((entry: any) => String(entry.id_girl_armor));
             logHHAuto(`Found ${equippedItemIds.length} equipped items from equipped_armor_ids`);
         }
 

@@ -11933,8 +11933,8 @@ class HaremGirl {
             let equippedItemIds = [];
             if (equipAllResponse.equipped_armor_ids && Array.isArray(equipAllResponse.equipped_armor_ids)) {
                 equippedItemIds = equipAllResponse.equipped_armor_ids
-                    .filter((entry) => entry && entry.id_girl_armor_equipped)
-                    .map((entry) => String(entry.id_girl_armor_equipped));
+                    .filter((entry) => entry && entry.id_girl_armor)
+                    .map((entry) => String(entry.id_girl_armor));
                 LogUtils_logHHAuto(`Found ${equippedItemIds.length} equipped items from equipped_armor_ids`);
             }
             if (equippedItemIds.length === 0) {
