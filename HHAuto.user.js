@@ -11896,52 +11896,87 @@ class HaremGirl {
         return false;
     }
     static optimizeEquipmentSlots(girl) {
+        var _a;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
             LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+            // Collect all equipped items first (DOM is reliable for equipped slots)
+            const slotItems = [];
             for (let i = 0; i < slotCount; i++) {
                 const slot = equipmentSlots.eq(i);
-                slot.trigger('click');
-                yield TimeHelper.sleep(randomInterval(300, 500));
-                // Read currently equipped item from DOM
                 const equippedEl = slot.find('.slot[data-d]');
                 let equippedData = null;
                 if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
                     equippedData = JSON.parse(equippedEl.attr('data-d'));
                 }
-                // Get any visible inventory item ID to make the initial API call
-                let probeArmorId = null;
-                $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
-                    if (probeArmorId)
-                        return;
-                    const raw = $(this).attr('data-d');
-                    if (!raw)
-                        return;
-                    const data = JSON.parse(raw);
-                    if (data.id_girl_armor && data.type === 'girl_armor') {
-                        probeArmorId = data.id_girl_armor;
-                    }
-                });
-                if (!probeArmorId) {
-                    LogUtils_logHHAuto(`Slot ${i}: no inventory items available, skipping`);
+                const slotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
+                slotItems.push({ slotIndex, equippedData });
+                LogUtils_logHHAuto(`Slot ${i}: slot_index=${slotIndex}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} (id=${equippedData.id_girl_armor})` : 'empty'}`);
+            }
+            for (let i = 0; i < slotCount; i++) {
+                const { slotIndex, equippedData } = slotItems[i];
+                if (!equippedData || !equippedData.id_girl_armor) {
+                    LogUtils_logHHAuto(`Slot ${i}: no equipped item, skipping`);
                     continue;
                 }
-                // Step 1: Equip any visible item to get the full inventory from the API
-                const probeResponse = yield HaremGirl.equipItem(girl.id_girl, probeArmorId);
+                // Step 1: Re-equip the current item to get the full inventory for this slot from the API
+                const probeResponse = yield HaremGirl.equipItem(girl.id_girl, equippedData.id_girl_armor);
                 if (!probeResponse || !probeResponse.success) {
-                    LogUtils_logHHAuto(`Slot ${i}: probe equip failed`);
+                    LogUtils_logHHAuto(`Slot ${i}: probe equip failed, trying with inventory item`);
+                    // Fallback: find any DOM item matching this slot_index
+                    let fallbackId = null;
+                    $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
+                        if (fallbackId)
+                            return;
+                        const raw = $(this).attr('data-d');
+                        if (!raw)
+                            return;
+                        const data = JSON.parse(raw);
+                        if (data.id_girl_armor && data.type === 'girl_armor' && data.slot_index === slotIndex) {
+                            fallbackId = data.id_girl_armor;
+                        }
+                    });
+                    if (!fallbackId) {
+                        LogUtils_logHHAuto(`Slot ${i}: no fallback item for slot_index=${slotIndex}, skipping`);
+                        yield TimeHelper.sleep(randomInterval(300, 500));
+                        continue;
+                    }
+                    const fallbackResponse = yield HaremGirl.equipItem(girl.id_girl, fallbackId);
+                    if (!fallbackResponse || !fallbackResponse.success) {
+                        LogUtils_logHHAuto(`Slot ${i}: fallback equip also failed, skipping`);
+                        yield TimeHelper.sleep(randomInterval(300, 500));
+                        continue;
+                    }
+                    // Use fallback response
+                    const fbCandidates = [...(fallbackResponse.inventory_armor || [])];
+                    if (fallbackResponse.unequipped_armor)
+                        fbCandidates.push(fallbackResponse.unequipped_armor);
+                    const fbEquipped = fallbackResponse.equipped_armor || null;
+                    const fbBest = HaremGirl.findBestItem(fbCandidates, girl);
+                    if (fbBest && HaremGirl.isBetter(fbBest, fbEquipped, girl)) {
+                        const fbScore = HaremGirl.scoreItem(fbBest, girl);
+                        LogUtils_logHHAuto(`Slot ${i}: equipping best item (L${fbBest.level} ${fbBest.rarity}, score=${fbScore.caracSum}, resonance=${fbScore.resonanceMatches}, id=${fbBest.id_girl_armor})`);
+                        const eqResp = yield HaremGirl.equipItem(girl.id_girl, fbBest.id_girl_armor);
+                        LogUtils_logHHAuto(`Slot ${i}: ${(eqResp === null || eqResp === void 0 ? void 0 : eqResp.success) ? 'equipped successfully' : 'equip failed'}`);
+                    }
+                    else {
+                        const s = fbEquipped ? HaremGirl.scoreItem(fbEquipped, girl) : null;
+                        LogUtils_logHHAuto(`Slot ${i}: current item is optimal (L${fbEquipped === null || fbEquipped === void 0 ? void 0 : fbEquipped.level} ${fbEquipped === null || fbEquipped === void 0 ? void 0 : fbEquipped.rarity}, score=${s === null || s === void 0 ? void 0 : s.caracSum})`);
+                    }
                     yield TimeHelper.sleep(randomInterval(300, 500));
                     continue;
                 }
-                // Build full candidate list from API response
+                // Probe succeeded: build full candidate list from API response
                 const candidates = [...(probeResponse.inventory_armor || [])];
                 if (probeResponse.unequipped_armor) {
                     candidates.push(probeResponse.unequipped_armor);
                 }
                 const currentlyEquipped = probeResponse.equipped_armor || null;
+                LogUtils_logHHAuto(`Slot ${i}: API returned ${candidates.length} candidates for slot_index=${slotIndex}`);
                 if (candidates.length === 0) {
-                    LogUtils_logHHAuto(`Slot ${i}: no alternative items from API`);
+                    const eqScore = currentlyEquipped ? HaremGirl.scoreItem(currentlyEquipped, girl) : null;
+                    LogUtils_logHHAuto(`Slot ${i}: no alternative items, keeping current (L${currentlyEquipped === null || currentlyEquipped === void 0 ? void 0 : currentlyEquipped.level} ${currentlyEquipped === null || currentlyEquipped === void 0 ? void 0 : currentlyEquipped.rarity}, score=${eqScore === null || eqScore === void 0 ? void 0 : eqScore.caracSum})`);
                     yield TimeHelper.sleep(randomInterval(300, 500));
                     continue;
                 }
