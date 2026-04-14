@@ -11876,8 +11876,15 @@ class HaremGirl {
                     sorting_order: 'asc'
                 },
                 dataType: 'json',
-                success: function (data) { resolve(data); },
-                error: function () { resolve(null); }
+                success: function (data) {
+                    LogUtils_logHHAuto(`equipItem response for armor ${armorId}: success=${data === null || data === void 0 ? void 0 : data.success}, keys=${JSON.stringify(Object.keys(data || {}))}`);
+                    resolve(data);
+                },
+                error: function (xhr, status, error) {
+                    var _a;
+                    LogUtils_logHHAuto(`equipItem HTTP error for armor ${armorId}: status=${status}, error=${error}, response=${(_a = xhr === null || xhr === void 0 ? void 0 : xhr.responseText) === null || _a === void 0 ? void 0 : _a.substring(0, 200)}`);
+                    resolve(null);
+                }
             });
         });
     }

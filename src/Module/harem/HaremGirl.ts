@@ -862,8 +862,14 @@ export class HaremGirl {
                     sorting_order: 'asc'
                 },
                 dataType: 'json',
-                success: function (data: any) { resolve(data); },
-                error: function () { resolve(null); }
+                success: function (data: any) {
+                    logHHAuto(`equipItem response for armor ${armorId}: success=${data?.success}, keys=${JSON.stringify(Object.keys(data || {}))}`);
+                    resolve(data);
+                },
+                error: function (xhr: any, status: string, error: string) {
+                    logHHAuto(`equipItem HTTP error for armor ${armorId}: status=${status}, error=${error}, response=${xhr?.responseText?.substring(0, 200)}`);
+                    resolve(null);
+                }
             });
         });
     }
