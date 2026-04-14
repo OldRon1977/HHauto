@@ -712,34 +712,10 @@ export class HaremGirl {
 
                     HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
 
-                    // Use API call instead of synthetic click for reliable auto-equip
-                    const equipAllResponse = await new Promise<any>((resolve) => {
-                        $.ajax({
-                            url: '/ajax.php',
-                            type: 'POST',
-                            data: {
-                                action: 'girl_equipment_equip_all',
-                                id_girl: girl.id_girl
-                            },
-                            dataType: 'json',
-                            success: function (data: any) {
-                                if (data && data.success) {
-                                    logHHAuto(`Auto-equip via API successful for ${girl.name}, ${data.equipped_armor_ids?.length || 0} slots equipped`);
-                                    resolve(data);
-                                } else {
-                                    logHHAuto(`Auto-equip via API response: ${JSON.stringify(data)}`);
-                                    resolve(null);
-                                }
-                            },
-                            error: function () {
-                                logHHAuto(`Auto-equip via API failed for ${girl.name}`);
-                                resolve(null);
-                            }
-                        });
-                    });
+                    $('#girl-equip').trigger('click');
                     await TimeHelper.sleep(randomInterval(400, 700));
 
-                    await HaremGirl.optimizeEquipmentSlots(girl, equipAllResponse);
+                    await HaremGirl.optimizeEquipmentSlots(girl);
                 }
                 if (upgradeSkill) {
                     HaremGirl.switchTabs(HaremGirl.SKILLS_TYPE);
@@ -908,67 +884,114 @@ export class HaremGirl {
         return false;
     }
 
-    static async optimizeEquipmentSlots(girl: KKHaremGirl, equipAllResponse: any) {
-        logHHAuto(`Optimize equipment for ${girl.name}`);
+    static async optimizeEquipmentSlots(girl: KKHaremGirl) {
+        const equipmentSlots = $('.equipment_slot');
+        const slotCount = equipmentSlots.length;
 
-        if (!equipAllResponse) {
-            logHHAuto('No equip_all response, skipping optimization');
-            return;
+        logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+
+        // Collect all equipped items first (DOM is reliable for equipped slots)
+        const slotItems: { slotIndex: number, equippedData: any }[] = [];
+        for (let i = 0; i < slotCount; i++) {
+            const slot = equipmentSlots.eq(i);
+            const equippedEl = slot.find('.slot[data-d]');
+            let equippedData: any = null;
+            if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
+                equippedData = JSON.parse(equippedEl.attr('data-d')!);
+            }
+            const slotIndex = equippedData?.slot_index ?? (i + 1);
+            slotItems.push({ slotIndex, equippedData });
+            logHHAuto(`Slot ${i}: slot_index=${slotIndex}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} (id=${equippedData.id_girl_armor})` : 'empty'}`);
         }
 
-        // Extract equipped item IDs from equip_all response
-        // Response structure: equipped_armor_ids[].id_girl_armor_equipped = inventory item ID for equip API
-        let equippedItemIds: string[] = [];
+        for (let i = 0; i < slotCount; i++) {
+            const { slotIndex, equippedData } = slotItems[i];
 
-        if (equipAllResponse.equipped_armor_ids && Array.isArray(equipAllResponse.equipped_armor_ids)) {
-            equippedItemIds = equipAllResponse.equipped_armor_ids
-                .filter((entry: any) => entry && entry.id_girl_armor)
-                .map((entry: any) => String(entry.id_girl_armor));
-            logHHAuto(`Found ${equippedItemIds.length} equipped items from equipped_armor_ids`);
-        }
+            if (!equippedData || !equippedData.id_girl_armor) {
+                logHHAuto(`Slot ${i}: no equipped item, skipping`);
+                continue;
+            }
 
-        if (equippedItemIds.length === 0) {
-            logHHAuto('No equipped item IDs found in equip_all response, cannot optimize.');
-            return;
-        }
-
-        // For each equipped item, re-equip it as probe to get the full inventory for that slot
-        for (let i = 0; i < equippedItemIds.length; i++) {
-            const armorId = equippedItemIds[i];
-            logHHAuto(`Slot ${i}: probing with equipped item id=${armorId}`);
-
-            const probeResponse = await HaremGirl.equipItem(girl.id_girl, armorId);
+            // Step 1: Re-equip the current item to get the full inventory for this slot from the API
+            const probeResponse = await HaremGirl.equipItem(girl.id_girl, equippedData.id_girl_armor);
             if (!probeResponse || !probeResponse.success) {
-                logHHAuto(`Slot ${i}: probe equip failed, skipping`);
+                logHHAuto(`Slot ${i}: probe equip failed, trying with inventory item`);
+
+                // Fallback: find any DOM item matching this slot_index
+                let fallbackId: string | null = null;
+                $('.right-section .slot.slot_girl_armor[data-d]').each(function () {
+                    if (fallbackId) return;
+                    const raw = $(this).attr('data-d');
+                    if (!raw) return;
+                    const data = JSON.parse(raw);
+                    if (data.id_girl_armor && data.type === 'girl_armor' && data.slot_index === slotIndex) {
+                        fallbackId = data.id_girl_armor;
+                    }
+                });
+
+                if (!fallbackId) {
+                    logHHAuto(`Slot ${i}: no fallback item for slot_index=${slotIndex}, skipping`);
+                    await TimeHelper.sleep(randomInterval(300, 500));
+                    continue;
+                }
+
+                const fallbackResponse = await HaremGirl.equipItem(girl.id_girl, fallbackId);
+                if (!fallbackResponse || !fallbackResponse.success) {
+                    logHHAuto(`Slot ${i}: fallback equip also failed, skipping`);
+                    await TimeHelper.sleep(randomInterval(300, 500));
+                    continue;
+                }
+
+                // Use fallback response
+                const fbCandidates: any[] = [...(fallbackResponse.inventory_armor || [])];
+                if (fallbackResponse.unequipped_armor) fbCandidates.push(fallbackResponse.unequipped_armor);
+                const fbEquipped = fallbackResponse.equipped_armor || null;
+                const fbBest = HaremGirl.findBestItem(fbCandidates, girl);
+
+                if (fbBest && HaremGirl.isBetter(fbBest, fbEquipped, girl)) {
+                    const fbScore = HaremGirl.scoreItem(fbBest, girl);
+                    logHHAuto(`Slot ${i}: equipping best item (L${fbBest.level} ${fbBest.rarity}, score=${fbScore.caracSum}, resonance=${fbScore.resonanceMatches}, id=${fbBest.id_girl_armor})`);
+                    const eqResp = await HaremGirl.equipItem(girl.id_girl, fbBest.id_girl_armor);
+                    logHHAuto(`Slot ${i}: ${eqResp?.success ? 'equipped successfully' : 'equip failed'}`);
+                } else {
+                    const s = fbEquipped ? HaremGirl.scoreItem(fbEquipped, girl) : null;
+                    logHHAuto(`Slot ${i}: current item is optimal (L${fbEquipped?.level} ${fbEquipped?.rarity}, score=${s?.caracSum})`);
+                }
                 await TimeHelper.sleep(randomInterval(300, 500));
                 continue;
             }
 
+            // Probe succeeded: build full candidate list from API response
             const candidates: any[] = [...(probeResponse.inventory_armor || [])];
             if (probeResponse.unequipped_armor) {
                 candidates.push(probeResponse.unequipped_armor);
             }
             const currentlyEquipped = probeResponse.equipped_armor || null;
-            logHHAuto(`Slot ${i}: API returned ${candidates.length} candidates`);
+            logHHAuto(`Slot ${i}: API returned ${candidates.length} candidates for slot_index=${slotIndex}`);
 
             if (candidates.length === 0) {
                 const eqScore = currentlyEquipped ? HaremGirl.scoreItem(currentlyEquipped, girl) : null;
-                logHHAuto(`Slot ${i}: no alternatives, keeping current (L${currentlyEquipped?.level} ${currentlyEquipped?.rarity}, score=${eqScore?.caracSum})`);
+                logHHAuto(`Slot ${i}: no alternative items, keeping current (L${currentlyEquipped?.level} ${currentlyEquipped?.rarity}, score=${eqScore?.caracSum})`);
                 await TimeHelper.sleep(randomInterval(300, 500));
                 continue;
             }
 
+            // Step 2: Find the absolute best from the complete inventory
             const best = HaremGirl.findBestItem(candidates, girl);
 
             if (best && HaremGirl.isBetter(best, currentlyEquipped, girl)) {
                 const bestScore = HaremGirl.scoreItem(best, girl);
-                logHHAuto(`Slot ${i}: replacing with better item (L${best.level} ${best.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${best.id_girl_armor})`);
+                logHHAuto(`Slot ${i}: equipping best item (L${best.level} ${best.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches}, id=${best.id_girl_armor})`);
 
                 const equipResponse = await HaremGirl.equipItem(girl.id_girl, best.id_girl_armor);
-                logHHAuto(`Slot ${i}: ${equipResponse?.success ? 'equipped successfully' : 'equip failed'}`);
+                if (equipResponse && equipResponse.success) {
+                    logHHAuto(`Slot ${i}: equipped successfully`);
+                } else {
+                    logHHAuto(`Slot ${i}: equip failed`);
+                }
             } else {
                 const eqScore = currentlyEquipped ? HaremGirl.scoreItem(currentlyEquipped, girl) : null;
-                logHHAuto(`Slot ${i}: current is optimal (L${currentlyEquipped?.level} ${currentlyEquipped?.rarity}, score=${eqScore?.caracSum})`);
+                logHHAuto(`Slot ${i}: current item is optimal (L${currentlyEquipped?.level} ${currentlyEquipped?.rarity}, score=${eqScore?.caracSum})`);
             }
             await TimeHelper.sleep(randomInterval(300, 500));
         }
