@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.3
+// @version      7.35.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -226,7 +226,7 @@ HHAuto_ToolTips.en['autoMissionCollect'] = { version: "5.6.24", elementText: "Co
 HHAuto_ToolTips.en['compactMissions'] = { version: "5.24.0", elementText: "Compact", tooltip: "Add styles to compact missions display" };
 HHAuto_ToolTips.en['invertMissions'] = { version: "7.16.2", elementText: "Invert", tooltip: "Start with longer mission instead of shorter" };
 HHAuto_ToolTips.en['autoTrollTitle'] = { version: "5.6.24", elementText: "Battle Troll" };
-HHAuto_ToolTips.en['autoTrollBattle'] = { version: "5.6.24", elementText: "Enable", tooltip: "if enabled : Automatically battle troll selected" };
+HHAuto_ToolTips.en['autoTrollBattle'] = { version: "7.35.4", elementText: "Standard Troll on/off", tooltip: "if enabled : Automatically battle standard troll selected" };
 HHAuto_ToolTips.en['autoTrollSelector'] = { version: "5.6.24", elementText: "Troll selector", tooltip: "Select troll to be fought." };
 HHAuto_ToolTips.en['autoTrollThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "(Integer 0 to 19)<br>Minimum troll fight to keep" };
 HHAuto_ToolTips.en['autoTrollRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum troll fights before script start spending<br> 0 to spend as soon as energy above threshold" };
@@ -586,7 +586,7 @@ HHAuto_ToolTips.fr['autoSalaryMinSalary'] = { version: "5.20.3", elementText: "S
 HHAuto_ToolTips.fr['autoMission'] = { version: "5.6.24", elementText: "Missions", tooltip: "Si activé : lance automatiquement les missions." };
 HHAuto_ToolTips.fr['autoMissionCollect'] = { version: "5.6.24", elementText: "Collecter", tooltip: "Si activé : collecte automatiquement les récompenses des missions." };
 HHAuto_ToolTips.fr['compactMissions'] = { version: "5.24.0", elementText: "Compacter", tooltip: "Compacter l'affichage des missions" };
-HHAuto_ToolTips.fr['autoTrollBattle'] = { version: "5.6.24", elementText: "Activer", tooltip: "Si activé : combat automatiquement le troll." };
+HHAuto_ToolTips.fr['autoTrollBattle'] = { version: "7.35.4", elementText: "Troll standard on/off", tooltip: "Si activé : combat automatiquement le troll standard." };
 HHAuto_ToolTips.fr['autoTrollSelector'] = { version: "5.6.24", elementText: "Sélection troll", tooltip: "Sélection du troll à combattre" };
 HHAuto_ToolTips.fr['autoTrollThreshold'] = { version: "5.6.24", elementText: "Réserve", tooltip: "Points de combat de trolls (poings) minimum à conserver" };
 HHAuto_ToolTips.fr['eventTrollOrder'] = { version: "5.6.24", elementText: "Ordre Trolls d'événement", tooltip: "Permet de sélectionner l'ordre dans lequel les trolls d'événements sont automatiquement combattus." };
@@ -735,7 +735,7 @@ HHAuto_ToolTips.de['autoSalary'] = { version: "5.6.24", elementText: "Auto Einko
 //HHAuto_ToolTips.de['autoSalaryMinTimer'] = { version: "5.6.24", elementText: "min Warten", tooltip: "(Ganze pos. Zahl)<br>X Sek bis zum Sammeln des Einkommens"};
 HHAuto_ToolTips.de['autoMission'] = { version: "5.6.24", elementText: "AutoMission", tooltip: "Wenn aktiv : Macht automatisch Missionen" };
 HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Missionsgewinne" };
-HHAuto_ToolTips.de['autoTrollBattle'] = { version: "5.6.24", elementText: "AutoTrollKampf", tooltip: "Wenn aktiv : Macht automatisch aktivierte Trollkämpfe" };
+HHAuto_ToolTips.de['autoTrollBattle'] = { version: "7.35.4", elementText: "Standard Troll an/aus", tooltip: "Wenn aktiv: Macht automatisch Kämpfe gegen den Standard-Troll" };
 HHAuto_ToolTips.de['autoTrollSelector'] = { version: "5.6.24", elementText: "Troll Wähler", tooltip: "Wähle Trolle die bekämpfte werden sollen." };
 HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Trollpunkten die aufgehoben werden" };
 HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.24", elementText: "Event Troll Reihenfolge", tooltip: "Erlaubt eine Auswahl in welcher Reihenfolge die Trolle automatisch bekämpft werden" };
@@ -804,7 +804,7 @@ HHAuto_ToolTips.es['autoSalary'] = { version: "5.6.24", elementText: "AutoSal.",
 //HHAuto_ToolTips.es['autoSalaryMinTimer'] = { version: "5.6.24", elementText: "min espera", tooltip: "(Entero)<br>X segundos para recaudar salario"};
 HHAuto_ToolTips.es['autoMission'] = { version: "5.6.24", elementText: "AutoMision", tooltip: "Si habilitado: Juega misiones de manera automática" };
 HHAuto_ToolTips.es['autoMissionCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Si habilitado: Recauda misiones de manera automática" };
-HHAuto_ToolTips.es['autoTrollBattle'] = { version: "5.6.24", elementText: "AutoVillano", tooltip: "Si habilitado: Combate villano seleccionado de manera automática" };
+HHAuto_ToolTips.es['autoTrollBattle'] = { version: "7.35.4", elementText: "Villano estándar on/off", tooltip: "Si habilitado: Combate automáticamente el villano estándar seleccionado" };
 HHAuto_ToolTips.es['autoTrollSelector'] = { version: "5.6.24", elementText: "Selector villano", tooltip: "Selecciona villano para luchar." };
 HHAuto_ToolTips.es['autoTrollThreshold'] = { version: "5.6.24", elementText: "Límite", tooltip: "(Entero 0 a 19)<br>Mínimo combates a guardar" };
 HHAuto_ToolTips.es['eventTrollOrder'] = { version: "5.6.24", elementText: "Orden combate villano", tooltip: "(Valores separados por ;)<br>Permite seleccionar el orden de combate automático de los villanos" };
@@ -19621,13 +19621,11 @@ function getMenu() {
             + hhMenuSwitch('plusGirlSkins')
             + hhMenuInput('sandalwoodMinShardsThreshold', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
             + `</div>`
-            + `<div class="internalOptionsRow">`
+            + `<div class="internalOptionsRow separator">`
             + hhMenuSwitch('plusEvent')
             + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
-            + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
             + hhMenuSwitch('buyCombat', '', true)
             + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
-            + `</div>`
             + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
             + hhMenuSwitch('plusEventSandalWood')
             + `</div>`
