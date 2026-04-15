@@ -12017,10 +12017,56 @@ class HaremGirl {
                     const raw = bestInventory.el.get(0);
                     if (raw && typeof raw.scrollIntoView === 'function') {
                         raw.scrollIntoView({ block: 'center' });
-                        yield TimeHelper.sleep(randomInterval(150, 250));
+                        yield TimeHelper.sleep(randomInterval(200, 300));
                     }
-                    bestInventory.el.trigger('click');
-                    yield TimeHelper.sleep(randomInterval(400, 600));
+                    // Native click to trigger the game's selection handler reliably
+                    if (raw && typeof raw.click === 'function') {
+                        raw.click();
+                    }
+                    else {
+                        bestInventory.el.trigger('click');
+                    }
+                    yield TimeHelper.sleep(randomInterval(300, 500));
+                    // Find and click the Equip / confirm button. Log which button we found.
+                    const equipBtnSelectors = [
+                        '#equip-button',
+                        '.equip-button',
+                        'button.equip',
+                        '[class*="equip"] button',
+                        '.right-section button',
+                        '.footer .equip',
+                        'button:contains("Equip")',
+                        'button:contains("equip")'
+                    ];
+                    let equipBtn = null;
+                    for (const sel of equipBtnSelectors) {
+                        try {
+                            const $b = $(sel).filter(':visible').not(':disabled').first();
+                            if ($b.length > 0) {
+                                equipBtn = $b;
+                                LogUtils_logHHAuto(`Slot ${i}: equip button found via selector "${sel}" (text="${$b.text().trim().substring(0, 30)}")`);
+                                break;
+                            }
+                        }
+                        catch ( /* ignore selector errors */_c) { /* ignore selector errors */ }
+                    }
+                    if (equipBtn && equipBtn.length > 0) {
+                        const btnRaw = equipBtn.get(0);
+                        if (btnRaw && typeof btnRaw.click === 'function')
+                            btnRaw.click();
+                        else
+                            equipBtn.trigger('click');
+                        yield TimeHelper.sleep(randomInterval(400, 700));
+                        LogUtils_logHHAuto(`Slot ${i}: equip button clicked`);
+                    }
+                    else {
+                        // Fallback: list all visible buttons in the right section for diagnosis
+                        const btnList = [];
+                        $('.right-section button, .right-section .myButton, .right-section [class*="btn"]').filter(':visible').each(function () {
+                            btnList.push(`${this.tagName}.${(this.className || '').substring(0, 40)}:"${$(this).text().trim().substring(0, 20)}"`);
+                        });
+                        LogUtils_logHHAuto(`Slot ${i}: NO equip button found. Visible buttons in right-section: ${JSON.stringify(btnList)}`);
+                    }
                 }
                 else {
                     const eqScore = equippedData ? HaremGirl.scoreItem(equippedData, girl) : null;
