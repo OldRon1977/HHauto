@@ -244,6 +244,8 @@ HHAuto_ToolTips.en['autoLivelySceneEventCollect'] = { version: "7.21.0", element
 HHAuto_ToolTips.en['autoLivelySceneEventCollectAll'] = { version: "7.21.0", elementText: "Collect All", tooltip: "if enabled : Automatically collect all items before end of Lively Scene event (configured with Collect all timer)" };
 HHAuto_ToolTips.en['sultryMysteriesEventRefreshShop'] = { version: "5.21.6", elementText: "Refresh Shop", tooltip: "Open Sultry Mysteries shop tab to trigger shop update."};
 HHAuto_ToolTips.en['sultryMysteriesEventRefreshShopNext'] = { version: "5.22.5", elementText: "Sultry Shop"};
+HHAuto_ToolTips.en['sultryMysteriesAutoPlay'] = { version: "7.36.0", elementText: "Auto Sultry", tooltip: "Automatically open grid squares optimizing for Sultry Coins (EV-based). Generates a new grid when further clicks are unlikely to beat a fresh grid."};
+HHAuto_ToolTips.en['sultryMysteriesResetAfterKeys'] = { version: "7.36.0", elementText: "Reset after X keys", tooltip: "Force generate a new grid after X squares opened.<br>0 = let the script decide based on expected value logic.<br>Values below 15 are clamped to 15 (game minimum)."};
 HHAuto_ToolTips.en['collectEventChest'] = { version: "5.28.0", elementText: "Collect event chest", tooltip: "If enabled: collect event chest when active after getting all girls"};
 HHAuto_ToolTips.en['dailyMissionGirlTitle'] = { version: "6.5.2", elementText: "Complete the Daily Missions of to get me!"};
 HHAuto_ToolTips.en['showTooltips'] = { version: "5.6.24", elementText: "Show tooltips", tooltip: "Show tooltip on menu."};

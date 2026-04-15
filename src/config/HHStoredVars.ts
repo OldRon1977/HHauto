@@ -1538,6 +1538,28 @@ HHStoredVars[HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop] =
     menuType:"checked",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.sultryMysteriesAutoPlay] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.sultryMysteriesResetAfterKeys] =
+    {
+    default:"0",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Small Integer",
+    getMenu:true,
+    setMenu:true,
+    menuType:"value",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.collectEventChest] =
     {
     default:"false",

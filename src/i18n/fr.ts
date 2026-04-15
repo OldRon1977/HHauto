@@ -121,6 +121,8 @@ HHAuto_ToolTips.fr['bossBangEvent'] = { version: "5.20.3", elementText: "Activer
 HHAuto_ToolTips.fr['bossBangEventTitle'] = { version: "6.15.8", elementText: "Boss Bang"};
 HHAuto_ToolTips.fr['bossBangMinTeam'] = { version: "5.6.137", elementText: "Première équipe", tooltip: "Première équipe à utiliser<br>Si 5, le script commencera par la dernière pour finir par la premiere."};
 HHAuto_ToolTips.fr['sultryMysteriesEventTitle'] = { version: "6.15.8", elementText: "Mystère sensuel"};
+HHAuto_ToolTips.fr['sultryMysteriesAutoPlay'] = { version: "7.36.0", elementText: "Auto Sultry", tooltip: "Ouvre automatiquement les cases de la grille en optimisant les Sultry Coins (basé sur l'espérance de gain). Génère une nouvelle grille quand continuer n'a plus d'intérêt."};
+HHAuto_ToolTips.fr['sultryMysteriesResetAfterKeys'] = { version: "7.36.0", elementText: "Réinitialiser après X clés", tooltip: "Force la génération d'une nouvelle grille après X cases ouvertes.<br>0 = laisse le script décider avec la logique d'espérance de gain.<br>Les valeurs inférieures à 15 sont ramenées à 15 (minimum du jeu)."};
 HHAuto_ToolTips.fr['eventTitle'] = { version: "6.15.8", elementText: "Evènements"};
 HHAuto_ToolTips.fr['autodpEventCollect'] = { version: "6.15.8", elementText: "Collecter", tooltip: "Permet de collecter les gains de l'évènement double penetration"};
 HHAuto_ToolTips.fr['autodpEventCollectAll'] = { version: "7.1.0", elementText: "Tout collecter", tooltip: "Si activé : Collect Automatiquement toutes les récompense avant la fin de l'évènement double penetration (configuré avec le timer \"Tout collecter\")"};

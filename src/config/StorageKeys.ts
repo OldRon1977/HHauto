@@ -220,6 +220,8 @@ export const SK = {
 
     // Sultry Mysteries
     sultryMysteriesEventRefreshShop: "Setting_sultryMysteriesEventRefreshShop",
+    sultryMysteriesAutoPlay: "Setting_sultryMysteriesAutoPlay",
+    sultryMysteriesResetAfterKeys: "Setting_sultryMysteriesResetAfterKeys",
 
     // Display / UI
     showInfo: "Setting_showInfo",

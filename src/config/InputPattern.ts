@@ -28,6 +28,7 @@ export const HHAuto_inputPattern = {
     autoPantheonThreshold:"[0-9]",
     autoPantheonRunThreshold:"10|[0-9]",
     bossBangMinTeam:"[1-5]",
+    sultryMysteriesResetAfterKeys:"[0-9]|[12][0-9]|30",
     autoQuestThreshold:"[1-9]?[0-9]",
     autoLeaguesThreshold:"1[0-4]|[0-9]",
     autoLeaguesRunThreshold:"1[0-5]|[0-9]",

@@ -966,6 +966,8 @@ export function getMenu() {
                                 +`<div class="optionsBox">`
                                     +`<div class="internalOptionsRow" style="justify-content: space-evenly">`
                                         + hhMenuSwitch('sultryMysteriesEventRefreshShop')
+                                        + hhMenuSwitch('sultryMysteriesAutoPlay')
+                                        + hhMenuInput('sultryMysteriesResetAfterKeys', HHAuto_inputPattern.sultryMysteriesResetAfterKeys, 'text-align:center; width:25px', '', 'numeric')
                                     +`</div>`
                                 +`</div>`
                             +`</div>`
