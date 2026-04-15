@@ -785,13 +785,11 @@ export function getMenu() {
                         + hhMenuSwitch('plusGirlSkins')
                         + hhMenuInput('sandalwoodMinShardsThreshold', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
                     +`</div>`
-                    +`<div class="internalOptionsRow">`
+                    +`<div class="internalOptionsRow separator">`
                         + hhMenuSwitch('plusEvent')
                         + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
-                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
                         + hhMenuSwitch('buyCombat', '', true)
                         + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
-                        + `</div>`
                         + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventSandalWood')
                     +`</div>`
