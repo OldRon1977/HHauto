@@ -891,47 +891,37 @@ export class HaremGirl {
      * back to the top so the game has rendered every item into the DOM.
      */
     private static async forceLoadAllInventoryItems(): Promise<number> {
-        // Likely scroll containers for the inventory panel (right side)
-        const candidateSelectors = [
-            '.right-section .scrollable',
-            '.right-section .inventory',
-            '.right-section .items-list',
-            '.right-section > div',
-            '.right-section'
-        ];
-        let container: HTMLElement | null = null;
-        for (const sel of candidateSelectors) {
-            const el = document.querySelector(sel) as HTMLElement | null;
-            if (el && el.scrollHeight > el.clientHeight + 10) {
-                container = el;
-                break;
-            }
-        }
-        if (!container) {
-            // fallback: take first .right-section descendant with overflow
-            document.querySelectorAll('.right-section, .right-section *').forEach((el) => {
-                if (container) return;
-                const h = el as HTMLElement;
-                if (h.scrollHeight > h.clientHeight + 10) container = h;
-            });
-        }
-
         const countItems = () => $('.right-section .slot[data-d]').length;
 
-        let prevCount = countItems();
-        if (!container) {
-            logHHAuto(`forceLoadAllInventoryItems: no scrollable container found, current DOM items=${prevCount}`);
-            return prevCount;
-        }
+        // Find ALL scrollable elements in the right section (element with scrollHeight > clientHeight)
+        const scrollables: HTMLElement[] = [];
+        document.querySelectorAll('.right-section, .right-section *').forEach((el) => {
+            const h = el as HTMLElement;
+            if (h.scrollHeight > h.clientHeight + 5) scrollables.push(h);
+        });
+        // Also try the document/body as fallback
+        scrollables.push(document.scrollingElement as HTMLElement || document.body);
 
-        for (let iter = 0; iter < 20; iter++) {
-            container.scrollTop = container.scrollHeight;
+        let prevCount = countItems();
+        logHHAuto(`forceLoadAllInventoryItems: found ${scrollables.length} scrollable elements, initial item count=${prevCount}`);
+
+        for (let iter = 0; iter < 15; iter++) {
+            // scroll each scrollable to its bottom and dispatch a scroll event
+            for (const s of scrollables) {
+                try {
+                    s.scrollTop = s.scrollHeight;
+                    s.dispatchEvent(new Event('scroll', { bubbles: true }));
+                } catch { /* ignore */ }
+            }
             await TimeHelper.sleep(randomInterval(200, 350));
             const curCount = countItems();
             if (curCount === prevCount) break;
             prevCount = curCount;
         }
-        container.scrollTop = 0;
+        // scroll back up so the chosen item's scrollIntoView works reliably
+        for (const s of scrollables) {
+            try { s.scrollTop = 0; } catch { /* ignore */ }
+        }
         await TimeHelper.sleep(randomInterval(150, 250));
         return countItems();
     }
@@ -956,20 +946,34 @@ export class HaremGirl {
                 try { equippedData = JSON.parse(equippedEl.attr('data-d')!); } catch { /* ignore */ }
             }
 
-            const inventoryItems: { el: JQuery<HTMLElement>, data: any }[] = [];
+            const targetSlotIndex = equippedData?.slot_index ?? (i + 1);
+
+            const allDomItems: { el: JQuery<HTMLElement>, data: any }[] = [];
             $('.right-section .slot[data-d]').each(function () {
                 const raw = $(this).attr('data-d');
                 if (!raw) return;
                 try {
                     const data = JSON.parse(raw);
-                    if (data && data.caracs) inventoryItems.push({ el: $(this), data });
+                    if (data && data.caracs) allDomItems.push({ el: $(this), data });
                 } catch { /* ignore */ }
             });
 
-            logHHAuto(`Slot ${i}: DOM has ${totalItems} items, ${inventoryItems.length} usable candidates, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity}` : 'none'}`);
+            // Filter candidates by slot_index so we don't compare pants to necklaces
+            const inventoryItems = allDomItems.filter(it => Number(it.data.slot_index) === Number(targetSlotIndex));
+
+            // Diagnostic: slot_index distribution + top rarities in inventory
+            const slotDist: { [k: string]: number } = {};
+            const rarityDist: { [k: string]: number } = {};
+            for (const it of allDomItems) {
+                const si = String(it.data.slot_index);
+                slotDist[si] = (slotDist[si] || 0) + 1;
+                const ra = String(it.data.rarity);
+                rarityDist[ra] = (rarityDist[ra] || 0) + 1;
+            }
+            logHHAuto(`Slot ${i}: targetSlotIndex=${targetSlotIndex}, DOM items=${allDomItems.length}, candidates=${inventoryItems.length}, slot_index_dist=${JSON.stringify(slotDist)}, rarity_dist=${JSON.stringify(rarityDist)}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} si=${equippedData.slot_index}` : 'none'}`);
 
             if (inventoryItems.length === 0) {
-                logHHAuto(`Slot ${i}: no inventory items available, skipping`);
+                logHHAuto(`Slot ${i}: no inventory items for slot_index=${targetSlotIndex}, skipping`);
                 continue;
             }
 
