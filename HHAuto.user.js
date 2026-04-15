@@ -11726,6 +11726,8 @@ class HaremGirl {
                         HaremGirl.switchTabs(HaremGirl.EQUIPMENT_TYPE);
                         yield TimeHelper.sleep(randomInterval(400, 700));
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.EQUIPMENT_TYPE, getTextForUI("giveMaxingOut", "elementText") + ' ' + girl.name + ' : ' + girlListProgress, (remainingGirls + 1) * 5, haremGirlSpent);
+                        $('#girl-equip').trigger('click');
+                        yield TimeHelper.sleep(randomInterval(400, 700));
                         yield HaremGirl.optimizeEquipmentSlots(girl);
                     }
                     if (upgradeSkill) {
@@ -11900,83 +11902,123 @@ class HaremGirl {
             return true;
         return false;
     }
-    static equipAllApi(girlId) {
-        return new Promise((resolve) => {
-            $.ajax({
-                url: '/ajax.php',
-                type: 'POST',
-                data: { action: 'girl_equipment_equip_all', id_girl: girlId },
-                dataType: 'json',
-                success: (data) => resolve(data),
-                error: (xhr, status) => {
-                    LogUtils_logHHAuto(`equipAllApi HTTP error: status=${status}`);
-                    resolve(null);
+    /**
+     * Force the game's lazy-loaded inventory panel to render all items.
+     * The game renders inventory items on-demand as the container is scrolled.
+     * We scroll to the bottom repeatedly until the item count stabilises, then
+     * back to the top so the game has rendered every item into the DOM.
+     */
+    static forceLoadAllInventoryItems() {
+        return HaremGirl_awaiter(this, void 0, void 0, function* () {
+            // Likely scroll containers for the inventory panel (right side)
+            const candidateSelectors = [
+                '.right-section .scrollable',
+                '.right-section .inventory',
+                '.right-section .items-list',
+                '.right-section > div',
+                '.right-section'
+            ];
+            let container = null;
+            for (const sel of candidateSelectors) {
+                const el = document.querySelector(sel);
+                if (el && el.scrollHeight > el.clientHeight + 10) {
+                    container = el;
+                    break;
                 }
-            });
+            }
+            if (!container) {
+                // fallback: take first .right-section descendant with overflow
+                document.querySelectorAll('.right-section, .right-section *').forEach((el) => {
+                    if (container)
+                        return;
+                    const h = el;
+                    if (h.scrollHeight > h.clientHeight + 10)
+                        container = h;
+                });
+            }
+            const countItems = () => $('.right-section .slot[data-d]').length;
+            let prevCount = countItems();
+            if (!container) {
+                LogUtils_logHHAuto(`forceLoadAllInventoryItems: no scrollable container found, current DOM items=${prevCount}`);
+                return prevCount;
+            }
+            for (let iter = 0; iter < 20; iter++) {
+                container.scrollTop = container.scrollHeight;
+                yield TimeHelper.sleep(randomInterval(200, 350));
+                const curCount = countItems();
+                if (curCount === prevCount)
+                    break;
+                prevCount = curCount;
+            }
+            container.scrollTop = 0;
+            yield TimeHelper.sleep(randomInterval(150, 250));
+            return countItems();
         });
     }
     static optimizeEquipmentSlots(girl) {
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
-            LogUtils_logHHAuto(`Optimize equipment via API for ${girl.name}`);
-            // Step 1: run auto-equip via API and capture full response
-            const equipAllResp = yield HaremGirl.equipAllApi(girl.id_girl);
-            if (!equipAllResp) {
-                LogUtils_logHHAuto(`Auto-equip API call failed for ${girl.name}, aborting optimization`);
-                return;
-            }
-            if (!equipAllResp.success) {
-                LogUtils_logHHAuto(`Auto-equip API returned success=false for ${girl.name}, response keys=${JSON.stringify(Object.keys(equipAllResp))}`);
-                return;
-            }
-            LogUtils_logHHAuto(`Auto-equip via API successful for ${girl.name}, response keys=${JSON.stringify(Object.keys(equipAllResp))}`);
-            const inventory = Array.isArray(equipAllResp.inventory_armor) ? equipAllResp.inventory_armor : [];
-            LogUtils_logHHAuto(`Auto-equip response contains ${inventory.length} inventory_armor entries`);
-            if (inventory.length === 0) {
-                LogUtils_logHHAuto(`No inventory_armor in equip_all response — cannot optimize, stopping`);
-                return;
-            }
-            // Log one sample entry's keys so we can verify structure
-            LogUtils_logHHAuto(`inventory_armor[0] keys=${JSON.stringify(Object.keys(inventory[0]))}`);
-            // Group inventory by slot_index
-            const bySlot = {};
-            for (const item of inventory) {
-                const si = Number(item.slot_index);
-                if (!Number.isFinite(si))
-                    continue;
-                if (!bySlot[si])
-                    bySlot[si] = [];
-                bySlot[si].push(item);
-            }
-            // Read currently equipped stats from DOM (post-equip_all DOM may be stale, but worst case we over-equip)
-            const equippedBySlot = {};
-            $('.equipment_slot .slot[data-d]').each(function () {
-                try {
-                    const d = JSON.parse($(this).attr('data-d') || '{}');
-                    const si = Number(d.slot_index);
-                    if (Number.isFinite(si))
-                        equippedBySlot[si] = d;
+            const equipmentSlots = $('.equipment_slot');
+            const slotCount = equipmentSlots.length;
+            LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+            for (let i = 0; i < slotCount; i++) {
+                const slot = equipmentSlots.eq(i);
+                slot.trigger('click');
+                yield TimeHelper.sleep(randomInterval(400, 600));
+                // Force game to render all lazy-loaded inventory items into the DOM
+                const totalItems = yield HaremGirl.forceLoadAllInventoryItems();
+                const equippedEl = slot.find('.slot[data-d]');
+                let equippedData = null;
+                if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
+                    try {
+                        equippedData = JSON.parse(equippedEl.attr('data-d'));
+                    }
+                    catch ( /* ignore */_a) { /* ignore */ }
                 }
-                catch ( /* ignore */_a) { /* ignore */ }
-            });
-            for (let slotIndex = 1; slotIndex <= 6; slotIndex++) {
-                const candidates = bySlot[slotIndex] || [];
-                const equipped = equippedBySlot[slotIndex] || null;
-                LogUtils_logHHAuto(`Slot ${slotIndex}: ${candidates.length} candidates, equipped=${equipped ? `L${equipped.level} ${equipped.rarity}` : 'none'}`);
-                if (candidates.length === 0)
+                const inventoryItems = [];
+                $('.right-section .slot[data-d]').each(function () {
+                    const raw = $(this).attr('data-d');
+                    if (!raw)
+                        return;
+                    try {
+                        const data = JSON.parse(raw);
+                        if (data && data.caracs)
+                            inventoryItems.push({ el: $(this), data });
+                    }
+                    catch ( /* ignore */_a) { /* ignore */ }
+                });
+                LogUtils_logHHAuto(`Slot ${i}: DOM has ${totalItems} items, ${inventoryItems.length} usable candidates, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity}` : 'none'}`);
+                if (inventoryItems.length === 0) {
+                    LogUtils_logHHAuto(`Slot ${i}: no inventory items available, skipping`);
                     continue;
-                const best = HaremGirl.findBestItem(candidates, girl);
-                if (!best)
-                    continue;
-                const bestScore = HaremGirl.scoreItem(best, girl);
-                if (HaremGirl.isBetter(best, equipped, girl)) {
-                    LogUtils_logHHAuto(`Slot ${slotIndex}: equipping better item L${best.level} ${best.rarity} score=${bestScore.caracSum} resonance=${bestScore.resonanceMatches} id=${best.id_girl_armor}`);
-                    const resp = yield HaremGirl.equipItem(girl.id_girl, best.id_girl_armor);
-                    LogUtils_logHHAuto(`Slot ${slotIndex}: ${(resp === null || resp === void 0 ? void 0 : resp.success) ? 'equipped successfully' : 'equip failed'}`);
-                    yield TimeHelper.sleep(randomInterval(300, 500));
+                }
+                // Rank candidates: total stats, then resonance, then individual stats
+                const sorted = inventoryItems.slice().sort((a, b) => {
+                    const sa = HaremGirl.scoreItem(a.data, girl);
+                    const sb = HaremGirl.scoreItem(b.data, girl);
+                    if (sb.caracSum !== sa.caracSum)
+                        return sb.caracSum - sa.caracSum;
+                    if (sb.resonanceMatches !== sa.resonanceMatches)
+                        return sb.resonanceMatches - sa.resonanceMatches;
+                    const ca = a.data.caracs, cb = b.data.caracs;
+                    return ((cb.carac1 || 0) + (cb.carac2 || 0) + (cb.carac3 || 0)) - ((ca.carac1 || 0) + (ca.carac2 || 0) + (ca.carac3 || 0));
+                });
+                const bestInventory = sorted[0];
+                const bestScore = HaremGirl.scoreItem(bestInventory.data, girl);
+                const shouldReplace = HaremGirl.isBetter(bestInventory.data, equippedData, girl);
+                if (shouldReplace) {
+                    LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
+                    // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
+                    const raw = bestInventory.el.get(0);
+                    if (raw && typeof raw.scrollIntoView === 'function') {
+                        raw.scrollIntoView({ block: 'center' });
+                        yield TimeHelper.sleep(randomInterval(150, 250));
+                    }
+                    bestInventory.el.trigger('click');
+                    yield TimeHelper.sleep(randomInterval(400, 600));
                 }
                 else {
-                    const eqScore = equipped ? HaremGirl.scoreItem(equipped, girl) : null;
-                    LogUtils_logHHAuto(`Slot ${slotIndex}: current is optimal (L${equipped === null || equipped === void 0 ? void 0 : equipped.level} ${equipped === null || equipped === void 0 ? void 0 : equipped.rarity}, score=${eqScore === null || eqScore === void 0 ? void 0 : eqScore.caracSum})`);
+                    const eqScore = equippedData ? HaremGirl.scoreItem(equippedData, girl) : null;
+                    LogUtils_logHHAuto(`Slot ${i}: current item is optimal (L${equippedData === null || equippedData === void 0 ? void 0 : equippedData.level} ${equippedData === null || equippedData === void 0 ? void 0 : equippedData.rarity}, score=${eqScore === null || eqScore === void 0 ? void 0 : eqScore.caracSum})`);
                 }
             }
             LogUtils_logHHAuto('Equipment optimization complete');
