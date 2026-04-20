@@ -179,10 +179,10 @@ export class HHMenu {
 
     fillRaidStarsMenu() {
         var raidStarsOptions = <HTMLSelectElement>document.getElementById("raidStarsSelector");
-        raidStarsOptions.add(this._createHtmlOption('0', getTextForUI("raidStarsOff", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('3', getTextForUI("raidStars3", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('5', getTextForUI("raidStars5", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('6', getTextForUI("raidStars6", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('off', getTextForUI("raidStarsOff", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact3', getTextForUI("raidStarsExact3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('min3', getTextForUI("raidStarsMin3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact5', getTextForUI("raidStarsExact5", "elementText")));
     }
 
     fillLabyDifficultyMenu() {
@@ -789,7 +789,7 @@ export function getMenu() {
                         + hhMenuSwitch('plusEvent')
                         + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
                         + hhMenuSwitch('buyCombat', '', true)
-                        + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
+                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
                         + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventSandalWood')
                     +`</div>`
@@ -798,7 +798,7 @@ export function getMenu() {
                         + hhMenuSwitch('autoTrollMythicByPassParanoia')
                         + hhMenuSwitch('buyMythicCombat', '', true)
                         + hhMenuInput('autoBuyMythicTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-                        + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric')
+                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
                         + hhMenuSwitch('plusEventMythicSandalWood')
                     +`</div>`
                     +`<div class="internalOptionsRow separator">`

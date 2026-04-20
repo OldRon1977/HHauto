@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.4
+// @version      7.35.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -240,11 +240,11 @@ HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", 
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)." };
 HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.32.1", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid fights as long as a raid girl is available." };
-HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.32.3", elementText: "+Raid Stars", tooltip: "Fight Love Raids by minimum girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event." };
-HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.32.3", elementText: "Off" };
-HHAuto_ToolTips.en['raidStars3'] = { version: "7.32.3", elementText: "≥3 ★★★" };
-HHAuto_ToolTips.en['raidStars5'] = { version: "7.32.3", elementText: "≥5 ★★★★★" };
-HHAuto_ToolTips.en['raidStars6'] = { version: "7.32.3", elementText: "6 ★★★★★★" };
+HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Stars", tooltip: "Fight Love Raids by girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event." };
+HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.35.5", elementText: "Off" };
+HHAuto_ToolTips.en['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
+HHAuto_ToolTips.en['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
+HHAuto_ToolTips.en['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★" };
 HHAuto_ToolTips.en['buyLoveRaidCombat'] = { version: "7.25.6", elementText: "Buy comb.for Raid", tooltip: "<p style = 'color:red'>/ !\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p > If enabled: <br>Buying combat point during Love Raid event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementText: "Raid auto buy", tooltip: "Number of combat points to be bought during an love raid event" };
 HHAuto_ToolTips.en['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before LoveRaid fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };
@@ -741,6 +741,11 @@ HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Sc
 HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.24", elementText: "Event Troll Reihenfolge", tooltip: "Erlaubt eine Auswahl in welcher Reihenfolge die Trolle automatisch bekämpft werden" };
 HHAuto_ToolTips.de['plusEvent'] = { version: "5.6.24", elementText: "+Event", tooltip: "Wenn aktiv : Ignoriere ausgewählte Trolle währende eines Events, zugunsten des Events" };
 HHAuto_ToolTips.de['plusEventMythic'] = { version: "5.6.24", elementText: "+Mythisches Event", tooltip: "Erlaubt es Mädels beim mystischen Event abzugreifen, sollte sie nur versuchen wenn auch Teile vorhanden sind" };
+HHAuto_ToolTips.de['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Sterne", tooltip: "Kämpfe Love Raids nach Mädchen-Grad. Unabhängig von +Raid und Auto Troll.<br>Passende Raids werden von +Raid Sterne beansprucht; übrige Raids gehen an +Raid (falls aktiv).<br>Ignoriert die Energie-Schwelle wie +Mythisches Event." };
+HHAuto_ToolTips.de['raidStarsOff'] = { version: "7.35.5", elementText: "Aus" };
+HHAuto_ToolTips.de['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
+HHAuto_ToolTips.de['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
+HHAuto_ToolTips.de['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★" };
 //HHAuto_ToolTips.de['eventMythicPrio'] = { version: "5.6.24", elementText: "Priorisiere über Event Troll Reihenfolge", tooltip: "Mystische Event Mädels werden über die Event Troll Reihenfolge gestellt, sofern Teile erhältlich sind"};
 //HHAuto_ToolTips.de['autoTrollMythicByPassThreshold'] = { version: "5.6.24", elementText: "Mystische über Schwellenwert", tooltip: "Erlaubt es Punkt über den Schwellwert für das mystische Events zu nutzen"};
 HHAuto_ToolTips.de['autoTrollMythicByPassParanoia'] = { version: "5.6.24", elementText: "Mythisch über Paranoia", tooltip: "Wenn aktiv: Erlaubt es den Paranoia Modus zu übergehen. Wenn du noch kämpfen kannst oder dir Energie kaufen kannst, wird gekämpft. Sollte die nächste Welle an Splittern während der Ruhephase sein, wird der Modus unterbrochen und es wird gekämpft" };
@@ -3835,21 +3840,29 @@ class LoveRaidManager {
         return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
     }
     /**
-     * Returns the minimum girl grade for +Raid Stars filtering.
-     * Stored value is the grade directly: 0 = off, 3 = rare+, 5 = legendary+, 6 = mythic only.
+     * Returns the +Raid Stars selection. Stored as string:
+     * "off" = disabled, "exact3" = only 3★, "min3" = 3★ and up, "exact5" = only 5★.
      */
-    static getMinRaidStars() {
+    static getRaidStarsSelection() {
         if (!LoveRaidManager.isEnabled())
-            return 0;
-        const val = Number(getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic));
-        return isNaN(val) ? 0 : val;
+            return "off";
+        const val = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic);
+        return val || "off";
     }
     static isRaidStarsActivated() {
-        return LoveRaidManager.getMinRaidStars() > 0;
+        return LoveRaidManager.getRaidStarsSelection() !== "off";
     }
-    /** @deprecated Use isRaidStarsActivated() — kept for backward compat */
-    static isMythicActivated() {
-        return LoveRaidManager.isRaidStarsActivated();
+    /**
+     * Filters raids according to the +Raid Stars selection.
+     */
+    static filterByRaidStars(raids) {
+        const selection = LoveRaidManager.getRaidStarsSelection();
+        switch (selection) {
+            case "exact3": return raids.filter(r => r.girlGrade === 3);
+            case "min3": return raids.filter(r => r.girlGrade >= 3);
+            case "exact5": return raids.filter(r => r.girlGrade === 5);
+            default: return [];
+        }
     }
     static isAnyActivated() {
         return LoveRaidManager.isActivated() || LoveRaidManager.isRaidStarsActivated();
@@ -7230,8 +7243,7 @@ class Troll {
         const eventGirl = EventModule.getEventGirl();
         const eventMythicGirl = EventModule.getEventMythicGirl();
         const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-        const minRaidStars = LoveRaidManager.getMinRaidStars();
-        const raidStarsRaids = minRaidStars > 0 ? allTrollRaids.filter(raid => raid.girlGrade >= minRaidStars) : [];
+        const raidStarsRaids = LoveRaidManager.filterByRaidStars(allTrollRaids);
         // +Raid: user-selected girl bypasses grade filter, auto-mode ("first") respects it
         const loveRaids = LoveRaidManager.isActivated() ? allTrollRaids : [];
         if (debugEnabled && logging) {
@@ -7246,7 +7258,7 @@ class Troll {
         }
         else if (raidStarsRaids.length > 0) {
             if (logging)
-                LogUtils_logHHAuto("Raid Stars troll fight (min grade " + minRaidStars + ")");
+                LogUtils_logHHAuto("Raid Stars troll fight (selection " + LoveRaidManager.getRaidStarsSelection() + ")");
             const loveRaid = LoveRaidManager.getRaidToFight(raidStarsRaids, logging);
             if (loveRaid) {
                 TTF = loveRaid.trollId;
@@ -7707,19 +7719,16 @@ class Troll {
         const mythicAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyMythicTrollNumber)) || maxx20, MAX_BUY - currentFight);
         const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
         let remainingShards;
-        if (Number.isInteger(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.shards)) {
+        // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
+        if (Number.isInteger(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.shards) && currentFight === 0 && eventGirl.shards < 100) {
             if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) == "true"
                 && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
                 && getSecondsLeft("eventGoing") !== 0
-                && !Number.isNaN(Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)))
-                && getSecondsLeft("eventGoing") < getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer) * 3600
                 && eventGirl.girl_id && !eventGirl.is_mythic)
                 ||
                     (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
                         && getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombat) === "true"
                         && getSecondsLeft("eventMythicGoing") !== 0
-                        && !Number.isNaN(Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)))
-                        && getSecondsLeft("eventMythicGoing") < getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer) * 3600
                         && eventGirl.is_mythic)) {
                 result.event_mythic = eventGirl.is_mythic.toString();
             }
@@ -7769,7 +7778,8 @@ class Troll {
         const maxx50 = Math.max(50, eventAutoBuy);
         const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
         let remainingShards;
-        if (Number.isInteger(raid === null || raid === void 0 ? void 0 : raid.girl_shards)) {
+        // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
+        if (Number.isInteger(raid === null || raid === void 0 ? void 0 : raid.girl_shards) && currentFight === 0 && raid.girl_shards < 100) {
             if (getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) == "true"
                 && LoveRaidManager.isAnyActivated()
                 && raid.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
@@ -9765,16 +9775,16 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThres
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaidMythic] =
     {
-        default: "0",
+        default: "off",
         storage: "Storage()",
         HHType: "Setting",
-        valueType: "Small Integer",
+        valueType: "String",
         customMenuID: "raidStarsSelector",
         getMenu: true,
         setMenu: true,
         menuType: "value",
         kobanUsing: false,
-        isValid: /^[0356]$/
+        isValid: /^(off|exact3|min3|exact5)$/
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.plusLoveRaid] =
     {
@@ -19077,10 +19087,10 @@ class HHMenu {
     }
     fillRaidStarsMenu() {
         var raidStarsOptions = document.getElementById("raidStarsSelector");
-        raidStarsOptions.add(this._createHtmlOption('0', getTextForUI("raidStarsOff", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('3', getTextForUI("raidStars3", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('5', getTextForUI("raidStars5", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('6', getTextForUI("raidStars6", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('off', getTextForUI("raidStarsOff", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact3', getTextForUI("raidStarsExact3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('min3', getTextForUI("raidStarsMin3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact5', getTextForUI("raidStarsExact5", "elementText")));
     }
     fillLabyDifficultyMenu() {
         var sortsOptions = document.getElementById("autoLabyDifficulty");
@@ -19625,7 +19635,7 @@ function getMenu() {
             + hhMenuSwitch('plusEvent')
             + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
             + hhMenuSwitch('buyCombat', '', true)
-            + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
+            + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
             + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
             + hhMenuSwitch('plusEventSandalWood')
             + `</div>`
@@ -19634,7 +19644,7 @@ function getMenu() {
             + hhMenuSwitch('autoTrollMythicByPassParanoia')
             + hhMenuSwitch('buyMythicCombat', '', true)
             + hhMenuInput('autoBuyMythicTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-            + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric')
+            + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
             + hhMenuSwitch('plusEventMythicSandalWood')
             + `</div>`
             + `<div class="internalOptionsRow separator">`
@@ -22431,8 +22441,7 @@ function handleTrollBattle(ctx) {
             const eventGirl = EventModule.getEventGirl();
             const eventMythicGirl = EventModule.getEventMythicGirl();
             const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-            const minRaidStars = LoveRaidManager.getMinRaidStars();
-            const raidStarsFiltered = minRaidStars > 0 ? allTrollRaids.filter(r => r.girlGrade >= minRaidStars) : [];
+            const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
             const raidStarsRaid = raidStarsFiltered.length > 0
                 ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
                 : undefined;
@@ -24740,18 +24749,20 @@ function start() {
         setTimers(getStoredJSON(HHStoredVarPrefixKey + TK.Timers, {}));
     }
     // clearEventData("onlyCheckEventsHHScript");
-    // Migrate +Raid Stars stored value to grade-based format (runs every load)
-    // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"3"), valid grades ("0"/"3"/"5"/"6")
+    // Migrate +Raid Stars stored value to string-based selection (runs every load).
+    // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"4"),
+    // old grade-based ("0"/"3"/"5"/"6"), current string ("off"/"exact3"/"min3"/"exact5").
     const raidStarsVal = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic);
     if (raidStarsVal !== undefined && raidStarsVal !== null) {
-        const gradeMap = {
-            "true": "6", "false": "0", // old boolean format
-            "1": "3", "2": "5", "4": "5" // old selectedIndex format (1→3★, 2→5★)
-            // "0","3","5","6" are already valid grade values
+        const selectionMap = {
+            "true": "exact5", "false": "off", // old boolean format
+            "1": "exact3", "2": "exact5", "4": "exact5", // old selectedIndex format
+            "0": "off", "3": "exact3", "5": "exact5", "6": "exact5" // old grade-based format
+            // "off","exact3","min3","exact5" are already valid
         };
-        if (gradeMap[raidStarsVal] !== undefined) {
-            setStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic, gradeMap[raidStarsVal]);
-            LogUtils_logHHAuto("Migrated +Raid Stars value '" + raidStarsVal + "' → '" + gradeMap[raidStarsVal] + "'");
+        if (selectionMap[raidStarsVal] !== undefined) {
+            setStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic, selectionMap[raidStarsVal]);
+            LogUtils_logHHAuto("Migrated +Raid Stars value '" + raidStarsVal + "' → '" + selectionMap[raidStarsVal] + "'");
         }
     }
     setDefaults();

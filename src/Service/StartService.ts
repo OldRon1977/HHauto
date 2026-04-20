@@ -248,18 +248,20 @@ export function start() {
     }
     // clearEventData("onlyCheckEventsHHScript");
 
-    // Migrate +Raid Stars stored value to grade-based format (runs every load)
-    // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"3"), valid grades ("0"/"3"/"5"/"6")
+    // Migrate +Raid Stars stored value to string-based selection (runs every load).
+    // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"4"),
+    // old grade-based ("0"/"3"/"5"/"6"), current string ("off"/"exact3"/"min3"/"exact5").
     const raidStarsVal = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic);
     if (raidStarsVal !== undefined && raidStarsVal !== null) {
-        const gradeMap: Record<string, string> = {
-            "true": "6", "false": "0",   // old boolean format
-            "1": "3", "2": "5", "4": "5" // old selectedIndex format (1→3★, 2→5★)
-            // "0","3","5","6" are already valid grade values
+        const selectionMap: Record<string, string> = {
+            "true": "exact5", "false": "off",                           // old boolean format
+            "1": "exact3", "2": "exact5", "4": "exact5",                 // old selectedIndex format
+            "0": "off", "3": "exact3", "5": "exact5", "6": "exact5"      // old grade-based format
+            // "off","exact3","min3","exact5" are already valid
         };
-        if (gradeMap[raidStarsVal] !== undefined) {
-            setStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic, gradeMap[raidStarsVal]);
-            logHHAuto("Migrated +Raid Stars value '" + raidStarsVal + "' → '" + gradeMap[raidStarsVal] + "'");
+        if (selectionMap[raidStarsVal] !== undefined) {
+            setStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic, selectionMap[raidStarsVal]);
+            logHHAuto("Migrated +Raid Stars value '" + raidStarsVal + "' → '" + selectionMap[raidStarsVal] + "'");
         }
     }
 

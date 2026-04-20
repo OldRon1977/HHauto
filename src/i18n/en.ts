@@ -56,11 +56,11 @@ HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", 
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)."};
 HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.32.1", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid fights as long as a raid girl is available."};
-HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.32.3", elementText: "+Raid Stars", tooltip: "Fight Love Raids by minimum girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event."};
-HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.32.3", elementText: "Off"};
-HHAuto_ToolTips.en['raidStars3'] = { version: "7.32.3", elementText: "≥3 ★★★"};
-HHAuto_ToolTips.en['raidStars5'] = { version: "7.32.3", elementText: "≥5 ★★★★★"};
-HHAuto_ToolTips.en['raidStars6'] = { version: "7.32.3", elementText: "6 ★★★★★★"};
+HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Stars", tooltip: "Fight Love Raids by girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event."};
+HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.35.5", elementText: "Off"};
+HHAuto_ToolTips.en['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★"};
+HHAuto_ToolTips.en['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★"};
+HHAuto_ToolTips.en['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★"};
 HHAuto_ToolTips.en['buyLoveRaidCombat'] = { version: "7.25.6", elementText: "Buy comb.for Raid", tooltip: "<p style = 'color:red'>/ !\\ Kobans spending function /!\\<br>("+HHAuto_ToolTips.en['spendKobans0'].elementText+" must be ON)</p > If enabled: <br>Buying combat point during Love Raid event (if not going under Koban bank value), this will bypass threshold if event girl shards available."};
 HHAuto_ToolTips.en['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementText: "Raid auto buy", tooltip: "Number of combat points to be bought during an love raid event"};
 HHAuto_ToolTips.en['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before LoveRaid fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };

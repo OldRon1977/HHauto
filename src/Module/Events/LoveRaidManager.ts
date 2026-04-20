@@ -252,20 +252,28 @@ export class LoveRaidManager {
         return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
     }
     /**
-     * Returns the minimum girl grade for +Raid Stars filtering.
-     * Stored value is the grade directly: 0 = off, 3 = rare+, 5 = legendary+, 6 = mythic only.
+     * Returns the +Raid Stars selection. Stored as string:
+     * "off" = disabled, "exact3" = only 3★, "min3" = 3★ and up, "exact5" = only 5★.
      */
-    static getMinRaidStars(): number {
-        if (!LoveRaidManager.isEnabled()) return 0;
-        const val = Number(getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic));
-        return isNaN(val) ? 0 : val;
+    static getRaidStarsSelection(): string {
+        if (!LoveRaidManager.isEnabled()) return "off";
+        const val = getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaidMythic);
+        return val || "off";
     }
     static isRaidStarsActivated(): boolean {
-        return LoveRaidManager.getMinRaidStars() > 0;
+        return LoveRaidManager.getRaidStarsSelection() !== "off";
     }
-    /** @deprecated Use isRaidStarsActivated() — kept for backward compat */
-    static isMythicActivated(){
-        return LoveRaidManager.isRaidStarsActivated();
+    /**
+     * Filters raids according to the +Raid Stars selection.
+     */
+    static filterByRaidStars(raids: LoveRaid[]): LoveRaid[] {
+        const selection = LoveRaidManager.getRaidStarsSelection();
+        switch (selection) {
+            case "exact3": return raids.filter(r => r.girlGrade === 3);
+            case "min3":   return raids.filter(r => r.girlGrade >= 3);
+            case "exact5": return raids.filter(r => r.girlGrade === 5);
+            default:       return [];
+        }
     }
     static isAnyActivated(){
         return LoveRaidManager.isActivated() || LoveRaidManager.isRaidStarsActivated();

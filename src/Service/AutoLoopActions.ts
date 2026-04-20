@@ -298,8 +298,7 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
         const eventGirl: EventGirl = EventModule.getEventGirl();
         const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
         const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-        const minRaidStars = LoveRaidManager.getMinRaidStars();
-        const raidStarsFiltered = minRaidStars > 0 ? allTrollRaids.filter(r => r.girlGrade >= minRaidStars) : [];
+        const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
         const raidStarsRaid: LoveRaid = raidStarsFiltered.length > 0
             ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
             : undefined;

@@ -297,7 +297,7 @@ describe("Troll module", function () {
             jest.spyOn(EventModule, 'getEventMythicGirl').mockReturnValue({} as EventGirl);
             jest.spyOn(LoveRaidManager, 'isAnyActivated').mockReturnValue(false);
             jest.spyOn(LoveRaidManager, 'isActivated').mockReturnValue(false);
-            jest.spyOn(LoveRaidManager, 'getMinRaidStars').mockReturnValue(0);
+            jest.spyOn(LoveRaidManager, 'filterByRaidStars').mockReturnValue([]);
         });
 
         it("returns last troll when autoTrollBattle enabled and no events", function () {
