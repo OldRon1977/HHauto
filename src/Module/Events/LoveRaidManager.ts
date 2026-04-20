@@ -275,6 +275,23 @@ export class LoveRaidManager {
             default:       return [];
         }
     }
+    /**
+     * Picks a raid for +Raid Stars. Independent from the +Raid "Raid selector"
+     * dropdown: uses "first ending raid" logic (first raid in list with shards
+     * left; when +Girl Skins is ON, falls back to first raid with skin to win).
+     */
+    static getRaidStarsRaidToFight(raids: LoveRaid[], logging = false): LoveRaid | undefined {
+        if (!raids || raids.length === 0) return undefined;
+        const plusGirlSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+        let raid: LoveRaid | undefined = raids.find(r => r.girl_shards < 100);
+        if (!raid && plusGirlSkins) {
+            raid = raids.find(r => r.skin_to_win);
+        }
+        if (logging && raid) {
+            logHHAuto(`+Raid Stars picked troll ${raid.trollId} with girl ${raid.id_girl} (grade ${raid.girlGrade})`);
+        }
+        return raid;
+    }
     static isAnyActivated(){
         return LoveRaidManager.isActivated() || LoveRaidManager.isRaidStarsActivated();
     }

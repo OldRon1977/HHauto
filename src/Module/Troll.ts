@@ -191,7 +191,7 @@ export class Troll {
         }
         else if (raidStarsRaids.length > 0){
             if (logging) logHHAuto("Raid Stars troll fight (selection " + LoveRaidManager.getRaidStarsSelection() + ")");
-            const loveRaid = LoveRaidManager.getRaidToFight(raidStarsRaids, logging);
+            const loveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsRaids, logging);
             if (loveRaid) {
                 TTF = loveRaid.trollId;
             }

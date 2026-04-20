@@ -299,9 +299,7 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
         const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
         const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
         const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-        const raidStarsRaid: LoveRaid = raidStarsFiltered.length > 0
-            ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
-            : undefined;
+        const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
         // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
         const loveRaid: LoveRaid = LoveRaidManager.isActivated()
             ? LoveRaidManager.getRaidToFight(allTrollRaids)

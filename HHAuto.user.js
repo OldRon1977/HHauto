@@ -240,7 +240,7 @@ HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", 
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)." };
 HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.32.1", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid fights as long as a raid girl is available." };
-HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Stars", tooltip: "Fight Love Raids by girl grade. Independent from +Raid and Auto Troll.<br>Raids matching the selected grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event." };
+HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Stars", tooltip: "Fight Love Raids by girl grade. Independent from +Raid and Auto Troll.<br>Picks the first ending raid matching the selected grade (ignores the Raid selector dropdown).<br>Raids matching the grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Bypasses energy threshold like +Mythic Event." };
 HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.35.5", elementText: "Off" };
 HHAuto_ToolTips.en['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.en['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
@@ -741,7 +741,7 @@ HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Sc
 HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.24", elementText: "Event Troll Reihenfolge", tooltip: "Erlaubt eine Auswahl in welcher Reihenfolge die Trolle automatisch bekämpft werden" };
 HHAuto_ToolTips.de['plusEvent'] = { version: "5.6.24", elementText: "+Event", tooltip: "Wenn aktiv : Ignoriere ausgewählte Trolle währende eines Events, zugunsten des Events" };
 HHAuto_ToolTips.de['plusEventMythic'] = { version: "5.6.24", elementText: "+Mythisches Event", tooltip: "Erlaubt es Mädels beim mystischen Event abzugreifen, sollte sie nur versuchen wenn auch Teile vorhanden sind" };
-HHAuto_ToolTips.de['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Sterne", tooltip: "Kämpfe Love Raids nach Mädchen-Grad. Unabhängig von +Raid und Auto Troll.<br>Passende Raids werden von +Raid Sterne beansprucht; übrige Raids gehen an +Raid (falls aktiv).<br>Ignoriert die Energie-Schwelle wie +Mythisches Event." };
+HHAuto_ToolTips.de['raidStarsSelector'] = { version: "7.35.5", elementText: "+Raid Sterne", tooltip: "Kämpfe Love Raids nach Mädchen-Grad. Unabhängig von +Raid und Auto Troll.<br>Wählt automatisch den als nächstes endenden Raid mit passendem Grad (ignoriert das Raid selector-Dropdown).<br>Passende Raids werden von +Raid Sterne beansprucht; übrige Raids gehen an +Raid (falls aktiv).<br>Ignoriert die Energie-Schwelle wie +Mythisches Event." };
 HHAuto_ToolTips.de['raidStarsOff'] = { version: "7.35.5", elementText: "Aus" };
 HHAuto_ToolTips.de['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.de['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
@@ -3863,6 +3863,24 @@ class LoveRaidManager {
             case "exact5": return raids.filter(r => r.girlGrade === 5);
             default: return [];
         }
+    }
+    /**
+     * Picks a raid for +Raid Stars. Independent from the +Raid "Raid selector"
+     * dropdown: uses "first ending raid" logic (first raid in list with shards
+     * left; when +Girl Skins is ON, falls back to first raid with skin to win).
+     */
+    static getRaidStarsRaidToFight(raids, logging = false) {
+        if (!raids || raids.length === 0)
+            return undefined;
+        const plusGirlSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+        let raid = raids.find(r => r.girl_shards < 100);
+        if (!raid && plusGirlSkins) {
+            raid = raids.find(r => r.skin_to_win);
+        }
+        if (logging && raid) {
+            LogUtils_logHHAuto(`+Raid Stars picked troll ${raid.trollId} with girl ${raid.id_girl} (grade ${raid.girlGrade})`);
+        }
+        return raid;
     }
     static isAnyActivated() {
         return LoveRaidManager.isActivated() || LoveRaidManager.isRaidStarsActivated();
@@ -7259,7 +7277,7 @@ class Troll {
         else if (raidStarsRaids.length > 0) {
             if (logging)
                 LogUtils_logHHAuto("Raid Stars troll fight (selection " + LoveRaidManager.getRaidStarsSelection() + ")");
-            const loveRaid = LoveRaidManager.getRaidToFight(raidStarsRaids, logging);
+            const loveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsRaids, logging);
             if (loveRaid) {
                 TTF = loveRaid.trollId;
             }
@@ -22442,9 +22460,7 @@ function handleTrollBattle(ctx) {
             const eventMythicGirl = EventModule.getEventMythicGirl();
             const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
             const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-            const raidStarsRaid = raidStarsFiltered.length > 0
-                ? LoveRaidManager.getRaidToFight(raidStarsFiltered)
-                : undefined;
+            const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
             // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
             const loveRaid = LoveRaidManager.isActivated()
                 ? LoveRaidManager.getRaidToFight(allTrollRaids)
