@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.7 — League promotion threshold updated to top 20
+
+Fixes [#1567](https://github.com/Roukys/HHauto/issues/1567).
+
+The game now promotes the top 20 players of a league bracket instead of the top 15. The "Target League" / "Allow win" automation has been updated to match, so the script keeps you in the correct league instead of accidentally promoting or blocking fights based on the old cutoff.
+
+---
+
 ### v7.35.6 — Booster auto-equip recovers from external changes
 
 Fixes [#1565](https://github.com/Roukys/HHauto/issues/1565).

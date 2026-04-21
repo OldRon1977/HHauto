@@ -768,10 +768,10 @@ export class LeagueHelper {
 
                 if (leagueTargetValue === Number(getPlayerCurrentLevel) && leagueTargetValue < maxLeague)
                 {
-                    var rankStay = 16;
-                    if (currentRank > 15)
+                    var rankStay = 21;
+                    if (currentRank > 20)
                     {
-                        rankStay = 15;
+                        rankStay = 20;
                     }
                     logHHAuto("Current league is target ("+Number(getPlayerCurrentLevel)+"/"+leagueTargetValue+"), needs to stay. max rank : "+rankStay);
                     let getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankStay+")").filter(function()
