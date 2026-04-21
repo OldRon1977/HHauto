@@ -329,6 +329,23 @@ export class Booster {
         }
 
         setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+        setStoredValue(HHStoredVarPrefixKey+TK.boosterStatusLastUpdate, String(Date.now()));
+    }
+
+    /** TTL for boosterStatus freshness in milliseconds (10 minutes). */
+    static BOOSTER_STATUS_TTL_MS = 10 * 60 * 1000;
+
+    /**
+     * Checks whether boosterStatus was refreshed from the market recently.
+     * Used to detect stale state when another browser/tab changed the equipped boosters.
+     * A missing timestamp is treated as stale (forces a market visit).
+     */
+    static hasFreshBoosterStatus(): boolean {
+        const lastUpdateRaw = getStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
+        if (!lastUpdateRaw) return false;
+        const lastUpdate = parseInt(lastUpdateRaw, 10);
+        if (isNaN(lastUpdate)) return false;
+        return (Date.now() - lastUpdate) < Booster.BOOSTER_STATUS_TTL_MS;
     }
 
     /**
@@ -499,6 +516,15 @@ export class Booster {
             logHHAuto("Auto-equip: No booster data from market. Navigating to market first.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
             return true; // Signal busy — the market visit will cache the data, next loop will equip
+        }
+
+        // Also refresh boosterStatus if it's stale — another browser/tab may have changed
+        // the equipped boosters. Without this, getBoostersToEquip() would use stale data
+        // and repeatedly try to equip slots that are actually already occupied server-side.
+        if (!Booster.hasFreshBoosterStatus()) {
+            logHHAuto("Auto-equip: boosterStatus is stale or missing. Navigating to market to refresh.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
+            return true; // Signal busy — market visit will refresh boosterStatus via collectBoostersFromMarket
         }
 
         const boostersToEquip = Booster.getBoostersToEquip();

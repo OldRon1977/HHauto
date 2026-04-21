@@ -19,7 +19,7 @@ import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { KKHero } from '../model/index';
 import { ConfigHelper } from './ConfigHelper';
 import { getHHVars } from "./HHHelper";
-import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
+import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 
 export function getHero():KKHero
@@ -133,25 +133,54 @@ export class HeroHelper {
             // change referer
             const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
             window.history.replaceState(null, '', addNutakuSession('/shop.html') as string);
+
+            // Guard: ensure we resolve exactly once, even if both AJAX callback and timeout fire.
+            let settled = false;
+            let timeoutId: ReturnType<typeof setTimeout> | null = null;
+            const settle = (value: boolean) => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId !== null) clearTimeout(timeoutId);
+                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                setTimeout(autoLoop,randomInterval(500,800));
+                resolve(value);
+            };
+
+            // Option C: Safety timeout in case the AJAX call never invokes either callback
+            // (seen in the wild when the referer swap collides with navigation). Without
+            // this, the promise would hang forever and the autoLoop stays paused.
+            timeoutId = setTimeout(() => {
+                if (settled) return;
+                logHHAuto('equipBooster: AJAX timeout after 15s — resolving with false and invalidating boosterStatus');
+                // Treat a hang as "state unknown": drop the freshness stamp so the next
+                // auto-equip cycle re-reads boosterStatus from the market.
+                deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
+                HeroHelper.getSandalWoodEquipFailure(true);
+                settle(false);
+            }, 15000);
+
             getHHAjax()(params, function(data) {
                 logHHAuto(`equipBooster: AJAX success callback, data.success=${data.success}, full response=${JSON.stringify(data)}`);
                 if (data.success) {
                     logHHAuto('equipBooster: Booster equipped successfully');
                 } else {
                     logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
+                    // Option D: a success:false response means our local boosterStatus is
+                    // out of sync with the server (another browser/tab probably equipped
+                    // boosters while we were paused). Invalidate the freshness timestamp
+                    // so autoEquipBoosters refreshes from the market before retrying.
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
                     HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                 }
-                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-                setTimeout(autoLoop,randomInterval(500,800));
                 logHHAuto(`equipBooster: resolving with ${data.success}`);
-                resolve(data.success);
+                settle(!!data.success);
             }, function (err){
                 logHHAuto('equipBooster: AJAX error callback - ' + err);
-                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-                setTimeout(autoLoop,randomInterval(500,800));
+                // Network/server error also implies our cached state may be wrong — invalidate.
+                deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
                 HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                 logHHAuto('equipBooster: resolving with false');
-                resolve(false);
+                settle(false);
             });
             // change referer
             window.history.replaceState(null, '', addNutakuSession(currentPath) as string);
