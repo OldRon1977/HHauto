@@ -6,6 +6,15 @@
  * Usage:
  *   import { SK } from '../config/StorageKeys';
  *   getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle)
+ *
+ * IMPORTANT: Adding an entry here is NOT enough to make the key work at
+ * runtime. StorageHelper.getStoredValue / setStoredValue / deleteStoredValue
+ * silently ignore any key that isn't registered in HHStoredVars.ts. When
+ * you add a new SK / TK entry below, you MUST also add a matching
+ * registration in config/HHStoredVars.ts with the correct storage type
+ * ("localStorage" | "sessionStorage" | "Storage()") and HHType
+ * ("Setting" | "Temp"), otherwise reads return undefined and writes are
+ * dropped without any warning.
  */
 
 // ── Setting_ keys (user settings) ─────────────────────────────────
@@ -282,6 +291,7 @@ export const TK = {
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
+    boosterStatusLastUpdate: "Temp_boosterStatusLastUpdate",
     boosterIdMap: "Temp_boosterIdMap",
 
     // Troll

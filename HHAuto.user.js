@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.5
+// @version      7.35.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1368,6 +1368,21 @@ class Booster {
             mythic: activeMythicSlots,
         };
         setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+        setStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate, String(Date.now()));
+    }
+    /**
+     * Checks whether boosterStatus was refreshed from the market recently.
+     * Used to detect stale state when another browser/tab changed the equipped boosters.
+     * A missing timestamp is treated as stale (forces a market visit).
+     */
+    static hasFreshBoosterStatus() {
+        const lastUpdateRaw = getStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
+        if (!lastUpdateRaw)
+            return false;
+        const lastUpdate = parseInt(lastUpdateRaw, 10);
+        if (isNaN(lastUpdate))
+            return false;
+        return (Date.now() - lastUpdate) < Booster.BOOSTER_STATUS_TTL_MS;
     }
     /**
      * Checks whether booster data from a market visit is available in cache.
@@ -1520,6 +1535,14 @@ class Booster {
                 LogUtils_logHHAuto("Auto-equip: No booster data from market. Navigating to market first.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                 return true; // Signal busy — the market visit will cache the data, next loop will equip
+            }
+            // Also refresh boosterStatus if it's stale — another browser/tab may have changed
+            // the equipped boosters. Without this, getBoostersToEquip() would use stale data
+            // and repeatedly try to equip slots that are actually already occupied server-side.
+            if (!Booster.hasFreshBoosterStatus()) {
+                LogUtils_logHHAuto("Auto-equip: boosterStatus is stale or missing. Navigating to market to refresh.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
+                return true; // Signal busy — market visit will refresh boosterStatus via collectBoostersFromMarket
             }
             const boostersToEquip = Booster.getBoostersToEquip();
             if (boostersToEquip.length === 0) {
@@ -1806,6 +1829,8 @@ Booster.SANDALWOOD_IDENTIFIER = "MB1";
 Booster._battleResponseReady = false;
 /** Resolver: set when waitForBattleResponse() is waiting; called by notifyBattleResponseProcessed() */
 Booster._battleResponseResolve = null;
+/** TTL for boosterStatus freshness in milliseconds (10 minutes). */
+Booster.BOOSTER_STATUS_TTL_MS = 10 * 60 * 1000;
 
 ;// CONCATENATED MODULE: ./src/Module/Bundles.ts
 // Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
@@ -8181,6 +8206,15 @@ function randomInterval(min, max) {
  * Usage:
  *   import { SK } from '../config/StorageKeys';
  *   getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle)
+ *
+ * IMPORTANT: Adding an entry here is NOT enough to make the key work at
+ * runtime. StorageHelper.getStoredValue / setStoredValue / deleteStoredValue
+ * silently ignore any key that isn't registered in HHStoredVars.ts. When
+ * you add a new SK / TK entry below, you MUST also add a matching
+ * registration in config/HHStoredVars.ts with the correct storage type
+ * ("localStorage" | "sessionStorage" | "Storage()") and HHType
+ * ("Setting" | "Temp"), otherwise reads return undefined and writes are
+ * dropped without any warning.
  */
 // ── Setting_ keys (user settings) ─────────────────────────────────
 const SK = {
@@ -8425,6 +8459,7 @@ const TK = {
     charLevel: "Temp_charLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
+    boosterStatusLastUpdate: "Temp_boosterStatusLastUpdate",
     boosterIdMap: "Temp_boosterIdMap",
     // Troll
     TrollHumanLikeRun: "Temp_TrollHumanLikeRun",
@@ -10863,6 +10898,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.bossBangTeam] =
         HHType: "Temp"
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatus] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatusLastUpdate] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -19879,6 +19919,14 @@ function getMenu() {
 // variable is registered in HHStoredVars (config/HHStoredVars.ts) with
 // a storage type, default value, and optional validation regex.
 //
+// IMPORTANT: getStoredValue / setStoredValue / deleteStoredValue ONLY
+// work for keys that are registered in HHStoredVars. Unregistered keys
+// are silently dropped on write and return undefined on read — no error,
+// no log, just a no-op. When adding a new SK/TK entry in StorageKeys.ts,
+// you MUST also register it in HHStoredVars.ts (with its storage type
+// "localStorage" | "sessionStorage" | "Storage()" and HHType
+// "Setting" | "Temp"), otherwise nothing will be persisted.
+//
 // Key design decisions:
 //   - Settings use localStorage (survive tab close); temp vars use
 //     sessionStorage (reset per session) unless the user enables
@@ -21217,6 +21265,32 @@ class HeroHelper {
                 // change referer
                 const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
                 window.history.replaceState(null, '', addNutakuSession('/shop.html'));
+                // Guard: ensure we resolve exactly once, even if both AJAX callback and timeout fire.
+                let settled = false;
+                let timeoutId = null;
+                const settle = (value) => {
+                    if (settled)
+                        return;
+                    settled = true;
+                    if (timeoutId !== null)
+                        clearTimeout(timeoutId);
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    setTimeout(autoLoop, randomInterval(500, 800));
+                    resolve(value);
+                };
+                // Option C: Safety timeout in case the AJAX call never invokes either callback
+                // (seen in the wild when the referer swap collides with navigation). Without
+                // this, the promise would hang forever and the autoLoop stays paused.
+                timeoutId = setTimeout(() => {
+                    if (settled)
+                        return;
+                    LogUtils_logHHAuto('equipBooster: AJAX timeout after 15s — resolving with false and invalidating boosterStatus');
+                    // Treat a hang as "state unknown": drop the freshness stamp so the next
+                    // auto-equip cycle re-reads boosterStatus from the market.
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
+                    HeroHelper.getSandalWoodEquipFailure(true);
+                    settle(false);
+                }, 15000);
                 getHHAjax()(params, function (data) {
                     LogUtils_logHHAuto(`equipBooster: AJAX success callback, data.success=${data.success}, full response=${JSON.stringify(data)}`);
                     if (data.success) {
@@ -21224,19 +21298,22 @@ class HeroHelper {
                     }
                     else {
                         LogUtils_logHHAuto('equipBooster: Server returned success:false (may already be equipped)');
+                        // Option D: a success:false response means our local boosterStatus is
+                        // out of sync with the server (another browser/tab probably equipped
+                        // boosters while we were paused). Invalidate the freshness timestamp
+                        // so autoEquipBoosters refreshes from the market before retrying.
+                        deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
                         HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     }
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, randomInterval(500, 800));
                     LogUtils_logHHAuto(`equipBooster: resolving with ${data.success}`);
-                    resolve(data.success);
+                    settle(!!data.success);
                 }, function (err) {
                     LogUtils_logHHAuto('equipBooster: AJAX error callback - ' + err);
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, randomInterval(500, 800));
+                    // Network/server error also implies our cached state may be wrong — invalidate.
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
                     HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     LogUtils_logHHAuto('equipBooster: resolving with false');
-                    resolve(false);
+                    settle(false);
                 });
                 // change referer
                 window.history.replaceState(null, '', addNutakuSession(currentPath));
