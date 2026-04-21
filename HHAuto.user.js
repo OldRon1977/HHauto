@@ -10893,6 +10893,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatus] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterStatusLastUpdate] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.boosterIdMap] =
     {
         storage: "sessionStorage",
