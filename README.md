@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.6 — Booster auto-equip recovers from external changes
+
+Fixes [#1565](https://github.com/Roukys/HHauto/issues/1565).
+
+If boosters were changed in another browser or tab while the script was paused, auto-equip could get stuck retrying to equip already-occupied slots or repeatedly reload the Market page. The script now recognizes the out-of-sync state, refreshes the booster info from the Market and resumes normal operation.
+
+---
+
 ### v7.35.5 — Simpler buy-combat and refined +Raid Stars
 
 Further addresses [#1565](https://github.com/Roukys/HHauto/issues/1565).
