@@ -5,6 +5,14 @@
 // variable is registered in HHStoredVars (config/HHStoredVars.ts) with
 // a storage type, default value, and optional validation regex.
 //
+// IMPORTANT: getStoredValue / setStoredValue / deleteStoredValue ONLY
+// work for keys that are registered in HHStoredVars. Unregistered keys
+// are silently dropped on write and return undefined on read — no error,
+// no log, just a no-op. When adding a new SK/TK entry in StorageKeys.ts,
+// you MUST also register it in HHStoredVars.ts (with its storage type
+// "localStorage" | "sessionStorage" | "Storage()" and HHType
+// "Setting" | "Temp"), otherwise nothing will be persisted.
+//
 // Key design decisions:
 //   - Settings use localStorage (survive tab close); temp vars use
 //     sessionStorage (reset per session) unless the user enables
