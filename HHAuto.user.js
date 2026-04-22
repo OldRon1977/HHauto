@@ -12039,15 +12039,14 @@ class HaremGirl {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
             LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
-            // Warmup: click a sibling slot once so the game registers a real state
-            // transition when we click slot 0 below. Without this the first click
-            // on an already-displayed slot is a no-op and the equip button ignores
-            // our later click (see issue #1573).
-            if (slotCount >= 2) {
-                equipmentSlots.eq(1).trigger('click');
-                yield TimeHelper.sleep(randomInterval(400, 700));
-            }
-            for (let i = 0; i < slotCount; i++) {
+            // Iterate slots in reverse order (5 → 0) so slot 0 is processed last.
+            // Slot 0 is the default active slot after the page loads; processing it
+            // first made the game treat slot 0 as "already active" and silently
+            // ignore item clicks — the equip button never committed the change.
+            // By the time we reach slot 0 we have switched slots five times, so the
+            // game's internal state is guaranteed to register a real transition
+            // when we click slot 0 (see issue #1573).
+            for (let i = slotCount - 1; i >= 0; i--) {
                 const slot = equipmentSlots.eq(i);
                 // DEBUG (issue #1573): capture slot state before click
                 const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
