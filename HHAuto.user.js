@@ -12034,7 +12034,7 @@ class HaremGirl {
         });
     }
     static optimizeEquipmentSlots(girl) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
@@ -12071,17 +12071,12 @@ class HaremGirl {
                     try {
                         equippedData = JSON.parse(equippedEl.attr('data-d'));
                     }
-                    catch ( /* ignore */_h) { /* ignore */ }
+                    catch ( /* ignore */_j) { /* ignore */ }
                 }
                 const targetSlotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
                 const allDomItems = [];
                 $('.right-section .slot[data-d]').each(function () {
                     const $el = $(this);
-                    // Skip items sitting inside a filled equipment slot — those are already equipped
-                    // girl_armor records, not free inventory items. Clicking them does nothing and the
-                    // element is often detached from the DOM by the time we reach it (see issue #1573).
-                    if ($el.closest('.inventory-slot.filled-slot').length > 0)
-                        return;
                     const raw = $el.attr('data-d');
                     if (!raw)
                         return;
@@ -12128,6 +12123,40 @@ class HaremGirl {
                     const previousEquippedKey = equippedData ? ((_c = (_b = equippedData.id_item) !== null && _b !== void 0 ? _b : equippedData.id_equipement) !== null && _c !== void 0 ? _c : JSON.stringify(equippedData)) : null;
                     const MAX_EQUIP_ATTEMPTS = 3;
                     let equipSucceeded = false;
+                    // ISSUE #1573: Verify the selected DOM element is still attached. During slot
+                    // iteration the game can rebuild the inventory panel, leaving our stored jQuery
+                    // wrapper pointing at a detached node. Clicking a detached node is a no-op, which
+                    // is why slot 0 replacement consistently failed. Re-query via id_girl_armor to
+                    // find a fresh node for the same item.
+                    const rawBeforeAttempts = bestInventory.el.get(0);
+                    if (!rawBeforeAttempts || !rawBeforeAttempts.isConnected) {
+                        const targetArmorId = (_d = bestInventory.data) === null || _d === void 0 ? void 0 : _d.id_girl_armor;
+                        LogUtils_logHHAuto(`[DEBUG Slot ${i}] best item detached from DOM (id_girl_armor=${targetArmorId}), attempting re-query`);
+                        if (targetArmorId != null) {
+                            const $fresh = $('.right-section .slot[data-d]').filter(function () {
+                                try {
+                                    const d = JSON.parse($(this).attr('data-d') || '{}');
+                                    return d.id_girl_armor === targetArmorId;
+                                }
+                                catch (_a) {
+                                    return false;
+                                }
+                            }).first();
+                            const freshRaw = $fresh.get(0);
+                            if ($fresh.length > 0 && freshRaw && freshRaw.isConnected) {
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] re-query successful, using fresh DOM element for id_girl_armor=${targetArmorId}`);
+                                bestInventory.el = $fresh;
+                            }
+                            else {
+                                LogUtils_logHHAuto(`Slot ${i}: best item no longer in DOM after re-query (id_girl_armor=${targetArmorId}), skipping slot`);
+                                continue;
+                            }
+                        }
+                        else {
+                            LogUtils_logHHAuto(`Slot ${i}: best item detached and no id_girl_armor to re-query, skipping slot`);
+                            continue;
+                        }
+                    }
                     for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
                         // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
                         const raw = bestInventory.el.get(0);
@@ -12148,7 +12177,7 @@ class HaremGirl {
                             for (let d = 0; d < 4 && p.length > 0; d++) {
                                 const pEl = p.get(0);
                                 const cls = (p.attr('class') || '').split(/\s+/).slice(0, 2).join('.');
-                                parentChain.push(`${((_d = pEl === null || pEl === void 0 ? void 0 : pEl.tagName) === null || _d === void 0 ? void 0 : _d.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`);
+                                parentChain.push(`${((_e = pEl === null || pEl === void 0 ? void 0 : pEl.tagName) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`);
                                 p = p.parent();
                             }
                             LogUtils_logHHAuto(`[DEBUG Slot ${i}] best item BEFORE click: class="${itemCls}" data-id="${itemId}" connected=${connected} visible=${visible} parents=[${parentChain.join(' > ')}] html="${outerH}"`);
@@ -12176,7 +12205,7 @@ class HaremGirl {
                             try {
                                 raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                             }
-                            catch ( /* ignore */_j) { /* ignore */ }
+                            catch ( /* ignore */_k) { /* ignore */ }
                             yield TimeHelper.sleep(200);
                             // Fallback 2: full mousedown + mouseup + click sequence
                             try {
@@ -12184,7 +12213,7 @@ class HaremGirl {
                                 raw.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
                                 raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                             }
-                            catch ( /* ignore */_k) { /* ignore */ }
+                            catch ( /* ignore */_l) { /* ignore */ }
                             yield TimeHelper.sleep(200);
                             // Fallback 3: jQuery trigger (uses jQuery's event simulation pipeline)
                             bestInventory.el.trigger('click');
@@ -12218,7 +12247,7 @@ class HaremGirl {
                             if (attempt === 1) {
                                 const btnEl = $equipBtn.get(0);
                                 const btnHtml = ((btnEl === null || btnEl === void 0 ? void 0 : btnEl.outerHTML) || '').substring(0, 400);
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_e = $equipBtn.attr('hidden')) !== null && _e !== void 0 ? _e : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_f = $equipBtn.attr('hidden')) !== null && _f !== void 0 ? _f : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
                             }
                             const btnRaw = $equipBtn.get(0);
                             if (btnRaw && typeof btnRaw.click === 'function')
@@ -12245,9 +12274,9 @@ class HaremGirl {
                             try {
                                 verifyData = JSON.parse(verifyEl.attr('data-d'));
                             }
-                            catch ( /* ignore */_l) { /* ignore */ }
+                            catch ( /* ignore */_m) { /* ignore */ }
                         }
-                        const verifyKey = verifyData ? ((_g = (_f = verifyData.id_item) !== null && _f !== void 0 ? _f : verifyData.id_equipement) !== null && _g !== void 0 ? _g : JSON.stringify(verifyData)) : null;
+                        const verifyKey = verifyData ? ((_h = (_g = verifyData.id_item) !== null && _g !== void 0 ? _g : verifyData.id_equipement) !== null && _h !== void 0 ? _h : JSON.stringify(verifyData)) : null;
                         if (verifyKey !== previousEquippedKey) {
                             LogUtils_logHHAuto(`Slot ${i}: equip verified (L${verifyData === null || verifyData === void 0 ? void 0 : verifyData.level} ${verifyData === null || verifyData === void 0 ? void 0 : verifyData.rarity})`);
                             equipSucceeded = true;

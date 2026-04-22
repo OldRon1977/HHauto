@@ -983,10 +983,6 @@ export class HaremGirl {
             const allDomItems: { el: JQuery<HTMLElement>, data: any }[] = [];
             $('.right-section .slot[data-d]').each(function () {
                 const $el = $(this);
-                // Skip items sitting inside a filled equipment slot — those are already equipped
-                // girl_armor records, not free inventory items. Clicking them does nothing and the
-                // element is often detached from the DOM by the time we reach it (see issue #1573).
-                if ($el.closest('.inventory-slot.filled-slot').length > 0) return;
                 const raw = $el.attr('data-d');
                 if (!raw) return;
                 try {
@@ -1034,6 +1030,36 @@ export class HaremGirl {
                 const previousEquippedKey = equippedData ? (equippedData.id_item ?? equippedData.id_equipement ?? JSON.stringify(equippedData)) : null;
                 const MAX_EQUIP_ATTEMPTS = 3;
                 let equipSucceeded = false;
+
+                // ISSUE #1573: Verify the selected DOM element is still attached. During slot
+                // iteration the game can rebuild the inventory panel, leaving our stored jQuery
+                // wrapper pointing at a detached node. Clicking a detached node is a no-op, which
+                // is why slot 0 replacement consistently failed. Re-query via id_girl_armor to
+                // find a fresh node for the same item.
+                const rawBeforeAttempts = bestInventory.el.get(0);
+                if (!rawBeforeAttempts || !rawBeforeAttempts.isConnected) {
+                    const targetArmorId = bestInventory.data?.id_girl_armor;
+                    logHHAuto(`[DEBUG Slot ${i}] best item detached from DOM (id_girl_armor=${targetArmorId}), attempting re-query`);
+                    if (targetArmorId != null) {
+                        const $fresh = $('.right-section .slot[data-d]').filter(function () {
+                            try {
+                                const d = JSON.parse($(this).attr('data-d') || '{}');
+                                return d.id_girl_armor === targetArmorId;
+                            } catch { return false; }
+                        }).first();
+                        const freshRaw = $fresh.get(0);
+                        if ($fresh.length > 0 && freshRaw && freshRaw.isConnected) {
+                            logHHAuto(`[DEBUG Slot ${i}] re-query successful, using fresh DOM element for id_girl_armor=${targetArmorId}`);
+                            bestInventory.el = $fresh;
+                        } else {
+                            logHHAuto(`Slot ${i}: best item no longer in DOM after re-query (id_girl_armor=${targetArmorId}), skipping slot`);
+                            continue;
+                        }
+                    } else {
+                        logHHAuto(`Slot ${i}: best item detached and no id_girl_armor to re-query, skipping slot`);
+                        continue;
+                    }
+                }
 
                 for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
                     // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
