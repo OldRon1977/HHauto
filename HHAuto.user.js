@@ -12061,6 +12061,11 @@ class HaremGirl {
                 yield TimeHelper.sleep(randomInterval(600, 900));
                 // Force game to render all lazy-loaded inventory items into the DOM
                 const totalItems = yield HaremGirl.forceLoadAllInventoryItems();
+                // Extra settle time after forceLoad so the game can fully attach event
+                // handlers to items in the right panel before we click them (see issue #1573).
+                // Without this wait, clicks on items are silently ignored and the equip button
+                // stays disabled. Observed failure mode: slot 0 fails ~67% of the time without it.
+                yield TimeHelper.sleep(randomInterval(800, 1200));
                 const equippedEl = slot.find('.slot[data-d]');
                 let equippedData = null;
                 if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
