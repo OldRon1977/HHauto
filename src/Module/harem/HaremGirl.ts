@@ -954,17 +954,13 @@ export class HaremGirl {
 
         for (let i = 0; i < slotCount; i++) {
             const slot = equipmentSlots.eq(i);
-            // DEBUG (issue #1573): capture slot state before click for slot 0
-            if (i === 0) {
-                const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
-                logHHAuto(`[DEBUG Slot 0] all slot classes BEFORE click: ${beforeClasses}`);
-            }
+            // DEBUG (issue #1573): capture slot state before click
+            const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
+            logHHAuto(`[DEBUG Slot ${i}] all slot classes BEFORE click: ${beforeClasses}`);
             slot.trigger('click');
-            // DEBUG (issue #1573): capture slot state after click for slot 0
-            if (i === 0) {
-                const afterClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
-                logHHAuto(`[DEBUG Slot 0] all slot classes AFTER click: ${afterClasses}`);
-            }
+            // DEBUG (issue #1573): capture slot state after click
+            const afterClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
+            logHHAuto(`[DEBUG Slot ${i}] all slot classes AFTER click: ${afterClasses}`);
             // Give the game time to kick off its inventory request for this slot
             // before we start scrolling to force-load items (see issue #1573).
             await TimeHelper.sleep(randomInterval(600, 900));
@@ -1037,11 +1033,11 @@ export class HaremGirl {
                         raw.scrollIntoView({ block: 'center' });
                         await TimeHelper.sleep(randomInterval(200, 300));
                     }
-                    // DEBUG (issue #1573): best item state BEFORE click for slot 0 attempt 1
-                    if (i === 0 && attempt === 1) {
+                    // DEBUG (issue #1573): best item state BEFORE click (attempt 1 only)
+                    if (attempt === 1) {
                         const itemCls = bestInventory.el.attr('class') || '';
                         const itemId = bestInventory.el.attr('data-id') || '';
-                        logHHAuto(`[DEBUG Slot 0] best item BEFORE click: class="${itemCls}" data-id="${itemId}" level=${bestInventory.data.level} slot_index=${bestInventory.data.slot_index} id_item=${bestInventory.data.id_item ?? 'n/a'}`);
+                        logHHAuto(`[DEBUG Slot ${i}] best item BEFORE click: class="${itemCls}" data-id="${itemId}" level=${bestInventory.data.level} slot_index=${bestInventory.data.slot_index} id_item=${bestInventory.data.id_item ?? 'n/a'}`);
                     }
                     // Native click to trigger the game's selection handler reliably
                     if (raw && typeof raw.click === 'function') {
@@ -1049,10 +1045,10 @@ export class HaremGirl {
                     } else {
                         bestInventory.el.trigger('click');
                     }
-                    // DEBUG (issue #1573): item state AFTER click for slot 0 attempt 1
-                    if (i === 0 && attempt === 1) {
+                    // DEBUG (issue #1573): item state AFTER click (attempt 1 only)
+                    if (attempt === 1) {
                         const itemClsAfter = bestInventory.el.attr('class') || '';
-                        logHHAuto(`[DEBUG Slot 0] best item AFTER click: class="${itemClsAfter}"`);
+                        logHHAuto(`[DEBUG Slot ${i}] best item AFTER click: class="${itemClsAfter}"`);
                     }
                     // Longer wait so the game has time to activate the Equip button (see issue #1573)
                     await TimeHelper.sleep(randomInterval(700, 1000));
@@ -1067,22 +1063,22 @@ export class HaremGirl {
                     }
 
                     if ($equipBtn.length > 0) {
-                        // DEBUG (issue #1573): equip button state BEFORE click for slot 0 attempt 1
-                        if (i === 0 && attempt === 1) {
+                        // DEBUG (issue #1573): equip button state BEFORE click (attempt 1 only)
+                        if (attempt === 1) {
                             const btnEl = $equipBtn.get(0) as HTMLElement | undefined;
                             const btnHtml = (btnEl?.outerHTML || '').substring(0, 400);
-                            logHHAuto(`[DEBUG Slot 0] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${$equipBtn.attr('hidden') ?? 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
+                            logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${$equipBtn.attr('hidden') ?? 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
                         }
                         const btnRaw = $equipBtn.get(0) as HTMLElement | undefined;
                         if (btnRaw && typeof btnRaw.click === 'function') btnRaw.click();
                         else $equipBtn.trigger('click');
                         await TimeHelper.sleep(randomInterval(400, 700));
                         logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
-                        // DEBUG (issue #1573): equip button state AFTER click for slot 0 attempt 1
-                        if (i === 0 && attempt === 1) {
+                        // DEBUG (issue #1573): equip button state AFTER click (attempt 1 only)
+                        if (attempt === 1) {
                             const btnAfter = $('#girl-equipment-equip').get(0) as HTMLElement | undefined;
                             const btnAfterHtml = (btnAfter?.outerHTML || '').substring(0, 400);
-                            logHHAuto(`[DEBUG Slot 0] equip btn AFTER click: html="${btnAfterHtml}"`);
+                            logHHAuto(`[DEBUG Slot ${i}] equip btn AFTER click: html="${btnAfterHtml}"`);
                         }
                     } else {
                         logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
