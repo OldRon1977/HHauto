@@ -12034,7 +12034,7 @@ class HaremGirl {
         });
     }
     static optimizeEquipmentSlots(girl) {
-        var _a, _b, _c, _d, _e, _f, _g, _h;
+        var _a, _b, _c, _d, _e, _f, _g;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
@@ -12071,7 +12071,7 @@ class HaremGirl {
                     try {
                         equippedData = JSON.parse(equippedEl.attr('data-d'));
                     }
-                    catch ( /* ignore */_j) { /* ignore */ }
+                    catch ( /* ignore */_h) { /* ignore */ }
                 }
                 const targetSlotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
                 const allDomItems = [];
@@ -12123,114 +12123,183 @@ class HaremGirl {
                     const previousEquippedKey = equippedData ? ((_c = (_b = equippedData.id_item) !== null && _b !== void 0 ? _b : equippedData.id_equipement) !== null && _c !== void 0 ? _c : JSON.stringify(equippedData)) : null;
                     const MAX_EQUIP_ATTEMPTS = 3;
                     let equipSucceeded = false;
-                    // ISSUE #1573: Verify the selected DOM element is still attached. During slot
-                    // iteration the game can rebuild the inventory panel, leaving our stored jQuery
-                    // wrapper pointing at a detached node. Clicking a detached node is a no-op, which
-                    // is why slot 0 replacement consistently failed. Re-query via id_girl_armor to
-                    // find a fresh node for the same item.
-                    const rawBeforeAttempts = bestInventory.el.get(0);
-                    if (!rawBeforeAttempts || !rawBeforeAttempts.isConnected) {
-                        const targetArmorId = (_d = bestInventory.data) === null || _d === void 0 ? void 0 : _d.id_girl_armor;
-                        LogUtils_logHHAuto(`[DEBUG Slot ${i}] best item detached from DOM (id_girl_armor=${targetArmorId}), attempting re-query`);
-                        if (targetArmorId != null) {
-                            const $fresh = $('.right-section .slot[data-d]').filter(function () {
-                                try {
-                                    const d = JSON.parse($(this).attr('data-d') || '{}');
-                                    return d.id_girl_armor === targetArmorId;
-                                }
-                                catch (_a) {
-                                    return false;
-                                }
-                            }).first();
-                            const freshRaw = $fresh.get(0);
-                            if ($fresh.length > 0 && freshRaw && freshRaw.isConnected) {
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] re-query successful, using fresh DOM element for id_girl_armor=${targetArmorId}`);
-                                bestInventory.el = $fresh;
-                            }
-                            else {
-                                LogUtils_logHHAuto(`Slot ${i}: best item no longer in DOM after re-query (id_girl_armor=${targetArmorId}), skipping slot`);
-                                continue;
-                            }
+                    // Helper: parent chain up to `maxDepth` or until root, "tag.cls1.cls2" per level
+                    const buildParentChain = ($el, maxDepth) => {
+                        var _a;
+                        const chain = [];
+                        let p = $el.parent();
+                        for (let d = 0; d < maxDepth && p.length > 0; d++) {
+                            const pEl = p.get(0);
+                            const cls = (p.attr('class') || '').split(/\s+/).filter(c => c).slice(0, 3).join('.');
+                            chain.push(`${((_a = pEl === null || pEl === void 0 ? void 0 : pEl.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`);
+                            p = p.parent();
                         }
-                        else {
-                            LogUtils_logHHAuto(`Slot ${i}: best item detached and no id_girl_armor to re-query, skipping slot`);
-                            continue;
-                        }
-                    }
+                        return chain;
+                    };
+                    // Helper: global DOM counts relevant to equipment UI
+                    const domSnapshot = () => ({
+                        rightSection: $('.right-section').length,
+                        inventoryScroll: $('.inventory.hh-scroll').length,
+                        girlLevelerPanel: $('.girl-leveler-panel').length,
+                        filledSlots: $('.right-section .slot[data-d]').length,
+                        selectedSlots: $('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length
+                    });
+                    // ISSUE #1573: Detach can happen between scroll and click, not before the attempt
+                    // loop. The isConnected check + re-query is now performed INSIDE the loop, after
+                    // scroll+sleep, right before the primary click. Massive diagnostics wrapped around
+                    // every step so we can see exactly when and why the node detaches.
                     for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
-                        // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
-                        const raw = bestInventory.el.get(0);
-                        if (raw && typeof raw.scrollIntoView === 'function') {
-                            raw.scrollIntoView({ block: 'center' });
+                        // ========== PRE-SCROLL SNAPSHOT ==========
+                        const rawPreScroll = bestInventory.el.get(0);
+                        const preScrollConn = rawPreScroll === null || rawPreScroll === void 0 ? void 0 : rawPreScroll.isConnected;
+                        const preScrollBody = rawPreScroll ? document.body.contains(rawPreScroll) : false;
+                        const preScrollParents = buildParentChain(bestInventory.el, 12);
+                        const preScrollDom = domSnapshot();
+                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] PRE-SCROLL: connected=${preScrollConn} bodyContains=${preScrollBody} domCounts=${JSON.stringify(preScrollDom)} parents=[${preScrollParents.join(' > ')}]`);
+                        // ========== SCROLL INTO VIEW ==========
+                        if (rawPreScroll && typeof rawPreScroll.scrollIntoView === 'function') {
+                            rawPreScroll.scrollIntoView({ block: 'center' });
+                            // Synchronous state right after scroll (before any sleep) — detects detach during scroll itself
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-SCROLL sync: connected=${rawPreScroll.isConnected} bodyContains=${document.body.contains(rawPreScroll)}`);
                             yield TimeHelper.sleep(randomInterval(200, 300));
                         }
-                        // DEBUG (issue #1573): best item state BEFORE click (attempt 1 only)
-                        if (attempt === 1) {
-                            const rawElBefore = bestInventory.el.get(0);
+                        // ========== POST-SLEEP STATE ==========
+                        const rawPostSleep = bestInventory.el.get(0);
+                        const postSleepConn = rawPostSleep === null || rawPostSleep === void 0 ? void 0 : rawPostSleep.isConnected;
+                        const postSleepVisible = rawPostSleep ? rawPostSleep.offsetParent !== null : false;
+                        const postSleepBody = rawPostSleep ? document.body.contains(rawPostSleep) : false;
+                        const postSleepParents = buildParentChain(bestInventory.el, 12);
+                        const postSleepDom = domSnapshot();
+                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-SLEEP: connected=${postSleepConn} visible=${postSleepVisible} bodyContains=${postSleepBody} domCounts=${JSON.stringify(postSleepDom)} parents=[${postSleepParents.join(' > ')}]`);
+                        // ========== RE-QUERY IF DETACHED ==========
+                        let raw = rawPostSleep;
+                        if (!raw || !raw.isConnected) {
+                            const targetArmorId = (_d = bestInventory.data) === null || _d === void 0 ? void 0 : _d.id_girl_armor;
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] DETACHED — attempting re-query for id_girl_armor=${targetArmorId}`);
+                            if (targetArmorId != null) {
+                                const candidates = $('.right-section .slot[data-d]').filter(function () {
+                                    try {
+                                        const d = JSON.parse($(this).attr('data-d') || '{}');
+                                        return d.id_girl_armor === targetArmorId;
+                                    }
+                                    catch (_a) {
+                                        return false;
+                                    }
+                                });
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] re-query found ${candidates.length} candidate(s)`);
+                                candidates.each(function (idx) {
+                                    const $c = $(this);
+                                    const cRaw = $c.get(0);
+                                    const cConn = cRaw === null || cRaw === void 0 ? void 0 : cRaw.isConnected;
+                                    const cBody = cRaw ? document.body.contains(cRaw) : false;
+                                    const cParents = buildParentChain($c, 8);
+                                    LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] candidate[${idx}]: connected=${cConn} bodyContains=${cBody} parents=[${cParents.join(' > ')}]`);
+                                });
+                                const $fresh = candidates.filter(function () {
+                                    const r = $(this).get(0);
+                                    return !!r && r.isConnected;
+                                }).first();
+                                if ($fresh.length > 0) {
+                                    const freshRaw = $fresh.get(0);
+                                    LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] RE-QUERY SUCCESS — swapping to fresh node`);
+                                    bestInventory.el = $fresh;
+                                    raw = freshRaw;
+                                    // Scroll the fresh node into view, then re-check
+                                    if (typeof raw.scrollIntoView === 'function') {
+                                        raw.scrollIntoView({ block: 'center' });
+                                        yield TimeHelper.sleep(randomInterval(200, 300));
+                                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-RE-SCROLL: connected=${raw.isConnected} bodyContains=${document.body.contains(raw)}`);
+                                    }
+                                }
+                                else {
+                                    LogUtils_logHHAuto(`Slot ${i}: no connected candidate after re-query (id_girl_armor=${targetArmorId}), aborting attempts`);
+                                    break;
+                                }
+                            }
+                            else {
+                                LogUtils_logHHAuto(`Slot ${i}: detached and no id_girl_armor to re-query, aborting attempts`);
+                                break;
+                            }
+                        }
+                        // ========== PRE-CLICK STATE (for the node we will actually click) ==========
+                        {
                             const itemCls = bestInventory.el.attr('class') || '';
                             const itemId = bestInventory.el.attr('data-id') || '';
-                            const connected = rawElBefore === null || rawElBefore === void 0 ? void 0 : rawElBefore.isConnected;
-                            const visible = rawElBefore ? rawElBefore.offsetParent !== null : false;
-                            const outerH = ((rawElBefore === null || rawElBefore === void 0 ? void 0 : rawElBefore.outerHTML) || '').substring(0, 250);
-                            const parentChain = [];
-                            let p = bestInventory.el.parent();
-                            for (let d = 0; d < 4 && p.length > 0; d++) {
-                                const pEl = p.get(0);
-                                const cls = (p.attr('class') || '').split(/\s+/).slice(0, 2).join('.');
-                                parentChain.push(`${((_e = pEl === null || pEl === void 0 ? void 0 : pEl.tagName) === null || _e === void 0 ? void 0 : _e.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`);
-                                p = p.parent();
-                            }
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i}] best item BEFORE click: class="${itemCls}" data-id="${itemId}" connected=${connected} visible=${visible} parents=[${parentChain.join(' > ')}] html="${outerH}"`);
+                            const connected = raw === null || raw === void 0 ? void 0 : raw.isConnected;
+                            const visible = raw ? raw.offsetParent !== null : false;
+                            const bodyContains = raw ? document.body.contains(raw) : false;
+                            const outerH = ((raw === null || raw === void 0 ? void 0 : raw.outerHTML) || '').substring(0, 400);
+                            const parentChain = buildParentChain(bestInventory.el, 12);
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] PRE-CLICK: class="${itemCls}" data-id="${itemId}" connected=${connected} visible=${visible} bodyContains=${bodyContains} parents=[${parentChain.join(' > ')}] html="${outerH}"`);
                         }
-                        // Primary click: native click triggers the game's selection handler
-                        if (raw && typeof raw.click === 'function') {
+                        // ========== PRIMARY CLICK ==========
+                        const usedNative = !!(raw && typeof raw.click === 'function');
+                        if (usedNative) {
                             raw.click();
                         }
                         else {
                             bestInventory.el.trigger('click');
                         }
+                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] primary click dispatched (native=${usedNative})`);
                         // Short wait so the primary click can propagate before we check the button
                         yield TimeHelper.sleep(randomInterval(300, 500));
-                        // Fallback click methods if the equip button is still disabled
-                        // after the primary click. On slot 0 the native .click() is
-                        // consistently ignored by the game — some frameworks only react
-                        // to fully simulated MouseEvents with bubbles/view set (see #1573).
+                        // ========== POST-PRIMARY STATE ==========
+                        {
+                            const btnProbe = $('#girl-equipment-equip');
+                            const btnDisabled = btnProbe.length === 0 || btnProbe.prop('disabled') === true || btnProbe.hasClass('disabled');
+                            const rightSelectedStr = $('.right-section .selected, .right-section .active, .right-section .highlight')
+                                .map((_, el) => {
+                                var _a;
+                                const cls = ($(el).attr('class') || '').split(/\s+/).slice(0, 4).join('.');
+                                return `${((_a = el.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`;
+                            }).get().join(' | ');
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-PRIMARY: connected=${raw === null || raw === void 0 ? void 0 : raw.isConnected} bodyContains=${raw ? document.body.contains(raw) : 'null'} btnDisabled=${btnDisabled} domCounts=${JSON.stringify(domSnapshot())} rightSelected="${rightSelectedStr || 'none'}"`);
+                        }
+                        // ========== FALLBACK CLICKS IF EQUIP BTN STILL DISABLED ==========
                         const $btnProbe = $('#girl-equipment-equip');
                         const btnStillDisabled = $btnProbe.length === 0
                             || $btnProbe.prop('disabled') === true
                             || $btnProbe.hasClass('disabled');
                         if (btnStillDisabled && raw) {
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i}] primary click did not enable equip button, trying fallback click methods (attempt ${attempt})`);
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] BTN still disabled — running fallback clicks`);
                             // Fallback 1: synthetic MouseEvent with bubbles + view
                             try {
                                 raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                             }
-                            catch ( /* ignore */_k) { /* ignore */ }
+                            catch (e) {
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] fallback 1 threw: ${e}`);
+                            }
                             yield TimeHelper.sleep(200);
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 1 (MouseEvent click): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
                             // Fallback 2: full mousedown + mouseup + click sequence
                             try {
                                 raw.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
                                 raw.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
                                 raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
                             }
-                            catch ( /* ignore */_l) { /* ignore */ }
+                            catch (e) {
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] fallback 2 threw: ${e}`);
+                            }
                             yield TimeHelper.sleep(200);
-                            // Fallback 3: jQuery trigger (uses jQuery's event simulation pipeline)
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 2 (full mouse seq): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
+                            // Fallback 3: jQuery trigger
                             bestInventory.el.trigger('click');
                             yield TimeHelper.sleep(200);
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 3 (jQuery trigger): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
                         }
-                        // DEBUG (issue #1573): item state AFTER click (attempt 1 only)
-                        if (attempt === 1) {
+                        // ========== AFTER-CLICK STATE (full) ==========
+                        {
                             const rawElAfter = bestInventory.el.get(0);
                             const itemClsAfter = bestInventory.el.attr('class') || '';
                             const connectedAfter = rawElAfter === null || rawElAfter === void 0 ? void 0 : rawElAfter.isConnected;
+                            const bodyContainsAfter = rawElAfter ? document.body.contains(rawElAfter) : false;
                             const rightSelected = $('.right-section .selected, .right-section .active, .right-section .highlight')
                                 .map((_, el) => {
                                 var _a;
                                 const cls = ($(el).attr('class') || '').split(/\s+/).slice(0, 4).join('.');
                                 return `${((_a = el.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`;
                             }).get().join(' | ');
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i}] best item AFTER click: class="${itemClsAfter}" connected=${connectedAfter} right-selected="${rightSelected || 'none'}"`);
+                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] AFTER-CLICK: class="${itemClsAfter}" connected=${connectedAfter} bodyContains=${bodyContainsAfter} domCounts=${JSON.stringify(domSnapshot())} right-selected="${rightSelected || 'none'}"`);
                         }
                         // Additional wait so the game has time to activate the Equip button (see issue #1573)
                         yield TimeHelper.sleep(randomInterval(400, 700));
@@ -12247,7 +12316,7 @@ class HaremGirl {
                             if (attempt === 1) {
                                 const btnEl = $equipBtn.get(0);
                                 const btnHtml = ((btnEl === null || btnEl === void 0 ? void 0 : btnEl.outerHTML) || '').substring(0, 400);
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_f = $equipBtn.attr('hidden')) !== null && _f !== void 0 ? _f : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
+                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_e = $equipBtn.attr('hidden')) !== null && _e !== void 0 ? _e : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
                             }
                             const btnRaw = $equipBtn.get(0);
                             if (btnRaw && typeof btnRaw.click === 'function')
@@ -12274,9 +12343,9 @@ class HaremGirl {
                             try {
                                 verifyData = JSON.parse(verifyEl.attr('data-d'));
                             }
-                            catch ( /* ignore */_m) { /* ignore */ }
+                            catch ( /* ignore */_j) { /* ignore */ }
                         }
-                        const verifyKey = verifyData ? ((_h = (_g = verifyData.id_item) !== null && _g !== void 0 ? _g : verifyData.id_equipement) !== null && _h !== void 0 ? _h : JSON.stringify(verifyData)) : null;
+                        const verifyKey = verifyData ? ((_g = (_f = verifyData.id_item) !== null && _f !== void 0 ? _f : verifyData.id_equipement) !== null && _g !== void 0 ? _g : JSON.stringify(verifyData)) : null;
                         if (verifyKey !== previousEquippedKey) {
                             LogUtils_logHHAuto(`Slot ${i}: equip verified (L${verifyData === null || verifyData === void 0 ? void 0 : verifyData.level} ${verifyData === null || verifyData === void 0 ? void 0 : verifyData.rarity})`);
                             equipSucceeded = true;
