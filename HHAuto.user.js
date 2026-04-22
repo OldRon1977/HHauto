@@ -12039,6 +12039,14 @@ class HaremGirl {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
             LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
+            // Warmup: click a sibling slot once so the game registers a real state
+            // transition when we click slot 0 below. Without this the first click
+            // on an already-displayed slot is a no-op and the equip button ignores
+            // our later click (see issue #1573).
+            if (slotCount >= 2) {
+                equipmentSlots.eq(1).trigger('click');
+                yield TimeHelper.sleep(randomInterval(400, 700));
+            }
             for (let i = 0; i < slotCount; i++) {
                 const slot = equipmentSlots.eq(i);
                 slot.trigger('click');
