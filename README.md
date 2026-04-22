@@ -16,6 +16,12 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.8 — Buy combativity for +Raid Stars raids
+
+When +Raid Stars was the only active raid mode and energy ran out, the script would not spend kobans to refill — even with enough kobans available above the reserve. Energy is now topped up as expected for +Raid Stars raids as well.
+
+---
+
 ### v7.35.7 — League promotion threshold updated to top 20
 
 Fixes [#1567](https://github.com/Roukys/HHauto/issues/1567).
