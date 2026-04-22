@@ -905,6 +905,10 @@ export class HaremGirl {
         let prevCount = countItems();
         logHHAuto(`forceLoadAllInventoryItems: found ${scrollables.length} scrollable elements, initial item count=${prevCount}`);
 
+        // Require 2 consecutive stable iterations before breaking — a single
+        // stable iteration can happen during a network hiccup while more items
+        // are still loading (see issue #1573).
+        let stableIterations = 0;
         for (let iter = 0; iter < 15; iter++) {
             // scroll each scrollable to its bottom and dispatch a scroll event
             for (const s of scrollables) {
@@ -913,16 +917,23 @@ export class HaremGirl {
                     s.dispatchEvent(new Event('scroll', { bubbles: true }));
                 } catch { /* ignore */ }
             }
-            await TimeHelper.sleep(randomInterval(200, 350));
+            await TimeHelper.sleep(randomInterval(400, 600));
             const curCount = countItems();
-            if (curCount === prevCount) break;
-            prevCount = curCount;
+            if (curCount === prevCount) {
+                stableIterations++;
+                if (stableIterations >= 2) break;
+            } else {
+                stableIterations = 0;
+                prevCount = curCount;
+            }
         }
         // scroll back up so the chosen item's scrollIntoView works reliably
         for (const s of scrollables) {
             try { s.scrollTop = 0; } catch { /* ignore */ }
         }
-        await TimeHelper.sleep(randomInterval(150, 250));
+        // Final settle delay: let the game finish rendering any late items
+        // before the caller reads the DOM (see issue #1573).
+        await TimeHelper.sleep(randomInterval(400, 600));
         return countItems();
     }
 
@@ -935,7 +946,9 @@ export class HaremGirl {
         for (let i = 0; i < slotCount; i++) {
             const slot = equipmentSlots.eq(i);
             slot.trigger('click');
-            await TimeHelper.sleep(randomInterval(400, 600));
+            // Give the game time to kick off its inventory request for this slot
+            // before we start scrolling to force-load items (see issue #1573).
+            await TimeHelper.sleep(randomInterval(600, 900));
 
             // Force game to render all lazy-loaded inventory items into the DOM
             const totalItems = await HaremGirl.forceLoadAllInventoryItems();
