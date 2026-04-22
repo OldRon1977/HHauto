@@ -982,11 +982,16 @@ export class HaremGirl {
 
             const allDomItems: { el: JQuery<HTMLElement>, data: any }[] = [];
             $('.right-section .slot[data-d]').each(function () {
-                const raw = $(this).attr('data-d');
+                const $el = $(this);
+                // Skip items sitting inside a filled equipment slot — those are already equipped
+                // girl_armor records, not free inventory items. Clicking them does nothing and the
+                // element is often detached from the DOM by the time we reach it (see issue #1573).
+                if ($el.closest('.inventory-slot.filled-slot').length > 0) return;
+                const raw = $el.attr('data-d');
                 if (!raw) return;
                 try {
                     const data = JSON.parse(raw);
-                    if (data && data.caracs) allDomItems.push({ el: $(this), data });
+                    if (data && data.caracs) allDomItems.push({ el: $el, data });
                 } catch { /* ignore */ }
             });
 
