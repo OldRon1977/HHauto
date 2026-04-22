@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.9 — Assign first 7 now applies the full team reliably
+
+Fixes [#1577](https://github.com/Roukys/HHauto/issues/1577).
+
+When using "Assign first 7" on the team edit page, some girls from the previous team could stay assigned instead of being replaced, leaving the team only partially updated. The new team is now applied correctly on the first click.
+
+---
+
 ### v7.35.8 — Buy combativity for +Raid Stars raids
 
 When +Raid Stars was the only active raid mode and energy ran out, the script would not spend kobans to refill — even with enough kobans available above the reserve. Energy is now topped up as expected for +Raid Stars raids as well.
