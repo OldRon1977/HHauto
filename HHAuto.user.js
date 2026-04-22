@@ -12034,7 +12034,7 @@ class HaremGirl {
         });
     }
     static optimizeEquipmentSlots(girl) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
@@ -12049,7 +12049,17 @@ class HaremGirl {
             }
             for (let i = 0; i < slotCount; i++) {
                 const slot = equipmentSlots.eq(i);
+                // DEBUG (issue #1573): capture slot state before click for slot 0
+                if (i === 0) {
+                    const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
+                    LogUtils_logHHAuto(`[DEBUG Slot 0] all slot classes BEFORE click: ${beforeClasses}`);
+                }
                 slot.trigger('click');
+                // DEBUG (issue #1573): capture slot state after click for slot 0
+                if (i === 0) {
+                    const afterClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
+                    LogUtils_logHHAuto(`[DEBUG Slot 0] all slot classes AFTER click: ${afterClasses}`);
+                }
                 // Give the game time to kick off its inventory request for this slot
                 // before we start scrolling to force-load items (see issue #1573).
                 yield TimeHelper.sleep(randomInterval(600, 900));
@@ -12061,7 +12071,7 @@ class HaremGirl {
                     try {
                         equippedData = JSON.parse(equippedEl.attr('data-d'));
                     }
-                    catch ( /* ignore */_f) { /* ignore */ }
+                    catch ( /* ignore */_h) { /* ignore */ }
                 }
                 const targetSlotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
                 const allDomItems = [];
@@ -12119,12 +12129,23 @@ class HaremGirl {
                             raw.scrollIntoView({ block: 'center' });
                             yield TimeHelper.sleep(randomInterval(200, 300));
                         }
+                        // DEBUG (issue #1573): best item state BEFORE click for slot 0 attempt 1
+                        if (i === 0 && attempt === 1) {
+                            const itemCls = bestInventory.el.attr('class') || '';
+                            const itemId = bestInventory.el.attr('data-id') || '';
+                            LogUtils_logHHAuto(`[DEBUG Slot 0] best item BEFORE click: class="${itemCls}" data-id="${itemId}" level=${bestInventory.data.level} slot_index=${bestInventory.data.slot_index} id_item=${(_d = bestInventory.data.id_item) !== null && _d !== void 0 ? _d : 'n/a'}`);
+                        }
                         // Native click to trigger the game's selection handler reliably
                         if (raw && typeof raw.click === 'function') {
                             raw.click();
                         }
                         else {
                             bestInventory.el.trigger('click');
+                        }
+                        // DEBUG (issue #1573): item state AFTER click for slot 0 attempt 1
+                        if (i === 0 && attempt === 1) {
+                            const itemClsAfter = bestInventory.el.attr('class') || '';
+                            LogUtils_logHHAuto(`[DEBUG Slot 0] best item AFTER click: class="${itemClsAfter}"`);
                         }
                         // Longer wait so the game has time to activate the Equip button (see issue #1573)
                         yield TimeHelper.sleep(randomInterval(700, 1000));
@@ -12137,6 +12158,12 @@ class HaremGirl {
                             $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
                         }
                         if ($equipBtn.length > 0) {
+                            // DEBUG (issue #1573): equip button state BEFORE click for slot 0 attempt 1
+                            if (i === 0 && attempt === 1) {
+                                const btnEl = $equipBtn.get(0);
+                                const btnHtml = ((btnEl === null || btnEl === void 0 ? void 0 : btnEl.outerHTML) || '').substring(0, 400);
+                                LogUtils_logHHAuto(`[DEBUG Slot 0] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_e = $equipBtn.attr('hidden')) !== null && _e !== void 0 ? _e : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
+                            }
                             const btnRaw = $equipBtn.get(0);
                             if (btnRaw && typeof btnRaw.click === 'function')
                                 btnRaw.click();
@@ -12144,6 +12171,12 @@ class HaremGirl {
                                 $equipBtn.trigger('click');
                             yield TimeHelper.sleep(randomInterval(400, 700));
                             LogUtils_logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                            // DEBUG (issue #1573): equip button state AFTER click for slot 0 attempt 1
+                            if (i === 0 && attempt === 1) {
+                                const btnAfter = $('#girl-equipment-equip').get(0);
+                                const btnAfterHtml = ((btnAfter === null || btnAfter === void 0 ? void 0 : btnAfter.outerHTML) || '').substring(0, 400);
+                                LogUtils_logHHAuto(`[DEBUG Slot 0] equip btn AFTER click: html="${btnAfterHtml}"`);
+                            }
                         }
                         else {
                             LogUtils_logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
@@ -12156,9 +12189,9 @@ class HaremGirl {
                             try {
                                 verifyData = JSON.parse(verifyEl.attr('data-d'));
                             }
-                            catch ( /* ignore */_g) { /* ignore */ }
+                            catch ( /* ignore */_j) { /* ignore */ }
                         }
-                        const verifyKey = verifyData ? ((_e = (_d = verifyData.id_item) !== null && _d !== void 0 ? _d : verifyData.id_equipement) !== null && _e !== void 0 ? _e : JSON.stringify(verifyData)) : null;
+                        const verifyKey = verifyData ? ((_g = (_f = verifyData.id_item) !== null && _f !== void 0 ? _f : verifyData.id_equipement) !== null && _g !== void 0 ? _g : JSON.stringify(verifyData)) : null;
                         if (verifyKey !== previousEquippedKey) {
                             LogUtils_logHHAuto(`Slot ${i}: equip verified (L${verifyData === null || verifyData === void 0 ? void 0 : verifyData.level} ${verifyData === null || verifyData === void 0 ? void 0 : verifyData.rarity})`);
                             equipSucceeded = true;
