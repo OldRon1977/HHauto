@@ -1039,23 +1039,72 @@ export class HaremGirl {
                     }
                     // DEBUG (issue #1573): best item state BEFORE click (attempt 1 only)
                     if (attempt === 1) {
+                        const rawElBefore = bestInventory.el.get(0);
                         const itemCls = bestInventory.el.attr('class') || '';
                         const itemId = bestInventory.el.attr('data-id') || '';
-                        logHHAuto(`[DEBUG Slot ${i}] best item BEFORE click: class="${itemCls}" data-id="${itemId}" level=${bestInventory.data.level} slot_index=${bestInventory.data.slot_index} id_item=${bestInventory.data.id_item ?? 'n/a'}`);
+                        const connected = rawElBefore?.isConnected;
+                        const visible = rawElBefore ? rawElBefore.offsetParent !== null : false;
+                        const outerH = (rawElBefore?.outerHTML || '').substring(0, 250);
+                        const parentChain: string[] = [];
+                        let p = bestInventory.el.parent();
+                        for (let d = 0; d < 4 && p.length > 0; d++) {
+                            const pEl = p.get(0) as HTMLElement | undefined;
+                            const cls = (p.attr('class') || '').split(/\s+/).slice(0, 2).join('.');
+                            parentChain.push(`${pEl?.tagName?.toLowerCase() || '?'}${cls ? '.' + cls : ''}`);
+                            p = p.parent();
+                        }
+                        logHHAuto(`[DEBUG Slot ${i}] best item BEFORE click: class="${itemCls}" data-id="${itemId}" connected=${connected} visible=${visible} parents=[${parentChain.join(' > ')}] html="${outerH}"`);
                     }
-                    // Native click to trigger the game's selection handler reliably
+                    // Primary click: native click triggers the game's selection handler
                     if (raw && typeof raw.click === 'function') {
                         raw.click();
                     } else {
                         bestInventory.el.trigger('click');
                     }
+                    // Short wait so the primary click can propagate before we check the button
+                    await TimeHelper.sleep(randomInterval(300, 500));
+
+                    // Fallback click methods if the equip button is still disabled
+                    // after the primary click. On slot 0 the native .click() is
+                    // consistently ignored by the game — some frameworks only react
+                    // to fully simulated MouseEvents with bubbles/view set (see #1573).
+                    const $btnProbe = $('#girl-equipment-equip');
+                    const btnStillDisabled = $btnProbe.length === 0
+                        || $btnProbe.prop('disabled') === true
+                        || $btnProbe.hasClass('disabled');
+                    if (btnStillDisabled && raw) {
+                        logHHAuto(`[DEBUG Slot ${i}] primary click did not enable equip button, trying fallback click methods (attempt ${attempt})`);
+                        // Fallback 1: synthetic MouseEvent with bubbles + view
+                        try {
+                            raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                        } catch { /* ignore */ }
+                        await TimeHelper.sleep(200);
+                        // Fallback 2: full mousedown + mouseup + click sequence
+                        try {
+                            raw.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+                            raw.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+                            raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+                        } catch { /* ignore */ }
+                        await TimeHelper.sleep(200);
+                        // Fallback 3: jQuery trigger (uses jQuery's event simulation pipeline)
+                        bestInventory.el.trigger('click');
+                        await TimeHelper.sleep(200);
+                    }
+
                     // DEBUG (issue #1573): item state AFTER click (attempt 1 only)
                     if (attempt === 1) {
+                        const rawElAfter = bestInventory.el.get(0);
                         const itemClsAfter = bestInventory.el.attr('class') || '';
-                        logHHAuto(`[DEBUG Slot ${i}] best item AFTER click: class="${itemClsAfter}"`);
+                        const connectedAfter = rawElAfter?.isConnected;
+                        const rightSelected = $('.right-section .selected, .right-section .active, .right-section .highlight')
+                            .map((_, el) => {
+                                const cls = ($(el).attr('class') || '').split(/\s+/).slice(0, 4).join('.');
+                                return `${el.tagName?.toLowerCase() || '?'}${cls ? '.' + cls : ''}`;
+                            }).get().join(' | ');
+                        logHHAuto(`[DEBUG Slot ${i}] best item AFTER click: class="${itemClsAfter}" connected=${connectedAfter} right-selected="${rightSelected || 'none'}"`);
                     }
-                    // Longer wait so the game has time to activate the Equip button (see issue #1573)
-                    await TimeHelper.sleep(randomInterval(700, 1000));
+                    // Additional wait so the game has time to activate the Equip button (see issue #1573)
+                    await TimeHelper.sleep(randomInterval(400, 700));
 
                     // Click the Equip confirm button (revealed after item selection)
                     let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
