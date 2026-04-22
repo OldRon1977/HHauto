@@ -12034,7 +12034,7 @@ class HaremGirl {
         });
     }
     static optimizeEquipmentSlots(girl) {
-        var _a;
+        var _a, _b, _c, _d, _e;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
@@ -12053,7 +12053,7 @@ class HaremGirl {
                     try {
                         equippedData = JSON.parse(equippedEl.attr('data-d'));
                     }
-                    catch ( /* ignore */_b) { /* ignore */ }
+                    catch ( /* ignore */_f) { /* ignore */ }
                 }
                 const targetSlotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
                 const allDomItems = [];
@@ -12100,33 +12100,69 @@ class HaremGirl {
                 const shouldReplace = HaremGirl.isBetter(bestInventory.data, equippedData, girl);
                 if (shouldReplace) {
                     LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
-                    // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
-                    const raw = bestInventory.el.get(0);
-                    if (raw && typeof raw.scrollIntoView === 'function') {
-                        raw.scrollIntoView({ block: 'center' });
-                        yield TimeHelper.sleep(randomInterval(200, 300));
+                    // Capture previous equipped identity so we can verify a real change below (see issue #1573)
+                    const previousEquippedKey = equippedData ? ((_c = (_b = equippedData.id_item) !== null && _b !== void 0 ? _b : equippedData.id_equipement) !== null && _c !== void 0 ? _c : JSON.stringify(equippedData)) : null;
+                    const MAX_EQUIP_ATTEMPTS = 3;
+                    let equipSucceeded = false;
+                    for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
+                        // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
+                        const raw = bestInventory.el.get(0);
+                        if (raw && typeof raw.scrollIntoView === 'function') {
+                            raw.scrollIntoView({ block: 'center' });
+                            yield TimeHelper.sleep(randomInterval(200, 300));
+                        }
+                        // Native click to trigger the game's selection handler reliably
+                        if (raw && typeof raw.click === 'function') {
+                            raw.click();
+                        }
+                        else {
+                            bestInventory.el.trigger('click');
+                        }
+                        // Longer wait so the game has time to activate the Equip button (see issue #1573)
+                        yield TimeHelper.sleep(randomInterval(700, 1000));
+                        // Click the Equip confirm button (revealed after item selection)
+                        let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
+                        // Wait up to ~500ms for the button to become enabled (see issue #1573)
+                        for (let waitIter = 0; waitIter < 5 && $equipBtn.length > 0
+                            && ($equipBtn.prop('disabled') === true || $equipBtn.hasClass('disabled')); waitIter++) {
+                            yield TimeHelper.sleep(100);
+                            $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
+                        }
+                        if ($equipBtn.length > 0) {
+                            const btnRaw = $equipBtn.get(0);
+                            if (btnRaw && typeof btnRaw.click === 'function')
+                                btnRaw.click();
+                            else
+                                $equipBtn.trigger('click');
+                            yield TimeHelper.sleep(randomInterval(400, 700));
+                            LogUtils_logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                        }
+                        else {
+                            LogUtils_logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                        }
+                        // Verify the equipped item actually changed (see issue #1573)
+                        yield TimeHelper.sleep(randomInterval(300, 500));
+                        const verifyEl = slot.find('.slot[data-d]');
+                        let verifyData = null;
+                        if (verifyEl.length > 0 && verifyEl.attr('data-d')) {
+                            try {
+                                verifyData = JSON.parse(verifyEl.attr('data-d'));
+                            }
+                            catch ( /* ignore */_g) { /* ignore */ }
+                        }
+                        const verifyKey = verifyData ? ((_e = (_d = verifyData.id_item) !== null && _d !== void 0 ? _d : verifyData.id_equipement) !== null && _e !== void 0 ? _e : JSON.stringify(verifyData)) : null;
+                        if (verifyKey !== previousEquippedKey) {
+                            LogUtils_logHHAuto(`Slot ${i}: equip verified (L${verifyData === null || verifyData === void 0 ? void 0 : verifyData.level} ${verifyData === null || verifyData === void 0 ? void 0 : verifyData.rarity})`);
+                            equipSucceeded = true;
+                            break;
+                        }
+                        LogUtils_logHHAuto(`Slot ${i}: equip NOT verified, previous item still equipped (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                        if (attempt < MAX_EQUIP_ATTEMPTS) {
+                            yield TimeHelper.sleep(randomInterval(500, 800));
+                        }
                     }
-                    // Native click to trigger the game's selection handler reliably
-                    if (raw && typeof raw.click === 'function') {
-                        raw.click();
-                    }
-                    else {
-                        bestInventory.el.trigger('click');
-                    }
-                    yield TimeHelper.sleep(randomInterval(300, 500));
-                    // Click the Equip confirm button (revealed after item selection)
-                    const $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
-                    if ($equipBtn.length > 0) {
-                        const btnRaw = $equipBtn.get(0);
-                        if (btnRaw && typeof btnRaw.click === 'function')
-                            btnRaw.click();
-                        else
-                            $equipBtn.trigger('click');
-                        yield TimeHelper.sleep(randomInterval(400, 700));
-                        LogUtils_logHHAuto(`Slot ${i}: equip button clicked`);
-                    }
-                    else {
-                        LogUtils_logHHAuto(`Slot ${i}: #girl-equipment-equip not found`);
+                    if (!equipSucceeded) {
+                        LogUtils_logHHAuto(`Slot ${i}: equip failed after ${MAX_EQUIP_ATTEMPTS} attempts, skipping`);
                     }
                 }
                 else {
