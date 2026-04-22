@@ -304,11 +304,16 @@ export class Troll {
         {
             const eventGirl = EventModule.getEventGirl();
             const eventMythicGirl = EventModule.getEventMythicGirl();
-            const loveRaid = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getRaidToFight(LoveRaidManager.getTrollRaids(), false) : undefined;
+            const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+            const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+            const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+            const loveRaid: LoveRaid = LoveRaidManager.isActivated()
+                ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
+                : undefined;
             //logHHAuto("No power for battle.");
             if (
                 !Troll.canBuyFight(eventGirl).canBuy && !Troll.canBuyFight(eventMythicGirl).canBuy &&
-                !Troll.canBuyFightForRaid(loveRaid).canBuy)
+                !Troll.canBuyFightForRaid(loveRaid).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid).canBuy)
             {
                 return false;
             }
