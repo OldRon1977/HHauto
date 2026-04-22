@@ -449,7 +449,7 @@ export class TeamModule {
         let topNumbers = $('.topNumber')
         if (topNumbers.length > 0) {
             TeamModule.resetTeam();
-            assignToTeam(1, true); // true = jump to best team directly
+            setTimeout(function () { assignToTeam(1, true); }, randomInterval(300, 600)); // wait for clear-team UI to settle before assigning
         }
     }
 
