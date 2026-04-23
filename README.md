@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.10 — Equipment optimization: Slot 1 is equipped reliably again
+
+Fixes [#1573](https://github.com/Roukys/HHauto/issues/1573).
+
+During auto-equip the first equipment slot was often skipped, so the girl ended up wearing a worse item than the one the script had picked. The other slots were updated normally. The first slot is now equipped correctly on every run.
+
+---
+
 ### v7.35.9 — Assign first 7 now applies the full team reliably
 
 Fixes [#1577](https://github.com/Roukys/HHauto/issues/1577).

@@ -905,6 +905,10 @@ export class HaremGirl {
         let prevCount = countItems();
         logHHAuto(`forceLoadAllInventoryItems: found ${scrollables.length} scrollable elements, initial item count=${prevCount}`);
 
+        // Require 2 consecutive stable iterations before breaking — a single
+        // stable iteration can happen during a network hiccup while more items
+        // are still loading (see issue #1573).
+        let stableIterations = 0;
         for (let iter = 0; iter < 15; iter++) {
             // scroll each scrollable to its bottom and dispatch a scroll event
             for (const s of scrollables) {
@@ -913,16 +917,20 @@ export class HaremGirl {
                     s.dispatchEvent(new Event('scroll', { bubbles: true }));
                 } catch { /* ignore */ }
             }
-            await TimeHelper.sleep(randomInterval(200, 350));
+            await TimeHelper.sleep(randomInterval(250, 400));
             const curCount = countItems();
-            if (curCount === prevCount) break;
-            prevCount = curCount;
+            if (curCount === prevCount) {
+                stableIterations++;
+                if (stableIterations >= 2) break;
+            } else {
+                stableIterations = 0;
+                prevCount = curCount;
+            }
         }
         // scroll back up so the chosen item's scrollIntoView works reliably
         for (const s of scrollables) {
             try { s.scrollTop = 0; } catch { /* ignore */ }
         }
-        await TimeHelper.sleep(randomInterval(150, 250));
         return countItems();
     }
 
@@ -935,7 +943,8 @@ export class HaremGirl {
         for (let i = 0; i < slotCount; i++) {
             const slot = equipmentSlots.eq(i);
             slot.trigger('click');
-            await TimeHelper.sleep(randomInterval(400, 600));
+            // Short wait so the game kicks off its inventory request for this slot
+            await TimeHelper.sleep(randomInterval(100, 200));
 
             // Force game to render all lazy-loaded inventory items into the DOM
             const totalItems = await HaremGirl.forceLoadAllInventoryItems();
@@ -950,27 +959,19 @@ export class HaremGirl {
 
             const allDomItems: { el: JQuery<HTMLElement>, data: any }[] = [];
             $('.right-section .slot[data-d]').each(function () {
-                const raw = $(this).attr('data-d');
+                const $el = $(this);
+                const raw = $el.attr('data-d');
                 if (!raw) return;
                 try {
                     const data = JSON.parse(raw);
-                    if (data && data.caracs) allDomItems.push({ el: $(this), data });
+                    if (data && data.caracs) allDomItems.push({ el: $el, data });
                 } catch { /* ignore */ }
             });
 
             // Filter candidates by slot_index so we don't compare pants to necklaces
             const inventoryItems = allDomItems.filter(it => Number(it.data.slot_index) === Number(targetSlotIndex));
 
-            // Diagnostic: slot_index distribution + top rarities in inventory
-            const slotDist: { [k: string]: number } = {};
-            const rarityDist: { [k: string]: number } = {};
-            for (const it of allDomItems) {
-                const si = String(it.data.slot_index);
-                slotDist[si] = (slotDist[si] || 0) + 1;
-                const ra = String(it.data.rarity);
-                rarityDist[ra] = (rarityDist[ra] || 0) + 1;
-            }
-            logHHAuto(`Slot ${i}: targetSlotIndex=${targetSlotIndex}, DOM items=${allDomItems.length}, candidates=${inventoryItems.length}, slot_index_dist=${JSON.stringify(slotDist)}, rarity_dist=${JSON.stringify(rarityDist)}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} si=${equippedData.slot_index}` : 'none'}`);
+            logHHAuto(`Slot ${i}: ${inventoryItems.length} candidates, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity}` : 'none'}`);
 
             if (inventoryItems.length === 0) {
                 logHHAuto(`Slot ${i}: no inventory items for slot_index=${targetSlotIndex}, skipping`);
@@ -993,30 +994,100 @@ export class HaremGirl {
 
             if (shouldReplace) {
                 logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
-                // Scroll the item into view before clicking (lazy panels may still hide off-screen items)
-                const raw = bestInventory.el.get(0);
-                if (raw && typeof raw.scrollIntoView === 'function') {
-                    raw.scrollIntoView({ block: 'center' });
-                    await TimeHelper.sleep(randomInterval(200, 300));
-                }
-                // Native click to trigger the game's selection handler reliably
-                if (raw && typeof raw.click === 'function') {
-                    raw.click();
-                } else {
-                    bestInventory.el.trigger('click');
-                }
-                await TimeHelper.sleep(randomInterval(300, 500));
+                // Capture previous equipped identity so we can verify a real change below (see issue #1573)
+                const previousEquippedKey = equippedData ? (equippedData.id_item ?? equippedData.id_equipement ?? JSON.stringify(equippedData)) : null;
+                const MAX_EQUIP_ATTEMPTS = 3;
+                let equipSucceeded = false;
 
-                // Click the Equip confirm button (revealed after item selection)
-                const $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
-                if ($equipBtn.length > 0) {
-                    const btnRaw = $equipBtn.get(0) as HTMLElement | undefined;
-                    if (btnRaw && typeof btnRaw.click === 'function') btnRaw.click();
-                    else $equipBtn.trigger('click');
-                    await TimeHelper.sleep(randomInterval(400, 700));
-                    logHHAuto(`Slot ${i}: equip button clicked`);
-                } else {
-                    logHHAuto(`Slot ${i}: #girl-equipment-equip not found`);
+                for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
+                    // Scroll the chosen item into view
+                    const rawPreScroll = bestInventory.el.get(0);
+                    if (rawPreScroll && typeof rawPreScroll.scrollIntoView === 'function') {
+                        rawPreScroll.scrollIntoView({ block: 'center' });
+                        await TimeHelper.sleep(randomInterval(50, 100));
+                    }
+
+                    // Issue #1573: virtualized rendering can detach the original
+                    // node during scroll. Re-query by id_girl_armor and swap to the
+                    // fresh node before clicking.
+                    let raw: HTMLElement | undefined = bestInventory.el.get(0);
+                    if (!raw || !raw.isConnected) {
+                        const targetArmorId = bestInventory.data?.id_girl_armor;
+                        if (targetArmorId != null) {
+                            const $fresh = $('.right-section .slot[data-d]').filter(function () {
+                                try {
+                                    const d = JSON.parse($(this).attr('data-d') || '{}');
+                                    return d.id_girl_armor === targetArmorId;
+                                } catch { return false; }
+                            }).filter(function () {
+                                const r = $(this).get(0);
+                                return !!r && r.isConnected;
+                            }).first();
+                            if ($fresh.length > 0) {
+                                bestInventory.el = $fresh;
+                                raw = $fresh.get(0)!;
+                                logHHAuto(`Slot ${i}: item was detached, re-queried fresh node`);
+                                if (typeof raw.scrollIntoView === 'function') {
+                                    raw.scrollIntoView({ block: 'center' });
+                                    await TimeHelper.sleep(randomInterval(50, 100));
+                                }
+                            } else {
+                                logHHAuto(`Slot ${i}: no connected candidate after re-query, aborting attempts`);
+                                break;
+                            }
+                        } else {
+                            logHHAuto(`Slot ${i}: detached and no id_girl_armor to re-query, aborting attempts`);
+                            break;
+                        }
+                    }
+
+                    // Primary click on the item
+                    if (raw && typeof raw.click === 'function') {
+                        raw.click();
+                    } else {
+                        bestInventory.el.trigger('click');
+                    }
+                    await TimeHelper.sleep(randomInterval(100, 200));
+
+                    // Click the Equip confirm button (revealed after item selection)
+                    let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
+                    // Wait up to ~500ms for the button to become enabled
+                    for (let waitIter = 0; waitIter < 5 && $equipBtn.length > 0
+                        && ($equipBtn.prop('disabled') === true || $equipBtn.hasClass('disabled')); waitIter++) {
+                        await TimeHelper.sleep(100);
+                        $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
+                    }
+
+                    if ($equipBtn.length > 0) {
+                        const btnRaw = $equipBtn.get(0) as HTMLElement | undefined;
+                        if (btnRaw && typeof btnRaw.click === 'function') btnRaw.click();
+                        else $equipBtn.trigger('click');
+                        await TimeHelper.sleep(randomInterval(200, 300));
+                        logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                    } else {
+                        logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                    }
+
+                    // Verify the equipped item actually changed (see issue #1573)
+                    await TimeHelper.sleep(randomInterval(100, 200));
+                    const verifyEl = slot.find('.slot[data-d]');
+                    let verifyData: any = null;
+                    if (verifyEl.length > 0 && verifyEl.attr('data-d')) {
+                        try { verifyData = JSON.parse(verifyEl.attr('data-d')!); } catch { /* ignore */ }
+                    }
+                    const verifyKey = verifyData ? (verifyData.id_item ?? verifyData.id_equipement ?? JSON.stringify(verifyData)) : null;
+                    if (verifyKey !== previousEquippedKey) {
+                        logHHAuto(`Slot ${i}: equip verified (L${verifyData?.level} ${verifyData?.rarity})`);
+                        equipSucceeded = true;
+                        break;
+                    }
+                    logHHAuto(`Slot ${i}: equip NOT verified, previous item still equipped (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
+                    if (attempt < MAX_EQUIP_ATTEMPTS) {
+                        await TimeHelper.sleep(randomInterval(200, 300));
+                    }
+                }
+                if (!equipSucceeded) {
+                    logHHAuto(`Slot ${i}: equip failed after ${MAX_EQUIP_ATTEMPTS} attempts, skipping`);
                 }
             } else {
                 const eqScore = equippedData ? HaremGirl.scoreItem(equippedData, girl) : null;
