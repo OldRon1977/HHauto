@@ -12008,7 +12008,7 @@ class HaremGirl {
                     }
                     catch ( /* ignore */_a) { /* ignore */ }
                 }
-                yield TimeHelper.sleep(randomInterval(400, 600));
+                yield TimeHelper.sleep(randomInterval(250, 400));
                 const curCount = countItems();
                 if (curCount === prevCount) {
                     stableIterations++;
@@ -12027,9 +12027,6 @@ class HaremGirl {
                 }
                 catch ( /* ignore */_b) { /* ignore */ }
             }
-            // Final settle delay: let the game finish rendering any late items
-            // before the caller reads the DOM (see issue #1573).
-            yield TimeHelper.sleep(randomInterval(400, 600));
             return countItems();
         });
     }
@@ -12039,14 +12036,7 @@ class HaremGirl {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
             LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
-            // Iterate slots in reverse order (5 → 0) so slot 0 is processed last.
-            // Slot 0 is the default active slot after the page loads; processing it
-            // first made the game treat slot 0 as "already active" and silently
-            // ignore item clicks — the equip button never committed the change.
-            // By the time we reach slot 0 we have switched slots five times, so the
-            // game's internal state is guaranteed to register a real transition
-            // when we click slot 0 (see issue #1573).
-            for (let i = slotCount - 1; i >= 0; i--) {
+            for (let i = 0; i < slotCount; i++) {
                 const slot = equipmentSlots.eq(i);
                 // DEBUG (issue #1573): capture slot state before click
                 const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
@@ -12055,16 +12045,10 @@ class HaremGirl {
                 // DEBUG (issue #1573): capture slot state after click
                 const afterClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
                 LogUtils_logHHAuto(`[DEBUG Slot ${i}] all slot classes AFTER click: ${afterClasses}`);
-                // Give the game time to kick off its inventory request for this slot
-                // before we start scrolling to force-load items (see issue #1573).
-                yield TimeHelper.sleep(randomInterval(600, 900));
+                // Short wait so the game kicks off its inventory request for this slot
+                yield TimeHelper.sleep(randomInterval(100, 200));
                 // Force game to render all lazy-loaded inventory items into the DOM
                 const totalItems = yield HaremGirl.forceLoadAllInventoryItems();
-                // Extra settle time after forceLoad so the game can fully attach event
-                // handlers to items in the right panel before we click them (see issue #1573).
-                // Without this wait, clicks on items are silently ignored and the equip button
-                // stays disabled. Observed failure mode: slot 0 fails ~67% of the time without it.
-                yield TimeHelper.sleep(randomInterval(800, 1200));
                 const equippedEl = slot.find('.slot[data-d]');
                 let equippedData = null;
                 if (equippedEl.length > 0 && equippedEl.attr('data-d')) {
@@ -12161,7 +12145,7 @@ class HaremGirl {
                             rawPreScroll.scrollIntoView({ block: 'center' });
                             // Synchronous state right after scroll (before any sleep) — detects detach during scroll itself
                             LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-SCROLL sync: connected=${rawPreScroll.isConnected} bodyContains=${document.body.contains(rawPreScroll)}`);
-                            yield TimeHelper.sleep(randomInterval(200, 300));
+                            yield TimeHelper.sleep(randomInterval(50, 100));
                         }
                         // ========== POST-SLEEP STATE ==========
                         const rawPostSleep = bestInventory.el.get(0);
@@ -12207,7 +12191,7 @@ class HaremGirl {
                                     // Scroll the fresh node into view, then re-check
                                     if (typeof raw.scrollIntoView === 'function') {
                                         raw.scrollIntoView({ block: 'center' });
-                                        yield TimeHelper.sleep(randomInterval(200, 300));
+                                        yield TimeHelper.sleep(randomInterval(50, 100));
                                         LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-RE-SCROLL: connected=${raw.isConnected} bodyContains=${document.body.contains(raw)}`);
                                     }
                                 }
@@ -12242,7 +12226,7 @@ class HaremGirl {
                         }
                         LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] primary click dispatched (native=${usedNative})`);
                         // Short wait so the primary click can propagate before we check the button
-                        yield TimeHelper.sleep(randomInterval(300, 500));
+                        yield TimeHelper.sleep(randomInterval(100, 200));
                         // ========== POST-PRIMARY STATE ==========
                         {
                             const btnProbe = $('#girl-equipment-equip');
@@ -12254,38 +12238,6 @@ class HaremGirl {
                                 return `${((_a = el.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`;
                             }).get().join(' | ');
                             LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-PRIMARY: connected=${raw === null || raw === void 0 ? void 0 : raw.isConnected} bodyContains=${raw ? document.body.contains(raw) : 'null'} btnDisabled=${btnDisabled} domCounts=${JSON.stringify(domSnapshot())} rightSelected="${rightSelectedStr || 'none'}"`);
-                        }
-                        // ========== FALLBACK CLICKS IF EQUIP BTN STILL DISABLED ==========
-                        const $btnProbe = $('#girl-equipment-equip');
-                        const btnStillDisabled = $btnProbe.length === 0
-                            || $btnProbe.prop('disabled') === true
-                            || $btnProbe.hasClass('disabled');
-                        if (btnStillDisabled && raw) {
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] BTN still disabled — running fallback clicks`);
-                            // Fallback 1: synthetic MouseEvent with bubbles + view
-                            try {
-                                raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                            }
-                            catch (e) {
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] fallback 1 threw: ${e}`);
-                            }
-                            yield TimeHelper.sleep(200);
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 1 (MouseEvent click): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
-                            // Fallback 2: full mousedown + mouseup + click sequence
-                            try {
-                                raw.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
-                                raw.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
-                                raw.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                            }
-                            catch (e) {
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] fallback 2 threw: ${e}`);
-                            }
-                            yield TimeHelper.sleep(200);
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 2 (full mouse seq): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
-                            // Fallback 3: jQuery trigger
-                            bestInventory.el.trigger('click');
-                            yield TimeHelper.sleep(200);
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] after fallback 3 (jQuery trigger): btnDisabled=${$('#girl-equipment-equip').prop('disabled')} connected=${raw.isConnected} selectedCount=${$('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length}`);
                         }
                         // ========== AFTER-CLICK STATE (full) ==========
                         {
@@ -12301,8 +12253,6 @@ class HaremGirl {
                             }).get().join(' | ');
                             LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] AFTER-CLICK: class="${itemClsAfter}" connected=${connectedAfter} bodyContains=${bodyContainsAfter} domCounts=${JSON.stringify(domSnapshot())} right-selected="${rightSelected || 'none'}"`);
                         }
-                        // Additional wait so the game has time to activate the Equip button (see issue #1573)
-                        yield TimeHelper.sleep(randomInterval(400, 700));
                         // Click the Equip confirm button (revealed after item selection)
                         let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
                         // Wait up to ~500ms for the button to become enabled (see issue #1573)
@@ -12323,7 +12273,7 @@ class HaremGirl {
                                 btnRaw.click();
                             else
                                 $equipBtn.trigger('click');
-                            yield TimeHelper.sleep(randomInterval(400, 700));
+                            yield TimeHelper.sleep(randomInterval(200, 300));
                             LogUtils_logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
                             // DEBUG (issue #1573): equip button state AFTER click (attempt 1 only)
                             if (attempt === 1) {
@@ -12336,7 +12286,7 @@ class HaremGirl {
                             LogUtils_logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
                         }
                         // Verify the equipped item actually changed (see issue #1573)
-                        yield TimeHelper.sleep(randomInterval(300, 500));
+                        yield TimeHelper.sleep(randomInterval(100, 200));
                         const verifyEl = slot.find('.slot[data-d]');
                         let verifyData = null;
                         if (verifyEl.length > 0 && verifyEl.attr('data-d')) {
@@ -12353,7 +12303,7 @@ class HaremGirl {
                         }
                         LogUtils_logHHAuto(`Slot ${i}: equip NOT verified, previous item still equipped (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
                         if (attempt < MAX_EQUIP_ATTEMPTS) {
-                            yield TimeHelper.sleep(randomInterval(500, 800));
+                            yield TimeHelper.sleep(randomInterval(200, 300));
                         }
                     }
                     if (!equipSucceeded) {
