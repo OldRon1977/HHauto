@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.9
+// @version      7.35.10
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12031,20 +12031,14 @@ class HaremGirl {
         });
     }
     static optimizeEquipmentSlots(girl) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d, _e, _f;
         return HaremGirl_awaiter(this, void 0, void 0, function* () {
             const equipmentSlots = $('.equipment_slot');
             const slotCount = equipmentSlots.length;
             LogUtils_logHHAuto(`Optimize equipment: checking ${slotCount} slots for ${girl.name}`);
             for (let i = 0; i < slotCount; i++) {
                 const slot = equipmentSlots.eq(i);
-                // DEBUG (issue #1573): capture slot state before click
-                const beforeClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
-                LogUtils_logHHAuto(`[DEBUG Slot ${i}] all slot classes BEFORE click: ${beforeClasses}`);
                 slot.trigger('click');
-                // DEBUG (issue #1573): capture slot state after click
-                const afterClasses = equipmentSlots.map((idx, el) => `${idx}:"${$(el).attr('class') || ''}"`).get().join(' | ');
-                LogUtils_logHHAuto(`[DEBUG Slot ${i}] all slot classes AFTER click: ${afterClasses}`);
                 // Short wait so the game kicks off its inventory request for this slot
                 yield TimeHelper.sleep(randomInterval(100, 200));
                 // Force game to render all lazy-loaded inventory items into the DOM
@@ -12055,7 +12049,7 @@ class HaremGirl {
                     try {
                         equippedData = JSON.parse(equippedEl.attr('data-d'));
                     }
-                    catch ( /* ignore */_h) { /* ignore */ }
+                    catch ( /* ignore */_g) { /* ignore */ }
                 }
                 const targetSlotIndex = (_a = equippedData === null || equippedData === void 0 ? void 0 : equippedData.slot_index) !== null && _a !== void 0 ? _a : (i + 1);
                 const allDomItems = [];
@@ -12073,16 +12067,7 @@ class HaremGirl {
                 });
                 // Filter candidates by slot_index so we don't compare pants to necklaces
                 const inventoryItems = allDomItems.filter(it => Number(it.data.slot_index) === Number(targetSlotIndex));
-                // Diagnostic: slot_index distribution + top rarities in inventory
-                const slotDist = {};
-                const rarityDist = {};
-                for (const it of allDomItems) {
-                    const si = String(it.data.slot_index);
-                    slotDist[si] = (slotDist[si] || 0) + 1;
-                    const ra = String(it.data.rarity);
-                    rarityDist[ra] = (rarityDist[ra] || 0) + 1;
-                }
-                LogUtils_logHHAuto(`Slot ${i}: targetSlotIndex=${targetSlotIndex}, DOM items=${allDomItems.length}, candidates=${inventoryItems.length}, slot_index_dist=${JSON.stringify(slotDist)}, rarity_dist=${JSON.stringify(rarityDist)}, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity} si=${equippedData.slot_index}` : 'none'}`);
+                LogUtils_logHHAuto(`Slot ${i}: ${inventoryItems.length} candidates, equipped=${equippedData ? `L${equippedData.level} ${equippedData.rarity}` : 'none'}`);
                 if (inventoryItems.length === 0) {
                     LogUtils_logHHAuto(`Slot ${i}: no inventory items for slot_index=${targetSlotIndex}, skipping`);
                     continue;
@@ -12107,61 +12092,21 @@ class HaremGirl {
                     const previousEquippedKey = equippedData ? ((_c = (_b = equippedData.id_item) !== null && _b !== void 0 ? _b : equippedData.id_equipement) !== null && _c !== void 0 ? _c : JSON.stringify(equippedData)) : null;
                     const MAX_EQUIP_ATTEMPTS = 3;
                     let equipSucceeded = false;
-                    // Helper: parent chain up to `maxDepth` or until root, "tag.cls1.cls2" per level
-                    const buildParentChain = ($el, maxDepth) => {
-                        var _a;
-                        const chain = [];
-                        let p = $el.parent();
-                        for (let d = 0; d < maxDepth && p.length > 0; d++) {
-                            const pEl = p.get(0);
-                            const cls = (p.attr('class') || '').split(/\s+/).filter(c => c).slice(0, 3).join('.');
-                            chain.push(`${((_a = pEl === null || pEl === void 0 ? void 0 : pEl.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`);
-                            p = p.parent();
-                        }
-                        return chain;
-                    };
-                    // Helper: global DOM counts relevant to equipment UI
-                    const domSnapshot = () => ({
-                        rightSection: $('.right-section').length,
-                        inventoryScroll: $('.inventory.hh-scroll').length,
-                        girlLevelerPanel: $('.girl-leveler-panel').length,
-                        filledSlots: $('.right-section .slot[data-d]').length,
-                        selectedSlots: $('.right-section .inventory-slot.selected, .right-section .filled-slot.selected').length
-                    });
-                    // ISSUE #1573: Detach can happen between scroll and click, not before the attempt
-                    // loop. The isConnected check + re-query is now performed INSIDE the loop, after
-                    // scroll+sleep, right before the primary click. Massive diagnostics wrapped around
-                    // every step so we can see exactly when and why the node detaches.
                     for (let attempt = 1; attempt <= MAX_EQUIP_ATTEMPTS; attempt++) {
-                        // ========== PRE-SCROLL SNAPSHOT ==========
+                        // Scroll the chosen item into view
                         const rawPreScroll = bestInventory.el.get(0);
-                        const preScrollConn = rawPreScroll === null || rawPreScroll === void 0 ? void 0 : rawPreScroll.isConnected;
-                        const preScrollBody = rawPreScroll ? document.body.contains(rawPreScroll) : false;
-                        const preScrollParents = buildParentChain(bestInventory.el, 12);
-                        const preScrollDom = domSnapshot();
-                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] PRE-SCROLL: connected=${preScrollConn} bodyContains=${preScrollBody} domCounts=${JSON.stringify(preScrollDom)} parents=[${preScrollParents.join(' > ')}]`);
-                        // ========== SCROLL INTO VIEW ==========
                         if (rawPreScroll && typeof rawPreScroll.scrollIntoView === 'function') {
                             rawPreScroll.scrollIntoView({ block: 'center' });
-                            // Synchronous state right after scroll (before any sleep) — detects detach during scroll itself
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-SCROLL sync: connected=${rawPreScroll.isConnected} bodyContains=${document.body.contains(rawPreScroll)}`);
                             yield TimeHelper.sleep(randomInterval(50, 100));
                         }
-                        // ========== POST-SLEEP STATE ==========
-                        const rawPostSleep = bestInventory.el.get(0);
-                        const postSleepConn = rawPostSleep === null || rawPostSleep === void 0 ? void 0 : rawPostSleep.isConnected;
-                        const postSleepVisible = rawPostSleep ? rawPostSleep.offsetParent !== null : false;
-                        const postSleepBody = rawPostSleep ? document.body.contains(rawPostSleep) : false;
-                        const postSleepParents = buildParentChain(bestInventory.el, 12);
-                        const postSleepDom = domSnapshot();
-                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-SLEEP: connected=${postSleepConn} visible=${postSleepVisible} bodyContains=${postSleepBody} domCounts=${JSON.stringify(postSleepDom)} parents=[${postSleepParents.join(' > ')}]`);
-                        // ========== RE-QUERY IF DETACHED ==========
-                        let raw = rawPostSleep;
+                        // Issue #1573: virtualized rendering can detach the original
+                        // node during scroll. Re-query by id_girl_armor and swap to the
+                        // fresh node before clicking.
+                        let raw = bestInventory.el.get(0);
                         if (!raw || !raw.isConnected) {
                             const targetArmorId = (_d = bestInventory.data) === null || _d === void 0 ? void 0 : _d.id_girl_armor;
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] DETACHED — attempting re-query for id_girl_armor=${targetArmorId}`);
                             if (targetArmorId != null) {
-                                const candidates = $('.right-section .slot[data-d]').filter(function () {
+                                const $fresh = $('.right-section .slot[data-d]').filter(function () {
                                     try {
                                         const d = JSON.parse($(this).attr('data-d') || '{}');
                                         return d.id_girl_armor === targetArmorId;
@@ -12169,34 +12114,21 @@ class HaremGirl {
                                     catch (_a) {
                                         return false;
                                     }
-                                });
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] re-query found ${candidates.length} candidate(s)`);
-                                candidates.each(function (idx) {
-                                    const $c = $(this);
-                                    const cRaw = $c.get(0);
-                                    const cConn = cRaw === null || cRaw === void 0 ? void 0 : cRaw.isConnected;
-                                    const cBody = cRaw ? document.body.contains(cRaw) : false;
-                                    const cParents = buildParentChain($c, 8);
-                                    LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] candidate[${idx}]: connected=${cConn} bodyContains=${cBody} parents=[${cParents.join(' > ')}]`);
-                                });
-                                const $fresh = candidates.filter(function () {
+                                }).filter(function () {
                                     const r = $(this).get(0);
                                     return !!r && r.isConnected;
                                 }).first();
                                 if ($fresh.length > 0) {
-                                    const freshRaw = $fresh.get(0);
-                                    LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] RE-QUERY SUCCESS — swapping to fresh node`);
                                     bestInventory.el = $fresh;
-                                    raw = freshRaw;
-                                    // Scroll the fresh node into view, then re-check
+                                    raw = $fresh.get(0);
+                                    LogUtils_logHHAuto(`Slot ${i}: item was detached, re-queried fresh node`);
                                     if (typeof raw.scrollIntoView === 'function') {
                                         raw.scrollIntoView({ block: 'center' });
                                         yield TimeHelper.sleep(randomInterval(50, 100));
-                                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-RE-SCROLL: connected=${raw.isConnected} bodyContains=${document.body.contains(raw)}`);
                                     }
                                 }
                                 else {
-                                    LogUtils_logHHAuto(`Slot ${i}: no connected candidate after re-query (id_girl_armor=${targetArmorId}), aborting attempts`);
+                                    LogUtils_logHHAuto(`Slot ${i}: no connected candidate after re-query, aborting attempts`);
                                     break;
                                 }
                             }
@@ -12205,69 +12137,23 @@ class HaremGirl {
                                 break;
                             }
                         }
-                        // ========== PRE-CLICK STATE (for the node we will actually click) ==========
-                        {
-                            const itemCls = bestInventory.el.attr('class') || '';
-                            const itemId = bestInventory.el.attr('data-id') || '';
-                            const connected = raw === null || raw === void 0 ? void 0 : raw.isConnected;
-                            const visible = raw ? raw.offsetParent !== null : false;
-                            const bodyContains = raw ? document.body.contains(raw) : false;
-                            const outerH = ((raw === null || raw === void 0 ? void 0 : raw.outerHTML) || '').substring(0, 400);
-                            const parentChain = buildParentChain(bestInventory.el, 12);
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] PRE-CLICK: class="${itemCls}" data-id="${itemId}" connected=${connected} visible=${visible} bodyContains=${bodyContains} parents=[${parentChain.join(' > ')}] html="${outerH}"`);
-                        }
-                        // ========== PRIMARY CLICK ==========
-                        const usedNative = !!(raw && typeof raw.click === 'function');
-                        if (usedNative) {
+                        // Primary click on the item
+                        if (raw && typeof raw.click === 'function') {
                             raw.click();
                         }
                         else {
                             bestInventory.el.trigger('click');
                         }
-                        LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] primary click dispatched (native=${usedNative})`);
-                        // Short wait so the primary click can propagate before we check the button
                         yield TimeHelper.sleep(randomInterval(100, 200));
-                        // ========== POST-PRIMARY STATE ==========
-                        {
-                            const btnProbe = $('#girl-equipment-equip');
-                            const btnDisabled = btnProbe.length === 0 || btnProbe.prop('disabled') === true || btnProbe.hasClass('disabled');
-                            const rightSelectedStr = $('.right-section .selected, .right-section .active, .right-section .highlight')
-                                .map((_, el) => {
-                                var _a;
-                                const cls = ($(el).attr('class') || '').split(/\s+/).slice(0, 4).join('.');
-                                return `${((_a = el.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`;
-                            }).get().join(' | ');
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] POST-PRIMARY: connected=${raw === null || raw === void 0 ? void 0 : raw.isConnected} bodyContains=${raw ? document.body.contains(raw) : 'null'} btnDisabled=${btnDisabled} domCounts=${JSON.stringify(domSnapshot())} rightSelected="${rightSelectedStr || 'none'}"`);
-                        }
-                        // ========== AFTER-CLICK STATE (full) ==========
-                        {
-                            const rawElAfter = bestInventory.el.get(0);
-                            const itemClsAfter = bestInventory.el.attr('class') || '';
-                            const connectedAfter = rawElAfter === null || rawElAfter === void 0 ? void 0 : rawElAfter.isConnected;
-                            const bodyContainsAfter = rawElAfter ? document.body.contains(rawElAfter) : false;
-                            const rightSelected = $('.right-section .selected, .right-section .active, .right-section .highlight')
-                                .map((_, el) => {
-                                var _a;
-                                const cls = ($(el).attr('class') || '').split(/\s+/).slice(0, 4).join('.');
-                                return `${((_a = el.tagName) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || '?'}${cls ? '.' + cls : ''}`;
-                            }).get().join(' | ');
-                            LogUtils_logHHAuto(`[DEBUG Slot ${i} att ${attempt}] AFTER-CLICK: class="${itemClsAfter}" connected=${connectedAfter} bodyContains=${bodyContainsAfter} domCounts=${JSON.stringify(domSnapshot())} right-selected="${rightSelected || 'none'}"`);
-                        }
                         // Click the Equip confirm button (revealed after item selection)
                         let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
-                        // Wait up to ~500ms for the button to become enabled (see issue #1573)
+                        // Wait up to ~500ms for the button to become enabled
                         for (let waitIter = 0; waitIter < 5 && $equipBtn.length > 0
                             && ($equipBtn.prop('disabled') === true || $equipBtn.hasClass('disabled')); waitIter++) {
                             yield TimeHelper.sleep(100);
                             $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
                         }
                         if ($equipBtn.length > 0) {
-                            // DEBUG (issue #1573): equip button state BEFORE click (attempt 1 only)
-                            if (attempt === 1) {
-                                const btnEl = $equipBtn.get(0);
-                                const btnHtml = ((btnEl === null || btnEl === void 0 ? void 0 : btnEl.outerHTML) || '').substring(0, 400);
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn BEFORE click: disabled=${$equipBtn.prop('disabled')} hidden-attr=${(_e = $equipBtn.attr('hidden')) !== null && _e !== void 0 ? _e : 'none'} classes="${$equipBtn.attr('class') || ''}" html="${btnHtml}"`);
-                            }
                             const btnRaw = $equipBtn.get(0);
                             if (btnRaw && typeof btnRaw.click === 'function')
                                 btnRaw.click();
@@ -12275,12 +12161,6 @@ class HaremGirl {
                                 $equipBtn.trigger('click');
                             yield TimeHelper.sleep(randomInterval(200, 300));
                             LogUtils_logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
-                            // DEBUG (issue #1573): equip button state AFTER click (attempt 1 only)
-                            if (attempt === 1) {
-                                const btnAfter = $('#girl-equipment-equip').get(0);
-                                const btnAfterHtml = ((btnAfter === null || btnAfter === void 0 ? void 0 : btnAfter.outerHTML) || '').substring(0, 400);
-                                LogUtils_logHHAuto(`[DEBUG Slot ${i}] equip btn AFTER click: html="${btnAfterHtml}"`);
-                            }
                         }
                         else {
                             LogUtils_logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
@@ -12293,9 +12173,9 @@ class HaremGirl {
                             try {
                                 verifyData = JSON.parse(verifyEl.attr('data-d'));
                             }
-                            catch ( /* ignore */_j) { /* ignore */ }
+                            catch ( /* ignore */_h) { /* ignore */ }
                         }
-                        const verifyKey = verifyData ? ((_g = (_f = verifyData.id_item) !== null && _f !== void 0 ? _f : verifyData.id_equipement) !== null && _g !== void 0 ? _g : JSON.stringify(verifyData)) : null;
+                        const verifyKey = verifyData ? ((_f = (_e = verifyData.id_item) !== null && _e !== void 0 ? _e : verifyData.id_equipement) !== null && _f !== void 0 ? _f : JSON.stringify(verifyData)) : null;
                         if (verifyKey !== previousEquippedKey) {
                             LogUtils_logHHAuto(`Slot ${i}: equip verified (L${verifyData === null || verifyData === void 0 ? void 0 : verifyData.level} ${verifyData === null || verifyData === void 0 ? void 0 : verifyData.rarity})`);
                             equipSucceeded = true;
