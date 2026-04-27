@@ -413,3 +413,5 @@ After equipping boosters, the script does NOT immediately re-check when they exp
 Other game variants may work but have not been tested yet. If you encounter issues on other sites, please report them.
 
 **⚠ Use at your own risk.** As with all automation features, there is always a risk of being banned by Kinkoid. The random delay helps reduce detection, but cannot guarantee safety.
+
+[//]: # (formatting-cleanup)
