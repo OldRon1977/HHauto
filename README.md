@@ -16,13 +16,13 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
-### v7.35.12 � "Possible Best" team assignment now works on first click
+### v7.35.12 - "Possible Best" team assignment now works on first click
 
 Fixes an issue where clicking "Possible Best" after "Current Best" on the Edit Team page would assign the wrong girls. The correct team is now applied on the first attempt.
 
 ---
 
-### v7.35.11 — First/Last troll with girls no longer fights trolls without girls
+### v7.35.11 - First/Last troll with girls no longer fights trolls without girls
 
 Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
 
@@ -30,7 +30,7 @@ When “Last troll with girls” or “First troll with girls” was selected an
 
 ---
 
-### v7.35.10 — Equipment optimization: Slot 1 is equipped reliably again
+### v7.35.10 - Equipment optimization: Slot 1 is equipped reliably again
 
 Fixes [#1573](https://github.com/Roukys/HHauto/issues/1573).
 
@@ -38,7 +38,7 @@ During auto-equip the first equipment slot was often skipped, so the girl ended 
 
 ---
 
-### v7.35.9 — Assign first 7 now applies the full team reliably
+### v7.35.9 - Assign first 7 now applies the full team reliably
 
 Fixes [#1577](https://github.com/Roukys/HHauto/issues/1577).
 
@@ -46,13 +46,13 @@ When using "Assign first 7" on the team edit page, some girls from the previous 
 
 ---
 
-### v7.35.8 — Buy combativity for +Raid Stars raids
+### v7.35.8 - Buy combativity for +Raid Stars raids
 
-When +Raid Stars was the only active raid mode and energy ran out, the script would not spend kobans to refill — even with enough kobans available above the reserve. Energy is now topped up as expected for +Raid Stars raids as well.
+When +Raid Stars was the only active raid mode and energy ran out, the script would not spend kobans to refill - even with enough kobans available above the reserve. Energy is now topped up as expected for +Raid Stars raids as well.
 
 ---
 
-### v7.35.7 — League promotion threshold updated to top 20
+### v7.35.7 - League promotion threshold updated to top 20
 
 Fixes [#1567](https://github.com/Roukys/HHauto/issues/1567).
 
@@ -60,7 +60,7 @@ The game now promotes the top 20 players of a league bracket instead of the top 
 
 ---
 
-### v7.35.6 — Booster auto-equip recovers from external changes
+### v7.35.6 - Booster auto-equip recovers from external changes
 
 Fixes [#1565](https://github.com/Roukys/HHauto/issues/1565).
 
@@ -68,24 +68,24 @@ If boosters were changed in another browser or tab while the script was paused, 
 
 ---
 
-### v7.35.5 — Simpler buy-combat and refined +Raid Stars
+### v7.35.5 - Simpler buy-combat and refined +Raid Stars
 
 Further addresses [#1565](https://github.com/Roukys/HHauto/issues/1565).
 
 **Buy combat controls simplified:**
-- Energy is now topped up immediately when empty and the event / mythic / raid girl has not been won yet — no more "last X hours" timing window
+- Energy is now topped up immediately when empty and the event / mythic / raid girl has not been won yet - no more "last X hours" timing window
 - The "Hours to buy Combats" and "Hours to buy Mythic Combats" inputs are removed from the menu
-- The amount of energy purchased still comes from the existing "Troll auto buy", "Mythic auto buy" and "Raid auto buy" fields — change those if you want a different batch size
+- The amount of energy purchased still comes from the existing "Troll auto buy", "Mythic auto buy" and "Raid auto buy" fields - change those if you want a different batch size
 
 **+Raid Stars refined:**
 - New options: Off, =3 ★★★ (exactly 3-star), ≥3 ★★★ (3-star and up), =5 ★★★★★ (exactly 5-star)
 - The unused 6-star option has been removed, as no mythic raids exist in-game
 - +Raid Stars now picks the first ending raid matching the selected grade on its own, independently from the "Raid selector" dropdown
-- Existing settings are migrated automatically — no manual reconfiguration needed
+- Existing settings are migrated automatically - no manual reconfiguration needed
 
 ---
 
-### v7.35.4 — Troll menu: Event section separator and restored buy-combat controls
+### v7.35.4 - Troll menu: Event section separator and restored buy-combat controls
 
 Addresses [#1565](https://github.com/Roukys/HHauto/issues/1565). The Event section of the Troll Battle menu is now visually separated like Mythic and Raid, and the Buy Combat controls for Event are visible again.
 
@@ -96,40 +96,40 @@ Addresses [#1565](https://github.com/Roukys/HHauto/issues/1565). The Event secti
 
 ---
 
-### v7.35.3 — Full-inventory scan for equipment optimization
+### v7.35.3 - Full-inventory scan for equipment optimization
 
 Follow-up to v7.35.0. The previous version only considered the first ~100 items visible in the inventory panel, which meant better items further down the list were ignored. v7.35.3 now forces the inventory to load all items before scoring, so the optimal item for each slot is found even with very large inventories.
 
 **What changed:**
 - The script now scrolls the inventory panel to load every item before evaluating options
 - After selecting the best item, the explicit Equip button is clicked to confirm the change
-- No new settings — runs automatically as part of "Give equipment"
+- No new settings - runs automatically as part of "Give equipment"
 
 ---
 
-### v7.35.2 — Fix auto-equip boosters loop
+### v7.35.2 - Fix auto-equip boosters loop
 
 Fixed a bug where auto-equip boosters could enter an infinite loop navigating to the shop page repeatedly without caching booster inventory data.
 
-### v7.35.1 — New troll "Rex & Kate" added for Trans Pornstar Harem
+### v7.35.1 - New troll "Rex & Kate" added for Trans Pornstar Harem
 
-### v7.35.0 — Optimized Equipment Selection
+### v7.35.0 - Optimized Equipment Selection
 
 The **Stuff Team** equipment selection has been improved. After the game's built-in auto-equip runs, the bot now checks each of the 6 equipment slots and replaces items with better alternatives from your inventory.
 
 **How it works:**
 - For each slot, the equipped item is compared against all available inventory items
-- Items are ranked by their total combined stats — this naturally reflects both item level and rarity (a Level 9 Mythic can beat a Level 10 Legendary)
+- Items are ranked by their total combined stats - this naturally reflects both item level and rarity (a Level 9 Mythic can beat a Level 10 Legendary)
 - If two items have equal stats, the one with more resonance matches wins
 - As a final tiebreaker, the item with higher combat stats is preferred
 
-No new settings required — the optimization runs automatically as part of "Give equipment".
+No new settings required - the optimization runs automatically as part of "Give equipment".
 
 ---
 
-### v7.34.16 — Configurable Sandalwood Min Shards Threshold
+### v7.34.16 - Configurable Sandalwood Min Shards Threshold
 
-The hardcoded threshold of 10 remaining shards — which prevented Sandalwood from being equipped near the end of girl farming — has been replaced with a user-configurable setting **"SW min shards"** (visible next to the +Girl Skins switch).
+The hardcoded threshold of 10 remaining shards - which prevented Sandalwood from being equipped near the end of girl farming - has been replaced with a user-configurable setting **"SW min shards"** (visible next to the +Girl Skins switch).
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
@@ -140,18 +140,18 @@ The hardcoded threshold of 10 remaining shards — which prevented Sandalwood fr
 - Example: setting it to 1 means Sandalwood is equipped until only 1 shard remains
 ---
 
-### v7.34 — Smarter Team Selection
+### v7.34 - Smarter Team Selection
 
 The **"Current Best"** and **"Possible Best"** buttons on the Edit Team page now use an advanced team selection algorithm. Instead of simply picking the 16 girls with the highest stat totals, the script builds an optimized 7-girl team that considers Tier-3 trait matching, element synergies, leader skill quality, rarity filtering, and blessing-aware stat comparison.
 
 #### The Problem (before v7.34)
 
 The old algorithm ranked every girl individually by their stat sum (carac1 + carac2 + carac3) and showed the top 16. It had no awareness of:
-- **Tier-3 trait matching** — girls sharing a trait value within an element pair gain a team-wide percentage bonus
-- **Element synergies** — a team of 7 Fire girls gives +70% crit damage, while a mixed team might give a more balanced but weaker overall bonus
-- **Leader position** — the girl in slot 1 determines the Tier-5 skill for the entire team (Execute, Stun, Shield, or Reflect), but the old algorithm just placed the highest-stat girl there regardless of element
-- **Rarity filtering** — 3-star legendaries and lower rarities were included despite having no realistic chance of being optimal
-- **Blessings vs traits** — a girl with a +40% blessing bonus could be excluded in favor of a weaker girl that matched a trait group
+- **Tier-3 trait matching** - girls sharing a trait value within an element pair gain a team-wide percentage bonus
+- **Element synergies** - a team of 7 Fire girls gives +70% crit damage, while a mixed team might give a more balanced but weaker overall bonus
+- **Leader position** - the girl in slot 1 determines the Tier-5 skill for the entire team (Execute, Stun, Shield, or Reflect), but the old algorithm just placed the highest-stat girl there regardless of element
+- **Rarity filtering** - 3-star legendaries and lower rarities were included despite having no realistic chance of being optimal
+- **Blessings vs traits** - a girl with a +40% blessing bonus could be excluded in favor of a weaker girl that matched a trait group
 
 #### How the Algorithm Works
 
@@ -191,11 +191,11 @@ Bonus per matching teammate: **1.0%** (Mythic) / **0.8%** (Legendary). With a fu
 
 **4. Smart Slot-Fill (Slots 2–7)**
 
-Each slot is filled by comparing **all** remaining candidates — trait-group girls and non-group girls compete directly. Each candidate is scored by:
+Each slot is filled by comparing **all** remaining candidates - trait-group girls and non-group girls compete directly. Each candidate is scored by:
 
-- **Stat score** — current blessed stats (Current Best) or projected max stats (Possible Best)
-- **Synergy delta** — how much adding this girl's element improves team synergy (5% weight)
-- **Tier-3 delta** — the estimated stat-equivalent value of the Tier-3 bonus she would add
+- **Stat score** - current blessed stats (Current Best) or projected max stats (Possible Best)
+- **Synergy delta** - how much adding this girl's element improves team synergy (5% weight)
+- **Tier-3 delta** - the estimated stat-equivalent value of the Tier-3 bonus she would add
 
 This means a girl with a +40% blessing bonus will be selected over a weaker trait-group member when the tier-3 bonus doesn't compensate for the stat gap. But trait-group girls still win when the bonus outweighs the difference.
 
@@ -237,14 +237,14 @@ A: The leader determines the Tier-5 skill for the entire team. A Shield leader (
 A: The algorithm compares the tier-3 bonus value against the stat difference. If a blessed girl has +40% higher stats, the ~2-4% tier-3 bonus from the weaker trait girl doesn't compensate. The blessed girl contributes more to team power.
 
 **Q: Why does the algorithm only show 7 girls instead of 16?**
-A: The algorithm optimizes a complete 7-girl team composition. The old algorithm showed 16 individual rankings without team optimization. The 7 girls shown are the optimal team — click "Assign first 7" to use them.
+A: The algorithm optimizes a complete 7-girl team composition. The old algorithm showed 16 individual rankings without team optimization. The 7 girls shown are the optimal team - click "Assign first 7" to use them.
 
 **Q: What if the new algorithm doesn't work on my page?**
 A: The algorithm requires `availableGirls` data, which is only present on the Edit Team page. If the data is not available, the script automatically falls back to the previous algorithm.
 
 ---
 
-### v7.33.1 — Settings Survey
+### v7.33.1 - Settings Survey
 
 A voluntary, anonymous **Settings Survey** has been added to help us understand which features are actually used. With 163 configurable settings and no telemetry, this is the only way to identify unused features we can safely simplify or remove.
 
@@ -259,17 +259,17 @@ A voluntary, anonymous **Settings Survey** has been added to help us understand 
 - For each setting: `ON`, `OFF`, `DEFAULT`, or `CHANGED`
 - **No user IDs, no personal data, no gameplay information**
 
-**Note:** Tampermonkey may ask for permission to send data. Temporary or one-time rights are sufficient — no need to grant permanent ones.
+**Note:** Tampermonkey may ask for permission to send data. Temporary or one-time rights are sufficient - no need to grant permanent ones.
 
 ---
 
-### v7.33.0 — Sandalwood Proactive Re-equip
+### v7.33.0 - Sandalwood Proactive Re-equip
 
-A new **Proactive Re-equip** system for the Sandalwood Perfume booster (MB1) that automatically detects when the booster is depleted and re-equips a new one from the market — without waiting for the next scheduled booster check.
+A new **Proactive Re-equip** system for the Sandalwood Perfume booster (MB1) that automatically detects when the booster is depleted and re-equips a new one from the market - without waiting for the next scheduled booster check.
 
 #### The Problem (before v7.33.0)
 
-When Sandalwood Perfume expired mid-fight sequence, the script continued fighting without the booster active. This wasted potential shard drops because the game only drops shards when the booster is equipped. Large batch fights (x50/x10) were particularly wasteful — a x50 batch with only 3 doses remaining would consume all doses in the first few fights and run the remaining 47 fights without the booster.
+When Sandalwood Perfume expired mid-fight sequence, the script continued fighting without the booster active. This wasted potential shard drops because the game only drops shards when the booster is equipped. Large batch fights (x50/x10) were particularly wasteful - a x50 batch with only 3 doses remaining would consume all doses in the first few fights and run the remaining 47 fights without the booster.
 
 There was also a race condition: the fight logic could proceed before the AJAX response from a batch fight was fully processed, causing dose tracking to be out of sync.
 
@@ -286,7 +286,7 @@ The dose count is stored in sessionStorage and refreshed from the server wheneve
 
 **2. Proactive Re-equip**
 
-Before each fight, `needSandalWoodEquipped()` checks if the tracked dose count has reached 0. If so, it removes the depleted booster from the internal booster status, which triggers the existing equip logic to visit the market and equip a fresh Sandalwood automatically — no manual intervention needed.
+Before each fight, `needSandalWoodEquipped()` checks if the tracked dose count has reached 0. If so, it removes the depleted booster from the internal booster status, which triggers the existing equip logic to visit the market and equip a fresh Sandalwood automatically - no manual intervention needed.
 
 **3. Race-Condition Fix (Flag+Resolver Pattern)**
 
@@ -301,7 +301,7 @@ This release includes temporary `[SW-DEBUG]` tagged console logging throughout t
 
 ---
 
-### v7.32.3 — Independent Troll Clusters & +Raid Stars Filter
+### v7.32.3 - Independent Troll Clusters & +Raid Stars Filter
 
 This is a major architectural update that decouples the Troll Battle system into **3 independent clusters**. Previously, all troll-related features (normal trolls, events, raids) were gated behind a single `Auto Troll Battle` switch. Now each cluster operates independently with its own master switch.
 
@@ -317,7 +317,7 @@ To fight for Mythic Girls in events or raids, you **had** to enable `Auto Troll 
 | **Events** | `+Event` / `+Mythic Event` | Regular and Mythic event fights |
 | **Love Raids** | `+Raid` / `+Raid Stars` | Regular and filtered raid fights |
 
-Each cluster works on its own. You can enable `+Mythic Event` and `+Raid Stars` while keeping `Auto Troll Battle` OFF — the script will only fight for event and raid girls, never touching a normal troll.
+Each cluster works on its own. You can enable `+Mythic Event` and `+Raid Stars` while keeping `Auto Troll Battle` OFF - the script will only fight for event and raid girls, never touching a normal troll.
 
 #### New Feature: +Raid Stars (Grade Filter)
 
@@ -325,13 +325,13 @@ Replaces the initial `+Mythic Raid` toggle (v7.32.0) with a more flexible **grad
 
 | Option | Minimum Stars | What gets fought |
 |---|---|---|
-| Off | — | No independent raid handling |
+| Off | - | No independent raid handling |
 | ≥3 ★★★ | 3 | Rare, Epic, Legendary, and Mythic girls |
 | ≥5 ★★★★★ | 5 | Legendary and Mythic girls |
 | 6 ★★★★★★ | 6 | Mythic girls only |
 
 **How it works:**
-- Raids where the girl meets or exceeds your selected grade are claimed by `+Raid Stars` and fought **independently** — they bypass the energy threshold, just like Mythic Events
+- Raids where the girl meets or exceeds your selected grade are claimed by `+Raid Stars` and fought **independently** - they bypass the energy threshold, just like Mythic Events
 - Remaining raids (below your grade filter) are handled by `+Raid` if enabled, respecting the normal threshold
 - If neither `+Raid` nor `+Raid Stars` is set, no raids are fought
 - The girl's star count is read from the game's `nb_grades` field for accurate detection
@@ -370,14 +370,14 @@ With this setup, the script will **never** fight a normal troll or a low-rarity 
 
 - **v7.32.1**: Fixed `+Mythic Raid` blocking all subsequent auto-loop handlers when no raid target was found. Added Season Max Tier display. Extended timer handling for Champion, ClubChampion, Labyrinth, PentaDrill, and Pantheon.
 - **v7.32.2**: Replaced boolean `+Mythic Raid` toggle with `+Raid Stars` grade dropdown. Added migration from old boolean setting to grade index.
-- **v7.32.3**: Fixed girl grade detection — now uses `nb_grades` field which returns the correct visible star count (3=rare, 5=legendary, 6=mythic).
+- **v7.32.3**: Fixed girl grade detection - now uses `nb_grades` field which returns the correct visible star count (3=rare, 5=legendary, 6=mythic).
 - **v7.32.4**: Added reusable `waitForAjaxEnd` function. Fixed reward collection redirect when no rewards found (#1496).
 - **v7.32.5**: Added `+Girl Skins` toggle to include skin-only trolls in fight targets. Fixed raid selector reset behavior when user-selected girl is filtered by grade or page reloads.
 - **v7.32.5 Fixes**: Fixed raids with disabled source being incorrectly skipped during ongoing events. Fixed `+Raid` energy condition to bypass troll threshold for Cluster 3 raids. Prevented fighting locked trolls and filtered them from the raid selector dropdown.
 
 ---
 
-### v7.31.1 — League Optimization, Season Max Tier & Place of Power Fix
+### v7.31.1 - League Optimization, Season Max Tier & Place of Power Fix
 
 **League Power Calculation Optimization**
 The league power calculation has been optimized for better performance (#1358). The algorithm now evaluates team strength more efficiently, reducing unnecessary computation during league fights.
@@ -390,11 +390,11 @@ The script now correctly waits for a Place of Power event to fully start before 
 
 ---
 
-### v7.30.0 — Auto-Equip Legendary Boosters
+### v7.30.0 - Auto-Equip Legendary Boosters
 
 A new **Auto-Equip** feature has been added that automatically equips legendary boosters from your inventory when a booster slot is empty or has expired.
 
-**Important: This feature only works with Legendary Boosters (Ginseng, Jujubes, Chlorella, Cordyceps).** It does NOT buy boosters — it only equips what you already have in your inventory.
+**Important: This feature only works with Legendary Boosters (Ginseng, Jujubes, Chlorella, Cordyceps).** It does NOT buy boosters - it only equips what you already have in your inventory.
 
 **How it works:**
 - Enable "Auto-Equip" in the Shop menu section
