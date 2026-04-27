@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.11
+// @version      7.35.12
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -17933,6 +17933,10 @@ class TeamModule {
     }
     static updateTeamUI(deckID, teamResult) {
         const arr = $('div[id_girl]');
+        // Remove all existing topNumber elements to prevent stale entries
+        // from a previous team calculation (e.g. Current Best) interfering
+        // with the current one (e.g. Best Possible) during assignTopTeam.
+        $('.topNumber').remove();
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {

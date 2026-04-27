@@ -16,6 +16,12 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.12 — "Possible Best" team assignment now works on first click
+
+Fixes an issue where clicking "Possible Best" after "Current Best" on the Edit Team page would assign the wrong girls. The correct team is now applied on the first attempt.
+
+---
+
 ### v7.35.11 â€” First/Last troll with girls no longer fights trolls without girls
 
 Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).

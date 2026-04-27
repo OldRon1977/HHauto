@@ -579,6 +579,11 @@ export class TeamModule {
 
     private static updateTeamUI(deckID: number[], teamResult?: TeamResult) {
         const arr = $('div[id_girl]');
+        // Remove all existing topNumber elements to prevent stale entries
+        // from a previous team calculation (e.g. Current Best) interfering
+        // with the current one (e.g. Best Possible) during assignTopTeam.
+        $('.topNumber').remove();
+
         for (let i = arr.length - 1; i > -1; i--) {
             let gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {
