@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.13 - Troll fallback no longer fights unavailable trolls
+
+Fixes [#1582](https://github.com/Roukys/HHauto/issues/1582).
+
+When "Last troll with girls" or "First troll with girls" was selected and no troll had any girls left to collect, the script would fall back to fighting the first troll in the game - even if that troll had no girls either. This caused an endless loop of pointless fights and could navigate to a troll that was not yet unlocked, showing "This Troll is not available yet!" in the game. The script now correctly stops fighting and waits for Raids or Events when no troll with girls is available. Affects all game variants.
+
+---
+
 ### v7.35.12 - "Possible Best" team assignment now works on first click
 
 Fixes an issue where clicking "Possible Best" after "Current Best" on the Edit Team page would assign the wrong girls. The correct team is now applied on the first attempt.

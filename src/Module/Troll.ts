@@ -348,7 +348,10 @@ export class Troll {
         const currentPage = getPage();
 
         if (!TTF || TTF <= 0) {
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+            const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                // Fixed troll or "last troll" mode: retry once, then fallback to troll 1
                 if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
                     logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
                     TTF = 1;
@@ -358,7 +361,8 @@ export class Troll {
                     return true;
                 }
             } else {
-                logHHAuto("No troll target found (events/raids only mode), skipping fight.");
+                // First/last troll with girls found no valid target, or events/raids only mode
+                logHHAuto("No troll target found, skipping fight.");
                 return false;
             }
         }
@@ -470,7 +474,7 @@ export class Troll {
                     trollWithGirls[TTF - 1] = 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                     const newTroll = Troll.getTrollIdToFight();
-                    if (TTF != newTroll) {
+                    if (newTroll > 0 && TTF != newTroll) {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
                         return true;
                     } else {

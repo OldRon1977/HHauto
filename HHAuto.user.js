@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.12
+// @version      7.35.13
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -7464,7 +7464,10 @@ class Troll {
             const trollz = ConfigHelper.getHHScriptVars("trollzList");
             const currentPage = getPage();
             if (!TTF || TTF <= 0) {
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+                const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                    && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                    // Fixed troll or "last troll" mode: retry once, then fallback to troll 1
                     if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
                         LogUtils_logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
                         TTF = 1;
@@ -7476,7 +7479,8 @@ class Troll {
                     }
                 }
                 else {
-                    LogUtils_logHHAuto("No troll target found (events/raids only mode), skipping fight.");
+                    // First/last troll with girls found no valid target, or events/raids only mode
+                    LogUtils_logHHAuto("No troll target found, skipping fight.");
                     return false;
                 }
             }
@@ -7576,7 +7580,7 @@ class Troll {
                         trollWithGirls[TTF - 1] = 0;
                         setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                         const newTroll = Troll.getTrollIdToFight();
-                        if (TTF != newTroll) {
+                        if (newTroll > 0 && TTF != newTroll) {
                             gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
                             return true;
                         }
