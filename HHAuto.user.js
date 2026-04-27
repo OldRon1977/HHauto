@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.10
+// @version      7.35.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -7331,13 +7331,35 @@ class Troll {
                     if (debugEnabled && logging)
                         LogUtils_logHHAuto("First troll with girls from storage");
                     TTF = trollWithGirls.findIndex((troll) => troll > 0) + 1;
+                    if (TTF > lastTrollIdAvailable) {
+                        if (logging)
+                            LogUtils_logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
+                        TTF = 0;
+                    }
                 }
                 else if (autoTrollSelectedIndex === 99) {
                     if (debugEnabled && logging)
                         LogUtils_logHHAuto("Last troll with girls from storage");
                     TTF = trollWithGirls.findLastIndex((troll) => troll > 0) + 1;
                     if (TTF > lastTrollIdAvailable) {
-                        TTF = lastTrollIdAvailable;
+                        // Find the last troll with girls that is actually unlocked
+                        let found = false;
+                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
+                            if (trollWithGirls[i] > 0) {
+                                TTF = i + 1;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            if (logging)
+                                LogUtils_logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
+                            TTF = 0;
+                        }
+                        else {
+                            if (logging)
+                                LogUtils_logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
+                        }
                     }
                 }
             }
@@ -7384,16 +7406,17 @@ class Troll {
             TTF = 0;
         }
         if (TTF <= 0) {
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
-                // Only fallback to last troll if normal troll fighting is enabled
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                // Only fallback to last troll when not using first/last troll with girls mode
                 TTF = lastTrollIdAvailable > 0 ? lastTrollIdAvailable : 1;
                 if (logging)
                     LogUtils_logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
             }
             else {
-                // Events/Raids only mode — no target available, skip fight
+                // First/last troll with girls found no valid target, or events/raids only mode
                 if (logging)
-                    LogUtils_logHHAuto("No event/raid troll target available, skipping.");
+                    LogUtils_logHHAuto("No valid troll target found, skipping.");
                 return 0;
             }
         }
@@ -7558,7 +7581,9 @@ class Troll {
                             return true;
                         }
                         else {
-                            LogUtils_logHHAuto(`Same troll found, go for it.`);
+                            LogUtils_logHHAuto(`Same troll found and no girls available, stopping troll fight.`);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
                         }
                     }
                     let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);

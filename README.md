@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.11 — First/Last troll with girls no longer fights trolls without girls
+
+Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
+
+When “Last troll with girls” or “First troll with girls” was selected and the only remaining trolls with girls were beyond the unlocked adventure range, the script would fight the last unlocked troll even though it had no girls left. The script now correctly skips trolls without girls and waits for Raids or Events instead.
+
+---
+
 ### v7.35.10 — Equipment optimization: Slot 1 is equipped reliably again
 
 Fixes [#1573](https://github.com/Roukys/HHauto/issues/1573).

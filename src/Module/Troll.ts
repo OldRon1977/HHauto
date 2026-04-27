@@ -217,12 +217,30 @@ export class Troll {
                 if (autoTrollSelectedIndex === 98) {
                     if (debugEnabled && logging) logHHAuto("First troll with girls from storage");
                     TTF = trollWithGirls.findIndex((troll: number) => troll > 0) + 1;
+                    if (TTF > lastTrollIdAvailable) {
+                        if (logging) logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
+                        TTF = 0;
+                    }
                 }
                 else if (autoTrollSelectedIndex === 99) {
                     if (debugEnabled && logging) logHHAuto("Last troll with girls from storage");
                     TTF = trollWithGirls.findLastIndex((troll: number) => troll > 0) + 1;
                     if(TTF > lastTrollIdAvailable) {
-                        TTF=lastTrollIdAvailable;
+                        // Find the last troll with girls that is actually unlocked
+                        let found = false;
+                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
+                            if (trollWithGirls[i] > 0) {
+                                TTF = i + 1;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            if (logging) logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
+                            TTF = 0;
+                        } else {
+                            if (logging) logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
+                        }
                     }
                 }
             } else if(getPage()!==ConfigHelper.getHHScriptVars("pagesIDHome")) {
@@ -269,13 +287,14 @@ export class Troll {
         }
 
         if (TTF <= 0) {
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
-                // Only fallback to last troll if normal troll fighting is enabled
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                // Only fallback to last troll when not using first/last troll with girls mode
                 TTF = lastTrollIdAvailable > 0 ? lastTrollIdAvailable : 1;
                 if (logging) logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
             } else {
-                // Events/Raids only mode — no target available, skip fight
-                if (logging) logHHAuto("No event/raid troll target available, skipping.");
+                // First/last troll with girls found no valid target, or events/raids only mode
+                if (logging) logHHAuto("No valid troll target found, skipping.");
                 return 0;
             }
         }
@@ -455,7 +474,9 @@ export class Troll {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
                         return true;
                     } else {
-                        logHHAuto(`Same troll found, go for it.`);
+                        logHHAuto(`Same troll found and no girls available, stopping troll fight.`);
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        return;
                     }
                 }
                 let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
