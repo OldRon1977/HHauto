@@ -16,6 +16,12 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.14 - Repository transfer notice
+
+The HHAuto repository will be transferred to a new owner (`OldRon1977/HHauto`) in the coming days. All repository URLs in the script (`@updateURL`, `@downloadURL`, namespace, wiki and issue links) have been switched to the new location ahead of the transfer. A one-time popup informs users about the move; GitHub redirects and Tampermonkey auto-update will handle the rest for users with auto-update enabled.
+
+---
+
 ### v7.35.13 - Troll fallback no longer fights unavailable trolls
 
 Fixes [#1582](https://github.com/OldRon1977/HHauto/issues/1582).
