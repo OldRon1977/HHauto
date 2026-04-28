@@ -1,15 +1,15 @@
 # HHauto
 
-[English](https://github.com/Roukys/HHauto/wiki/English)
+[English](https://github.com/OldRon1977/HHauto/wiki/English)
 
-[Español](https://github.com/Roukys/HHauto/wiki/Espa%C3%B1ol)
+[Español](https://github.com/OldRon1977/HHauto/wiki/Espa%C3%B1ol)
 
-[Français](https://github.com/Roukys/HHauto/wiki/Fran%C3%A7ais)
+[Français](https://github.com/OldRon1977/HHauto/wiki/Fran%C3%A7ais)
 
 ## Installation instructions
 
 a) Install browser addon TamperMonkey, Greasemonkey or Violentmonkey
-b) Click the script URL: https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
+b) Click the script URL: https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
 c) TamperMonkey should automatically prompt you to install/update the script. If it doesn't, open up the TM Dashboard, go to the Utilities tab, scroll down to "Install from URL" and paste the above URL in there.
 
 ---
@@ -18,7 +18,7 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ### v7.35.13 - Troll fallback no longer fights unavailable trolls
 
-Fixes [#1582](https://github.com/Roukys/HHauto/issues/1582).
+Fixes [#1582](https://github.com/OldRon1977/HHauto/issues/1582).
 
 When "Last troll with girls" or "First troll with girls" was selected and no troll had any girls left to collect, the script would fall back to fighting the first troll in the game - even if that troll had no girls either. This caused an endless loop of pointless fights and could navigate to a troll that was not yet unlocked, showing "This Troll is not available yet!" in the game. The script now correctly stops fighting and waits for Raids or Events when no troll with girls is available. Affects all game variants.
 
@@ -32,7 +32,7 @@ Fixes an issue where clicking "Possible Best" after "Current Best" on the Edit T
 
 ### v7.35.11 - First/Last troll with girls no longer fights trolls without girls
 
-Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
+Addresses [#1582](https://github.com/OldRon1977/HHauto/issues/1582).
 
 When “Last troll with girls” or “First troll with girls” was selected and the only remaining trolls with girls were beyond the unlocked adventure range, the script would fight the last unlocked troll even though it had no girls left. The script now correctly skips trolls without girls and waits for Raids or Events instead.
 
@@ -40,7 +40,7 @@ When “Last troll with girls” or “First troll with girls” was selected an
 
 ### v7.35.10 - Equipment optimization: Slot 1 is equipped reliably again
 
-Fixes [#1573](https://github.com/Roukys/HHauto/issues/1573).
+Fixes [#1573](https://github.com/OldRon1977/HHauto/issues/1573).
 
 During auto-equip the first equipment slot was often skipped, so the girl ended up wearing a worse item than the one the script had picked. The other slots were updated normally. The first slot is now equipped correctly on every run.
 
@@ -48,7 +48,7 @@ During auto-equip the first equipment slot was often skipped, so the girl ended 
 
 ### v7.35.9 - Assign first 7 now applies the full team reliably
 
-Fixes [#1577](https://github.com/Roukys/HHauto/issues/1577).
+Fixes [#1577](https://github.com/OldRon1977/HHauto/issues/1577).
 
 When using "Assign first 7" on the team edit page, some girls from the previous team could stay assigned instead of being replaced, leaving the team only partially updated. The new team is now applied correctly on the first click.
 
@@ -62,7 +62,7 @@ When +Raid Stars was the only active raid mode and energy ran out, the script wo
 
 ### v7.35.7 - League promotion threshold updated to top 20
 
-Fixes [#1567](https://github.com/Roukys/HHauto/issues/1567).
+Fixes [#1567](https://github.com/OldRon1977/HHauto/issues/1567).
 
 The game now promotes the top 20 players of a league bracket instead of the top 15. The "Target League" / "Allow win" automation has been updated to match, so the script keeps you in the correct league instead of accidentally promoting or blocking fights based on the old cutoff.
 
@@ -70,7 +70,7 @@ The game now promotes the top 20 players of a league bracket instead of the top 
 
 ### v7.35.6 - Booster auto-equip recovers from external changes
 
-Fixes [#1565](https://github.com/Roukys/HHauto/issues/1565).
+Fixes [#1565](https://github.com/OldRon1977/HHauto/issues/1565).
 
 If boosters were changed in another browser or tab while the script was paused, auto-equip could get stuck retrying to equip already-occupied slots or repeatedly reload the Market page. The script now recognizes the out-of-sync state, refreshes the booster info from the Market and resumes normal operation.
 
@@ -78,7 +78,7 @@ If boosters were changed in another browser or tab while the script was paused, 
 
 ### v7.35.5 - Simpler buy-combat and refined +Raid Stars
 
-Further addresses [#1565](https://github.com/Roukys/HHauto/issues/1565).
+Further addresses [#1565](https://github.com/OldRon1977/HHauto/issues/1565).
 
 **Buy combat controls simplified:**
 - Energy is now topped up immediately when empty and the event / mythic / raid girl has not been won yet - no more "last X hours" timing window
@@ -95,7 +95,7 @@ Further addresses [#1565](https://github.com/Roukys/HHauto/issues/1565).
 
 ### v7.35.4 - Troll menu: Event section separator and restored buy-combat controls
 
-Addresses [#1565](https://github.com/Roukys/HHauto/issues/1565). The Event section of the Troll Battle menu is now visually separated like Mythic and Raid, and the Buy Combat controls for Event are visible again.
+Addresses [#1565](https://github.com/OldRon1977/HHauto/issues/1565). The Event section of the Troll Battle menu is now visually separated like Mythic and Raid, and the Buy Combat controls for Event are visible again.
 
 **What changed:**
 - Separator line added above the +Event row, matching Mythic and Raid styling

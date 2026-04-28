@@ -331,8 +331,8 @@ export function start() {
     getMenuValues();
     manageToolTipsDisplay();
 
-    $("#git").on("click", function(){ window.open("https://github.com/Roukys/HHauto/wiki"); });
-    $("#ReportBugs").on("click", function(){ window.open("https://github.com/Roukys/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
+    $("#git").on("click", function(){ window.open("https://github.com/OldRon1977/HHauto/wiki"); });
+    $("#ReportBugs").on("click", function(){ window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
     $("#loadConfig").on("click", function(){
         let LoadDialog='<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
         fillHHPopUp("loadConfig",getTextForUI("loadConfig","elementText"), LoadDialog);

@@ -10,8 +10,8 @@
 // version matches FEATURE_POPUP_VERSION exactly.
 //
 // Users can:
-//   - "Remind me later" (up to MAX_REMIND_COUNT times)
-//   - "Close" (permanently dismiss for this version)
+//   - "Remind me later" (up to FEATURE_POPUP_MAX_REMINDERS times)
+//   - Close button (permanently dismiss for this version)
 //
 // When activated for a new version, dismiss counters reset automatically.
 
@@ -29,46 +29,56 @@ import {
     TK
 } from '../config/index';
 
-const MAX_REMIND_COUNT = 3;
+/**
+ * Maximum number of "Remind me later" clicks before the popup is suppressed
+ * for the current version. Default: 3 for normal "What's New" popups. Set to
+ * Number.MAX_SAFE_INTEGER to disable the limit (popup keeps reappearing until
+ * the user clicks the close button).
+ */
+const FEATURE_POPUP_MAX_REMINDERS: number = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Label of the close button. Default: "Close" for normal "What's New" popups.
+ */
+const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
 
 /**
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "0";
+const FEATURE_POPUP_VERSION: string = "7.35.14";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "What's New in HHAuto";
+const FEATURE_POPUP_TITLE = "HHAuto repository is moving";
 
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
- *
- * Example:
- * const FEATURE_POPUP_CONTENT = `
- *   <div style="padding:10px; max-width:500px; color:#333;">
- *     <h3 style="margin-top:0;">v7.34.2 Changes</h3>
- *     <ul>
- *       <li><b>Breaking:</b> Sandalwood settings have been reset to defaults
- *           to prevent unintended koban spending.</li>
- *       <li><b>New:</b> Love Raid grade filter now supports 6-star mythic girls.</li>
- *     </ul>
- *     <p style="font-size:11px; color:#666;">
- *       Please review your settings after this update.
- *     </p>
- *   </div>
- * `;
  */
 const FEATURE_POPUP_CONTENT = `
-  <div style="padding:10px; max-width:500px; color:#333;">
-    <h3 style="margin-top:0;">v7.34.16 — New Setting: "SW min shards"</h3>
-    <p>Controls when Sandalwood stops being equipped based on remaining shards.
-    <b>0</b> (default) = no limit, Sandalwood is used until the girl is complete.</p>
-    <p><b>Example:</b> Setting it to <b>1</b> means Sandalwood is equipped until only 1 shard remains.</p>
-    <h3>v7.35.0 — Optimized Equipment Selection</h3>
-    <p>"Give equipment" now checks each slot after auto-equip and replaces items with better alternatives from your inventory. Items are ranked by total stats, with resonance matches as tiebreaker. No new settings required.</p>
+  <div style="padding:10px; max-width:520px; color:#333;">
+    <p style="font-size:15px; font-weight:bold; margin-bottom:10px;">HHAuto repository is moving</p>
+    <p style="margin-bottom:10px;">The HHAuto GitHub repository is being transferred to a new owner in the coming days:</p>
+    <ul style="margin-bottom:10px;">
+      <li>Old: <code>github.com/Roukys/HHauto</code></li>
+      <li>New: <b style="color:#d00;">github.com/OldRon1977/HHauto</b></li>
+    </ul>
+    <p style="margin-bottom:6px;"><b>What this means for you:</b></p>
+    <ul style="margin-bottom:10px; font-size:12px;">
+      <li>GitHub redirects old URLs to the new owner automatically — no action needed in most cases.</li>
+      <li>Tampermonkey will pick up future updates from the new URL on its next auto-update cycle.</li>
+      <li>Your settings and data are stored locally in Tampermonkey and remain untouched.</li>
+    </ul>
+    <p style="margin-bottom:10px; font-size:12px;">If updates ever stop arriving after the transfer, reinstall HHAuto from the new URL above.</p>
+    <p style="margin-bottom:15px; font-size:13px;">
+      Big thanks to <b>Roukys</b> for providing the home of HHAuto for so many years.<br>
+      Special thanks to <b>deuxge</b>, the main maintainer in recent years, who continues to keep HHAuto alive!
+    </p>
+    <p style="margin-bottom:10px; font-size:11px; color:#888; font-style:italic;">
+      This reminder will reappear with future versions until the transfer is complete. Click "OK" to dismiss it for the current version.
+    </p>
   </div>
 `;
 
@@ -95,7 +105,7 @@ export class FeaturePopupService {
         if (shownForVersion === FEATURE_POPUP_VERSION) return false;
 
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
-        if (dismissCount >= MAX_REMIND_COUNT) return false;
+        if (dismissCount >= FEATURE_POPUP_MAX_REMINDERS) return false;
 
         return true;
     }
@@ -122,7 +132,8 @@ export class FeaturePopupService {
     static remindLater(): void {
         const count = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
         setStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount, String(count + 1));
-        logHHAuto(`Feature popup postponed (${count + 1}/${MAX_REMIND_COUNT}).`);
+        const limitDisplay = FEATURE_POPUP_MAX_REMINDERS >= Number.MAX_SAFE_INTEGER ? '∞' : String(FEATURE_POPUP_MAX_REMINDERS);
+        logHHAuto(`Feature popup postponed (${count + 1}/${limitDisplay}).`);
         maskHHPopUp();
     }
 
@@ -139,14 +150,19 @@ export class FeaturePopupService {
 
     private static buildPopupContent(): string {
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
-        const remainingReminders = MAX_REMIND_COUNT - dismissCount;
+        const isUnlimited = FEATURE_POPUP_MAX_REMINDERS >= Number.MAX_SAFE_INTEGER;
+        const remainingReminders = FEATURE_POPUP_MAX_REMINDERS - dismissCount;
+        const showRemind = isUnlimited || remainingReminders > 0;
+        const remindLabel = isUnlimited
+            ? 'Remind me later'
+            : 'Remind me later (' + remainingReminders + ' left)';
 
         return FEATURE_POPUP_CONTENT
             + '<div style="display:flex; justify-content:space-between; margin-top:15px; padding:0 10px 10px 10px; font-size:12px;">'
-            +   (remainingReminders > 0
-                    ? '<a id="featurePopupRemind" href="#" style="color:#666;">Remind me later (' + remainingReminders + ' left)</a>'
+            +   (showRemind
+                    ? '<a id="featurePopupRemind" href="#" style="color:#666;">' + remindLabel + '</a>'
                     : '<span></span>')
-            +   '<label class="myButton" id="featurePopupClose" style="cursor:pointer; padding:6px 16px;">Close</label>'
+            +   '<label class="myButton" id="featurePopupClose" style="cursor:pointer; padding:6px 16px;">' + FEATURE_POPUP_CLOSE_LABEL + '</label>'
             + '</div>';
     }
 

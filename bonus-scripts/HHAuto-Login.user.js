@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         HHAuto Login
-// @namespace    https://github.com/Roukys/HHauto
+// @namespace    https://github.com/OldRon1977/HHauto
 // @version      1.0
 // @description  HHAuto Login
 // @author       Zary

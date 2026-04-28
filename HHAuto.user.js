@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
-// @namespace    https://github.com/Roukys/HHauto
-// @version      7.35.13
+// @namespace    https://github.com/OldRon1977/HHauto
+// @version      7.35.14
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -18,8 +18,8 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @license      MIT
-// @updateURL    https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
-// @downloadURL  https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
+// @updateURL    https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
+// @downloadURL  https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
 // ==/UserScript==
 
 // WARNING: This file has been generated, DO NOT EDIT.
@@ -515,7 +515,7 @@ HHAuto_ToolTips.en['Name'] = { version: "5.6.24", elementText: "Name", tooltip: 
 HHAuto_ToolTips.en['sortPowerCalc'] = { version: "5.6.24", elementText: "Sort by score", tooltip: "Sorting opponents by score." };
 HHAuto_ToolTips.en['translate'] = { version: "5.6.25", elementText: "Translate", tooltip: "" };
 HHAuto_ToolTips.en['saveTranslation'] = { version: "5.6.25", elementText: "Save translation" };
-HHAuto_ToolTips.en['saveTranslationText'] = { version: "5.6.25", elementText: "Below you'll find all text that can be translated.<br>To contribute, modify directly in the cell the translation (if empty click on the blue part ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Gray cells are translations needing update.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blue cell are missing translations</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Please try to keep the text length to prevent UI issues.</p>At the bottom you'll find a button to generate a txt file with your modification.<br>Please upload it to : <a target='_blank' href='https://github.com/Roukys/HHauto/issues/426'>Github</a>", tooltip: "" };
+HHAuto_ToolTips.en['saveTranslationText'] = { version: "5.6.25", elementText: "Below you'll find all text that can be translated.<br>To contribute, modify directly in the cell the translation (if empty click on the blue part ;))<br><p style='margin-block-start:0px;margin-block-end:0px;color:gray'>Gray cells are translations needing update.</p><p style='margin-block-start:0px;margin-block-end:0px;color:blue'>Blue cell are missing translations</p><p style='margin-block-start:0px;margin-block-end:0px;color:red'>Please try to keep the text length to prevent UI issues.</p>At the bottom you'll find a button to generate a txt file with your modification.<br>Please upload it to : <a target='_blank' href='https://github.com/OldRon1977/HHauto/issues/426'>Github</a>", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectable'] = { version: "5.6.47", elementText: "Collectable preferences.", tooltip: "" };
 HHAuto_ToolTips.en['menuCollectableText'] = { version: "5.6.47", elementText: "Please select the collectables you want to be automatically collected.", tooltip: "" };
 HHAuto_ToolTips.en['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Please select the collectables you want to be immediately collected.", tooltip: "" };
@@ -22333,7 +22333,7 @@ class ConfigHelper {
             environnement = HHKnownEnvironnements[window.location.hostname].name;
         }
         else {
-            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/Roukys/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/Roukys/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
+            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/OldRon1977/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/OldRon1977/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
         }
         return environnement;
     }
@@ -23816,50 +23816,59 @@ function autoLoop() {
 // version matches FEATURE_POPUP_VERSION exactly.
 //
 // Users can:
-//   - "Remind me later" (up to MAX_REMIND_COUNT times)
-//   - "Close" (permanently dismiss for this version)
+//   - "Remind me later" (up to FEATURE_POPUP_MAX_REMINDERS times)
+//   - Close button (permanently dismiss for this version)
 //
 // When activated for a new version, dismiss counters reset automatically.
 
 
 
-const MAX_REMIND_COUNT = 3;
+/**
+ * Maximum number of "Remind me later" clicks before the popup is suppressed
+ * for the current version. Default: 3 for normal "What's New" popups. Set to
+ * Number.MAX_SAFE_INTEGER to disable the limit (popup keeps reappearing until
+ * the user clicks the close button).
+ */
+const FEATURE_POPUP_MAX_REMINDERS = Number.MAX_SAFE_INTEGER;
+/**
+ * Label of the close button. Default: "Close" for normal "What's New" popups.
+ */
+const FEATURE_POPUP_CLOSE_LABEL = "OK";
 /**
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "0";
+const FEATURE_POPUP_VERSION = "7.35.14";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "What's New in HHAuto";
+const FEATURE_POPUP_TITLE = "HHAuto repository is moving";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
- *
- * Example:
- * const FEATURE_POPUP_CONTENT = `
- *   <div style="padding:10px; max-width:500px; color:#333;">
- *     <h3 style="margin-top:0;">v7.34.2 Changes</h3>
- *     <ul>
- *       <li><b>Breaking:</b> Sandalwood settings have been reset to defaults
- *           to prevent unintended koban spending.</li>
- *       <li><b>New:</b> Love Raid grade filter now supports 6-star mythic girls.</li>
- *     </ul>
- *     <p style="font-size:11px; color:#666;">
- *       Please review your settings after this update.
- *     </p>
- *   </div>
- * `;
  */
 const FEATURE_POPUP_CONTENT = `
-  <div style="padding:10px; max-width:500px; color:#333;">
-    <h3 style="margin-top:0;">v7.34.16 — New Setting: "SW min shards"</h3>
-    <p>Controls when Sandalwood stops being equipped based on remaining shards.
-    <b>0</b> (default) = no limit, Sandalwood is used until the girl is complete.</p>
-    <p><b>Example:</b> Setting it to <b>1</b> means Sandalwood is equipped until only 1 shard remains.</p>
-    <h3>v7.35.0 — Optimized Equipment Selection</h3>
-    <p>"Give equipment" now checks each slot after auto-equip and replaces items with better alternatives from your inventory. Items are ranked by total stats, with resonance matches as tiebreaker. No new settings required.</p>
+  <div style="padding:10px; max-width:520px; color:#333;">
+    <p style="font-size:15px; font-weight:bold; margin-bottom:10px;">HHAuto repository is moving</p>
+    <p style="margin-bottom:10px;">The HHAuto GitHub repository is being transferred to a new owner in the coming days:</p>
+    <ul style="margin-bottom:10px;">
+      <li>Old: <code>github.com/Roukys/HHauto</code></li>
+      <li>New: <b style="color:#d00;">github.com/OldRon1977/HHauto</b></li>
+    </ul>
+    <p style="margin-bottom:6px;"><b>What this means for you:</b></p>
+    <ul style="margin-bottom:10px; font-size:12px;">
+      <li>GitHub redirects old URLs to the new owner automatically — no action needed in most cases.</li>
+      <li>Tampermonkey will pick up future updates from the new URL on its next auto-update cycle.</li>
+      <li>Your settings and data are stored locally in Tampermonkey and remain untouched.</li>
+    </ul>
+    <p style="margin-bottom:10px; font-size:12px;">If updates ever stop arriving after the transfer, reinstall HHAuto from the new URL above.</p>
+    <p style="margin-bottom:15px; font-size:13px;">
+      Big thanks to <b>Roukys</b> for providing the home of HHAuto for so many years.<br>
+      Special thanks to <b>deuxge</b>, the main maintainer in recent years, who continues to keep HHAuto alive!
+    </p>
+    <p style="margin-bottom:10px; font-size:11px; color:#888; font-style:italic;">
+      This reminder will reappear with future versions until the transfer is complete. Click "OK" to dismiss it for the current version.
+    </p>
   </div>
 `;
 class FeaturePopupService {
@@ -23883,7 +23892,7 @@ class FeaturePopupService {
         if (shownForVersion === FEATURE_POPUP_VERSION)
             return false;
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
-        if (dismissCount >= MAX_REMIND_COUNT)
+        if (dismissCount >= FEATURE_POPUP_MAX_REMINDERS)
             return false;
         return true;
     }
@@ -23907,7 +23916,8 @@ class FeaturePopupService {
     static remindLater() {
         const count = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
         setStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount, String(count + 1));
-        LogUtils_logHHAuto(`Feature popup postponed (${count + 1}/${MAX_REMIND_COUNT}).`);
+        const limitDisplay = FEATURE_POPUP_MAX_REMINDERS >= Number.MAX_SAFE_INTEGER ? '∞' : String(FEATURE_POPUP_MAX_REMINDERS);
+        LogUtils_logHHAuto(`Feature popup postponed (${count + 1}/${limitDisplay}).`);
         maskHHPopUp();
     }
     /**
@@ -23921,13 +23931,18 @@ class FeaturePopupService {
     // ── Private helpers ──
     static buildPopupContent() {
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.featurePopupDismissCount) || "0");
-        const remainingReminders = MAX_REMIND_COUNT - dismissCount;
+        const isUnlimited = FEATURE_POPUP_MAX_REMINDERS >= Number.MAX_SAFE_INTEGER;
+        const remainingReminders = FEATURE_POPUP_MAX_REMINDERS - dismissCount;
+        const showRemind = isUnlimited || remainingReminders > 0;
+        const remindLabel = isUnlimited
+            ? 'Remind me later'
+            : 'Remind me later (' + remainingReminders + ' left)';
         return FEATURE_POPUP_CONTENT
             + '<div style="display:flex; justify-content:space-between; margin-top:15px; padding:0 10px 10px 10px; font-size:12px;">'
-            + (remainingReminders > 0
-                ? '<a id="featurePopupRemind" href="#" style="color:#666;">Remind me later (' + remainingReminders + ' left)</a>'
+            + (showRemind
+                ? '<a id="featurePopupRemind" href="#" style="color:#666;">' + remindLabel + '</a>'
                 : '<span></span>')
-            + '<label class="myButton" id="featurePopupClose" style="cursor:pointer; padding:6px 16px;">Close</label>'
+            + '<label class="myButton" id="featurePopupClose" style="cursor:pointer; padding:6px 16px;">' + FEATURE_POPUP_CLOSE_LABEL + '</label>'
             + '</div>';
     }
     static bindPopupEvents() {
@@ -24497,7 +24512,7 @@ function reviverMap(key, value) {
 
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe1_iM197Xfq2kEKR2jBA64_r28BpOerTlMywVfMEmsvXvDMQ/formResponse';
 const GOOGLE_FORM_ENTRY = 'entry.875507092';
-const SurveyService_MAX_REMIND_COUNT = 3;
+const MAX_REMIND_COUNT = 3;
 /**
  * Set to a specific version (e.g. "7.34.0") to activate the survey popup
  * for that version. Set to "0" to deactivate (default).
@@ -24525,7 +24540,7 @@ class SurveyService {
         if (shownForVersion === SURVEY_ACTIVE_IN_VERSION)
             return false;
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
-        if (dismissCount >= SurveyService_MAX_REMIND_COUNT)
+        if (dismissCount >= MAX_REMIND_COUNT)
             return false;
         return true;
     }
@@ -24644,7 +24659,7 @@ class SurveyService {
     static remindLater() {
         const count = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
         setStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount, String(count + 1));
-        LogUtils_logHHAuto(`Settings survey postponed (${count + 1}/${SurveyService_MAX_REMIND_COUNT}).`);
+        LogUtils_logHHAuto(`Settings survey postponed (${count + 1}/${MAX_REMIND_COUNT}).`);
         maskHHPopUp();
     }
     /**
@@ -24658,7 +24673,7 @@ class SurveyService {
     // ── Private helpers ──
     static buildPopupContent() {
         const dismissCount = Number(getStoredValue(HHStoredVarPrefixKey + TK.surveyDismissCount) || "0");
-        const remainingReminders = SurveyService_MAX_REMIND_COUNT - dismissCount;
+        const remainingReminders = MAX_REMIND_COUNT - dismissCount;
         return '<div style="padding:10px; max-width:500px; color:#333;">'
             + '<p style="margin-bottom:10px;">Help us improve HHAuto! We\'d like to know which settings you actually use so we can optimize the script.</p>'
             + '<p style="margin-bottom:10px; font-size:11px;">This is <b>completely anonymous</b> — we only collect ON/OFF status of settings, your script version, and site name. No personal data or IDs.</p>'
@@ -25020,8 +25035,8 @@ function start() {
     setMenuValues();
     getMenuValues();
     manageToolTipsDisplay();
-    $("#git").on("click", function () { window.open("https://github.com/Roukys/HHauto/wiki"); });
-    $("#ReportBugs").on("click", function () { window.open("https://github.com/Roukys/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
+    $("#git").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/wiki"); });
+    $("#ReportBugs").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
     $("#loadConfig").on("click", function () {
         let LoadDialog = '<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
         fillHHPopUp("loadConfig", getTextForUI("loadConfig", "elementText"), LoadDialog);

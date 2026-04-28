@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
-// @namespace    https://github.com/Roukys/HHauto
+// @namespace    https://github.com/OldRon1977/HHauto
 // @version      {{version}}
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
@@ -18,8 +18,8 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_unregisterMenuCommand
 // @license      MIT
-// @updateURL    https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
-// @downloadURL  https://github.com/Roukys/HHauto/raw/main/HHAuto.user.js
+// @updateURL    https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
+// @downloadURL  https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js
 // ==/UserScript==
 
 // WARNING: This file has been generated, DO NOT EDIT.
