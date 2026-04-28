@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.15 - Troll with girls now falls through to love raids
+
+Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
+
+When `Last troll with girls` or `First troll with girls` was selected and no troll had any girls left, the script would skip fighting entirely and idle in a loop - even when love raids with girls were available. The troll selection now falls through to love raids as a fallback when no troll target is found, so raid girls are still fought as expected.
+
+---
+
 ### v7.35.14 - Repository transfer notice
 
 The HHAuto repository will be transferred to a new owner (`OldRon1977/HHauto`) in the coming days. All repository URLs in the script (`@updateURL`, `@downloadURL`, namespace, wiki and issue links) have been switched to the new location ahead of the transfer. A one-time popup informs users about the move; GitHub redirects and Tampermonkey auto-update will handle the rest for users with auto-update enabled.

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.14
+// @version      7.35.15
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -7372,6 +7372,17 @@ class Troll {
                 if (logging)
                     LogUtils_logHHAuto("Can't get troll with girls, going to last troll.");
                 TTF = lastTrollIdAvailable;
+            }
+            // No troll with girls found - fall through to love raids before giving up
+            if (TTF <= 0 && LoveRaidManager.isActivated() && loveRaids.length > 0) {
+                if (logging)
+                    LogUtils_logHHAuto("No troll with girls, checking love raids as fallback.");
+                const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
+                if (loveRaid) {
+                    TTF = loveRaid.trollId;
+                    if (logging)
+                        LogUtils_logHHAuto(`Love raid fallback: fighting troll ${TTF} for raid girl ${loveRaid.id_girl}.`);
+                }
             }
         }
         else if (LoveRaidManager.isActivated() && loveRaids.length > 0) {

@@ -250,6 +250,16 @@ export class Troll {
                 if (logging) logHHAuto("Can't get troll with girls, going to last troll.");
                 TTF=lastTrollIdAvailable;
             }
+
+            // No troll with girls found - fall through to love raids before giving up
+            if (TTF <= 0 && LoveRaidManager.isActivated() && loveRaids.length > 0) {
+                if (logging) logHHAuto("No troll with girls, checking love raids as fallback.");
+                const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
+                if (loveRaid) {
+                    TTF = loveRaid.trollId;
+                    if (logging) logHHAuto(`Love raid fallback: fighting troll ${TTF} for raid girl ${loveRaid.id_girl}.`);
+                }
+            }
         }
         else if (LoveRaidManager.isActivated() && loveRaids.length > 0){
             const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
