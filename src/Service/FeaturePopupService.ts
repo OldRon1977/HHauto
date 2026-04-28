@@ -46,7 +46,7 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "7.35.14";
+const FEATURE_POPUP_VERSION: string = "7.35.15";
 
 /**
  * Title shown in the popup header.
