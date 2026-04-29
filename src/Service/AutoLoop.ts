@@ -71,7 +71,6 @@ import {
     handleContest,
     handleMissions,
     handleQuest,
-    handleLeague,
     handleSeason,
     handlePentaDrill,
     handlePantheon,
@@ -272,7 +271,6 @@ export async function autoLoop()
         await handleContest(ctx);
         await handleMissions(ctx);
         await handleQuest(ctx);
-        await handleLeague(ctx);
         await handleSeason(ctx);
         await handlePentaDrill(ctx);
         await handlePantheon(ctx);

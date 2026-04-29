@@ -593,43 +593,6 @@ export async function handleQuest(ctx: AutoLoopContext): Promise<void> {
     }
 }
 
-// 13. handleLeague - lines 665-697
-export async function handleLeague(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && LeagueHelper.isAutoLeagueActivated() && isAutoLoopActive()
-        && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "league")) {
-        // Navigate to leagues
-        if (LeagueHelper.isTimeToFight()) {
-            logHHAuto("Time to fight in Leagues.");
-            LeagueHelper.doLeagueBattle();
-            ctx.busy = true;
-            ctx.lastActionPerformed = "league";
-        }
-        else {
-            if (getStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun) === "true") {
-                // end run
-                setStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun, "false");
-            }
-            if (checkTimer('nextLeaguesTime')) {
-                if (getHHVars('Hero.energies.challenge.next_refresh_ts') === 0) {
-                    setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
-                }
-                else {
-                    const next_refresh = getHHVars('Hero.energies.challenge.next_refresh_ts')
-                    setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                }
-            }
-            //logHHAuto("reset lastActionPerformed from league");
-            ctx.lastActionPerformed = "none";
-            /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
-            {
-                logHHAuto("Go to home after league fight");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-
-            }*/
-        }
-    }
-}
-
 // 14. handleSeason - lines 699-724
 export async function handleSeason(ctx: AutoLoopContext): Promise<void> {
     if(ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeason",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeason) === "true"
