@@ -107,30 +107,6 @@ export async function runStandardHandler(ctx: AutoLoopContext, d: ModuleHandlerD
 //  Action handlers – called in order from autoLoop()
 // ---------------------------------------------------------------------------
 
-// 1. handleEventParsing - lines 234-253
-export async function handleEventParsing(ctx: AutoLoopContext): Promise<void> {
-    if(
-        ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEvents",false) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event" || (getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) === "true" && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true") )
-        &&
-        (
-            (ctx.eventIDs.length > 0 && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
-            ||
-            (ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length)
-        )
-    )
-    {
-        logHHAuto("Going to check on events.");
-        ctx.busy = true;
-        ctx.busy = await EventModule.parseEventPage(ctx.eventIDs[0]);
-        ctx.eventParsed = ctx.eventIDs[0];
-        ctx.lastActionPerformed = "event";
-        if (ctx.eventIDs.length > 1) {
-            logHHAuto("More events to be parsed.", JSON.stringify(ctx.eventIDs));
-            ctx.busy = true;
-        }
-    }
-}
-
 // 2. handleMythicWave - lines 255-261
 export async function handleMythicWave(ctx: AutoLoopContext): Promise<void> {
     if (ctx.busy === false && isAutoLoopActive() && ctx.canCollectCompetitionActive

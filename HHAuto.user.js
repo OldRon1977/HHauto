@@ -22489,26 +22489,6 @@ function runStandardHandler(ctx, d) {
 // ---------------------------------------------------------------------------
 //  Action handlers – called in order from autoLoop()
 // ---------------------------------------------------------------------------
-// 1. handleEventParsing - lines 234-253
-function handleEventParsing(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEvents", false) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event" || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"))
-            &&
-                ((ctx.eventIDs.length > 0 && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
-                    ||
-                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") && $("#contains_all #events[parsed]").length < ctx.eventIDs.length))) {
-            LogUtils_logHHAuto("Going to check on events.");
-            ctx.busy = true;
-            ctx.busy = yield EventModule.parseEventPage(ctx.eventIDs[0]);
-            ctx.eventParsed = ctx.eventIDs[0];
-            ctx.lastActionPerformed = "event";
-            if (ctx.eventIDs.length > 1) {
-                LogUtils_logHHAuto("More events to be parsed.", JSON.stringify(ctx.eventIDs));
-                ctx.busy = true;
-            }
-        }
-    });
-}
 // 2. handleMythicWave - lines 255-261
 function handleMythicWave(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
@@ -23587,6 +23567,427 @@ function handlePageSpecific(ctx) {
     });
 }
 
+;// CONCATENATED MODULE: ./src/Service/Pipeline.config.ts
+// Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
+//
+// Defines the types and interfaces for handler configurations,
+// plus concrete handler entries for migrated handlers.
+//
+// Used by: Scheduler.ts
+var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+// ---------------------------------------------------------------------------
+//  Handler: handleEventParsing
+//  Priority 1 (highest) -- runs nearly every tick.
+//  Non-atomic, always interruptible.
+//  Wraps: EventModule.parseEventPage()
+// ---------------------------------------------------------------------------
+const handleEventParsing = {
+    name: 'handleEventParsing',
+    priority: 1,
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: () => {
+        // Events feature must be enabled
+        return ConfigHelper.getHHScriptVars('isEnabledEvents', false) === true;
+    },
+    steps: [
+        {
+            name: 'parseEvents',
+            fn: () => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    // Delegate to existing EventModule logic.
+                    // eventIDs are determined at runtime from stored event list.
+                    const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+                    const eventList = storedList ? JSON.parse(storedList) : {};
+                    const eventIDs = Object.keys(eventList).filter(id => { var _a; return !((_a = eventList[id]) === null || _a === void 0 ? void 0 : _a.isCompleted); });
+                    if (eventIDs.length === 0) {
+                        return { ok: true }; // nothing to parse
+                    }
+                    yield EventModule.parseEventPage(eventIDs[0]);
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+            timeoutMs: 15000,
+        },
+    ],
+    totalTimeoutMs: 20000,
+};
+// ---------------------------------------------------------------------------
+//  Handler: handleLeague
+//  Priority 13 -- matches original AutoLoop ordering.
+//  Atomic (fight sequence must not be interrupted).
+//  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
+// ---------------------------------------------------------------------------
+const Pipeline_config_handleLeague = {
+    name: 'handleLeague',
+    priority: 13,
+    minIntervalMs: 60000,
+    atomic: true,
+    interruptible: 'never',
+    precondition: () => {
+        return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
+    },
+    steps: [
+        {
+            name: 'doLeagueBattle',
+            fn: () => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LeagueHelper.doLeagueBattle();
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+            timeoutMs: 25000,
+        },
+    ],
+    onFailure: (failedStep, reason) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+        LogUtils_logHHAuto('[Pipeline] handleLeague failed at ' + failedStep + ': ' + reason);
+    }),
+    totalTimeoutMs: 30000,
+};
+// ---------------------------------------------------------------------------
+//  Pipeline: ordered list of all handler configurations.
+//  Handlers are evaluated by priority (ascending) each tick.
+// ---------------------------------------------------------------------------
+const pipeline = [
+    handleEventParsing,
+    Pipeline_config_handleLeague,
+];
+
+;// CONCATENATED MODULE: ./src/Service/MouseService.ts
+// MouseService.ts
+//
+// Pauses automation while the user is actively interacting with the
+// page. Binds mousemove, scroll, and mouseup events that set a
+// "mouseBusy" flag for a configurable timeout (default 5s).
+//
+// While mouseBusy is true, AutoLoop skips all actions to avoid
+// interfering with manual gameplay.
+//
+// Used by: StartService (binds events), AutoLoop (checks flag)
+
+
+let mouseBusy = false;
+let mouseBusyTimeout = 0;
+function makeMouseBusy(ms) {
+    clearTimeout(mouseBusyTimeout);
+    //logHHAuto('mouseBusy' + mouseBusy + ' ' + ms);
+    mouseBusy = true;
+    mouseBusyTimeout = setTimeout(function () { mouseBusy = false; }, ms);
+}
+;
+function bindMouseEvents() {
+    const mouseTimeoutVal = Number.isInteger(Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout))) ? Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout)) : 5000;
+    document.onmousemove = function () { makeMouseBusy(mouseTimeoutVal); };
+    document.onscroll = function () { makeMouseBusy(mouseTimeoutVal); };
+    document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
+}
+
+;// CONCATENATED MODULE: ./src/Service/Scheduler.ts
+// Scheduler.ts -- Declarative pipeline scheduler runtime.
+//
+// Manages handler execution via a state machine. Each tick evaluates
+// which handler should run next based on priority, preconditions,
+// and min-interval constraints. Supports atomic chains (uninterruptible)
+// and SOFT/HARD interrupt semantics.
+//
+// Depends on: Pipeline.config.ts (types), MouseService (SOFT), ParanoiaService (SOFT)
+// Used by: AutoLoop.ts (calls Scheduler.tick() each iteration)
+var Scheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+/** Default watchdog timeout if not specified per handler */
+const DEFAULT_TOTAL_TIMEOUT_MS = 30000;
+/**
+ * The Scheduler is a singleton that manages pipeline handler execution.
+ * Call `Scheduler.tick()` once per AutoLoop iteration.
+ */
+class Scheduler {
+    constructor() {
+        this.states = new Map();
+        this.lastRunAt = new Map();
+        this.currentChain = null;
+    }
+    /**
+     * Main entry point. Called once per AutoLoop iteration.
+     * Evaluates SOFT-interrupts, watchdog, active chains, and next-ready handlers.
+     */
+    tick() {
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            // 1. SOFT-Interrupt check (always takes precedence)
+            if (this.shouldSoftAbort()) {
+                if (this.currentChain) {
+                    yield this.abortAtSafePoint();
+                }
+                return;
+            }
+            // 2. Watchdog: kill hung chains
+            if (this.currentChain && this.isHung(this.currentChain)) {
+                LogUtils_logHHAuto(`[Scheduler] Watchdog: chain '${this.currentChain.config.name}' timed out`);
+                yield this.failChain('watchdog timeout');
+            }
+            // 3. If an atomic chain is running, continue it
+            if (this.currentChain) {
+                if (this.currentChain.config.atomic) {
+                    yield this.continueCurrentChain();
+                    return;
+                }
+                // Non-atomic chain running: check for HARD interrupt
+                const higherPrio = this.findHigherPriorityReady(this.currentChain.config.priority);
+                if (higherPrio && this.currentChain.config.interruptible === 'always') {
+                    const interruptedName = this.currentChain.config.name;
+                    LogUtils_logHHAuto(`[Scheduler] HARD interrupt: '${higherPrio.name}' preempts '${interruptedName}'`);
+                    this.currentChain = null;
+                    this.states.set(interruptedName, 'IDLE');
+                    yield this.startChain(higherPrio);
+                    return;
+                }
+                // Continue current non-atomic chain
+                yield this.continueCurrentChain();
+                return;
+            }
+            // 4. No active chain: find next ready handler
+            const next = this.findNextReady();
+            if (next) {
+                yield this.startChain(next);
+            }
+        });
+    }
+    /**
+     * SOFT-interrupt conditions: user activity, master off, paranoia rest.
+     * These ALWAYS cause abort, even for atomic chains (at safe point).
+     */
+    shouldSoftAbort() {
+        const masterOff = getStoredValue(HHStoredVarPrefixKey + SK.master) !== 'true';
+        return masterOff || mouseBusy;
+    }
+    /**
+     * Find the highest-priority handler that is ready to run.
+     */
+    findNextReady() {
+        var _a;
+        return (_a = pipeline
+            .filter(h => this.isIdle(h.name))
+            .filter(h => this.minIntervalElapsed(h))
+            .filter(h => h.precondition())
+            .sort((a, b) => a.priority - b.priority)[0]) !== null && _a !== void 0 ? _a : null;
+    }
+    /**
+     * Find a ready handler with higher priority than the given threshold.
+     */
+    findHigherPriorityReady(currentPriority) {
+        var _a;
+        return (_a = pipeline
+            .filter(h => h.priority < currentPriority)
+            .filter(h => this.isIdle(h.name))
+            .filter(h => this.minIntervalElapsed(h))
+            .filter(h => h.precondition())
+            .sort((a, b) => a.priority - b.priority)[0]) !== null && _a !== void 0 ? _a : null;
+    }
+    /**
+     * Start executing a handler chain from step 0.
+     */
+    startChain(config) {
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            LogUtils_logHHAuto(`[Scheduler] Starting chain '${config.name}'`);
+            this.states.set(config.name, 'RUNNING');
+            this.currentChain = { config, stepIdx: 0, startedAt: Date.now() };
+            yield this.executeCurrentStep();
+        });
+    }
+    /**
+     * Continue executing the current chain from where it left off.
+     */
+    continueCurrentChain() {
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            if (!this.currentChain)
+                return;
+            yield this.executeCurrentStep();
+        });
+    }
+    /**
+     * Execute the current step of the active chain.
+     */
+    executeCurrentStep() {
+        var _a, _b;
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            if (!this.currentChain)
+                return;
+            const { config, stepIdx } = this.currentChain;
+            const step = config.steps[stepIdx];
+            if (!step) {
+                // All steps completed
+                this.completeChain();
+                return;
+            }
+            // Execute step with optional per-step timeout
+            const timeoutMs = (_b = (_a = step.timeoutMs) !== null && _a !== void 0 ? _a : config.totalTimeoutMs) !== null && _b !== void 0 ? _b : DEFAULT_TOTAL_TIMEOUT_MS;
+            let result;
+            try {
+                result = yield this.executeWithTimeout(step.fn, timeoutMs);
+            }
+            catch (err) {
+                result = { ok: false, reason: `Exception: ${err}`, retryable: false };
+            }
+            if (result.ok) {
+                // Advance to next step
+                this.currentChain.stepIdx++;
+                if (this.currentChain.stepIdx >= config.steps.length) {
+                    this.completeChain();
+                }
+                // If more steps remain, they execute on the next tick (non-blocking)
+            }
+            else {
+                // Step failed — cast needed because TS cannot narrow through try/catch reassignment
+                const failure = result;
+                LogUtils_logHHAuto(`[Scheduler] Step '${step.name}' failed in '${config.name}': ${failure.reason}`);
+                yield this.failChain(failure.reason, step.name);
+            }
+        });
+    }
+    /**
+     * Mark chain as completed, reset state to IDLE.
+     */
+    completeChain() {
+        if (!this.currentChain)
+            return;
+        const name = this.currentChain.config.name;
+        LogUtils_logHHAuto(`[Scheduler] Chain '${name}' completed`);
+        this.states.set(name, 'IDLE');
+        this.lastRunAt.set(name, Date.now());
+        this.currentChain = null;
+    }
+    /**
+     * Handle chain failure: call onFailure callback, reset state.
+     */
+    failChain(reason, failedStep) {
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            if (!this.currentChain)
+                return;
+            const { config } = this.currentChain;
+            this.states.set(config.name, 'FAILED');
+            this.currentChain = null;
+            if (config.onFailure && failedStep) {
+                try {
+                    yield config.onFailure(failedStep, reason);
+                }
+                catch (err) {
+                    LogUtils_logHHAuto(`[Scheduler] onFailure callback threw for '${config.name}': ${err}`);
+                }
+            }
+            // Reset to IDLE so handler can retry on next eligible tick
+            this.states.set(config.name, 'IDLE');
+            this.lastRunAt.set(config.name, Date.now());
+        });
+    }
+    /**
+     * Abort at safe point (after current step completes).
+     * Used for SOFT-interrupts on atomic chains.
+     */
+    abortAtSafePoint() {
+        return Scheduler_awaiter(this, void 0, void 0, function* () {
+            if (!this.currentChain)
+                return;
+            const name = this.currentChain.config.name;
+            LogUtils_logHHAuto(`[Scheduler] SOFT abort at safe point for '${name}'`);
+            this.states.set(name, 'INTERRUPTED');
+            this.currentChain = null;
+            // Reset to IDLE for next opportunity
+            this.states.set(name, 'IDLE');
+        });
+    }
+    /**
+     * Check if a chain has exceeded its total timeout.
+     */
+    isHung(chain) {
+        var _a;
+        const timeout = (_a = chain.config.totalTimeoutMs) !== null && _a !== void 0 ? _a : DEFAULT_TOTAL_TIMEOUT_MS;
+        return Date.now() - chain.startedAt > timeout;
+    }
+    /**
+     * Check if enough time has passed since last run.
+     */
+    minIntervalElapsed(config) {
+        const lastRun = this.lastRunAt.get(config.name);
+        if (lastRun === undefined)
+            return true;
+        return Date.now() - lastRun >= config.minIntervalMs;
+    }
+    /**
+     * Check if handler is in IDLE state (or never ran).
+     */
+    isIdle(name) {
+        const state = this.states.get(name);
+        return state === undefined || state === 'IDLE';
+    }
+    /**
+     * Execute a function with a timeout. Rejects if timeout exceeded.
+     */
+    executeWithTimeout(fn, timeoutMs) {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error(`Step timeout after ${timeoutMs}ms`));
+            }, timeoutMs);
+            fn().then(result => {
+                clearTimeout(timer);
+                resolve(result);
+            }).catch(err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+    }
+    // --- Public API for testing and debugging ---
+    /** Get current state of a handler */
+    getState(name) {
+        return this.states.get(name);
+    }
+    /** Get the currently active chain (if any) */
+    getActiveChain() {
+        if (!this.currentChain)
+            return null;
+        return { name: this.currentChain.config.name, stepIdx: this.currentChain.stepIdx };
+    }
+    /** Reset all state (for testing) */
+    reset() {
+        this.states.clear();
+        this.lastRunAt.clear();
+        this.currentChain = null;
+    }
+}
+/** Singleton instance */
+const scheduler = new Scheduler();
+
 ;// CONCATENATED MODULE: ./src/Service/AutoLoop.ts
 // AutoLoop.ts
 //
@@ -23617,6 +24018,7 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -23749,7 +24151,6 @@ function autoLoop() {
             ctx.eventIDs = eventIDs;
             ctx.bossBangEventIDs = bossBangEventIDs;
             // --- Action Handlers (executed in order, each checks ctx.busy) ---
-            yield handleEventParsing(ctx);
             yield handleMythicWave(ctx);
             yield handleShop(ctx);
             yield handleAutoEquipBoosters(ctx);
@@ -23783,6 +24184,8 @@ function autoLoop() {
             yield handleBossBangParse(ctx);
             yield handleBossBangFight(ctx);
             yield handleGoHome(ctx);
+            // --- Scheduler Pipeline (migrated handlers run here) ---
+            yield scheduler.tick();
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
@@ -24142,35 +24545,6 @@ function updateData() {
     else {
         pInfo.style.display = 'none';
     }
-}
-
-;// CONCATENATED MODULE: ./src/Service/MouseService.ts
-// MouseService.ts
-//
-// Pauses automation while the user is actively interacting with the
-// page. Binds mousemove, scroll, and mouseup events that set a
-// "mouseBusy" flag for a configurable timeout (default 5s).
-//
-// While mouseBusy is true, AutoLoop skips all actions to avoid
-// interfering with manual gameplay.
-//
-// Used by: StartService (binds events), AutoLoop (checks flag)
-
-
-let mouseBusy = false;
-let mouseBusyTimeout = 0;
-function makeMouseBusy(ms) {
-    clearTimeout(mouseBusyTimeout);
-    //logHHAuto('mouseBusy' + mouseBusy + ' ' + ms);
-    mouseBusy = true;
-    mouseBusyTimeout = setTimeout(function () { mouseBusy = false; }, ms);
-}
-;
-function bindMouseEvents() {
-    const mouseTimeoutVal = Number.isInteger(Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout))) ? Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout)) : 5000;
-    document.onmousemove = function () { makeMouseBusy(mouseTimeoutVal); };
-    document.onscroll = function () { makeMouseBusy(mouseTimeoutVal); };
-    document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
 }
 
 ;// CONCATENATED MODULE: ./src/Service/ParanoiaService.ts

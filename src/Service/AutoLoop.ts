@@ -59,7 +59,6 @@ import {
 } from "./index";
 import { AutoLoopContext } from './AutoLoopContext';
 import {
-    handleEventParsing,
     handleMythicWave,
     handleShop,
     handleAutoEquipBoosters,
@@ -95,6 +94,7 @@ import {
     handleGoHome,
 } from './AutoLoopActions';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
+import { scheduler } from './Scheduler';
 
 export let busy = false;
 
@@ -260,7 +260,6 @@ export async function autoLoop()
         ctx.bossBangEventIDs = bossBangEventIDs;
 
         // --- Action Handlers (executed in order, each checks ctx.busy) ---
-        await handleEventParsing(ctx);
         await handleMythicWave(ctx);
         await handleShop(ctx);
         await handleAutoEquipBoosters(ctx);
@@ -294,6 +293,9 @@ export async function autoLoop()
         await handleBossBangParse(ctx);
         await handleBossBangFight(ctx);
         await handleGoHome(ctx);
+
+        // --- Scheduler Pipeline (migrated handlers run here) ---
+        await scheduler.tick();
     }
 
     // --- Page-specific UI handlers ---
