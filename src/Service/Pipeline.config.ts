@@ -1,9 +1,15 @@
 // Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
 //
-// Defines the types and interfaces for handler configurations.
-// Concrete handler implementations are added in later sessions.
+// Defines the types and interfaces for handler configurations,
+// plus concrete handler entries for migrated handlers.
 //
 // Used by: Scheduler.ts
+
+import { LeagueHelper } from '../Module/index';
+import { EventModule } from '../Module/Events/index';
+import { ConfigHelper, getStoredValue } from '../Helper/index';
+import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { logHHAuto } from '../Utils/index';
 
 /**
  * How a handler responds to higher-priority interrupts.
@@ -55,9 +61,92 @@ export interface HandlerConfig {
   totalTimeoutMs?: number;
 }
 
-/**
- * The pipeline: ordered list of all handler configurations.
- * Handlers are evaluated by priority (ascending) each tick.
- * Concrete entries are added as handlers are migrated.
- */
-export const pipeline: HandlerConfig[] = [];
+// ---------------------------------------------------------------------------
+//  Handler: handleEventParsing
+//  Priority 1 (highest) -- runs nearly every tick.
+//  Non-atomic, always interruptible.
+//  Wraps: EventModule.parseEventPage()
+// ---------------------------------------------------------------------------
+
+const handleEventParsing: HandlerConfig = {
+  name: 'handleEventParsing',
+  priority: 1,
+  minIntervalMs: 2_000,
+  atomic: false,
+  interruptible: 'always',
+  precondition: () => {
+    // Events feature must be enabled
+    return ConfigHelper.getHHScriptVars('isEnabledEvents', false) === true;
+  },
+  steps: [
+    {
+      name: 'parseEvents',
+      fn: async (): Promise<StepResult> => {
+        try {
+          // Delegate to existing EventModule logic.
+          // eventIDs are determined at runtime from stored event list.
+          const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+          const eventList = storedList ? JSON.parse(storedList) : {};
+          const eventIDs = Object.keys(eventList).filter(
+            id => !eventList[id]?.isCompleted
+          );
+          if (eventIDs.length === 0) {
+            return { ok: true }; // nothing to parse
+          }
+          await EventModule.parseEventPage(eventIDs[0]);
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, reason: String(err), retryable: true };
+        }
+      },
+      timeoutMs: 15_000,
+    },
+  ],
+  totalTimeoutMs: 20_000,
+};
+
+// ---------------------------------------------------------------------------
+//  Handler: handleLeague
+//  Priority 13 -- matches original AutoLoop ordering.
+//  Atomic (fight sequence must not be interrupted).
+//  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
+// ---------------------------------------------------------------------------
+
+const handleLeague: HandlerConfig = {
+  name: 'handleLeague',
+  priority: 13,
+  minIntervalMs: 60_000,
+  atomic: true,
+  interruptible: 'never',
+  precondition: () => {
+    return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
+  },
+  steps: [
+    {
+      name: 'doLeagueBattle',
+      fn: async (): Promise<StepResult> => {
+        try {
+          LeagueHelper.doLeagueBattle();
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, reason: String(err), retryable: true };
+        }
+      },
+      timeoutMs: 25_000,
+    },
+  ],
+  onFailure: async (failedStep: string, reason: string): Promise<void> => {
+    logHHAuto('[Pipeline] handleLeague failed at ' + failedStep + ': ' + reason);
+  },
+  totalTimeoutMs: 30_000,
+};
+
+// ---------------------------------------------------------------------------
+//  Pipeline: ordered list of all handler configurations.
+//  Handlers are evaluated by priority (ascending) each tick.
+// ---------------------------------------------------------------------------
+
+export const pipeline: HandlerConfig[] = [
+  handleEventParsing,
+  handleLeague,
+];
