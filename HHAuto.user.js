@@ -22913,44 +22913,6 @@ function handleQuest(ctx) {
         }
     });
 }
-// 13. handleLeague - lines 665-697
-function handleLeague(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && LeagueHelper.isAutoLeagueActivated() && isAutoLoopActive()
-            && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "league")) {
-            // Navigate to leagues
-            if (LeagueHelper.isTimeToFight()) {
-                LogUtils_logHHAuto("Time to fight in Leagues.");
-                LeagueHelper.doLeagueBattle();
-                ctx.busy = true;
-                ctx.lastActionPerformed = "league";
-            }
-            else {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun) === "true") {
-                    // end run
-                    setStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun, "false");
-                }
-                if (checkTimer('nextLeaguesTime')) {
-                    if (getHHVars('Hero.energies.challenge.next_refresh_ts') === 0) {
-                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
-                    }
-                    else {
-                        const next_refresh = getHHVars('Hero.energies.challenge.next_refresh_ts');
-                        setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                    }
-                }
-                //logHHAuto("reset lastActionPerformed from league");
-                ctx.lastActionPerformed = "none";
-                /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeaderboard"))
-                {
-                    logHHAuto("Go to home after league fight");
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-    
-                }*/
-            }
-        }
-    });
-}
 // 14. handleSeason - lines 699-724
 function handleSeason(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
@@ -23635,7 +23597,7 @@ const handleEventParsing = {
 //  Atomic (fight sequence must not be interrupted).
 //  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
 // ---------------------------------------------------------------------------
-const Pipeline_config_handleLeague = {
+const handleLeague = {
     name: 'handleLeague',
     priority: 13,
     minIntervalMs: 60000,
@@ -23670,7 +23632,7 @@ const Pipeline_config_handleLeague = {
 // ---------------------------------------------------------------------------
 const pipeline = [
     handleEventParsing,
-    Pipeline_config_handleLeague,
+    handleLeague,
 ];
 
 ;// CONCATENATED MODULE: ./src/Service/MouseService.ts
@@ -24163,7 +24125,6 @@ function autoLoop() {
             yield handleContest(ctx);
             yield handleMissions(ctx);
             yield handleQuest(ctx);
-            yield handleLeague(ctx);
             yield handleSeason(ctx);
             yield handlePentaDrill(ctx);
             yield handlePantheon(ctx);
