@@ -1,7 +1,13 @@
+---
+last-verified: 2026-04-27
+verified-against-version: 7.35.10
+status: minor-drift-fixed
+---
+
 # Team-Algorithmus Design
 
 Implementierung der verbesserten Team-Auswahl (Issue #1340).
-Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-07 | Version: 7.34.14
+Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-27 | Algorithmus-Version: v7.34.14 (keine Änderungen bis v7.35.10)
 
 ---
 
@@ -26,8 +32,8 @@ Legacy-Algorithmus (Fallback):      Aktueller Algorithmus (v3):
 | `src/Service/TeamScoringService.ts` | Scoring-Engine: Tier-3 Traits, Synergien, Tier-5, Stat-Formeln, Rarity-Filter |
 | `src/Service/TeamBuilderService.ts` | Team-Builder: Trait-Gruppen, Leader, Slot-Fill |
 | `src/Module/TeamModule.ts` | Integration: Dispatch v3/Legacy, Daten-Mapping, UI-Update |
-| `spec/Service/TeamScoringService.spec.ts` | 52 Tests |
-| `spec/Service/TeamBuilderService.spec.ts` | 14 Tests |
+| `spec/Service/TeamScoringService.spec.ts` | 58 Tests |
+| `spec/Service/TeamBuilderService.spec.ts` | 22 Tests |
 
 ---
 

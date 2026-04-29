@@ -1,7 +1,13 @@
+---
+last-verified: 2026-04-27
+verified-against-version: 7.35.10
+status: minor-drift-fixed
+---
+
 # Technical Reference: Team Selection Data & API
 
 Reference document for Issue #1340 — Improved team selection.
-Based on data analysis performed 2026-03-24. Last updated: 2026-04-07.
+Based on data analysis performed 2026-03-24. Last updated: 2026-04-27 (verified against v7.35.10).
 
 ---
 
@@ -286,7 +292,7 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 ## 5. Relevant Source Files
 
-### Team Selection (v3 — current as of v7.34.13)
+### Team Selection (v3 — current as of v7.35.10, no algorithm changes since v7.34.14)
 
 | File | Key Function | Purpose |
 |------|-------------|---------|
@@ -311,8 +317,8 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 | File | Tests | Purpose |
 |------|-------|---------|
-| `spec/Service/TeamScoringService.spec.ts` | 52 | Synergies, Tier-5, scoring, filtering, Tier-3 traits |
-| `spec/Service/TeamBuilderService.spec.ts` | 14 | Team building, modes, leader selection |
+| `spec/Service/TeamScoringService.spec.ts` | 58 | Synergies, Tier-5, scoring, filtering, Tier-3 traits |
+| `spec/Service/TeamBuilderService.spec.ts` | 22 | Team building, modes, leader selection |
 
 ### Girl Data Loading
 

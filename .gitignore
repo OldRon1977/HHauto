@@ -1,6 +1,7 @@
 coverage/*
 node_modules/*
 .kiro/
+.claude/
 
 # Projektanweisungen (Claude.ai)
 PROJEKTANWEISUNGEN.md
