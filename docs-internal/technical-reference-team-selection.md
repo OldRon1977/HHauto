@@ -1,13 +1,13 @@
 ---
-last-verified: 2026-04-27
-verified-against-version: 7.35.10
+last-verified: 2026-04-29
+verified-against-version: 7.35.14
 status: minor-drift-fixed
 ---
 
 # Technical Reference: Team Selection Data & API
 
 Reference document for Issue #1340 — Improved team selection.
-Based on data analysis performed 2026-03-24. Last updated: 2026-04-27 (verified against v7.35.10).
+Based on data analysis performed 2026-03-24. Last updated: 2026-04-29 (verified against v7.35.14; team-related sources unchanged since v7.35.10).
 
 ---
 

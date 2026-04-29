@@ -1,13 +1,13 @@
 ---
-last-verified: 2026-04-27
-verified-against-version: 7.35.10
+last-verified: 2026-04-29
+verified-against-version: 7.35.14
 status: minor-drift-fixed
 ---
 
 # Team-Algorithmus Design
 
 Implementierung der verbesserten Team-Auswahl (Issue #1340).
-Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-27 | Algorithmus-Version: v7.34.14 (keine Änderungen bis v7.35.10)
+Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-29 | Algorithmus-Version: v7.34.14 (keine Änderungen bis v7.35.14)
 
 ---
 
