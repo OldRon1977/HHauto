@@ -1,6 +1,6 @@
 ---
 last-verified: 2026-04-29
-status: in-progress (Phase 1 — Prototyp Scheduler, Session 3 complete)
+status: in-progress (Phase 1 — Prototyp Scheduler, Session 4 complete)
 target-version: 7.36.0
 ---
 
@@ -14,11 +14,11 @@ target-version: 7.36.0
 
 | Feld | Wert |
 |------|------|
-| Phase | 1 — Prototyp Scheduler (Session 3 complete) |
+| Phase | 1 — Prototyp Scheduler (Session 4 complete) |
 | Letzte Aktualisierung | 2026-04-29 |
 | Branch | `refactor/v7.36.0` (lokal + auf `origin/refactor/v7.36.0` gepusht für Multi-Laptop-Sync) |
 | Code-Basis | rebased auf v7.35.15 (upstream/main Stand 2026-04-29) |
-| Nächster Schritt | Phase 1 Session 4 (Handler-Migration handleLeague, atomic-Beweis K1/K2) |
+| Nächster Schritt | Phase 1 Session 5 (Manuelle Verifikation K1/K2 auf HH) |
 | Blocker | keiner |
 | Doku-Stand | `docs-internal/*.md` auf v7.35.14 verifiziert (deep-verify gegen v7.35.10, Delta minimal — siehe Frontmatter-Notizen) |
 
@@ -112,7 +112,7 @@ Mechanik identisch, Design unterscheidet sich, einzelne Bezeichnungen weichen ab
 | Phase | Name | Status | Detail-Datei |
 |-------|------|--------|--------------|
 | 0 | Functional Inventory | complete | `10-functional-inventory.md` (wird in Phase 0 erstellt) |
-| 1 | Prototyp Scheduler | in-progress (Session 3 complete) | `03-prototype-spec.md` |
+| 1 | Prototyp Scheduler | in-progress (Session 4 complete) | `03-prototype-spec.md` |
 | 2 | Pipeline-Migration aller Handler | offen | `02-roadmap.md` (TBD nach Phase 1) |
 | 3 | Getypter State-Store | offen | `02-roadmap.md` |
 | 4 | Event-Bus-Erweiterung | offen | `02-roadmap.md` |

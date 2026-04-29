@@ -5,6 +5,50 @@ last-verified: 2026-04-29
 # Progress Log
 
 Chronologisches Arbeitsprotokoll des Refactors v7.36.0. Jeder neue Eintrag wird oben angefuegt (jüngste Eintraege zuerst).
+## 2026-04-29 — Phase 1 Session 4: Handler-Migration handleLeague (Atomic-Beweis vorbereitet)
+
+**Phase:** 1 — Prototyp Scheduler (IN PROGRESS, Session 4 complete)
+**Modell:** Opus 4.6
+
+**Was gemacht wurde:**
+
+1. **Session-Start-Workflow ausgefuehrt:**
+   - INDEX.md gelesen
+   - git fetch --all: keine neuen Commits in upstream/main oder origin/main
+   - Progress-Log gelesen
+   - Kein Rebase noetig
+
+2. **AutoLoop.ts modifiziert:**
+   - handleLeague aus Import-Block entfernt
+   - wait handleLeague(ctx) Aufruf entfernt (war nach handleQuest, vor handleSeason)
+
+3. **AutoLoopActions.ts modifiziert:**
+   - handleLeague Funktion komplett entfernt (33 Zeilen, inkl. Kommentar)
+   - Kein Doppelbetrieb: Handler existiert nur noch in Pipeline.config.ts
+
+4. **Verifikation:**
+   - npm run build: gruen (webpack compiled successfully)
+   - npx jest spec/Service/Scheduler.spec.ts: 11/11 gruen
+   - npx jest spec/Service/Pipeline.config.spec.ts: 21/21 gruen
+   - npx jest (alle Tests): 549 Tests (541 passed + 8 skipped), keine Regression
+   - handleLeague existiert NICHT mehr in AutoLoopActions.ts
+   - handleLeague wird NICHT mehr in AutoLoop.ts direkt aufgerufen
+   - handleLeague existiert nur noch in Pipeline.config.ts (neuer Handler) + Pipeline.config.spec.ts (Tests)
+   - scheduler.tick() fuehrt handleLeague ueber die Pipeline aus
+   - Commit: d67ebdd
+
+**Technische Entscheidungen:**
+- Identisches Pattern wie Session 3 (handleEventParsing): Import entfernen, Aufruf entfernen, Funktion entfernen.
+- LeagueHelper-Imports in AutoLoop.ts bleiben: CheckSpentPoints() nutzt LeagueHelper.getEnergy() weiterhin.
+- Kein ctx-Passing an Pipeline-Handler: handleLeague in Pipeline.config.ts nutzt LeagueHelper direkt (Storage-basiert).
+
+**Naechste Schritte:**
+1. Doku-Update (INDEX.md, Progress-Log) + Push — DONE
+2. Session 5: Manuelle Verifikation K1/K2 auf HH (Atomic-Block + SOFT-Interrupt)
+3. Session 6: Cross-Game-Validation CH + PH
+
+---
+
 ## 2026-04-29 — Phase 1 Session 3: Handler-Migration handleEventParsing (Integration in AutoLoop)
 
 **Phase:** 1 — Prototyp Scheduler (IN PROGRESS, Session 3 complete)
