@@ -8,6 +8,55 @@ Chronologisches Arbeitsprotokoll des Refactors v7.36.0. Jeder neue Eintrag wird 
 
 ---
 
+## 2026-04-29 — Phase 1 Session 1: Scheduler-Skelett + State-Machine + Specs
+
+**Phase:** 1 — Prototyp Scheduler (IN PROGRESS)
+**Modell:** Opus 4.6
+
+**Was gemacht wurde:**
+
+1. **Session-Start-Workflow ausgeführt:**
+   - INDEX.md gelesen
+   - git fetch --all: keine neuen Commits in upstream/main oder origin/main
+   - Progress-Log gelesen
+   - Kein Rebase nötig
+
+2. **Prototyp-Spec (03-prototype-spec.md) überarbeitet:**
+   - "Stuff Team" als Handler verworfen (existiert nicht als AutoLoop-Handler, ist UI-Feature)
+   - handleLeague als Atomic-Beweis-Handler gewählt (existierender Handler mit atomarer Kampf-Sequenz)
+   - handleStuffTeam als zukünftiges Feature (Phase 2+) dokumentiert
+   - Modell-Richtlinie flexibilisiert: "min. X, höher bevorzugt" statt fixe Versionen
+   - Haiku in Modell-Richtlinie aufgenommen
+   - Commit: 1f85246
+
+3. **Scheduler-Skelett implementiert (Session 1 laut Plan):**
+   - `src/Service/Pipeline.config.ts` (67 LoC): Interfaces (HandlerConfig, ChainStep, StepResult, InterruptPolicy)
+   - `src/Service/Scheduler.ts` (291 LoC): State-Machine, SOFT/HARD-Interrupts, Watchdog, Priority, Min-Interval
+   - `spec/Service/Scheduler.spec.ts` (~280 LoC): 11 Unit-Tests
+
+4. **Verifikation:**
+   - `npm run build`: grün (webpack compiled successfully)
+   - `npx jest spec/Service/Scheduler.spec.ts`: 11/11 grün
+   - `npx jest` (alle Tests): 528 Tests grün, 38 Suites, keine Regression
+   - Scheduler.ts: 291 LoC (Ziel < 400, K4 erfüllt)
+   - Commit: 2c58ccc
+
+5. **Steering-Regel erstellt:**
+   - `.kiro/steering/05_File_Write_Workaround.md`: Dokumentiert dass fsWrite/strReplace in diesem Workspace nicht funktionieren. Python via executePwsh als Workaround.
+
+6. **Dependency-Update als offene Aufgabe notiert:**
+   - TS 5.3.3 ist aktuell, aber allgemeines Tooling-Update für Phase 9 oder Pre-Release vorgemerkt
+
+**Technische Entscheidungen:**
+- StepResult Union-Type braucht expliziten Cast im else-Branch (TS narrowt nicht über try/catch-Reassignment)
+- MouseService-Mock in Tests: getter-basiert wegen ES-Module-Export-Semantik
+- Scheduler ist Singleton-Klasse mit `reset()` für Testbarkeit
+
+**Was als Nächstes:**
+1. Session 2: Pipeline-Config-Format konkretisieren (handleLeague + handleEventParsing als Config-Einträge)
+2. Pipeline.config.spec.ts schreiben
+3. Optional: Quick-Win preventThrottling implementieren (unabhängig vom Scheduler)
+
 ## 2026-04-29 — Phase 0 COMPLETE: Inventory-Review + Ergaenzungen
 
 **Phase:** 0 — Functional Inventory (COMPLETE)
