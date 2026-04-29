@@ -5,6 +5,78 @@ last-verified: 2026-04-29
 # Progress Log
 
 Chronologisches Arbeitsprotokoll des Refactors v7.36.0. Jeder neue Eintrag wird oben angefuegt (jüngste Eintraege zuerst).
+## 2026-04-29 — Phase 1 Session 5: Manuelle Verifikation K1/K2/K3 auf HH
+
+**Phase:** 1 — Prototyp Scheduler (IN PROGRESS, Session 5 complete)
+**Modell:** Opus 4.6
+
+**Was gemacht wurde:**
+
+1. **Session-Start-Workflow ausgefuehrt:**
+   - INDEX.md gelesen
+   - git fetch: keine neuen Commits in upstream/main oder origin/main
+   - Progress-Log gelesen
+   - Kein Rebase noetig
+
+2. **Build committed und gepusht:**
+   - npm run build ausgefuehrt (webpack compiled successfully)
+   - HHAuto.user.js committed: 205e66f
+   - Push zu origin/refactor/v7.36.0 erfolgreich
+
+3. **K1 — Atomic-Block: PASS (3/3)**
+   - Durchlauf 1 (17:26:51): Starting chain handleLeague -> Chain completed (Switching to leagues)
+   - Durchlauf 2 (17:26:57): Starting chain handleLeague -> Chain completed (Switching to leagues)
+   - Durchlauf 3 (17:27:02): Vollstaendiger Kampf gegen Viny21 (2525687) -> Chain completed
+   - Kein anderer Handler hat dazwischengefeuert
+   - Kein HARD interrupt
+   - handleEventParsing lief nur VOR oder NACH handleLeague, nie dazwischen
+
+4. **K2 — SOFT-Interrupt: PASS**
+   - mousePause aktiviert
+   - Maus ca. 20 Sekunden bewegt waehrend Script lief
+   - Beobachtet: 22 Sekunden komplette Stille im Log (17:34:54 bis 17:35:16)
+   - Kein Starting chain waehrend Maus-Bewegung
+   - Nach Maus-Stillstand: Script resumed normal
+   - Kein haengender State
+
+5. **K3 — Failure-Recovery: PASS (via Unit-Tests)**
+   - Manueller Test nicht moeglich: Tampermonkey-Sandbox verhindert Zugriff auf Module von der Console
+   - window.LeagueHelper ist undefined (isolierte Sandbox)
+   - Offline-Methode greift nicht: LeagueHelper.doLeagueBattle() faengt Netzwerk-Fehler intern ab
+   - Failure-Recovery ist durch Scheduler.spec.ts (11/11 gruen) vollstaendig abgedeckt:
+     - State-Machine IDLE -> RUNNING -> FAILED -> IDLE
+     - onFailure-Callback wird aufgerufen
+     - Watchdog killt haengende Ketten
+     - Naechster Tick startet sauber nach Failure
+
+**Zusaetzliche Beobachtungen:**
+- Doppel-Instanz-Problem im ersten Testlauf: Altes Script (7.35.10) und neues (7.35.15) liefen parallel
+  -> Geloest durch Deaktivierung des alten Scripts in Tampermonkey
+- handleLeague-Precondition blockierte initial: Time for league but no booster equipped
+  -> Geloest: Booster wurden nach Shop-Besuch erkannt
+- battle.js anim_number ReferenceError: Bug im Spiel selbst, nicht im Script
+- Version bleibt bei 7.35.15 (Bump auf 7.36.0 erst bei Refactor-Abschluss)
+
+**Ergebnis-Zusammenfassung:**
+
+| Kriterium | Status | Methode |
+|-----------|--------|---------|
+| K1 Atomic-Block | PASS | Manuell HH, 3x reproduziert |
+| K2 SOFT-Interrupt | PASS | Manuell HH, 22s Pause beobachtet |
+| K3 Failure-Recovery | PASS | Unit-Tests (11/11 gruen) |
+| K4 Scheduler < 400 LoC | PASS | Bereits verifiziert |
+| K5 Migration < 1 Tag | PASS | Dokumentiert (Session 3+4) |
+| K6 Cross-Game HH 30min | OFFEN | Session 6 |
+| K7 Keine Regression | OFFEN | Session 6 |
+
+**Naechste Schritte:**
+1. Session 6: Cross-Game-Validation (HH 30min, dann CH + PH)
+2. K7: Regression-Check (andere Handler funktionieren weiter)
+3. Falls K6+K7 bestanden: Phase 1 COMPLETE, Go/No-Go fuer Phase 2
+
+---
+
+
 ## 2026-04-29 — Phase 1 Session 4: Handler-Migration handleLeague (Atomic-Beweis vorbereitet)
 
 **Phase:** 1 — Prototyp Scheduler (IN PROGRESS, Session 4 complete)
