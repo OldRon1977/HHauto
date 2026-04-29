@@ -444,3 +444,189 @@ Während des Refactors:
 - Vor Ablösung: Vergleich gegen `10-functional-inventory.md` ob alles abgedeckt
 
 Gleiches gilt für [page-mapping.md](../page-mapping.md) und [storage-keys.md](../storage-keys.md).
+
+---
+
+## 6. Quick-Wins (im Refactor-Branch implementierbar)
+
+Erkenntnisse aus der xnh0x/HH++-Analyse, die unabhaengig von den Hauptphasen umgesetzt werden koennen:
+
+### 6.1 serverNow() -- Zeitsynchronisation
+
+**Quelle:** xnh0x suckless
+**Problem:** HHAuto nutzt `Date.now()` fuer Timer-Vergleiche. Server-Zeit weicht ab -> Aktionen zu frueh/spaet.
+
+```typescript
+// Pattern aus suckless:
+const serverNow = () => Math.trunc(server_now_ts + (Date.now() - client_sync_ts) / 1000)
+```
+
+**Umsetzung:** `src/Helper/TimeHelper.ts` um `serverNow()` erweitern. `server_now_ts` aus Game-Variablen (`unsafeWindow.server_now_ts`) lesen, `client_sync_ts` beim Seitenlade setzen.
+
+### 6.2 Prevent Throttling -- AudioContext-Trick
+
+**Quelle:** xnh0x suckless
+**Problem:** Browser throttlen Background-Tabs (setTimeout auf 1000ms+). HHAuto laeuft im Hintergrund -> Loop wird extrem langsam.
+
+```typescript
+function preventThrottling(): void {
+  const context = new window.AudioContext()
+  const oscillator = context.createOscillator()
+  const gain = context.createGain()
+  oscillator.frequency.setValueAtTime(20, context.currentTime) // unhoerbar
+  gain.gain.setValueAtTime(0.001, context.currentTime)         // quasi-stumm
+  oscillator.connect(gain)
+  gain.connect(context.destination)
+  oscillator.start()
+}
+```
+
+**Umsetzung:** In `src/Service/StartService.ts` beim Init aufrufen. Optional per Setting abschaltbar.
+
+### 6.3 Labyrinth-Pathfinding via Dynamic Programming
+
+**Quelle:** xnh0x suckless
+**Problem:** HHAuto nutzt Brute-Force DFS O(2^n). xnh0x nutzt DP O(n) rueckwaerts vom Boss.
+
+**Vorteile:**
+- 4 Strategien waehlbar (XP, Coins, Kisses, Fists) statt nur "leichtester mit Treasure"
+- Datenquelle: `labyrinth_grid` (Game-Variable) statt DOM-Parsing
+- Reaktiv: MutationObserver bei Bewegung statt einmalig beim Laden
+
+**Umsetzung:** `src/Module/Labyrinth.ts` komplett ersetzen. Neuer Algorithmus in separater Datei `src/Module/LabyrinthPathfinder.ts`.
+
+### 6.4 doASAP -- MutationObserver statt Polling
+
+**Quelle:** xnh0x suckless / HH++ BDSM
+**Problem:** HHAuto pollt mit `$('.selector').length > 0`. Ineffizient, verpasst schnelle DOM-Aenderungen.
+
+```typescript
+function doASAP<T extends HTMLElement>(
+  callback: ($el: JQuery<T>) => void,
+  selector: string,
+  condition: ($el: JQuery<T>) => boolean = ($el) => $el.length > 0
+): void {
+  const $selected = $(selector)
+  if (condition($selected)) { callback($selected); return }
+  const observer = new MutationObserver(() => {
+    const $el = $(selector)
+    if (condition($el)) { observer.disconnect(); callback($el) }
+  })
+  observer.observe(document.documentElement, { childList: true, subtree: true })
+}
+```
+
+**Umsetzung:** Als Utility in `src/Helper/DomHelper.ts`. Schrittweise Polling-Stellen ersetzen.
+
+---
+
+## 7. Ergaenzung Phase 3 (Event-Bus): Konkrete AJAX-Patterns
+
+Basierend auf der xnh0x-Analyse sind folgende AJAX-Actions als EventMapping-Kandidaten identifiziert:
+
+### Bekannte hh_ajax Actions (aus Leagues++, suckless, League-Tracker)
+
+| Action | Beschreibung | GameEvent-Mapping |
+|--------|-------------|-------------------|
+| `do_battles_leagues` | League-Kampf ausloesen (1-3 Kaempfe) | `battle.league.completed` |
+| `do_battles_v4` | Standard-Kampf (Troll, Season, etc.) | `battle.completed` |
+| `leaderboard` | League-Leaderboard abrufen | `league.leaderboard.updated` |
+| `hero_update` | Hero-Daten aktualisieren | `hero.updated` |
+| `harem_update` | Harem-Daten aktualisieren | `harem.updated` |
+
+### onAjaxResponse als zentrales Pattern
+
+```typescript
+// Aus HH++ (jQuery.ajaxComplete):
+$(document).ajaxComplete((evt, xhr, opt) => {
+  if (opt?.data?.search?.(/action=do_battles_leagues/) >= 0) {
+    const response = JSON.parse(xhr.responseText)
+    if (response?.success) {
+      EventBus.emit('battle.league.completed', {
+        result: response.win ? 'win' : 'loss',
+        rewards: response.rewards,
+        heroChanges: response.hero_changes
+      })
+    }
+  }
+})
+```
+
+**Wichtig:** `onAjaxResponse` existiert bereits in `src/Utils/Utils.ts:26`, wird aber nur in 2 Modulen genutzt. Im Refactor wird es zum zentralen Event-Dispatch-Mechanismus in `EventMapping.ts`.
+
+---
+
+## 8. Ergaenzung Phase 5 (Game-API-Layer): SCHREIB-Operationen via hh_ajax
+
+### Paradigmenwechsel: navigate+click -> API-Call
+
+**IST-Zustand (HHAuto):**
+```typescript
+// League-Kampf: navigiere zur Seite, warte auf DOM, klicke Button
+gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeague"))
+// ... warte auf Seitenlade ...
+$('.battle-button').click()
+```
+
+**SOLL-Zustand (nach Refactor):**
+```typescript
+// League-Kampf: direkter API-Call, kein Seitenwechsel noetig
+GameApi.battle.leagues(opponentId, numberOfBattles)
+```
+
+### Bekannte SCHREIB-Endpoints (aus xnh0x Leagues++)
+
+```typescript
+class GameApiBattle {
+  async leagues(opponentId: string, battles: number = 3): Promise<BattleResult> {
+    return this.call({
+      action: 'do_battles_leagues',
+      id_opponent: opponentId,
+      number_of_battles: battles
+    })
+  }
+
+  async standard(opponentId: string): Promise<BattleResult> {
+    return this.call({
+      action: 'do_battles_v4',
+      id_opponent: opponentId
+    })
+  }
+
+  private async call(params: Record<string, unknown>): Promise<BattleResult> {
+    return new Promise((resolve, reject) => {
+      unsafeWindow.hh_ajax(params, (response: any) => {
+        if (response?.success) resolve(this.parseBattleResult(response))
+        else reject(new GameApiError('Battle failed', response))
+      })
+    })
+  }
+}
+```
+
+### Vorteile direkter API-Calls
+
+| Aspekt | navigate+click | hh_ajax direkt |
+|--------|---------------|----------------|
+| Geschwindigkeit | 2-5s (Seitenlade + DOM) | 200-500ms |
+| Fehleranfaelligkeit | Hoch (DOM-Aenderungen) | Niedrig (API stabil) |
+| Seiteneffekte | Navigiert weg von aktueller Seite | Bleibt auf aktueller Seite |
+| Parallelisierbar | Nein | Ja (mehrere Calls gleichzeitig) |
+| Detektierbarkeit | Sichtbar (Seitenwechsel) | Unsichtbar |
+
+### Einschraenkungen
+
+- Nicht alle Aktionen haben einen bekannten hh_ajax-Endpoint
+- Manche Aktionen erfordern vorherige Seitennavigation (z.B. Event-Seiten mit dynamischen IDs)
+- Anti-Bot-Detection koennte auf ungewoehnliche API-Call-Patterns reagieren -> ParanoiaService muss Delays einbauen
+- Schrittweise Migration: erst League-Battles, dann Troll, dann weitere
+
+### Datei-Verortung
+
+```
+src/Service/
+  GameApi.ts          -- Lese-Zugriffe (hero, harem, championData) [Phase 5 original]
+  GameApiBattle.ts    -- NEU: Schreib-Operationen (Kaempfe ausloesen)
+  GameApiShop.ts      -- NEU: Shop-Operationen (kaufen, verkaufen)
+  GameApiHarem.ts     -- NEU: Harem-Operationen (upgrade, equip)
+```

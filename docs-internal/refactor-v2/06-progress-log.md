@@ -1,5 +1,5 @@
 ---
-last-verified: 2026-04-27
+last-verified: 2026-04-29
 ---
 
 # Progress Log
@@ -7,6 +7,43 @@ last-verified: 2026-04-27
 Chronologisches Arbeitsprotokoll des Refactors v7.36.0. Jeder neue Eintrag wird oben angefuegt (jüngste Eintraege zuerst).
 
 ---
+
+## 2026-04-29 — Plan-Updates (xnh0x-Erkenntnisse) + Phase 0 gestartet (Functional Inventory inline)
+
+**Phase:** 0 — Functional Inventory (IN PROGRESS)
+**Modell:** Opus 4.6
+
+**Was gemacht wurde:**
+
+1. **Session-Start-Workflow ausgefuehrt:**
+   - INDEX.md gelesen
+   - git fetch --all: keine neuen Commits in upstream/main oder origin/main
+   - Progress-Log + Open-Questions gelesen
+   - Kein Rebase noetig (Code-Basis bleibt v7.35.15 upstream)
+
+2. **Plan-Dateien aktualisiert (01-target-architecture.md):**
+   - Frontmatter auf 2026-04-29 aktualisiert
+   - Sektion 6 (Quick-Wins) ergaenzt: serverNow(), Prevent Throttling, Labyrinth DP, doASAP
+   - Sektion 7 (Event-Bus AJAX-Patterns) ergaenzt: konkrete hh_ajax Actions, onAjaxResponse als zentrales Pattern
+   - Sektion 8 (Game-API SCHREIB-Ops) ergaenzt: Paradigmenwechsel navigate+click -> API-Call, GameApiBattle-Klasse
+
+3. **Q2 in 09-open-questions.md als GESCHLOSSEN markiert:**
+   - Entscheidung: (a) Inline in der Hauptkonversation
+   - Begruendung: Sub-Agent-Quota-Probleme vermeiden, kontrollierbar Sektion fuer Sektion
+
+4. **Phase 0 gestartet — 10-functional-inventory.md erstellt:**
+   - Vollstaendiges Inventory mit ~430 Eintraegen
+   - 13 Sektionen: Handlers, Services, Modules, Helpers, Utils, Config, Models, i18n, Storage-Keys, UI, Cross-Cutting, Tests, Build
+   - Alle Eintraege initial auf Status "open"
+   - Quelle: Code-Verzeichnisstruktur + verifizierte Fakten aus Doku-Audit
+
+**Was als Naechstes:**
+
+1. Inventory-Review: Vollstaendigkeit pruefen (fehlende Eintraege?)
+2. Commit + Push zu origin/refactor/v7.36.0
+3. Phase 1 vorbereiten: Prototyp-Spec reviewen
+
+
 
 ## 2026-04-29 — Cross-Laptop-Setup, Rebase auf v7.35.14, Push zu origin
 

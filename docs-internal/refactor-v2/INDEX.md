@@ -14,12 +14,12 @@ target-version: 7.36.0
 
 | Feld | Wert |
 |------|------|
-| Phase | 0 — Functional Inventory (offen — Sub-Agent-Versuch ist an Quota-Limit gescheitert, Methodenfrage offen) |
+| Phase | 0 — Functional Inventory (IN PROGRESS — inline, Sektion für Sektion) |
 | Letzte Aktualisierung | 2026-04-29 |
 | Branch | `refactor/v7.36.0` (lokal + auf `origin/refactor/v7.36.0` gepusht für Multi-Laptop-Sync) |
-| Code-Basis | rebased auf v7.35.14 (war ursprünglich von v7.35.10) |
-| Nächster Schritt | Offene Fragen in [09-open-questions.md](09-open-questions.md) beantworten, dann Phase 0 erneut starten |
-| Blocker | Inventory-Methodenwahl (Inline / Sub-Agent / Manuell) — siehe `09-open-questions.md` |
+| Code-Basis | rebased auf v7.35.15 (upstream/main Stand 2026-04-29) |
+| Nächster Schritt | Inventory-Review, dann Commit + Push |
+| Blocker | keiner |
 | Doku-Stand | `docs-internal/*.md` auf v7.35.14 verifiziert (deep-verify gegen v7.35.10, Delta minimal — siehe Frontmatter-Notizen) |
 
 ---
