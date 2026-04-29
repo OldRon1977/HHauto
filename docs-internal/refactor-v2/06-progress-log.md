@@ -8,6 +8,46 @@ Chronologisches Arbeitsprotokoll des Refactors v7.36.0. Jeder neue Eintrag wird 
 
 ---
 
+## 2026-04-29 — Phase 0 COMPLETE: Inventory-Review + Ergaenzungen
+
+**Phase:** 0 — Functional Inventory (COMPLETE)
+**Modell:** Opus 4.6
+
+**Was gemacht wurde:**
+
+1. **Session-Start-Workflow ausgefuehrt:**
+   - INDEX.md gelesen
+   - git fetch --all: keine neuen Commits in upstream/main oder origin/main
+   - Progress-Log gelesen
+   - Kein Rebase noetig
+
+2. **Inventory-Review gegen Code durchgefuehrt:**
+   - Alle src/-Verzeichnisse gegen Inventory abgeglichen
+   - AutoLoopPageHandlers.ts analysiert: 31 Page-Cases identifiziert
+   - Alle 37 Spec-Files explizit gelistet
+   - Fehlende Eintraege identifiziert und ergaenzt
+
+3. **Fehlende Eintraege ergaenzt:**
+   - Sektion 0 (NEU): src/index.ts (Einstiegspunkt) + 11 Barrel-Export index.ts-Dateien
+   - Sektion 1.1 (NEU): 31 Page-Handler-Cases detailliert aufgelistet
+   - Sektion 12 (ERWEITERT): Alle 37 Spec-Files + 2 Infra-Dateien explizit gelistet
+   - Zusammenfassung aktualisiert: ~430 -> ~480 Eintraege
+   - handlePageSpecific-Beschreibung praezisiert
+
+4. **Frontmatter aktualisiert:**
+   - status: in-progress -> complete
+   - verified-against-version: 7.35.14 -> 7.35.15
+
+**Ergebnis:** Phase 0 ist VOLLSTAENDIG. Keine weiteren Luecken identifiziert.
+
+**Was als Naechstes:**
+
+1. Commit + Push zu origin/refactor/v7.36.0
+2. Phase 1 vorbereiten: 03-prototype-spec.md reviewen
+3. Ersten Handler fuer Prototyp identifizieren (Empfehlung: handleTrollBattle)
+
+---
+
 ## 2026-04-29 — Plan-Updates (xnh0x-Erkenntnisse) + Phase 0 gestartet (Functional Inventory inline)
 
 **Phase:** 0 — Functional Inventory (IN PROGRESS)

@@ -1,10 +1,10 @@
 ﻿---
 last-verified: 2026-04-29
-verified-against-version: 7.35.14
-status: in-progress
+verified-against-version: 7.35.15
+status: complete
 ---
 
-# Functional Inventory — HHAuto v7.35.14
+# Functional Inventory — HHAuto v7.35.15
 
 Master-Checkliste fuer "keine Funktion darf fehlen". Quelle der Wahrheit: Code.
 Jeder Eintrag muss am Ende des Refactors als "migriert" oder "bewusst entfernt" markiert sein.
@@ -15,6 +15,34 @@ Jeder Eintrag muss am Ende des Refactors als "migriert" oder "bewusst entfernt" 
 - `migrated` — fertig migriert
 - `removed` — bewusst entfernt (mit Begruendung)
 - `deferred` — auf spaetere Phase verschoben
+
+---
+
+## 0. Einstiegspunkt + Barrel-Exports
+
+### 0.1 Einstiegspunkt
+
+| Datei | Beschreibung | Status |
+|---|---|---|
+| src/index.ts | Webpack-Entry: globale Window-Interface-Deklaration + hardened_start() Aufruf | open |
+
+### 0.2 Barrel-Exports (index.ts-Dateien)
+
+Re-Export-Dateien die Module-Grenzen definieren. Relevant fuer Refactor weil sie die oeffentliche API jedes Layers festlegen.
+
+| Datei | Layer | Status |
+|---|---|---|
+| src/Service/index.ts | Service-Layer (15 Re-Exports) | open |
+| src/Module/index.ts | Module-Root | open |
+| src/Module/Events/index.ts | Events-Subsystem | open |
+| src/Module/harem/index.ts | Harem-Subsystem | open |
+| src/Helper/index.ts | Helper-Layer | open |
+| src/Utils/index.ts | Utils-Layer | open |
+| src/config/index.ts | Config-Layer | open |
+| src/config/game/index.ts | Game-Varianten | open |
+| src/model/index.ts | Models | open |
+| src/model/KK/index.ts | KK-Models | open |
+| src/i18n/index.ts | i18n-Layer | open |
 
 ---
 
@@ -63,8 +91,46 @@ Implementierung: `src/Service/AutoLoopActions.ts` (1040 LoC)
 
 | Handler | Datei | Beschreibung | Status |
 |---|---|---|---|
-| handlePageSpecific | AutoLoopPageHandlers.ts | Seitenspezifische UI-Handler (laeuft NACH der Sequenz) | open |
+| handlePageSpecific | AutoLoopPageHandlers.ts | Dispatcher: switch ueber ctx.currentPage (31 Cases, siehe 1.1) | open |
 | handleGoHome | AutoLoopActions.ts | Zurueck zur Home-Seite navigieren | open |
+
+### 1.1 Page-Handler-Cases (in handlePageSpecific)
+
+Quelle: src/Service/AutoLoopPageHandlers.ts - switch(ctx.currentPage)
+
+| # | Page-ID | Hauptaktion | Status |
+|---|---|---|---|
+| 1 | pagesIDLeaderboard | LeagueHelper.moduleSimLeague + styles | open |
+| 2 | pagesIDSeasonArena | Season.stylesBattle + moduleSimSeasonBattle | open |
+| 3 | pagesIDSeason | Season.styles + getRemainingTime + displayRewardsDiv | open |
+| 4 | pagesIDPentaDrillArena | PentaDrill.stylesBattle + moduleSimPentaDrillBattle | open |
+| 5 | pagesIDPentaDrill | PentaDrill.styles + getRemainingTime + displayRewardsDiv | open |
+| 6 | pagesIDEvent | EventModule.parseEventPage + BossBang/PoA/DP/LivelyScene | open |
+| 7 | pagesIDBossBang | BossBang.skipFightPage | open |
+| 8 | pagesIDPoA | PathOfAttraction.runOld (AllMaskRewards) | open |
+| 9 | pagesIDPowerplacemain | PlaceOfPower.moduleDisplayPopID | open |
+| 10 | pagesIDDailyGoals | DailyGoals.parse | open |
+| 11 | pagesIDMissions | DailyGoals.parse | open |
+| 12 | pagesIDShop | Shop.moduleShopActions + Booster.collectBoostersFromMarket | open |
+| 13 | pagesIDHome | Season/PoV/PoG displayRemainingTime + Spreadsheet + DailyGoalsIcon + AdsService | open |
+| 14 | pagesIDHarem | Harem.moduleHarem + Harem.run | open |
+| 15 | pagesIDGirlPage | HaremGirl.moduleHaremGirl + showSkillButtons + run | open |
+| 16 | pagesIDPachinko | Pachinko.modulePachinko | open |
+| 17 | pagesIDEditTeam | TeamModule.moduleChangeTeam + Harem-Export | open |
+| 18 | pagesIDBattleTeams | TeamModule.moduleEquipTeam + Harem-Export | open |
+| 19 | pagesIDWaifu | Harem-Export + Harem.run | open |
+| 20 | pagesIDContests | DailyGoals.parse + Contest.setTimers | open |
+| 21 | pagesIDPoV | PathOfValue.maskReward + getRemainingTime + displayRewardsPovPogDiv | open |
+| 22 | pagesIDPoG | PathOfGlory.maskReward + getRemainingTime + displayRewardsPovPogDiv | open |
+| 23 | pagesIDSeasonalEvent | SeasonalEvent.styles + getRemainingTime | open |
+| 24 | pagesIDChampionsMap | Champion.findNextChamptionTime | open |
+| 25 | pagesIDChampionsPage | Champion.moduleSimChampions | open |
+| 26 | pagesIDClubChampion | Champion.moduleSimChampions + ClubChampion.resetTimerIfNeeded | open |
+| 27 | pagesIDQuest | HaremGirl.payGirlQuest (wenn haremGirlMode aktiv) | open |
+| 28 | pagesIDClub | Club.run | open |
+| 29 | pagesIDLoveRaid | LoveRaidManager.styles + parse | open |
+| 30 | pagesIDLabyrinth | Labyrinth.sim | open |
+| 31 | pagesIDEditLabyrinthTeam | Labyrinth.moduleBuildTeam | open |
 
 ---
 
@@ -332,13 +398,81 @@ Vollstaendige Auflistung in `src/config/StorageKeys.ts`. Hier nur Kategorien:
 
 ## 12. Tests (37 Spec-Files, 510 Tests)
 
-| Test-Suite | Datei | Tests | Status |
-|---|---|---|---|
-| TeamScoringService | spec/Service/TeamScoringService.spec.ts | 58 | open |
-| TeamBuilderService | spec/Service/TeamBuilderService.spec.ts | 22 | open |
-| (weitere 35 Spec-Files) | spec/**/*.spec.ts | 430 | open |
+### 12.1 Service-Tests (spec/Service/)
 
-**Hinweis:** Vollstaendige Test-Auflistung wird bei Bedarf ergaenzt. Alle Tests muessen nach Refactor weiterhin gruen sein.
+| Test-Suite | Datei | Status |
+|---|---|---|
+| TeamScoringService | spec/Service/TeamScoringService.spec.ts | open |
+| TeamBuilderService | spec/Service/TeamBuilderService.spec.ts | open |
+| PageNavigationService | spec/Service/PageNavigationService.spec.ts | open |
+| ParanoiaService | spec/Service/ParanoiaService.spec.ts | open |
+
+### 12.2 Helper-Tests (spec/Helper/)
+
+| Test-Suite | Datei | Status |
+|---|---|---|
+| BDSMHelper | spec/Helper/BDSMHelper.spec.ts | open |
+| ButtonHelper | spec/Helper/ButtonHelper.spec.ts | open |
+| ConfigHelper | spec/Helper/ConfigHelper.spec.ts | open |
+| HeroHelper | spec/Helper/HeroHelper.spec.ts | open |
+| NumberHelper | spec/Helper/NumberHelper.spec.ts | open |
+| PageHelper | spec/Helper/PageHelper.spec.ts | open |
+| PriceHelper | spec/Helper/PriceHelper.spec.ts | open |
+| RewardHelper | spec/Helper/RewardHelper.spec.ts | open |
+| TimeHelper | spec/Helper/TimeHelper.spec.ts | open |
+| TimerHelper | spec/Helper/TimerHelper.spec.ts | open |
+
+### 12.3 Module-Tests (spec/Module/)
+
+| Test-Suite | Datei | Status |
+|---|---|---|
+| Booster | spec/Module/Booster.spec.ts | open |
+| Champion | spec/Module/Champion.spec.ts | open |
+| ClubChampion | spec/Module/ClubChampion.spec.ts | open |
+| Contest | spec/Module/Contest.spec.ts | open |
+| Labyrinth | spec/Module/Labyrinth.spec.ts | open |
+| League | spec/Module/League.spec.ts | open |
+| MonthlyCards | spec/Module/MonthlyCards.spec.ts | open |
+| Pachinko | spec/Module/Pachinko.spec.ts | open |
+| Pantheon | spec/Module/Pantheon.spec.ts | open |
+| PathOfGlory | spec/Module/PathOfGlory.spec.ts | open |
+| PathOfValue | spec/Module/PathOfValue.spec.ts | open |
+| PentaDrill | spec/Module/PentaDrill.spec.ts | open |
+| PlaceOfPower | spec/Module/PlaceOfPower.spec.ts | open |
+| Quest | spec/Module/Quest.spec.ts | open |
+| RelicManager | spec/Module/RelicManager.spec.ts | open |
+| Troll | spec/Module/Troll.spec.ts | open |
+
+### 12.4 Events-Tests (spec/Module/Events/)
+
+| Test-Suite | Datei | Status |
+|---|---|---|
+| EventModule | spec/Module/Events/EventModule.spec.ts | open |
+| PathOfAttraction | spec/Module/Events/PathOfAttraction.spec.ts | open |
+| Season | spec/Module/Events/Season.spec.ts | open |
+| SeasonalEvent | spec/Module/Events/SeasonalEvent.spec.ts | open |
+| SultryMysteries | spec/Module/Events/SultryMysteries.spec.ts | open |
+
+### 12.5 Harem-Tests (spec/Module/harem/)
+
+| Test-Suite | Datei | Status |
+|---|---|---|
+| HaremGirl | spec/Module/harem/HaremGirl.spec.ts | open |
+
+### 12.6 Utils-Tests (spec/Utils/)
+
+| Test-Suite | Datei | Status |
+|---|---|---|
+| BrowserUtils | spec/Utils/Browertils.spec.ts | open |
+
+### 12.7 Test-Infrastruktur
+
+| Datei | Beschreibung | Status |
+|---|---|---|
+| spec/setup-jest.js | Jest-Setup (globale Mocks, DOM-Environment) | open |
+| spec/testHelpers/MockHelpers.ts | Shared Mock-Utilities fuer Tests | open |
+
+**Alle 510 Tests muessen nach Refactor weiterhin gruen sein.**
 
 ---
 
@@ -358,7 +492,10 @@ Vollstaendige Auflistung in `src/config/StorageKeys.ts`. Hier nur Kategorien:
 
 | Kategorie | Anzahl |
 |---|---|
+| Einstiegspunkt | 1 |
+| Barrel-Exports (index.ts) | 11 |
 | Action-Handlers | 33 + 2 |
+| Page-Handler-Cases | 31 |
 | Services | 16 |
 | Module (Root) | 25 |
 | Module (Events) | 16 |
@@ -369,5 +506,6 @@ Vollstaendige Auflistung in `src/config/StorageKeys.ts`. Hier nur Kategorien:
 | Models | 12 + 12 KK |
 | i18n | 6 |
 | Storage-Keys | 179 SK + 89 TK |
-| Tests | 510 in 37 Files |
-| **Gesamt-Eintraege** | **~430** |
+| Tests | 510 in 37 Files + 2 Infra |
+| Build | 5 |
+| **Gesamt-Eintraege** | **~480** |
