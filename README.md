@@ -16,6 +16,16 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.17 - Multi-team comparison for optimal selection
+
+Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573).
+
+The team selection algorithm now builds multiple candidate teams (one per trait group) and compares their effective power (total stats multiplied by Tier 3 bonus). The team with the highest effective power wins, regardless of whether it matches the active blessing. The info box now shows the effective power and a comparison of all evaluated trait groups, so you can see exactly why a particular team was chosen - even if it differs from the current blessing.
+
+Additionally fixed: blessing value parsing for "Favorite position" and "Zodiac sign" patterns, and "Best Possible" mode no longer returns lower values than "Current Best" for fully leveled girls.
+
+---
+
 ### v7.35.16 - Blessing-aware team selection, Penta Drill fix, auto-buy timer restored
 
 Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573), [#1593](https://github.com/Roukys/HHauto/issues/1593), [#1594](https://github.com/Roukys/HHauto/issues/1594).
