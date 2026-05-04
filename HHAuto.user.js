@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.15
+// @version      7.35.16
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -207,7 +207,7 @@ HHAuto_ToolTips.en['showHaremTools'] = { version: "7.29.17", elementText: "Show 
 HHAuto_ToolTips.en['showHaremSkillsButtons'] = { version: "7.29.17", elementText: "Show Skills Buttons", tooltip: "Show upgrade skill buttons in Harem" };
 HHAuto_ToolTips.en['autoActivitiesTitle'] = { version: "5.6.24", elementText: "Activities" };
 HHAuto_ToolTips.en['buyCombat'] = { version: "5.6.24", elementText: "Buy comb. for events", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>If enabled : <br>Buying combat point during last X hours of event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
-HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Combats", tooltip: "(Integer)<br>X last hours of event" };
+HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Event Combs.", tooltip: "(Integer)<br>X last hours of event" };
 HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & Leg. Boosters", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Allow to buy booster in the market (if not going under Koban bank value)" };
 HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(values separated by ;)<br>Set list of codes of booster to buy, order is respected.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura" };
 HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
@@ -348,7 +348,7 @@ HHAuto_ToolTips.en['autoClubChamp'] = { version: "5.6.24", elementText: "Club", 
 HHAuto_ToolTips.en['autoClubForceStart'] = { version: "5.6.24", elementText: "Force start", tooltip: "if enabled, will fight club champion even if not started." };
 HHAuto_ToolTips.en['autoTrollMythicByPassParanoia'] = { version: "5.6.24", elementText: "Mythic bypass Paranoia", tooltip: "Allow mythic to bypass paranoia.<br>if next wave is during rest, it will force it to wake up for wave.<br>If still fight or can buy fights it will continue." };
 HHAuto_ToolTips.en['buyMythicCombat'] = { version: "5.6.24", elementText: "Buy comb. for mythic event", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>If enabled : <br>Buying combat point during last X hours of mythic event (if not going under Koban bank value), this will bypass threshold if mythic girl shards available." };
-HHAuto_ToolTips.en['buyMythicCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Mythic Combats", tooltip: "(Integer)<br>X last hours of mythic event" };
+HHAuto_ToolTips.en['buyMythicCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Mythic Combs.", tooltip: "(Integer)<br>X last hours of mythic event" };
 HHAuto_ToolTips.en['DebugResetTimerText'] = { version: "5.6.24", elementText: "Selector below allow you to reset ongoing timers", tooltip: "" };
 HHAuto_ToolTips.en['timerResetSelector'] = { version: "5.6.24", elementText: "Select Timer", tooltip: "Select the timer you want to reset" };
 HHAuto_ToolTips.en['timerResetButton'] = { version: "5.6.24", elementText: "Reset", tooltip: "Set the timer to 0." };
@@ -17371,6 +17371,13 @@ class TeamScoringService {
 
 const TEAM_SIZE = 7;
 const CANDIDATE_POOL_SIZE = 50;
+// Map trait category to its element pair for quick lookup
+const ELEMENT_PAIRS_MAP = {
+    'eyeColor': ['darkness', 'fire'],
+    'hairColor': ['light', 'nature'],
+    'zodiac': ['stone', 'psychic'],
+    'position': ['water', 'sun'],
+};
 // Default fallback trait when no good group is found
 const FALLBACK_TRAIT_CATEGORY = 'eyeColor';
 class TeamBuilderService {
@@ -17419,34 +17426,57 @@ class TeamBuilderService {
         const traitCategory = (bestGroup === null || bestGroup === void 0 ? void 0 : bestGroup.traitCategory) || FALLBACK_TRAIT_CATEGORY;
         const traitValue = (bestGroup === null || bestGroup === void 0 ? void 0 : bestGroup.traitValue) || '';
         const traitGroupGirls = (bestGroup === null || bestGroup === void 0 ? void 0 : bestGroup.girls) || [];
-        // Phase 4: Select Leader
-        const rankedLeaders = TeamScoringService.rankLeaderCandidates(pool, scoreMap, traitCategory, traitValue);
+        // Phase 4: Select Leader (must be Mythic, prefer element matching trait)
+        const traitElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
+        const traitMatchLeaders = pool.filter(g => g.rarity === 'mythic' && traitElements.includes(g.element));
+        const leaderPool = traitMatchLeaders.length > 0 ? traitMatchLeaders : pool;
+        const rankedLeaders = TeamScoringService.rankLeaderCandidates(leaderPool, scoreMap, traitCategory, traitValue);
         const leader = rankedLeaders[0];
-        // Phase 5: Fill slots 2-7 (unified: trait group + stats + synergy + tier 3)
+        // Phase 5: Fill slots 2-7 (trait-consistent)
+        // Priority: girls from the trait-matching element pair with matching trait value
+        // Then: girls from the trait-matching element pair (any trait value)
+        // Then: fill remaining slots by stats from any element
         const team = [leader];
         const teamElements = [leader.element];
         const used = new Set([leader.id_girl]);
-        for (let slot = 1; slot < TEAM_SIZE; slot++) {
-            let bestGirl = null;
-            let bestCombinedScore = -Infinity;
-            const teamStatTotal = team.reduce((sum, g) => sum + (scoreMap.get(g.id_girl) || 0), 0);
-            for (const candidate of pool) {
-                if (used.has(candidate.id_girl))
-                    continue;
-                const statScore = scoreMap.get(candidate.id_girl) || 0;
-                const synergyScore = TeamScoringService.scoreWithSynergy(candidate, teamElements, statScore, maxStat, 0.05);
-                const tier3Delta = TeamScoringService.estimateTier3Delta(candidate, team, traitCategory, traitValue, teamStatTotal);
-                const combinedScore = synergyScore + tier3Delta;
-                if (combinedScore > bestCombinedScore) {
-                    bestCombinedScore = combinedScore;
-                    bestGirl = candidate;
-                }
-            }
-            if (!bestGirl)
+        // First pass: fill from trait-matching girls (same element pair + same trait value)
+        const traitMatchGirls = pool.filter(g => !used.has(g.id_girl)
+            && traitElements.includes(g.element)
+            && TeamScoringService.getTraitValue(g) === traitValue).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
+        for (const girl of traitMatchGirls) {
+            if (team.length >= TEAM_SIZE)
                 break;
-            team.push(bestGirl);
-            teamElements.push(bestGirl.element);
-            used.add(bestGirl.id_girl);
+            if (used.has(girl.id_girl))
+                continue;
+            team.push(girl);
+            teamElements.push(girl.element);
+            used.add(girl.id_girl);
+        }
+        // Second pass: fill from same element pair (different trait value, still gets partial bonus)
+        if (team.length < TEAM_SIZE) {
+            const sameElementGirls = pool.filter(g => !used.has(g.id_girl)
+                && traitElements.includes(g.element)).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
+            for (const girl of sameElementGirls) {
+                if (team.length >= TEAM_SIZE)
+                    break;
+                if (used.has(girl.id_girl))
+                    continue;
+                team.push(girl);
+                teamElements.push(girl.element);
+                used.add(girl.id_girl);
+            }
+        }
+        // Third pass: fill remaining slots by pure stats (any element)
+        if (team.length < TEAM_SIZE) {
+            const remaining = pool.filter(g => !used.has(g.id_girl))
+                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
+            for (const girl of remaining) {
+                if (team.length >= TEAM_SIZE)
+                    break;
+                team.push(girl);
+                teamElements.push(girl.element);
+                used.add(girl.id_girl);
+            }
         }
         if (team.length < TEAM_SIZE) {
             return null;

@@ -38,6 +38,14 @@ export type ScoringMode = 1 | 2;  // 1 = Current Best, 2 = Best Possible
 const TEAM_SIZE = 7;
 const CANDIDATE_POOL_SIZE = 50;
 
+// Map trait category to its element pair for quick lookup
+const ELEMENT_PAIRS_MAP: Record<string, ElementType[]> = {
+    'eyeColor': ['darkness', 'fire'],
+    'hairColor': ['light', 'nature'],
+    'zodiac': ['stone', 'psychic'],
+    'position': ['water', 'sun'],
+};
+
 // Default fallback trait when no good group is found
 const FALLBACK_TRAIT_CATEGORY: TraitCategory = 'eyeColor';
 
@@ -104,48 +112,65 @@ export class TeamBuilderService {
         const traitValue = bestGroup?.traitValue || '';
         const traitGroupGirls = bestGroup?.girls || [];
 
-        // Phase 4: Select Leader
+        // Phase 4: Select Leader (must be Mythic, prefer element matching trait)
+        const traitElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
+        const traitMatchLeaders = pool.filter(g => g.rarity === 'mythic' && traitElements.includes(g.element));
+        const leaderPool = traitMatchLeaders.length > 0 ? traitMatchLeaders : pool;
         const rankedLeaders = TeamScoringService.rankLeaderCandidates(
-            pool, scoreMap, traitCategory, traitValue
+            leaderPool, scoreMap, traitCategory, traitValue
         );
         const leader = rankedLeaders[0];
 
-        // Phase 5: Fill slots 2-7 (unified: trait group + stats + synergy + tier 3)
+        // Phase 5: Fill slots 2-7 (trait-consistent)
+        // Priority: girls from the trait-matching element pair with matching trait value
+        // Then: girls from the trait-matching element pair (any trait value)
+        // Then: fill remaining slots by stats from any element
         const team: GirlData[] = [leader];
         const teamElements: ElementType[] = [leader.element];
         const used = new Set<number>([leader.id_girl]);
 
-        for (let slot = 1; slot < TEAM_SIZE; slot++) {
-            let bestGirl: GirlData | null = null;
-            let bestCombinedScore = -Infinity;
+        // First pass: fill from trait-matching girls (same element pair + same trait value)
+        const traitMatchGirls = pool.filter(g =>
+            !used.has(g.id_girl)
+            && traitElements.includes(g.element)
+            && TeamScoringService.getTraitValue(g) === traitValue
+        ).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
 
-            const teamStatTotal = team.reduce(
-                (sum, g) => sum + (scoreMap.get(g.id_girl) || 0), 0
-            );
+        for (const girl of traitMatchGirls) {
+            if (team.length >= TEAM_SIZE) break;
+            if (used.has(girl.id_girl)) continue;
+            team.push(girl);
+            teamElements.push(girl.element);
+            used.add(girl.id_girl);
+        }
 
-            for (const candidate of pool) {
-                if (used.has(candidate.id_girl)) continue;
+        // Second pass: fill from same element pair (different trait value, still gets partial bonus)
+        if (team.length < TEAM_SIZE) {
+            const sameElementGirls = pool.filter(g =>
+                !used.has(g.id_girl)
+                && traitElements.includes(g.element)
+            ).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
 
-                const statScore = scoreMap.get(candidate.id_girl) || 0;
-                const synergyScore = TeamScoringService.scoreWithSynergy(
-                    candidate, teamElements, statScore, maxStat, 0.05
-                );
-                const tier3Delta = TeamScoringService.estimateTier3Delta(
-                    candidate, team, traitCategory, traitValue, teamStatTotal
-                );
-                const combinedScore = synergyScore + tier3Delta;
-
-                if (combinedScore > bestCombinedScore) {
-                    bestCombinedScore = combinedScore;
-                    bestGirl = candidate;
-                }
+            for (const girl of sameElementGirls) {
+                if (team.length >= TEAM_SIZE) break;
+                if (used.has(girl.id_girl)) continue;
+                team.push(girl);
+                teamElements.push(girl.element);
+                used.add(girl.id_girl);
             }
+        }
 
-            if (!bestGirl) break;
+        // Third pass: fill remaining slots by pure stats (any element)
+        if (team.length < TEAM_SIZE) {
+            const remaining = pool.filter(g => !used.has(g.id_girl))
+                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
 
-            team.push(bestGirl);
-            teamElements.push(bestGirl.element);
-            used.add(bestGirl.id_girl);
+            for (const girl of remaining) {
+                if (team.length >= TEAM_SIZE) break;
+                team.push(girl);
+                teamElements.push(girl.element);
+                used.add(girl.id_girl);
+            }
         }
 
         if (team.length < TEAM_SIZE) {
