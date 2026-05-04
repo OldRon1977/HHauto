@@ -33,6 +33,8 @@ export interface GirlData {
     hairColor?: string;
     eyeColor?: string;
     position?: string;
+    // Blessing data (from game API)
+    blessingBonuses?: any;
 }
 
 export interface SynergyBonuses {
@@ -231,14 +233,62 @@ export class TeamScoringService {
     }
 
     /**
+     * Detect which trait categories are currently blessed by analyzing
+     * blessing_bonuses across all girls. Returns a set of blessed TraitCategories.
+     */
+    static detectBlessedTraits(girls: GirlData[]): { blessedCategories: Set<TraitCategory>; blessedGirlCount: number } {
+        const blessedCategories = new Set<TraitCategory>();
+        let blessedGirlCount = 0;
+
+        for (const girl of girls) {
+            if (!girl.blessingBonuses) continue;
+            const bonuses = girl.blessingBonuses;
+            if (typeof bonuses !== 'object') continue;
+
+            let hasBlessing = false;
+            for (const key of Object.keys(bonuses)) {
+                const lk = key.toLowerCase();
+                if (lk.includes('zodiac') || lk.includes('sign') || lk.includes('astro')) {
+                    blessedCategories.add('zodiac');
+                    hasBlessing = true;
+                }
+                if (lk.includes('hair') || lk.includes('cheveu')) {
+                    blessedCategories.add('hairColor');
+                    hasBlessing = true;
+                }
+                if (lk.includes('eye') || lk.includes('yeux') || lk.includes('oeil')) {
+                    blessedCategories.add('eyeColor');
+                    hasBlessing = true;
+                }
+                if (lk.includes('position') || lk.includes('pose') || lk.includes('favourite_position')) {
+                    blessedCategories.add('position');
+                    hasBlessing = true;
+                }
+            }
+            if (!hasBlessing) {
+                for (const val of Object.values(bonuses)) {
+                    if (typeof val === 'number' && val > 0) {
+                        hasBlessing = true;
+                        break;
+                    }
+                }
+            }
+            if (hasBlessing) blessedGirlCount++;
+        }
+
+        return { blessedCategories, blessedGirlCount };
+    }
+
+    /**
      * Find all possible trait groups from a pool of girls.
      *
      * For each element pair, groups girls by their shared trait value
      * and scores each group. Position groups receive a penalty.
+     * Groups matching a currently blessed trait receive a bonus.
      *
      * Returns groups sorted by score descending.
      */
-    static findTraitGroups(girls: GirlData[]): TraitGroupResult[] {
+    static findTraitGroups(girls: GirlData[], blessedCategories?: Set<TraitCategory>): TraitGroupResult[] {
         const results: TraitGroupResult[] = [];
 
         for (const pair of ELEMENT_PAIRS) {
@@ -261,6 +311,11 @@ export class TeamScoringService {
                 // Position trait penalty (reduces attack stats via equipment)
                 if (pair.trait === 'position') {
                     score *= POSITION_TRAIT_PENALTY;
+                }
+
+                // Blessing boost: if this trait category is currently blessed, boost score
+                if (blessedCategories && blessedCategories.has(pair.trait)) {
+                    score *= 1.5;
                 }
 
                 results.push({

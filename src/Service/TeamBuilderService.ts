@@ -29,6 +29,8 @@ export interface TeamResult {
     traitValue: string;             // the matching trait value
     tier3Bonus: number;             // total Tier 3 bonus %
     traitMatchCount: number;        // how many girls match the trait
+    blessedCategories: string[];   // currently blessed trait categories
+    blessedGirlCount: number;      // how many girls have active blessings
 }
 
 export type ScoringMode = 1 | 2;  // 1 = Current Best, 2 = Best Possible
@@ -78,8 +80,11 @@ export class TeamBuilderService {
 
         const maxStat = scoreMap.get(pool[0].id_girl) || 1;
 
-        // Phase 3: Find best trait group
-        const traitGroups = TeamScoringService.findTraitGroups(pool);
+        // Phase 2b: Detect active blessings
+        const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
+
+        // Phase 3: Find best trait group (blessing-aware)
+        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories);
         let bestGroup: TraitGroupResult | null = null;
 
         if (traitGroups.length > 0 && traitGroups[0].girls.length >= 3) {
@@ -175,6 +180,8 @@ export class TeamBuilderService {
             traitValue,
             tier3Bonus,
             traitMatchCount,
+            blessedCategories: Array.from(blessedCategories),
+            blessedGirlCount,
         };
     }
 

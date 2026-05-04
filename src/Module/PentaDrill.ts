@@ -175,7 +175,7 @@ export class PentaDrill {
             performButton.trigger('click');
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
-            await TimeHelper.sleep(randomInterval(2000, 3000));
+            await TimeHelper.sleep(randomInterval(4000, 6000));
             //setTimer('nextPentaDrillTime',10);
             return true;
         }

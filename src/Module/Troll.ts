@@ -768,6 +768,7 @@ export class Troll {
                     getStoredValue(HHStoredVarPrefixKey+SK.buyCombat) =="true"
                     && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true"
                     && getSecondsLeft("eventGoing") !== 0
+                    && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) * 3600)
                     && eventGirl.girl_id && !eventGirl.is_mythic
                 )
                 ||
@@ -775,6 +776,7 @@ export class Troll {
                     getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true"
                     && getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true"
                     && getSecondsLeft("eventMythicGoing") !== 0
+                    && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) * 3600)
                     && eventGirl.is_mythic
                 )
             )

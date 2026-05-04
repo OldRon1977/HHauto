@@ -789,7 +789,7 @@ export function getMenu() {
                         + hhMenuSwitch('plusEvent')
                         + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
                         + hhMenuSwitch('buyCombat', '', true)
-                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
+                        + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
                         + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
                         + hhMenuSwitch('plusEventSandalWood')
                     +`</div>`
@@ -798,7 +798,7 @@ export function getMenu() {
                         + hhMenuSwitch('autoTrollMythicByPassParanoia')
                         + hhMenuSwitch('buyMythicCombat', '', true)
                         + hhMenuInput('autoBuyMythicTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-                        + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
+                        + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric')
                         + hhMenuSwitch('plusEventMythicSandalWood')
                     +`</div>`
                     +`<div class="internalOptionsRow separator">`

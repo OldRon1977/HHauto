@@ -909,7 +909,7 @@ export class HaremGirl {
         // stable iteration can happen during a network hiccup while more items
         // are still loading (see issue #1573).
         let stableIterations = 0;
-        for (let iter = 0; iter < 15; iter++) {
+        for (let iter = 0; iter < 20; iter++) {
             // scroll each scrollable to its bottom and dispatch a scroll event
             for (const s of scrollables) {
                 try {
@@ -917,11 +917,11 @@ export class HaremGirl {
                     s.dispatchEvent(new Event('scroll', { bubbles: true }));
                 } catch { /* ignore */ }
             }
-            await TimeHelper.sleep(randomInterval(250, 400));
+            await TimeHelper.sleep(randomInterval(500, 800));
             const curCount = countItems();
             if (curCount === prevCount) {
                 stableIterations++;
-                if (stableIterations >= 2) break;
+                if (stableIterations >= 3) break;
             } else {
                 stableIterations = 0;
                 prevCount = curCount;

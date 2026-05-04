@@ -489,6 +489,7 @@ export class TeamModule {
             hairColor: g.hair_color1 || undefined,
             eyeColor: g.eye_color1 || undefined,
             position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
+            blessingBonuses: g.blessing_bonuses || undefined,
         }));
 
         const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
@@ -632,19 +633,31 @@ export class TeamModule {
                 return `${emoji}${d.count}`;
             }).join(' ');
 
-            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '🎯';
+            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+            const blessedStr = teamResult.blessedCategories && teamResult.blessedCategories.length > 0
+                ? teamResult.blessedCategories.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                : 'none detected';
+            const blessedIsActive = teamResult.blessedCategories && teamResult.blessedCategories.includes(teamResult.traitCategory);
+            const blessedNote = blessedIsActive ? ' (matches selection!)' : ' (not matching)';
 
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 180px; z-index: 10;
-                background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px;
-                border-radius: 4px; font-size: 11px; line-height: 1.4;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
+                background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
+                border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
-                <div style="font-weight:bold; margin-bottom: 2px;">Team Info</div>
-                <div>${traitEmoji} ${teamResult.traitValue || '?'} (${teamResult.traitMatchCount}/7)</div>
-                <div>Tier 3: ${tier3Pct}%</div>
-                <div>Leader: ${teamResult.leaderTier5.name} (${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
-                <div>Elements: ${distHtml}</div>
+                <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
+                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Why this team was chosen:</div>
+                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${teamResult.traitValue || '?'}" (${teamResult.traitMatchCount}/7 girls match)</div>
+                <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
+                <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
+                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
+                <div><b>Elements:</b> ${distHtml}</div>
+                <hr style="border-color:#555; margin:4px 0"/>
+                <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
+                <div style="color:#aaa; font-size:10px;">${teamResult.blessedGirlCount} of ${teamResult.girls.length} selected girls have blessing bonuses</div>
+                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best): stats already include blessings</div>
+                <div style="color:#aaa; font-size:10px;">Mode 2 (Best Possible): projects to max level/grades</div>
             </div>`);
             $("#contains_all section").append(synergyInfo);
         }
