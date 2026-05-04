@@ -16,6 +16,25 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.16 - Blessing-aware team selection, Penta Drill fix, auto-buy timer restored
+
+Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573), [#1593](https://github.com/Roukys/HHauto/issues/1593), [#1594](https://github.com/Roukys/HHauto/issues/1594).
+
+**Team Selection (#1573):** The algorithm previously picked girls from random elements regardless of the chosen trait, resulting in teams with no actual Tier 3 bonus. It now correctly fills the team from the matching element pair first. Additionally, the script now automatically loads the active weekly blessings when visiting the Home page and caches them with a 12-hour validity. The team selection uses this data to prefer the blessed trait and value.
+
+**Info Box (#1573):** Completely reworked to explain the team choice. Shows the optimized trait with its actual name (e.g. "golden" instead of hex codes), Tier 3 bonus percentage, leader skill, and element distribution using class names (Dominatrix, Submissive, etc.) instead of confusing internal element names (darkness, psychic). Misleading symbols removed. Active blessings are displayed with match status and cache timestamp.
+
+**Equipment on slow connections (#1573):** Increased wait times and stability checks when loading inventory items, reducing failures on 4G or other slow connections.
+
+**Penta Drill (#1593):** Increased the delay between steps from 2-3 seconds to 4-6 seconds, preventing the blank screen that occurred when the bot clicked before the server responded.
+
+**Auto-buy timer (#1594):** The "Hours to buy Event Combs." and "Hours to buy Mythic Combs." timer fields are back. Set a value (e.g. 16) and the script will only buy combat points when the event has fewer than 16 hours remaining and your energy is at 0. Set to 0 for immediate buying when energy is empty. This allows full use of natural regeneration before spending kobans.
+
+**Note:** Visit the Home page at least once after updating so the blessings get loaded into the cache.
+
+---
+
+
 ### v7.35.15 - Troll with girls now falls through to love raids
 
 Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
