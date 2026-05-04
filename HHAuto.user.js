@@ -7812,11 +7812,13 @@ class Troll {
             if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) == "true"
                 && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
                 && getSecondsLeft("eventGoing") !== 0
+                && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) * 3600)
                 && eventGirl.girl_id && !eventGirl.is_mythic)
                 ||
                     (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
                         && getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombat) === "true"
                         && getSecondsLeft("eventMythicGoing") !== 0
+                        && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) * 3600)
                         && eventGirl.is_mythic)) {
                 result.event_mythic = eventGirl.is_mythic.toString();
             }
@@ -12039,7 +12041,7 @@ class HaremGirl {
             // stable iteration can happen during a network hiccup while more items
             // are still loading (see issue #1573).
             let stableIterations = 0;
-            for (let iter = 0; iter < 15; iter++) {
+            for (let iter = 0; iter < 20; iter++) {
                 // scroll each scrollable to its bottom and dispatch a scroll event
                 for (const s of scrollables) {
                     try {
@@ -12048,11 +12050,11 @@ class HaremGirl {
                     }
                     catch ( /* ignore */_a) { /* ignore */ }
                 }
-                yield TimeHelper.sleep(randomInterval(250, 400));
+                yield TimeHelper.sleep(randomInterval(500, 800));
                 const curCount = countItems();
                 if (curCount === prevCount) {
                     stableIterations++;
-                    if (stableIterations >= 2)
+                    if (stableIterations >= 3)
                         break;
                 }
                 else {
@@ -15110,7 +15112,7 @@ class PentaDrill {
                 performButton.trigger('click');
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 LogUtils_logHHAuto("setting autoloop to false");
-                yield TimeHelper.sleep(randomInterval(2000, 3000));
+                yield TimeHelper.sleep(randomInterval(4000, 6000));
                 //setTimer('nextPentaDrillTime',10);
                 return true;
             }
@@ -17120,14 +17122,61 @@ class TeamScoringService {
         return totalBonus;
     }
     /**
+     * Detect which trait categories are currently blessed by analyzing
+     * blessing_bonuses across all girls. Returns a set of blessed TraitCategories.
+     */
+    static detectBlessedTraits(girls) {
+        const blessedCategories = new Set();
+        let blessedGirlCount = 0;
+        for (const girl of girls) {
+            if (!girl.blessingBonuses)
+                continue;
+            const bonuses = girl.blessingBonuses;
+            if (typeof bonuses !== 'object')
+                continue;
+            let hasBlessing = false;
+            for (const key of Object.keys(bonuses)) {
+                const lk = key.toLowerCase();
+                if (lk.includes('zodiac') || lk.includes('sign') || lk.includes('astro')) {
+                    blessedCategories.add('zodiac');
+                    hasBlessing = true;
+                }
+                if (lk.includes('hair') || lk.includes('cheveu')) {
+                    blessedCategories.add('hairColor');
+                    hasBlessing = true;
+                }
+                if (lk.includes('eye') || lk.includes('yeux') || lk.includes('oeil')) {
+                    blessedCategories.add('eyeColor');
+                    hasBlessing = true;
+                }
+                if (lk.includes('position') || lk.includes('pose') || lk.includes('favourite_position')) {
+                    blessedCategories.add('position');
+                    hasBlessing = true;
+                }
+            }
+            if (!hasBlessing) {
+                for (const val of Object.values(bonuses)) {
+                    if (typeof val === 'number' && val > 0) {
+                        hasBlessing = true;
+                        break;
+                    }
+                }
+            }
+            if (hasBlessing)
+                blessedGirlCount++;
+        }
+        return { blessedCategories, blessedGirlCount };
+    }
+    /**
      * Find all possible trait groups from a pool of girls.
      *
      * For each element pair, groups girls by their shared trait value
      * and scores each group. Position groups receive a penalty.
+     * Groups matching a currently blessed trait receive a bonus.
      *
      * Returns groups sorted by score descending.
      */
-    static findTraitGroups(girls) {
+    static findTraitGroups(girls, blessedCategories) {
         const results = [];
         for (const pair of ELEMENT_PAIRS) {
             const pairGirls = girls.filter(g => pair.elements.includes(g.element));
@@ -17149,6 +17198,10 @@ class TeamScoringService {
                 // Position trait penalty (reduces attack stats via equipment)
                 if (pair.trait === 'position') {
                     score *= POSITION_TRAIT_PENALTY;
+                }
+                // Blessing boost: if this trait category is currently blessed, boost score
+                if (blessedCategories && blessedCategories.has(pair.trait)) {
+                    score *= 1.5;
                 }
                 results.push({
                     traitCategory: pair.trait,
@@ -17347,8 +17400,10 @@ class TeamBuilderService {
         const sorted = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
         const pool = sorted.slice(0, CANDIDATE_POOL_SIZE);
         const maxStat = scoreMap.get(pool[0].id_girl) || 1;
-        // Phase 3: Find best trait group
-        const traitGroups = TeamScoringService.findTraitGroups(pool);
+        // Phase 2b: Detect active blessings
+        const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
+        // Phase 3: Find best trait group (blessing-aware)
+        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories);
         let bestGroup = null;
         if (traitGroups.length > 0 && traitGroups[0].girls.length >= 3) {
             bestGroup = traitGroups[0];
@@ -17422,6 +17477,8 @@ class TeamBuilderService {
             traitValue,
             tier3Bonus,
             traitMatchCount,
+            blessedCategories: Array.from(blessedCategories),
+            blessedGirlCount,
         };
     }
     /**
@@ -17871,6 +17928,7 @@ class TeamModule {
                 hairColor: g.hair_color1 || undefined,
                 eyeColor: g.eye_color1 || undefined,
                 position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
+                blessingBonuses: g.blessing_bonuses || undefined,
             });
         });
         const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
@@ -18000,18 +18058,30 @@ class TeamModule {
                 const emoji = TeamModule.ELEMENT_EMOJI[d.element] || '';
                 return `${emoji}${d.count}`;
             }).join(' ');
-            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '🎯';
+            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+            const blessedStr = teamResult.blessedCategories && teamResult.blessedCategories.length > 0
+                ? teamResult.blessedCategories.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                : 'none detected';
+            const blessedIsActive = teamResult.blessedCategories && teamResult.blessedCategories.includes(teamResult.traitCategory);
+            const blessedNote = blessedIsActive ? ' (matches selection!)' : ' (not matching)';
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 180px; z-index: 10;
-                background: rgba(0,0,0,0.7); color: #fff; padding: 4px 8px;
-                border-radius: 4px; font-size: 11px; line-height: 1.4;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
+                background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
+                border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
-                <div style="font-weight:bold; margin-bottom: 2px;">Team Info</div>
-                <div>${traitEmoji} ${teamResult.traitValue || '?'} (${teamResult.traitMatchCount}/7)</div>
-                <div>Tier 3: ${tier3Pct}%</div>
-                <div>Leader: ${teamResult.leaderTier5.name} (${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
-                <div>Elements: ${distHtml}</div>
+                <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
+                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Why this team was chosen:</div>
+                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${teamResult.traitValue || '?'}" (${teamResult.traitMatchCount}/7 girls match)</div>
+                <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
+                <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
+                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
+                <div><b>Elements:</b> ${distHtml}</div>
+                <hr style="border-color:#555; margin:4px 0"/>
+                <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
+                <div style="color:#aaa; font-size:10px;">${teamResult.blessedGirlCount} of ${teamResult.girls.length} selected girls have blessing bonuses</div>
+                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best): stats already include blessings</div>
+                <div style="color:#aaa; font-size:10px;">Mode 2 (Best Possible): projects to max level/grades</div>
             </div>`);
             $("#contains_all section").append(synergyInfo);
         }
@@ -19817,7 +19887,7 @@ function getMenu() {
             + hhMenuSwitch('plusEvent')
             + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
             + hhMenuSwitch('buyCombat', '', true)
-            + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
+            + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
             + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
             + hhMenuSwitch('plusEventSandalWood')
             + `</div>`
@@ -19826,7 +19896,7 @@ function getMenu() {
             + hhMenuSwitch('autoTrollMythicByPassParanoia')
             + hhMenuSwitch('buyMythicCombat', '', true)
             + hhMenuInput('autoBuyMythicTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-            + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric') + `</div>` // #1565 hidden: replaced by immediate buy when energy empty and girl not won
+            + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric')
             + hhMenuSwitch('plusEventMythicSandalWood')
             + `</div>`
             + `<div class="internalOptionsRow separator">`
