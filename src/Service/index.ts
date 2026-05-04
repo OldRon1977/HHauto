@@ -32,3 +32,4 @@ export * from './SurveyService'
 export * from './TeamBuilderService'
 export * from './TeamScoringService'
 export * from './TooltipService'
+export { BlessingService } from './BlessingService';

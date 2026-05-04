@@ -22,6 +22,7 @@ import {
 } from '../Helper/index';
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
+import { BlessingService } from '../Service/BlessingService';
 import { GirlData, ElementType } from '../Service/TeamScoringService';
 import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, TK } from '../config/index';
@@ -635,11 +636,14 @@ export class TeamModule {
 
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-            const blessedStr = teamResult.blessedCategories && teamResult.blessedCategories.length > 0
-                ? teamResult.blessedCategories.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
-                : 'none detected';
-            const blessedIsActive = teamResult.blessedCategories && teamResult.blessedCategories.includes(teamResult.traitCategory);
-            const blessedNote = blessedIsActive ? ' (matches selection!)' : ' (not matching)';
+            // Use cached blessings from BlessingService (loaded on Home page)
+            const cachedBlessings = BlessingService.getCached();
+            const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
+                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')
+                : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
+            const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
+            const blessedNote = blessedIsActive ? ' (matches selection!)' : (cachedBlessings ? ' (not matching)' : '');
 
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
                 position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
@@ -655,7 +659,7 @@ export class TeamModule {
                 <div><b>Elements:</b> ${distHtml}</div>
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
-                <div style="color:#aaa; font-size:10px;">${teamResult.blessedGirlCount} of ${teamResult.girls.length} selected girls have blessing bonuses</div>
+                <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
                 <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best): stats already include blessings</div>
                 <div style="color:#aaa; font-size:10px;">Mode 2 (Best Possible): projects to max level/grades</div>
             </div>`);

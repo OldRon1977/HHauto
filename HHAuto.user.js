@@ -8499,6 +8499,7 @@ const TK = {
     haremTeam: "Temp_haremTeam",
     haremTeamScrolls: "Temp_haremTeamScrolls",
     haremTeamSettings: "Temp_haremTeamSettings",
+    blessingsCache: "Temp_blessingsCache",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -10781,6 +10782,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamScrolls] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamSettings] =
     {
         storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
+    {
+        default: "",
         HHType: "Temp"
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
@@ -17525,6 +17531,90 @@ class TeamBuilderService {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Service/BlessingService.ts
+// BlessingService.ts -- Loads and caches weekly blessing data.
+//
+// Blessings change weekly and affect girl stats. This service loads
+// them via AJAX on the Home page and caches the result in localStorage.
+// The team builder reads from cache to make blessing-aware decisions.
+//
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
+//
+
+
+
+const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+class BlessingService {
+    static loadIfExpired() {
+        const cached = BlessingService.getCached();
+        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+            return;
+        }
+        BlessingService.fetchAndCache();
+    }
+    static fetchAndCache() {
+        const ajax = getHHAjax();
+        if (!ajax) {
+            LogUtils_logHHAuto('BlessingService: hh_ajax not available');
+            return;
+        }
+        LogUtils_logHHAuto('BlessingService: fetching blessings...');
+        ajax({ action: 'get_girls_blessings' }, (response) => {
+            if (!response || !response.success) {
+                LogUtils_logHHAuto('BlessingService: fetch failed: ' + JSON.stringify(response));
+                return;
+            }
+            LogUtils_logHHAuto('BlessingService: response keys: ' + Object.keys(response).join(', '));
+            LogUtils_logHHAuto('BlessingService: raw (500 chars): ' + JSON.stringify(response).substring(0, 500));
+            const blessingData = {
+                timestamp: Date.now(),
+                raw: response,
+                blessedTraits: BlessingService.parseTraits(response),
+                blessedElement: BlessingService.parseElement(response),
+            };
+            setStoredValue(HHStoredVarPrefixKey + TK.blessingsCache, JSON.stringify(blessingData));
+            LogUtils_logHHAuto('BlessingService: cached. Traits: ' + blessingData.blessedTraits.join(', ') + ', Element: ' + (blessingData.blessedElement || 'unknown'));
+        });
+    }
+    static getCached() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+    }
+    static isCacheValid() {
+        const cached = BlessingService.getCached();
+        return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
+    }
+    static parseTraits(response) {
+        const traits = [];
+        const data = response.blessings || response.girls_blessings || response.data || response;
+        if (typeof data !== 'object')
+            return traits;
+        const responseStr = JSON.stringify(data).toLowerCase();
+        if (responseStr.includes('eye') || responseStr.includes('yeux'))
+            traits.push('eyeColor');
+        if (responseStr.includes('hair') || responseStr.includes('cheveu'))
+            traits.push('hairColor');
+        if (responseStr.includes('zodiac') || responseStr.includes('sign') || responseStr.includes('astro'))
+            traits.push('zodiac');
+        if (responseStr.includes('position') || responseStr.includes('pose') || responseStr.includes('favourite_position'))
+            traits.push('position');
+        return traits;
+    }
+    static parseElement(response) {
+        const data = response.blessings || response.girls_blessings || response.data || response;
+        const responseStr = JSON.stringify(data).toLowerCase();
+        const elementMap = {
+            'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
+            'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
+            'submissive': 'psychic', 'voyeur': 'light',
+        };
+        for (const [className, element] of Object.entries(elementMap)) {
+            if (responseStr.includes(className))
+                return element;
+        }
+        return undefined;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Module/TeamModule.ts
 // TeamModule.ts -- Team management: auto-selects optimal teams for different
 // battle modes.
@@ -17536,6 +17626,7 @@ class TeamBuilderService {
 //
 // Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
 //
+
 
 
 
@@ -18090,11 +18181,14 @@ class TeamModule {
             }).join(' ');
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-            const blessedStr = teamResult.blessedCategories && teamResult.blessedCategories.length > 0
-                ? teamResult.blessedCategories.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
-                : 'none detected';
-            const blessedIsActive = teamResult.blessedCategories && teamResult.blessedCategories.includes(teamResult.traitCategory);
-            const blessedNote = blessedIsActive ? ' (matches selection!)' : ' (not matching)';
+            // Use cached blessings from BlessingService (loaded on Home page)
+            const cachedBlessings = BlessingService.getCached();
+            const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
+                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')
+                : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
+            const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
+            const blessedNote = blessedIsActive ? ' (matches selection!)' : (cachedBlessings ? ' (not matching)' : '');
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
                 position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
                 background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
@@ -18109,7 +18203,7 @@ class TeamModule {
                 <div><b>Elements:</b> ${distHtml}</div>
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
-                <div style="color:#aaa; font-size:10px;">${teamResult.blessedGirlCount} of ${teamResult.girls.length} selected girls have blessing bonuses</div>
+                <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
                 <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best): stats already include blessings</div>
                 <div style="color:#aaa; font-size:10px;">Mode 2 (Best Possible): projects to max level/grades</div>
             </div>`);
@@ -23387,6 +23481,7 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 
 
 
+
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
         switch (ctx.currentPage) {
@@ -23508,6 +23603,7 @@ function handlePageSpecific(ctx) {
                 setTimeout(EventModule.showCompletedEvent, 500);
                 Spreadsheet.run = callItOnce(Spreadsheet.run);
                 Spreadsheet.run();
+                BlessingService.loadIfExpired();
                 DailyGoalsIcon.styles();
                 Harem.clearHaremToolVariables = callItOnce(Harem.clearHaremToolVariables); // Avoid wired loop, if user reach home page, ensure temp var from harem are cleared
                 Harem.clearHaremToolVariables();
@@ -25647,6 +25743,7 @@ function start() {
  *  - AdsService     -- suppress or relocate in-game ads
  *  - TooltipService -- show/hide HHAuto menu tooltips
  */
+
 
 
 
