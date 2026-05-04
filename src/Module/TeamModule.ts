@@ -639,12 +639,14 @@ export class TeamModule {
             // Use cached blessings from BlessingService (loaded on Home page)
             let cachedBlessings: any = null;
             try { cachedBlessings = BlessingService.getCached(); } catch { /* cache not ready */ }
+            const blessedVals = cachedBlessings?.blessedValues || {};
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
-                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
                     + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')
                 : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
             const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
-            const blessedNote = blessedIsActive ? ' (matches selection!)' : (cachedBlessings ? ' (not matching)' : '');
+            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && teamResult.traitValue.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
+            const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
 
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
                 position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;

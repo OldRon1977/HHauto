@@ -11,6 +11,7 @@
 //   3. Select Mythic leader (Shield/Stun priority)
 //   4. Fill slots 2-7 from trait group, then by stats
 
+import { BlessingService } from './BlessingService';
 import {
     TeamScoringService,
     GirlData,
@@ -92,7 +93,8 @@ export class TeamBuilderService {
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
 
         // Phase 3: Find best trait group (blessing-aware)
-        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories);
+        const blessedValues: Record<string, string> = (BlessingService.getCached()?.blessedValues) || {};
+        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories, blessedValues);
         let bestGroup: TraitGroupResult | null = null;
 
         if (traitGroups.length > 0 && traitGroups[0].girls.length >= 3) {

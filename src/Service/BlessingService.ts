@@ -16,6 +16,7 @@ export interface BlessingData {
     timestamp: number;
     raw: any;
     blessedTraits: string[];
+    blessedValues: Record<string, string>;
     blessedElement?: string;
 }
 
@@ -50,6 +51,7 @@ export class BlessingService {
                 timestamp: Date.now(),
                 raw: response,
                 blessedTraits: BlessingService.parseTraits(response),
+                blessedValues: BlessingService.parseBlessedValues(response),
                 blessedElement: BlessingService.parseElement(response),
             };
 
@@ -73,21 +75,56 @@ export class BlessingService {
 
     private static parseTraits(response: any): string[] {
         const traits: string[] = [];
-        const data = response.blessings || response.girls_blessings || response.data || response;
-        if (typeof data !== 'object') return traits;
-        const responseStr = JSON.stringify(data).toLowerCase();
+        const active = response.active;
+        if (!Array.isArray(active)) return traits;
 
-        if (responseStr.includes('eye') || responseStr.includes('yeux')) traits.push('eyeColor');
-        if (responseStr.includes('hair') || responseStr.includes('cheveu')) traits.push('hairColor');
-        if (responseStr.includes('zodiac') || responseStr.includes('sign') || responseStr.includes('astro')) traits.push('zodiac');
-        if (responseStr.includes('position') || responseStr.includes('pose') || responseStr.includes('favourite_position')) traits.push('position');
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            // Only count blessings that apply globally (not Love Labyrinth only)
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth')) continue;
 
+            if (desc.includes('eye color')) traits.push('eyeColor');
+            if (desc.includes('hair color') || desc.includes('hair colour')) traits.push('hairColor');
+            if (desc.includes('zodiac') || desc.includes('astrological')) traits.push('zodiac');
+            if (desc.includes('favourite position') || desc.includes('favorite position')) traits.push('position');
+        }
         return traits;
     }
 
+    /**
+     * Parse the specific blessed trait values from the API response.
+     * E.g. "Eye Color Golden" -> { eyeColor: "golden" }
+     */
+    static parseBlessedValues(response: any): Record<string, string> {
+        const values: Record<string, string> = {};
+        const active = response?.active || [];
+        if (!Array.isArray(active)) return values;
+
+        for (const blessing of active) {
+            const desc = (blessing.description || '');
+            if (!desc.toLowerCase().includes('bonus on all attributes') || desc.toLowerCase().includes('labyrinth')) continue;
+
+            // Extract from: <span class="blessing-condition">Eye Color Golden</span>
+            const match = desc.match(/blessing-condition[^>]*>([^<]+)/i);
+            if (!match) continue;
+            const condition = match[1].trim();
+
+            if (condition.toLowerCase().startsWith('eye color')) {
+                values['eyeColor'] = condition.replace(/eye color\s*/i, '').trim().toLowerCase();
+            } else if (condition.toLowerCase().startsWith('hair color') || condition.toLowerCase().startsWith('hair colour')) {
+                values['hairColor'] = condition.replace(/hair colou?r\s*/i, '').trim().toLowerCase();
+            } else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological')) {
+                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*/i, '').trim().toLowerCase();
+            } else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
+                values['position'] = condition.replace(/favourit?e position\s*/i, '').trim().toLowerCase();
+            }
+        }
+        return values;
+    }
+
     private static parseElement(response: any): string | undefined {
-        const data = response.blessings || response.girls_blessings || response.data || response;
-        const responseStr = JSON.stringify(data).toLowerCase();
+        const active = response.active;
+        if (!Array.isArray(active)) return undefined;
 
         const elementMap: Record<string, string> = {
             'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
@@ -95,8 +132,14 @@ export class BlessingService {
             'submissive': 'psychic', 'voyeur': 'light',
         };
 
-        for (const [className, element] of Object.entries(elementMap)) {
-            if (responseStr.includes(className)) return element;
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth')) continue;
+            if (!desc.includes('element')) continue;
+
+            for (const [className, element] of Object.entries(elementMap)) {
+                if (desc.includes(className)) return element;
+            }
         }
         return undefined;
     }

@@ -288,7 +288,7 @@ export class TeamScoringService {
      *
      * Returns groups sorted by score descending.
      */
-    static findTraitGroups(girls: GirlData[], blessedCategories?: Set<TraitCategory>): TraitGroupResult[] {
+    static findTraitGroups(girls: GirlData[], blessedCategories?: Set<TraitCategory>, blessedValues?: Record<string, string>): TraitGroupResult[] {
         const results: TraitGroupResult[] = [];
 
         for (const pair of ELEMENT_PAIRS) {
@@ -313,9 +313,16 @@ export class TeamScoringService {
                     score *= POSITION_TRAIT_PENALTY;
                 }
 
-                // Blessing boost: if this trait category is currently blessed, boost score
+                // Blessing boost: prefer the exact blessed trait value
                 if (blessedCategories && blessedCategories.has(pair.trait)) {
-                    score *= 1.5;
+                    const blessedVal = blessedValues?.[pair.trait];
+                    if (blessedVal && traitValue.toLowerCase() === blessedVal.toLowerCase()) {
+                        score *= 3.0; // Strong boost for exact blessed value match
+                    } else if (blessedVal) {
+                        score *= 0.5; // Penalty for wrong value in blessed category
+                    } else {
+                        score *= 1.5; // Generic boost if category known but not value
+                    }
                 }
 
                 results.push({

@@ -16966,6 +16966,142 @@ Spreadsheet.LINK_CLASS = 'hhauto-spreadsheet-link';
 Spreadsheet.BDSMPP_CLASS = 'script-blessing-spreadsheet-link';
 Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 
+;// CONCATENATED MODULE: ./src/Service/BlessingService.ts
+// BlessingService.ts -- Loads and caches weekly blessing data.
+//
+// Blessings change weekly and affect girl stats. This service loads
+// them via AJAX on the Home page and caches the result in localStorage.
+// The team builder reads from cache to make blessing-aware decisions.
+//
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
+//
+
+
+
+const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+class BlessingService {
+    static loadIfExpired() {
+        const cached = BlessingService.getCached();
+        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+            return;
+        }
+        BlessingService.fetchAndCache();
+    }
+    static fetchAndCache() {
+        const ajax = getHHAjax();
+        if (!ajax) {
+            LogUtils_logHHAuto('BlessingService: hh_ajax not available');
+            return;
+        }
+        LogUtils_logHHAuto('BlessingService: fetching blessings...');
+        ajax({ action: 'get_girls_blessings' }, (response) => {
+            if (!response || !response.success) {
+                LogUtils_logHHAuto('BlessingService: fetch failed: ' + JSON.stringify(response));
+                return;
+            }
+            LogUtils_logHHAuto('BlessingService: response keys: ' + Object.keys(response).join(', '));
+            LogUtils_logHHAuto('BlessingService: raw (500 chars): ' + JSON.stringify(response).substring(0, 500));
+            const blessingData = {
+                timestamp: Date.now(),
+                raw: response,
+                blessedTraits: BlessingService.parseTraits(response),
+                blessedValues: BlessingService.parseBlessedValues(response),
+                blessedElement: BlessingService.parseElement(response),
+            };
+            setStoredValue(HHStoredVarPrefixKey + TK.blessingsCache, JSON.stringify(blessingData));
+            LogUtils_logHHAuto('BlessingService: cached. Traits: ' + blessingData.blessedTraits.join(', ') + ', Element: ' + (blessingData.blessedElement || 'unknown'));
+        });
+    }
+    static getCached() {
+        try {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        }
+        catch (_a) {
+            return null;
+        }
+    }
+    static isCacheValid() {
+        const cached = BlessingService.getCached();
+        return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
+    }
+    static parseTraits(response) {
+        const traits = [];
+        const active = response.active;
+        if (!Array.isArray(active))
+            return traits;
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            // Only count blessings that apply globally (not Love Labyrinth only)
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
+                continue;
+            if (desc.includes('eye color'))
+                traits.push('eyeColor');
+            if (desc.includes('hair color') || desc.includes('hair colour'))
+                traits.push('hairColor');
+            if (desc.includes('zodiac') || desc.includes('astrological'))
+                traits.push('zodiac');
+            if (desc.includes('favourite position') || desc.includes('favorite position'))
+                traits.push('position');
+        }
+        return traits;
+    }
+    /**
+     * Parse the specific blessed trait values from the API response.
+     * E.g. "Eye Color Golden" -> { eyeColor: "golden" }
+     */
+    static parseBlessedValues(response) {
+        const values = {};
+        const active = (response === null || response === void 0 ? void 0 : response.active) || [];
+        if (!Array.isArray(active))
+            return values;
+        for (const blessing of active) {
+            const desc = (blessing.description || '');
+            if (!desc.toLowerCase().includes('bonus on all attributes') || desc.toLowerCase().includes('labyrinth'))
+                continue;
+            // Extract from: <span class="blessing-condition">Eye Color Golden</span>
+            const match = desc.match(/blessing-condition[^>]*>([^<]+)/i);
+            if (!match)
+                continue;
+            const condition = match[1].trim();
+            if (condition.toLowerCase().startsWith('eye color')) {
+                values['eyeColor'] = condition.replace(/eye color\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('hair color') || condition.toLowerCase().startsWith('hair colour')) {
+                values['hairColor'] = condition.replace(/hair colou?r\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological')) {
+                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
+                values['position'] = condition.replace(/favourit?e position\s*/i, '').trim().toLowerCase();
+            }
+        }
+        return values;
+    }
+    static parseElement(response) {
+        const active = response.active;
+        if (!Array.isArray(active))
+            return undefined;
+        const elementMap = {
+            'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
+            'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
+            'submissive': 'psychic', 'voyeur': 'light',
+        };
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
+                continue;
+            if (!desc.includes('element'))
+                continue;
+            for (const [className, element] of Object.entries(elementMap)) {
+                if (desc.includes(className))
+                    return element;
+            }
+        }
+        return undefined;
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Service/TeamScoringService.ts
 // TeamScoringService.ts -- Scoring engine for team selection v3.
 //
@@ -17183,7 +17319,7 @@ class TeamScoringService {
      *
      * Returns groups sorted by score descending.
      */
-    static findTraitGroups(girls, blessedCategories) {
+    static findTraitGroups(girls, blessedCategories, blessedValues) {
         const results = [];
         for (const pair of ELEMENT_PAIRS) {
             const pairGirls = girls.filter(g => pair.elements.includes(g.element));
@@ -17206,9 +17342,18 @@ class TeamScoringService {
                 if (pair.trait === 'position') {
                     score *= POSITION_TRAIT_PENALTY;
                 }
-                // Blessing boost: if this trait category is currently blessed, boost score
+                // Blessing boost: prefer the exact blessed trait value
                 if (blessedCategories && blessedCategories.has(pair.trait)) {
-                    score *= 1.5;
+                    const blessedVal = blessedValues === null || blessedValues === void 0 ? void 0 : blessedValues[pair.trait];
+                    if (blessedVal && traitValue.toLowerCase() === blessedVal.toLowerCase()) {
+                        score *= 3.0; // Strong boost for exact blessed value match
+                    }
+                    else if (blessedVal) {
+                        score *= 0.5; // Penalty for wrong value in blessed category
+                    }
+                    else {
+                        score *= 1.5; // Generic boost if category known but not value
+                    }
                 }
                 results.push({
                     traitCategory: pair.trait,
@@ -17376,6 +17521,7 @@ class TeamScoringService {
 //   3. Select Mythic leader (Shield/Stun priority)
 //   4. Fill slots 2-7 from trait group, then by stats
 
+
 const TEAM_SIZE = 7;
 const CANDIDATE_POOL_SIZE = 50;
 // Map trait category to its element pair for quick lookup
@@ -17397,6 +17543,7 @@ class TeamBuilderService {
      * @returns TeamResult with the selected 7 girls, or null if not enough girls
      */
     static buildTeam(allGirls, mode, playerLevel) {
+        var _a;
         // Phase 1: Filter to Mythic + Legendary only (both modes)
         const candidates = TeamScoringService.filterHighRarity(allGirls);
         if (candidates.length < TEAM_SIZE) {
@@ -17417,7 +17564,8 @@ class TeamBuilderService {
         // Phase 2b: Detect active blessings
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
         // Phase 3: Find best trait group (blessing-aware)
-        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories);
+        const blessedValues = ((_a = BlessingService.getCached()) === null || _a === void 0 ? void 0 : _a.blessedValues) || {};
+        const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories, blessedValues);
         let bestGroup = null;
         if (traitGroups.length > 0 && traitGroups[0].girls.length >= 3) {
             bestGroup = traitGroups[0];
@@ -17529,95 +17677,6 @@ class TeamBuilderService {
         return Array.from(counts.entries())
             .map(([element, count]) => ({ element, count }))
             .sort((a, b) => b.count - a.count);
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Service/BlessingService.ts
-// BlessingService.ts -- Loads and caches weekly blessing data.
-//
-// Blessings change weekly and affect girl stats. This service loads
-// them via AJAX on the Home page and caches the result in localStorage.
-// The team builder reads from cache to make blessing-aware decisions.
-//
-// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
-//
-
-
-
-const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
-class BlessingService {
-    static loadIfExpired() {
-        const cached = BlessingService.getCached();
-        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
-            return;
-        }
-        BlessingService.fetchAndCache();
-    }
-    static fetchAndCache() {
-        const ajax = getHHAjax();
-        if (!ajax) {
-            LogUtils_logHHAuto('BlessingService: hh_ajax not available');
-            return;
-        }
-        LogUtils_logHHAuto('BlessingService: fetching blessings...');
-        ajax({ action: 'get_girls_blessings' }, (response) => {
-            if (!response || !response.success) {
-                LogUtils_logHHAuto('BlessingService: fetch failed: ' + JSON.stringify(response));
-                return;
-            }
-            LogUtils_logHHAuto('BlessingService: response keys: ' + Object.keys(response).join(', '));
-            LogUtils_logHHAuto('BlessingService: raw (500 chars): ' + JSON.stringify(response).substring(0, 500));
-            const blessingData = {
-                timestamp: Date.now(),
-                raw: response,
-                blessedTraits: BlessingService.parseTraits(response),
-                blessedElement: BlessingService.parseElement(response),
-            };
-            setStoredValue(HHStoredVarPrefixKey + TK.blessingsCache, JSON.stringify(blessingData));
-            LogUtils_logHHAuto('BlessingService: cached. Traits: ' + blessingData.blessedTraits.join(', ') + ', Element: ' + (blessingData.blessedElement || 'unknown'));
-        });
-    }
-    static getCached() {
-        try {
-            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
-        }
-        catch (_a) {
-            return null;
-        }
-    }
-    static isCacheValid() {
-        const cached = BlessingService.getCached();
-        return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
-    }
-    static parseTraits(response) {
-        const traits = [];
-        const data = response.blessings || response.girls_blessings || response.data || response;
-        if (typeof data !== 'object')
-            return traits;
-        const responseStr = JSON.stringify(data).toLowerCase();
-        if (responseStr.includes('eye') || responseStr.includes('yeux'))
-            traits.push('eyeColor');
-        if (responseStr.includes('hair') || responseStr.includes('cheveu'))
-            traits.push('hairColor');
-        if (responseStr.includes('zodiac') || responseStr.includes('sign') || responseStr.includes('astro'))
-            traits.push('zodiac');
-        if (responseStr.includes('position') || responseStr.includes('pose') || responseStr.includes('favourite_position'))
-            traits.push('position');
-        return traits;
-    }
-    static parseElement(response) {
-        const data = response.blessings || response.girls_blessings || response.data || response;
-        const responseStr = JSON.stringify(data).toLowerCase();
-        const elementMap = {
-            'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
-            'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
-            'submissive': 'psychic', 'voyeur': 'light',
-        };
-        for (const [className, element] of Object.entries(elementMap)) {
-            if (responseStr.includes(className))
-                return element;
-        }
-        return undefined;
     }
 }
 
@@ -18193,12 +18252,14 @@ class TeamModule {
                 cachedBlessings = BlessingService.getCached();
             }
             catch ( /* cache not ready */_a) { /* cache not ready */ }
+            const blessedVals = (cachedBlessings === null || cachedBlessings === void 0 ? void 0 : cachedBlessings.blessedValues) || {};
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
-                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
+                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
                     + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')
                 : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
             const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
-            const blessedNote = blessedIsActive ? ' (matches selection!)' : (cachedBlessings ? ' (not matching)' : '');
+            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && teamResult.traitValue.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
+            const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
                 position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
                 background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
