@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         HHAuto Debug - Full Window Dump
+// @name         HHAuto Debug - Position Mapping
 // @namespace    HHAuto_Debug
-// @version      2.1.0
-// @description  Dumps ALL window arrays with girl objects + position mapping via blessed girls
+// @version      2.2.0
+// @description  Finds position_img to name mapping via blessed girls and id_role
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -22,184 +22,180 @@
 
     function isGirlLike(obj) {
         if (!obj || typeof obj !== "object") return false;
-        return (obj.id_girl !== undefined) || (obj.carac1 !== undefined) || (obj.name && obj.level !== undefined);
+        return (obj.id_girl !== undefined) || (obj.carac1 !== undefined);
     }
 
-    function dump() {
-        const o = [];
-        o.push("=== FULL DUMP v2.1 ===");
-        o.push("Time: " + new Date().toISOString());
-        o.push("URL: " + location.href);
-        o.push("Host: " + location.hostname);
-        o.push("");
-
-        // PART 1: ALL unsafeWindow keys
-        o.push("--- PART 1: ALL unsafeWindow keys ---");
-        const allKeys = [];
-        try {
-            for (const k of Object.keys(unsafeWindow)) {
-                try {
-                    const v = unsafeWindow[k];
-                    let info = typeof v;
-                    if (v === null) info = "null";
-                    else if (Array.isArray(v)) info = "Array[" + v.length + "]";
-                    else if (info === "object") info = "Obj{" + Object.keys(v).length + "}";
-                    allKeys.push(k + "=" + info);
-                } catch(e) { allKeys.push(k + "=[err]"); }
-            }
-        } catch(e) { o.push("Error: " + e.message); }
-        o.push("Total: " + allKeys.length);
-        o.push(allKeys.join("\n"));
-        o.push("");
-
-        // PART 2: shared keys
-        if (unsafeWindow.shared) {
-            o.push("--- PART 2: shared keys ---");
-            const sk = [];
-            try { for (const k of Object.keys(unsafeWindow.shared)) { try { const v=unsafeWindow.shared[k]; let i=typeof v; if(v===null)i="null"; else if(Array.isArray(v))i="Arr["+v.length+"]"; else if(i==="object")i="Obj{"+Object.keys(v).length+"}"; sk.push(k+"="+i); } catch(e){sk.push(k+"=[err]");} } } catch(e){}
-            o.push(sk.join("\n"));
-            o.push("");
-        } else { o.push("--- PART 2: NO shared ---"); o.push(""); }
-
-        // PART 3: Find girl arrays
-        o.push("--- PART 3: Girl arrays ---");
-        const girlArrays = [];
+    function findGirls() {
         const scanned = new Set();
+        const results = [];
         function scan(root, path, depth) {
             if (depth > 3 || scanned.has(root)) return;
             scanned.add(root);
-            try { for (const k of Object.keys(root)) { try { const v=root[k]; const fp=path+"."+k; if(Array.isArray(v)&&v.length>0&&isGirlLike(v[0])){girlArrays.push({path:fp,length:v.length,arr:v});} else if(v&&typeof v==="object"&&!Array.isArray(v)&&depth<2){scan(v,fp,depth+1);} } catch(e){} } } catch(e){}
+            try { for (const k of Object.keys(root)) { try { const v=root[k]; if(Array.isArray(v)&&v.length>0&&isGirlLike(v[0])){results.push({path:path+"."+k,arr:v});} else if(v&&typeof v==="object"&&!Array.isArray(v)&&depth<2){scan(v,path+"."+k,depth+1);} } catch(e){} } } catch(e){}
         }
         scan(unsafeWindow, "window", 0);
         if (unsafeWindow.shared) scan(unsafeWindow.shared, "shared", 0);
+        return results.sort((a,b) => b.arr.length - a.arr.length)[0] || null;
+    }
 
-        if (girlArrays.length === 0) {
-            o.push("NO girl arrays found! Open Change Team panel first.");
-            o.push("");
-        } else {
-            for (const ga of girlArrays) o.push("FOUND: " + ga.path + " (" + ga.length + " items)");
-            o.push("");
-        }
-
-        // Use largest girl array
-        const best = girlArrays.sort((a,b) => b.length - a.length)[0];
-        if (!best) { show(o.join("\n")); return; }
-        const arr = best.arr;
-
-        o.push("Using: " + best.path + " (" + arr.length + " girls)");
-        o.push("Fields: " + JSON.stringify(Object.keys(arr[0]).sort()));
+    function dump() {
+        const found = findGirls();
+        const o = [];
+        o.push("=== POSITION MAPPING DUMP v2.2 ===");
+        o.push("Time: " + new Date().toISOString());
+        o.push("Host: " + location.hostname);
         o.push("");
 
-        // PART 4: Unique trait values
-        o.push("--- PART 4: Unique trait values ---");
-        const maps = {};
-        for (const g of arr) {
-            for (const k of Object.keys(g)) {
-                const lk = k.toLowerCase();
-                if (lk.includes("color") || lk.includes("zodiac") || lk.includes("position_img") || k === "rarity" || k === "element") {
-                    if (!maps[k]) maps[k] = {};
-                    const val = (typeof g[k] === "object") ? JSON.stringify(g[k]) : String(g[k] === undefined || g[k] === null || g[k] === "" ? "EMPTY" : g[k]);
-                    maps[k][val] = (maps[k][val] || 0) + 1;
-                }
-            }
-        }
-        for (const [field, valMap] of Object.entries(maps)) {
-            const sorted = Object.entries(valMap).sort((a,b) => b[1] - a[1]);
-            o.push(field + " (" + sorted.length + " unique):");
-            for (const [v, c] of sorted) o.push("  " + v + " = " + c);
-            o.push("");
-        }
-
-        // PART 5: Position mapping via blessed girls
-        o.push("--- PART 5: Position mapping (blessed girls) ---");
-        const blessedPos = arr.filter(g => g.blessing_bonuses && g.blessing_bonuses.pvp_v3);
-        const blessedEye = arr.filter(g => g.blessing_bonuses && g.blessing_bonuses.pvp_v3);
-        o.push("Girls with pvp_v3 (position/eye blessing): " + blessedPos.length);
-        if (blessedPos.length > 0) {
-            const posCount = {};
-            for (const g of blessedPos) { const p = g.position_img || "?"; posCount[p] = (posCount[p]||0)+1; }
-            o.push("Their position_img values: " + JSON.stringify(posCount));
-            o.push("First 5:");
-            for (let i = 0; i < Math.min(5, blessedPos.length); i++) {
-                const g = blessedPos[i];
-                o.push("  " + g.name + " pos=" + g.position_img + " eye=" + g.eye_color1 + " hair=" + g.hair_color1 + " elem=" + (g.element_data?g.element_data.type:g.element));
-            }
-        }
+        if (!found) { o.push("ERROR: No girl data. Open Change Team panel."); show(o.join("\n")); return; }
+        const arr = found.arr;
+        o.push("Source: " + found.path + " (" + arr.length + " girls)");
         o.push("");
 
-        // Also check pvp_v3 bonus values to distinguish position vs eye blessing
-        o.push("--- PART 5b: Blessing bonus breakdown ---");
-        const byBonus = {pvp_v3: [], pvp_v4: [], other: []};
-        for (const g of arr) {
-            if (!g.blessing_bonuses || typeof g.blessing_bonuses !== "object") continue;
-            if (Array.isArray(g.blessing_bonuses) && g.blessing_bonuses.length === 0) continue;
-            for (const key of Object.keys(g.blessing_bonuses)) {
-                if (key === "pvp_v3") byBonus.pvp_v3.push(g);
-                else if (key === "pvp_v4") byBonus.pvp_v4.push(g);
-                else byBonus.other.push(g);
-            }
-        }
-        o.push("pvp_v3 girls: " + byBonus.pvp_v3.length);
-        o.push("pvp_v4 girls: " + byBonus.pvp_v4.length);
-
-        // Group pvp_v3 girls by their bonus percentage to separate position(30%) from eye(40%)
-        if (byBonus.pvp_v3.length > 0) {
-            const byPct = {};
-            for (const g of byBonus.pvp_v3) {
-                const pct = g.blessing_bonuses.pvp_v3.carac1 ? g.blessing_bonuses.pvp_v3.carac1[0] : "?";
-                if (!byPct[pct]) byPct[pct] = [];
-                byPct[pct].push(g);
-            }
-            for (const [pct, girls] of Object.entries(byPct)) {
-                o.push("  +"+pct+"% group (" + girls.length + " girls):");
-                const posVals = {}; const eyeVals = {};
-                for (const g of girls) {
-                    posVals[g.position_img||"?"] = (posVals[g.position_img||"?"]||0)+1;
-                    eyeVals[g.eye_color1||"?"] = (eyeVals[g.eye_color1||"?"]||0)+1;
-                }
-                o.push("    positions: " + JSON.stringify(posVals));
-                o.push("    eye_colors: " + JSON.stringify(eyeVals));
-                o.push("    examples: " + girls.slice(0,3).map(g => g.name + " pos=" + g.position_img + " eye=" + g.eye_color1).join(", "));
-            }
-        }
-        o.push("");
-
-        // PART 6: One example girl per position_img
-        o.push("--- PART 6: Example girl per position ---");
-        const posExamples = {};
-        for (const g of arr) {
-            const p = g.position_img || "?";
-            if (!posExamples[p]) posExamples[p] = g.name + " (elem=" + (g.element_data?g.element_data.type:g.element) + ")";
-        }
-        for (const [p, ex] of Object.entries(posExamples).sort()) o.push("  " + p + " -> " + ex);
-        o.push("");
-
-        // PART 7: Blessing cache
-        o.push("--- PART 7: Blessing Cache ---");
+        // Blessing cache
+        o.push("--- Blessing Cache ---");
         try {
             const ck = Object.keys(localStorage).find(k => k.includes("blessingsCache"));
-            if (ck) { o.push("Key: " + ck); o.push(localStorage.getItem(ck)); }
-            else o.push("Not found");
+            if (ck) {
+                const c = JSON.parse(localStorage.getItem(ck));
+                o.push("blessedTraits: " + JSON.stringify(c.blessedTraits));
+                o.push("blessedValues: " + JSON.stringify(c.blessedValues));
+                if (c.raw && c.raw.active) {
+                    for (const b of c.raw.active) o.push("  " + b.title + " | " + b.description.replace(/<[^>]+>/g, ""));
+                }
+            } else o.push("Not found");
         } catch(e) { o.push("Error: " + e.message); }
         o.push("");
 
-        // PART 8: Top 15
-        o.push("--- PART 8: Top 15 by stats ---");
-        const top = [...arr].sort((a,b) => ((b.carac1||0)+(b.carac2||0)+(b.carac3||0)) - ((a.carac1||0)+(a.carac2||0)+(a.carac3||0))).slice(0, 15);
-        for (const g of top) {
-            const s = (g.carac1||0)+(g.carac2||0)+(g.carac3||0);
-            const bl = (g.blessing_bonuses && typeof g.blessing_bonuses === "object" && !Array.isArray(g.blessing_bonuses) && Object.keys(g.blessing_bonuses).length > 0) ? "[B]" : "   ";
-            o.push(bl + " " + (g.name||"?") + " s=" + Math.round(s) + " eye=" + g.eye_color1 + " hair=" + g.hair_color1 + " pos=" + g.position_img + " z=" + (g.zodiac||"?").substring(0,5) + " e=" + (g.element_data?g.element_data.type:g.element) + " " + g.rarity + " l=" + g.level + " g=" + g.graded);
+        // Separate blessings by bonus percentage
+        o.push("--- Blessing Bonus Groups ---");
+        const groups = {};
+        for (const g of arr) {
+            if (!g.blessing_bonuses || typeof g.blessing_bonuses !== "object" || Array.isArray(g.blessing_bonuses)) continue;
+            if (!g.blessing_bonuses.pvp_v3) continue;
+            const pcts = g.blessing_bonuses.pvp_v3.carac1;
+            if (!Array.isArray(pcts)) continue;
+            // Each value in the array is a separate blessing
+            for (const pct of pcts) {
+                const key = "+" + pct + "%";
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(g);
+            }
+        }
+
+        for (const [pct, girls] of Object.entries(groups).sort()) {
+            o.push("Group " + pct + " (" + girls.length + " girls):");
+
+            // position_img distribution
+            const posCount = {};
+            for (const g of girls) posCount[g.position_img || "?"] = (posCount[g.position_img || "?"] || 0) + 1;
+            o.push("  position_img: " + JSON.stringify(posCount));
+
+            // eye_color1 distribution
+            const eyeCount = {};
+            for (const g of girls) eyeCount[g.eye_color1 || "?"] = (eyeCount[g.eye_color1 || "?"] || 0) + 1;
+            o.push("  eye_color1: " + JSON.stringify(eyeCount));
+
+            // hair_color1 distribution
+            const hairCount = {};
+            for (const g of girls) hairCount[g.hair_color1 || "?"] = (hairCount[g.hair_color1 || "?"] || 0) + 1;
+            o.push("  hair_color1: " + JSON.stringify(hairCount));
+
+            // id_role distribution
+            const roleCount = {};
+            for (const g of girls) roleCount[g.id_role || "?"] = (roleCount[g.id_role || "?"] || 0) + 1;
+            o.push("  id_role: " + JSON.stringify(roleCount));
+
+            // zodiac distribution (first 5 chars)
+            const zodCount = {};
+            for (const g of girls) zodCount[(g.zodiac || "?").substring(0, 5)] = (zodCount[(g.zodiac || "?").substring(0, 5)] || 0) + 1;
+            o.push("  zodiac: " + JSON.stringify(zodCount));
+
+            o.push("");
+        }
+
+        // Now: for the POSITION blessing specifically, find which group has uniform position_img
+        o.push("--- Position Blessing Detection ---");
+        o.push("Looking for a group where ALL girls share the same position_img...");
+        for (const [pct, girls] of Object.entries(groups)) {
+            const posCount = {};
+            for (const g of girls) posCount[g.position_img || "?"] = (posCount[g.position_img || "?"] || 0) + 1;
+            const entries = Object.entries(posCount);
+            if (entries.length === 1) {
+                o.push("  FOUND! " + pct + " group: ALL " + girls.length + " girls have position_img=" + entries[0][0]);
+            }
+            // Also check if one position dominates (>90%)
+            const total = girls.length;
+            for (const [pos, cnt] of entries) {
+                if (cnt / total > 0.9 && entries.length > 1) {
+                    o.push("  LIKELY: " + pct + " group: " + cnt + "/" + total + " girls have position_img=" + pos);
+                }
+            }
         }
         o.push("");
 
-        // PART 9: Full girl[0]
-        o.push("--- PART 9: Full girl[0] ---");
-        const fg = arr[0]; const rf = {};
-        for (const k of Object.keys(fg)) { if(typeof fg[k]==="string"&&fg[k].length>300){rf[k]="[STR:"+fg[k].length+"]";}else{rf[k]=fg[k];} }
-        o.push(JSON.stringify(rf, null, 2));
-
+        // Same for eye_color
+        o.push("--- Eye Color Blessing Detection ---");
+        o.push("Looking for a group where ALL girls share the same eye_color1...");
+        for (const [pct, girls] of Object.entries(groups)) {
+            const eyeCount = {};
+            for (const g of girls) eyeCount[g.eye_color1 || "?"] = (eyeCount[g.eye_color1 || "?"] || 0) + 1;
+            const entries = Object.entries(eyeCount);
+            if (entries.length === 1) {
+                o.push("  FOUND! " + pct + " group: ALL " + girls.length + " girls have eye_color1=" + entries[0][0]);
+            }
+            const total = girls.length;
+            for (const [eye, cnt] of entries) {
+                if (cnt / total > 0.9 && entries.length > 1) {
+                    o.push("  LIKELY: " + pct + " group: " + cnt + "/" + total + " girls have eye_color1=" + eye);
+                }
+            }
+        }
         o.push("");
+
+        // Hair color detection
+        o.push("--- Hair Color Blessing Detection ---");
+        for (const [pct, girls] of Object.entries(groups)) {
+            const hairCount = {};
+            for (const g of girls) hairCount[g.hair_color1 || "?"] = (hairCount[g.hair_color1 || "?"] || 0) + 1;
+            const entries = Object.entries(hairCount);
+            if (entries.length === 1) {
+                o.push("  FOUND! " + pct + " group: ALL " + girls.length + " girls have hair_color1=" + entries[0][0]);
+            }
+        }
+        o.push("");
+
+        // Full position_img to id_role cross-reference
+        o.push("--- position_img vs id_role cross-reference ---");
+        const posRoleMap = {};
+        for (const g of arr) {
+            const pos = g.position_img || "?";
+            const role = g.id_role || "?";
+            if (!posRoleMap[pos]) posRoleMap[pos] = {};
+            posRoleMap[pos][role] = (posRoleMap[pos][role] || 0) + 1;
+        }
+        for (const [pos, roles] of Object.entries(posRoleMap).sort()) {
+            o.push("  " + pos + " -> roles: " + JSON.stringify(roles));
+        }
+        o.push("");
+
+        // id_role unique values with count
+        o.push("--- id_role values ---");
+        const roleAll = {};
+        for (const g of arr) roleAll[g.id_role || "?"] = (roleAll[g.id_role || "?"] || 0) + 1;
+        for (const [r, c] of Object.entries(roleAll).sort((a,b) => b[1] - a[1])) o.push("  id_role=" + r + " -> " + c + " girls");
+        o.push("");
+
+        // Check if there are any other position-related fields
+        o.push("--- Other position/role fields on girl[0] ---");
+        const fg = arr[0];
+        for (const k of Object.keys(fg)) {
+            const lk = k.toLowerCase();
+            if (lk.includes("position") || lk.includes("role") || lk.includes("pose") || lk.includes("fav")) {
+                o.push("  " + k + " = " + JSON.stringify(fg[k]));
+            }
+        }
+        o.push("");
+
         o.push("=== END ===");
         show(o.join("\n"));
     }
@@ -214,5 +210,5 @@
         row.appendChild(cp);row.appendChild(cl);ov.appendChild(ta);ov.appendChild(row);document.body.appendChild(ov);ta.select();
     }
 
-    setTimeout(()=>{const b=document.createElement("div");b.textContent="\ud83d\udd0d FULL DUMP";b.style.cssText="position:fixed;top:10px;right:10px;z-index:99999;background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,0.5);";b.onclick=dump;document.body.appendChild(b);},3000);
+    setTimeout(()=>{const b=document.createElement("div");b.textContent="\ud83d\udd0d POS MAP";b.style.cssText="position:fixed;top:10px;right:10px;z-index:99999;background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,0.5);";b.onclick=dump;document.body.appendChild(b);},3000);
 })();
