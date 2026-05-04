@@ -155,7 +155,9 @@ export class TeamScoringService {
         const gradeDeflator = 1 + 0.3 * currentGrades;
         const gradeInflator = 1 + 0.3 * maxGrades;
 
-        return (currentStats * levelFactor / gradeDeflator) * gradeInflator;
+        const projected = (currentStats * levelFactor / gradeDeflator) * gradeInflator;
+        // Never return less than current stats (blessings can inflate current above projected)
+        return Math.max(projected, currentStats);
     }
 
     /**

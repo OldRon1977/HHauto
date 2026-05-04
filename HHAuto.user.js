@@ -17038,7 +17038,7 @@ class BlessingService {
                 traits.push('eyeColor');
             if (desc.includes('hair color') || desc.includes('hair colour'))
                 traits.push('hairColor');
-            if (desc.includes('zodiac') || desc.includes('astrological'))
+            if (desc.includes('zodiac') || desc.includes('astrological') || (desc.includes('sign ') && !desc.includes('element')))
                 traits.push('zodiac');
             if (desc.includes('favourite position') || desc.includes('favorite position'))
                 traits.push('position');
@@ -17069,11 +17069,14 @@ class BlessingService {
             else if (condition.toLowerCase().startsWith('hair color') || condition.toLowerCase().startsWith('hair colour')) {
                 values['hairColor'] = condition.replace(/hair colou?r\s*/i, '').trim().toLowerCase();
             }
-            else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological')) {
-                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*/i, '').trim().toLowerCase();
+            else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological') || condition.toLowerCase().startsWith('sign')) {
+                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*(?:sign)?\s*/i, '').replace(/^sign\s*/i, '').trim().toLowerCase();
             }
             else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
-                values['position'] = condition.replace(/favourit?e position\s*/i, '').trim().toLowerCase();
+                values['position'] = condition.replace(/favou?rite? position\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('element')) {
+                // Element blessing handled by parseElement
             }
         }
         return values;
@@ -17193,7 +17196,9 @@ class TeamScoringService {
         const levelFactor = playerLevel / Math.max(level, 1);
         const gradeDeflator = 1 + 0.3 * currentGrades;
         const gradeInflator = 1 + 0.3 * maxGrades;
-        return (currentStats * levelFactor / gradeDeflator) * gradeInflator;
+        const projected = (currentStats * levelFactor / gradeDeflator) * gradeInflator;
+        // Never return less than current stats (blessings can inflate current above projected)
+        return Math.max(projected, currentStats);
     }
     /**
      * Filter girls: only Mythic and Legendary (both modes).
