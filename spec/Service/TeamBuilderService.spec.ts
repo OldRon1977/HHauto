@@ -330,6 +330,8 @@ describe('TeamBuilderService', () => {
                 traitMatchCount: 5,
                 blessedCategories: [],
                 blessedGirlCount: 0,
+                effectivePower: 0,
+                alternatives: [],
             };
             const dist = TeamBuilderService.getElementDistribution(team);
             expect(dist[0]).toEqual({ element: 'fire', count: 3 });
@@ -351,6 +353,8 @@ describe('TeamBuilderService', () => {
                 traitMatchCount: 6,
                 blessedCategories: [],
                 blessedGirlCount: 0,
+                effectivePower: 0,
+                alternatives: [],
             };
             const dist = TeamBuilderService.getElementDistribution(team);
             expect(dist[0].count).toBe(3);
