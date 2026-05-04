@@ -46,12 +46,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "7.35.15";
+const FEATURE_POPUP_VERSION: string = "7.35.18";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto repository is moving";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.18";
 
 /**
  * HTML content for the feature popup.
@@ -59,25 +59,25 @@ const FEATURE_POPUP_TITLE = "HHAuto repository is moving";
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
-    <p style="font-size:15px; font-weight:bold; margin-bottom:10px;">HHAuto repository is moving</p>
-    <p style="margin-bottom:10px;">The HHAuto GitHub repository is being transferred to a new owner in the coming days:</p>
-    <ul style="margin-bottom:10px;">
-      <li>Old: <code>github.com/Roukys/HHauto</code></li>
-      <li>New: <b style="color:#d00;">github.com/OldRon1977/HHauto</b></li>
-    </ul>
-    <p style="margin-bottom:6px;"><b>What this means for you:</b></p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:10px; color:#d00;">Last version before repository transfer</p>
+    <p style="margin-bottom:10px;">The HHAuto repository will be transferred from <code>Roukys/HHauto</code> to <b style="color:#d00;">OldRon1977/HHauto</b> shortly after this release.</p>
+    <p style="margin-bottom:6px;"><b>What's new in v7.35.16&#8211;7.35.18:</b></p>
     <ul style="margin-bottom:10px; font-size:12px;">
-      <li>GitHub redirects old URLs to the new owner automatically — no action needed in most cases.</li>
-      <li>Tampermonkey will pick up future updates from the new URL on its next auto-update cycle.</li>
-      <li>Your settings and data are stored locally in Tampermonkey and remain untouched.</li>
+      <li>Team selection now compares multiple trait groups and picks the strongest team by effective power</li>
+      <li>Active blessings are loaded automatically and shown in the info box</li>
+      <li>Info box explains why a team was chosen (trait, Tier 3 bonus, power comparison)</li>
+      <li>Penta Drill: increased delay to prevent blank screens</li>
+      <li>Auto-buy timer restored: control when kobans are spent</li>
     </ul>
-    <p style="margin-bottom:10px; font-size:12px;">If updates ever stop arriving after the transfer, reinstall HHAuto from the new URL above.</p>
+    <p style="margin-bottom:6px;"><b>After the transfer:</b></p>
+    <ul style="margin-bottom:10px; font-size:12px;">
+      <li>GitHub redirects old URLs automatically &#8212; no action needed</li>
+      <li>Tampermonkey picks up future updates from the new URL</li>
+      <li><b style="color:#d00;">Your settings remain untouched</b></li>
+    </ul>
+    <p style="margin-bottom:10px; font-size:13px;">New URL: <b style="color:#d00;">github.com/OldRon1977/HHauto</b></p>
     <p style="margin-bottom:15px; font-size:13px;">
-      Big thanks to <b>Roukys</b> for providing the home of HHAuto for so many years.<br>
-      Special thanks to <b>deuxge</b>, the main maintainer in recent years, who continues to keep HHAuto alive!
-    </p>
-    <p style="margin-bottom:10px; font-size:11px; color:#888; font-style:italic;">
-      This reminder will reappear with future versions until the transfer is complete. Click "OK" to dismiss it for the current version.
+      Thanks to <b>Roukys</b> for hosting HHAuto for so many years, and to <b>deuxge</b> for maintaining it!
     </p>
   </div>
 `;

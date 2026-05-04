@@ -16,6 +16,14 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.18 - Last version before repository transfer
+
+This is the final release before the repository is transferred from `Roukys/HHauto` to `OldRon1977/HHauto`. No functional changes — only the in-app notification has been updated to inform users about the upcoming transfer.
+
+After the transfer, GitHub will redirect all old URLs automatically. Tampermonkey will pick up future updates from the new location. Your settings remain untouched.
+
+---
+
 ### v7.35.17 - Multi-team comparison for optimal selection
 
 Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573).
