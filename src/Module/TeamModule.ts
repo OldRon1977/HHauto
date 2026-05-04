@@ -637,7 +637,8 @@ export class TeamModule {
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
             // Use cached blessings from BlessingService (loaded on Home page)
-            const cachedBlessings = BlessingService.getCached();
+            let cachedBlessings: any = null;
+            try { cachedBlessings = BlessingService.getCached(); } catch { /* cache not ready */ }
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
                 ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
                     + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')

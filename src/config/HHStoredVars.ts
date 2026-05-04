@@ -2237,6 +2237,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamSettings] =
 HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
     {
     default:"",
+    storage:"localStorage",
     HHType:"Temp"
 };
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =

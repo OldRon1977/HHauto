@@ -10787,6 +10787,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.haremTeamSettings] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blessingsCache] =
     {
         default: "",
+        storage: "localStorage",
         HHType: "Temp"
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
@@ -17577,7 +17578,12 @@ class BlessingService {
         });
     }
     static getCached() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        try {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        }
+        catch (_a) {
+            return null;
+        }
     }
     static isCacheValid() {
         const cached = BlessingService.getCached();
@@ -18182,7 +18188,11 @@ class TeamModule {
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
             // Use cached blessings from BlessingService (loaded on Home page)
-            const cachedBlessings = BlessingService.getCached();
+            let cachedBlessings = null;
+            try {
+                cachedBlessings = BlessingService.getCached();
+            }
+            catch ( /* cache not ready */_a) { /* cache not ready */ }
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
                 ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c).join(', ')
                     + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')

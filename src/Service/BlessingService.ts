@@ -59,7 +59,11 @@ export class BlessingService {
     }
 
     static getCached(): BlessingData | null {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        try {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        } catch {
+            return null;
+        }
     }
 
     static isCacheValid(): boolean {
