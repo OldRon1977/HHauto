@@ -579,6 +579,11 @@ export class TeamModule {
         eyeColor: '👁', hairColor: '💇', zodiac: '♋', position: '🔄',
     };
 
+    private static readonly CLASS_NAME: Record<string, string> = {
+        fire: 'Eccentric', water: 'Sensual', nature: 'Exhibitionist', stone: 'Physical',
+        sun: 'Playful', darkness: 'Dominatrix', psychic: 'Submissive', light: 'Voyeur',
+    };
+
     private static updateTeamUI(deckID: number[], teamResult?: TeamResult) {
         const arr = $('div[id_girl]');
         // Remove all existing topNumber elements to prevent stale entries
@@ -630,9 +635,9 @@ export class TeamModule {
         if (teamResult) {
             const dist = TeamBuilderService.getElementDistribution(teamResult);
             const distHtml = dist.map(d => {
-                const emoji = TeamModule.ELEMENT_EMOJI[d.element] || '';
-                return `${emoji}${d.count}`;
-            }).join(' ');
+                const className = TeamModule.CLASS_NAME[d.element] || d.element;
+                return `${className} x${d.count}`;
+            }).join(', ');
 
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
@@ -642,7 +647,7 @@ export class TeamModule {
             const blessedVals = cachedBlessings?.blessedValues || {};
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
                 ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
-                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.ELEMENT_EMOJI[cachedBlessings.blessedElement] || '') + ' ' + cachedBlessings.blessedElement : '')
+                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.CLASS_NAME[cachedBlessings.blessedElement] || cachedBlessings.blessedElement) : '')
                 : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
             const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
             const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && teamResult.traitValue.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
@@ -658,7 +663,7 @@ export class TeamModule {
                 <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${blessedVals[teamResult.traitCategory] || teamResult.traitValue || '?'}" (${teamResult.traitMatchCount}/7 girls match)</div>
                 <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
-                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.ELEMENT_EMOJI[teamResult.girls[0].element] || ''} ${teamResult.girls[0].element})</div>
+                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element})</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
