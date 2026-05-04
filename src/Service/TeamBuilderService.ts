@@ -32,6 +32,8 @@ export interface TeamResult {
     traitMatchCount: number;        // how many girls match the trait
     blessedCategories: string[];   // currently blessed trait categories
     blessedGirlCount: number;      // how many girls have active blessings
+    effectivePower: number;        // team stat sum * (1 + tier3Bonus)
+    alternatives: Array<{ traitCategory: string; traitValue: string; effectivePower: number }>;
 }
 
 export type ScoringMode = 1 | 2;  // 1 = Current Best, 2 = Best Possible
@@ -92,92 +94,49 @@ export class TeamBuilderService {
         // Phase 2b: Detect active blessings
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
 
-        // Phase 3: Find best trait group (blessing-aware)
+        // Phase 3: Build teams for multiple trait groups, pick highest effective power
         const blessedValues: Record<string, string> = (BlessingService.getCached()?.blessedValues) || {};
         const traitGroups = TeamScoringService.findTraitGroups(pool, blessedCategories, blessedValues);
-        let bestGroup: TraitGroupResult | null = null;
 
-        if (traitGroups.length > 0 && traitGroups[0].girls.length >= 3) {
-            bestGroup = traitGroups[0];
+        // Evaluate top groups + all blessed groups
+        const groupsToEvaluate: TraitGroupResult[] = [];
+        const seenKeys = new Set<string>();
+        for (const g of traitGroups.slice(0, 5)) {
+            const key = g.traitCategory + '=' + g.traitValue;
+            if (!seenKeys.has(key)) { groupsToEvaluate.push(g); seenKeys.add(key); }
+        }
+        for (const g of traitGroups) {
+            const key = g.traitCategory + '=' + g.traitValue;
+            if (seenKeys.has(key)) continue;
+            if (blessedCategories.has(g.traitCategory)) { groupsToEvaluate.push(g); seenKeys.add(key); }
+        }
+        if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
+            groupsToEvaluate.push(traitGroups[0]);
         }
 
-        // Fallback: use eyeColor category, pick the largest group
-        if (!bestGroup) {
-            const eyeGroups = traitGroups.filter(g => g.traitCategory === FALLBACK_TRAIT_CATEGORY);
-            if (eyeGroups.length > 0) {
-                bestGroup = eyeGroups[0];
+        // Build a team for each group and compare effective power
+        let bestBuilt: { team: GirlData[], cat: TraitCategory, val: string, power: number } | null = null;
+        const alternatives: Array<{ traitCategory: string; traitValue: string; effectivePower: number }> = [];
+
+        for (const group of groupsToEvaluate) {
+            const builtTeam = TeamBuilderService._buildTeamForGroup(group.traitCategory, group.traitValue, pool, scoreMap);
+            if (!builtTeam || builtTeam.length < TEAM_SIZE) continue;
+            const statSum = builtTeam.reduce((s, g) => s + (scoreMap.get(g.id_girl) || 0), 0);
+            const t3 = TeamScoringService.calculateTier3TeamBonus(builtTeam);
+            const power = Math.round(statSum * (1 + t3));
+            alternatives.push({ traitCategory: group.traitCategory, traitValue: group.traitValue, effectivePower: power });
+            if (!bestBuilt || power > bestBuilt.power) {
+                bestBuilt = { team: builtTeam, cat: group.traitCategory, val: group.traitValue, power };
             }
         }
 
-        // If still no group found, use first available or create a dummy
-        const traitCategory = bestGroup?.traitCategory || FALLBACK_TRAIT_CATEGORY;
-        const traitValue = bestGroup?.traitValue || '';
-        const traitGroupGirls = bestGroup?.girls || [];
+        if (!bestBuilt) return null;
 
-        // Phase 4: Select Leader (must be Mythic, prefer element matching trait)
-        const traitElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
-        const traitMatchLeaders = pool.filter(g => g.rarity === 'mythic' && traitElements.includes(g.element));
-        const leaderPool = traitMatchLeaders.length > 0 ? traitMatchLeaders : pool;
-        const rankedLeaders = TeamScoringService.rankLeaderCandidates(
-            leaderPool, scoreMap, traitCategory, traitValue
-        );
-        const leader = rankedLeaders[0];
-
-        // Phase 5: Fill slots 2-7 (trait-consistent)
-        // Priority: girls from the trait-matching element pair with matching trait value
-        // Then: girls from the trait-matching element pair (any trait value)
-        // Then: fill remaining slots by stats from any element
-        const team: GirlData[] = [leader];
-        const teamElements: ElementType[] = [leader.element];
-        const used = new Set<number>([leader.id_girl]);
-
-        // First pass: fill from trait-matching girls (same element pair + same trait value)
-        const traitMatchGirls = pool.filter(g =>
-            !used.has(g.id_girl)
-            && traitElements.includes(g.element)
-            && TeamScoringService.getTraitValue(g) === traitValue
-        ).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-
-        for (const girl of traitMatchGirls) {
-            if (team.length >= TEAM_SIZE) break;
-            if (used.has(girl.id_girl)) continue;
-            team.push(girl);
-            teamElements.push(girl.element);
-            used.add(girl.id_girl);
-        }
-
-        // Second pass: fill from same element pair (different trait value, still gets partial bonus)
-        if (team.length < TEAM_SIZE) {
-            const sameElementGirls = pool.filter(g =>
-                !used.has(g.id_girl)
-                && traitElements.includes(g.element)
-            ).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-
-            for (const girl of sameElementGirls) {
-                if (team.length >= TEAM_SIZE) break;
-                if (used.has(girl.id_girl)) continue;
-                team.push(girl);
-                teamElements.push(girl.element);
-                used.add(girl.id_girl);
-            }
-        }
-
-        // Third pass: fill remaining slots by pure stats (any element)
-        if (team.length < TEAM_SIZE) {
-            const remaining = pool.filter(g => !used.has(g.id_girl))
-                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-
-            for (const girl of remaining) {
-                if (team.length >= TEAM_SIZE) break;
-                team.push(girl);
-                teamElements.push(girl.element);
-                used.add(girl.id_girl);
-            }
-        }
-
-        if (team.length < TEAM_SIZE) {
-            return null;
-        }
+        const team = bestBuilt.team;
+        const teamElements: ElementType[] = team.map(g => g.element);
+        const leader = team[0];
+        const traitCategory = bestBuilt.cat;
+        const traitValue = bestBuilt.val;
 
         // Phase 6: Build result
         const statScores = team.map(g => scoreMap.get(g.id_girl) || 0);
@@ -209,7 +168,38 @@ export class TeamBuilderService {
             traitMatchCount,
             blessedCategories: Array.from(blessedCategories),
             blessedGirlCount,
+            effectivePower: bestBuilt.power,
+            alternatives,
         };
+    }
+
+    /** Build a team for a specific trait group. */
+    private static _buildTeamForGroup(cat: TraitCategory, val: string, pool: GirlData[], scoreMap: Map<number, number>): GirlData[] | null {
+        const elems = ELEMENT_PAIRS_MAP[cat] || [];
+        const leaders = pool.filter(g => g.rarity === 'mythic' && elems.includes(g.element));
+        const ranked = TeamScoringService.rankLeaderCandidates(leaders.length > 0 ? leaders : pool, scoreMap, cat, val);
+        if (ranked.length === 0) return null;
+
+        const team: GirlData[] = [ranked[0]];
+        const used = new Set<number>([ranked[0].id_girl]);
+
+        // Pass 1: matching trait value + correct element
+        for (const g of pool.filter(g => !used.has(g.id_girl) && elems.includes(g.element) && TeamScoringService.getTraitValue(g) === val).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0))) {
+            if (team.length >= TEAM_SIZE) break; team.push(g); used.add(g.id_girl);
+        }
+        // Pass 2: correct element, any trait
+        if (team.length < TEAM_SIZE) {
+            for (const g of pool.filter(g => !used.has(g.id_girl) && elems.includes(g.element)).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0))) {
+                if (team.length >= TEAM_SIZE) break; team.push(g); used.add(g.id_girl);
+            }
+        }
+        // Pass 3: any element by stats
+        if (team.length < TEAM_SIZE) {
+            for (const g of pool.filter(g => !used.has(g.id_girl)).sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0))) {
+                if (team.length >= TEAM_SIZE) break; team.push(g); used.add(g.id_girl);
+            }
+        }
+        return team.length >= TEAM_SIZE ? team : null;
     }
 
     /**
