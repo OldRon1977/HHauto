@@ -46,12 +46,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "7.35.20";
+const FEATURE_POPUP_VERSION: string = "7.35.21";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.20";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.21";
 
 /**
  * HTML content for the feature popup.
@@ -59,17 +59,16 @@ const FEATURE_POPUP_TITLE = "HHAuto v7.35.20";
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
-    <p style="font-size:15px; font-weight:bold; margin-bottom:10px; color:#090;">Repository transfer complete</p>
-    <p style="margin-bottom:10px;">HHAuto now lives at <b style="color:#090;">github.com/OldRon1977/HHauto</b>.</p>
-    <p style="margin-bottom:10px;">The old Roukys/HHauto URL redirects automatically &mdash; no action needed on your side. Tampermonkey picks up updates from the new location. Your settings remain untouched.</p>
-    <p style="margin-bottom:6px;"><b>What's new in v7.35.20:</b></p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:10px; color:#090;">League team algorithm rebuilt</p>
+    <p style="margin-bottom:6px;"><b>What's new in v7.35.21:</b></p>
     <ul style="margin-bottom:10px; font-size:12px;">
-      <li>Team selection: blessing boost now works correctly (hex color codes no longer break matching)</li>
-      <li>Info box shows "#A55" instead of raw hex when no blessing name is available</li>
+      <li>Team selection now scores by your <b>main class stat</b> (HC=carac1, Charm=carac2, KH=carac3) instead of the raw stat sum</li>
+      <li>Hard class filter: only girls of your own class are considered &mdash; cross-class never wins</li>
+      <li>Trait clusters are compared by main_sum &times; (1 + tier3 bonus) &mdash; the actual game power, not heuristics</li>
+      <li>Position-trait penalty and synergy tiebreaker are gone &mdash; the new scoring captures it correctly</li>
+      <li>Info box shows readable trait names ("Blue", "Doggy") instead of hex codes ("00F", "2.png"), pulled live from the game UI</li>
+      <li>New note: stats are equipment-free &mdash; hit "Stuff Team" after applying</li>
     </ul>
-    <p style="margin-bottom:15px; font-size:13px;">
-      Thanks to <b>Roukys</b> for hosting HHAuto for so many years, and to <b>deuxge</b> for maintaining it!
-    </p>
     <p style="margin-bottom:0; font-size:11px; color:#888;">This popup will be deactivated in the next version.</p>
   </div>
 `;

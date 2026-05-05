@@ -1,39 +1,61 @@
 ---
-last-verified: 2026-04-29
-verified-against-version: 7.35.14
-status: minor-drift-fixed
+last-verified: 2026-05-05
+verified-against-version: 7.35.21
+status: current
 ---
 
 # Team-Algorithmus Design
 
-Implementierung der verbesserten Team-Auswahl (Issue #1340).
-Erstellt: 2026-03-24 | Letzte Aktualisierung: 2026-04-29 | Algorithmus-Version: v7.34.14 (keine Änderungen bis v7.35.14)
+Implementierung der League-Team-Auswahl (Issues #1340, #1573).
+Letzte grosse Aenderung: 2026-05-05, v7.35.21 (v4-Algorithmus).
 
 ---
 
 ## Uebersicht
 
-Der Team-Algorithmus (v3) baut ein optimales 7-Girl-Team mit
-Tier-3-Trait-Gruppen-Optimierung, Element-Synergien und Leader-Skill-Bewertung.
+Der Team-Algorithmus baut ein optimales 7-Girl-Team. Quellen sind die
+Kinkoid-Performance-Handbooks (Forum-Topics 21217 und 24008), das
+HH-Wiki und das Tom-208-Userscript. Anforderungen sind in
+`INPUT/league-team-algorithmus-spec.md` konsolidiert.
 
 ```
-Legacy-Algorithmus (Fallback):      Aktueller Algorithmus (v3):
-  Tooltip-Daten (11 Felder)          availableGirls (62 Felder)
-  Score = Stat-Summe                  Score = Stats + Synergie + Trait-Matching
-  Top 16 nach Score                   Optimales 7er-Team
-  Kein Rarity-Filter                  Nur Mythic (6★) + Legendary (5★)
-  Leader = hoechster Score            Leader = bester Tier-5-Skill (Mythic only)
+v3 (bis 7.35.x):              v4 (ab 7.35.21):
+  Score = caracs_sum            Score = main_carac (HC=c1, Charm=c2, KH=c3)
+  Position-Penalty 0.80         entfaellt
+  5%-Synergie-Tiebreaker        entfaellt
+  Hex-Werte in UI               Klar-Namen via window.GT.design.colors
+  Hard-Filter nur Rarity        Hard-Filter Rarity + Klasse
+  Trait-Cluster vs Stats        main_sum * (1 + tier3Bonus)
 ```
 
 ### Dateien
 
 | Datei | Zweck |
 |-------|-------|
-| `src/Service/TeamScoringService.ts` | Scoring-Engine: Tier-3 Traits, Synergien, Tier-5, Stat-Formeln, Rarity-Filter |
-| `src/Service/TeamBuilderService.ts` | Team-Builder: Trait-Gruppen, Leader, Slot-Fill |
-| `src/Module/TeamModule.ts` | Integration: Dispatch v3/Legacy, Daten-Mapping, UI-Update |
-| `spec/Service/TeamScoringService.spec.ts` | 58 Tests |
-| `spec/Service/TeamBuilderService.spec.ts` | 22 Tests |
+| `src/Service/TeamScoringService.ts` | Scoring, Klassen-Filter, Tier-3-Bonus, Synergien, Tier-5, Leader-Ranking |
+| `src/Service/TeamBuilderService.ts` | Team-Builder: Cluster-Vergleich, Slot-Fill, Alternativen-Liste |
+| `src/Service/TraitMappings.ts` | Hex/Position/Zodiac -> Klar-Namen mit Runtime + Hardcoded Fallback |
+| `src/Module/TeamModule.ts` | Integration: Dispatch v4/Legacy, Daten-Mapping, UI-Box |
+| `spec/Service/TeamScoringService.spec.ts` | Unit-Tests Scoring |
+| `spec/Service/TeamBuilderService.spec.ts` | Unit-Tests Builder |
+
+---
+
+## Anforderungen (aus League-Spec)
+
+| Punkt | Regel |
+|-------|-------|
+| Pool-Filter | Mythic (6*) + Legendary 5* |
+| Klassen-Filter | Hart auf player.class (1=HC, 2=Charm, 3=KH); cross-class wird verworfen |
+| Score | main_carac der Spielerklasse, nicht caracs_sum |
+| Trait-Cluster | Bestes Element-Paar nach `main_sum * (1 + tier3Bonus)` |
+| Leader | Mythic, Tier-5 Shield > Stun > Execute > Reflect, Tiebreaker = Trait-Match |
+| Blessing-Heuristik | Aktiv-blessed Trait-Kategorie kriegt x1.5 fuer fruehere Auswahl |
+| Tier-3-Bonus | 1.0% Mythic / 0.8% Legendary pro Trait-Match-Teammate |
+| Mono-Element-Synergie | linear pro Girl im Team (informational, nicht im Score) |
+| Equipment | KEIN Unequip noetig: `availableGirls.caracs` ist equipment-frei |
+| UI-Hinweis | "Stats are equipment-free. Hit Stuff Team after applying." |
+| Klar-Namen | window.GT.design.colors mit Hardcoded EN-Fallback |
 
 ---
 
@@ -44,314 +66,303 @@ Legacy-Algorithmus (Fallback):      Aktueller Algorithmus (v3):
 ```
 setTopTeam(mode)
   |
-  +-- availableGirls vorhanden?
-  |     JA  --> setTopTeamV2(mode, girls)
-  |     NEIN -> setTopTeamLegacy(mode)  [alter Code als Fallback]
+  +- availableGirls vorhanden?
+  |    JA  -> setTopTeamV2(mode, girls)
+  |    NEIN -> setTopTeamLegacy(mode)  [DOM-basierter Fallback]
   |
-  +-- setTopTeamV2:
-        1. Map availableGirls -> GirlData[]
-           (zodiac: substring(3).trim(), hairColor: hair_color1,
-            eyeColor: eye_color1, position: position_img ohne .png)
-        2. TeamBuilderService.buildTeam(girls, mode, playerLevel)
-           a. Filter: Mythic (6★) + Legendary (nur 5★, nicht 3★)
-           b. Score alle Kandidaten (Mode 1 oder Mode 2)
-           c. Sortiere nach Score, nimm Top 50
-           d. Finde beste Trait-Gruppe (Element-Paar + gemeinsamer Trait-Wert)
-           e. Leader aus Pool (nur Mythic, Tier-5 Prioritaet)
-           f. Slots 2-7: unified Vergleich (Stats + Synergie + Tier-3-Delta)
-        3. updateTeamUI(deckID, teamResult)
+  +- setTopTeamV2:
+      1. HeroHelper.getClass() -> playerClass (1, 2 oder 3)
+      2. Map availableGirls -> GirlData[]
+         (zodiac roh halten, Position als Nummer, Hex-Werte 1:1)
+      3. TeamBuilderService.buildTeam(girls, mode, playerLevel, playerClass)
+         a. filterEligible: Mythic/Legendary 5* AND class === playerClass
+         b. Score alle Kandidaten ueber main_carac (Mode 1 oder 2)
+         c. Sortiere alle eligible Girls (kein Cap)
+         d. detectBlessedTraits ueber blessing_bonuses
+         e. findTraitGroups (mit Blessed-Boost x1.5)
+         f. Top 5 Gruppen + alle blessed Gruppen evaluieren
+         g. Pro Gruppe Team bauen, vergleiche `main_sum * (1 + tier3Bonus)`
+         h. Beste Gruppe gewinnt
+      4. updateTeamUI(deckID, teamResult): Klar-Namen, Klasse, Equipment-Hinweis
 ```
 
-### Phase 1: Rarity-Filter (beide Modi)
+### Phase 1: Filter
 
 ```
-Mythic (nb_grades = 6):    immer beruecksichtigt
-Legendary (nb_grades = 5): beruecksichtigt
-Legendary (nb_grades = 3): ausgeschlossen
-Alle anderen Raritaeten:   ausgeschlossen
+class === playerClass?         hart, sonst raus
+rarity === 'mythic'             ja
+rarity === 'legendary' 5*       ja
+sonst                            raus
 ```
 
 ### Phase 2: Scoring
 
-#### Modus 1 — "Current Best"
+#### Modus 1 -- "Current Best"
 
 ```
-Score:   caracs.carac1 + caracs.carac2 + caracs.carac3
-         (bereits gesegnete Werte)
+score = caracs.caracN     (N = playerClass)
+        // bereits gesegnet, equipment-frei
 ```
 
-#### Modus 2 — "Best Possible"
+#### Modus 2 -- "Best Possible"
 
 ```
-Score:   currentStats / level * playerLevel
-         / (1 + 0.3 * graded)
-         * (1 + 0.3 * nb_grades)
+projected = caracN / level * playerLevel
+            / (1 + 0.3 * graded)
+            * (1 + 0.3 * nb_grades)
+
+score = max(projected, current_caracN)
+        // Schutz gegen blessing-inflated current > projected
 ```
 
-Projiziert Stats auf Player-Level mit vollen Grades.
+### Phase 3: Trait-Gruppen
 
-### Phase 3: Trait-Gruppen-Optimierung (Tier 3)
+Aus dem Top-50-Pool werden Girls nach Element-Paar und gemeinsamem
+Trait-Wert gruppiert. Gruppen-Score:
 
-Aus dem Top-50-Pool werden Girls nach Element-Paaren und gemeinsamen
-Trait-Werten gruppiert. Die beste Gruppe (mindestens 3 Girls) wird
-bevorzugt ins Team aufgenommen.
+```
+score = anzahlGirls * avg(main_carac)
+score *= 1.5  wenn traitCategory in blessedCategories
+```
 
 #### Element-Paare und Trait-Kategorien
 
-| Element-Paar | Trait-Kategorie | Farbe |
-|-------------|----------------|-------|
-| Darkness + Fire | eyeColor | Schwarz + Rot |
-| Light + Nature | hairColor | Weiss + Gruen |
-| Stone + Psychic | zodiac | Orange + Lila |
-| Water + Sun | position | Blau + Gelb |
+| Element-Paar | Trait-Kategorie | Hex-Beispiele |
+|-------------|----------------|---------------|
+| Darkness + Fire | eyeColor | 00F, A55, F00 |
+| Light + Nature | hairColor | FFF, 0F0, B62 |
+| Stone + Psychic | zodiac | "Aries", "Cancer" |
+| Water + Sun | position | 1, 2, ... 12 |
 
-#### Trait-Gruppen-Score
+### Phase 4: Cluster-Vergleich
 
-```
-score = anzahlGirls * durchschnittStats
-```
-
-Position-Gruppen erhalten einen Penalty-Faktor von 0.80 (Position-Trait
-reduziert Angriffs-Stats durch Equipment).
-
-Fallback: Wenn keine Gruppe mit >= 3 Girls gefunden wird, wird
-die groesste eyeColor-Gruppe verwendet.
-
-### Phase 4: Tier-3-Bonus-Berechnung
-
-Jedes Girl im Team prueft, wie viele Teammates den gleichen Trait-Wert
-innerhalb des gleichen Element-Paars teilen:
+Fuer jede Top-Gruppe wird ein vollstaendiges Team gebaut und
+nach effektiver Power verglichen:
 
 ```
-Mythic:    1.0% Bonus pro Match
-Legendary: 0.8% Bonus pro Match
+effectivePower = round(main_sum * (1 + tier3Bonus))
+
+main_sum     = Summe der main_carac-Scores aller 7 Team-Mitglieder
+tier3Bonus   = Summe ueber alle Mitglieder von:
+                 matchCount(member) * (member.rarity === 'mythic' ? 0.01 : 0.008)
 ```
 
-Der Bonus wird pro Girl berechnet und fuer das Team summiert (bis zu ~7%).
+Die Gruppe mit hoechster `effectivePower` gewinnt. Alle evaluierten
+Alternativen landen in `result.alternatives` fuer die UI-Anzeige.
 
-### Phase 5: Leader-Auswahl
+### Phase 5: Slot-Fill (innerhalb einer Gruppe)
 
-Leader muss Mythic sein. Ausnahme: wenn keine Mythics vorhanden sind,
-werden alle Girls als Fallback betrachtet.
+Drei Pass-Strategie pro Cluster:
 
-Sortierung der Leader-Kandidaten:
+| Pass | Filter | Sortiert nach |
+|------|--------|---------------|
+| 1 | Element gehoert zum Cluster-Paar UND traitValue matcht | main_carac desc |
+| 2 | Element gehoert zum Cluster-Paar (beliebiger trait) | main_carac desc |
+| 3 | beliebiges Element | main_carac desc |
+
+Pass 1 maximiert Tier-3-Match. Pass 2 haelt das Mono-Element-Bonus.
+Pass 3 ist nur Reserve, falls die Gruppe weniger als 7 Girls hat.
+
+### Phase 6: Leader
+
+Leader muss Mythic sein und idealerweise zum Cluster-Element-Paar gehoeren.
 
 | Prioritaet | Kriterium |
 |-----------|----------|
-| 1 (primaer) | Tier-5-Skill-Prioritaet (siehe Tabelle) |
-| 2 (sekundaer) | Trait-Match (Leader teilt Team-Trait) |
-| 3 (tertiaer) | Stat-Score |
+| 1 (primaer) | Tier-5-Skill: Shield(4) > Stun(3) > Execute(2) > Reflect(1) |
+| 2 (sekundaer) | Trait-Match (Leader teilt Cluster-Trait-Wert) |
+| 3 (tertiaer) | main_carac-Score |
 
-| Element | Tier-5 Skill | Prioritaet | ID |
-|---------|-------------|------------|----|
-| Light / Stone | Shield | 4 (hoechste) | 12 |
-| Sun / Darkness | Stun | 3 | 11 |
-| Fire / Water | Execute | 2 | 14 |
-| Psychic / Nature | Reflect | 1 (niedrigste) | 13 |
+| Element | Tier-5 Skill | Prioritaet |
+|---------|-------------|------------|
+| Light, Stone | Shield | 4 |
+| Sun, Darkness | Stun | 3 |
+| Fire, Water | Execute | 2 |
+| Psychic, Nature | Reflect | 1 |
 
-**Konsequenz:** Der Leader kann weniger Stat-Punkte haben als andere
-Team-Mitglieder. Ein Shield-Leader mit 29.000 Punkten ist staerker
-als ein Reflect-Leader mit 31.000 Punkten.
+### Phase 7: UI
 
-### Phase 6: Unified Slot-Fill (Positionen 2-7)
+Info-Box (oben mittig, dunkel, halbtransparent):
 
-Fuer jeden Slot werden **alle** verbleibenden Kandidaten im Pool bewertet.
-Trait-Gruppen-Girls und Nicht-Gruppen-Girls konkurrieren direkt:
+- Klassen-Hinweis: "Class: <Hardcore/Charm/Know-how> -- only X girls considered"
+- Trait optimiert: "[emoji] eyeColor = 'Blue' (4/7 girls match)"
+- Tier-3-Bonus: "+X.X% total stat boost"
+- Leader: Name + Tier-5-Skill + Element-Klasse
+- Element-Verteilung: "Eccentric x3, Sensual x2, ..."
+- Effective Power
+- Active Blessings + Match-Indikator
+- Compared: Liste der evaluierten Cluster-Alternativen mit Power
+- Equipment-Hinweis: "Stats are equipment-free. Hit Stuff Team after applying."
+- Mode-Hinweis: aktueller Modus (Current Best vs. Best Possible)
 
-```
-combinedScore = synergyScore + tier3Delta
-
-synergyScore  = statScore + synergyWeight * synergyDelta
-tier3Delta    = marginalPct * teamStatTotal
-```
-
-#### Tier-3-Delta-Berechnung (estimateTier3Delta)
-
-Berechnet den Stat-aequivalenten Wert des marginalen Tier-3-Bonus:
-
-```
-existingTraitCount = Anzahl Team-Mitglieder die traitCategory + traitValue matchen
-K = existingTraitCount
-
-newGirlBonus  = K * bonusPerMatch(candidate.rarity)
-existingBoost = Summe(bonusPerMatch(teammate.rarity)) fuer jeden Trait-Teammate
-
-marginalPct   = newGirlBonus + existingBoost
-tier3Delta    = marginalPct * teamStatTotal
-```
-
-- Kandidaten die nicht zur Trait-Gruppe gehoeren: `tier3Delta = 0`
-- `teamStatTotal` wird pro Slot neu berechnet
-- Trait-Girls haben einen Vorteil der mit der Anzahl bestehender
-  Trait-Matches quadratisch waechst
-
-**Konsequenz:** Eine Girl mit +40% Blessing-Bonus (z.B. 14.000 Stats)
-schlaegt eine Trait-Girl mit 10.000 Stats, wenn der Tier-3-Bonus den
-Stat-Gap nicht kompensiert. Umgekehrt gewinnt die Trait-Girl bei
-ausreichend vielen Trait-Matches im Team.
-
-**Cold-Start:** Die erste Trait-Girl hat `tier3Delta = 0` (keine
-bestehenden Trait-Teammates). Sie muss rein auf Stats und Synergie
-konkurrieren. Ab der zweiten Trait-Girl waechst der Bonus.
-
-### Phase 7: UI-Anzeige
-
-- Girls 1-7 mit Element-Emoji und Position
-- Leader: `[emoji] ★ [Skill-Name]` (z.B. "✨ ★ Shield")
-- Synergie-Info-Panel mit:
-  - Trait-Kategorie und -Wert (z.B. "👁 Blue (4/7)")
-  - Tier-3-Bonus in Prozent
-  - Leader-Skill und Element
-  - Element-Verteilung
+Klar-Namen via `TraitMappings.resolve(category, value)`. Wenn der
+Runtime-Lookup fehlschlaegt (z.B. GT nicht geladen), erscheint ein
+Hinweis "Trait label uses fallback dictionary -- may be inaccurate
+for new color codes".
 
 ---
 
-## Element-Synergien
+## Klar-Namen-Mapping (TraitMappings)
 
-Bonus pro Girl des jeweiligen Elements im Team:
+Quelle: Tom-208-Userscript (`gist a5c7065866fe1de5032aabbbd1ed9eff`),
+identisch mit `window.GT.design.colors`.
 
-| Element | Anzeige-Name | Bonus pro Girl | Effekt |
+### Lookup-Reihenfolge
+
+1. `unsafeWindow.GT.design.colors[hex]` (live, immer aktuell)
+2. Hardcoded EN-Fallback in `TraitMappings.ts`
+3. `'#' + hex` als letzter Fallback (z.B. `#765` wenn neue Farbe)
+
+### Fallback-Tabelle (Eye + Hair Colors)
+
+```
+F99 -> Pink         B06 -> Dark Pink     F00 -> Red
+B62 -> Dark blond   FFF -> White         321 -> Dark
+00F -> Blue         FF0 -> Blond         0F0 -> Green
+A55 -> Brown        000 -> Black         CCC -> Silver
+F0F -> Purple       F90 -> Orange        EB8 -> Strawberry blonde
+888 -> Grey         FD0 -> Golden        D83 -> Bronze
+765 -> Ash brown    XXX -> Unknown
+```
+
+### Position
+
+```
+position_img = "1.png" .. "12.png"
+-> Runtime: window.GT.design.figures[1..12]  ("Doggy", "69", ...)
+-> Fallback: "Pose 1" .. "Pose 12"
+```
+
+### Zodiac
+
+`"♈︎ Aries"` -> strip leading non-letters -> `"Aries"`. Keine Hex-Werte,
+daher Fallback identisch zur Live-Variante.
+
+---
+
+## Element-Synergien (informational)
+
+Mono-Element-Bonus pro Girl im Team. Wird im Score nicht angewendet
+(der Klar-Filter auf main_carac und Tier-3-Bonus genuegen), aber im
+UI angezeigt:
+
+| Element | Klassen-Name | Bonus pro Girl | Effekt |
 |---------|-------------|----------------|--------|
-| Fire | Eccentric | **+10%** | Critical Hit Damage |
+| Fire | Eccentric | +10% | Crit Damage |
 | Water | Sensual | +3% | Heal on Hit |
 | Nature | Exhibitionist | +3% | Ego (HP) |
-| Stone | Physical | +2% | Critical Hit Chance |
-| Sun | Playful | +2% | Gegner-Defense senken |
+| Stone | Physical | +2% | Crit Chance |
+| Sun | Playful | +2% | Defense Reduction |
 | Darkness | Dominatrix | +2% | Damage |
 | Psychic | Submissive | +2% | Defense |
 | Light | Voyeur | +2% | Harmony |
 
-Fire hat den hoechsten Einzel-Impact (10% vs 2-3%), daher bevorzugt
-der Algorithmus Fire-Girls bei aehnlichen Stats.
-
-### Synergie-Value-Berechnung
-
-```typescript
-synergyValue = critDamage * 1.0   // Fire: 10% * 1.0
-             + critChance * 2.0   // Stone: 2% * 2.0
-             + defReduce  * 2.0   // Sun: 2% * 2.0
-             + healOnHit  * 1.5   // Water: 3% * 1.5
-             + damage     * 1.5   // Darkness: 2% * 1.5
-             + ego        * 1.0   // Nature: 3% * 1.0
-             + defense    * 1.0   // Psychic: 2% * 1.0
-             + harmony    * 1.0   // Light: 2% * 1.0
-```
-
-Nur der Team-variable Anteil wird betrachtet. Der Harem-weite Anteil
-(basierend auf Gesamtzahl besessener Girls pro Element) ist konstant
-und beeinflusst die Team-Optimierung nicht.
+Quelle: Performance Handbook, bestaetigt durch Tom-208 Battle-Sim
+(`hero_data.team_synergies` Live-Werte).
 
 ---
 
-## Datenquellen
+## Datenfelder
 
-### Primaer: `availableGirls` (Edit Team Page)
+### `availableGirls` Felder
 
-Zugriff via `getHHVars("availableGirls")`. 62 Felder pro Girl.
-Nur auf der Edit-Team-Seite verfuegbar.
+Verfuegbar nur auf der Edit-Team-Seite. Zugriff via `getHHVars("availableGirls")`.
 
-Relevante Felder fuer Team-Selection:
-
-| Feld | Typ | Verwendung |
-|------|-----|------------|
+| Feld | Typ | Verwendung in v4 |
+|------|-----|------------------|
 | `id_girl` | number | Identifikation |
-| `name` | string | Log-Ausgabe |
-| `carac1`, `carac2`, `carac3` | number | Stats (gesegnet) |
-| `caracs` | object | Alternative Stats-Quelle |
-| `element_data.type` | string | Element-Typ |
-| `element` | string | Element-Typ (Fallback) |
-| `rarity` | string | Rarity-Filter (mythic, legendary) |
-| `level` | number | Potential-Berechnung |
-| `graded` | number | Aktuelle Grades |
-| `nb_grades` | number | Maximale Grades (3, 5 oder 6) — Filterkriterium |
-| `zodiac` | string | Tier-3-Trait (Zodiac-Kategorie) |
-| `hair_color1` | string | Tier-3-Trait (Hair-Color-Kategorie) |
-| `eye_color1` | string | Tier-3-Trait (Eye-Color-Kategorie) |
-| `position_img` | string | Tier-3-Trait (Position-Kategorie) |
-| `skill_tiers_info` | object | Skill-Daten (aktuell nicht fuer Scoring genutzt) |
+| `name` | string | UI/Log |
+| `caracs.carac1/2/3` | number | Score (equipment-frei) |
+| `class` | number | Klassen-Filter (1, 2, 3) |
+| `element_data.type` | string | Element-Cluster |
+| `rarity` | string | Rarity-Filter |
+| `level`, `graded`, `nb_grades` | number | Best-Possible-Projektion |
+| `eye_color1` | string | eyeColor-Trait (3-char Hex) |
+| `hair_color1` | string | hairColor-Trait (3-char Hex) |
+| `zodiac` | string | zodiac-Trait (Glyph + Name) |
+| `position_img` | string | position-Trait ("N.png") |
+| `blessing_bonuses` | object | Blessed-Categories-Erkennung |
 
-### Fallback: Tooltip-Daten
+### Equipment-Status
 
-Bei fehlendem `availableGirls` greift der Legacy-Algorithmus auf
-`data-new-girl-tooltip` zurueck (11 Felder, DOM-Parsing).
-Der Legacy-Algorithmus hat keinen Rarity-Filter und kein Trait-Matching.
+Verifiziert per Dump-Vergleich (2026-05-05):
+
+```
+teamGirls.blessed_caracs == availableGirls.caracs
+```
+
+`caracs` ist gesegnet aber **ohne Equipment**. Daher ist KEIN Unequip
+vor der Berechnung noetig. Stuff-Team danach ist trotzdem sinnvoll
+(Equipment fuegt 20-40% obendrauf).
 
 ---
 
 ## Konfiguration
 
-| Parameter | Default | Beschreibung |
-|-----------|---------|-------------|
-| `synergyWeight` | 0.05 | Gewichtung Synergie vs Stats (0-1) |
-| `CANDIDATE_POOL_SIZE` | 50 | Anzahl Top-Kandidaten fuer Greedy |
-| `TEAM_SIZE` | 7 | Team-Groesse |
-| `POSITION_TRAIT_PENALTY` | 0.80 | Penalty fuer Position-Trait-Gruppen |
-| `TIER3_BONUS_MYTHIC` | 0.01 | 1.0% Tier-3-Bonus pro Match (Mythic) |
-| `TIER3_BONUS_LEGENDARY` | 0.008 | 0.8% Tier-3-Bonus pro Match (Legendary) |
-| `FALLBACK_TRAIT_CATEGORY` | eyeColor | Fallback wenn keine gute Trait-Gruppe gefunden |
-
-Aktuell sind diese Werte als Konstanten in `TeamScoringService.ts` und
-`TeamBuilderService.ts` definiert.
+| Parameter | Default | Datei | Beschreibung |
+|-----------|---------|-------|-------------|
+| (kein Pool-Cap) | -- | TeamBuilderService.ts | Alle eligible Girls werden bewertet; der Klassen+Rarity-Filter ist bereits scharf (max ~170 pro Klasse spielweit) |
+| `TEAM_SIZE` | 7 | TeamBuilderService.ts | Team-Groesse |
+| `TIER3_BONUS_MYTHIC` | 0.01 | TeamScoringService.ts | 1.0% Bonus pro Match |
+| `TIER3_BONUS_LEGENDARY` | 0.008 | TeamScoringService.ts | 0.8% Bonus pro Match |
+| `BLESSED_CATEGORY_BOOST` | 1.5 | TeamScoringService.ts | Heuristik-Multiplikator fuer blessed Cluster |
 
 ---
 
 ## Entscheidungen und Begruendungen
 
-### Warum Greedy statt vollstaendige Suche?
+### Warum hard class filter?
 
-Vollstaendige Kombinatorik: C(800, 7) = ~2.3 Billionen Kombinationen.
-Greedy ueber 50 Kandidaten: 50+49+48+47+46+45 = 285 Iterationen.
-Performance ist kein Problem.
+Wiki und Tom-208 sind eindeutig: niemals quer-bauen. Fuer einen
+KH-Spieler (class=3) ist nur carac3 relevant. KH-Mythics (z.B. Elphiba
+sum=22698, c3=12128) schlagen Cross-Class HC-Mythics (Cumkai sum=36644,
+c3=10985) bei der KH-relevanten Bewertung.
 
-### Warum 5% Synergie-Gewicht?
+Datenbasis: KH-only main_sum 82120 vs. cross-class 54351 (+57%).
 
-Bei 5% dominieren Stats noch klar (95%), aber bei aehnlichen Stats
-kann die Synergie den Unterschied machen. Bei hoeherem Gewicht wuerden
-schwache Girls nur wegen des Elements ins Team gewaehlt.
+### Warum main_carac statt caracs_sum?
 
-### Warum kein Domination-Bonus in der Bewertung?
+caracs_sum ueberbewertet Cross-Class-Stats. Ein KH-Spieler profitiert
+nicht von hohen carac1/c2-Werten -- die werden im Kampf gegen die
+gleiche Klasse vom Gegner ueberbietbar. Der spielrelevante Wert ist
+allein der Klassen-Hauptstat.
 
-Domination (Element-Dreieck gegen Gegner) erfordert Wissen ueber den
-Gegner, das erst auf der Kampf-Seite verfuegbar ist. Die Team-Auswahl
-erfolgt aber auf der Edit-Team-Seite, ohne Gegner-Kontext.
+### Warum kein Position-Penalty mehr?
 
-### Warum 3-Sterne-Legendaries ausschliessen?
+Der Penalty kompensierte falsche Cluster-Vergleiche im alten Algorithmus.
+v4 vergleicht Cluster direkt nach effektiver Power -- wenn Position
+schlechter ist, gewinnt sie nicht. Wenn sie besser ist (z.B. weil dort
+viele Mythics sind), darf sie gewinnen.
 
-Legendary Girls gibt es mit max 3 oder max 5 Sternen. 3-Sterne-Legendaries
-haben deutlich weniger Stat-Potential als 5-Sterne-Legendaries und Mythics.
-Sie wuerden nie realistisch in ein optimales Team kommen und vergroessern
-nur den Kandidaten-Pool unnoetig.
+### Warum kein 5% Synergie-Tiebreaker?
 
-### Warum Trait-Gruppen vor Stats priorisieren?
+Mono-Element-Synergie ist linear: jede Fire-Girl gibt +10% Crit-Damage.
+Diese Information ist im Cluster-Vergleich implizit enthalten (gleicher
+Element-Cluster = gleiche Synergie). Im Score brauchen wir das nicht.
 
-Der Tier-3-Bonus (bis zu ~7%) ist ein Team-weiter multiplikativer Bonus.
-Ein Team mit guter Trait-Uebereinstimmung kann trotz niedrigerer Einzel-Stats
-staerker sein als ein Team mit maximalen Einzel-Stats ohne Trait-Match.
+### Warum kein Unequip vor der Berechnung?
+
+`availableGirls.caracs` ist im Dump verifiziert equipment-frei. Ein
+Unequip wuerde nur Reload-Zeit kosten, ohne die Auswahl zu aendern.
+
+### Warum Klar-Namen aus window.GT statt Hardcode-Only?
+
+Patches koennten neue Farben (z.B. `765 = Ash brown`) einfuehren.
+Runtime-Lookup deckt das automatisch ab. Hardcode dient nur als
+Fallback fuer Spec-Tests und den Fall dass GT noch nicht geladen ist.
 
 ---
 
-## Nicht im Scope (bewusst ausgeschlossen)
+## Nicht im Scope
 
 | Ausgeschlossen | Grund |
 |----------------|-------|
-| Gegner-adaptive Team-Auswahl | Gegner nicht im Voraus bekannt |
-| BDSM-Simulation pro Kombination | Zu langsam |
-| Domination-Optimierung | Gegner-Info erst nach Seitenwechsel |
-| Blessing-Vorhersage | Daten verfuegbar, aber Nutzen unklar |
+| Gegner-adaptive Auswahl | Gegner erst auf Battle-Seite bekannt |
+| BDSM-Simulation pro Kombo | Zu langsam, Gegner-Info fehlt |
+| Domination-Optimierung | Gegner-Klasse erst nach Seitenwechsel |
 | Equipment-Optimierung | Separates Feature (StuffTeam) |
-| Battle-Teams (alle 3 Teams) | Erstmal nur aktives Team |
-
----
-
-## Offene Punkte / Moegliche Erweiterungen
-
-1. **Synergie-Gewicht konfigurierbar** — per User-Setting (0-20%)
-2. **Tier-5 Prioritaet konfigurierbar** — z.B. Stun > Shield je nach Liga
-3. **Skill-Points in Bewertung** — `skill_tiers_info[5].skill_points_used`
-   ist verfuegbar, wird aber noch nicht fuer die Tier-5-Effektstaerke genutzt
-4. **Kampfmodus-spezifische Gewichtung** — Liga vs. Season vs. Troll koennten
-   unterschiedliche Synergie-Gewichte haben
-5. **Mehrere Teams optimieren** — Battle Teams (alle 3) statt nur aktives Team
+| Battle-Teams (alle 3) | Nur aktives Team wird optimiert |
+| Booster-Auswahl | Separates Feature |
 
 ---
 
@@ -359,7 +370,9 @@ staerker sein als ein Team mit maximalen Einzel-Stats ohne Trait-Match.
 
 | Version | Aenderung |
 |---------|-----------|
-| v7.34.0 | v2: Synergie-optimierter Greedy-Algorithmus mit Leader Tier-5 (PR #1519) |
-| v7.34.7 | v3: Tier-3-Trait-Gruppen-Optimierung, Trait-Matching, Trait-Info-Panel |
-| v7.34.13 | Rarity-Filter: 3-Sterne-Legendaries ausgeschlossen, nur 5★ Legendary + 6★ Mythic |
-| v7.34.14 | Unified Slot-Fill: Trait-Girls vs Nicht-Gruppen-Girls per-Slot-Vergleich mit Tier-3-Delta |
+| 7.34.0 | v2: Synergie-Greedy + Leader Tier-5 (PR #1519) |
+| 7.34.7 | v3: Trait-Gruppen-Optimierung, Trait-Info-Panel |
+| 7.34.13 | Rarity-Filter: 3-Sterne-Legendaries ausgeschlossen |
+| 7.34.14 | Unified Slot-Fill mit Tier-3-Delta |
+| 7.35.x | Hex-Mapping-Bug, BlessingService-Cache |
+| 7.35.21 | v4: main_carac-Score, Klassen-Filter, Klar-Namen, Equipment-Hinweis (Issues #1340, #1573) |

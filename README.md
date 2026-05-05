@@ -16,6 +16,22 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.21 - League team selection rebuilt
+
+The "Current Best" and "Best Possible" buttons now pick teams using a wider community-knowledge base (Kinkoid forum performance and elements topics, HH Wiki, Tom-208 userscript, plus Frank's input on issues #1340 and #1573).
+
+**Key changes:**
+- Selection is driven by your main class stat alone (HC=carac1, Charm=carac2, KH=carac3) instead of the raw stat sum.
+- Cross-class girls are filtered out -- they would always lose against own-class top tier in combat.
+- Trait clusters are compared by effective power (main_sum * (1 + tier-3 bonus)). The cluster that maximises real combat power wins, not the one with the most matching traits.
+- The leader (slot 1) is picked for tier-5 skill priority (Shield > Stun > Execute > Reflect), not for highest stats. A Shield leader anchors a defensive skill the whole team uses.
+- The info box now shows readable trait names ("Blue", "Doggy") instead of internal codes ("00F", "2.png"), and tells you which class, which cluster, and which alternative clusters were compared.
+- Stats are equipment-free (verified against the game data). The info box reminds you to hit "Stuff Team" after applying.
+
+Two modes: **Current Best** uses today's stats, **Best Possible** projects each girl to your level cap with all grades applied.
+
+---
+
 ### v7.35.20 - Team selection rewrite: blessing-aware top-7
 
 The team selection algorithm has been completely rewritten. The previous version tried to find the best "trait group" (eye color, hair color, position, zodiac) and build a team around it. This often selected the wrong girls because it prioritized trait matching over raw power.

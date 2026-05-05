@@ -23,7 +23,8 @@ import {
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { BlessingService } from '../Service/BlessingService';
-import { GirlData, ElementType } from '../Service/TeamScoringService';
+import { GirlData, ElementType, PlayerClass } from '../Service/TeamScoringService';
+import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, TK } from '../config/index';
 import { KKTeamGirl, TeamData } from '../model/index';
@@ -467,6 +468,8 @@ export class TeamModule {
 
     private static setTopTeamV2(mode: ScoringMode, availableGirls: any[]) {
         const playerLevel = Number(HeroHelper.getLevel());
+        const rawClass = Number(HeroHelper.getClass());
+        const playerClass: PlayerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass as PlayerClass : 1;
 
         // Map availableGirls to GirlData interface
         const girls: GirlData[] = availableGirls.map(g => ({
@@ -476,6 +479,7 @@ export class TeamModule {
             carac2: Number(g.carac2 || 0),
             carac3: Number(g.carac3 || 0),
             level: Number(g.level || 1),
+            class: typeof g.class === 'number' ? g.class : undefined,
             element: (g.element_data?.type || g.element || 'fire') as ElementType,
             rarity: (g.rarity || 'common') as any,
             graded: Number(g.graded || 0),
@@ -486,15 +490,15 @@ export class TeamModule {
                 carac3: Number(g.caracs.carac3 || 0),
             } : undefined,
             skill_tiers_info: g.skill_tiers_info,
-            zodiac: g.zodiac ? g.zodiac.substring(3).trim() : undefined,
+            // Keep raw zodiac glyph; TraitMappings.resolveZodiac strips it for display
+            zodiac: g.zodiac || undefined,
             hairColor: g.hair_color1 || undefined,
             eyeColor: g.eye_color1 || undefined,
             position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
             blessingBonuses: g.blessing_bonuses || undefined,
-            armor: g.armor || undefined,
         }));
 
-        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel);
+        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel, playerClass);
 
         if (!result) {
             logHHAuto('Not enough girls for team selection v2 (mode ' + mode + '), falling back to legacy');
@@ -585,6 +589,12 @@ export class TeamModule {
         sun: 'Playful', darkness: 'Dominatrix', psychic: 'Submissive', light: 'Voyeur',
     };
 
+    private static readonly PLAYER_CLASS_NAME: Record<number, string> = {
+        1: 'Hardcore',
+        2: 'Charm',
+        3: 'Know-how',
+    };
+
     private static updateTeamUI(deckID: number[], teamResult?: TeamResult) {
         const arr = $('div[id_girl]');
         // Remove all existing topNumber elements to prevent stale entries
@@ -631,7 +641,7 @@ export class TeamModule {
             mainTeamPanel.append(arrSort[0]);
         }
 
-        // Show team synergy info panel
+        // Show team selection info panel
         $('.hhTeamSynergyInfo').remove();
         if (teamResult) {
             const dist = TeamBuilderService.getElementDistribution(teamResult);
@@ -642,29 +652,42 @@ export class TeamModule {
 
             const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
             const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+            const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
+
+            // Resolve trait value to a human label
+            const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
+            const traitDisplay = traitResolved.label;
+            const traitFromRuntime = traitResolved.fromRuntime;
+
             // Use cached blessings from BlessingService (loaded on Home page)
             let cachedBlessings: any = null;
             try { cachedBlessings = BlessingService.getCached(); } catch { /* cache not ready */ }
             const blessedVals = cachedBlessings?.blessedValues || {};
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
-                ? cachedBlessings.blessedTraits.map(c => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
+                ? cachedBlessings.blessedTraits.map((c: string) => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
                     + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.CLASS_NAME[cachedBlessings.blessedElement] || cachedBlessings.blessedElement) : '')
                 : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
             const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
-            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && (
-                teamResult.traitValue.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase() ||
-                teamResult.traitValue === (cachedBlessings?.blessedValues?.[teamResult.traitCategory] || '')
-            );
+            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
             const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
 
+            const altsHtml = teamResult.alternatives && teamResult.alternatives.length > 1
+                ? '<b>Compared:</b> ' + teamResult.alternatives.map((a: { traitCategory: string; traitValue: string; effectivePower: number }) => {
+                        const r = TraitMappings.resolve(a.traitCategory as any, a.traitValue);
+                        return a.traitCategory + '=' + r.label + ' (' + a.effectivePower.toLocaleString() + ')';
+                    }).join(' | ')
+                : '';
+
+            const fallbackNote = traitFromRuntime ? '' : '<div style="color:#fc6; font-size:10px;">Trait label uses fallback dictionary (game runtime not yet loaded -- may be inaccurate for new color codes).</div>';
+
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 280px; z-index: 10;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 300px; z-index: 10;
                 background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
                 border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
                 <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
-                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Why this team was chosen:</div>
-                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${teamResult.traitValue}" (${teamResult.traitMatchCount}/7 girls match)</div>
+                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> -- only ${playerClassName} girls considered</div>
+                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/7 girls match)</div>
                 <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element})</div>
@@ -673,9 +696,11 @@ export class TeamModule {
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
                 <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
-                <div style="color:#aaa; font-size:10px; margin-top:2px;">${teamResult.alternatives && teamResult.alternatives.length > 1 ? '<b>Compared:</b> ' + teamResult.alternatives.map(a => a.traitCategory + '=' + a.traitValue + ' (' + a.effectivePower.toLocaleString() + ')').join(' | ') : ''}</div>
-                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best): stats already include blessings</div>
-                <div style="color:#aaa; font-size:10px;">Mode 2 (Best Possible): projects to max level/grades</div>
+                ${altsHtml ? `<div style="color:#aaa; font-size:10px; margin-top:2px;">${altsHtml}</div>` : ''}
+                ${fallbackNote}
+                <hr style="border-color:#555; margin:4px 0"/>
+                <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
+                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
             </div>`);
             $("#contains_all section").append(synergyInfo);
         }
