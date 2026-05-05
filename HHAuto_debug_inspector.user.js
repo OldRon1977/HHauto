@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.0.0
-// @description  Dumps EVERYTHING the game exposes: girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals.
+// @version      3.1.0
+// @description  Dumps EVERYTHING the game exposes: girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals. iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -16,10 +16,62 @@
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @run-at       document-idle
+// @noframes
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    // ---------- iframe resolution ----------
+    //
+    // The game runs inside an iframe with id 'hh_game' (or similar; see
+    // HHEnvVariables.ts -> gameID). The host page is just a wrapper.
+    // Game state (Hero, availableGirls, shared.*) lives on the iframe's
+    // window, NOT on the outer window.
+    //
+    // We try to switch into the iframe's window so all dumps see the real
+    // game state. If the iframe is same-origin (which it always is on
+    // first-party domains), contentWindow access works directly.
+
+    function findGameWindow() {
+        // Top-window first: maybe the script is already running inside the iframe
+        try {
+            if (unsafeWindow.shared || unsafeWindow.Hero || unsafeWindow.availableGirls || unsafeWindow.hh_ajax) {
+                return { win: unsafeWindow, doc: document, where: 'top-window' };
+            }
+        } catch (e) {}
+        // Look for known iframe IDs
+        const knownIds = ['hh_hentai','hh_comix','hh_star','hh_stargay','hh_startrans','hh_gay','hh_amour','hh_mangarpg','hh_sexy','hh_game'];
+        for (const id of knownIds) {
+            try {
+                const f = document.getElementById(id);
+                if (f && f.tagName === 'IFRAME') {
+                    const w = f.contentWindow;
+                    const d = f.contentDocument || (w && w.document);
+                    if (w) return { win: w, doc: d, where: 'iframe#' + id };
+                }
+            } catch (e) {}
+        }
+        // Fallback: scan all iframes for one that looks like the game
+        try {
+            const frames = document.querySelectorAll('iframe');
+            for (const f of frames) {
+                try {
+                    const w = f.contentWindow;
+                    if (!w) continue;
+                    if (w.shared || w.Hero || w.availableGirls || w.hh_ajax) {
+                        return { win: w, doc: f.contentDocument || w.document, where: 'iframe[' + (f.id || f.src || 'noid') + ']' };
+                    }
+                } catch (e) { /* cross-origin */ }
+            }
+        } catch (e) {}
+        // Nothing found: stick with top window so we still dump SOMETHING
+        return { win: unsafeWindow, doc: document, where: 'top-window-fallback' };
+    }
+
+    let CTX = findGameWindow();
+    function gameWin() { return CTX.win; }
+    function gameDoc() { return CTX.doc; }
 
     // ---------- helpers ----------
 
@@ -35,25 +87,22 @@
                 if (value.nodeType !== undefined && value.nodeName !== undefined) {
                     return '[DOM:' + value.nodeName + ']';
                 }
-                if (typeof Window !== 'undefined' && value instanceof Window) return '[Window]';
-                if (typeof Document !== 'undefined' && value instanceof Document) return '[Document]';
+                try {
+                    if (typeof Window !== 'undefined' && value instanceof Window) return '[Window]';
+                    if (typeof Document !== 'undefined' && value instanceof Document) return '[Document]';
+                } catch (e) {}
             }
             return value;
         }
-        try {
-            return JSON.stringify(obj, replacer, 2);
-        } catch (e) {
-            return '[stringify error: ' + e.message + ']';
-        }
+        try { return JSON.stringify(obj, replacer, 2); }
+        catch (e) { return '[stringify error: ' + e.message + ']'; }
     }
 
     function tryGet(fn, fallback) {
         try { return fn(); } catch (e) { return fallback === undefined ? ('[error: ' + e.message + ']') : fallback; }
     }
 
-    function isPlainObject(v) {
-        return v && typeof v === 'object' && !Array.isArray(v);
-    }
+    function isPlainObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
     function findGameGlobals() {
         const builtins = new Set([
@@ -79,7 +128,7 @@
         ]);
         const result = [];
         try {
-            const win = unsafeWindow;
+            const win = gameWin();
             const keys = Object.getOwnPropertyNames(win);
             for (const k of keys) {
                 if (builtins.has(k)) continue;
@@ -99,7 +148,7 @@
                         const len = isArr ? v.length : Object.keys(v).length;
                         result.push({ name: k, type: isArr ? 'array' : 'object', len: len });
                     }
-                } catch (e) { /* getter throws */ }
+                } catch (e) {}
             }
         } catch (e) {}
         return result;
@@ -142,46 +191,46 @@
             } catch (e) {}
         }
 
-        scan(unsafeWindow, 'window', 0);
-        if (unsafeWindow.shared) scan(unsafeWindow.shared, 'shared', 0);
-        if (unsafeWindow.hh_nutaku) scan(unsafeWindow.hh_nutaku, 'hh_nutaku', 0);
-        if (unsafeWindow.hero_data) scan(unsafeWindow.hero_data, 'hero_data', 0);
+        const w = gameWin();
+        scan(w, 'game', 0);
+        try { if (w.shared) scan(w.shared, 'game.shared', 0); } catch (e) {}
+        try { if (w.hh_nutaku) scan(w.hh_nutaku, 'game.hh_nutaku', 0); } catch (e) {}
+        try { if (w.hero_data) scan(w.hero_data, 'game.hero_data', 0); } catch (e) {}
         return sources;
     }
 
     function dumpHeroData() {
         const out = {};
+        const w = gameWin();
         const keys = ['hero','Hero','hero_data','heroData','player_data','PlayerData','playerStats','Hero_data'];
         for (const k of keys) {
-            try {
-                if (unsafeWindow[k] !== undefined) out[k] = unsafeWindow[k];
-            } catch (e) {}
+            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
         }
-        try {
-            if (unsafeWindow.shared && unsafeWindow.shared.Hero) out['shared.Hero'] = unsafeWindow.shared.Hero;
-        } catch (e) {}
+        try { if (w.shared && w.shared.Hero) out['shared.Hero'] = w.shared.Hero; } catch (e) {}
+        try { if (w.shared && w.shared.general) out['shared.general'] = w.shared.general; } catch (e) {}
         return out;
     }
 
     function dumpTeamsData() {
         const out = {};
+        const w = gameWin();
         const keys = [
             'teams_data','teamsData','teams','selected_team','selectedTeam',
             'team_data','teamData','battle_team','battleTeam',
             'availableGirls','girlsDataList','girls_data_list',
             'leaguesPlayersData','leagues_players_data','opponents_list','opponentsList',
-            'season_opponents','seasonOpponents','penta_opponents','tower_opponents'
+            'season_opponents','seasonOpponents','penta_opponents','tower_opponents',
+            'girl_squad','teamGirls'
         ];
         for (const k of keys) {
-            try {
-                if (unsafeWindow[k] !== undefined) out[k] = unsafeWindow[k];
-            } catch (e) {}
+            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
         }
         return out;
     }
 
     function dumpBattleData() {
         const out = {};
+        const w = gameWin();
         const keys = [
             'battle_data','battleData','fight_data','fightData',
             'current_battle','currentBattle','battle_result','battleResult',
@@ -191,40 +240,39 @@
             'tower_data','towerData','champion_data','championData',
             'labyrinth_data','labyrinthData','penta_drill','pentaDrill',
             'club_data','clubData','arena_data','arenaData',
-            'fight_modules','fightModules','game_data','gameData'
+            'fight_modules','fightModules','game_data','gameData',
+            'current_tier_number','league_tag'
         ];
         for (const k of keys) {
-            try {
-                if (unsafeWindow[k] !== undefined) out[k] = unsafeWindow[k];
-            } catch (e) {}
+            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
         }
         return out;
     }
 
     function dumpMarketEquipment() {
         const out = {};
+        const w = gameWin();
         const keys = [
             'market_data','marketData','shop_data','shopData','items','items_data',
             'girl_armor','girlArmor','equipment','inventory','girl_skills','girlSkills',
             'skill_tiers','skillTiers','awakening_data','awakeningData',
-            'mythic_boosters','classBoosters','specialBoosters'
+            'mythic_boosters','classBoosters','specialBoosters','hh_prices'
         ];
         for (const k of keys) {
-            try {
-                if (unsafeWindow[k] !== undefined) out[k] = unsafeWindow[k];
-            } catch (e) {}
+            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
         }
         return out;
     }
 
     function dumpHHVars() {
         const out = {};
+        const w = gameWin();
         try {
-            const keys = Object.getOwnPropertyNames(unsafeWindow);
+            const keys = Object.getOwnPropertyNames(w);
             for (const k of keys) {
                 if (k.startsWith('HH_') || k.startsWith('hh_') || k.startsWith('Hh_')) {
                     try {
-                        const v = unsafeWindow[k];
+                        const v = w[k];
                         if (v !== null && v !== undefined && typeof v !== 'function') {
                             out[k] = v;
                         }
@@ -237,11 +285,12 @@
 
     function dumpShared() {
         const out = {};
+        const w = gameWin();
         try {
-            if (unsafeWindow.shared) {
-                for (const k of Object.keys(unsafeWindow.shared)) {
+            if (w.shared) {
+                for (const k of Object.keys(w.shared)) {
                     try {
-                        const v = unsafeWindow.shared[k];
+                        const v = w.shared[k];
                         if (v !== null && v !== undefined && typeof v !== 'function') {
                             out[k] = v;
                         }
@@ -253,23 +302,31 @@
     }
 
     function dumpLocalStorage() {
-        const out = {};
-        try {
-            for (const key of Object.keys(localStorage)) {
-                const lk = key.toLowerCase();
-                if (lk.includes('hhauto') || lk.includes('hh_') || lk.includes('hentai') ||
-                    lk.includes('harem') || lk.includes('comix') || lk.includes('pornstar') ||
-                    lk.includes('blessing') || lk.includes('girl') || lk.includes('team') ||
-                    lk.includes('league') || lk.includes('season') || lk.includes('kinkoid') ||
-                    lk.includes('ocd') || lk.includes('trainer') || lk.includes('hero') ||
-                    lk.includes('booster') || lk.includes('market')) {
-                    try {
-                        const raw = localStorage.getItem(key);
-                        try { out[key] = JSON.parse(raw); }
-                        catch (e) { out[key] = raw; }
-                    } catch (e) {}
+        const out = { top: {}, game: {} };
+        function scan(storage, target) {
+            if (!storage) return;
+            try {
+                for (const key of Object.keys(storage)) {
+                    const lk = key.toLowerCase();
+                    if (lk.includes('hhauto') || lk.includes('hh_') || lk.includes('hentai') ||
+                        lk.includes('harem') || lk.includes('comix') || lk.includes('pornstar') ||
+                        lk.includes('blessing') || lk.includes('girl') || lk.includes('team') ||
+                        lk.includes('league') || lk.includes('season') || lk.includes('kinkoid') ||
+                        lk.includes('ocd') || lk.includes('trainer') || lk.includes('hero') ||
+                        lk.includes('booster') || lk.includes('market')) {
+                        try {
+                            const raw = storage.getItem(key);
+                            try { target[key] = JSON.parse(raw); }
+                            catch (e) { target[key] = raw; }
+                        } catch (e) {}
+                    }
                 }
-            }
+            } catch (e) {}
+        }
+        scan(localStorage, out.top);
+        try {
+            const w = gameWin();
+            if (w !== unsafeWindow && w.localStorage) scan(w.localStorage, out.game);
         } catch (e) {}
         return out;
     }
@@ -277,16 +334,15 @@
     function dumpDataAttributes() {
         const out = [];
         try {
-            const candidates = document.querySelectorAll(
+            const d = gameDoc() || document;
+            const candidates = d.querySelectorAll(
                 '[data-new-girl-tooltip], [data-team], [data-girl-id], [data-blessing], [data-opponent], [data-team-index], [data-team-member-position], [data-id-girl-armor], [data-id-skill]'
             );
             for (let i = 0; i < candidates.length && i < 500; i++) {
                 const el = candidates[i];
                 const entry = { tag: el.tagName, id: el.id || null, class: el.className || null, attrs: {} };
                 for (const a of el.attributes) {
-                    if (a.name.startsWith('data-')) {
-                        entry.attrs[a.name] = a.value;
-                    }
+                    if (a.name.startsWith('data-')) entry.attrs[a.name] = a.value;
                 }
                 out.push(entry);
             }
@@ -294,8 +350,29 @@
         return out;
     }
 
+    function dumpGameContext() {
+        const out = { context: CTX.where };
+        try {
+            const d = gameDoc() || document;
+            const body = d.querySelector('body[page]');
+            if (body) {
+                out.body_id = body.id || null;
+                out.body_page = body.getAttribute('page');
+                out.body_classes = body.className || null;
+            }
+            out.location = {
+                href: (gameWin().location && gameWin().location.href) || null,
+                pathname: (gameWin().location && gameWin().location.pathname) || null,
+                search: (gameWin().location && gameWin().location.search) || null
+            };
+        } catch (e) { out.error = e.message; }
+        return out;
+    }
+
     function dumpEverything() {
         const t0 = Date.now();
+        // Refresh context in case the iframe was created after script load
+        CTX = findGameWindow();
         const dump = {
             meta: {
                 timestamp: new Date().toISOString(),
@@ -304,8 +381,10 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.0.0'
+                inspectorVersion: '3.1.0',
+                ctx: CTX.where
             },
+            game_context: tryGet(dumpGameContext, {}),
             globals_overview: tryGet(findGameGlobals, []),
             girl_sources: tryGet(function() {
                 const srcs = findGirlSources();
@@ -326,11 +405,8 @@
             const srcs = findGirlSources();
             for (const s of srcs) {
                 try {
-                    if (s.isMap) {
-                        dump.girls_full[s.path] = Object.values(s.ref);
-                    } else {
-                        dump.girls_full[s.path] = s.ref;
-                    }
+                    if (s.isMap) dump.girls_full[s.path] = Object.values(s.ref);
+                    else dump.girls_full[s.path] = s.ref;
                 } catch (e) {
                     dump.girls_full[s.path] = '[error: ' + e.message + ']';
                 }
@@ -342,8 +418,12 @@
     }
 
     function fetchBlessings(callback) {
+        // Game's own ajax wrapper lives at shared.general.hh_ajax (not unsafeWindow.hh_ajax!)
         try {
-            const ajax = unsafeWindow.hh_ajax || unsafeWindow.ajax || (unsafeWindow.shared && unsafeWindow.shared.ajax);
+            const w = gameWin();
+            const ajax = (w.shared && w.shared.general && w.shared.general.hh_ajax)
+                       || w.hh_ajax
+                       || w.ajax;
             if (typeof ajax === 'function') {
                 let done = false;
                 const timer = setTimeout(function() { if (!done) { done = true; callback({ live: null, error: 'timeout' }); } }, 3000);
@@ -360,8 +440,7 @@
     }
 
     function show(text, fileSuffix) {
-        console.log('[HHAuto Inspector] Dump size: ' + text.length + ' chars');
-        // Remove any previous overlay
+        console.log('[HHAuto Inspector] Dump size: ' + text.length + ' chars from ' + CTX.where);
         const old = document.getElementById('hhauto_inspector_overlay');
         if (old) old.remove();
 
@@ -370,7 +449,7 @@
         ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
         const info = document.createElement('div');
         info.style.cssText = 'color:#0f0;font:14px monospace;margin-bottom:10px;';
-        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | ' + (fileSuffix || '');
+        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | source: ' + CTX.where + ' | ' + (fileSuffix || '');
         const ta = document.createElement('textarea');
         ta.value = text;
         ta.style.cssText = 'width:100%;flex:1;font:11px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;resize:none;';
@@ -382,12 +461,8 @@
         cp.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:#4CAF50;color:white;border:none;border-radius:4px;font-weight:bold;';
         cp.onclick = function() {
             ta.select();
-            try {
-                navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; });
-            } catch (e) {
-                document.execCommand('copy');
-                cp.textContent = 'COPIED!';
-            }
+            try { navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; }); }
+            catch (e) { document.execCommand('copy'); cp.textContent = 'COPIED!'; }
         };
 
         const dl = document.createElement('button');
@@ -400,7 +475,8 @@
             a.href = url;
             const stamp = new Date().toISOString().replace(/[:.]/g, '-');
             const host = location.hostname.replace(/[^a-z0-9]/gi, '_');
-            a.download = 'hhauto_dump_' + host + '_' + (fileSuffix || 'all') + '_' + stamp + '.json';
+            const page = (fileSuffix || 'all').replace(/[^a-z0-9]/gi, '_');
+            a.download = 'hhauto_dump_' + host + '_' + page + '_' + stamp + '.json';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -422,22 +498,41 @@
         ta.select();
     }
 
+    function pageNameForFile() {
+        try {
+            const d = gameDoc() || document;
+            const body = d.querySelector('body[page]');
+            if (body) {
+                const id = body.id || '';
+                const page = body.getAttribute('page') || '';
+                if (id || page) return (page || id).replace(/[^a-z0-9]/gi, '_');
+            }
+        } catch (e) {}
+        try {
+            const w = gameWin();
+            const p = (w.location && w.location.pathname) || location.pathname;
+            return p.replace(/[^a-z0-9]/gi, '_') || 'root';
+        } catch (e) {}
+        return 'root';
+    }
+
     function runFullDump() {
         const dump = dumpEverything();
         fetchBlessings(function(blessings) {
             dump.live_blessings_api = blessings;
             const text = safeStringify(dump);
-            const page = location.pathname.replace(/[^a-z0-9]/gi, '_') || 'root';
-            show(text, page);
+            show(text, pageNameForFile());
         });
     }
 
     function makeButton() {
+        // Refresh context once before drawing button
+        CTX = findGameWindow();
         const b = document.createElement('div');
         b.textContent = 'DUMP ALL';
         b.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,0.5);font-family:monospace;';
         b.onclick = runFullDump;
-        b.title = 'Dumps every game variable found on this page';
+        b.title = 'Dumps every game variable from the iframe (' + CTX.where + ')';
         document.body.appendChild(b);
     }
 

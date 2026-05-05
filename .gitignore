@@ -5,3 +5,6 @@ node_modules/*
 
 # Projektanweisungen (Claude.ai)
 PROJEKTANWEISUNGEN.md
+
+# Lokale Dump-Dateien vom Debug-Inspector (nicht syncen)
+INPUT/
