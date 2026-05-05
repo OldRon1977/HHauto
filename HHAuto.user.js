@@ -17353,7 +17353,10 @@ class TeamScoringService {
 //   5. Fill slots 2-7 from trait group, then by main-carac
 
 const TEAM_SIZE = 7;
-const CANDIDATE_POOL_SIZE = 200;
+// No pool cap: the Mythic + Legendary-5* filter is already strict
+// (max ~170 girls per class even if a player owned every released one).
+// Capping here would only risk excluding viable mythics on edge cases.
+// CANDIDATE_POOL_SIZE removed in v7.35.21.
 // Map trait category to its element pair for quick lookup
 const ELEMENT_PAIRS_MAP = {
     'eyeColor': ['darkness', 'fire'],
@@ -17386,8 +17389,8 @@ class TeamBuilderService {
             scoreMap.set(girl.id_girl, score);
         }
         // Pre-sort and pick a reasonable candidate pool
-        const sorted = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-        const pool = sorted.slice(0, CANDIDATE_POOL_SIZE);
+        // Sort by score; no cap -- evaluate every eligible girl
+        const pool = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
         // Phase 2b: Detect active blessings (informational + heuristic)
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
         // Phase 3: Build teams for multiple trait groups, pick highest effective power

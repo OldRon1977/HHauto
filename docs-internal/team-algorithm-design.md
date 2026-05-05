@@ -77,7 +77,7 @@ setTopTeam(mode)
       3. TeamBuilderService.buildTeam(girls, mode, playerLevel, playerClass)
          a. filterEligible: Mythic/Legendary 5* AND class === playerClass
          b. Score alle Kandidaten ueber main_carac (Mode 1 oder 2)
-         c. Sortiere, nimm Top 200
+         c. Sortiere alle eligible Girls (kein Cap)
          d. detectBlessedTraits ueber blessing_bonuses
          e. findTraitGroups (mit Blessed-Boost x1.5)
          f. Top 5 Gruppen + alle blessed Gruppen evaluieren
@@ -301,7 +301,7 @@ vor der Berechnung noetig. Stuff-Team danach ist trotzdem sinnvoll
 
 | Parameter | Default | Datei | Beschreibung |
 |-----------|---------|-------|-------------|
-| `CANDIDATE_POOL_SIZE` | 200 | TeamBuilderService.ts | Top-N nach Score (uebersteigt typische Pool-Groessen, schliesst niemanden faelschlich aus) |
+| (kein Pool-Cap) | -- | TeamBuilderService.ts | Alle eligible Girls werden bewertet; der Klassen+Rarity-Filter ist bereits scharf (max ~170 pro Klasse spielweit) |
 | `TEAM_SIZE` | 7 | TeamBuilderService.ts | Team-Groesse |
 | `TIER3_BONUS_MYTHIC` | 0.01 | TeamScoringService.ts | 1.0% Bonus pro Match |
 | `TIER3_BONUS_LEGENDARY` | 0.008 | TeamScoringService.ts | 0.8% Bonus pro Match |
