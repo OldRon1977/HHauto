@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.11.0
+// @version      3.11.1
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.0',
+                inspectorVersion: '3.11.1',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -643,13 +643,6 @@
         buildStatusOverlay();
         updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-        // Verify we have an iframe to drive
-        const iframe = findGameIframe();
-        if (!iframe) {
-            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
-            tourState.running = false;
-            return;
-        }
 
         for (let i = 0; i < TOUR.length; i++) {
             if (tourState.cancelRequested) {
@@ -688,7 +681,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.0',
+                inspectorVersion: '3.11.1',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
@@ -842,7 +835,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.0',
+                inspectorVersion: '3.11.1',
                 tour_pages: MANUAL_PAGES.length,
                 tour_completed_pages: results.length,
                 tour_duration_sec: totalDur,
