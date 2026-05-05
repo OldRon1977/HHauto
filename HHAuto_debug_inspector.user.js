@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.8.0
+// @version      3.8.1
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.8.0',
+                inspectorVersion: '3.8.1',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -710,24 +710,30 @@
         return new Promise(function(resolve) {
             const old = document.getElementById('hhauto_manual_prompt');
             if (old) old.remove();
+
+            // Bar at the top of the page so it stays visible while user navigates inside the iframe.
+            // pointer-events:auto ensures clicks land here, not on the iframe behind.
             const ov = document.createElement('div');
             ov.id = 'hhauto_manual_prompt';
-            ov.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;color:#0f0;font:13px monospace;padding:20px;border-radius:8px;z-index:1000000;box-shadow:0 8px 32px rgba(0,0,0,0.7);min-width:480px;max-width:600px;border:2px solid #ffb827;';
-            ov.innerHTML = ''
-                + '<div style="font-weight:bold;color:#ffb827;font-size:16px;margin-bottom:10px">Manual navigation needed</div>'
-                + '<div style="margin-bottom:10px">Auto-nav failed for:<br/><b style="color:#fff;font-size:14px">' + step.label + '</b> (' + step.path + ')</div>'
-                + '<div style="margin-bottom:10px;color:#888;font-size:11px">Currently on: <b>' + (actualPage || 'unknown') + '</b> - want: <b>' + step.expected + '</b></div>'
-                + '<div style="background:#0a3d0a;padding:10px;border-radius:4px;margin-bottom:14px">'
-                + '<b style="color:#fff">Open <span style="color:#ffb827">' + step.label + '</span> via the game UI, then click DUMP NOW.</b>'
-                + '</div>'
-                + '<div id="hhauto_manual_buttons" style="display:flex;gap:8px;flex-wrap:wrap"></div>';
-            const btns = ov.querySelector('#hhauto_manual_buttons');
+            ov.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;pointer-events:auto;';
+            const msg = document.createElement('div');
+            msg.style.cssText = 'flex:1;min-width:240px';
+            msg.innerHTML = '<span style="color:#ffb827;font-weight:bold">Open in game:</span> '
+                + '<b style="color:#fff;font-size:14px">' + step.label + '</b> '
+                + '<span style="color:#888;font-size:11px">(' + step.path + ', want body[page]=' + step.expected + ', currently=' + (actualPage || '?') + ')</span>';
+
             const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', function() { ov.remove(); resolve('dump'); });
             const skipBtn = mkBtn('SKIP', '#ff9800', function() { ov.remove(); resolve('skip'); });
             const abortBtn = mkBtn('ABORT TOUR', '#f44336', function() { ov.remove(); resolve('abort'); });
-            btns.appendChild(dumpBtn);
-            btns.appendChild(skipBtn);
-            btns.appendChild(abortBtn);
+            for (const b of [dumpBtn, skipBtn, abortBtn]) {
+                b.style.padding = '6px 12px';
+                b.style.fontSize = '12px';
+            }
+
+            ov.appendChild(msg);
+            ov.appendChild(dumpBtn);
+            ov.appendChild(skipBtn);
+            ov.appendChild(abortBtn);
             document.body.appendChild(ov);
         });
     }
@@ -810,7 +816,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.8.0',
+                inspectorVersion: '3.8.1',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
