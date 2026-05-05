@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.4.0
+// @version      3.5.0
 // @description  Top-window auto-tour through all relevant pages with persistent state across reloads. iframe-aware data extraction.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -405,7 +405,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.4.0',
+                inspectorVersion: '3.5.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -592,17 +592,46 @@
 
     // ---------- TOUR (top-window navigation, persistent state) ----------
 
+    function pauseHHAuto() {
+        // HHAuto-Hauptskript pausieren so dass es waehrend unserer Tour
+        // nicht selbst navigiert (gleiches Verfahren wie der "Master switch").
+        const prefix = 'HHAuto_';
+        const before = {};
+        const keysToFreeze = ['Setting_master', 'Temp_autoLoop'];
+        for (const k of keysToFreeze) {
+            try { before[k] = localStorage.getItem(prefix + k); } catch (e) {}
+        }
+        try { localStorage.setItem(prefix + 'Setting_master', 'false'); } catch (e) {}
+        try { localStorage.setItem(prefix + 'Temp_autoLoop', 'false'); } catch (e) {}
+        return before;
+    }
+
+    function restoreHHAuto(before) {
+        const prefix = 'HHAuto_';
+        for (const k of Object.keys(before || {})) {
+            try {
+                if (before[k] === null) localStorage.removeItem(prefix + k);
+                else localStorage.setItem(prefix + k, before[k]);
+            } catch (e) {}
+        }
+    }
+
     function startTour() {
         if (getTourState()) {
             if (!confirm('A tour is already running. Cancel and restart?')) return;
+            // Restore HHAuto if previous tour interrupted
+            const oldState = getTourState();
+            if (oldState && oldState.hhauto_before) restoreHHAuto(oldState.hhauto_before);
             clearTourState();
         }
+        const before = pauseHHAuto();
         const state = {
             startedAt: Date.now(),
             index: 0,
             tour: TOUR,
             host: location.hostname,
-            origin: location.origin
+            origin: location.origin,
+            hhauto_before: before
         };
         setTourState(state);
         // Reset results
@@ -616,6 +645,29 @@
         location.href = location.origin + path;
     }
 
+    async function tryClickInGameLink(targetPath) {
+        // Game's own router uses <a href> clicks (with session attached). Find any
+        // anchor in the iframe pointing to the target path and click it.
+        try {
+            refreshCtx();
+            const d = gameDoc();
+            if (!d) return false;
+            const sels = [
+                'a[href="' + targetPath + '"]',
+                'a[href$="' + targetPath + '"]',
+                'a[href*="' + targetPath + '"]'
+            ];
+            for (const sel of sels) {
+                const link = d.querySelector(sel);
+                if (link) {
+                    link.click();
+                    return true;
+                }
+            }
+        } catch (e) {}
+        return false;
+    }
+
     async function continueTour() {
         const state = getTourState();
         if (!state) return;
@@ -627,7 +679,17 @@
         showTourStatus('Tour step ' + (idx+1) + '/' + state.tour.length + ': <b>' + step.label + '</b><br/>Waiting ' + (WAIT_PER_PAGE_MS/1000) + 's for game to load...');
 
         // Wait for game iframe + body[page] to settle
-        await waitForBodyPage(step.expected, WAIT_PER_PAGE_MS);
+        let matched = await waitForBodyPage(step.expected, WAIT_PER_PAGE_MS);
+
+        // If we did not land on expected page, try in-game link click (uses game router with session)
+        if (!matched) {
+            showTourStatus('Tour step ' + (idx+1) + '/' + state.tour.length + ': <b>' + step.label + '</b><br/>Direct nav landed elsewhere. Trying in-game link click...');
+            const clicked = await tryClickInGameLink(step.path);
+            if (clicked) {
+                matched = await waitForBodyPage(step.expected, WAIT_PER_PAGE_MS);
+            }
+        }
+
         await sleep(POST_LOAD_SETTLE_MS);
 
         // Dump everything
@@ -652,7 +714,6 @@
         // Advance
         const nextIdx = idx + 1;
         if (nextIdx >= state.tour.length) {
-            // Done
             finishTour();
             return;
         }
@@ -670,6 +731,8 @@
         const results = getTourResults();
         const state = getTourState();
         const totalDur = state ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
+        // Restore HHAuto master switch
+        if (state && state.hhauto_before) restoreHHAuto(state.hhauto_before);
         clearTourState();
 
         const bundle = {
@@ -678,7 +741,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.4.0',
+                inspectorVersion: '3.5.0',
                 tour_pages: TOUR.length,
                 tour_completed_pages: results.length,
                 tour_duration_sec: totalDur,
@@ -744,7 +807,7 @@
         }
         const state = getTourState();
         const stateInfo = state ? ('<div style=\"color:#888;font-size:10px;margin-top:6px\">Tour started: ' + new Date(state.startedAt).toLocaleTimeString() + '</div>') : '';
-        el.innerHTML = '<div style=\"font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px\">HHAuto Auto-Tour v3.4.0</div>' +
+        el.innerHTML = '<div style=\"font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px\">HHAuto Auto-Tour v3.5.0</div>' +
                        '<div>' + html + '</div>' + stateInfo;
 
         // Add abort button if tour active
