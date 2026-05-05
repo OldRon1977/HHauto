@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.2.0
+// @version      3.3.0
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.2.0',
+                inspectorVersion: '3.3.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -499,43 +499,49 @@
     // Tour-list: paths to navigate the iframe through. 7s wait per page.
     // Order chosen so that data-richest pages come first (in case of early abort).
 
+    // expected: body[page] attribute the iframe should land on after navigation.
+    // If after WAIT_PER_PAGE_MS the body[page] does not match, the page is retried via
+    // the Battle-Teams approach (click the in-game link if present), then the navigation
+    // is retried once more before giving up and dumping whatever is there.
     const TOUR = [
-        { path: '/home.html',                  label: 'Home' },
-        { path: '/edit-team.html',             label: 'EditTeam (availableGirls)' },
-        { path: '/teams.html',                 label: 'BattleTeams' },
-        { path: '/characters.html',            label: 'Harem' },
-        { path: '/leagues.html',               label: 'League (opponents_list)' },
-        { path: '/season-arena.html',          label: 'SeasonArena (opponents)' },
-        { path: '/penta-drill-arena.html',     label: 'PentaDrillArena (opponents_list)' },
-        { path: '/penta-drill.html',           label: 'PentaDrill' },
-        { path: '/labyrinth.html',             label: 'Labyrinth (girl_squad)' },
-        { path: '/labyrinth-entrance.html',    label: 'LabyrinthEntrance' },
-        { path: '/club-champion.html',         label: 'ClubChampion (championData)' },
-        { path: '/champions-map.html',         label: 'ChampionsMap' },
-        { path: '/shop.html',                  label: 'Shop (items DOM)' },
-        { path: '/clubs.html',                 label: 'Clubs (Chat_vars)' },
-        { path: '/pantheon.html',              label: 'Pantheon' },
-        { path: '/season.html',                label: 'Season' },
-        { path: '/event.html',                 label: 'Event (event_data)' },
-        { path: '/seasonal.html',              label: 'Seasonal Event' },
-        { path: '/path-of-attraction.html',    label: 'Path of Attraction' },
-        { path: '/path-of-glory.html',         label: 'Path of Glory' },
-        { path: '/path-of-valor.html',         label: 'Path of Valor' },
-        { path: '/sex-god-path.html',          label: 'Sex God Path' },
-        { path: '/love-raids.html',            label: 'Love Raids' },
-        { path: '/pachinko.html',              label: 'Pachinko' },
-        { path: '/waifu.html',                 label: 'Waifu' },
-        { path: '/map.html',                   label: 'Map' },
-        { path: '/activities.html',            label: 'Activities' },
-        { path: '/activities.html?tab=contests',     label: 'Activities/Contests' },
-        { path: '/activities.html?tab=missions',     label: 'Activities/Missions' },
-        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals' },
-        { path: '/activities.html?tab=pop',          label: 'Activities/PoP' },
-        { path: '/hero/profile.html',          label: 'Hero Profile' },
-        { path: '/member-progression.html',    label: 'Member Progression' }
+        // Critical data sources first - must succeed
+        { path: '/home.html',               label: 'Home',                       expected: 'home' },
+        { path: '/teams.html',              label: 'BattleTeams (teams_data)',   expected: 'teams' },
+        { path: '/edit-team.html',          label: 'EditTeam (availableGirls)',  expected: 'edit-team',  needsTeamsFirst: true },
+        { path: '/characters.html',         label: 'Harem',                      expected: 'harem' },
+        { path: '/waifu.html',              label: 'Waifu (girls_data_list)',    expected: 'waifu' },
+        { path: '/leagues.html',            label: 'League (opponents_list)',    expected: 'leaderboard' },
+        { path: '/season-arena.html',       label: 'SeasonArena (opponents)',    expected: 'season_arena' },
+        { path: '/penta-drill-arena.html',  label: 'PentaDrillArena',            expected: 'penta_drill_arena' },
+        { path: '/penta-drill.html',        label: 'PentaDrill',                 expected: 'penta_drill' },
+        { path: '/labyrinth.html',          label: 'Labyrinth (girl_squad)',     expected: 'labyrinth' },
+        { path: '/labyrinth-entrance.html', label: 'LabyrinthEntrance',          expected: 'labyrinth-entrance' },
+        { path: '/club-champion.html',      label: 'ClubChampion',               expected: 'club_champion' },
+        { path: '/champions-map.html',      label: 'ChampionsMap',               expected: 'champions_map' },
+        { path: '/shop.html',               label: 'Shop',                       expected: 'shop' },
+        { path: '/clubs.html',              label: 'Clubs',                      expected: 'clubs' },
+        { path: '/pantheon.html',           label: 'Pantheon',                   expected: 'pantheon' },
+        { path: '/season.html',             label: 'Season',                     expected: 'season' },
+        { path: '/event.html',              label: 'Event',                      expected: 'event' },
+        { path: '/seasonal.html',           label: 'Seasonal',                   expected: 'seasonal' },
+        { path: '/path-of-attraction.html', label: 'PathOfAttraction',           expected: 'path_of_attraction' },
+        { path: '/path-of-glory.html',      label: 'PathOfGlory',                expected: 'path-of-glory' },
+        { path: '/path-of-valor.html',      label: 'PathOfValor',                expected: 'path-of-valor' },
+        { path: '/sex-god-path.html',       label: 'SexGodPath',                 expected: 'sex-god-path' },
+        { path: '/love-raids.html',         label: 'LoveRaids',                  expected: 'love_raids' },
+        { path: '/pachinko.html',           label: 'Pachinko',                   expected: 'pachinko' },
+        { path: '/map.html',                label: 'Map',                        expected: 'map' },
+        { path: '/activities.html',                  label: 'Activities',          expected: 'activities' },
+        { path: '/activities.html?tab=contests',     label: 'Activities/Contests', expected: 'activities' },
+        { path: '/activities.html?tab=missions',     label: 'Activities/Missions', expected: 'activities' },
+        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals', expected: 'activities' },
+        { path: '/activities.html?tab=pop',          label: 'Activities/PoP',      expected: 'activities' },
+        { path: '/hero/profile.html',       label: 'Hero Profile',               expected: 'hero_pages' },
+        { path: '/member-progression.html', label: 'Member Progression',         expected: 'member-progression' }
     ];
 
     const WAIT_PER_PAGE_MS = 7000;
+    const POST_LOAD_SETTLE_MS = 1500;
     const POST_DUMP_PAUSE_MS = 500;
 
     let tourState = {
@@ -621,7 +627,86 @@
         return new Promise(function(r) { setTimeout(r, ms); });
     }
 
-    async function runTour() {
+    function getCurrentBodyPage() {
+        try {
+            refreshCtx();
+            const d = gameDoc() || document;
+            const body = d.querySelector('body[page]');
+            return body ? body.getAttribute('page') : null;
+        } catch (e) { return null; }
+    }
+
+    async function waitForPageMatch(expected, maxWaitMs) {
+        const interval = 250;
+        const deadline = Date.now() + maxWaitMs;
+        let last = null;
+        while (Date.now() < deadline) {
+            const cur = getCurrentBodyPage();
+            if (cur === expected) return { matched: true, page: cur };
+            last = cur;
+            await sleep(interval);
+        }
+        return { matched: false, page: last };
+    }
+
+    async function tryClickInGameNav(targetPath) {
+        // The game intercepts in-game <a href> clicks via its own router.
+        // Direct iframe.src changes sometimes lose game session context and bounce to /home.html.
+        // Try to find a matching <a href> inside the iframe and click it.
+        try {
+            const d = gameDoc();
+            if (!d) return false;
+            const sel = 'a[href="' + targetPath + '"], a[href$="' + targetPath + '"]';
+            const link = d.querySelector(sel);
+            if (link) {
+                link.click();
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    async function navigateAndWait(step) {
+        const expected = step.expected;
+        const path = step.path;
+        let attempts = 0;
+        let actualPage = null;
+
+        // Attempt 1: direct iframe.src
+        attempts++;
+        navigateIframeTo(path);
+        let waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
+        actualPage = waited.page;
+        if (waited.matched) {
+            // Extra settle time for late JS to populate variables
+            await sleep(POST_LOAD_SETTLE_MS);
+            return { actualPage: getCurrentBodyPage(), attempts: attempts };
+        }
+
+        // Attempt 2: try clicking an in-game link (game-router preserves session)
+        attempts++;
+        const clicked = await tryClickInGameNav(path);
+        if (clicked) {
+            waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
+            actualPage = waited.page;
+            if (waited.matched) {
+                await sleep(POST_LOAD_SETTLE_MS);
+                return { actualPage: getCurrentBodyPage(), attempts: attempts };
+            }
+        }
+
+        // Attempt 3: go via home first, then retry direct nav (resets game state)
+        attempts++;
+        navigateIframeTo('/home.html');
+        await waitForPageMatch('home', 5000);
+        navigateIframeTo(path);
+        waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
+        actualPage = waited.page;
+        await sleep(POST_LOAD_SETTLE_MS);
+        return { actualPage: getCurrentBodyPage(), attempts: attempts };
+    }
+
+        async function runTour() {
         if (tourState.running) {
             alert('Tour already running');
             return;
@@ -654,22 +739,22 @@
             tourState.index = i;
             const step = TOUR[i];
             const stepStart = Date.now();
-            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting ' + (WAIT_PER_PAGE_MS/1000) + 's...');
-            const navOk = navigateIframeTo(step.path);
-            if (!navOk) {
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' SKIPPED (iframe nav failed)');
-                continue;
-            }
-            await sleep(WAIT_PER_PAGE_MS);
+            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
+            const result = await navigateAndWait(step);
             if (tourState.cancelRequested) break;
             try {
                 const dump = await dumpCurrent(step.label, step.path);
+                dump.tour_meta.expected_page = step.expected;
+                dump.tour_meta.actual_page = result.actualPage;
+                dump.tour_meta.match = (result.actualPage === step.expected);
+                dump.tour_meta.attempts = result.attempts;
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
                 tourState.results.push(dump);
                 const stepDur = Math.round((Date.now() - stepStart)/1000);
                 const ctxNow = (dump.meta && dump.meta.ctx) || '?';
-                const bodyPage = (dump.game_context && dump.game_context.body_page) || '?';
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' OK | ' + sizeKb + ' KB | ctx=' + ctxNow + ' | body_page=' + bodyPage + ' | ' + stepDur + 's');
+                const bodyPage = result.actualPage || '?';
+                const matchTag = dump.tour_meta.match ? 'OK' : ('MISMATCH(want=' + step.expected + ')');
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ' + matchTag + ' | ' + sizeKb + ' KB | body_page=' + bodyPage + ' | ' + stepDur + 's | tries=' + result.attempts);
             } catch (e) {
                 logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
             }
@@ -683,7 +768,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.2.0',
+                inspectorVersion: '3.3.0',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
