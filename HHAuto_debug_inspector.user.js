@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.1.0
+// @version      4.1.1
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -87,54 +87,41 @@
     }
 
     function clearState() {
+        // Remove inspector state and any leftover result entries (including from old versions
+        // that stored full dumps in localStorage - they can fill up the quota).
         try { localStorage.removeItem(STATE_KEY); } catch (e) {}
-        const total = AUTO_TOUR.length + MANUAL_TOUR.length;
-        for (let i = 0; i < total; i++) {
-            try { localStorage.removeItem(RESULT_KEY_PREFIX + i); } catch (e) {}
-        }
+        // Clean up by prefix to also remove orphaned keys from previous tour runs
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && (k.startsWith(RESULT_KEY_PREFIX) || k === 'hhauto_last_tour' || k === 'hhauto_inspector_overlay')) {
+                    keysToRemove.push(k);
+                }
+            }
+            for (const k of keysToRemove) {
+                try { localStorage.removeItem(k); } catch (e) {}
+            }
+            console.log(LOG_PREFIX, 'Cleared', keysToRemove.length, 'inspector storage keys');
+        } catch (e) { console.warn(LOG_PREFIX, 'clearState scan failed:', e); }
     }
 
-    function saveResult(idx, dump) {
+    // No localStorage results - each step downloads its own file immediately.
+    // Only the tour state (current index, started timestamp) is persisted.
+    function saveResult(idx, dump, step) {
         const text = safeStringify(dump);
-        try {
-            localStorage.setItem(RESULT_KEY_PREFIX + idx, text);
-            return { ok: true, size: text.length };
-        } catch (e) {
-            // Quota - try slim copy
-            try {
-                const slim = Object.assign({}, dump);
-                if (slim.girls_full) slim.girls_full = '[stripped: localStorage quota]';
-                if (slim.shared_namespace) slim.shared_namespace = '[stripped]';
-                if (slim.local_storage) slim.local_storage = '[stripped]';
-                if (slim.globals_overview) slim.globals_overview = '[stripped]';
-                if (slim.dom_data_attributes) slim.dom_data_attributes = '[stripped]';
-                const slimText = safeStringify(slim);
-                localStorage.setItem(RESULT_KEY_PREFIX + idx, slimText);
-                console.warn(LOG_PREFIX, 'Saved slim copy at idx ' + idx + ':', slimText.length, 'bytes');
-                return { ok: true, size: slimText.length, slim: true };
-            } catch (e2) {
-                console.error(LOG_PREFIX, 'saveResult failed even with slim copy:', e2);
-                return { ok: false, size: 0, error: e2.message };
-            }
-        }
+        const stepNum = String(idx + 1).padStart(2, '0');
+        const safeLabel = ((step && step.label) || 'page').replace(/[^a-z0-9]/gi, '_');
+        const suffix = 'step' + stepNum + '_' + safeLabel;
+        downloadJson(text, suffix);
+        return { ok: true, size: text.length, downloaded: true };
     }
 
     function loadAllResults() {
-        const out = [];
-        const total = AUTO_TOUR.length + MANUAL_TOUR.length;
-        for (let i = 0; i < total; i++) {
-            try {
-                const raw = localStorage.getItem(RESULT_KEY_PREFIX + i);
-                if (raw) {
-                    try { out.push(JSON.parse(raw)); }
-                    catch (e) { out.push({ error: 'parse failed for idx ' + i }); }
-                }
-            } catch (e) {}
-        }
-        return out;
+        return [];
     }
 
-    // ==================== HELPERS ====================
+        // ==================== HELPERS ====================
 
     function safeStringify(obj) {
         const seen = new WeakSet();
@@ -635,7 +622,7 @@
             global_index: globalIdx
         };
 
-        const saveInfo = saveResult(globalIdx, dump);
+        const saveInfo = saveResult(globalIdx, dump, step);
         console.log(LOG_PREFIX, 'Step', globalIdx + 1, 'done:', step.label, 'match=' + dump.tour_meta.match, 'size=' + Math.round(saveInfo.size/1024) + 'KB');
         return { dump: dump, saveInfo: saveInfo };
     }
@@ -648,13 +635,16 @@
         if (idx < totalAuto) {
             // Auto phase
             const step = AUTO_TOUR[idx];
+            let stepOk = false;
             try {
-                await performStep(idx, step, false);
+                const res = await performStep(idx, step, false);
+                stepOk = !!(res && res.saveInfo && res.saveInfo.ok);
             } catch (e) {
                 console.error(LOG_PREFIX, 'Step error at auto idx', idx, ':', e);
             }
             // Advance
             state.index = idx + 1;
+            if (stepOk) state.completedSteps = (state.completedSteps || 0) + 1;
             saveState(state);
             if (state.index >= totalAuto) {
                 // Auto phase done, switch to manual
@@ -695,12 +685,15 @@
         // If user already navigated to expected page, give them a quick dump button
         const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', async function() {
             dumpBtn.disabled = true;
+            let stepOk = false;
             try {
-                await performStep(state.index, step, true);
+                const res = await performStep(state.index, step, true);
+                stepOk = !!(res && res.saveInfo && res.saveInfo.ok);
             } catch (e) {
                 console.error(LOG_PREFIX, 'Manual step failed:', e);
             }
             state.index++;
+            if (stepOk) state.completedSteps = (state.completedSteps || 0) + 1;
             saveState(state);
             if (state.index >= totalAuto + MANUAL_TOUR.length) {
                 await finishTour(state);
