@@ -290,23 +290,38 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 ---
 
+## Equipment
+
+`availableGirls.caracs` is **equipment-free**. Verified by dump comparison (2026-05-05):
+
+```
+teamGirls.blessed_caracs == availableGirls.caracs
+```
+
+The team builder reads `caracs` directly. **No unequip is required** before scoring.
+A UI hint reminds the user that the displayed power excludes equipment and
+recommends running `Stuff Team` after applying the team.
+
+---
+
 ## 5. Relevant Source Files
 
-### Team Selection (v3 — current as of v7.35.10, no algorithm changes since v7.34.14)
+### Team Selection (v4 — current as of v7.35.21)
 
 | File | Key Function | Purpose |
 |------|-------------|---------|
-| `src/Service/TeamScoringService.ts` | `filterHighRarity()` | Rarity filter: Mythic (6★) + Legendary (5★ only) |
-| `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Stat scoring for both modes |
+| `src/Service/TeamScoringService.ts` | `filterEligible(girls, playerClass)` | Hard filter: Mythic/Legendary 5★ AND class === playerClass |
+| `src/Service/TeamScoringService.ts` | `getMainCarac(girl, playerClass)` | Returns carac1/2/3 based on player class (1/2/3) |
+| `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Stat scoring (main_carac) for both modes |
 | `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier 3 trait matching bonus |
-| `src/Service/TeamScoringService.ts` | `estimateTier3Delta()` | Marginal tier 3 bonus for per-slot comparison |
-| `src/Service/TeamScoringService.ts` | `findTraitGroups()` | Group girls by element pair + shared trait value |
-| `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Element synergy calculation |
+| `src/Service/TeamScoringService.ts` | `findTraitGroups(girls, class, blessed?)` | Group girls by element pair + shared trait value |
+| `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Element synergy calculation (informational only) |
 | `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader ranking: Mythic only, Tier-5 priority |
-| `src/Service/TeamBuilderService.ts` | `buildTeam()` | Main entry: filter, trait groups, leader, slot-fill |
+| `src/Service/TeamBuilderService.ts` | `buildTeam(girls, mode, level, playerClass)` | Main entry: filter, cluster compare, leader, slot-fill |
 | `src/Service/TeamBuilderService.ts` | `getElementDistribution()` | Element count summary for UI |
-| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v3 if availableGirls present, else legacy |
-| `src/Module/TeamModule.ts` | `setTopTeamV2()` | Maps game data to GirlData[], calls TeamBuilderService |
+| `src/Service/TraitMappings.ts` | `resolve(category, value)` | Hex/position/zodiac to readable label, runtime + fallback |
+| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v4 if availableGirls present, else legacy |
+| `src/Module/TeamModule.ts` | `setTopTeamV2()` | Resolves player class via HeroHelper.getClass(), maps data, calls TeamBuilderService |
 | `src/Module/TeamModule.ts` | `setTopTeamLegacy()` | Old tooltip-based algorithm (fallback) |
 | `src/Module/TeamModule.ts` | `updateTeamUI()` | Shared UI logic with synergy + trait info overlay |
 | `src/Module/TeamModule.ts` | `moduleChangeTeam()` | Button setup (Current Best, Possible Best, Unequip) |
@@ -317,8 +332,8 @@ Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the descr
 
 | File | Tests | Purpose |
 |------|-------|---------|
-| `spec/Service/TeamScoringService.spec.ts` | 58 | Synergies, Tier-5, scoring, filtering, Tier-3 traits |
-| `spec/Service/TeamBuilderService.spec.ts` | 22 | Team building, modes, leader selection |
+| `spec/Service/TeamScoringService.spec.ts` | 53 | Synergies, Tier-5, scoring, filtering (class+rarity), Tier-3 traits |
+| `spec/Service/TeamBuilderService.spec.ts` | 20 | Team building, class filter, modes, leader selection |
 
 ### Girl Data Loading
 
