@@ -756,14 +756,6 @@
         buildStatusOverlay();
         updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-        // Verify we have an iframe to drive
-        const iframe = findGameIframe();
-        if (!iframe) {
-            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
-            tourState.running = false;
-            return;
-        }
-
         for (let i = 0; i < TOUR.length; i++) {
             if (tourState.cancelRequested) {
                 logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
