@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.9.0
+// @version      3.10.0
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.9.0',
+                inspectorVersion: '3.10.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -506,8 +506,6 @@
     const TOUR = [
         // Critical data sources first - must succeed
         { path: '/home.html',               label: 'Home',                       expected: 'home' },
-        { path: '/teams.html',              label: 'BattleTeams (teams_data)',   expected: 'teams' },
-        { path: '/edit-team.html',          label: 'EditTeam (availableGirls)',  expected: 'edit-team',  needsTeamsFirst: true },
         { path: '/characters.html',         label: 'Harem',                      expected: 'harem' },
         { path: '/waifu.html',              label: 'Waifu (girls_data_list)',    expected: 'waifu' },
         { path: '/leagues.html',            label: 'League (opponents_list)',    expected: 'leaderboard' },
@@ -524,11 +522,8 @@
         { path: '/season.html',             label: 'Season',                     expected: 'season' },
         { path: '/event.html',              label: 'Event',                      expected: 'event' },
         { path: '/seasonal.html',           label: 'Seasonal',                   expected: 'seasonal' },
-        { path: '/path-of-attraction.html', label: 'PathOfAttraction',           expected: 'path_of_attraction' },
         { path: '/path-of-glory.html',      label: 'PathOfGlory',                expected: 'path-of-glory' },
         { path: '/path-of-valor.html',      label: 'PathOfValor',                expected: 'path-of-valor' },
-        { path: '/sex-god-path.html',       label: 'SexGodPath',                 expected: 'sex-god-path' },
-        { path: '/love-raids.html',         label: 'LoveRaids',                  expected: 'love_raids' },
         { path: '/pachinko.html',           label: 'Pachinko',                   expected: 'pachinko' },
         { path: '/map.html',                label: 'Map',                        expected: 'map' },
         { path: '/activities.html',                  label: 'Activities',          expected: 'activities' },
@@ -540,81 +535,29 @@
         { path: '/member-progression.html', label: 'Member Progression',         expected: 'member-progression' }
     ];
 
+    // Pages that auto-navigation cannot reach reliably (game routes them to /home.html).
+    // After AUTO_TOUR completes, the user is asked to open each one manually via the game UI.
+    const MANUAL_PAGES = [
+        { path: '/teams.html',              label: 'BattleTeams (teams_data)',  expected: 'teams' },
+        { path: '/edit-team.html',          label: 'EditTeam (availableGirls)', expected: 'edit-team' },
+        { path: '/path-of-attraction.html', label: 'PathOfAttraction',          expected: 'path_of_attraction' },
+        { path: '/sex-god-path.html',       label: 'SexGodPath',                expected: 'sex-god-path' },
+        { path: '/love-raids.html',         label: 'LoveRaids',                 expected: 'love_raids' }
+    ];
+
     const WAIT_PER_PAGE_MS = 7000;
     const POST_LOAD_SETTLE_MS = 1500;
     const POST_DUMP_PAUSE_MS = 500;
-    const TOUR_STATE_KEY = 'hhauto_inspector_tour_state';
-    const TOUR_RESULT_PREFIX = 'hhauto_inspector_tour_result_';
 
     let tourState = {
         running: false,
         index: 0,
+        results: [],
         startedAt: null,
         statusEl: null,
         progressEl: null,
         cancelRequested: false
     };
-
-    function persistState() {
-        try {
-            localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({
-                running: tourState.running,
-                index: tourState.index,
-                startedAt: tourState.startedAt,
-                cancelRequested: tourState.cancelRequested
-            }));
-        } catch (e) { console.warn('[HHAuto Inspector] persistState failed:', e); }
-    }
-
-    function loadPersistedState() {
-        try {
-            const raw = localStorage.getItem(TOUR_STATE_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch (e) { return null; }
-    }
-
-    function clearPersistedState() {
-        try { localStorage.removeItem(TOUR_STATE_KEY); } catch (e) {}
-        for (let i = 0; i < TOUR.length; i++) {
-            try { localStorage.removeItem(TOUR_RESULT_PREFIX + i); } catch (e) {}
-        }
-    }
-
-    function saveResult(idx, dump) {
-        const text = safeStringify(dump);
-        try {
-            localStorage.setItem(TOUR_RESULT_PREFIX + idx, text);
-            return { ok: true, size: text.length };
-        } catch (e) {
-            try {
-                const slim = Object.assign({}, dump);
-                if (slim.girls_full) slim.girls_full = '[stripped: localStorage quota]';
-                if (slim.shared_namespace) slim.shared_namespace = '[stripped]';
-                if (slim.local_storage) slim.local_storage = '[stripped]';
-                if (slim.globals_overview) slim.globals_overview = '[stripped]';
-                const slimText = safeStringify(slim);
-                localStorage.setItem(TOUR_RESULT_PREFIX + idx, slimText);
-                return { ok: true, size: slimText.length, slim: true };
-            } catch (e2) {
-                console.error('[HHAuto Inspector] saveResult failed:', e2);
-                return { ok: false, size: 0, error: e2.message };
-            }
-        }
-    }
-
-    function loadAllResults() {
-        const out = [];
-        for (let i = 0; i < TOUR.length; i++) {
-            try {
-                const raw = localStorage.getItem(TOUR_RESULT_PREFIX + i);
-                if (raw) {
-                    try { out.push(JSON.parse(raw)); }
-                    catch (e) { out.push({ error: 'parse failed for idx ' + i }); }
-                }
-            } catch (e) {}
-        }
-        return out;
-    }
 
     function buildStatusOverlay() {
         const old = document.getElementById('hhauto_tour_overlay');
@@ -768,30 +711,26 @@
         return { actualPage: getCurrentBodyPage(), attempts: attempts };
     }
 
-        function showManualPrompt(step, actualPage) {
+        function showManualPrompt(step) {
         return new Promise(function(resolve) {
             const old = document.getElementById('hhauto_manual_prompt');
             if (old) old.remove();
-
-            // Bar at the top of the page so it stays visible while user navigates inside the iframe.
-            // pointer-events:auto ensures clicks land here, not on the iframe behind.
+            const cur = getCurrentBodyPage() || '?';
             const ov = document.createElement('div');
             ov.id = 'hhauto_manual_prompt';
-            ov.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;pointer-events:auto;';
+            ov.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
             const msg = document.createElement('div');
             msg.style.cssText = 'flex:1;min-width:240px';
             msg.innerHTML = '<span style="color:#ffb827;font-weight:bold">Open in game:</span> '
                 + '<b style="color:#fff;font-size:14px">' + step.label + '</b> '
-                + '<span style="color:#888;font-size:11px">(' + step.path + ', want body[page]=' + step.expected + ', currently=' + (actualPage || '?') + ')</span>';
-
+                + '<span style="color:#888;font-size:11px">(want body[page]=' + step.expected + ', currently=' + cur + ')</span>';
             const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', function() { ov.remove(); resolve('dump'); });
             const skipBtn = mkBtn('SKIP', '#ff9800', function() { ov.remove(); resolve('skip'); });
-            const abortBtn = mkBtn('ABORT TOUR', '#f44336', function() { ov.remove(); resolve('abort'); });
+            const abortBtn = mkBtn('ABORT', '#f44336', function() { ov.remove(); resolve('abort'); });
             for (const b of [dumpBtn, skipBtn, abortBtn]) {
                 b.style.padding = '6px 12px';
                 b.style.fontSize = '12px';
             }
-
             ov.appendChild(msg);
             ov.appendChild(dumpBtn);
             ov.appendChild(skipBtn);
@@ -800,113 +739,106 @@
         });
     }
 
-    async function runTour(resumeFromIdx) {
+    async function runTour() {
         if (tourState.running) {
             alert('Tour already running');
             return;
         }
-        const isResume = typeof resumeFromIdx === 'number' && resumeFromIdx > 0;
-        let resumedStartedAt = null;
-        if (isResume) {
-            const prev = loadPersistedState();
-            resumedStartedAt = (prev && prev.startedAt) || Date.now();
-        }
         tourState = {
             running: true,
-            index: isResume ? resumeFromIdx : 0,
-            startedAt: isResume ? resumedStartedAt : Date.now(),
+            index: 0,
+            results: [],
+            startedAt: Date.now(),
             statusEl: null,
             progressEl: null,
             cancelRequested: false
         };
         buildStatusOverlay();
-        if (isResume) {
-            updateStatus('Resuming tour at step ' + (resumeFromIdx+1) + '/' + TOUR.length + '...');
-            const prev = loadAllResults();
-            for (let i = 0; i < prev.length; i++) {
-                const tm = prev[i].tour_meta || {};
-                logProgress('-- Step restored: ' + (tm.label || '?'));
-            }
-        } else {
-            clearPersistedState();
-            updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
-        }
-        persistState();
+        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-        for (let i = tourState.index; i < TOUR.length; i++) {
-            tourState.index = i;
-            persistState();
+        // Verify we have an iframe to drive
+        const iframe = findGameIframe();
+        if (!iframe) {
+            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
+            tourState.running = false;
+            return;
+        }
+
+        for (let i = 0; i < TOUR.length; i++) {
             if (tourState.cancelRequested) {
                 logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
                 break;
             }
+            tourState.index = i;
             const step = TOUR[i];
             const stepStart = Date.now();
             updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
-            persistState();
-            let result = await navigateAndWait(step);
+            const result = await navigateAndWait(step);
             if (tourState.cancelRequested) break;
-
-            // If auto-nav landed on the wrong page, ask user to navigate manually.
-            let manualUsed = false;
-            while (result.actualPage !== step.expected && !tourState.cancelRequested) {
-                const choice = await showManualPrompt(step, result.actualPage);
-                if (choice === 'abort') {
-                    tourState.cancelRequested = true;
-                    break;
-                }
-                if (choice === 'skip') {
-                    break;
-                }
-                if (choice === 'dump') {
-                    // User says they navigated manually - re-read body[page] and proceed.
-                    refreshCtx();
-                    const cur = getCurrentBodyPage();
-                    result = { actualPage: cur, attempts: result.attempts + 1 };
-                    manualUsed = true;
-                    break;
-                }
-            }
-            if (tourState.cancelRequested) break;
-
             try {
                 const dump = await dumpCurrent(step.label, step.path);
                 dump.tour_meta.expected_page = step.expected;
                 dump.tour_meta.actual_page = result.actualPage;
                 dump.tour_meta.match = (result.actualPage === step.expected);
                 dump.tour_meta.attempts = result.attempts;
-                dump.tour_meta.manual = manualUsed;
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                saveResult(i, dump);
+                tourState.results.push(dump);
                 const stepDur = Math.round((Date.now() - stepStart)/1000);
+                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
                 const bodyPage = result.actualPage || '?';
                 const matchTag = dump.tour_meta.match ? 'OK' : ('MISMATCH(want=' + step.expected + ')');
-                const manualTag = manualUsed ? ' [MANUAL]' : '';
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ' + matchTag + manualTag + ' | ' + sizeKb + ' KB | body_page=' + bodyPage + ' | ' + stepDur + 's | tries=' + result.attempts);
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ' + matchTag + ' | ' + sizeKb + ' KB | body_page=' + bodyPage + ' | ' + stepDur + 's | tries=' + result.attempts);
             } catch (e) {
                 logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
             }
             await sleep(POST_DUMP_PAUSE_MS);
         }
 
+        // ---- MANUAL PHASE ----
+        if (!tourState.cancelRequested) {
+            updateStatus('Auto phase done. Now ' + MANUAL_PAGES.length + ' manual pages...<br/>Use the game UI to open each, then click DUMP NOW.');
+            for (let mi = 0; mi < MANUAL_PAGES.length; mi++) {
+                if (tourState.cancelRequested) break;
+                const mstep = MANUAL_PAGES[mi];
+                const choice = await showManualPrompt(mstep);
+                if (choice === 'abort') { tourState.cancelRequested = true; break; }
+                if (choice === 'skip') {
+                    logProgress('-- MANUAL ' + (mi+1) + '/' + MANUAL_PAGES.length + '. ' + mstep.label + ' SKIPPED');
+                    continue;
+                }
+                // dump
+                refreshCtx();
+                try {
+                    const dump = await dumpCurrent(mstep.label, mstep.path);
+                    dump.tour_meta.expected_page = mstep.expected;
+                    dump.tour_meta.actual_page = getCurrentBodyPage();
+                    dump.tour_meta.match = (dump.tour_meta.actual_page === mstep.expected);
+                    dump.tour_meta.manual = true;
+                    const sizeKb = Math.round(safeStringify(dump).length / 1024);
+                    tourState.results.push(dump);
+                    const matchTag = dump.tour_meta.match ? 'OK' : ('mismatch want=' + mstep.expected + ' got=' + dump.tour_meta.actual_page);
+                    logProgress('M' + (mi+1) + '. ' + mstep.label + ' ' + matchTag + ' | ' + sizeKb + ' KB [MANUAL]');
+                } catch (e) {
+                    logProgress('M' + (mi+1) + '. ' + mstep.label + ' ERROR: ' + e.message);
+                }
+            }
+        }
+
         const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
-        const allResults = loadAllResults();
         const bundle = {
             meta: {
                 timestamp: new Date().toISOString(),
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.9.0',
-                tour_pages: TOUR.length,
-                tour_completed_pages: allResults.length,
+                inspectorVersion: '3.10.0',
+                tour_pages: TOUR.length + MANUAL_PAGES.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
                 cancelled: tourState.cancelRequested
             },
-            pages: allResults
+            pages: tourState.results
         };
-        clearPersistedState();
         const text = safeStringify(bundle);
         const sizeKb = Math.round(text.length / 1024);
         updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
@@ -935,18 +867,8 @@
 
     // ---------- buttons ----------
 
-    function maybeResumeTour() {
-        const p = loadPersistedState();
-        if (p && p.running && !p.cancelRequested && typeof p.index === 'number' && p.index < TOUR.length) {
-            setTimeout(function() { runTour(p.index); }, 1500);
-            return true;
-        }
-        return false;
-    }
-
     function makeButtons() {
         refreshCtx();
-        if (maybeResumeTour()) return;
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:6px;font-family:monospace;';
 
