@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.11.1
+// @version      3.11.2
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.1',
+                inspectorVersion: '3.11.2',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -681,7 +681,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.1',
+                inspectorVersion: '3.11.2',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
@@ -835,7 +835,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.1',
+                inspectorVersion: '3.11.2',
                 tour_pages: MANUAL_PAGES.length,
                 tour_completed_pages: results.length,
                 tour_duration_sec: totalDur,
@@ -846,6 +846,60 @@
         const text = safeStringify(bundle);
         status.innerHTML = 'Manual tour finished: ' + results.length + '/' + MANUAL_PAGES.length + ' pages, ' + Math.round(text.length/1024) + ' KB';
         downloadJson(text, 'manual_tour');
+    }
+
+
+    function runDiagnostic() {
+        const out = [];
+        out.push('=== HHAuto Inspector Diagnostic ===');
+        out.push('Time: ' + new Date().toISOString());
+        out.push('Top window URL: ' + location.href);
+        out.push('');
+        out.push('--- unsafeWindow checks ---');
+        try { out.push('unsafeWindow.shared: ' + (typeof unsafeWindow.shared)); } catch(e) { out.push('shared: ERROR ' + e.message); }
+        try { out.push('unsafeWindow.shared.Hero: ' + (typeof (unsafeWindow.shared && unsafeWindow.shared.Hero))); } catch(e) {}
+        try { out.push('unsafeWindow.availableGirls: ' + (typeof unsafeWindow.availableGirls)); } catch(e) {}
+        try { out.push('unsafeWindow.hh_ajax: ' + (typeof unsafeWindow.hh_ajax)); } catch(e) {}
+        out.push('');
+        out.push('--- iframes ---');
+        const frames = document.querySelectorAll('iframe');
+        out.push('iframe count: ' + frames.length);
+        for (let i = 0; i < frames.length; i++) {
+            const f = frames[i];
+            out.push('Iframe #' + i + ':');
+            out.push('  id: ' + (f.id || '(none)'));
+            out.push('  src: ' + (f.src || '(none)'));
+            out.push('  class: ' + (f.className || '(none)'));
+            try {
+                const w = f.contentWindow;
+                out.push('  contentWindow: ' + (w ? 'accessible' : 'null'));
+                if (w) {
+                    try { out.push('    .shared: ' + (typeof w.shared)); } catch(e) { out.push('    .shared: BLOCKED ' + e.message); }
+                    try { out.push('    .availableGirls: ' + (typeof w.availableGirls)); } catch(e) {}
+                    try { out.push('    .location.href: ' + (w.location && w.location.href)); } catch(e) { out.push('    .location: BLOCKED'); }
+                }
+            } catch(e) { out.push('  contentWindow: ERROR ' + e.message); }
+        }
+        out.push('');
+        out.push('--- findGameIframe() result ---');
+        const found = findGameIframe();
+        out.push('Result: ' + (found ? ('id=' + found.id) : 'NULL'));
+
+        const text = out.join('\n');
+        console.log(text);
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:1000001;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'width:90%;height:80%;font:12px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;';
+        const close = mkBtn('CLOSE', '#f44336', function() { ov.remove(); });
+        const copy = mkBtn('COPY', '#4CAF50', function() { ta.select(); document.execCommand('copy'); copy.textContent = 'COPIED!'; });
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;';
+        row.appendChild(copy); row.appendChild(close);
+        ov.appendChild(ta); ov.appendChild(row);
+        document.body.appendChild(ov);
+        ta.select();
     }
 
     function makeButtons() {
@@ -871,9 +925,16 @@
         manual.onclick = runManualTour;
         manual.title = 'Walk through ' + MANUAL_PAGES.length + ' pages that need manual navigation';
 
+        const diag = document.createElement('div');
+        diag.textContent = 'DIAGNOSTIC';
+        diag.style.cssText = 'background:#607D8B;color:white;padding:10px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
+        diag.onclick = runDiagnostic;
+        diag.title = 'Show iframe + globals diagnostic info';
+
         wrap.appendChild(single);
         wrap.appendChild(tour);
         wrap.appendChild(manual);
+        wrap.appendChild(diag);
         document.body.appendChild(wrap);
     }
 
