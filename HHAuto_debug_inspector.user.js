@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.10.1
+// @version      3.10.2
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.1',
+                inspectorVersion: '3.10.2',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -506,7 +506,6 @@
     const TOUR = [
         // Critical data sources first - must succeed
         { path: '/home.html',               label: 'Home',                       expected: 'home' },
-        { path: '/characters.html',         label: 'Harem',                      expected: 'harem' },
         { path: '/waifu.html',              label: 'Waifu (girls_data_list)',    expected: 'waifu' },
         { path: '/leagues.html',            label: 'League (opponents_list)',    expected: 'leaderboard' },
         { path: '/season-arena.html',       label: 'SeasonArena (opponents)',    expected: 'season_arena' },
@@ -538,6 +537,7 @@
     // Pages that auto-navigation cannot reach reliably (game routes them to /home.html).
     // After AUTO_TOUR completes, the user is asked to open each one manually via the game UI.
     const MANUAL_PAGES = [
+        { path: '/characters.html',         label: 'Harem',                     expected: 'harem' },
         { path: '/teams.html',              label: 'BattleTeams (teams_data)',  expected: 'teams' },
         { path: '/edit-team.html',          label: 'EditTeam (availableGirls)', expected: 'edit-team' },
         { path: '/path-of-attraction.html', label: 'PathOfAttraction',          expected: 'path_of_attraction' },
@@ -582,7 +582,26 @@
         });
         cancel.style.padding = '6px 12px';
         cancel.style.fontSize = '12px';
+
+        const dumpPartial = mkBtn('SAVE PARTIAL', '#4CAF50', function() {
+            const text = safeStringify({
+                meta: {
+                    partial: true,
+                    timestamp: new Date().toISOString(),
+                    host: location.hostname,
+                    inspectorVersion: '3.10.2',
+                    completed: tourState.results.length,
+                    cancelled: tourState.cancelRequested
+                },
+                pages: tourState.results
+            });
+            downloadJson(text, 'partial');
+        });
+        dumpPartial.style.padding = '6px 12px';
+        dumpPartial.style.fontSize = '12px';
+
         btnRow.appendChild(cancel);
+        btnRow.appendChild(dumpPartial);
         ov.appendChild(title);
         ov.appendChild(status);
         ov.appendChild(progress);
@@ -755,6 +774,7 @@
         };
         buildStatusOverlay();
         updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+        try {
 
         for (let i = 0; i < TOUR.length; i++) {
             if (tourState.cancelRequested) {
@@ -775,6 +795,8 @@
                 dump.tour_meta.attempts = result.attempts;
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
                 tourState.results.push(dump);
+                // persist after every step so a crash does not lose progress
+                try { localStorage.setItem('hhauto_partial_bundle', safeStringify({ meta: { partial: true, completed: tourState.results.length, when: new Date().toISOString() }, pages: tourState.results })); } catch (e) {}
                 const stepDur = Math.round((Date.now() - stepStart)/1000);
                 const ctxNow = (dump.meta && dump.meta.ctx) || '?';
                 const bodyPage = result.actualPage || '?';
@@ -808,6 +830,7 @@
                     dump.tour_meta.manual = true;
                     const sizeKb = Math.round(safeStringify(dump).length / 1024);
                     tourState.results.push(dump);
+                    try { localStorage.setItem('hhauto_partial_bundle', safeStringify({ meta: { partial: true, completed: tourState.results.length, when: new Date().toISOString() }, pages: tourState.results })); } catch (e) {}
                     const matchTag = dump.tour_meta.match ? 'OK' : ('mismatch want=' + mstep.expected + ' got=' + dump.tour_meta.actual_page);
                     logProgress('M' + (mi+1) + '. ' + mstep.label + ' ' + matchTag + ' | ' + sizeKb + ' KB [MANUAL]');
                 } catch (e) {
@@ -823,7 +846,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.1',
+                inspectorVersion: '3.10.2',
                 tour_pages: TOUR.length + MANUAL_PAGES.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
@@ -843,6 +866,18 @@
                 localStorage.setItem('hhauto_last_tour', '[too large for localStorage - check downloaded file]');
             }
         } catch (e) { /* quota */ }
+        } catch (err) {
+            console.error('[HHAuto Inspector] Tour aborted with error:', err);
+            logProgress('!! TOUR ERROR: ' + (err && err.message ? err.message : err));
+            try {
+                const text = safeStringify({
+                    meta: { partial: true, error: String(err && err.message || err), timestamp: new Date().toISOString(), host: location.hostname, inspectorVersion: '3.10.2', completed: tourState.results.length },
+                    pages: tourState.results
+                });
+                downloadJson(text, 'crashed');
+                updateStatus('<span style="color:#ff8888">Tour crashed: ' + (err && err.message ? err.message : 'unknown') + '</span><br/>Partial bundle (' + tourState.results.length + ' pages) downloaded.');
+            } catch (e) {}
+        }
         tourState.running = false;
 
         // Add a "show last result" button
