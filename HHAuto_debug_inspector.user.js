@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.7.1
+// @version      3.8.0
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.7.1',
+                inspectorVersion: '3.8.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -602,22 +602,13 @@
 
     function navigateIframeTo(path) {
         const iframe = findGameIframe();
-        const target = location.origin + path;
-        if (iframe) {
-            try { iframe.src = target; return true; } catch (e) { return false; }
-        }
-        // No iframe - try top-window navigation as last resort.
-        // This will reload the script too; tour state is in-memory and will be lost.
-        // Only use if user confirms.
+        if (!iframe) return false;
         try {
-            // Try the game window directly (if running on top-window with no iframe)
-            const w = gameWin();
-            if (w && w.location) {
-                w.location.href = target;
-                return true;
-            }
-        } catch (e) {}
-        return false;
+            // Build absolute URL so the browser does not fight over relative paths.
+            const target = location.origin + path;
+            iframe.src = target;
+            return true;
+        } catch (e) { return false; }
     }
 
     function dumpCurrent(label, path) {
@@ -675,105 +666,73 @@
         return false;
     }
 
-    function showManualNavPrompt(step, actualPage, attempts) {
-        return new Promise(function(resolve) {
-            const old = document.getElementById('hhauto_manual_nav_prompt');
-            if (old) old.remove();
-            const ov = document.createElement('div');
-            ov.id = 'hhauto_manual_nav_prompt';
-            ov.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;color:#0f0;font:13px monospace;padding:20px;border-radius:8px;z-index:1000000;box-shadow:0 8px 32px rgba(0,0,0,0.7);min-width:480px;max-width:600px;border:2px solid #ffb827;';
-            ov.innerHTML = ''
-                + '<div style="font-weight:bold;color:#ffb827;font-size:16px;margin-bottom:10px">Manual navigation needed</div>'
-                + '<div style="margin-bottom:10px">Auto-navigation failed for:<br/><b style="color:#fff;font-size:14px">' + step.label + '</b> (' + step.path + ')</div>'
-                + '<div style="margin-bottom:10px;color:#888;font-size:11px">After ' + attempts + ' attempts, body[page] is "<b>' + (actualPage || 'unknown') + '</b>" - expected "<b>' + step.expected + '</b>"</div>'
-                + '<div style="background:#0a3d0a;padding:10px;border-radius:4px;margin-bottom:14px">'
-                + '<b style="color:#fff">What to do:</b><br/>'
-                + '1. Open the <b>' + step.label + '</b> page in the game (use the game UI)<br/>'
-                + '2. Wait until the page is fully loaded<br/>'
-                + '3. Click <b style="color:#ffb827">DUMP NOW</b> to capture and continue'
-                + '</div>'
-                + '<div id="hhauto_manual_nav_buttons" style="display:flex;gap:8px;flex-wrap:wrap"></div>';
-            const btns = document.createElement('div');
-            btns.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
-            const dump = mkBtn('DUMP NOW', '#4CAF50', function() { ov.remove(); resolve('dump'); });
-            const skip = mkBtn('SKIP', '#ff9800', function() { ov.remove(); resolve('skip'); });
-            const retry = mkBtn('RETRY AUTO', '#2196F3', function() { ov.remove(); resolve('retry'); });
-            const abort = mkBtn('ABORT TOUR', '#f44336', function() { ov.remove(); resolve('abort'); });
-            ov.querySelector('#hhauto_manual_nav_buttons').appendChild(dump);
-            ov.querySelector('#hhauto_manual_nav_buttons').appendChild(skip);
-            ov.querySelector('#hhauto_manual_nav_buttons').appendChild(retry);
-            ov.querySelector('#hhauto_manual_nav_buttons').appendChild(abort);
-            document.body.appendChild(ov);
-        });
-    }
-
     async function navigateAndWait(step) {
         const expected = step.expected;
         const path = step.path;
         let attempts = 0;
         let actualPage = null;
-        let manualMode = false;
 
-        async function tryAutoNav() {
-            // Attempt 1: direct iframe.src
-            attempts++;
-            navigateIframeTo(path);
-            let waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
-            actualPage = waited.page;
-            if (waited.matched) return true;
+        // Attempt 1: direct iframe.src
+        attempts++;
+        navigateIframeTo(path);
+        let waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
+        actualPage = waited.page;
+        if (waited.matched) {
+            // Extra settle time for late JS to populate variables
+            await sleep(POST_LOAD_SETTLE_MS);
+            return { actualPage: getCurrentBodyPage(), attempts: attempts };
+        }
 
-            // Attempt 2: try clicking an in-game link
-            attempts++;
-            const clicked = await tryClickInGameNav(path);
-            if (clicked) {
-                waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
-                actualPage = waited.page;
-                if (waited.matched) return true;
-            }
-
-            // Attempt 3: home reset + retry
-            attempts++;
-            navigateIframeTo('/home.html');
-            await waitForPageMatch('home', 5000);
-            navigateIframeTo(path);
+        // Attempt 2: try clicking an in-game link (game-router preserves session)
+        attempts++;
+        const clicked = await tryClickInGameNav(path);
+        if (clicked) {
             waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
             actualPage = waited.page;
-            return waited.matched;
-        }
-
-        // Try automatic navigation
-        let matched = await tryAutoNav();
-
-        // If auto failed, ask user for manual help
-        while (!matched && !tourState.cancelRequested) {
-            const choice = await showManualNavPrompt(step, actualPage, attempts);
-            if (choice === 'abort') {
-                tourState.cancelRequested = true;
-                break;
-            }
-            if (choice === 'skip') {
-                manualMode = true;
-                break;
-            }
-            if (choice === 'dump') {
-                // User has manually navigated - read the actual page now
-                actualPage = getCurrentBodyPage();
-                manualMode = true;
-                matched = (actualPage === expected);
-                break;
-            }
-            if (choice === 'retry') {
-                matched = await tryAutoNav();
-                if (matched) break;
-                // loop back to prompt
+            if (waited.matched) {
+                await sleep(POST_LOAD_SETTLE_MS);
+                return { actualPage: getCurrentBodyPage(), attempts: attempts };
             }
         }
 
+        // Attempt 3: go via home first, then retry direct nav (resets game state)
+        attempts++;
+        navigateIframeTo('/home.html');
+        await waitForPageMatch('home', 5000);
+        navigateIframeTo(path);
+        waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
+        actualPage = waited.page;
         await sleep(POST_LOAD_SETTLE_MS);
-        return { actualPage: getCurrentBodyPage(), attempts: attempts, manual: manualMode };
+        return { actualPage: getCurrentBodyPage(), attempts: attempts };
     }
 
-        async function runTour() {
+        function showManualPrompt(step, actualPage) {
+        return new Promise(function(resolve) {
+            const old = document.getElementById('hhauto_manual_prompt');
+            if (old) old.remove();
+            const ov = document.createElement('div');
+            ov.id = 'hhauto_manual_prompt';
+            ov.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a1a;color:#0f0;font:13px monospace;padding:20px;border-radius:8px;z-index:1000000;box-shadow:0 8px 32px rgba(0,0,0,0.7);min-width:480px;max-width:600px;border:2px solid #ffb827;';
+            ov.innerHTML = ''
+                + '<div style="font-weight:bold;color:#ffb827;font-size:16px;margin-bottom:10px">Manual navigation needed</div>'
+                + '<div style="margin-bottom:10px">Auto-nav failed for:<br/><b style="color:#fff;font-size:14px">' + step.label + '</b> (' + step.path + ')</div>'
+                + '<div style="margin-bottom:10px;color:#888;font-size:11px">Currently on: <b>' + (actualPage || 'unknown') + '</b> - want: <b>' + step.expected + '</b></div>'
+                + '<div style="background:#0a3d0a;padding:10px;border-radius:4px;margin-bottom:14px">'
+                + '<b style="color:#fff">Open <span style="color:#ffb827">' + step.label + '</span> via the game UI, then click DUMP NOW.</b>'
+                + '</div>'
+                + '<div id="hhauto_manual_buttons" style="display:flex;gap:8px;flex-wrap:wrap"></div>';
+            const btns = ov.querySelector('#hhauto_manual_buttons');
+            const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', function() { ov.remove(); resolve('dump'); });
+            const skipBtn = mkBtn('SKIP', '#ff9800', function() { ov.remove(); resolve('skip'); });
+            const abortBtn = mkBtn('ABORT TOUR', '#f44336', function() { ov.remove(); resolve('abort'); });
+            btns.appendChild(dumpBtn);
+            btns.appendChild(skipBtn);
+            btns.appendChild(abortBtn);
+            document.body.appendChild(ov);
+        });
+    }
+
+    async function runTour() {
         if (tourState.running) {
             alert('Tour already running');
             return;
@@ -790,31 +749,6 @@
         buildStatusOverlay();
         updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-        // Wait up to 10s for game iframe to appear (it may be lazy-loaded by the wrapper page)
-        let iframe = null;
-        let ctx = refreshCtx();
-        const ifDeadline = Date.now() + 10000;
-        while (Date.now() < ifDeadline) {
-            iframe = findGameIframe();
-            ctx = refreshCtx();
-            if (iframe) break;
-            if (ctx.where === 'top-window') break;
-            updateStatus('Waiting for game iframe to appear... (max 10s)');
-            await sleep(500);
-        }
-        if (!iframe && ctx.where !== 'top-window') {
-            updateStatus('<span style="color:#ffb827">WARN: No game iframe detected after 10s.</span><br/>' +
-                'Trying anyway via top-window navigation.<br/>' +
-                'If nothing happens, refresh the page (F5) and click AUTO DUMP ALL again once the game loaded.');
-            await sleep(2500);
-        } else if (iframe) {
-            updateStatus('Tour starting via iframe: ' + (iframe.id || 'noid') + '<br/>' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
-            await sleep(1000);
-        } else {
-            updateStatus('Tour starting via top-window navigation<br/>' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
-            await sleep(1000);
-        }
-
         for (let i = 0; i < TOUR.length; i++) {
             if (tourState.cancelRequested) {
                 logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
@@ -824,22 +758,44 @@
             const step = TOUR[i];
             const stepStart = Date.now();
             updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
-            const result = await navigateAndWait(step);
+            let result = await navigateAndWait(step);
             if (tourState.cancelRequested) break;
+
+            // If auto-nav landed on the wrong page, ask user to navigate manually.
+            let manualUsed = false;
+            while (result.actualPage !== step.expected && !tourState.cancelRequested) {
+                const choice = await showManualPrompt(step, result.actualPage);
+                if (choice === 'abort') {
+                    tourState.cancelRequested = true;
+                    break;
+                }
+                if (choice === 'skip') {
+                    break;
+                }
+                if (choice === 'dump') {
+                    // User says they navigated manually - re-read body[page] and proceed.
+                    refreshCtx();
+                    const cur = getCurrentBodyPage();
+                    result = { actualPage: cur, attempts: result.attempts + 1 };
+                    manualUsed = true;
+                    break;
+                }
+            }
+            if (tourState.cancelRequested) break;
+
             try {
                 const dump = await dumpCurrent(step.label, step.path);
                 dump.tour_meta.expected_page = step.expected;
                 dump.tour_meta.actual_page = result.actualPage;
                 dump.tour_meta.match = (result.actualPage === step.expected);
                 dump.tour_meta.attempts = result.attempts;
-                dump.tour_meta.manual = !!result.manual;
+                dump.tour_meta.manual = manualUsed;
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
                 tourState.results.push(dump);
                 const stepDur = Math.round((Date.now() - stepStart)/1000);
-                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
                 const bodyPage = result.actualPage || '?';
                 const matchTag = dump.tour_meta.match ? 'OK' : ('MISMATCH(want=' + step.expected + ')');
-                const manualTag = result.manual ? ' [MANUAL]' : '';
+                const manualTag = manualUsed ? ' [MANUAL]' : '';
                 logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ' + matchTag + manualTag + ' | ' + sizeKb + ' KB | body_page=' + bodyPage + ' | ' + stepDur + 's | tries=' + result.attempts);
             } catch (e) {
                 logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
@@ -854,7 +810,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.7.1',
+                inspectorVersion: '3.8.0',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
