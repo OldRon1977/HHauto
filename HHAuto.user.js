@@ -17353,7 +17353,7 @@ class TeamScoringService {
 //   5. Fill slots 2-7 from trait group, then by main-carac
 
 const TEAM_SIZE = 7;
-const CANDIDATE_POOL_SIZE = 50;
+const CANDIDATE_POOL_SIZE = 200;
 // Map trait category to its element pair for quick lookup
 const ELEMENT_PAIRS_MAP = {
     'eyeColor': ['darkness', 'fire'],
