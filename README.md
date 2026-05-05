@@ -32,6 +32,27 @@ Two modes: **Current Best** uses today's stats, **Best Possible** projects each 
 
 ---
 
+### v7.35.20 - Team selection rewrite: blessing-aware top-7
+
+The team selection algorithm has been completely rewritten. The previous version tried to find the best "trait group" (eye color, hair color, position, zodiac) and build a team around it. This often selected the wrong girls because it prioritized trait matching over raw power.
+
+**New logic:**
+
+1. Score all Mythic + Legendary (5-star) girls: base stats minus equipment, times blessing multiplier
+2. Sort by score descending
+3. Take the top 7
+4. Tiebreaker at equal stats: prefer girls that form an element cluster (Tier-3 bonus)
+5. Leader: highest-score Mythic, preferring the largest element cluster
+
+**What changed:**
+- Equipment stats are subtracted before scoring (fair comparison across differently-equipped girls)
+- Blessing multiplier is applied from blessing_bonuses.pvp_v3 data on each girl
+- No more trait-group matching or element-pair filtering - the 7 strongest girls win regardless of their trait
+- Element-cluster optimization only kicks in as tiebreaker when multiple girls have identical scores
+- Blessing categories are read from the BlessingService cache (loaded on Home page visit)
+
+---
+
 ### v7.35.19 - Repository transfer complete, blessing boost fix
 
 The repository transfer from Roukys/HHauto to OldRon1977/HHauto is complete. The old URL redirects automatically — no action needed. Tampermonkey picks up updates from the new location. Your settings remain untouched.

@@ -145,4 +145,111 @@ export class BlessingService {
         }
         return undefined;
     }
+
+    /**
+     * Resolve the hex code for a blessed trait by analyzing blessing_bonuses on girls.
+     * 
+     * Strategy: The Blessing API gives us names (e.g. "grey", "dolphin") but girl data
+     * uses hex codes (e.g. "888") or filenames (e.g. "2.png"). This method finds the
+     * mapping by looking at which girls have the blessing bonus and what trait value
+     * they share uniformly.
+     * 
+     * @param girls - All available girls with their raw data
+     * @param blessedCategory - The trait category (eyeColor, hairColor, position)
+     * @param blessingPercent - The bonus percentage from the blessing (e.g. 30, 40)
+     * @returns The hex code / filename that corresponds to the blessed value, or undefined
+     */
+    static resolveHexForBlessing(
+        girls: Array<{ eye_color1?: string; hair_color1?: string; position_img?: string; blessing_bonuses?: any }>,
+        blessedCategory: string,
+        blessingPercent?: number
+    ): string | undefined {
+        // Find girls that have pvp_v3 blessing bonuses
+        const blessedGirls = girls.filter(g => {
+            if (!g.blessing_bonuses || typeof g.blessing_bonuses !== 'object') return false;
+            if (Array.isArray(g.blessing_bonuses) && g.blessing_bonuses.length === 0) return false;
+            return g.blessing_bonuses.pvp_v3 !== undefined;
+        });
+
+        if (blessedGirls.length === 0) return undefined;
+
+        // Group blessed girls by their bonus percentage
+        const byPercent = new Map<number, typeof blessedGirls>();
+        for (const g of blessedGirls) {
+            const pcts = g.blessing_bonuses.pvp_v3?.carac1;
+            if (!Array.isArray(pcts)) continue;
+            for (const pct of pcts) {
+                if (!byPercent.has(pct)) byPercent.set(pct, []);
+                byPercent.get(pct)!.push(g);
+            }
+        }
+
+        // For each percentage group, check if the target trait has a uniform value
+        const fieldMap: Record<string, string> = {
+            eyeColor: 'eye_color1',
+            hairColor: 'hair_color1',
+            position: 'position_img',
+        };
+        const field = fieldMap[blessedCategory];
+        if (!field) return undefined;
+
+        // If we know the exact percentage, check that group first
+        const groupsToCheck = blessingPercent
+            ? [byPercent.get(blessingPercent), ...Array.from(byPercent.values())]
+            : Array.from(byPercent.values());
+
+        for (const group of groupsToCheck) {
+            if (!group || group.length < 1) continue;
+
+            // Count trait values in this group
+            const valueCounts = new Map<string, number>();
+            for (const g of group) {
+                const val = (g as any)[field];
+                if (val && val !== '') {
+                    valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
+                }
+            }
+
+            // Check if one value dominates (>90% of the group)
+            for (const [val, count] of valueCounts) {
+                if (count / group.length >= 0.9) {
+                    logHHAuto('BlessingService: resolved ' + blessedCategory + ' -> hex="' + val + '" (' + count + '/' + group.length + ' girls)');
+                    return val;
+                }
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Parse the blessing bonus percentage for a given trait category.
+     * E.g. "Eye Color Grey" with "+ 40%" -> 40
+     */
+    static parseBlessingPercent(response: any, category: string): number | undefined {
+        const active = response?.active || [];
+        if (!Array.isArray(active)) return undefined;
+
+        const categoryKeywords: Record<string, string[]> = {
+            eyeColor: ['eye color'],
+            hairColor: ['hair color', 'hair colour'],
+            position: ['favourite position', 'favorite position'],
+            zodiac: ['zodiac', 'astrological', 'sign'],
+        };
+
+        const keywords = categoryKeywords[category];
+        if (!keywords) return undefined;
+
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth')) continue;
+
+            if (keywords.some(kw => desc.includes(kw))) {
+                const pctMatch = desc.match(/\+\s*(\d+)\s*%/);
+                if (pctMatch) return Number(pctMatch[1]);
+            }
+        }
+        return undefined;
+    }
+
 }
