@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.11.2
-// @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
+// @version      4.0.0
+// @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -22,52 +22,119 @@
 (function() {
     'use strict';
 
-    // ---------- iframe resolution ----------
+    const VERSION = '4.0.0';
+    const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
-    function findGameIframe() {
-        const knownIds = ['hh_hentai','hh_comix','hh_star','hh_stargay','hh_startrans','hh_gay','hh_amour','hh_mangarpg','hh_sexy','hh_game'];
-        for (const id of knownIds) {
-            try {
-                const f = document.getElementById(id);
-                if (f && f.tagName === 'IFRAME') return f;
-            } catch (e) {}
-        }
-        try {
-            const frames = document.querySelectorAll('iframe');
-            for (const f of frames) {
-                try {
-                    const w = f.contentWindow;
-                    if (!w) continue;
-                    if (w.shared || w.Hero || w.availableGirls || w.hh_ajax) return f;
-                } catch (e) {}
-            }
-        } catch (e) {}
-        return null;
+    // ==================== CONFIGURATION ====================
+
+    const AUTO_TOUR = [
+        { path: '/home.html',               label: 'Home',              expected: 'home' },
+        { path: '/leagues.html',            label: 'League',            expected: 'leaderboard' },
+        { path: '/season-arena.html',       label: 'SeasonArena',       expected: 'season_arena' },
+        { path: '/penta-drill-arena.html',  label: 'PentaDrillArena',   expected: 'penta_drill_arena' },
+        { path: '/penta-drill.html',        label: 'PentaDrill',        expected: 'penta_drill' },
+        { path: '/labyrinth.html',          label: 'Labyrinth',         expected: 'labyrinth' },
+        { path: '/labyrinth-entrance.html', label: 'LabyrinthEntrance', expected: 'labyrinth-entrance' },
+        { path: '/club-champion.html',      label: 'ClubChampion',      expected: 'club_champion' },
+        { path: '/champions-map.html',      label: 'ChampionsMap',      expected: 'champions_map' },
+        { path: '/shop.html',               label: 'Shop',              expected: 'shop' },
+        { path: '/clubs.html',              label: 'Clubs',             expected: 'clubs' },
+        { path: '/pantheon.html',           label: 'Pantheon',          expected: 'pantheon' },
+        { path: '/season.html',             label: 'Season',            expected: 'season' },
+        { path: '/event.html',              label: 'Event',             expected: 'event' },
+        { path: '/seasonal.html',           label: 'Seasonal',          expected: 'seasonal' },
+        { path: '/path-of-glory.html',      label: 'PathOfGlory',       expected: 'path-of-glory' },
+        { path: '/path-of-valor.html',      label: 'PathOfValor',       expected: 'path-of-valor' },
+        { path: '/pachinko.html',           label: 'Pachinko',          expected: 'pachinko' },
+        { path: '/map.html',                label: 'Map',               expected: 'map' },
+        { path: '/waifu.html',              label: 'Waifu',             expected: 'waifu' },
+        { path: '/activities.html',                  label: 'Activities',          expected: 'activities' },
+        { path: '/activities.html?tab=contests',     label: 'ActContests',         expected: 'activities' },
+        { path: '/activities.html?tab=missions',     label: 'ActMissions',         expected: 'activities' },
+        { path: '/activities.html?tab=daily_goals',  label: 'ActDailyGoals',       expected: 'activities' },
+        { path: '/activities.html?tab=pop',          label: 'ActPoP',              expected: 'activities' },
+        { path: '/hero/profile.html',       label: 'HeroProfile',       expected: 'hero_pages' },
+        { path: '/member-progression.html', label: 'MemberProgression', expected: 'member-progression' }
+    ];
+
+    const MANUAL_TOUR = [
+        { path: '/teams.html',              label: 'BattleTeams',       expected: 'teams' },
+        { path: '/edit-team.html',          label: 'EditTeam',          expected: 'edit-team' },
+        { path: '/characters.html',         label: 'Harem',             expected: 'harem' },
+        { path: '/path-of-attraction.html', label: 'PathOfAttraction',  expected: 'path_of_attraction' },
+        { path: '/sex-god-path.html',       label: 'SexGodPath',        expected: 'sex-god-path' },
+        { path: '/love-raids.html',         label: 'LoveRaids',         expected: 'love_raids' }
+    ];
+
+    const STATE_KEY = 'hhauto_inspector_state';
+    const RESULT_KEY_PREFIX = 'hhauto_inspector_result_';
+    const PAGE_LOAD_WAIT_MS = 8000;     // wait for body[page] to match
+    const POST_LOAD_SETTLE_MS = 1500;   // extra wait after match for late-binding JS
+    const PAGE_TRANSITION_DELAY_MS = 800;
+
+    // ==================== STORAGE ====================
+
+    function saveState(state) {
+        try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+        catch (e) { console.error(LOG_PREFIX, 'saveState failed:', e); }
     }
 
-    function findGameWindow() {
+    function loadState() {
         try {
-            if (unsafeWindow.shared || unsafeWindow.Hero || unsafeWindow.availableGirls || unsafeWindow.hh_ajax) {
-                return { win: unsafeWindow, doc: document, where: 'top-window', iframe: null };
-            }
-        } catch (e) {}
-        const iframe = findGameIframe();
-        if (iframe) {
-            try {
-                const w = iframe.contentWindow;
-                const d = iframe.contentDocument || (w && w.document);
-                return { win: w, doc: d, where: 'iframe#' + (iframe.id || 'noid'), iframe: iframe };
-            } catch (e) {}
-        }
-        return { win: unsafeWindow, doc: document, where: 'top-window-fallback', iframe: null };
+            const raw = localStorage.getItem(STATE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
     }
 
-    let CTX = findGameWindow();
-    function gameWin() { return CTX.win; }
-    function gameDoc() { return CTX.doc; }
-    function refreshCtx() { CTX = findGameWindow(); return CTX; }
+    function clearState() {
+        try { localStorage.removeItem(STATE_KEY); } catch (e) {}
+        const total = AUTO_TOUR.length + MANUAL_TOUR.length;
+        for (let i = 0; i < total; i++) {
+            try { localStorage.removeItem(RESULT_KEY_PREFIX + i); } catch (e) {}
+        }
+    }
 
-    // ---------- helpers ----------
+    function saveResult(idx, dump) {
+        const text = safeStringify(dump);
+        try {
+            localStorage.setItem(RESULT_KEY_PREFIX + idx, text);
+            return { ok: true, size: text.length };
+        } catch (e) {
+            // Quota - try slim copy
+            try {
+                const slim = Object.assign({}, dump);
+                if (slim.girls_full) slim.girls_full = '[stripped: localStorage quota]';
+                if (slim.shared_namespace) slim.shared_namespace = '[stripped]';
+                if (slim.local_storage) slim.local_storage = '[stripped]';
+                if (slim.globals_overview) slim.globals_overview = '[stripped]';
+                if (slim.dom_data_attributes) slim.dom_data_attributes = '[stripped]';
+                const slimText = safeStringify(slim);
+                localStorage.setItem(RESULT_KEY_PREFIX + idx, slimText);
+                console.warn(LOG_PREFIX, 'Saved slim copy at idx ' + idx + ':', slimText.length, 'bytes');
+                return { ok: true, size: slimText.length, slim: true };
+            } catch (e2) {
+                console.error(LOG_PREFIX, 'saveResult failed even with slim copy:', e2);
+                return { ok: false, size: 0, error: e2.message };
+            }
+        }
+    }
+
+    function loadAllResults() {
+        const out = [];
+        const total = AUTO_TOUR.length + MANUAL_TOUR.length;
+        for (let i = 0; i < total; i++) {
+            try {
+                const raw = localStorage.getItem(RESULT_KEY_PREFIX + i);
+                if (raw) {
+                    try { out.push(JSON.parse(raw)); }
+                    catch (e) { out.push({ error: 'parse failed for idx ' + i }); }
+                }
+            } catch (e) {}
+        }
+        return out;
+    }
+
+    // ==================== HELPERS ====================
 
     function safeStringify(obj) {
         const seen = new WeakSet();
@@ -91,14 +158,93 @@
     }
 
     function tryGet(fn, fallback) {
-        try { return fn(); } catch (e) { return fallback === undefined ? ('[error: ' + e.message + ']') : fallback; }
+        try { return fn(); } catch (e) { return fallback === undefined ? null : fallback; }
     }
 
     function isPlainObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
-    // ---------- collectors (read everything from the iframe context) ----------
+    function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-    function findGameGlobals() {
+    // ==================== GAME CONTEXT (iframe or top-window) ====================
+
+    function findGameIframe() {
+        const knownIds = ['hh_hentai','hh_comix','hh_star','hh_stargay','hh_startrans','hh_gay','hh_amour','hh_mangarpg','hh_sexy','hh_game'];
+        for (const id of knownIds) {
+            try {
+                const f = document.getElementById(id);
+                if (f && f.tagName === 'IFRAME') return f;
+            } catch (e) {}
+        }
+        // Generic scan: any iframe with same-origin contentWindow exposing game globals
+        try {
+            const frames = document.querySelectorAll('iframe');
+            for (const f of frames) {
+                try {
+                    const w = f.contentWindow;
+                    if (!w) continue;
+                    if (w.shared || w.Hero || w.availableGirls || w.hh_ajax) return f;
+                } catch (e) { /* cross-origin */ }
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function detectMode() {
+        // top-window mode: game globals directly on unsafeWindow
+        try {
+            if (unsafeWindow.shared || unsafeWindow.Hero || unsafeWindow.availableGirls || unsafeWindow.hh_ajax) {
+                return { mode: 'top-window', win: unsafeWindow, doc: document, iframe: null };
+            }
+        } catch (e) {}
+        // iframe mode
+        const iframe = findGameIframe();
+        if (iframe) {
+            try {
+                const w = iframe.contentWindow;
+                const d = iframe.contentDocument || (w && w.document);
+                if (w) return { mode: 'iframe', win: w, doc: d, iframe: iframe };
+            } catch (e) {}
+        }
+        // Nothing found - default to top-window (game might still be loading)
+        return { mode: 'unknown', win: unsafeWindow, doc: document, iframe: null };
+    }
+
+    function getCurrentBodyPage(ctx) {
+        try {
+            const d = ctx.doc || document;
+            const body = d.querySelector('body[page]');
+            return body ? body.getAttribute('page') : null;
+        } catch (e) { return null; }
+    }
+
+    async function waitForBodyPage(expected, maxWaitMs) {
+        const interval = 250;
+        const deadline = Date.now() + maxWaitMs;
+        while (Date.now() < deadline) {
+            const ctx = detectMode();
+            const cur = getCurrentBodyPage(ctx);
+            if (cur === expected) return { matched: true, actual: cur, ctx: ctx };
+            await sleep(interval);
+        }
+        const ctx = detectMode();
+        return { matched: false, actual: getCurrentBodyPage(ctx), ctx: ctx };
+    }
+
+    function navigateTo(path, ctx) {
+        const target = location.origin + path;
+        if (ctx.iframe) {
+            // iframe mode: change src - script keeps running
+            try { ctx.iframe.src = target; return 'iframe'; }
+            catch (e) {}
+        }
+        // top-window mode: full reload
+        location.href = target;
+        return 'top-window';
+    }
+
+    // ==================== DATA COLLECTION ====================
+
+    function findGameGlobals(ctx) {
         const builtins = new Set([
             'window','self','document','location','navigator','history','localStorage','sessionStorage',
             'console','screen','performance','crypto','caches','indexedDB','fetch','XMLHttpRequest','WebSocket',
@@ -122,16 +268,13 @@
         ]);
         const result = [];
         try {
-            const win = gameWin();
-            const keys = Object.getOwnPropertyNames(win);
-            for (const k of keys) {
+            const win = ctx.win;
+            for (const k of Object.getOwnPropertyNames(win)) {
                 if (builtins.has(k)) continue;
-                if (k.startsWith('webkit') || k.startsWith('moz') || k.startsWith('ms')) continue;
-                if (k.startsWith('on')) continue;
+                if (k.startsWith('webkit') || k.startsWith('moz') || k.startsWith('ms') || k.startsWith('on')) continue;
                 try {
                     const v = win[k];
-                    if (v === null || v === undefined) continue;
-                    if (typeof v === 'function') continue;
+                    if (v === null || v === undefined || typeof v === 'function') continue;
                     if (typeof v === 'string' && v.length < 2) continue;
                     if (typeof v === 'number' || typeof v === 'boolean') {
                         result.push({ name: k, type: typeof v, sample: v });
@@ -139,8 +282,7 @@
                     }
                     if (typeof v === 'object') {
                         const isArr = Array.isArray(v);
-                        const len = isArr ? v.length : Object.keys(v).length;
-                        result.push({ name: k, type: isArr ? 'array' : 'object', len: len });
+                        result.push({ name: k, type: isArr ? 'array' : 'object', len: isArr ? v.length : Object.keys(v).length });
                     }
                 } catch (e) {}
             }
@@ -148,7 +290,7 @@
         return result;
     }
 
-    function findGirlSources() {
+    function findGirlSources(ctx) {
         const sources = [];
         const visited = new WeakSet();
         function isGirlLike(obj) {
@@ -157,8 +299,7 @@
         }
         function scan(root, path, depth) {
             if (depth > 4) return;
-            if (!root || typeof root !== 'object') return;
-            if (visited.has(root)) return;
+            if (!root || typeof root !== 'object' || visited.has(root)) return;
             visited.add(root);
             try {
                 const keys = Array.isArray(root) ? [] : Object.keys(root);
@@ -179,7 +320,7 @@
                 }
             } catch (e) {}
         }
-        const w = gameWin();
+        const w = ctx.win;
         scan(w, 'game', 0);
         try { if (w.shared) scan(w.shared, 'game.shared', 0); } catch (e) {}
         try { if (w.hh_nutaku) scan(w.hh_nutaku, 'game.hh_nutaku', 0); } catch (e) {}
@@ -187,103 +328,84 @@
         return sources;
     }
 
-    function dumpHeroData() {
-        const out = {};
-        const w = gameWin();
-        const keys = ['hero','Hero','hero_data','heroData','player_data','PlayerData','playerStats','Hero_data'];
-        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
-        try { if (w.shared && w.shared.Hero) out['shared.Hero'] = w.shared.Hero; } catch (e) {}
-        try { if (w.shared && w.shared.general) out['shared.general'] = w.shared.general; } catch (e) {}
-        return out;
-    }
+    function dumpEverything(ctx) {
+        const t0 = Date.now();
+        const w = ctx.win;
+        const d = ctx.doc;
 
-    function dumpTeamsData() {
-        const out = {};
-        const w = gameWin();
-        const keys = [
+        const heroData = {};
+        for (const k of ['hero','Hero','hero_data','heroData','player_data','PlayerData','playerStats']) {
+            try { if (w[k] !== undefined) heroData[k] = w[k]; } catch (e) {}
+        }
+        try { if (w.shared && w.shared.Hero) heroData['shared.Hero'] = w.shared.Hero; } catch (e) {}
+        try { if (w.shared && w.shared.general) heroData['shared.general'] = w.shared.general; } catch (e) {}
+
+        const teamsData = {};
+        for (const k of [
             'teams_data','teamsData','teams','selected_team','selectedTeam',
             'team_data','teamData','battle_team','battleTeam',
             'availableGirls','girlsDataList','girls_data_list',
             'leaguesPlayersData','leagues_players_data','opponents_list','opponentsList',
             'season_opponents','seasonOpponents','penta_opponents','tower_opponents',
             'girl_squad','teamGirls','opponents','season_girls'
-        ];
-        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
-        return out;
-    }
+        ]) {
+            try { if (w[k] !== undefined) teamsData[k] = w[k]; } catch (e) {}
+        }
 
-    function dumpBattleData() {
-        const out = {};
-        const w = gameWin();
-        const keys = [
-            'battle_data','battleData','fight_data','fightData',
-            'current_battle','currentBattle','battle_result','battleResult',
+        const battleData = {};
+        for (const k of [
+            'battle_data','fight_data','current_battle','battle_result',
             'synergies','element_synergies','theme_elements',
-            'boosters_data','boostersData','boosters','mythicBoosters','equippedBoosters',
-            'league_data','leagueData','season_data','seasonData','league_rewards',
-            'tower_data','towerData','champion_data','championData',
-            'labyrinth_data','labyrinthData','penta_drill','pentaDrill','penta_drill_data',
-            'club_data','clubData','arena_data','arenaData',
-            'fight_modules','fightModules','game_data','gameData',
+            'boosters_data','boosters','mythicBoosters','equippedBoosters',
+            'league_data','season_data','league_rewards',
+            'tower_data','champion_data','championData',
+            'labyrinth_data','penta_drill','penta_drill_data',
+            'club_data','arena_data','game_data',
             'current_tier_number','league_tag','event_data','current_event',
             'seasonal_event_active','mega_event_active','mega_event_data',
             'season_sec_untill_event_end','seasonal_time_remaining','mega_event_time_remaining',
             'has_contests_datas','contests_timer','daily_goals_list',
             'love_raids','pop_list','pop_index','player_gems_amount'
-        ];
-        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
-        return out;
-    }
+        ]) {
+            try { if (w[k] !== undefined) battleData[k] = w[k]; } catch (e) {}
+        }
 
-    function dumpMarketEquipment() {
-        const out = {};
-        const w = gameWin();
-        const keys = [
-            'market_data','marketData','shop_data','shopData','items','items_data','shop',
-            'girl_armor','girlArmor','equipment','inventory','girl_skills','girlSkills',
-            'skill_tiers','skillTiers','awakening_data','awakeningData',
+        const marketData = {};
+        for (const k of [
+            'market_data','shop_data','items','items_data','shop',
+            'girl_armor','equipment','inventory','girl_skills',
+            'skill_tiers','awakening_data',
             'mythic_boosters','classBoosters','specialBoosters','hh_prices'
-        ];
-        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
-        return out;
-    }
+        ]) {
+            try { if (w[k] !== undefined) marketData[k] = w[k]; } catch (e) {}
+        }
 
-    function dumpHHVars() {
-        const out = {};
-        const w = gameWin();
+        const hhNamespace = {};
         try {
-            const keys = Object.getOwnPropertyNames(w);
-            for (const k of keys) {
+            for (const k of Object.getOwnPropertyNames(w)) {
                 if (k.startsWith('HH_') || k.startsWith('hh_') || k.startsWith('Hh_')) {
                     try {
                         const v = w[k];
-                        if (v !== null && v !== undefined && typeof v !== 'function') out[k] = v;
+                        if (v !== null && v !== undefined && typeof v !== 'function') hhNamespace[k] = v;
                     } catch (e) {}
                 }
             }
         } catch (e) {}
-        return out;
-    }
 
-    function dumpShared() {
-        const out = {};
-        const w = gameWin();
+        const sharedNs = {};
         try {
             if (w.shared) {
                 for (const k of Object.keys(w.shared)) {
                     try {
                         const v = w.shared[k];
-                        if (v !== null && v !== undefined && typeof v !== 'function') out[k] = v;
+                        if (v !== null && v !== undefined && typeof v !== 'function') sharedNs[k] = v;
                     } catch (e) {}
                 }
             }
         } catch (e) {}
-        return out;
-    }
 
-    function dumpLocalStorage() {
-        const out = { top: {}, game: {} };
-        function scan(storage, target) {
+        const localStorageData = { top: {}, game: {} };
+        function scanStorage(storage, target) {
             if (!storage) return;
             try {
                 for (const key of Object.keys(storage)) {
@@ -296,26 +418,25 @@
                         lk.includes('booster') || lk.includes('market')) {
                         try {
                             const raw = storage.getItem(key);
-                            try { target[key] = JSON.parse(raw); } catch (e) { target[key] = raw; }
+                            try { target[key] = JSON.parse(raw); }
+                            catch (e) { target[key] = raw; }
                         } catch (e) {}
                     }
                 }
             } catch (e) {}
         }
-        scan(localStorage, out.top);
+        scanStorage(localStorage, localStorageData.top);
         try {
-            const w = gameWin();
-            if (w !== unsafeWindow && w.localStorage) scan(w.localStorage, out.game);
+            if (ctx.win !== unsafeWindow && ctx.win.localStorage) scanStorage(ctx.win.localStorage, localStorageData.game);
         } catch (e) {}
-        return out;
-    }
 
-    function dumpDataAttributes() {
-        const out = [];
+        const domAttrs = [];
         try {
-            const d = gameDoc() || document;
-            const candidates = d.querySelectorAll(
-                '[data-new-girl-tooltip], [data-team], [data-girl-id], [data-blessing], [data-opponent], [data-team-index], [data-team-member-position], [data-id-girl-armor], [data-id-skill], [data-d], [data-rewards], [data-power], [data-time-stamp], [data-nc-reward-id], [data-pantheon-id], [data-battles], [data-tab], [data-href], [data-select-girl-id]'
+            const candidates = (d || document).querySelectorAll(
+                '[data-new-girl-tooltip], [data-team], [data-girl-id], [data-blessing], [data-opponent], ' +
+                '[data-team-index], [data-team-member-position], [data-id-girl-armor], [data-id-skill], ' +
+                '[data-d], [data-rewards], [data-power], [data-time-stamp], [data-nc-reward-id], ' +
+                '[data-pantheon-id], [data-battles], [data-tab], [data-href], [data-select-girl-id]'
             );
             for (let i = 0; i < candidates.length && i < 1000; i++) {
                 const el = candidates[i];
@@ -323,37 +444,24 @@
                 for (const a of el.attributes) {
                     if (a.name.startsWith('data-')) entry.attrs[a.name] = a.value;
                 }
-                out.push(entry);
+                domAttrs.push(entry);
             }
         } catch (e) {}
-        return out;
-    }
 
-    function dumpGameContext() {
-        const out = { context: CTX.where };
+        const gameContext = { mode: ctx.mode };
         try {
-            const d = gameDoc() || document;
-            const body = d.querySelector('body[page]');
+            const body = (d || document).querySelector('body[page]');
             if (body) {
-                out.body_id = body.id || null;
-                out.body_page = body.getAttribute('page');
-                out.body_classes = body.className || null;
+                gameContext.body_id = body.id || null;
+                gameContext.body_page = body.getAttribute('page');
             }
-            try {
-                const w = gameWin();
-                out.location = {
-                    href: (w.location && w.location.href) || null,
-                    pathname: (w.location && w.location.pathname) || null,
-                    search: (w.location && w.location.search) || null
-                };
-            } catch (e) { out.location_error = e.message; }
-        } catch (e) { out.error = e.message; }
-        return out;
-    }
+            gameContext.location = {
+                href: (w.location && w.location.href) || null,
+                pathname: (w.location && w.location.pathname) || null,
+                search: (w.location && w.location.search) || null
+            };
+        } catch (e) {}
 
-    function dumpEverything() {
-        const t0 = Date.now();
-        refreshCtx();
         const dump = {
             meta: {
                 timestamp: new Date().toISOString(),
@@ -361,42 +469,42 @@
                 pathname: location.pathname,
                 search: location.search,
                 href: location.href,
-                userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.2',
-                ctx: CTX.where
+                inspectorVersion: VERSION,
+                mode: ctx.mode
             },
-            game_context: tryGet(dumpGameContext, {}),
-            globals_overview: tryGet(findGameGlobals, []),
+            game_context: gameContext,
+            globals_overview: tryGet(function() { return findGameGlobals(ctx); }, []),
             girl_sources: tryGet(function() {
-                const srcs = findGirlSources();
-                return srcs.map(function(s) { return { path: s.path, count: s.count, isMap: !!s.isMap }; });
+                return findGirlSources(ctx).map(function(s) { return { path: s.path, count: s.count, isMap: !!s.isMap }; });
             }, []),
             girls_full: {},
-            hero: tryGet(dumpHeroData, {}),
-            teams: tryGet(dumpTeamsData, {}),
-            battle: tryGet(dumpBattleData, {}),
-            market_equipment: tryGet(dumpMarketEquipment, {}),
-            hh_namespace: tryGet(dumpHHVars, {}),
-            shared_namespace: tryGet(dumpShared, {}),
-            local_storage: tryGet(dumpLocalStorage, {}),
-            dom_data_attributes: tryGet(dumpDataAttributes, [])
+            hero: heroData,
+            teams: teamsData,
+            battle: battleData,
+            market_equipment: marketData,
+            hh_namespace: hhNamespace,
+            shared_namespace: sharedNs,
+            local_storage: localStorageData,
+            dom_data_attributes: domAttrs
         };
+
         try {
-            const srcs = findGirlSources();
-            for (const s of srcs) {
+            const sources = findGirlSources(ctx);
+            for (const s of sources) {
                 try {
                     if (s.isMap) dump.girls_full[s.path] = Object.values(s.ref);
                     else dump.girls_full[s.path] = s.ref;
                 } catch (e) { dump.girls_full[s.path] = '[error: ' + e.message + ']'; }
             }
         } catch (e) {}
+
         dump.meta.dump_duration_ms = Date.now() - t0;
         return dump;
     }
 
-    function fetchBlessings(callback) {
+    function fetchBlessings(ctx, callback) {
         try {
-            const w = gameWin();
+            const w = ctx.win;
             const ajax = (w.shared && w.shared.general && w.shared.general.hh_ajax) || w.hh_ajax || w.ajax;
             if (typeof ajax === 'function') {
                 let done = false;
@@ -413,59 +521,12 @@
         callback({ live: null, error: 'ajax not available' });
     }
 
-    // ---------- single-page dump (manual) ----------
-
-    function pageNameForFile() {
-        try {
-            const d = gameDoc() || document;
-            const body = d.querySelector('body[page]');
-            if (body) {
-                const id = body.id || '';
-                const page = body.getAttribute('page') || '';
-                if (id || page) return (page || id).replace(/[^a-z0-9]/gi, '_');
-            }
-        } catch (e) {}
-        try {
-            const w = gameWin();
-            const p = (w.location && w.location.pathname) || location.pathname;
-            return p.replace(/[^a-z0-9]/gi, '_') || 'root';
-        } catch (e) {}
-        return 'root';
-    }
-
-    function showSingleDumpOverlay(text, fileSuffix) {
-        const old = document.getElementById('hhauto_inspector_overlay');
-        if (old) old.remove();
-        const ov = document.createElement('div');
-        ov.id = 'hhauto_inspector_overlay';
-        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
-        const info = document.createElement('div');
-        info.style.cssText = 'color:#0f0;font:14px monospace;margin-bottom:10px;';
-        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | source: ' + CTX.where + ' | ' + (fileSuffix || '');
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'width:100%;flex:1;font:11px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;resize:none;';
-        const row = document.createElement('div');
-        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;';
-        const cp = mkBtn('COPY ALL', '#4CAF50', function() {
-            ta.select();
-            try { navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; }); }
-            catch (e) { document.execCommand('copy'); cp.textContent = 'COPIED!'; }
-        });
-        const dl = mkBtn('DOWNLOAD JSON', '#2196F3', function() {
-            downloadJson(text, fileSuffix || 'all');
-        });
-        const cl = mkBtn('CLOSE', '#f44336', function() { ov.remove(); });
-        row.appendChild(cp); row.appendChild(dl); row.appendChild(cl);
-        ov.appendChild(info); ov.appendChild(ta); ov.appendChild(row);
-        document.body.appendChild(ov);
-        ta.select();
-    }
+    // ==================== UI ====================
 
     function mkBtn(text, color, onclick) {
         const b = document.createElement('button');
         b.textContent = text;
-        b.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:' + color + ';color:white;border:none;border-radius:4px;font-weight:bold;';
+        b.style.cssText = 'padding:6px 14px;font-size:12px;cursor:pointer;background:' + color + ';color:white;border:none;border-radius:4px;font-weight:bold;';
         b.onclick = onclick;
         return b;
     }
@@ -477,467 +538,314 @@
         a.href = url;
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         const host = location.hostname.replace(/[^a-z0-9]/gi, '_');
-        const safeSuffix = (suffix || 'all').replace(/[^a-z0-9_]/gi, '_');
-        a.download = 'hhauto_dump_' + host + '_' + safeSuffix + '_' + stamp + '.json';
+        a.download = 'hhauto_dump_' + host + '_' + (suffix || 'all') + '_' + stamp + '.json';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
 
-    function runSingleDump() {
-        const dump = dumpEverything();
-        fetchBlessings(function(blessings) {
-            dump.live_blessings_api = blessings;
-            const text = safeStringify(dump);
-            showSingleDumpOverlay(text, pageNameForFile());
-        });
+    function ensureStatusBar() {
+        let bar = document.getElementById('hhauto_status_bar');
+        if (bar) return bar;
+        bar = document.createElement('div');
+        bar.id = 'hhauto_status_bar';
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:24px;';
+        document.body.appendChild(bar);
+        return bar;
     }
 
-    // ---------- AUTO TOUR ----------
-    //
-    // Tour-list: paths to navigate the iframe through. 7s wait per page.
-    // Order chosen so that data-richest pages come first (in case of early abort).
+    function setStatusBar(html, buttons) {
+        const bar = ensureStatusBar();
+        bar.innerHTML = '';
+        const msg = document.createElement('div');
+        msg.style.cssText = 'flex:1;min-width:240px';
+        msg.innerHTML = html;
+        bar.appendChild(msg);
+        if (buttons) {
+            for (const btn of buttons) bar.appendChild(btn);
+        }
+    }
 
-    const TOUR = [
-        { path: '/home.html',                  label: 'Home' },
-        { path: '/leagues.html',               label: 'League (opponents_list)' },
-        { path: '/season-arena.html',          label: 'SeasonArena (opponents)' },
-        { path: '/penta-drill-arena.html',     label: 'PentaDrillArena (opponents_list)' },
-        { path: '/penta-drill.html',           label: 'PentaDrill' },
-        { path: '/labyrinth.html',             label: 'Labyrinth (girl_squad)' },
-        { path: '/labyrinth-entrance.html',    label: 'LabyrinthEntrance' },
-        { path: '/club-champion.html',         label: 'ClubChampion (championData)' },
-        { path: '/champions-map.html',         label: 'ChampionsMap' },
-        { path: '/shop.html',                  label: 'Shop (items DOM)' },
-        { path: '/clubs.html',                 label: 'Clubs (Chat_vars)' },
-        { path: '/pantheon.html',              label: 'Pantheon' },
-        { path: '/season.html',                label: 'Season' },
-        { path: '/event.html',                 label: 'Event (event_data)' },
-        { path: '/seasonal.html',              label: 'Seasonal Event' },
-        { path: '/path-of-glory.html',         label: 'Path of Glory' },
-        { path: '/path-of-valor.html',         label: 'Path of Valor' },
-        { path: '/pachinko.html',              label: 'Pachinko' },
-        { path: '/waifu.html',                 label: 'Waifu' },
-        { path: '/map.html',                   label: 'Map' },
-        { path: '/activities.html',            label: 'Activities' },
-        { path: '/activities.html?tab=contests',     label: 'Activities/Contests' },
-        { path: '/activities.html?tab=missions',     label: 'Activities/Missions' },
-        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals' },
-        { path: '/activities.html?tab=pop',          label: 'Activities/PoP' },
-        { path: '/hero/profile.html',          label: 'Hero Profile' },
-        { path: '/member-progression.html',    label: 'Member Progression' }
-    ];
+    function clearStatusBar() {
+        const bar = document.getElementById('hhauto_status_bar');
+        if (bar) bar.remove();
+    }
 
-    // Pages that the auto-tour cannot reach reliably. The user navigates manually.
-    // This list is processed by the separate MANUAL TOUR button.
-    const MANUAL_PAGES = [
-        { path: '/teams.html',              label: 'BattleTeams (teams_data)',  expected: 'teams' },
-        { path: '/edit-team.html',          label: 'EditTeam (availableGirls)', expected: 'edit-team' },
-        { path: '/characters.html',         label: 'Harem',                     expected: 'harem' },
-        { path: '/path-of-attraction.html', label: 'PathOfAttraction',          expected: 'path_of_attraction' },
-        { path: '/sex-god-path.html',       label: 'SexGodPath',                expected: 'sex-god-path' },
-        { path: '/love-raids.html',         label: 'LoveRaids',                 expected: 'love_raids' }
-    ];
-
-    const WAIT_PER_PAGE_MS = 7000;
-    const POST_DUMP_PAUSE_MS = 500;
-
-    let tourState = {
-        running: false,
-        index: 0,
-        results: [],
-        startedAt: null,
-        statusEl: null,
-        progressEl: null,
-        cancelRequested: false
-    };
-
-    function buildStatusOverlay() {
-        const old = document.getElementById('hhauto_tour_overlay');
+    function showSingleDumpOverlay(text, suffix) {
+        const old = document.getElementById('hhauto_overlay');
         if (old) old.remove();
         const ov = document.createElement('div');
-        ov.id = 'hhauto_tour_overlay';
-        ov.style.cssText = 'position:fixed;top:80px;right:10px;width:380px;background:rgba(0,0,0,0.92);color:#0f0;font:12px monospace;padding:12px;border-radius:6px;z-index:999998;box-shadow:0 4px 16px rgba(0,0,0,0.6);';
-        const title = document.createElement('div');
-        title.style.cssText = 'font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px;';
-        title.textContent = 'HHAuto Auto-Tour';
-        const status = document.createElement('div');
-        status.id = 'hhauto_tour_status';
-        status.style.cssText = 'margin-bottom:6px;line-height:1.5;';
-        const progress = document.createElement('div');
-        progress.id = 'hhauto_tour_progress';
-        progress.style.cssText = 'max-height:300px;overflow-y:auto;font-size:11px;color:#aaa;border-top:1px solid #333;padding-top:6px;margin-bottom:8px;';
-        const btnRow = document.createElement('div');
-        btnRow.style.cssText = 'display:flex;gap:6px;';
-        const cancel = mkBtn('CANCEL', '#f44336', function() {
-            tourState.cancelRequested = true;
-            status.innerHTML += '<br/><span style="color:#ff8888">Cancel requested - finishing current page...</span>';
-        });
-        cancel.style.padding = '6px 12px';
-        cancel.style.fontSize = '12px';
-        btnRow.appendChild(cancel);
-        ov.appendChild(title);
-        ov.appendChild(status);
-        ov.appendChild(progress);
-        ov.appendChild(btnRow);
-        document.body.appendChild(ov);
-        tourState.statusEl = status;
-        tourState.progressEl = progress;
-    }
-
-    function updateStatus(text) {
-        if (tourState.statusEl) tourState.statusEl.innerHTML = text;
-    }
-
-    function logProgress(text) {
-        if (tourState.progressEl) {
-            const line = document.createElement('div');
-            line.textContent = text;
-            tourState.progressEl.appendChild(line);
-            tourState.progressEl.scrollTop = tourState.progressEl.scrollHeight;
-        }
-    }
-
-    function navigateIframeTo(path) {
-        const iframe = findGameIframe();
-        if (!iframe) return false;
-        try {
-            // Build absolute URL so the browser does not fight over relative paths.
-            const target = location.origin + path;
-            iframe.src = target;
-            return true;
-        } catch (e) { return false; }
-    }
-
-    function dumpCurrent(label, path) {
-        return new Promise(function(resolve) {
-            refreshCtx();
-            const dump = dumpEverything();
-            dump.tour_meta = { label: label, requested_path: path };
-            fetchBlessings(function(blessings) {
-                dump.live_blessings_api = blessings;
-                resolve(dump);
-            });
-        });
-    }
-
-    function sleep(ms) {
-        return new Promise(function(r) { setTimeout(r, ms); });
-    }
-
-    async function runTour() {
-        if (tourState.running) {
-            alert('Tour already running');
-            return;
-        }
-        tourState = {
-            running: true,
-            index: 0,
-            results: [],
-            startedAt: Date.now(),
-            statusEl: null,
-            progressEl: null,
-            cancelRequested: false
-        };
-        buildStatusOverlay();
-        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
-
-
-        for (let i = 0; i < TOUR.length; i++) {
-            if (tourState.cancelRequested) {
-                logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
-                break;
-            }
-            tourState.index = i;
-            const step = TOUR[i];
-            const stepStart = Date.now();
-            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting ' + (WAIT_PER_PAGE_MS/1000) + 's...');
-            const navOk = navigateIframeTo(step.path);
-            if (!navOk) {
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' SKIPPED (iframe nav failed)');
-                continue;
-            }
-            await sleep(WAIT_PER_PAGE_MS);
-            if (tourState.cancelRequested) break;
-            try {
-                const dump = await dumpCurrent(step.label, step.path);
-                const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                tourState.results.push(dump);
-                const stepDur = Math.round((Date.now() - stepStart)/1000);
-                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
-                const bodyPage = (dump.game_context && dump.game_context.body_page) || '?';
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' OK | ' + sizeKb + ' KB | ctx=' + ctxNow + ' | body_page=' + bodyPage + ' | ' + stepDur + 's');
-            } catch (e) {
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
-            }
-            await sleep(POST_DUMP_PAUSE_MS);
-        }
-
-        const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
-        const bundle = {
-            meta: {
-                timestamp: new Date().toISOString(),
-                host: location.hostname,
-                href: location.href,
-                userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.2',
-                tour_pages: TOUR.length,
-                tour_duration_sec: totalDur,
-                wait_per_page_ms: WAIT_PER_PAGE_MS,
-                cancelled: tourState.cancelRequested
-            },
-            pages: tourState.results
-        };
-        const text = safeStringify(bundle);
-        const sizeKb = Math.round(text.length / 1024);
-        updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
-        downloadJson(text, 'tour');
-        // Also keep a reference in localStorage for one-shot inspection (size-aware)
-        try {
-            if (text.length < 4 * 1024 * 1024) {
-                localStorage.setItem('hhauto_last_tour', text);
-            } else {
-                localStorage.setItem('hhauto_last_tour', '[too large for localStorage - check downloaded file]');
-            }
-        } catch (e) { /* quota */ }
-        tourState.running = false;
-
-        // Add a "show last result" button
-        if (tourState.statusEl) {
-            const showBtn = mkBtn('SHOW IN OVERLAY', '#2196F3', function() {
-                showSingleDumpOverlay(text, 'tour');
-            });
-            showBtn.style.padding = '6px 12px';
-            showBtn.style.fontSize = '12px';
-            showBtn.style.marginTop = '6px';
-            tourState.statusEl.parentElement.appendChild(showBtn);
-        }
-    }
-
-    // ---------- buttons ----------
-
-
-    // ---------- MANUAL TOUR ----------
-
-    function showManualPrompt(step) {
-        return new Promise(function(resolve) {
-            const old = document.getElementById('hhauto_manual_prompt');
-            if (old) old.remove();
-            const cur = (function() {
-                refreshCtx();
-                const d = gameDoc();
-                if (d) {
-                    const body = d.querySelector('body[page]');
-                    if (body) return body.getAttribute('page');
-                }
-                return '?';
-            })();
-            const ov = document.createElement('div');
-            ov.id = 'hhauto_manual_prompt';
-            ov.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
-            const msg = document.createElement('div');
-            msg.style.cssText = 'flex:1;min-width:240px';
-            msg.innerHTML = '<span style="color:#ffb827;font-weight:bold">Open in game:</span> '
-                + '<b style="color:#fff;font-size:14px">' + step.label + '</b> '
-                + '<span style="color:#888;font-size:11px">(want body[page]=' + step.expected + ', currently=' + cur + ')</span>';
-            const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', function() { ov.remove(); resolve('dump'); });
-            const skipBtn = mkBtn('SKIP', '#ff9800', function() { ov.remove(); resolve('skip'); });
-            const abortBtn = mkBtn('ABORT', '#f44336', function() { ov.remove(); resolve('abort'); });
-            for (const b of [dumpBtn, skipBtn, abortBtn]) {
-                b.style.padding = '6px 12px';
-                b.style.fontSize = '12px';
-            }
-            ov.appendChild(msg);
-            ov.appendChild(dumpBtn);
-            ov.appendChild(skipBtn);
-            ov.appendChild(abortBtn);
-            document.body.appendChild(ov);
-        });
-    }
-
-    function getCurrentBodyPageSafe() {
-        try {
-            refreshCtx();
-            const d = gameDoc();
-            if (d) {
-                const body = d.querySelector('body[page]');
-                if (body) return body.getAttribute('page');
-            }
-        } catch (e) {}
-        return null;
-    }
-
-    async function runManualTour() {
-        const results = [];
-        const startedAt = Date.now();
-        // Build a small status overlay (progress only)
-        const old = document.getElementById('hhauto_manual_overlay');
-        if (old) old.remove();
-        const ov = document.createElement('div');
-        ov.id = 'hhauto_manual_overlay';
-        ov.style.cssText = 'position:fixed;top:80px;right:10px;width:380px;background:rgba(0,0,0,0.92);color:#0f0;font:12px monospace;padding:12px;border-radius:6px;z-index:999998;box-shadow:0 4px 16px rgba(0,0,0,0.6);';
-        const title = document.createElement('div');
-        title.style.cssText = 'font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px;';
-        title.textContent = 'HHAuto Manual Tour';
-        const status = document.createElement('div');
-        status.style.cssText = 'margin-bottom:6px;line-height:1.5;';
-        const log = document.createElement('div');
-        log.style.cssText = 'max-height:300px;overflow-y:auto;font-size:11px;color:#aaa;border-top:1px solid #333;padding-top:6px;';
-        ov.appendChild(title); ov.appendChild(status); ov.appendChild(log);
-        document.body.appendChild(ov);
-
-        for (let i = 0; i < MANUAL_PAGES.length; i++) {
-            const step = MANUAL_PAGES[i];
-            status.innerHTML = 'Page ' + (i+1) + '/' + MANUAL_PAGES.length + ': <b>' + step.label + '</b><br/>Open in game UI then click DUMP NOW';
-            const choice = await showManualPrompt(step);
-            if (choice === 'abort') {
-                const line = document.createElement('div'); line.textContent = 'ABORTED at ' + (i+1); log.appendChild(line);
-                break;
-            }
-            if (choice === 'skip') {
-                const line = document.createElement('div'); line.textContent = (i+1) + '. ' + step.label + ' SKIPPED'; log.appendChild(line);
-                continue;
-            }
-            // dump current page
-            try {
-                const dump = dumpEverything();
-                await new Promise(function(resolve) {
-                    fetchBlessings(function(blessings) { dump.live_blessings_api = blessings; resolve(); });
-                });
-                const actualPage = getCurrentBodyPageSafe();
-                dump.tour_meta = {
-                    label: step.label,
-                    requested_path: step.path,
-                    expected_page: step.expected,
-                    actual_page: actualPage,
-                    match: actualPage === step.expected,
-                    manual: true
-                };
-                results.push(dump);
-                const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                const matchTag = dump.tour_meta.match ? 'OK' : ('mismatch want=' + step.expected + ' got=' + actualPage);
-                const line = document.createElement('div');
-                line.textContent = (i+1) + '. ' + step.label + ' ' + matchTag + ' | ' + sizeKb + ' KB';
-                log.appendChild(line);
-                log.scrollTop = log.scrollHeight;
-            } catch (e) {
-                const line = document.createElement('div');
-                line.textContent = (i+1) + '. ' + step.label + ' ERROR: ' + e.message;
-                log.appendChild(line);
-            }
-        }
-
-        const totalDur = Math.round((Date.now() - startedAt) / 1000);
-        const bundle = {
-            meta: {
-                timestamp: new Date().toISOString(),
-                host: location.hostname,
-                href: location.href,
-                userAgent: navigator.userAgent,
-                inspectorVersion: '3.11.2',
-                tour_pages: MANUAL_PAGES.length,
-                tour_completed_pages: results.length,
-                tour_duration_sec: totalDur,
-                manual: true
-            },
-            pages: results
-        };
-        const text = safeStringify(bundle);
-        status.innerHTML = 'Manual tour finished: ' + results.length + '/' + MANUAL_PAGES.length + ' pages, ' + Math.round(text.length/1024) + ' KB';
-        downloadJson(text, 'manual_tour');
-    }
-
-
-    function runDiagnostic() {
-        const out = [];
-        out.push('=== HHAuto Inspector Diagnostic ===');
-        out.push('Time: ' + new Date().toISOString());
-        out.push('Top window URL: ' + location.href);
-        out.push('');
-        out.push('--- unsafeWindow checks ---');
-        try { out.push('unsafeWindow.shared: ' + (typeof unsafeWindow.shared)); } catch(e) { out.push('shared: ERROR ' + e.message); }
-        try { out.push('unsafeWindow.shared.Hero: ' + (typeof (unsafeWindow.shared && unsafeWindow.shared.Hero))); } catch(e) {}
-        try { out.push('unsafeWindow.availableGirls: ' + (typeof unsafeWindow.availableGirls)); } catch(e) {}
-        try { out.push('unsafeWindow.hh_ajax: ' + (typeof unsafeWindow.hh_ajax)); } catch(e) {}
-        out.push('');
-        out.push('--- iframes ---');
-        const frames = document.querySelectorAll('iframe');
-        out.push('iframe count: ' + frames.length);
-        for (let i = 0; i < frames.length; i++) {
-            const f = frames[i];
-            out.push('Iframe #' + i + ':');
-            out.push('  id: ' + (f.id || '(none)'));
-            out.push('  src: ' + (f.src || '(none)'));
-            out.push('  class: ' + (f.className || '(none)'));
-            try {
-                const w = f.contentWindow;
-                out.push('  contentWindow: ' + (w ? 'accessible' : 'null'));
-                if (w) {
-                    try { out.push('    .shared: ' + (typeof w.shared)); } catch(e) { out.push('    .shared: BLOCKED ' + e.message); }
-                    try { out.push('    .availableGirls: ' + (typeof w.availableGirls)); } catch(e) {}
-                    try { out.push('    .location.href: ' + (w.location && w.location.href)); } catch(e) { out.push('    .location: BLOCKED'); }
-                }
-            } catch(e) { out.push('  contentWindow: ERROR ' + e.message); }
-        }
-        out.push('');
-        out.push('--- findGameIframe() result ---');
-        const found = findGameIframe();
-        out.push('Result: ' + (found ? ('id=' + found.id) : 'NULL'));
-
-        const text = out.join('\n');
-        console.log(text);
-        const ov = document.createElement('div');
-        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:1000001;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        ov.id = 'hhauto_overlay';
+        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        const info = document.createElement('div');
+        info.style.cssText = 'color:#0f0;font:14px monospace;margin-bottom:10px;';
+        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | ' + (suffix || '');
         const ta = document.createElement('textarea');
         ta.value = text;
-        ta.style.cssText = 'width:90%;height:80%;font:12px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;';
-        const close = mkBtn('CLOSE', '#f44336', function() { ov.remove(); });
-        const copy = mkBtn('COPY', '#4CAF50', function() { ta.select(); document.execCommand('copy'); copy.textContent = 'COPIED!'; });
+        ta.style.cssText = 'width:100%;flex:1;font:11px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;resize:none;';
         const row = document.createElement('div');
-        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;';
-        row.appendChild(copy); row.appendChild(close);
-        ov.appendChild(ta); ov.appendChild(row);
+        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;';
+        const cp = mkBtn('COPY ALL', '#4CAF50', function() {
+            ta.select();
+            try { navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; }); }
+            catch (e) { document.execCommand('copy'); cp.textContent = 'COPIED!'; }
+        });
+        const dl = mkBtn('DOWNLOAD JSON', '#2196F3', function() { downloadJson(text, suffix); });
+        const cl = mkBtn('CLOSE', '#f44336', function() { ov.remove(); });
+        row.appendChild(cp); row.appendChild(dl); row.appendChild(cl);
+        ov.appendChild(info); ov.appendChild(ta); ov.appendChild(row);
         document.body.appendChild(ov);
         ta.select();
     }
 
+    // ==================== TOUR DRIVER ====================
+
+    async function performStep(globalIdx, step, isManual) {
+        console.log(LOG_PREFIX, 'Step', globalIdx + 1, ':', step.label, 'expected=' + step.expected);
+        let waited;
+        if (!isManual) {
+            // Auto step - wait for body[page] to match expected
+            setStatusBar('<b style=\"color:#ffb827\">' + (globalIdx+1) + '. ' + step.label + '</b> &mdash; waiting for page to load...');
+            waited = await waitForBodyPage(step.expected, PAGE_LOAD_WAIT_MS);
+        } else {
+            waited = { matched: true, actual: getCurrentBodyPage(detectMode()), ctx: detectMode() };
+        }
+        await sleep(POST_LOAD_SETTLE_MS);
+
+        const ctx = detectMode();
+        setStatusBar('<b style=\"color:#ffb827\">' + (globalIdx+1) + '. ' + step.label + '</b> &mdash; dumping data...');
+        const dump = dumpEverything(ctx);
+
+        await new Promise(function(resolve) {
+            fetchBlessings(ctx, function(blessings) {
+                dump.live_blessings_api = blessings;
+                resolve();
+            });
+        });
+
+        const actualPage = getCurrentBodyPage(ctx);
+        dump.tour_meta = {
+            label: step.label,
+            requested_path: step.path,
+            expected_page: step.expected,
+            actual_page: actualPage,
+            match: actualPage === step.expected,
+            manual: !!isManual,
+            global_index: globalIdx
+        };
+
+        const saveInfo = saveResult(globalIdx, dump);
+        console.log(LOG_PREFIX, 'Step', globalIdx + 1, 'done:', step.label, 'match=' + dump.tour_meta.match, 'size=' + Math.round(saveInfo.size/1024) + 'KB');
+        return { dump: dump, saveInfo: saveInfo };
+    }
+
+    async function continueAutoTour(state) {
+        const totalAuto = AUTO_TOUR.length;
+        const totalManual = MANUAL_TOUR.length;
+        // Current step:
+        const idx = state.index;
+        if (idx < totalAuto) {
+            // Auto phase
+            const step = AUTO_TOUR[idx];
+            try {
+                await performStep(idx, step, false);
+            } catch (e) {
+                console.error(LOG_PREFIX, 'Step error at auto idx', idx, ':', e);
+            }
+            // Advance
+            state.index = idx + 1;
+            saveState(state);
+            if (state.index >= totalAuto) {
+                // Auto phase done, switch to manual
+                setStatusBar('<b style=\"color:#4CAF50\">Auto phase done.</b> &mdash; Manual phase: navigate via game UI then click DUMP NOW.', []);
+                console.log(LOG_PREFIX, 'Auto phase done, entering manual phase.');
+                await sleep(1500);
+                await showManualPrompt(state);
+                return;
+            }
+            // Navigate to next auto step
+            const next = AUTO_TOUR[state.index];
+            const ctx = detectMode();
+            setStatusBar('<b style=\"color:#ffb827\">Step ' + (state.index+1) + '/' + (totalAuto+totalManual) + ': ' + next.label + '</b> &mdash; navigating...');
+            await sleep(PAGE_TRANSITION_DELAY_MS);
+            navigateTo(next.path, ctx);
+            // If iframe mode: continue running. If top-window: page reloads, init() resumes.
+            if (ctx.mode === 'iframe' || ctx.mode === 'unknown') {
+                // wait a bit then loop
+                await sleep(500);
+                await continueAutoTour(loadState());
+            }
+            return;
+        }
+        // Should not reach here in auto phase
+    }
+
+    async function showManualPrompt(state) {
+        const totalAuto = AUTO_TOUR.length;
+        const manualIdx = state.index - totalAuto;
+        if (manualIdx >= MANUAL_TOUR.length) {
+            await finishTour(state);
+            return;
+        }
+        const step = MANUAL_TOUR[manualIdx];
+        const ctx = detectMode();
+        const cur = getCurrentBodyPage(ctx) || '?';
+
+        // If user already navigated to expected page, give them a quick dump button
+        const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', async function() {
+            dumpBtn.disabled = true;
+            try {
+                await performStep(state.index, step, true);
+            } catch (e) {
+                console.error(LOG_PREFIX, 'Manual step failed:', e);
+            }
+            state.index++;
+            saveState(state);
+            if (state.index >= totalAuto + MANUAL_TOUR.length) {
+                await finishTour(state);
+            } else {
+                await showManualPrompt(state);
+            }
+        });
+        const skipBtn = mkBtn('SKIP', '#ff9800', async function() {
+            console.log(LOG_PREFIX, 'Manual skip:', step.label);
+            state.index++;
+            saveState(state);
+            if (state.index >= totalAuto + MANUAL_TOUR.length) await finishTour(state);
+            else await showManualPrompt(state);
+        });
+        const abortBtn = mkBtn('ABORT', '#f44336', async function() {
+            console.log(LOG_PREFIX, 'Manual abort');
+            await finishTour(state);
+        });
+
+        setStatusBar(
+            'Manual ' + (manualIdx+1) + '/' + MANUAL_TOUR.length + ': open <b style=\"color:#ffb827\">' + step.label + '</b> in game ' +
+            '<span style=\"color:#888\">(want body[page]=' + step.expected + ', currently=' + cur + ')</span>',
+            [dumpBtn, skipBtn, abortBtn]
+        );
+    }
+
+    async function finishTour(state) {
+        const totalDur = state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
+        const allResults = loadAllResults();
+        const bundle = {
+            meta: {
+                timestamp: new Date().toISOString(),
+                host: location.hostname,
+                href: location.href,
+                inspectorVersion: VERSION,
+                tour_pages: AUTO_TOUR.length + MANUAL_TOUR.length,
+                tour_completed_pages: allResults.length,
+                tour_duration_sec: totalDur
+            },
+            pages: allResults
+        };
+        const text = safeStringify(bundle);
+        const sizeKb = Math.round(text.length / 1024);
+        clearState();
+        downloadJson(text, 'tour');
+        setStatusBar(
+            'Tour finished: <b style=\"color:#4CAF50\">' + allResults.length + '/' + (AUTO_TOUR.length + MANUAL_TOUR.length) + ' pages</b>, ' +
+            sizeKb + ' KB, ' + totalDur + 's',
+            [
+                mkBtn('REVIEW BUNDLE', '#2196F3', function() { showSingleDumpOverlay(text, 'tour'); }),
+                mkBtn('CLOSE', '#888', function() { clearStatusBar(); makeButtons(); })
+            ]
+        );
+        console.log(LOG_PREFIX, 'Tour finished:', allResults.length, 'pages,', sizeKb, 'KB');
+    }
+
+    function startTour() {
+        if (loadState()) {
+            if (!confirm('A tour is already in progress. Restart from scratch?')) return;
+        }
+        clearState();
+        const state = {
+            running: true,
+            index: 0,
+            startedAt: Date.now()
+        };
+        saveState(state);
+        console.log(LOG_PREFIX, 'Tour started.');
+        const ctx = detectMode();
+        navigateTo(AUTO_TOUR[0].path, ctx);
+        if (ctx.mode === 'iframe' || ctx.mode === 'unknown') {
+            // iframe mode: stay in same JS run, drive tour from here
+            (async function() {
+                await sleep(PAGE_TRANSITION_DELAY_MS);
+                await continueAutoTour(loadState());
+            })();
+        }
+        // top-window mode: page reloads, init() picks up state and continues
+    }
+
+    function abortTour() {
+        if (!loadState()) return;
+        if (!confirm('Abort current tour?')) return;
+        const state = loadState();
+        finishTour(state);
+    }
+
+    // ==================== INIT ====================
+
     function makeButtons() {
-        refreshCtx();
+        const old = document.getElementById('hhauto_buttons');
+        if (old) old.remove();
         const wrap = document.createElement('div');
+        wrap.id = 'hhauto_buttons';
         wrap.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:6px;font-family:monospace;';
 
         const single = document.createElement('div');
         single.textContent = 'DUMP THIS PAGE';
         single.style.cssText = 'background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        single.onclick = runSingleDump;
-        single.title = 'Dump current page only (' + CTX.where + ')';
+        single.onclick = function() {
+            const ctx = detectMode();
+            const dump = dumpEverything(ctx);
+            fetchBlessings(ctx, function(blessings) {
+                dump.live_blessings_api = blessings;
+                const text = safeStringify(dump);
+                const body = (ctx.doc || document).querySelector('body[page]');
+                const suffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
+                showSingleDumpOverlay(text, suffix);
+            });
+        };
 
         const tour = document.createElement('div');
         tour.textContent = 'AUTO TOUR';
         tour.style.cssText = 'background:#2196F3;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        tour.onclick = runTour;
-        tour.title = 'Auto-tour through ' + TOUR.length + ' pages that work via iframe nav';
-
-        const manual = document.createElement('div');
-        manual.textContent = 'MANUAL TOUR';
-        manual.style.cssText = 'background:#9C27B0;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        manual.onclick = runManualTour;
-        manual.title = 'Walk through ' + MANUAL_PAGES.length + ' pages that need manual navigation';
-
-        const diag = document.createElement('div');
-        diag.textContent = 'DIAGNOSTIC';
-        diag.style.cssText = 'background:#607D8B;color:white;padding:10px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        diag.onclick = runDiagnostic;
-        diag.title = 'Show iframe + globals diagnostic info';
+        tour.onclick = startTour;
+        tour.title = AUTO_TOUR.length + ' auto pages, then ' + MANUAL_TOUR.length + ' manual pages, then bundle download.';
 
         wrap.appendChild(single);
         wrap.appendChild(tour);
-        wrap.appendChild(manual);
-        wrap.appendChild(diag);
         document.body.appendChild(wrap);
     }
 
-    setTimeout(makeButtons, 2000);
+    function init() {
+        console.log(LOG_PREFIX, 'init, location:', location.href);
+        const state = loadState();
+        if (state && state.running) {
+            console.log(LOG_PREFIX, 'Resuming tour at index', state.index);
+            const totalAuto = AUTO_TOUR.length;
+            const totalManual = MANUAL_TOUR.length;
+            // Add abort button to overlay
+            const abortBtn = mkBtn('ABORT TOUR', '#f44336', abortTour);
+            setStatusBar('Resuming tour at step ' + (state.index+1) + '/' + (totalAuto+totalManual) + '...', [abortBtn]);
+            (async function() {
+                await sleep(1000); // give game JS time to settle
+                if (state.index < totalAuto) {
+                    await continueAutoTour(state);
+                } else {
+                    await showManualPrompt(state);
+                }
+            })();
+        } else {
+            makeButtons();
+        }
+    }
+
+    setTimeout(init, 2000);
 
 })();
