@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.7.0
+// @version      3.7.1
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.7.0',
+                inspectorVersion: '3.7.1',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -602,13 +602,22 @@
 
     function navigateIframeTo(path) {
         const iframe = findGameIframe();
-        if (!iframe) return false;
+        const target = location.origin + path;
+        if (iframe) {
+            try { iframe.src = target; return true; } catch (e) { return false; }
+        }
+        // No iframe - try top-window navigation as last resort.
+        // This will reload the script too; tour state is in-memory and will be lost.
+        // Only use if user confirms.
         try {
-            // Build absolute URL so the browser does not fight over relative paths.
-            const target = location.origin + path;
-            iframe.src = target;
-            return true;
-        } catch (e) { return false; }
+            // Try the game window directly (if running on top-window with no iframe)
+            const w = gameWin();
+            if (w && w.location) {
+                w.location.href = target;
+                return true;
+            }
+        } catch (e) {}
+        return false;
     }
 
     function dumpCurrent(label, path) {
@@ -781,12 +790,29 @@
         buildStatusOverlay();
         updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-        // Verify we have an iframe to drive
-        const iframe = findGameIframe();
-        if (!iframe) {
-            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
-            tourState.running = false;
-            return;
+        // Wait up to 10s for game iframe to appear (it may be lazy-loaded by the wrapper page)
+        let iframe = null;
+        let ctx = refreshCtx();
+        const ifDeadline = Date.now() + 10000;
+        while (Date.now() < ifDeadline) {
+            iframe = findGameIframe();
+            ctx = refreshCtx();
+            if (iframe) break;
+            if (ctx.where === 'top-window') break;
+            updateStatus('Waiting for game iframe to appear... (max 10s)');
+            await sleep(500);
+        }
+        if (!iframe && ctx.where !== 'top-window') {
+            updateStatus('<span style="color:#ffb827">WARN: No game iframe detected after 10s.</span><br/>' +
+                'Trying anyway via top-window navigation.<br/>' +
+                'If nothing happens, refresh the page (F5) and click AUTO DUMP ALL again once the game loaded.');
+            await sleep(2500);
+        } else if (iframe) {
+            updateStatus('Tour starting via iframe: ' + (iframe.id || 'noid') + '<br/>' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+            await sleep(1000);
+        } else {
+            updateStatus('Tour starting via top-window navigation<br/>' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+            await sleep(1000);
         }
 
         for (let i = 0; i < TOUR.length; i++) {
@@ -828,7 +854,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.7.0',
+                inspectorVersion: '3.7.1',
                 tour_pages: TOUR.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
