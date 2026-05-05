@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.4.0
+// @version      4.4.1
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -22,7 +22,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.4.0';
+    const VERSION = '4.4.1';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
@@ -110,9 +110,12 @@
     // Only the tour state (current index, started timestamp) is persisted.
     async function saveResult(idx, dump, step) {
         try {
-            await idbPut(idx, dump);
-            const size = safeStringify(dump).length;
-            return { ok: true, size: size };
+            // Serialize through safeStringify (drops DOM/Window/circular refs) so that
+            // IndexedDB's structured clone never sees an unsupported object.
+            const text = safeStringify(dump);
+            const cleanDump = JSON.parse(text);
+            await idbPut(idx, cleanDump);
+            return { ok: true, size: text.length };
         } catch (e) {
             console.error(LOG_PREFIX, 'idbPut failed at idx ' + idx + ':', e);
             return { ok: false, size: 0, error: e.message || String(e) };
