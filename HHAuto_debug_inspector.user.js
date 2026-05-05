@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.4.1
+// @version      4.5.0
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -22,7 +22,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.4.1';
+    const VERSION = '4.5.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
@@ -384,6 +384,70 @@
         return sources;
     }
 
+    // Extract primitive (non-DOM, non-circular) fields from a possibly-circular object.
+    function extractPrimitives(obj, depth, seen) {
+        if (depth === undefined) depth = 0;
+        if (!seen) seen = new WeakSet();
+        if (obj === null || obj === undefined) return obj;
+        const t = typeof obj;
+        if (t === 'number' || t === 'string' || t === 'boolean') return obj;
+        if (t === 'function') return undefined;
+        if (depth > 4) return '[depth-limit]';
+        if (t === 'object') {
+            if (seen.has(obj)) return '[circular]';
+            seen.add(obj);
+        }
+        if (Array.isArray(obj)) {
+            const out = [];
+            for (let i = 0; i < obj.length && i < 100; i++) {
+                try {
+                    const v = obj[i];
+                    if (v && typeof v === 'object' && v.nodeType !== undefined) continue;
+                    out.push(extractPrimitives(v, depth + 1, seen));
+                } catch (e) {}
+            }
+            return out;
+        }
+        if (t === 'object') {
+            const out = {};
+            try {
+                for (const k of Object.keys(obj)) {
+                    try {
+                        const v = obj[k];
+                        if (v === null || v === undefined) { out[k] = v; continue; }
+                        const vt = typeof v;
+                        if (vt === 'function') continue;
+                        if (vt === 'number' || vt === 'string' || vt === 'boolean') { out[k] = v; continue; }
+                        if (v instanceof Date) { out[k] = v.toISOString(); continue; }
+                        if (v.nodeType !== undefined && v.nodeName !== undefined) continue;
+                        try { if (typeof Window !== 'undefined' && v instanceof Window) continue; } catch (e) {}
+                        try { if (typeof Document !== 'undefined' && v instanceof Document) continue; } catch (e) {}
+                        out[k] = extractPrimitives(v, depth + 1, seen);
+                    } catch (e) {}
+                }
+            } catch (e) {}
+            return out;
+        }
+        return undefined;
+    }
+
+    function dumpHeroInfos(ctx) {
+        const out = {};
+        try {
+            const w = ctx.win;
+            const h = w.shared && w.shared.Hero;
+            if (!h) return out;
+            for (const key of ['infos', 'caracs', 'currencies', 'energies', 'club', 'mc_level']) {
+                try {
+                    if (h[key] !== undefined) {
+                        out[key] = extractPrimitives(h[key], 0, new WeakSet());
+                    }
+                } catch (e) {}
+            }
+        } catch (e) {}
+        return out;
+    }
+
     function dumpEverything(ctx) {
         const t0 = Date.now();
         const w = ctx.win;
@@ -535,6 +599,7 @@
             }, []),
             girls_full: {},
             hero: heroData,
+            hero_infos: tryGet(function() { return dumpHeroInfos(ctx); }, {}),
             teams: teamsData,
             battle: battleData,
             market_equipment: marketData,
