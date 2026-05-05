@@ -798,8 +798,31 @@
         document.body.appendChild(wrap);
     }
 
+    function startupCleanup() {
+        // Clean any orphaned result entries from prior runs/versions BEFORE we check tour state.
+        // This frees localStorage quota that may have been blocking saves.
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(RESULT_KEY_PREFIX)) {
+                    keysToRemove.push(k);
+                }
+            }
+            for (const k of keysToRemove) {
+                try { localStorage.removeItem(k); } catch (e) {}
+            }
+            // Also remove the legacy bundle key if present.
+            try { localStorage.removeItem('hhauto_last_tour'); } catch (e) {}
+            if (keysToRemove.length > 0) {
+                console.log(LOG_PREFIX, 'Startup cleanup removed', keysToRemove.length, 'orphaned result keys');
+            }
+        } catch (e) { console.warn(LOG_PREFIX, 'startupCleanup failed:', e); }
+    }
+
     function init() {
         console.log(LOG_PREFIX, 'init, location:', location.href);
+        startupCleanup();
         const state = loadState();
         if (state && state.running) {
             console.log(LOG_PREFIX, 'Resuming tour at index', state.index);
