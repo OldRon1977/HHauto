@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.3.0
+// @version      4.4.0
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -22,7 +22,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.3.0';
+    const VERSION = '4.4.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
@@ -108,17 +108,83 @@
 
     // No localStorage results - each step downloads its own file immediately.
     // Only the tour state (current index, started timestamp) is persisted.
-    function saveResult(idx, dump, step) {
-        const text = safeStringify(dump);
-        const stepNum = String(idx + 1).padStart(2, '0');
-        const safeLabel = ((step && step.label) || 'page').replace(/[^a-z0-9]/gi, '_');
-        const suffix = 'step' + stepNum + '_' + safeLabel;
-        downloadJson(text, suffix);
-        return { ok: true, size: text.length, downloaded: true };
+    async function saveResult(idx, dump, step) {
+        try {
+            await idbPut(idx, dump);
+            const size = safeStringify(dump).length;
+            return { ok: true, size: size };
+        } catch (e) {
+            console.error(LOG_PREFIX, 'idbPut failed at idx ' + idx + ':', e);
+            return { ok: false, size: 0, error: e.message || String(e) };
+        }
     }
 
     function loadAllResults() {
         return [];
+    }
+
+    // ==================== IndexedDB result store ====================
+    // Each step writes its dump to IndexedDB. Quota is per-origin and ~50% of free disk
+    // space - effectively unlimited for our 5-50 MB tour bundles.
+
+    const IDB_NAME = 'hhauto_inspector';
+    const IDB_VERSION = 1;
+    const IDB_STORE = 'tour_results';
+
+    function idbOpen() {
+        return new Promise(function(resolve, reject) {
+            try {
+                const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+                req.onupgradeneeded = function(e) {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        db.createObjectStore(IDB_STORE, { keyPath: 'idx' });
+                    }
+                };
+                req.onsuccess = function(e) { resolve(e.target.result); };
+                req.onerror = function(e) { reject(e.target.error); };
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function idbPut(idx, dump) {
+        return idbOpen().then(function(db) {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.put({ idx: idx, dump: dump });
+                req.onsuccess = function() { resolve(); };
+                req.onerror = function(e) { reject(e.target.error); };
+            }).finally(function() { db.close(); });
+        });
+    }
+
+    function idbGetAll() {
+        return idbOpen().then(function(db) {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.getAll();
+                req.onsuccess = function(e) {
+                    const rows = e.target.result || [];
+                    rows.sort(function(a, b) { return a.idx - b.idx; });
+                    resolve(rows);
+                };
+                req.onerror = function(e) { reject(e.target.error); };
+            }).finally(function() { db.close(); });
+        });
+    }
+
+    function idbClear() {
+        return idbOpen().then(function(db) {
+            return new Promise(function(resolve, reject) {
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.clear();
+                req.onsuccess = function() { resolve(); };
+                req.onerror = function(e) { reject(e.target.error); };
+            }).finally(function() { db.close(); });
+        });
     }
 
         // ==================== HELPERS ====================
@@ -622,7 +688,7 @@
             global_index: globalIdx
         };
 
-        const saveInfo = saveResult(globalIdx, dump, step);
+        const saveInfo = await saveResult(globalIdx, dump, step);
         console.log(LOG_PREFIX, 'Step', globalIdx + 1, 'done:', step.label, 'match=' + dump.tour_meta.match, 'size=' + Math.round(saveInfo.size/1024) + 'KB');
         return { dump: dump, saveInfo: saveInfo };
     }
@@ -724,19 +790,48 @@
         const totalDur = state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
         const completed = state.completedSteps || 0;
         const total = AUTO_TOUR.length + MANUAL_TOUR.length;
+
+        setStatusBar('Tour finished. Assembling bundle from IndexedDB...', []);
+        let rows = [];
+        try {
+            rows = await idbGetAll();
+        } catch (e) {
+            console.error(LOG_PREFIX, 'idbGetAll failed:', e);
+        }
+        const pages = rows.map(function(r) { return r.dump; });
+        const bundle = {
+            meta: {
+                timestamp: new Date().toISOString(),
+                host: location.hostname,
+                href: location.href,
+                inspectorVersion: VERSION,
+                tour_pages: total,
+                tour_completed_pages: pages.length,
+                tour_duration_sec: totalDur
+            },
+            pages: pages
+        };
+        const text = safeStringify(bundle);
+        const sizeKb = Math.round(text.length / 1024);
+        downloadJson(text, 'tour');
+        try { await idbClear(); } catch (e) {}
         clearState();
         setStatusBar(
-            'Tour finished: ' + completed + '/' + total + ' pages downloaded as separate files. ' + totalDur + 's',
-            [mkBtn('CLOSE', '#888', function() { clearStatusBar(); makeButtons(); })]
+            'Tour finished: ' + pages.length + '/' + total + ' pages, ' + sizeKb + ' KB, ' + totalDur + 's. Bundle downloaded.',
+            [
+                mkBtn('REVIEW BUNDLE', '#2196F3', function() { showSingleDumpOverlay(text, 'tour'); }),
+                mkBtn('CLOSE', '#888', function() { clearStatusBar(); makeButtons(); })
+            ]
         );
-        console.log(LOG_PREFIX, 'Tour finished:', completed, 'pages,', totalDur, 's');
+        console.log(LOG_PREFIX, 'Tour finished:', pages.length, 'pages,', sizeKb, 'KB,', totalDur, 's');
     }
 
-        function startTour() {
+        async function startTour() {
         if (loadState()) {
             if (!confirm('A tour is already in progress. Restart from scratch?')) return;
         }
         clearState();
+        try { await idbClear(); } catch (e) { console.warn(LOG_PREFIX, 'idbClear before start failed:', e); }
         const state = {
             running: true,
             index: 0,
@@ -790,7 +885,7 @@
         const tour = document.createElement('div');
         tour.textContent = 'AUTO TOUR';
         tour.style.cssText = 'background:#2196F3;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        tour.onclick = startTour;
+        tour.onclick = function() { startTour(); };
         tour.title = AUTO_TOUR.length + ' auto pages, then ' + MANUAL_TOUR.length + ' manual pages, then bundle download.';
 
         wrap.appendChild(single);
