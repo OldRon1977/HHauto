@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.10.0
+// @version      3.10.1
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.0',
+                inspectorVersion: '3.10.1',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -823,7 +823,7 @@
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.0',
+                inspectorVersion: '3.10.1',
                 tour_pages: TOUR.length + MANUAL_PAGES.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
