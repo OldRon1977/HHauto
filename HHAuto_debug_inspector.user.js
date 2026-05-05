@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.8.1
+// @version      3.9.0
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.8.1',
+                inspectorVersion: '3.9.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -543,16 +543,78 @@
     const WAIT_PER_PAGE_MS = 7000;
     const POST_LOAD_SETTLE_MS = 1500;
     const POST_DUMP_PAUSE_MS = 500;
+    const TOUR_STATE_KEY = 'hhauto_inspector_tour_state';
+    const TOUR_RESULT_PREFIX = 'hhauto_inspector_tour_result_';
 
     let tourState = {
         running: false,
         index: 0,
-        results: [],
         startedAt: null,
         statusEl: null,
         progressEl: null,
         cancelRequested: false
     };
+
+    function persistState() {
+        try {
+            localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({
+                running: tourState.running,
+                index: tourState.index,
+                startedAt: tourState.startedAt,
+                cancelRequested: tourState.cancelRequested
+            }));
+        } catch (e) { console.warn('[HHAuto Inspector] persistState failed:', e); }
+    }
+
+    function loadPersistedState() {
+        try {
+            const raw = localStorage.getItem(TOUR_STATE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    }
+
+    function clearPersistedState() {
+        try { localStorage.removeItem(TOUR_STATE_KEY); } catch (e) {}
+        for (let i = 0; i < TOUR.length; i++) {
+            try { localStorage.removeItem(TOUR_RESULT_PREFIX + i); } catch (e) {}
+        }
+    }
+
+    function saveResult(idx, dump) {
+        const text = safeStringify(dump);
+        try {
+            localStorage.setItem(TOUR_RESULT_PREFIX + idx, text);
+            return { ok: true, size: text.length };
+        } catch (e) {
+            try {
+                const slim = Object.assign({}, dump);
+                if (slim.girls_full) slim.girls_full = '[stripped: localStorage quota]';
+                if (slim.shared_namespace) slim.shared_namespace = '[stripped]';
+                if (slim.local_storage) slim.local_storage = '[stripped]';
+                if (slim.globals_overview) slim.globals_overview = '[stripped]';
+                const slimText = safeStringify(slim);
+                localStorage.setItem(TOUR_RESULT_PREFIX + idx, slimText);
+                return { ok: true, size: slimText.length, slim: true };
+            } catch (e2) {
+                console.error('[HHAuto Inspector] saveResult failed:', e2);
+                return { ok: false, size: 0, error: e2.message };
+            }
+        }
+    }
+
+    function loadAllResults() {
+        const out = [];
+        for (let i = 0; i < TOUR.length; i++) {
+            try {
+                const raw = localStorage.getItem(TOUR_RESULT_PREFIX + i);
+                if (raw) {
+                    try { out.push(JSON.parse(raw)); }
+                    catch (e) { out.push({ error: 'parse failed for idx ' + i }); }
+                }
+            } catch (e) {}
+        }
+        return out;
+    }
 
     function buildStatusOverlay() {
         const old = document.getElementById('hhauto_tour_overlay');
@@ -738,29 +800,46 @@
         });
     }
 
-    async function runTour() {
+    async function runTour(resumeFromIdx) {
         if (tourState.running) {
             alert('Tour already running');
             return;
         }
+        const isResume = typeof resumeFromIdx === 'number' && resumeFromIdx > 0;
+        let resumedStartedAt = null;
+        if (isResume) {
+            const prev = loadPersistedState();
+            resumedStartedAt = (prev && prev.startedAt) || Date.now();
+        }
         tourState = {
             running: true,
-            index: 0,
-            results: [],
-            startedAt: Date.now(),
+            index: isResume ? resumeFromIdx : 0,
+            startedAt: isResume ? resumedStartedAt : Date.now(),
             statusEl: null,
             progressEl: null,
             cancelRequested: false
         };
         buildStatusOverlay();
-        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+        if (isResume) {
+            updateStatus('Resuming tour at step ' + (resumeFromIdx+1) + '/' + TOUR.length + '...');
+            const prev = loadAllResults();
+            for (let i = 0; i < prev.length; i++) {
+                const tm = prev[i].tour_meta || {};
+                logProgress('-- Step restored: ' + (tm.label || '?'));
+            }
+        } else {
+            clearPersistedState();
+            updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+        }
+        persistState();
 
-        for (let i = 0; i < TOUR.length; i++) {
+        for (let i = tourState.index; i < TOUR.length; i++) {
+            tourState.index = i;
+            persistState();
             if (tourState.cancelRequested) {
                 logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
                 break;
             }
-            tourState.index = i;
             const step = TOUR[i];
             const stepStart = Date.now();
             updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
@@ -798,7 +877,7 @@
                 dump.tour_meta.attempts = result.attempts;
                 dump.tour_meta.manual = manualUsed;
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                tourState.results.push(dump);
+                saveResult(i, dump);
                 const stepDur = Math.round((Date.now() - stepStart)/1000);
                 const bodyPage = result.actualPage || '?';
                 const matchTag = dump.tour_meta.match ? 'OK' : ('MISMATCH(want=' + step.expected + ')');
@@ -811,20 +890,23 @@
         }
 
         const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
+        const allResults = loadAllResults();
         const bundle = {
             meta: {
                 timestamp: new Date().toISOString(),
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.8.1',
+                inspectorVersion: '3.9.0',
                 tour_pages: TOUR.length,
+                tour_completed_pages: allResults.length,
                 tour_duration_sec: totalDur,
                 wait_per_page_ms: WAIT_PER_PAGE_MS,
                 cancelled: tourState.cancelRequested
             },
-            pages: tourState.results
+            pages: allResults
         };
+        clearPersistedState();
         const text = safeStringify(bundle);
         const sizeKb = Math.round(text.length / 1024);
         updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
@@ -853,8 +935,18 @@
 
     // ---------- buttons ----------
 
+    function maybeResumeTour() {
+        const p = loadPersistedState();
+        if (p && p.running && !p.cancelRequested && typeof p.index === 'number' && p.index < TOUR.length) {
+            setTimeout(function() { runTour(p.index); }, 1500);
+            return true;
+        }
+        return false;
+    }
+
     function makeButtons() {
         refreshCtx();
+        if (maybeResumeTour()) return;
         const wrap = document.createElement('div');
         wrap.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:6px;font-family:monospace;';
 
