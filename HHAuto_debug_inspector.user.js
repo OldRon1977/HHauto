@@ -764,6 +764,7 @@
             const step = TOUR[i];
             const stepStart = Date.now();
             updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
+            persistState();
             let result = await navigateAndWait(step);
             if (tourState.cancelRequested) break;
 
