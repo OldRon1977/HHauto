@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.1.0
-// @description  Dumps EVERYTHING the game exposes: girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals. iframe-aware.
+// @version      3.2.0
+// @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -23,55 +23,49 @@
     'use strict';
 
     // ---------- iframe resolution ----------
-    //
-    // The game runs inside an iframe with id 'hh_game' (or similar; see
-    // HHEnvVariables.ts -> gameID). The host page is just a wrapper.
-    // Game state (Hero, availableGirls, shared.*) lives on the iframe's
-    // window, NOT on the outer window.
-    //
-    // We try to switch into the iframe's window so all dumps see the real
-    // game state. If the iframe is same-origin (which it always is on
-    // first-party domains), contentWindow access works directly.
 
-    function findGameWindow() {
-        // Top-window first: maybe the script is already running inside the iframe
-        try {
-            if (unsafeWindow.shared || unsafeWindow.Hero || unsafeWindow.availableGirls || unsafeWindow.hh_ajax) {
-                return { win: unsafeWindow, doc: document, where: 'top-window' };
-            }
-        } catch (e) {}
-        // Look for known iframe IDs
+    function findGameIframe() {
         const knownIds = ['hh_hentai','hh_comix','hh_star','hh_stargay','hh_startrans','hh_gay','hh_amour','hh_mangarpg','hh_sexy','hh_game'];
         for (const id of knownIds) {
             try {
                 const f = document.getElementById(id);
-                if (f && f.tagName === 'IFRAME') {
-                    const w = f.contentWindow;
-                    const d = f.contentDocument || (w && w.document);
-                    if (w) return { win: w, doc: d, where: 'iframe#' + id };
-                }
+                if (f && f.tagName === 'IFRAME') return f;
             } catch (e) {}
         }
-        // Fallback: scan all iframes for one that looks like the game
         try {
             const frames = document.querySelectorAll('iframe');
             for (const f of frames) {
                 try {
                     const w = f.contentWindow;
                     if (!w) continue;
-                    if (w.shared || w.Hero || w.availableGirls || w.hh_ajax) {
-                        return { win: w, doc: f.contentDocument || w.document, where: 'iframe[' + (f.id || f.src || 'noid') + ']' };
-                    }
-                } catch (e) { /* cross-origin */ }
+                    if (w.shared || w.Hero || w.availableGirls || w.hh_ajax) return f;
+                } catch (e) {}
             }
         } catch (e) {}
-        // Nothing found: stick with top window so we still dump SOMETHING
-        return { win: unsafeWindow, doc: document, where: 'top-window-fallback' };
+        return null;
+    }
+
+    function findGameWindow() {
+        try {
+            if (unsafeWindow.shared || unsafeWindow.Hero || unsafeWindow.availableGirls || unsafeWindow.hh_ajax) {
+                return { win: unsafeWindow, doc: document, where: 'top-window', iframe: null };
+            }
+        } catch (e) {}
+        const iframe = findGameIframe();
+        if (iframe) {
+            try {
+                const w = iframe.contentWindow;
+                const d = iframe.contentDocument || (w && w.document);
+                return { win: w, doc: d, where: 'iframe#' + (iframe.id || 'noid'), iframe: iframe };
+            } catch (e) {}
+        }
+        return { win: unsafeWindow, doc: document, where: 'top-window-fallback', iframe: null };
     }
 
     let CTX = findGameWindow();
     function gameWin() { return CTX.win; }
     function gameDoc() { return CTX.doc; }
+    function refreshCtx() { CTX = findGameWindow(); return CTX; }
 
     // ---------- helpers ----------
 
@@ -84,9 +78,7 @@
             if (value && typeof value === 'object') {
                 if (seen.has(value)) return '[circular]';
                 seen.add(value);
-                if (value.nodeType !== undefined && value.nodeName !== undefined) {
-                    return '[DOM:' + value.nodeName + ']';
-                }
+                if (value.nodeType !== undefined && value.nodeName !== undefined) return '[DOM:' + value.nodeName + ']';
                 try {
                     if (typeof Window !== 'undefined' && value instanceof Window) return '[Window]';
                     if (typeof Document !== 'undefined' && value instanceof Document) return '[Document]';
@@ -103,6 +95,8 @@
     }
 
     function isPlainObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
+
+    // ---------- collectors (read everything from the iframe context) ----------
 
     function findGameGlobals() {
         const builtins = new Set([
@@ -157,12 +151,10 @@
     function findGirlSources() {
         const sources = [];
         const visited = new WeakSet();
-
         function isGirlLike(obj) {
             if (!obj || typeof obj !== 'object') return false;
             return (obj.id_girl !== undefined) || (obj.carac1 !== undefined && obj.name !== undefined);
         }
-
         function scan(root, path, depth) {
             if (depth > 4) return;
             if (!root || typeof root !== 'object') return;
@@ -180,17 +172,13 @@
                         const innerKeys = Object.keys(v);
                         if (innerKeys.length > 0) {
                             const sample = v[innerKeys[0]];
-                            if (isGirlLike(sample)) {
-                                sources.push({ path: path + '.' + k, count: innerKeys.length, ref: v, isMap: true });
-                            } else {
-                                scan(v, path + '.' + k, depth + 1);
-                            }
+                            if (isGirlLike(sample)) sources.push({ path: path + '.' + k, count: innerKeys.length, ref: v, isMap: true });
+                            else scan(v, path + '.' + k, depth + 1);
                         }
                     }
                 }
             } catch (e) {}
         }
-
         const w = gameWin();
         scan(w, 'game', 0);
         try { if (w.shared) scan(w.shared, 'game.shared', 0); } catch (e) {}
@@ -203,9 +191,7 @@
         const out = {};
         const w = gameWin();
         const keys = ['hero','Hero','hero_data','heroData','player_data','PlayerData','playerStats','Hero_data'];
-        for (const k of keys) {
-            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
-        }
+        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
         try { if (w.shared && w.shared.Hero) out['shared.Hero'] = w.shared.Hero; } catch (e) {}
         try { if (w.shared && w.shared.general) out['shared.general'] = w.shared.general; } catch (e) {}
         return out;
@@ -220,11 +206,9 @@
             'availableGirls','girlsDataList','girls_data_list',
             'leaguesPlayersData','leagues_players_data','opponents_list','opponentsList',
             'season_opponents','seasonOpponents','penta_opponents','tower_opponents',
-            'girl_squad','teamGirls'
+            'girl_squad','teamGirls','opponents','season_girls'
         ];
-        for (const k of keys) {
-            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
-        }
+        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
         return out;
     }
 
@@ -236,16 +220,18 @@
             'current_battle','currentBattle','battle_result','battleResult',
             'synergies','element_synergies','theme_elements',
             'boosters_data','boostersData','boosters','mythicBoosters','equippedBoosters',
-            'league_data','leagueData','season_data','seasonData',
+            'league_data','leagueData','season_data','seasonData','league_rewards',
             'tower_data','towerData','champion_data','championData',
-            'labyrinth_data','labyrinthData','penta_drill','pentaDrill',
+            'labyrinth_data','labyrinthData','penta_drill','pentaDrill','penta_drill_data',
             'club_data','clubData','arena_data','arenaData',
             'fight_modules','fightModules','game_data','gameData',
-            'current_tier_number','league_tag'
+            'current_tier_number','league_tag','event_data','current_event',
+            'seasonal_event_active','mega_event_active','mega_event_data',
+            'season_sec_untill_event_end','seasonal_time_remaining','mega_event_time_remaining',
+            'has_contests_datas','contests_timer','daily_goals_list',
+            'love_raids','pop_list','pop_index','player_gems_amount'
         ];
-        for (const k of keys) {
-            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
-        }
+        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
         return out;
     }
 
@@ -253,14 +239,12 @@
         const out = {};
         const w = gameWin();
         const keys = [
-            'market_data','marketData','shop_data','shopData','items','items_data',
+            'market_data','marketData','shop_data','shopData','items','items_data','shop',
             'girl_armor','girlArmor','equipment','inventory','girl_skills','girlSkills',
             'skill_tiers','skillTiers','awakening_data','awakeningData',
             'mythic_boosters','classBoosters','specialBoosters','hh_prices'
         ];
-        for (const k of keys) {
-            try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {}
-        }
+        for (const k of keys) { try { if (w[k] !== undefined) out[k] = w[k]; } catch (e) {} }
         return out;
     }
 
@@ -273,9 +257,7 @@
                 if (k.startsWith('HH_') || k.startsWith('hh_') || k.startsWith('Hh_')) {
                     try {
                         const v = w[k];
-                        if (v !== null && v !== undefined && typeof v !== 'function') {
-                            out[k] = v;
-                        }
+                        if (v !== null && v !== undefined && typeof v !== 'function') out[k] = v;
                     } catch (e) {}
                 }
             }
@@ -291,9 +273,7 @@
                 for (const k of Object.keys(w.shared)) {
                     try {
                         const v = w.shared[k];
-                        if (v !== null && v !== undefined && typeof v !== 'function') {
-                            out[k] = v;
-                        }
+                        if (v !== null && v !== undefined && typeof v !== 'function') out[k] = v;
                     } catch (e) {}
                 }
             }
@@ -316,8 +296,7 @@
                         lk.includes('booster') || lk.includes('market')) {
                         try {
                             const raw = storage.getItem(key);
-                            try { target[key] = JSON.parse(raw); }
-                            catch (e) { target[key] = raw; }
+                            try { target[key] = JSON.parse(raw); } catch (e) { target[key] = raw; }
                         } catch (e) {}
                     }
                 }
@@ -336,9 +315,9 @@
         try {
             const d = gameDoc() || document;
             const candidates = d.querySelectorAll(
-                '[data-new-girl-tooltip], [data-team], [data-girl-id], [data-blessing], [data-opponent], [data-team-index], [data-team-member-position], [data-id-girl-armor], [data-id-skill]'
+                '[data-new-girl-tooltip], [data-team], [data-girl-id], [data-blessing], [data-opponent], [data-team-index], [data-team-member-position], [data-id-girl-armor], [data-id-skill], [data-d], [data-rewards], [data-power], [data-time-stamp], [data-nc-reward-id], [data-pantheon-id], [data-battles], [data-tab], [data-href], [data-select-girl-id]'
             );
-            for (let i = 0; i < candidates.length && i < 500; i++) {
+            for (let i = 0; i < candidates.length && i < 1000; i++) {
                 const el = candidates[i];
                 const entry = { tag: el.tagName, id: el.id || null, class: el.className || null, attrs: {} };
                 for (const a of el.attributes) {
@@ -360,19 +339,21 @@
                 out.body_page = body.getAttribute('page');
                 out.body_classes = body.className || null;
             }
-            out.location = {
-                href: (gameWin().location && gameWin().location.href) || null,
-                pathname: (gameWin().location && gameWin().location.pathname) || null,
-                search: (gameWin().location && gameWin().location.search) || null
-            };
+            try {
+                const w = gameWin();
+                out.location = {
+                    href: (w.location && w.location.href) || null,
+                    pathname: (w.location && w.location.pathname) || null,
+                    search: (w.location && w.location.search) || null
+                };
+            } catch (e) { out.location_error = e.message; }
         } catch (e) { out.error = e.message; }
         return out;
     }
 
     function dumpEverything() {
         const t0 = Date.now();
-        // Refresh context in case the iframe was created after script load
-        CTX = findGameWindow();
+        refreshCtx();
         const dump = {
             meta: {
                 timestamp: new Date().toISOString(),
@@ -381,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.1.0',
+                inspectorVersion: '3.2.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -400,30 +381,23 @@
             local_storage: tryGet(dumpLocalStorage, {}),
             dom_data_attributes: tryGet(dumpDataAttributes, [])
         };
-
         try {
             const srcs = findGirlSources();
             for (const s of srcs) {
                 try {
                     if (s.isMap) dump.girls_full[s.path] = Object.values(s.ref);
                     else dump.girls_full[s.path] = s.ref;
-                } catch (e) {
-                    dump.girls_full[s.path] = '[error: ' + e.message + ']';
-                }
+                } catch (e) { dump.girls_full[s.path] = '[error: ' + e.message + ']'; }
             }
         } catch (e) {}
-
         dump.meta.dump_duration_ms = Date.now() - t0;
         return dump;
     }
 
     function fetchBlessings(callback) {
-        // Game's own ajax wrapper lives at shared.general.hh_ajax (not unsafeWindow.hh_ajax!)
         try {
             const w = gameWin();
-            const ajax = (w.shared && w.shared.general && w.shared.general.hh_ajax)
-                       || w.hh_ajax
-                       || w.ajax;
+            const ajax = (w.shared && w.shared.general && w.shared.general.hh_ajax) || w.hh_ajax || w.ajax;
             if (typeof ajax === 'function') {
                 let done = false;
                 const timer = setTimeout(function() { if (!done) { done = true; callback({ live: null, error: 'timeout' }); } }, 3000);
@@ -439,64 +413,7 @@
         callback({ live: null, error: 'ajax not available' });
     }
 
-    function show(text, fileSuffix) {
-        console.log('[HHAuto Inspector] Dump size: ' + text.length + ' chars from ' + CTX.where);
-        const old = document.getElementById('hhauto_inspector_overlay');
-        if (old) old.remove();
-
-        const ov = document.createElement('div');
-        ov.id = 'hhauto_inspector_overlay';
-        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
-        const info = document.createElement('div');
-        info.style.cssText = 'color:#0f0;font:14px monospace;margin-bottom:10px;';
-        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | source: ' + CTX.where + ' | ' + (fileSuffix || '');
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'width:100%;flex:1;font:11px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;resize:none;';
-        const row = document.createElement('div');
-        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;';
-
-        const cp = document.createElement('button');
-        cp.textContent = 'COPY ALL';
-        cp.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:#4CAF50;color:white;border:none;border-radius:4px;font-weight:bold;';
-        cp.onclick = function() {
-            ta.select();
-            try { navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; }); }
-            catch (e) { document.execCommand('copy'); cp.textContent = 'COPIED!'; }
-        };
-
-        const dl = document.createElement('button');
-        dl.textContent = 'DOWNLOAD JSON';
-        dl.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:#2196F3;color:white;border:none;border-radius:4px;font-weight:bold;';
-        dl.onclick = function() {
-            const blob = new Blob([text], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const host = location.hostname.replace(/[^a-z0-9]/gi, '_');
-            const page = (fileSuffix || 'all').replace(/[^a-z0-9]/gi, '_');
-            a.download = 'hhauto_dump_' + host + '_' + page + '_' + stamp + '.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        };
-
-        const cl = document.createElement('button');
-        cl.textContent = 'CLOSE';
-        cl.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:#f44336;color:white;border:none;border-radius:4px;font-weight:bold;';
-        cl.onclick = function() { ov.remove(); };
-
-        row.appendChild(cp);
-        row.appendChild(dl);
-        row.appendChild(cl);
-        ov.appendChild(info);
-        ov.appendChild(ta);
-        ov.appendChild(row);
-        document.body.appendChild(ov);
-        ta.select();
-    }
+    // ---------- single-page dump (manual) ----------
 
     function pageNameForFile() {
         try {
@@ -516,26 +433,314 @@
         return 'root';
     }
 
-    function runFullDump() {
+    function showSingleDumpOverlay(text, fileSuffix) {
+        const old = document.getElementById('hhauto_inspector_overlay');
+        if (old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'hhauto_inspector_overlay';
+        ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+        const info = document.createElement('div');
+        info.style.cssText = 'color:#0f0;font:14px monospace;margin-bottom:10px;';
+        info.textContent = 'Dump: ' + text.length.toLocaleString() + ' chars (' + Math.round(text.length/1024) + ' KB) | source: ' + CTX.where + ' | ' + (fileSuffix || '');
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'width:100%;flex:1;font:11px monospace;padding:10px;border-radius:5px;background:#1a1a1a;color:#0f0;resize:none;';
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;';
+        const cp = mkBtn('COPY ALL', '#4CAF50', function() {
+            ta.select();
+            try { navigator.clipboard.writeText(text).then(function() { cp.textContent = 'COPIED!'; }); }
+            catch (e) { document.execCommand('copy'); cp.textContent = 'COPIED!'; }
+        });
+        const dl = mkBtn('DOWNLOAD JSON', '#2196F3', function() {
+            downloadJson(text, fileSuffix || 'all');
+        });
+        const cl = mkBtn('CLOSE', '#f44336', function() { ov.remove(); });
+        row.appendChild(cp); row.appendChild(dl); row.appendChild(cl);
+        ov.appendChild(info); ov.appendChild(ta); ov.appendChild(row);
+        document.body.appendChild(ov);
+        ta.select();
+    }
+
+    function mkBtn(text, color, onclick) {
+        const b = document.createElement('button');
+        b.textContent = text;
+        b.style.cssText = 'padding:12px 24px;font-size:16px;cursor:pointer;background:' + color + ';color:white;border:none;border-radius:4px;font-weight:bold;';
+        b.onclick = onclick;
+        return b;
+    }
+
+    function downloadJson(text, suffix) {
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const host = location.hostname.replace(/[^a-z0-9]/gi, '_');
+        const safeSuffix = (suffix || 'all').replace(/[^a-z0-9_]/gi, '_');
+        a.download = 'hhauto_dump_' + host + '_' + safeSuffix + '_' + stamp + '.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function runSingleDump() {
         const dump = dumpEverything();
         fetchBlessings(function(blessings) {
             dump.live_blessings_api = blessings;
             const text = safeStringify(dump);
-            show(text, pageNameForFile());
+            showSingleDumpOverlay(text, pageNameForFile());
         });
     }
 
-    function makeButton() {
-        // Refresh context once before drawing button
-        CTX = findGameWindow();
-        const b = document.createElement('div');
-        b.textContent = 'DUMP ALL';
-        b.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:16px;box-shadow:0 2px 10px rgba(0,0,0,0.5);font-family:monospace;';
-        b.onclick = runFullDump;
-        b.title = 'Dumps every game variable from the iframe (' + CTX.where + ')';
-        document.body.appendChild(b);
+    // ---------- AUTO TOUR ----------
+    //
+    // Tour-list: paths to navigate the iframe through. 7s wait per page.
+    // Order chosen so that data-richest pages come first (in case of early abort).
+
+    const TOUR = [
+        { path: '/home.html',                  label: 'Home' },
+        { path: '/edit-team.html',             label: 'EditTeam (availableGirls)' },
+        { path: '/teams.html',                 label: 'BattleTeams' },
+        { path: '/characters.html',            label: 'Harem' },
+        { path: '/leagues.html',               label: 'League (opponents_list)' },
+        { path: '/season-arena.html',          label: 'SeasonArena (opponents)' },
+        { path: '/penta-drill-arena.html',     label: 'PentaDrillArena (opponents_list)' },
+        { path: '/penta-drill.html',           label: 'PentaDrill' },
+        { path: '/labyrinth.html',             label: 'Labyrinth (girl_squad)' },
+        { path: '/labyrinth-entrance.html',    label: 'LabyrinthEntrance' },
+        { path: '/club-champion.html',         label: 'ClubChampion (championData)' },
+        { path: '/champions-map.html',         label: 'ChampionsMap' },
+        { path: '/shop.html',                  label: 'Shop (items DOM)' },
+        { path: '/clubs.html',                 label: 'Clubs (Chat_vars)' },
+        { path: '/pantheon.html',              label: 'Pantheon' },
+        { path: '/season.html',                label: 'Season' },
+        { path: '/event.html',                 label: 'Event (event_data)' },
+        { path: '/seasonal.html',              label: 'Seasonal Event' },
+        { path: '/path-of-attraction.html',    label: 'Path of Attraction' },
+        { path: '/path-of-glory.html',         label: 'Path of Glory' },
+        { path: '/path-of-valor.html',         label: 'Path of Valor' },
+        { path: '/sex-god-path.html',          label: 'Sex God Path' },
+        { path: '/love-raids.html',            label: 'Love Raids' },
+        { path: '/pachinko.html',              label: 'Pachinko' },
+        { path: '/waifu.html',                 label: 'Waifu' },
+        { path: '/map.html',                   label: 'Map' },
+        { path: '/activities.html',            label: 'Activities' },
+        { path: '/activities.html?tab=contests',     label: 'Activities/Contests' },
+        { path: '/activities.html?tab=missions',     label: 'Activities/Missions' },
+        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals' },
+        { path: '/activities.html?tab=pop',          label: 'Activities/PoP' },
+        { path: '/hero/profile.html',          label: 'Hero Profile' },
+        { path: '/member-progression.html',    label: 'Member Progression' }
+    ];
+
+    const WAIT_PER_PAGE_MS = 7000;
+    const POST_DUMP_PAUSE_MS = 500;
+
+    let tourState = {
+        running: false,
+        index: 0,
+        results: [],
+        startedAt: null,
+        statusEl: null,
+        progressEl: null,
+        cancelRequested: false
+    };
+
+    function buildStatusOverlay() {
+        const old = document.getElementById('hhauto_tour_overlay');
+        if (old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'hhauto_tour_overlay';
+        ov.style.cssText = 'position:fixed;top:80px;right:10px;width:380px;background:rgba(0,0,0,0.92);color:#0f0;font:12px monospace;padding:12px;border-radius:6px;z-index:999998;box-shadow:0 4px 16px rgba(0,0,0,0.6);';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px;';
+        title.textContent = 'HHAuto Auto-Tour';
+        const status = document.createElement('div');
+        status.id = 'hhauto_tour_status';
+        status.style.cssText = 'margin-bottom:6px;line-height:1.5;';
+        const progress = document.createElement('div');
+        progress.id = 'hhauto_tour_progress';
+        progress.style.cssText = 'max-height:300px;overflow-y:auto;font-size:11px;color:#aaa;border-top:1px solid #333;padding-top:6px;margin-bottom:8px;';
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:6px;';
+        const cancel = mkBtn('CANCEL', '#f44336', function() {
+            tourState.cancelRequested = true;
+            status.innerHTML += '<br/><span style="color:#ff8888">Cancel requested - finishing current page...</span>';
+        });
+        cancel.style.padding = '6px 12px';
+        cancel.style.fontSize = '12px';
+        btnRow.appendChild(cancel);
+        ov.appendChild(title);
+        ov.appendChild(status);
+        ov.appendChild(progress);
+        ov.appendChild(btnRow);
+        document.body.appendChild(ov);
+        tourState.statusEl = status;
+        tourState.progressEl = progress;
     }
 
-    setTimeout(makeButton, 2000);
+    function updateStatus(text) {
+        if (tourState.statusEl) tourState.statusEl.innerHTML = text;
+    }
+
+    function logProgress(text) {
+        if (tourState.progressEl) {
+            const line = document.createElement('div');
+            line.textContent = text;
+            tourState.progressEl.appendChild(line);
+            tourState.progressEl.scrollTop = tourState.progressEl.scrollHeight;
+        }
+    }
+
+    function navigateIframeTo(path) {
+        const iframe = findGameIframe();
+        if (!iframe) return false;
+        try {
+            // Build absolute URL so the browser does not fight over relative paths.
+            const target = location.origin + path;
+            iframe.src = target;
+            return true;
+        } catch (e) { return false; }
+    }
+
+    function dumpCurrent(label, path) {
+        return new Promise(function(resolve) {
+            refreshCtx();
+            const dump = dumpEverything();
+            dump.tour_meta = { label: label, requested_path: path };
+            fetchBlessings(function(blessings) {
+                dump.live_blessings_api = blessings;
+                resolve(dump);
+            });
+        });
+    }
+
+    function sleep(ms) {
+        return new Promise(function(r) { setTimeout(r, ms); });
+    }
+
+    async function runTour() {
+        if (tourState.running) {
+            alert('Tour already running');
+            return;
+        }
+        tourState = {
+            running: true,
+            index: 0,
+            results: [],
+            startedAt: Date.now(),
+            statusEl: null,
+            progressEl: null,
+            cancelRequested: false
+        };
+        buildStatusOverlay();
+        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+
+        // Verify we have an iframe to drive
+        const iframe = findGameIframe();
+        if (!iframe) {
+            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
+            tourState.running = false;
+            return;
+        }
+
+        for (let i = 0; i < TOUR.length; i++) {
+            if (tourState.cancelRequested) {
+                logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
+                break;
+            }
+            tourState.index = i;
+            const step = TOUR[i];
+            const stepStart = Date.now();
+            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting ' + (WAIT_PER_PAGE_MS/1000) + 's...');
+            const navOk = navigateIframeTo(step.path);
+            if (!navOk) {
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' SKIPPED (iframe nav failed)');
+                continue;
+            }
+            await sleep(WAIT_PER_PAGE_MS);
+            if (tourState.cancelRequested) break;
+            try {
+                const dump = await dumpCurrent(step.label, step.path);
+                const sizeKb = Math.round(safeStringify(dump).length / 1024);
+                tourState.results.push(dump);
+                const stepDur = Math.round((Date.now() - stepStart)/1000);
+                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
+                const bodyPage = (dump.game_context && dump.game_context.body_page) || '?';
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' OK | ' + sizeKb + ' KB | ctx=' + ctxNow + ' | body_page=' + bodyPage + ' | ' + stepDur + 's');
+            } catch (e) {
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
+            }
+            await sleep(POST_DUMP_PAUSE_MS);
+        }
+
+        const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
+        const bundle = {
+            meta: {
+                timestamp: new Date().toISOString(),
+                host: location.hostname,
+                href: location.href,
+                userAgent: navigator.userAgent,
+                inspectorVersion: '3.2.0',
+                tour_pages: TOUR.length,
+                tour_duration_sec: totalDur,
+                wait_per_page_ms: WAIT_PER_PAGE_MS,
+                cancelled: tourState.cancelRequested
+            },
+            pages: tourState.results
+        };
+        const text = safeStringify(bundle);
+        const sizeKb = Math.round(text.length / 1024);
+        updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
+        downloadJson(text, 'tour');
+        // Also keep a reference in localStorage for one-shot inspection (size-aware)
+        try {
+            if (text.length < 4 * 1024 * 1024) {
+                localStorage.setItem('hhauto_last_tour', text);
+            } else {
+                localStorage.setItem('hhauto_last_tour', '[too large for localStorage - check downloaded file]');
+            }
+        } catch (e) { /* quota */ }
+        tourState.running = false;
+
+        // Add a "show last result" button
+        if (tourState.statusEl) {
+            const showBtn = mkBtn('SHOW IN OVERLAY', '#2196F3', function() {
+                showSingleDumpOverlay(text, 'tour');
+            });
+            showBtn.style.padding = '6px 12px';
+            showBtn.style.fontSize = '12px';
+            showBtn.style.marginTop = '6px';
+            tourState.statusEl.parentElement.appendChild(showBtn);
+        }
+    }
+
+    // ---------- buttons ----------
+
+    function makeButtons() {
+        refreshCtx();
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:fixed;top:10px;right:10px;z-index:99999;display:flex;flex-direction:column;gap:6px;font-family:monospace;';
+
+        const single = document.createElement('div');
+        single.textContent = 'DUMP THIS PAGE';
+        single.style.cssText = 'background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
+        single.onclick = runSingleDump;
+        single.title = 'Dump current page only (' + CTX.where + ')';
+
+        const tour = document.createElement('div');
+        tour.textContent = 'AUTO DUMP ALL';
+        tour.style.cssText = 'background:#2196F3;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
+        tour.onclick = runTour;
+        tour.title = 'Auto-tour through all pages, 7s each, then download bundle';
+
+        wrap.appendChild(single);
+        wrap.appendChild(tour);
+        document.body.appendChild(wrap);
+    }
+
+    setTimeout(makeButtons, 2000);
 
 })();
