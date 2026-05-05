@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      3.10.2
+// @version      3.11.0
 // @description  Auto-tour through all relevant pages, dump everything (girls, hero, teams, league, blessings, synergies, opponents, boosters, market, all globals). iframe-aware.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -362,7 +362,7 @@
                 search: location.search,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.2',
+                inspectorVersion: '3.11.0',
                 ctx: CTX.where
             },
             game_context: tryGet(dumpGameContext, {}),
@@ -499,54 +499,48 @@
     // Tour-list: paths to navigate the iframe through. 7s wait per page.
     // Order chosen so that data-richest pages come first (in case of early abort).
 
-    // expected: body[page] attribute the iframe should land on after navigation.
-    // If after WAIT_PER_PAGE_MS the body[page] does not match, the page is retried via
-    // the Battle-Teams approach (click the in-game link if present), then the navigation
-    // is retried once more before giving up and dumping whatever is there.
     const TOUR = [
-        // Critical data sources first - must succeed
-        { path: '/home.html',               label: 'Home',                       expected: 'home' },
-        { path: '/waifu.html',              label: 'Waifu (girls_data_list)',    expected: 'waifu' },
-        { path: '/leagues.html',            label: 'League (opponents_list)',    expected: 'leaderboard' },
-        { path: '/season-arena.html',       label: 'SeasonArena (opponents)',    expected: 'season_arena' },
-        { path: '/penta-drill-arena.html',  label: 'PentaDrillArena',            expected: 'penta_drill_arena' },
-        { path: '/penta-drill.html',        label: 'PentaDrill',                 expected: 'penta_drill' },
-        { path: '/labyrinth.html',          label: 'Labyrinth (girl_squad)',     expected: 'labyrinth' },
-        { path: '/labyrinth-entrance.html', label: 'LabyrinthEntrance',          expected: 'labyrinth-entrance' },
-        { path: '/club-champion.html',      label: 'ClubChampion',               expected: 'club_champion' },
-        { path: '/champions-map.html',      label: 'ChampionsMap',               expected: 'champions_map' },
-        { path: '/shop.html',               label: 'Shop',                       expected: 'shop' },
-        { path: '/clubs.html',              label: 'Clubs',                      expected: 'clubs' },
-        { path: '/pantheon.html',           label: 'Pantheon',                   expected: 'pantheon' },
-        { path: '/season.html',             label: 'Season',                     expected: 'season' },
-        { path: '/event.html',              label: 'Event',                      expected: 'event' },
-        { path: '/seasonal.html',           label: 'Seasonal',                   expected: 'seasonal' },
-        { path: '/path-of-glory.html',      label: 'PathOfGlory',                expected: 'path-of-glory' },
-        { path: '/path-of-valor.html',      label: 'PathOfValor',                expected: 'path-of-valor' },
-        { path: '/pachinko.html',           label: 'Pachinko',                   expected: 'pachinko' },
-        { path: '/map.html',                label: 'Map',                        expected: 'map' },
-        { path: '/activities.html',                  label: 'Activities',          expected: 'activities' },
-        { path: '/activities.html?tab=contests',     label: 'Activities/Contests', expected: 'activities' },
-        { path: '/activities.html?tab=missions',     label: 'Activities/Missions', expected: 'activities' },
-        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals', expected: 'activities' },
-        { path: '/activities.html?tab=pop',          label: 'Activities/PoP',      expected: 'activities' },
-        { path: '/hero/profile.html',       label: 'Hero Profile',               expected: 'hero_pages' },
-        { path: '/member-progression.html', label: 'Member Progression',         expected: 'member-progression' }
+        { path: '/home.html',                  label: 'Home' },
+        { path: '/leagues.html',               label: 'League (opponents_list)' },
+        { path: '/season-arena.html',          label: 'SeasonArena (opponents)' },
+        { path: '/penta-drill-arena.html',     label: 'PentaDrillArena (opponents_list)' },
+        { path: '/penta-drill.html',           label: 'PentaDrill' },
+        { path: '/labyrinth.html',             label: 'Labyrinth (girl_squad)' },
+        { path: '/labyrinth-entrance.html',    label: 'LabyrinthEntrance' },
+        { path: '/club-champion.html',         label: 'ClubChampion (championData)' },
+        { path: '/champions-map.html',         label: 'ChampionsMap' },
+        { path: '/shop.html',                  label: 'Shop (items DOM)' },
+        { path: '/clubs.html',                 label: 'Clubs (Chat_vars)' },
+        { path: '/pantheon.html',              label: 'Pantheon' },
+        { path: '/season.html',                label: 'Season' },
+        { path: '/event.html',                 label: 'Event (event_data)' },
+        { path: '/seasonal.html',              label: 'Seasonal Event' },
+        { path: '/path-of-glory.html',         label: 'Path of Glory' },
+        { path: '/path-of-valor.html',         label: 'Path of Valor' },
+        { path: '/pachinko.html',              label: 'Pachinko' },
+        { path: '/waifu.html',                 label: 'Waifu' },
+        { path: '/map.html',                   label: 'Map' },
+        { path: '/activities.html',            label: 'Activities' },
+        { path: '/activities.html?tab=contests',     label: 'Activities/Contests' },
+        { path: '/activities.html?tab=missions',     label: 'Activities/Missions' },
+        { path: '/activities.html?tab=daily_goals',  label: 'Activities/DailyGoals' },
+        { path: '/activities.html?tab=pop',          label: 'Activities/PoP' },
+        { path: '/hero/profile.html',          label: 'Hero Profile' },
+        { path: '/member-progression.html',    label: 'Member Progression' }
     ];
 
-    // Pages that auto-navigation cannot reach reliably (game routes them to /home.html).
-    // After AUTO_TOUR completes, the user is asked to open each one manually via the game UI.
+    // Pages that the auto-tour cannot reach reliably. The user navigates manually.
+    // This list is processed by the separate MANUAL TOUR button.
     const MANUAL_PAGES = [
-        { path: '/characters.html',         label: 'Harem',                     expected: 'harem' },
         { path: '/teams.html',              label: 'BattleTeams (teams_data)',  expected: 'teams' },
         { path: '/edit-team.html',          label: 'EditTeam (availableGirls)', expected: 'edit-team' },
+        { path: '/characters.html',         label: 'Harem',                     expected: 'harem' },
         { path: '/path-of-attraction.html', label: 'PathOfAttraction',          expected: 'path_of_attraction' },
         { path: '/sex-god-path.html',       label: 'SexGodPath',                expected: 'sex-god-path' },
         { path: '/love-raids.html',         label: 'LoveRaids',                 expected: 'love_raids' }
     ];
 
     const WAIT_PER_PAGE_MS = 7000;
-    const POST_LOAD_SETTLE_MS = 1500;
     const POST_DUMP_PAUSE_MS = 500;
 
     let tourState = {
@@ -582,26 +576,7 @@
         });
         cancel.style.padding = '6px 12px';
         cancel.style.fontSize = '12px';
-
-        const dumpPartial = mkBtn('SAVE PARTIAL', '#4CAF50', function() {
-            const text = safeStringify({
-                meta: {
-                    partial: true,
-                    timestamp: new Date().toISOString(),
-                    host: location.hostname,
-                    inspectorVersion: '3.10.2',
-                    completed: tourState.results.length,
-                    cancelled: tourState.cancelRequested
-                },
-                pages: tourState.results
-            });
-            downloadJson(text, 'partial');
-        });
-        dumpPartial.style.padding = '6px 12px';
-        dumpPartial.style.fontSize = '12px';
-
         btnRow.appendChild(cancel);
-        btnRow.appendChild(dumpPartial);
         ov.appendChild(title);
         ov.appendChild(status);
         ov.appendChild(progress);
@@ -651,90 +626,120 @@
         return new Promise(function(r) { setTimeout(r, ms); });
     }
 
-    function getCurrentBodyPage() {
-        try {
-            refreshCtx();
-            const d = gameDoc() || document;
-            const body = d.querySelector('body[page]');
-            return body ? body.getAttribute('page') : null;
-        } catch (e) { return null; }
-    }
-
-    async function waitForPageMatch(expected, maxWaitMs) {
-        const interval = 250;
-        const deadline = Date.now() + maxWaitMs;
-        let last = null;
-        while (Date.now() < deadline) {
-            const cur = getCurrentBodyPage();
-            if (cur === expected) return { matched: true, page: cur };
-            last = cur;
-            await sleep(interval);
+    async function runTour() {
+        if (tourState.running) {
+            alert('Tour already running');
+            return;
         }
-        return { matched: false, page: last };
-    }
+        tourState = {
+            running: true,
+            index: 0,
+            results: [],
+            startedAt: Date.now(),
+            statusEl: null,
+            progressEl: null,
+            cancelRequested: false
+        };
+        buildStatusOverlay();
+        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
 
-    async function tryClickInGameNav(targetPath) {
-        // The game intercepts in-game <a href> clicks via its own router.
-        // Direct iframe.src changes sometimes lose game session context and bounce to /home.html.
-        // Try to find a matching <a href> inside the iframe and click it.
-        try {
-            const d = gameDoc();
-            if (!d) return false;
-            const sel = 'a[href="' + targetPath + '"], a[href$="' + targetPath + '"]';
-            const link = d.querySelector(sel);
-            if (link) {
-                link.click();
-                return true;
+        // Verify we have an iframe to drive
+        const iframe = findGameIframe();
+        if (!iframe) {
+            updateStatus('<span style="color:#ff5555">ERROR: No game iframe found. Tour aborted.</span>');
+            tourState.running = false;
+            return;
+        }
+
+        for (let i = 0; i < TOUR.length; i++) {
+            if (tourState.cancelRequested) {
+                logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
+                break;
             }
-        } catch (e) {}
-        return false;
-    }
-
-    async function navigateAndWait(step) {
-        const expected = step.expected;
-        const path = step.path;
-        let attempts = 0;
-        let actualPage = null;
-
-        // Attempt 1: direct iframe.src
-        attempts++;
-        navigateIframeTo(path);
-        let waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
-        actualPage = waited.page;
-        if (waited.matched) {
-            // Extra settle time for late JS to populate variables
-            await sleep(POST_LOAD_SETTLE_MS);
-            return { actualPage: getCurrentBodyPage(), attempts: attempts };
-        }
-
-        // Attempt 2: try clicking an in-game link (game-router preserves session)
-        attempts++;
-        const clicked = await tryClickInGameNav(path);
-        if (clicked) {
-            waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
-            actualPage = waited.page;
-            if (waited.matched) {
-                await sleep(POST_LOAD_SETTLE_MS);
-                return { actualPage: getCurrentBodyPage(), attempts: attempts };
+            tourState.index = i;
+            const step = TOUR[i];
+            const stepStart = Date.now();
+            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting ' + (WAIT_PER_PAGE_MS/1000) + 's...');
+            const navOk = navigateIframeTo(step.path);
+            if (!navOk) {
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' SKIPPED (iframe nav failed)');
+                continue;
             }
+            await sleep(WAIT_PER_PAGE_MS);
+            if (tourState.cancelRequested) break;
+            try {
+                const dump = await dumpCurrent(step.label, step.path);
+                const sizeKb = Math.round(safeStringify(dump).length / 1024);
+                tourState.results.push(dump);
+                const stepDur = Math.round((Date.now() - stepStart)/1000);
+                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
+                const bodyPage = (dump.game_context && dump.game_context.body_page) || '?';
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' OK | ' + sizeKb + ' KB | ctx=' + ctxNow + ' | body_page=' + bodyPage + ' | ' + stepDur + 's');
+            } catch (e) {
+                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
+            }
+            await sleep(POST_DUMP_PAUSE_MS);
         }
 
-        // Attempt 3: go via home first, then retry direct nav (resets game state)
-        attempts++;
-        navigateIframeTo('/home.html');
-        await waitForPageMatch('home', 5000);
-        navigateIframeTo(path);
-        waited = await waitForPageMatch(expected, WAIT_PER_PAGE_MS);
-        actualPage = waited.page;
-        await sleep(POST_LOAD_SETTLE_MS);
-        return { actualPage: getCurrentBodyPage(), attempts: attempts };
+        const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
+        const bundle = {
+            meta: {
+                timestamp: new Date().toISOString(),
+                host: location.hostname,
+                href: location.href,
+                userAgent: navigator.userAgent,
+                inspectorVersion: '3.11.0',
+                tour_pages: TOUR.length,
+                tour_duration_sec: totalDur,
+                wait_per_page_ms: WAIT_PER_PAGE_MS,
+                cancelled: tourState.cancelRequested
+            },
+            pages: tourState.results
+        };
+        const text = safeStringify(bundle);
+        const sizeKb = Math.round(text.length / 1024);
+        updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
+        downloadJson(text, 'tour');
+        // Also keep a reference in localStorage for one-shot inspection (size-aware)
+        try {
+            if (text.length < 4 * 1024 * 1024) {
+                localStorage.setItem('hhauto_last_tour', text);
+            } else {
+                localStorage.setItem('hhauto_last_tour', '[too large for localStorage - check downloaded file]');
+            }
+        } catch (e) { /* quota */ }
+        tourState.running = false;
+
+        // Add a "show last result" button
+        if (tourState.statusEl) {
+            const showBtn = mkBtn('SHOW IN OVERLAY', '#2196F3', function() {
+                showSingleDumpOverlay(text, 'tour');
+            });
+            showBtn.style.padding = '6px 12px';
+            showBtn.style.fontSize = '12px';
+            showBtn.style.marginTop = '6px';
+            tourState.statusEl.parentElement.appendChild(showBtn);
+        }
     }
 
-        function showManualPrompt(step) {
+    // ---------- buttons ----------
+
+
+    // ---------- MANUAL TOUR ----------
+
+    function showManualPrompt(step) {
         return new Promise(function(resolve) {
             const old = document.getElementById('hhauto_manual_prompt');
             if (old) old.remove();
-            const cur = getCurrentBodyPage() || '?';
+            const cur = (function() {
+                refreshCtx();
+                const d = gameDoc();
+                if (d) {
+                    const body = d.querySelector('body[page]');
+                    if (body) return body.getAttribute('page');
+                }
+                return '?';
+            })();
             const ov = document.createElement('div');
             ov.id = 'hhauto_manual_prompt';
             ov.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;';
@@ -758,141 +763,97 @@
         });
     }
 
-    async function runTour() {
-        if (tourState.running) {
-            alert('Tour already running');
-            return;
-        }
-        tourState = {
-            running: true,
-            index: 0,
-            results: [],
-            startedAt: Date.now(),
-            statusEl: null,
-            progressEl: null,
-            cancelRequested: false
-        };
-        buildStatusOverlay();
-        updateStatus('Starting tour ' + TOUR.length + ' pages, ' + (WAIT_PER_PAGE_MS/1000) + 's per page...');
+    function getCurrentBodyPageSafe() {
         try {
+            refreshCtx();
+            const d = gameDoc();
+            if (d) {
+                const body = d.querySelector('body[page]');
+                if (body) return body.getAttribute('page');
+            }
+        } catch (e) {}
+        return null;
+    }
 
-        for (let i = 0; i < TOUR.length; i++) {
-            if (tourState.cancelRequested) {
-                logProgress('-- Cancelled at step ' + (i+1) + '/' + TOUR.length);
+    async function runManualTour() {
+        const results = [];
+        const startedAt = Date.now();
+        // Build a small status overlay (progress only)
+        const old = document.getElementById('hhauto_manual_overlay');
+        if (old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'hhauto_manual_overlay';
+        ov.style.cssText = 'position:fixed;top:80px;right:10px;width:380px;background:rgba(0,0,0,0.92);color:#0f0;font:12px monospace;padding:12px;border-radius:6px;z-index:999998;box-shadow:0 4px 16px rgba(0,0,0,0.6);';
+        const title = document.createElement('div');
+        title.style.cssText = 'font-weight:bold;color:#ffb827;font-size:14px;margin-bottom:6px;';
+        title.textContent = 'HHAuto Manual Tour';
+        const status = document.createElement('div');
+        status.style.cssText = 'margin-bottom:6px;line-height:1.5;';
+        const log = document.createElement('div');
+        log.style.cssText = 'max-height:300px;overflow-y:auto;font-size:11px;color:#aaa;border-top:1px solid #333;padding-top:6px;';
+        ov.appendChild(title); ov.appendChild(status); ov.appendChild(log);
+        document.body.appendChild(ov);
+
+        for (let i = 0; i < MANUAL_PAGES.length; i++) {
+            const step = MANUAL_PAGES[i];
+            status.innerHTML = 'Page ' + (i+1) + '/' + MANUAL_PAGES.length + ': <b>' + step.label + '</b><br/>Open in game UI then click DUMP NOW';
+            const choice = await showManualPrompt(step);
+            if (choice === 'abort') {
+                const line = document.createElement('div'); line.textContent = 'ABORTED at ' + (i+1); log.appendChild(line);
                 break;
             }
-            tourState.index = i;
-            const step = TOUR[i];
-            const stepStart = Date.now();
-            updateStatus('Step ' + (i+1) + '/' + TOUR.length + ': <b>' + step.label + '</b><br/>' + step.path + '<br/>Loading + waiting up to ' + (WAIT_PER_PAGE_MS/1000) + 's...');
-            const result = await navigateAndWait(step);
-            if (tourState.cancelRequested) break;
+            if (choice === 'skip') {
+                const line = document.createElement('div'); line.textContent = (i+1) + '. ' + step.label + ' SKIPPED'; log.appendChild(line);
+                continue;
+            }
+            // dump current page
             try {
-                const dump = await dumpCurrent(step.label, step.path);
-                dump.tour_meta.expected_page = step.expected;
-                dump.tour_meta.actual_page = result.actualPage;
-                dump.tour_meta.match = (result.actualPage === step.expected);
-                dump.tour_meta.attempts = result.attempts;
+                const dump = dumpEverything();
+                await new Promise(function(resolve) {
+                    fetchBlessings(function(blessings) { dump.live_blessings_api = blessings; resolve(); });
+                });
+                const actualPage = getCurrentBodyPageSafe();
+                dump.tour_meta = {
+                    label: step.label,
+                    requested_path: step.path,
+                    expected_page: step.expected,
+                    actual_page: actualPage,
+                    match: actualPage === step.expected,
+                    manual: true
+                };
+                results.push(dump);
                 const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                tourState.results.push(dump);
-                // persist after every step so a crash does not lose progress
-                try { localStorage.setItem('hhauto_partial_bundle', safeStringify({ meta: { partial: true, completed: tourState.results.length, when: new Date().toISOString() }, pages: tourState.results })); } catch (e) {}
-                const stepDur = Math.round((Date.now() - stepStart)/1000);
-                const ctxNow = (dump.meta && dump.meta.ctx) || '?';
-                const bodyPage = result.actualPage || '?';
-                const matchTag = dump.tour_meta.match ? 'OK' : ('MISMATCH(want=' + step.expected + ')');
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ' + matchTag + ' | ' + sizeKb + ' KB | body_page=' + bodyPage + ' | ' + stepDur + 's | tries=' + result.attempts);
+                const matchTag = dump.tour_meta.match ? 'OK' : ('mismatch want=' + step.expected + ' got=' + actualPage);
+                const line = document.createElement('div');
+                line.textContent = (i+1) + '. ' + step.label + ' ' + matchTag + ' | ' + sizeKb + ' KB';
+                log.appendChild(line);
+                log.scrollTop = log.scrollHeight;
             } catch (e) {
-                logProgress((i+1).toString().padStart(2,'0') + '. ' + step.label + ' ERROR: ' + e.message);
-            }
-            await sleep(POST_DUMP_PAUSE_MS);
-        }
-
-        // ---- MANUAL PHASE ----
-        if (!tourState.cancelRequested) {
-            updateStatus('Auto phase done. Now ' + MANUAL_PAGES.length + ' manual pages...<br/>Use the game UI to open each, then click DUMP NOW.');
-            for (let mi = 0; mi < MANUAL_PAGES.length; mi++) {
-                if (tourState.cancelRequested) break;
-                const mstep = MANUAL_PAGES[mi];
-                const choice = await showManualPrompt(mstep);
-                if (choice === 'abort') { tourState.cancelRequested = true; break; }
-                if (choice === 'skip') {
-                    logProgress('-- MANUAL ' + (mi+1) + '/' + MANUAL_PAGES.length + '. ' + mstep.label + ' SKIPPED');
-                    continue;
-                }
-                // dump
-                refreshCtx();
-                try {
-                    const dump = await dumpCurrent(mstep.label, mstep.path);
-                    dump.tour_meta.expected_page = mstep.expected;
-                    dump.tour_meta.actual_page = getCurrentBodyPage();
-                    dump.tour_meta.match = (dump.tour_meta.actual_page === mstep.expected);
-                    dump.tour_meta.manual = true;
-                    const sizeKb = Math.round(safeStringify(dump).length / 1024);
-                    tourState.results.push(dump);
-                    try { localStorage.setItem('hhauto_partial_bundle', safeStringify({ meta: { partial: true, completed: tourState.results.length, when: new Date().toISOString() }, pages: tourState.results })); } catch (e) {}
-                    const matchTag = dump.tour_meta.match ? 'OK' : ('mismatch want=' + mstep.expected + ' got=' + dump.tour_meta.actual_page);
-                    logProgress('M' + (mi+1) + '. ' + mstep.label + ' ' + matchTag + ' | ' + sizeKb + ' KB [MANUAL]');
-                } catch (e) {
-                    logProgress('M' + (mi+1) + '. ' + mstep.label + ' ERROR: ' + e.message);
-                }
+                const line = document.createElement('div');
+                line.textContent = (i+1) + '. ' + step.label + ' ERROR: ' + e.message;
+                log.appendChild(line);
             }
         }
 
-        const totalDur = Math.round((Date.now() - tourState.startedAt) / 1000);
+        const totalDur = Math.round((Date.now() - startedAt) / 1000);
         const bundle = {
             meta: {
                 timestamp: new Date().toISOString(),
                 host: location.hostname,
                 href: location.href,
                 userAgent: navigator.userAgent,
-                inspectorVersion: '3.10.2',
-                tour_pages: TOUR.length + MANUAL_PAGES.length,
+                inspectorVersion: '3.11.0',
+                tour_pages: MANUAL_PAGES.length,
+                tour_completed_pages: results.length,
                 tour_duration_sec: totalDur,
-                wait_per_page_ms: WAIT_PER_PAGE_MS,
-                cancelled: tourState.cancelRequested
+                manual: true
             },
-            pages: tourState.results
+            pages: results
         };
         const text = safeStringify(bundle);
-        const sizeKb = Math.round(text.length / 1024);
-        updateStatus('Tour finished. ' + tourState.results.length + '/' + TOUR.length + ' pages dumped. ' + sizeKb + ' KB total. ' + totalDur + 's. Downloading bundle...');
-        downloadJson(text, 'tour');
-        // Also keep a reference in localStorage for one-shot inspection (size-aware)
-        try {
-            if (text.length < 4 * 1024 * 1024) {
-                localStorage.setItem('hhauto_last_tour', text);
-            } else {
-                localStorage.setItem('hhauto_last_tour', '[too large for localStorage - check downloaded file]');
-            }
-        } catch (e) { /* quota */ }
-        } catch (err) {
-            console.error('[HHAuto Inspector] Tour aborted with error:', err);
-            logProgress('!! TOUR ERROR: ' + (err && err.message ? err.message : err));
-            try {
-                const text = safeStringify({
-                    meta: { partial: true, error: String(err && err.message || err), timestamp: new Date().toISOString(), host: location.hostname, inspectorVersion: '3.10.2', completed: tourState.results.length },
-                    pages: tourState.results
-                });
-                downloadJson(text, 'crashed');
-                updateStatus('<span style="color:#ff8888">Tour crashed: ' + (err && err.message ? err.message : 'unknown') + '</span><br/>Partial bundle (' + tourState.results.length + ' pages) downloaded.');
-            } catch (e) {}
-        }
-        tourState.running = false;
-
-        // Add a "show last result" button
-        if (tourState.statusEl) {
-            const showBtn = mkBtn('SHOW IN OVERLAY', '#2196F3', function() {
-                showSingleDumpOverlay(text, 'tour');
-            });
-            showBtn.style.padding = '6px 12px';
-            showBtn.style.fontSize = '12px';
-            showBtn.style.marginTop = '6px';
-            tourState.statusEl.parentElement.appendChild(showBtn);
-        }
+        status.innerHTML = 'Manual tour finished: ' + results.length + '/' + MANUAL_PAGES.length + ' pages, ' + Math.round(text.length/1024) + ' KB';
+        downloadJson(text, 'manual_tour');
     }
-
-    // ---------- buttons ----------
 
     function makeButtons() {
         refreshCtx();
@@ -906,13 +867,20 @@
         single.title = 'Dump current page only (' + CTX.where + ')';
 
         const tour = document.createElement('div');
-        tour.textContent = 'AUTO DUMP ALL';
+        tour.textContent = 'AUTO TOUR';
         tour.style.cssText = 'background:#2196F3;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
         tour.onclick = runTour;
-        tour.title = 'Auto-tour through all pages, 7s each, then download bundle';
+        tour.title = 'Auto-tour through ' + TOUR.length + ' pages that work via iframe nav';
+
+        const manual = document.createElement('div');
+        manual.textContent = 'MANUAL TOUR';
+        manual.style.cssText = 'background:#9C27B0;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
+        manual.onclick = runManualTour;
+        manual.title = 'Walk through ' + MANUAL_PAGES.length + ' pages that need manual navigation';
 
         wrap.appendChild(single);
         wrap.appendChild(tour);
+        wrap.appendChild(manual);
         document.body.appendChild(wrap);
     }
 
