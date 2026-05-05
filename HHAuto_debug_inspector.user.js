@@ -729,35 +729,17 @@
 
     async function finishTour(state) {
         const totalDur = state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
-        const allResults = loadAllResults();
-        const bundle = {
-            meta: {
-                timestamp: new Date().toISOString(),
-                host: location.hostname,
-                href: location.href,
-                inspectorVersion: VERSION,
-                tour_pages: AUTO_TOUR.length + MANUAL_TOUR.length,
-                tour_completed_pages: allResults.length,
-                tour_duration_sec: totalDur
-            },
-            pages: allResults
-        };
-        const text = safeStringify(bundle);
-        const sizeKb = Math.round(text.length / 1024);
+        const completed = state.completedSteps || 0;
+        const total = AUTO_TOUR.length + MANUAL_TOUR.length;
         clearState();
-        downloadJson(text, 'tour');
         setStatusBar(
-            'Tour finished: <b style=\"color:#4CAF50\">' + allResults.length + '/' + (AUTO_TOUR.length + MANUAL_TOUR.length) + ' pages</b>, ' +
-            sizeKb + ' KB, ' + totalDur + 's',
-            [
-                mkBtn('REVIEW BUNDLE', '#2196F3', function() { showSingleDumpOverlay(text, 'tour'); }),
-                mkBtn('CLOSE', '#888', function() { clearStatusBar(); makeButtons(); })
-            ]
+            'Tour finished: ' + completed + '/' + total + ' pages downloaded as separate files. ' + totalDur + 's',
+            [mkBtn('CLOSE', '#888', function() { clearStatusBar(); makeButtons(); })]
         );
-        console.log(LOG_PREFIX, 'Tour finished:', allResults.length, 'pages,', sizeKb, 'KB');
+        console.log(LOG_PREFIX, 'Tour finished:', completed, 'pages,', totalDur, 's');
     }
 
-    function startTour() {
+        function startTour() {
         if (loadState()) {
             if (!confirm('A tour is already in progress. Restart from scratch?')) return;
         }
