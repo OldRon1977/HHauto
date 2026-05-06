@@ -1,5 +1,5 @@
 ---
-last-verified: 2026-05-05
+last-verified: 2026-05-06
 verified-against-version: 7.35.21
 status: current
 ---
@@ -7,7 +7,7 @@ status: current
 # Technical Reference: Team Selection Data & API
 
 Referenz-Doku zur Team-Auswahl. Adressiert Issues #1340 und #1573.
-Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
+Letzte vollstaendige Verifikation: 2026-05-06 gegen v7.35.23.
 
 ---
 
@@ -318,7 +318,7 @@ Der Team-Builder liest `caracs` direkt. **Kein Unequip noetig vor Score.** Ein U
 | `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier-3 Trait-Match-Bonus |
 | `src/Service/TeamScoringService.ts` | `findTraitGroups(girls, class, blessed?)` | gruppiere nach Element-Paar + gemeinsamem Trait-Wert |
 | `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Synergie-Berechnung (informational) |
-| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader-Ranking: Mythic only, Tier-5-Prioritaet |
+| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader-Ranking: Mythic only, Tier-5-Prioritaet GLOBAL, Cluster-Membership Tiebreaker (v7.35.23) |
 | `src/Service/TeamBuilderService.ts` | `buildTeam(girls, mode, level, playerClass)` | Haupt-Eintritt: Filter, Cluster-Vergleich, Leader, Slot-Fill |
 | `src/Service/TeamBuilderService.ts` | `getElementDistribution()` | Element-Counts fuer UI |
 | `src/Service/TraitMappings.ts` | `resolve(category, value)` | Hex/Position/Zodiac -> lesbares Label, Runtime + Fallback |
@@ -417,7 +417,8 @@ Process:
                                                   blessed Cluster bekommen x1.5 Score-Boost
   6. Top 5 Cluster + alle blessed Cluster evaluieren
   7. Pro Cluster: Team mit Leader + 6 Slot-Fills bauen
-     - Leader: Mythic, Tier-5 Shield(4) > Stun(3) > Execute(2) > Reflect(1)
+     - Leader: GLOBAL Mythic-Pool, Tier-5 Shield(4) > Stun(3) > Execute(2) > Reflect(1)
+                 + Cluster-Mitgliedschaft als Tiebreaker (ab v7.35.23)
      - Slot 2-7 in 3 Passes:
        Pass 1: Element-Paar + Trait-Match
        Pass 2: Element-Paar (irgendein Trait)
@@ -474,3 +475,4 @@ Die Cycles sind in `BDSMHelper.ELEMENTS` als `chance` (3 Elemente) und `egoDamag
 | v7.35.x | Hex-Mapping-Bug, BlessingService-Cache (`Temp_blessingsCache`), kleinere UI-Korrekturen. |
 | v7.35.20 | Interim-Versuch: simpler "Top 7 by stats with element-cluster tiebreaker". Wurde durch v7.35.21 ersetzt. |
 | v7.35.21 | v4-Algorithmus: main_carac-Score, Klassen-Filter, Klar-Namen via TraitMappings, Cluster-Vergleich nach effective Power, kein Pool-Cap, Equipment-Hinweis (Issues #1340, #1573). |
+| v7.35.23 | Leader global gepickt (Tier-5-Prio ueber alle Mythics, nicht Cluster-gefiltert); Slots 2-7 bleiben Cluster-bound. Mode-Diff-Detection: Hinweis wenn beide Modi gleiches Top-7 liefern. Info-Box in 2 Bloecke (Leader / Cluster). Beginner-Pool ohne Mythics: Legendary-Leader nach Cluster + Trait + Stat (Tier-5 deaktiviert da Legendaries keine aktiven Tier-5-Skills haben). Issues #1573, #1603. |

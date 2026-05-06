@@ -16,6 +16,23 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.23 - Team leader fix and Best Possible / Current Best clarity
+
+Two related fixes for the team selection.
+
+**Leader pick now respects the tier-5 priority across the whole roster.**
+The Shield > Stun > Execute > Reflect order now applies to all your Mythics, not only those whose element matches the chosen cluster. If you own a Shield Mythic and the best cluster is something else (e.g. eye color), the Shield Mythic still goes into slot 1. Slots 2-7 keep filling from the cluster so the Tier-3 trait bonus stays maximised.
+
+The total team power may end up slightly lower than it would be with a higher-stat leader from the cluster. That is intentional: a Shield leader anchors a defensive skill that scales over the entire fight, which is more valuable than the few extra stat points a non-Shield leader would add.
+
+**Info box restructured into two clear blocks.**
+"Leader (Position 1)" and "Cluster (Positions 2-7)" are now separate sections, with a note explaining why the leader may be from a different element pair than the rest of the team.
+
+**Best Possible vs Current Best now tells you when both produce the same team.**
+If your top 7 girls are already at your level cap with full grades, both buttons mathematically pick the same team. The info box now says so plainly instead of looking like a silent bug.
+
+---
+
 ### v7.35.22 - Fix: "Forbidden" errors and event/league loop
 
 Two related fixes that address the wave of "Access forbidden" reports (issue #1598).
