@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.23
+// @version      7.35.24
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -17045,6 +17045,12 @@ const TIER3_BONUS_LEGENDARY = 0.008;
 // the actual stat impact already lives inside girl.caracs once the
 // game applies the weekly blessing).
 const BLESSED_CATEGORY_BOOST = 1.5;
+// Theoretical maximum girl level (full awakening cap).
+// 'Best Possible' projects every girl to this level -- the mode answers
+// 'what would each girl be worth if I awakened her to the cap', not
+// 'what could the player level her to right now'. Per Kinkoid patch
+// notes, every girl can be awakened to 750 from level 1.
+const PROJECTION_LEVEL_CAP = 750;
 class TeamScoringService {
     /**
      * Get the girl's main-class stat (carac1/2/3 by player class).
@@ -17073,21 +17079,26 @@ class TeamScoringService {
     }
     /**
      * Score a girl for "Best Possible" mode.
-     * Projects main-carac to player level and full grades.
+     * Projects main-carac to the awakening cap (PROJECTION_LEVEL_CAP) and full grades.
      *
      * Formula:
-     *   potential = currentMainCarac / level * playerLevel
+     *   potential = currentMainCarac / level * PROJECTION_LEVEL_CAP
      *               / (1 + 0.3 * currentGrades) * (1 + 0.3 * maxGrades)
      *
      * Returns max(projected, current) so blessing-inflated current
      * stats never get demoted by the projection.
+     *
+     * Note: playerLevel is kept in the signature for backwards compatibility
+     * with callers but is no longer used in the formula. The mode now answers
+     * "what is each girl worth at full awakening", independent of the
+     * player's current level.
      */
-    static scoreBestPossible(girl, playerClass, playerLevel) {
+    static scoreBestPossible(girl, playerClass, _playerLevel) {
         const currentMain = TeamScoringService.getMainCarac(girl, playerClass);
         const level = girl.level || 1;
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
-        const levelFactor = playerLevel / Math.max(level, 1);
+        const levelFactor = PROJECTION_LEVEL_CAP / Math.max(level, 1);
         const gradeDeflator = 1 + 0.3 * currentGrades;
         const gradeInflator = 1 + 0.3 * maxGrades;
         const projected = (currentMain * levelFactor / gradeDeflator) * gradeInflator;

@@ -16,6 +16,10 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.24 - Best Possible projects to the awakening cap
+
+Best Possible mode now projects every girl to the level cap of 750 instead of your current player level. Previously, if your top girls were already awakened beyond your level, Best Possible could collapse to the same picks as Current Best because the projection had no room left to grow. The mode now consistently answers what each girl would be worth at full awakening, independent of your level.
+
 ### v7.35.23 - Team leader fix and Best Possible / Current Best clarity
 
 Two related fixes for the team selection.

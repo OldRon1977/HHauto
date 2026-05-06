@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-05-05
-verified-against-version: 7.35.21
+last-verified: 2026-05-06
+verified-against-version: 7.35.24
 status: current
 ---
 
@@ -106,14 +106,23 @@ score = caracs.caracN     (N = playerClass)
 
 #### Modus 2 -- "Best Possible"
 
+Projektion auf den Awakening-Cap (`PROJECTION_LEVEL_CAP = 750`), nicht auf das aktuelle Spieler-Level. Per Kinkoid-Patchnotes kann jedes Girl ab Level 1 bis 750 awakened werden -- der Modus beantwortet "was waere die Girl wert, wenn sie voll entwickelt waere", unabhaengig davon was der Spieler aktuell erreichen kann.
+
 ```
-projected = caracN / level * playerLevel
+projected = caracN / level * 750
             / (1 + 0.3 * graded)
             * (1 + 0.3 * nb_grades)
 
 score = max(projected, current_caracN)
         // Schutz gegen blessing-inflated current > projected
 ```
+
+`playerLevel` ist nicht mehr Teil der Formel. Vor v7.35.24 wurde
+`playerLevel` als Projektions-Ziel verwendet, was bei awakened
+Girls (`level == 750`) und Spielern unter Cap (`playerLevel < 750`)
+dazu fuehrte dass `projected < current` und der `max()`-Guard
+zurueck auf `current` snappte -- der Modus kollabierte zu Mode 1
+(Issue #1603).
 
 ### Phase 3: Trait-Gruppen
 
@@ -322,6 +331,7 @@ vor der Berechnung noetig. Stuff-Team danach ist trotzdem sinnvoll
 | `TIER3_BONUS_MYTHIC` | 0.01 | TeamScoringService.ts | 1.0% Bonus pro Match |
 | `TIER3_BONUS_LEGENDARY` | 0.008 | TeamScoringService.ts | 0.8% Bonus pro Match |
 | `BLESSED_CATEGORY_BOOST` | 1.5 | TeamScoringService.ts | Heuristik-Multiplikator fuer blessed Cluster |
+| `PROJECTION_LEVEL_CAP` | 750 | TeamScoringService.ts | Projektions-Ziel fuer Mode 2 (Awakening-Cap, ab v7.35.24) |
 
 ---
 
@@ -392,3 +402,5 @@ Fallback fuer Spec-Tests und den Fall dass GT noch nicht geladen ist.
 | 7.34.14 | Unified Slot-Fill mit Tier-3-Delta |
 | 7.35.x | Hex-Mapping-Bug, BlessingService-Cache |
 | 7.35.21 | v4: main_carac-Score, Klassen-Filter, Klar-Namen, Equipment-Hinweis (Issues #1340, #1573) |
+| 7.35.23 | Leader global gepickt (Tier-5 ueber alle Mythics), Mode-Diff-Detection, Beginner-Pool ohne Mythics (Issues #1573, #1603) |
+| 7.35.24 | Best-Possible projiziert auf Awakening-Cap 750 statt playerLevel (Issue #1603) |

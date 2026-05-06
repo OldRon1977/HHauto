@@ -125,6 +125,13 @@ const TIER3_BONUS_LEGENDARY = 0.008;
 // game applies the weekly blessing).
 const BLESSED_CATEGORY_BOOST = 1.5;
 
+// Theoretical maximum girl level (full awakening cap).
+// 'Best Possible' projects every girl to this level -- the mode answers
+// 'what would each girl be worth if I awakened her to the cap', not
+// 'what could the player level her to right now'. Per Kinkoid patch
+// notes, every girl can be awakened to 750 from level 1.
+const PROJECTION_LEVEL_CAP = 750;
+
 export class TeamScoringService {
 
     /**
@@ -156,22 +163,27 @@ export class TeamScoringService {
 
     /**
      * Score a girl for "Best Possible" mode.
-     * Projects main-carac to player level and full grades.
+     * Projects main-carac to the awakening cap (PROJECTION_LEVEL_CAP) and full grades.
      *
      * Formula:
-     *   potential = currentMainCarac / level * playerLevel
+     *   potential = currentMainCarac / level * PROJECTION_LEVEL_CAP
      *               / (1 + 0.3 * currentGrades) * (1 + 0.3 * maxGrades)
      *
      * Returns max(projected, current) so blessing-inflated current
      * stats never get demoted by the projection.
+     *
+     * Note: playerLevel is kept in the signature for backwards compatibility
+     * with callers but is no longer used in the formula. The mode now answers
+     * "what is each girl worth at full awakening", independent of the
+     * player's current level.
      */
-    static scoreBestPossible(girl: GirlData, playerClass: PlayerClass, playerLevel: number): number {
+    static scoreBestPossible(girl: GirlData, playerClass: PlayerClass, _playerLevel?: number): number {
         const currentMain = TeamScoringService.getMainCarac(girl, playerClass);
         const level = girl.level || 1;
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
 
-        const levelFactor = playerLevel / Math.max(level, 1);
+        const levelFactor = PROJECTION_LEVEL_CAP / Math.max(level, 1);
         const gradeDeflator = 1 + 0.3 * currentGrades;
         const gradeInflator = 1 + 0.3 * maxGrades;
 

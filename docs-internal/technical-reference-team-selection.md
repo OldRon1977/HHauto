@@ -1,6 +1,6 @@
 ---
 last-verified: 2026-05-06
-verified-against-version: 7.35.21
+verified-against-version: 7.35.24
 status: current
 ---
 
@@ -401,10 +401,18 @@ Score:
   Mode 2 ("Best Possible"):
     score = max(
       caracs.caracN,
-      caracs.caracN / max(level,1) * playerLevel
+      caracs.caracN / max(level,1) * 750         // PROJECTION_LEVEL_CAP, ab v7.35.24
                     / (1 + 0.3 * graded)
                     * (1 + 0.3 * nb_grades)
     )
+
+  // playerLevel ist seit v7.35.24 nicht mehr Teil der Formel.
+  // Projiziert wird auf den Awakening-Cap 750 (theoretisches Girl-Maximum
+  // laut Kinkoid-Patchnotes) -- der Modus beantwortet "was waere die Girl
+  // wert, wenn sie voll entwickelt waere", unabhaengig vom Spieler-Level.
+  // Vor v7.35.24 hatten awakened Girls (level=750) bei Spielern unter Cap
+  // identische Mode-1- und Mode-2-Ergebnisse, weil projected < current und
+  // der max()-Guard zurueckschnappte (Issue #1603).
 
 Process:
   1. Map availableGirls -> GirlData[]
@@ -476,3 +484,4 @@ Die Cycles sind in `BDSMHelper.ELEMENTS` als `chance` (3 Elemente) und `egoDamag
 | v7.35.20 | Interim-Versuch: simpler "Top 7 by stats with element-cluster tiebreaker". Wurde durch v7.35.21 ersetzt. |
 | v7.35.21 | v4-Algorithmus: main_carac-Score, Klassen-Filter, Klar-Namen via TraitMappings, Cluster-Vergleich nach effective Power, kein Pool-Cap, Equipment-Hinweis (Issues #1340, #1573). |
 | v7.35.23 | Leader global gepickt (Tier-5-Prio ueber alle Mythics, nicht Cluster-gefiltert); Slots 2-7 bleiben Cluster-bound. Mode-Diff-Detection: Hinweis wenn beide Modi gleiches Top-7 liefern. Info-Box in 2 Bloecke (Leader / Cluster). Beginner-Pool ohne Mythics: Legendary-Leader nach Cluster + Trait + Stat (Tier-5 deaktiviert da Legendaries keine aktiven Tier-5-Skills haben). Issues #1573, #1603. |
+| v7.35.24 | Mode 2 ("Best Possible") projiziert auf Awakening-Cap 750 (Konstante `PROJECTION_LEVEL_CAP`) statt auf `playerLevel`. Behebt Mode-1==Mode-2-Kollaps bei awakened Girls und Spielern unter Cap. `playerLevel` bleibt in der Signatur als optionaler unbenutzter Parameter (Backwards Compat). Issue #1603. |

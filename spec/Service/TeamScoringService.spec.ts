@@ -60,35 +60,68 @@ describe('TeamScoringService', () => {
     });
 
     describe('scoreBestPossible', () => {
-        it('should project main-carac for a fully graded girl at player level', () => {
+        it('should project main-carac for a fully graded girl up to the awakening cap', () => {
             // KH player (class 3), girl with carac3=3000 at level 50, 0/5 grades
-            // projected = 3000 / 50 * 100 / (1 + 0) * (1 + 1.5) = 3000 * 2 * 2.5 = 15000
+            // projected = 3000 / 50 * 750 / (1 + 0) * (1 + 1.5) = 3000 * 15 * 2.5 = 112500
+            // playerLevel arg is ignored -- projection target is the awakening cap (750).
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 0, nb_grades: 5,
             });
-            expect(TeamScoringService.scoreBestPossible(girl, 3, 100)).toBe(15000);
+            expect(TeamScoringService.scoreBestPossible(girl, 3, 100)).toBe(112500);
         });
 
         it('should account for existing grades reducing projected growth', () => {
-            // class 3, girl carac3=3000, level 50, 3/5 grades, player level 100
-            // projected = 3000 * 2 / 1.9 * 2.5
+            // class 3, girl carac3=3000, level 50, 3/5 grades
+            // projected = 3000 * (750/50) / (1 + 0.3*3) * (1 + 0.3*5)
+            //           = 3000 * 15 / 1.9 * 2.5
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 3, nb_grades: 5,
             });
-            const expected = 3000 * 2 / 1.9 * 2.5;
+            const expected = 3000 * 15 / 1.9 * 2.5;
             expect(TeamScoringService.scoreBestPossible(girl, 3, 100)).toBeCloseTo(expected, 2);
         });
 
         it('should never return less than current main-carac (blessing safeguard)', () => {
-            // High blessing makes current > projected when player already at max
+            // Girl already at the awakening cap (level 750) with full grades:
+            // projected = 12397 * (750/750) / 2.5 * 2.5 = 12397 = current.
+            // The max() guard returns current; blessings cannot get demoted.
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 12397,
-                level: 200, graded: 5, nb_grades: 5,
+                level: 750, graded: 5, nb_grades: 5,
             });
             const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
             expect(result).toBe(12397);
+        });
+
+        it('should project to the awakening cap regardless of player level', () => {
+            // Awakened girl at level 750, max grades: projected == current.
+            // Mode 2 must return that ceiling value, not collapse to 0 just
+            // because playerLevel is below 750. This is the fix for #1603.
+            const awakenedGirl = makeGirl({
+                carac1: 0, carac2: 0, carac3: 50000,
+                level: 750, graded: 5, nb_grades: 5,
+            });
+            const lowLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 100);
+            const midLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 565);
+            const capLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 750);
+            expect(lowLevelPlayer).toBe(50000);
+            expect(midLevelPlayer).toBe(50000);
+            expect(capLevelPlayer).toBe(50000);
+        });
+
+        it('should still project low-level girls correctly when player is also low-level', () => {
+            // New girl at level 1, no grades yet, low-level player.
+            // Old formula: projected = 100 * 100 / 1 * (1 + 0.3*5) = 25000
+            // New formula: projected = 100 * 750 / 1 * (1 + 0.3*5) = 187500
+            // The mode is now "if I awakened her to the cap", not "to my level".
+            const girl = makeGirl({
+                carac1: 0, carac2: 0, carac3: 100,
+                level: 1, graded: 0, nb_grades: 5,
+            });
+            const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
+            expect(result).toBe(187500);
         });
 
         it('should handle level 1 girls without division by zero', () => {
