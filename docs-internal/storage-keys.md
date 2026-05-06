@@ -606,3 +606,23 @@ Folgende Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredV
 - `TK.SeasonEndDate`
 - `TK.SeasonalEventEndDate`
 
+
+## Tote Keys (Cleanup-Kandidaten)
+
+Folgende Keys sind in src/config/StorageKeys.ts definiert, aber haben in v7.35.21 **keinen Code-Zugriff** (kein setStoredValue, getStoredValue, getStoredJSON oder deleteStoredValue):
+
+| Key | Annahme |
+|-----|---------|
+| SK.spendKobans0 | Master-Switch fuer Koban-Verbote war frueher mit kobanUsing-Pruefung in StorageHelper verbunden; aktuell auskommentiert |
+| SK.autoTrollMythicByPassThreshold | Mythic-Bypass-Threshold fuer Troll - laut Storage-Registry mit -- (ggf. fehlt der HHStoredVars-Eintrag) |
+| SK.autoFreeBundlesCollectablesList | Filter-Liste fuer Free-Bundles - aktuell nicht aktiv |
+| TK.trollToFight | naechster Troll-Index, im Code obsolet geworden |
+| TK.fought | gekaempft-Marker, ungenutzt |
+| TK.EventFightsBeforeRefresh | nur in Kommentaren in EventModule.ts |
+| TK.LeagueSavedData | League-Daten-Cache, nicht mehr verwendet |
+| TK.LeagueTempOpponentList | tempo Opponents-Liste, nicht mehr verwendet |
+| TK.leaguesTarget | League-Ziel-Threshold, ungenutzt |
+| TK.userLink | Externer User-Link, ungenutzt |
+
+Cleanup-Empfehlung: bei naechstem Refactor diese Eintraege aus StorageKeys.ts und HHStoredVars.ts entfernen.
+

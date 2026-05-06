@@ -214,16 +214,16 @@ Implementiert in TeamScoringService.calculateTier3TeamBonus() (Konstanten TIER3_
 
 ## 6. Tier-5 Leader-Skill
 
-Mythic-Girls haben einen Leader-Skill mit ID 11-13. Wirkt wenn das Girl auf Position 0 (Leader-Slot) ist.
+Mythic-Girls haben einen Leader-Skill mit ID 11-14 (Stun, Shield, Reflect, Execute). Wirkt wenn das Girl auf Position 0 (Leader-Slot) ist.
 
-| Tier-5 ID | Skill | Element | Effekt im Code (BDSMHelper.calculateBattleProbabilities) |
-|-----------|-------|---------|-----------------------------------------------------------|
-| 12 | Shield | Light, Stone | playerShield = value * hp |
-| 11 | Stun | Darkness, Sun | opponent.stunned = 2 (Runden) |
-| 13 | Reflect | Fire, Water | reflect = 2 |
-| (?) | Execute | (variabel) | Crit-bezogen |
+| Tier-5 ID | Skill | Leader-Element (im Code: BDSMHelper.estimateTier5SkillValue) | Effekt-Faktor pro skill_points_used | Effekt in BDSMHelper.calculateBattleProbabilities |
+|-----------|-------|---------|---------|---|
+| 11 | Stun | sun, darkness | * 0.07 | opponent.stunned = 2 (Runden) |
+| 12 | Shield | stone, light | * 0.08 | playerShield = value * hp (in Runde 1 gesetzt) |
+| 13 | Reflect | psychic, nature | * 0.20 | reflect = 2 (Runden) |
+| 14 | Execute | fire, water | * 0.08 | wenn opponentHP/maxHP <= value -> opponentHP = 0 |
 
-HHAuto's Leader-Priority (verifiziert in TeamScoringService): Shield > Stun > Execute > Reflect.
+HHAuto's Leader-Priority bei der Team-Auswahl (verifiziert in TeamScoringService): Shield > Stun > Execute > Reflect.
 
 ---
 
