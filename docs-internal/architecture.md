@@ -1,259 +1,327 @@
 ---
-last-verified: 2026-04-29
-verified-against-version: 7.35.14
-status: major-drift-fixed
+last-verified: 2026-05-05
+verified-against-version: 7.35.21
+status: current
 ---
 
 # HHauto Script Architecture
 
-Reference document for the overall script structure, module system, and execution flow.
-Last updated: 2026-04-29 (verified against v7.35.14; original deep-verify against v7.35.10 — delta to v7.35.14 is troll-fix #1582 in `Module/Troll.ts`, repo-transfer popup in `FeaturePopupService.ts`, and metadata; no impact on verified architecture facts)
+Referenz-Doku zur Skript-Struktur, Modul-System und Execution-Flow.
+Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
 
 ---
 
-## Entry Point & Initialization
+## Entry-Point & Initialisierung
 
-**File:** `src/index.ts`
+**Datei:** `src/index.ts`
 
-- IIFE calls `hardened_start()` immediately on script load
-- Fallback `setTimeout(hardened_start, 5000)` if game JS hasn't loaded yet
-- Declares global `Window` interface with game-specific properties (`championData`, `harem`, `hero_data`, `love_raids`, etc.) read via `unsafeWindow`
-
----
-
-## Main Loop: AutoLoop
-
-**File:** `src/Service/AutoLoop.ts`
-
-Recursive `setTimeout` loop (~1 second interval):
-
-1. **Burst check** — master switch on, menu closed, paranoia not resting
-2. **Update context** — populates `AutoLoopContext` with current page, energy, event IDs
-3. **Execute action handlers** in priority order — one per iteration to prevent conflicting navigation
-4. **Run page-specific UI handlers** — display overlays regardless of burst state
-5. **Manage paranoia** — anti-detection pauses
-6. **Track energy** — detect manual purchases, reset timers
-7. **Reschedule** — `setTimeout(autoLoop, interval)`
+- IIFE ruft `hardened_start()` direkt beim Skript-Load auf
+- Fallback `setTimeout(hardened_start, 5000)` falls das Game-JS noch nicht geladen ist
+- Erweitert das globale `Window`-Interface um spielspezifische Properties (`championData`, `harem`, `hero_data`, `love_raids`, etc.) -- gelesen via `unsafeWindow`
 
 ---
 
-## Action Handler Execution Order
+## Main-Loop: AutoLoop
 
-**File:** `src/Service/AutoLoopActions.ts` (1040 LoC). Definitions are imported into `AutoLoop.ts` and executed sequentially in `AutoLoop.ts:263-296`.
+**Datei:** `src/Service/AutoLoop.ts` (335 LoC)
 
-Each handler checks `ctx.busy` (skip if true), validates preconditions, executes module, sets `ctx.busy = true`. The fixed sequence guarantees that only one navigating handler runs per iteration.
+Rekursiver `setTimeout`-Loop (typisch ~1 Sekunde Intervall):
 
-Total: **33 handlers** (verified in v7.35.10).
-
-| Priority | Handler | Purpose |
-|----------|---------|---------|
-| 1 | handleEventParsing | Parse event pages, populate `Temp_eventsList` |
-| 2 | handleMythicWave | Mythic fight waves |
-| 3 | handleShop | Shop inventory parse + auto-buy |
-| 4 | handleAutoEquipBoosters | Booster equipping |
-| 5 | handleHaremSize | Harem size cache |
-| 6 | handlePlaceOfPower | Place of Power fights |
-| 7 | handleGenericBattle | Generic battle dispatch (Pantheon/Penta/Labyrinth/etc.) |
-| 8 | handleLoveRaid | Love raid fights |
-| 9 | handleTrollBattle | Troll fights (incl. Mythic + Sandalwood) |
-| 10 | handlePachinko | Free Pachinko spin |
-| 11 | handleContest | Contest ranking + reward collect |
-| 12 | handleMissions | Daily missions |
-| 13 | handleQuest | Adventure quest stepper |
-| 14 | handleLeague | League battles |
-| 15 | handleSeason | Season battles |
-| 16 | handlePentaDrill | Penta Drill battles |
-| 17 | handlePantheon | Pantheon battles |
-| 18 | handleChampionTicket | Champion ticket usage |
-| 19 | handleChampion | Champion fights |
-| 20 | handleClubChampion | Club Champion fights |
-| 21 | handleSeasonCollect | Season reward collect |
-| 22 | handlePentaDrillCollect | Penta Drill reward collect |
-| 23 | handleSeasonalFreeCard | Seasonal free card claim |
-| 24 | handleSeasonalEventCollect | Seasonal Event collect |
-| 25 | handleSeasonalRankCollect | Seasonal rank reward collect |
-| 26 | handlePoVCollect | Path of Valor reward collect |
-| 27 | handlePoGCollect | Path of Glory reward collect |
-| 28 | handleFreeBundles | Free Bundles claim |
-| 29 | handleDailyGoals | Daily Goals collect |
-| 30 | handleLabyrinth | Labyrinth runs |
-| 31 | handleSalary | Harem salary collect |
-| 32 | handleBossBangParse | Boss Bang event parsing |
-| 33 | handleBossBangFight | Boss Bang fight |
-| 34 | handleGoHome | Navigate back to home (loop end) |
-
-Note: handleEventParsing through handleGoHome = 33 actual handlers despite indexing to 34 (handleGoHome is the navigation tail, not an "action" in the gameplay sense — it counts as #33 of the action handlers if handleEventParsing is #1).
+1. **Burst-Check** -- Master-Switch on, Menu zu, Paranoia nicht in Pause
+2. **Update Context** -- befuellt `AutoLoopContext` mit aktueller Page, Energie, Event-IDs
+3. **Action-Handler ausfuehren** in Prioritaets-Reihenfolge -- maximal ein Navigations-Handler pro Iteration ueber `ctx.busy`
+4. **Page-Specific UI-Handler** -- Display-Overlays, unabhaengig vom Burst-State
+5. **Scheduler-Pipeline** -- die neue, deklarative Handler-Pipeline fuer migrierte Handler (siehe unten)
+6. **Paranoia managen** -- Anti-Detection-Pausen
+7. **Energie tracken** -- manuelle Kaeufe erkennen, Timer zuruecksetzen
+8. **Reschedule** -- `setTimeout(autoLoop, interval)`
 
 ---
 
-## Page-Specific UI Handlers
+## Action-Handler (klassisch)
 
-**File:** `src/Service/AutoLoopPageHandlers.ts`
+**Datei:** `src/Service/AutoLoopActions.ts` (979 LoC). Definitionen werden in `AutoLoop.ts` importiert und sequenziell ausgefuehrt.
 
-Run after action handlers every iteration via `handlePageSpecific(ctx)`. Read-only display operations:
-- Parse visible page data, add HHAuto overlays
-- Show reward previews, opponent info, timer displays
-- Set up page-specific features (league simulations, labyrinth UI)
-- Do NOT navigate away from current page
+Jeder Handler prueft `ctx.busy` (skip wenn true), validiert Vorbedingungen, fuehrt sein Modul aus und setzt `ctx.busy = true`. Die feste Reihenfolge garantiert, dass nur ein navigierender Handler pro Iteration laeuft.
+
+**Total: 32 Handler im klassischen Loop (verifiziert v7.35.21).**
+
+| # | Handler | Zweck |
+|---|---------|-------|
+| 1 | handleMythicWave | Mythic-Fight-Wellen |
+| 2 | handleShop | Shop-Inventory-Parse + Auto-Buy |
+| 3 | handleAutoEquipBoosters | Booster equippen |
+| 4 | handleHaremSize | Harem-Groesse-Cache |
+| 5 | handlePlaceOfPower | Place-of-Power-Fights |
+| 6 | handleGenericBattle | Generic-Battle-Dispatch (Pantheon/Penta/Labyrinth/...) |
+| 7 | handleLoveRaid | Love-Raid-Fights |
+| 8 | handleTrollBattle | Troll-Fights (inkl. Mythic + Sandalwood) |
+| 9 | handlePachinko | Free-Pachinko-Spin |
+| 10 | handleContest | Contest-Ranking + Reward-Collect |
+| 11 | handleMissions | Daily-Missions |
+| 12 | handleQuest | Adventure-Quest-Stepper |
+| 13 | handleSeason | Season-Battles |
+| 14 | handlePentaDrill | Penta-Drill-Battles |
+| 15 | handlePantheon | Pantheon-Battles |
+| 16 | handleChampionTicket | Champion-Ticket-Verbrauch |
+| 17 | handleChampion | Champion-Fights |
+| 18 | handleClubChampion | Club-Champion-Fights |
+| 19 | handleSeasonCollect | Season-Reward-Collect |
+| 20 | handlePentaDrillCollect | Penta-Drill-Reward-Collect |
+| 21 | handleSeasonalFreeCard | Seasonal-Free-Card-Claim |
+| 22 | handleSeasonalEventCollect | Seasonal-Event-Collect |
+| 23 | handleSeasonalRankCollect | Seasonal-Rank-Reward-Collect |
+| 24 | handlePoVCollect | Path-of-Valor-Reward-Collect |
+| 25 | handlePoGCollect | Path-of-Glory-Reward-Collect |
+| 26 | handleFreeBundles | Free-Bundles-Claim |
+| 27 | handleDailyGoals | Daily-Goals-Collect |
+| 28 | handleLabyrinth | Labyrinth-Runs |
+| 29 | handleSalary | Harem-Salary-Collect |
+| 30 | handleBossBangParse | Boss-Bang-Event-Parsing |
+| 31 | handleBossBangFight | Boss-Bang-Fight |
+| 32 | handleGoHome | Navigation zurueck zu Home (Loop-Ende) |
+
+`handleGoHome` ist streng genommen kein "Action"-Handler im Gameplay-Sinn, sondern der Tail des Action-Loops, der die Navigation auf eine neutrale Seite zurueckfaehrt.
+
+### Migrierte Handler -> Scheduler-Pipeline
+
+Folgende Handler sind aus dem klassischen Loop **entfernt** und in die neue Scheduler-Pipeline (siehe naechster Abschnitt) verschoben:
+
+- `handleEventParsing` -- Event-Pages parsen, `Temp_eventsList` befuellen (Priority 1)
+- `handleLeague` -- League-Battles (Priority 13)
+
+Beide laufen jetzt am Loop-Ende ueber `await scheduler.tick()`.
 
 ---
 
-## Directory Structure
+## Scheduler-Pipeline (deklarativ)
+
+**Dateien:**
+- `src/Service/Scheduler.ts` -- Runtime, State-Machine
+- `src/Service/Pipeline.config.ts` -- Handler-Definitionen, Pipeline-Liste
+
+Die Pipeline ist der Anfang einer schrittweisen Migration vom imperativen Action-Loop zu einem deklarativen, prioritaets-gesteuerten Scheduler. Jeder Handler ist eine `HandlerConfig`-Struktur mit Schritten, Prioritaet, Mindest-Intervall und Atomicitaets-Semantik.
+
+State-Maschine pro Handler:
+
+```
+IDLE -> RUNNING -> COMPLETED|FAILED|INTERRUPTED -> IDLE
+```
+
+Aktuell migrierte Handler:
+
+| Priority | Name | Atomicity | Notiz |
+|----------|------|-----------|-------|
+| 1 | handleEventParsing | non-atomic | laeuft fast jeden Tick, `minIntervalMs: 2000` |
+| 13 | handleLeague | atomic | Fight-Sequenz darf nicht unterbrochen werden, `minIntervalMs: 60000`, `totalTimeoutMs: 30000` |
+
+Aufruf am Ende jeder AutoLoop-Iteration via `await scheduler.tick()`.
+
+Watchdog: Ueberhaengende Chains werden nach `totalTimeoutMs` killed. SOFT/HARD Interrupts: `interruptible === 'always'`-Handler werden von hoeher-priorisierten Handlern preempted.
+
+---
+
+## Page-Specific UI-Handler
+
+**Datei:** `src/Service/AutoLoopPageHandlers.ts`
+
+Laufen nach den Action-Handlern in jeder Iteration via `handlePageSpecific(ctx)`. Read-only Display-Operationen:
+- aktuelle Page-Daten parsen, HHAuto-Overlays hinzufuegen
+- Reward-Previews, Gegner-Info, Timer-Anzeigen
+- Page-spezifische Features einrichten (League-Simulationen, Labyrinth-UI)
+- navigieren NICHT von der aktuellen Page weg
+
+---
+
+## Verzeichnisstruktur (verifiziert v7.35.21)
 
 ```
 src/
-  index.ts                    -- Entry point
-  Service/                    -- 16 files
-    index.ts                  -- Barrel export
-    AutoLoop.ts               -- Main loop (335 LoC)
-    AutoLoopActions.ts        -- Action handler implementations (1040 LoC, 33 handlers)
-    AutoLoopContext.ts        -- Per-iteration context object (busy flag, page, energy, event IDs)
-    AutoLoopPageHandlers.ts   -- Page-specific UI (read-only display)
-    StartService.ts           -- One-time init, version migration, menu
-    ParanoiaService.ts        -- Anti-detection pauses
-    PageNavigationService.ts  -- In-game navigation
-    InfoService.ts            -- pInfo panel (timers, resources)
-    MouseService.ts           -- Pause on user interaction
-    AdsService.ts             -- Ad suppression
-    TooltipService.ts         -- Menu tooltips
-    FeaturePopupService.ts    -- "What's New" popups
-    SurveyService.ts          -- User surveys
-    TeamScoringService.ts     -- Team scoring (Tier-3, synergies, Tier-5, rarity filter)
-    TeamBuilderService.ts     -- Team builder (trait groups, leader, slot-fill)
-  Module/                     -- 25 root files
-    index.ts
-    TeamModule.ts             -- Team management & selection (dispatch v3/Legacy)
-    League.ts                 -- League battles
-    Troll.ts                  -- Troll fights
-    Labyrinth.ts              -- Labyrinth
-    LabyrinthAuto.ts          -- Labyrinth automation
-    Champion.ts               -- Champion fights
-    ClubChampion.ts           -- Club Champion
-    PentaDrill.ts             -- Penta drill
-    Pantheon.ts               -- Pantheon
-    Spreadsheet.ts            -- Spreadsheet links + get_girls_blessings API interception
-    GenericBattle.ts          -- Battle dispatch shared logic
-    Booster.ts                -- Booster auto-equip + status caching (uses onAjaxResponse)
-    Bundles.ts                -- Free bundle collection
-    Club.ts                   -- Club info
-    Contest.ts                -- Contest reward collection
-    DailyGoals.ts             -- Daily goal collection
-    Market.ts                 -- Market / shop helpers
-    Missions.ts               -- Mission stepper
-    MonthlyCard.ts            -- Monthly card login bonus
-    Pachinko.ts               -- Free Pachinko
-    PlaceOfPower.ts           -- Place of Power
-    Quest.ts                  -- Adventure quest
-    RelicManager.ts           -- Relic system
-    Shop.ts                   -- Shop inventory parsing
-    harem/                    -- 5 files
-      index.ts
-      Harem.ts                -- Girl data loading & caching
-      HaremGirl.ts            -- Individual girl operations
-      HaremSalary.ts          -- Salary collection
-      HaremFilter.ts          -- Harem filtering UI
-    Events/                   -- 16 files (Events subsystem)
-      index.ts
-      EventModule.ts          -- Top-level event dispatcher
-      Season.ts               -- Season event battles
-      Seasonal.ts             -- Seasonal event collect
-      MythicEvent.ts          -- Mythic event handling
-      LoveRaidManager.ts      -- Love Raid logic
-      BossBang.ts             -- Boss Bang event
-      PathOfAttraction.ts     -- Path of Attraction
-      PathOfGlory.ts          -- Path of Glory
-      PathOfValue.ts          -- Path of Valor (file name typo: "Value")
-      PlusEvents.ts           -- Generic +Event handler
-      KinkyCumpetition.ts     -- Kinky Cumpetition event
-      CumbackContests.ts      -- Cumback Contests
-      DoublePenetration.ts    -- DP event
-      LivelyScene.ts          -- Lively Scene event
-      SultryMysteries.ts      -- Sultry Mysteries event
-  Helper/                     -- 17 files
-    index.ts
-    StorageHelper.ts          -- localStorage/sessionStorage abstraction
-    TimerHelper.ts            -- Timer management
-    TimeHelper.ts              -- Date/time utilities
-    PageHelper.ts             -- Page detection (`getPage()`)
-    HeroHelper.ts             -- Hero stats (level, energy)
-    HHHelper.ts               -- Game utility (`getHHVars` bridge to `unsafeWindow`)
-    HHMenuHelper.ts           -- Settings menu UI
-    BDSMHelper.ts             -- Battle simulation
-    ConfigHelper.ts           -- Game variant config
-    ButtonHelper.ts           -- DOM button helpers
-    RewardHelper.ts           -- Reward parsing
-    NumberHelper.ts           -- Number formatting
-    LanguageHelper.ts         -- i18n loader
-    PriceHelper.ts            -- Koban / cost helpers
-    UrlHelper.ts              -- URL parsing
-    WindowHelper.ts           -- `unsafeWindow` access wrappers
-  Utils/
-    index.ts
-    Utils.ts                  -- `onAjaxResponse` (jQuery `ajaxComplete` hook), `logHHAuto`
-  config/
-    index.ts
-    HHEnvVariables.ts         -- Singleton env (page IDs in lines 211-416, game config, feature flags) (543 LoC)
-    HHStoredVars.ts           -- Storage key registry with defaults, validation, UI metadata
-    StorageKeys.ts            -- 179 SK + 89 TK constants (385 LoC)
-    game/                     -- 8 per-game-variant config files
-      index.ts
-      HentaiHeroesVars.ts     -- hh_hentai (HH, NHH, THH, EHH, OGHH, HH_test)
-      ComixHaremVars.ts       -- hh_comix (CH, NCH)
-      PornstarHaremVars.ts    -- hh_star (PH, NPH)
-      TransPornstarHaremVars.ts -- hh_startrans (TPH, NTPH)
-      GayHaremVars.ts         -- hh_gay (GH, NGH, EGH)
-      GayPornstarHaremVars.ts -- hh_stargay (GPSH, NGPSH)
-      MangaRpgVars.ts         -- hh_mangarpg (MRPG, NMRPG)
-      AmourAgentVars.ts       -- hh_amour (AA)
-      (HornyHeroes / hh_sexy / SH_prod is wired directly in HHEnvVariables.ts, not as a separate file)
-  model/
-    index.ts
-    TeamData.ts               -- Team structure (7 girls + scroll counts)
-    BDSMPlayer.ts             -- Battle player model
-    BDSMSimu.ts               -- Battle simulation result
-    KK/
-      KKHaremGirl.ts          -- Girl data class (64 declared TS fields, raw API can have more)
-      KKTeamGirl.ts           -- Team member wrapper
-      KKHero.ts               -- Player/Hero model
-      KKLeagueOpponent.ts     -- Opponent model (`girls_count_per_element`)
-  i18n/
-    en.ts, fr.ts, es.ts, ...  -- Translations (incl. tooltip texts)
-```
+  index.ts                           -- Entry-Point
+  Service/                           -- 20 Dateien
+    index.ts                         -- Barrel-Export
+    AutoLoop.ts                      -- Main-Loop (336 LoC)
+    AutoLoopActions.ts               -- Action-Handler-Implementierungen (980 LoC, 32 Handler)
+    AutoLoopContext.ts               -- Per-Iteration-Context (busy, page, energy, event IDs)
+    AutoLoopPageHandlers.ts          -- Page-spezifische UI (read-only)
+    Scheduler.ts                     -- Pipeline-Scheduler-Runtime
+    Pipeline.config.ts               -- Pipeline-Handler-Definitionen
+    StartService.ts                  -- One-Time-Init, Version-Migration, Menu
+    ParanoiaService.ts               -- Anti-Detection-Pausen
+    PageNavigationService.ts         -- In-Game-Navigation
+    InfoService.ts                   -- pInfo-Panel (Timers, Resources)
+    MouseService.ts                  -- Pause bei User-Interaktion
+    AdsService.ts                    -- Ad-Suppression
+    TooltipService.ts                -- Menu-Tooltips
+    FeaturePopupService.ts           -- "What's New"-Popups
+    SurveyService.ts                 -- User-Surveys
+    BlessingService.ts               -- Blessing-Daten-Abruf + 12h-Cache (TK.blessingsCache)
+    TeamScoringService.ts            -- Team-Scoring (main_carac, Tier-3, Synergien, Tier-5, Klassen-Filter)
+    TeamBuilderService.ts            -- Team-Builder (Cluster-Vergleich, Slot-Fill, Alternativen)
+    TraitMappings.ts                 -- Hex/Position/Zodiac -> Klar-Namen via window.GT.design + Fallback
 
-Note: 37 spec files in `spec/` (`*.spec.ts`) with 510 total tests across all suites.
+  Module/                            -- 25 Root-Dateien (24 Module + index.ts)
+    index.ts
+    TeamModule.ts                    -- Team-Management & -Auswahl (Dispatch v4/Legacy)
+    League.ts                        -- League-Battles
+    Troll.ts                         -- Troll-Fights
+    Labyrinth.ts                     -- Labyrinth
+    LabyrinthAuto.ts                 -- Labyrinth-Automation
+    Champion.ts                      -- Champion-Fights
+    ClubChampion.ts                  -- Club-Champion
+    PentaDrill.ts                    -- Penta-Drill
+    Pantheon.ts                      -- Pantheon
+    Spreadsheet.ts                   -- Spreadsheet-Links + get_girls_blessings-API-Interception
+    GenericBattle.ts                 -- Battle-Dispatch shared logic
+    Booster.ts                       -- Booster-Auto-Equip + Status-Caching (nutzt onAjaxResponse)
+    Bundles.ts                       -- Free-Bundle-Collection
+    Club.ts                          -- Club-Info
+    Contest.ts                       -- Contest-Reward-Collection
+    DailyGoals.ts                    -- Daily-Goal-Collection
+    Market.ts                        -- Market/Shop-Helpers
+    Missions.ts                      -- Mission-Stepper
+    MonthlyCard.ts                   -- Monthly-Card-Login-Bonus
+    Pachinko.ts                      -- Free-Pachinko
+    PlaceOfPower.ts                  -- Place-of-Power
+    Quest.ts                         -- Adventure-Quest
+    RelicManager.ts                  -- Relic-System
+    Shop.ts                          -- Shop-Inventory-Parsing
+    harem/                           -- 5 Dateien
+      index.ts
+      Harem.ts                      -- Girl-Daten-Loading & -Caching
+      HaremGirl.ts                  -- Einzelne-Girl-Operationen
+      HaremSalary.ts                -- Salary-Collection
+      HaremFilter.ts                -- Harem-Filtering-UI
+    Events/                          -- 16 Dateien (Events-Subsystem)
+      index.ts
+      EventModule.ts                 -- Top-Level-Event-Dispatcher
+      Season.ts                      -- Season-Event-Battles
+      Seasonal.ts                    -- Seasonal-Event-Collect
+      MythicEvent.ts                 -- Mythic-Event-Handling
+      LoveRaidManager.ts             -- Love-Raid-Logik
+      BossBang.ts                    -- Boss-Bang-Event
+      PathOfAttraction.ts            -- Path of Attraction
+      PathOfGlory.ts                 -- Path of Glory
+      PathOfValue.ts                 -- Path of Valor (Dateiname-Tippfehler: "Value")
+      PlusEvents.ts                  -- Generischer +Event-Handler
+      KinkyCumpetition.ts            -- Kinky-Cumpetition-Event
+      CumbackContests.ts             -- Cumback-Contests
+      DoublePenetration.ts           -- DP-Event
+      LivelyScene.ts                 -- Lively-Scene-Event
+      SultryMysteries.ts             -- Sultry-Mysteries-Event
+
+  Helper/                            -- 17 Dateien
+    index.ts
+    StorageHelper.ts                 -- localStorage/sessionStorage-Abstraktion
+    TimerHelper.ts                   -- Timer-Management
+    TimeHelper.ts                    -- Date/Time-Utilities
+    PageHelper.ts                    -- Page-Detection (`getPage()`)
+    HeroHelper.ts                    -- Hero-Stats (Level, Energie)
+    HHHelper.ts                      -- Game-Utility (`getHHVars` Bridge zu `unsafeWindow`)
+    HHMenuHelper.ts                  -- Settings-Menu-UI
+    BDSMHelper.ts                    -- Battle-Simulation
+    ConfigHelper.ts                  -- Game-Variant-Config
+    ButtonHelper.ts                  -- DOM-Button-Helpers
+    RewardHelper.ts                  -- Reward-Parsing
+    NumberHelper.ts                  -- Number-Formatting
+    LanguageHelper.ts                -- i18n-Loader
+    PriceHelper.ts                   -- Koban-/Cost-Helpers
+    UrlHelper.ts                     -- URL-Parsing
+    WindowHelper.ts                  -- `unsafeWindow`-Access-Wrappers
+
+  Utils/                             -- 5 Dateien
+    index.ts
+    Utils.ts                         -- `onAjaxResponse` (jQuery `ajaxComplete`-Hook)
+    LogUtils.ts                      -- `logHHAuto`
+    BrowserUtils.ts                  -- Browser-Detection
+    HHPopup.ts                       -- Popup-Display
+
+  config/                            -- 5 Dateien (+ game/-Subordner)
+    index.ts
+    HHEnvVariables.ts                -- Singleton-Env (52 Page-IDs, Game-Config, Feature-Flags) (544 LoC)
+    HHStoredVars.ts                  -- Storage-Key-Registry mit Defaults, Validation, UI-Metadaten
+    StorageKeys.ts                   -- 179 SK + 90 TK Konstanten (387 LoC)
+    InputPattern.ts                  -- Input-Validation-Patterns (Regex)
+    game/                            -- 9 Per-Game-Variant-Config-Dateien
+      index.ts
+      HentaiHeroesVars.ts            -- hh_hentai (HH, NHH, THH, EHH, OGHH, HH_test)
+      ComixHaremVars.ts              -- hh_comix (CH, NCH)
+      PornstarHaremVars.ts           -- hh_star (PH, NPH)
+      TransPornstarHaremVars.ts      -- hh_startrans (TPH, NTPH)
+      GayHaremVars.ts                -- hh_gay (GH, NGH, EGH)
+      GayPornstarHaremVars.ts        -- hh_stargay (GPSH, NGPSH)
+      MangaRpgVars.ts                -- hh_mangarpg (MRPG, NMRPG)
+      AmourAgentVars.ts              -- hh_amour (AA)
+      (HornyHeroes / hh_sexy / SH_prod ist direkt in HHEnvVariables.ts verdrahtet)
+
+  model/                             -- 12 Root-Dateien
+    index.ts
+    TeamData.ts                      -- Team-Struktur (7 Girls + Scroll-Counts)
+    BDSMPlayer.ts                    -- Battle-Player-Modell
+    BDSMSimu.ts                      -- Battle-Simulation-Resultat
+    Champion.ts                      -- Champion-Modell
+    EventGirl.ts                     -- Event-Girl-Wrapper
+    HHEvent.ts                       -- HHEvent-Modell
+    IModule.ts                       -- Modul-Interfaces
+    LeagueOpponent.ts                -- League-Gegner-Wrapper
+    LoveRaid.ts                      -- Love-Raid-Modell
+    Mission.ts                       -- Mission-Modell
+    SeasonOpponent.ts                -- Season-Gegner-Wrapper
+    KK/                              -- 12 Game-API-Wrapper-Dateien
+      index.ts
+      KKHaremGirl.ts                 -- Girl-Daten-Klasse (62 Felder pro Girl im API)
+      KKTeamGirl.ts                  -- Team-Member-Wrapper
+      KKHero.ts                      -- Player/Hero-Modell
+      KKLeagueOpponent.ts            -- League-Gegner-Modell (mit `girls_count_per_element`)
+      KKHaremSalaryGirl.ts           -- Salary-Manager-Girl-Wrapper
+      KKEventGirl.ts                 -- Event-Girl-Daten
+      KKEnergy.ts                    -- Energie-Wrapper
+      KKLoveRaid.ts                  -- Love-Raid-Daten
+      KKPentaDrillOpponents.ts       -- Penta-Drill-Gegner
+      KKPuzzlePieces.ts              -- LivelyScene-Puzzle-Pieces
+      kkDailyGoal.ts                 -- DailyGoal-Daten
+
+  i18n/                              -- 6 Dateien
+    index.ts
+    en.ts, de.ts, fr.ts, es.ts       -- Sprachen
+    empty.ts                         -- Leeres-Default-Modell
+
+spec/                                -- 39 Spec-Dateien (542 Tests, 8 skipped)
+```
 
 ---
 
-## Module Pattern
+## Modul-Pattern
 
-All modules are **static-only classes** (no instantiation):
+Alle Module sind **statische Klassen** (keine Instanziierung):
 
 ```
-IModuleStatic           -- Base: isEnabled(), isActivated()
-  IRunnableModuleStatic -- Adds: run()
-    IBattleModuleStatic -- Adds: isTimeToFight(), getEnergy(), getEnergyMax()
+IModuleStatic           -- Basis: isEnabled(), isActivated()
+  IRunnableModuleStatic -- erweitert: run()
+    IBattleModuleStatic -- erweitert: isTimeToFight(), getEnergy(), getEnergyMax()
 ```
 
 ---
 
-## Key Architectural Patterns
+## Architektur-Patterns
 
-| Pattern | Description |
+| Pattern | Beschreibung |
 |---------|-------------|
-| **Singleton Modules** | Static classes, no instances — single state throughout script lifetime |
-| **Context-Driven Loop** | `AutoLoopContext` shared across handlers per iteration |
-| **Priority Sequencing** | Fixed handler order; `ctx.busy` prevents multiple navigations per tick |
-| **Storage-as-State** | All settings + runtime state in browser storage with prefix isolation |
-| **Lazy Init** | Services/modules instantiated on first use (`callItOnce`) |
-| **AJAX Interception** | `onAjaxResponse(regex, callback)` hooks into jQuery's `ajaxComplete` |
-| **Game Variant System** | Per-domain config with feature flags and troll lists |
+| **Singleton-Module** | statische Klassen, keine Instanzen -- ein State pro Skript-Lifetime |
+| **Context-Driven Loop** | `AutoLoopContext` wird pro Iteration unter den Handlern geteilt |
+| **Priority-Sequencing** | feste Handler-Reihenfolge; `ctx.busy` verhindert mehrere Navigationen pro Tick |
+| **Storage-as-State** | alle Settings + Runtime-State im Browser-Storage mit Prefix-Isolation |
+| **Lazy Init** | Services/Module werden bei Erstnutzung initialisiert (`callItOnce`) |
+| **AJAX-Interception** | `onAjaxResponse(regex, callback)` haengt sich in jQuery `ajaxComplete` ein |
+| **Game-Variant-System** | Per-Domain-Config mit Feature-Flags und Troll-Listen |
+| **Declarative-Pipeline (neu)** | Scheduler + Pipeline.config -- migrierter Loop-Teil mit State-Machine, Watchdog, Interrupts |
 
 ---
 
-## Supported Games
+## Unterstuetzte Spiele
 
-| Game | Primary Domain | Game ID | Env Name |
-|------|----------------|---------|----------|
+| Spiel | Primaere Domain | Game-ID | Env-Name |
+|-------|------------------|---------|----------|
 | Hentai Heroes | www.hentaiheroes.com | hh_hentai | HH_prod |
 | Comix Harem | www.comixharem.com | hh_comix | CH_prod |
 | Pornstar Harem | www.pornstarharem.com | hh_star | PH_prod |
@@ -262,13 +330,14 @@ IModuleStatic           -- Base: isEnabled(), isActivated()
 | Gay Pornstar Harem | www.gaypornstarharem.com | hh_stargay | GPSH_prod |
 | Manga RPG | www.mangarpg.com | hh_mangarpg | MRPG_prod |
 | Amour Agent | www.amouragent.com | hh_amour | AA_prod |
-| Horny Heroes | www.hornyheroes.com | hh_sexy | SH_prod (reduced features) |
+| Horny Heroes | www.hornyheroes.com | hh_sexy | SH_prod (reduzierte Features) |
 
-Additional alias / Nutaku / test domains share the same Game ID but differ in `name` (env). Examples:
-- `nutaku.haremheroes.com` → name `NHH_prod`, id `hh_hentai`
-- `test.hentaiheroes.com` → name `HH_test`, id `hh_hentai`
-- `thrix.hentaiheroes.com`, `eroges.hentaiheroes.com`, `esprit.hentaiheroes.com` → all id `hh_hentai`
-- `nutaku.comixharem.com` → name `NCH_prod`, id `hh_comix`
-- `nutaku.pornstarharem.com`, `nutaku.transpornstarharem.com`, `nutaku.gayharem.com`, `eroges.gayharem.com`, `nutaku.gaypornstarharem.com`, `nutaku.mangarpg.com` — all share their respective Game IDs
+Zusaetzliche Alias-, Nutaku- und Test-Domains teilen die Game-ID, unterscheiden sich aber im `name` (Env). Beispiele:
 
-Game ID is what `getPage()` reads from the DOM via `document.getElementById(gameID).getAttribute('page')`.
+- `nutaku.haremheroes.com` -> name `NHH_prod`, id `hh_hentai`
+- `test.hentaiheroes.com` -> name `HH_test`, id `hh_hentai`
+- `thrix.hentaiheroes.com`, `eroges.hentaiheroes.com`, `esprit.hentaiheroes.com` -> id `hh_hentai`
+- `nutaku.comixharem.com` -> name `NCH_prod`, id `hh_comix`
+- `nutaku.pornstarharem.com`, `nutaku.transpornstarharem.com`, `nutaku.gayharem.com`, `eroges.gayharem.com`, `nutaku.gaypornstarharem.com`, `nutaku.mangarpg.com` -- jeweils mit ihrer Game-ID
+
+Game-ID ist das, was `getPage()` aus dem DOM via `document.getElementById(gameID).getAttribute('page')` liest -- d.h. die Iframe-ID (siehe `runtime-architecture.md`).

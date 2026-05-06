@@ -1,56 +1,58 @@
 ---
-last-verified: 2026-04-29
-verified-against-version: 7.35.14
-status: minor-drift-fixed
+last-verified: 2026-05-05
+verified-against-version: 7.35.21
+status: current
 ---
 
 # Technical Reference: Team Selection Data & API
 
-Reference document for Issue #1340 — Improved team selection.
-Based on data analysis performed 2026-03-24. Last updated: 2026-04-29 (verified against v7.35.14; team-related sources unchanged since v7.35.10).
+Referenz-Doku zur Team-Auswahl. Adressiert Issues #1340 und #1573.
+Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
 
 ---
 
-## 1. Data Sources Overview
+## 1. Datenquellen-Uebersicht
 
-| Source | When Available | Access Method | Fields | Used By Script |
-|--------|---------------|---------------|--------|----------------|
-| `availableGirls` | Edit Team page | `getHHVars("availableGirls")` | **62 per girl** | Only in `Harem.getGirlsList()` |
-| `data-new-girl-tooltip` | Edit Team page (DOM) | `$('.girl_img').attr('data-new-girl-tooltip')` | **11 per girl** | `TeamModule.setTopTeam()` |
-| `get_girls_blessings` API | Home page (Blessing popup) | `onAjaxResponse(/action=get_girls_blessings/)` | Active + Upcoming blessings | Only for Spreadsheet link injection |
-| `shared.GirlSalaryManager.girlsMap` | Most pages | `getHHVars("shared.GirlSalaryManager.girlsMap")` | Full girl data | `Harem.getGirlMapSorted()` |
-| `girlsDataList` | Various pages | `getHHVars("girlsDataList")` | Full girl data | `Harem.getGirlsList()` fallback |
-| `girls_data_list` | Waifu page | `getHHVars("girls_data_list")` | Full girl data | `Harem.getGirlsList()` fallback |
+| Quelle | Verfuegbar auf | Zugriffsweg | Felder | Aufrufer im Skript |
+|--------|----------------|-------------|--------|---------------------|
+| `availableGirls` | Edit-Team-Page | `getHHVars("availableGirls")` | **62 pro Girl** | `TeamModule.setTopTeamV2()`, `Harem.getGirlsList()`, `Harem.haremCountMax()` |
+| `data-new-girl-tooltip` | Edit-Team-Page (DOM) | `$('.girl_img').attr('data-new-girl-tooltip')` | **11 pro Girl** | `TeamModule.setTopTeamLegacy()` (Fallback) |
+| `get_girls_blessings`-API | Home-Page (Blessing-Popup) | AJAX-Call via `getHHAjax()`; Response wird im `BlessingService` geparst und gecacht | `active[]`, `upcoming[]` | `BlessingService` (Cache fuer Team-UI), `Spreadsheet` (Link-Injection) |
+| `shared.GirlSalaryManager.girlsMap` | Salary-Manager-Pages | `getHHVars("shared.GirlSalaryManager.girlsMap")` | volle Girl-Daten | `Harem.getGirlMapSorted()` |
+| `girlsDataList` | verschiedene Pages | `getHHVars("girlsDataList")` | volle Girl-Daten | `Harem.getGirlsList()` Fallback |
+| `girls_data_list` | Waifu-Page | `getHHVars("girls_data_list")` | volle Girl-Daten | `Harem.getGirlsList()` Fallback |
 
 ---
 
-## 2. availableGirls — Full Field List (62 fields)
+## 2. `availableGirls` -- Vollstaendige Feldliste (62 Felder)
 
-Accessed via: `(unsafeWindow as any).availableGirls` or `getHHVars("availableGirls")`
-Available on: Edit Team page (`pagesIDEditTeam`)
-Type: Array of girl objects
+Zugriff: `(unsafeWindow as any).availableGirls` oder `getHHVars("availableGirls")`.
+Verfuegbar auf: Edit-Team-Page (`pagesIDEditTeam`).
+Typ: `Array<GirlData>` mit 62 Feldern pro Girl.
 
-### Identity & Base Info
+Die folgende Liste ist gegen den Live-Dump (HentaiHeroes, 2026-05-05) verifiziert.
 
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `id_girl` | number | `12345` | Unique girl ID |
-| `id_girl_ref` | number | | Reference ID (base girl) |
-| `id_member` | number | | Player's member ID |
-| `name` | string | `"Maisie"` | Display name |
-| `rarity` | string | `"legendary"` | `starting`, `common`, `rare`, `epic`, `legendary`, `mythic` |
-| `class` | string | `"Hardcore"` | `Hardcore`, `Charm`, `Know-how` |
-| `figure` | number | | |
-| `level` | number | `750` | Current level |
-| `level_cap` | number | | Maximum possible level |
-| `nb_grades` | number | | Total grade slots (3 or 5 for legendary, 6 for mythic) |
-| `graded` | number | | Current grade count |
-| `graded2` | string | | HTML string with grade icons (contains `<g` and `grey` for counting) |
+### Identitaet & Basis-Info
+
+| Feld | Typ | Beispiel | Notiz |
+|------|-----|----------|-------|
+| `id_girl` | number | `12345` | eindeutige Girl-ID |
+| `id_girl_ref` | number | | Referenz-ID (Basis-Girl) |
+| `id_member` | number | | Member-ID des Spielers |
+| `name` | string | `"Maisie"` | Anzeigename |
+| `rarity` | string | `"mythic"` | `starting`/`common`/`rare`/`epic`/`legendary`/`mythic` |
+| `class` | **number** | `1` | **1 = Hardcore, 2 = Charm, 3 = Know-how** -- KEIN String |
+| `figure` | number | `1` | numerischer Figur-Index |
+| `level` | number | `750` | aktuelles Level |
+| `nb_grades` | number | | maximale Grade-Plaetze (3 oder 5 fuer Legendary, 6 fuer Mythic) |
+| `graded` | number | | aktuelle Grade-Anzahl |
+| `Graded` | string | | mit grossem `G` -- HTML-String fuer UI-Anzeige |
+| `graded2` | string | | HTML mit Grade-Icons (`<g`-Tags und `grey`-Klasse fuer Counting) |
 | `fav_graded` | number | | |
 | `awakening_level` | number | | |
 | `affection` | number | | |
 | `xp` | number | | |
-| `date_added` | string | | When player acquired this girl |
+| `date_added` | string | | wann das Girl hinzugefuegt wurde |
 | `release_date` | string | | |
 | `anniversary` | string | | |
 | `style` | string | | |
@@ -59,36 +61,44 @@ Type: Array of girl objects
 | `id_role` | number | | |
 | `id_places_of_power` | number | | |
 
-### Stats (INCLUDE BLESSINGS)
+### Stats (INKLUSIVE BLESSINGS, OHNE EQUIPMENT)
 
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `caracs` | object | `{carac1: 20446.345, carac2: 10658.7, carac3: 8026.2}` | **Already blessed!** Final values |
-| `carac1` | number | `20446.345` | Same as `caracs.carac1` |
-| `carac2` | number | `10658.7` | Same as `caracs.carac2` |
-| `carac3` | number | `8026.2` | Same as `caracs.carac3` |
-| `caracs_sum` | number | | Sum of all three caracs |
+| Feld | Typ | Beispiel | Notiz |
+|------|-----|----------|-------|
+| `caracs` | object | `{carac1: 20446.345, carac2: 10658.7, carac3: 8026.2}` | **bereits gesegnet, equipment-frei** -- direkt verwendbarer Final-Wert |
+| `carac1` | number | `20446.345` | identisch zu `caracs.carac1` |
+| `carac2` | number | `10658.7` | identisch zu `caracs.carac2` |
+| `carac3` | number | `8026.2` | identisch zu `caracs.carac3` |
+| `caracs_sum` | number | `39131.245` | Summe der drei caracs (vorberechnet vom Spiel) |
 | `orgasm` | number | | |
 
-### Blessing Data
-
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `blessing_bonuses` | object | see below | **Individual blessing %s** |
-| `can_be_blessed` | boolean | | Whether girl can receive blessings |
-| `can_be_blessed_pvp4` | boolean | | PvP4 blessing eligibility |
-| `blessed_attributes` | unknown | | Present in tooltip too — needs further inspection |
-
-#### `blessing_bonuses` Structure
+**Verifiziert per Dump-Vergleich (2026-05-05):**
 
 ```
+teamGirls.blessed_caracs == availableGirls.caracs
+```
+
+`caracs` ist gesegnet aber **ohne** Equipment. Daher kein Unequip vor Score noetig.
+
+### Blessing-Daten
+
+| Feld | Typ | Beispiel | Notiz |
+|------|-----|----------|-------|
+| `blessing_bonuses` | object | siehe unten | individuelle Blessing-Prozente fuer dieses Girl |
+| `can_be_blessed` | boolean | | ob Girl Blessings erhalten kann |
+| `can_be_blessed_pvp4` | boolean | | PvP4-Blessing-Berechtigung |
+| `blessed_attributes` | object | | im Tooltip ebenfalls vorhanden |
+
+#### `blessing_bonuses` Struktur
+
+```jsonc
 {
-  "pvp_v3": {                    // League blessings
-    "carac1": [20, 30],          // Array of individual blessing %s
-    "carac2": [20, 30],          // [20] = Element blessing, [30] = Zodiac blessing
+  "pvp_v3": {                    // League-Blessings
+    "carac1": [20, 30],          // Array individueller Blessing-%
+    "carac2": [20, 30],          // [20] = Element-Blessing, [30] = Zodiac-Blessing
     "carac3": [20, 30]
   },
-  "pvp_v4": {                    // Other PvP mode
+  "pvp_v4": {                    // anderes PvP-Mode
     "carac1": [20, 30],
     "carac2": [20, 30],
     "carac3": [20, 30]
@@ -96,371 +106,371 @@ Type: Array of girl objects
 }
 ```
 
-- Empty array `[]` = girl receives no blessings
-- `[20]` = matches one blessing
-- `[20, 30]` = matches both active blessings
-- Blessings are **multiplicative**: total = (1 + 0.20) × (1 + 0.30) = 1.56
+- Leeres Array `[]` -- Girl trifft keine Blessing
+- `[20]` -- ein Blessing-Match
+- `[20, 30]` -- beide aktiven Blessings
+- Blessings sind **multiplikativ**: total = (1 + 0.20) * (1 + 0.30) = 1.56
 
-### Element Data
+### Element-Daten
 
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `element` | string | `"sun"` | Internal element name |
-| `element_data` | object | see below | Full element info |
+| Feld | Typ | Beispiel | Notiz |
+|------|-----|----------|-------|
+| `element` | string | `"sun"` | interner Element-Name |
+| `element_data` | object | siehe unten | volle Element-Info |
 
-#### `element_data` Structure
+#### `element_data` Struktur (8 Keys)
 
-```
+```jsonc
 {
-  "type": "sun",                              // Internal: sun, fire, stone, water, nature, light, darkness, psychic
-  "flavor": "Playful",                        // Display name: Playful, Eccentric, Physical, Sensual, Exhibitionist, Dominatrix, Submissive, Voyeur
-  "weakness": "stone",                        // This element is weak against
-  "domination": "water",                      // This element dominates
+  "type": "stone",                              // intern: fire/water/nature/stone/sun/darkness/psychic/light
+  "weakness": "nature",                         // dieses Element wird besiegt von ...
+  "domination": "sun",                          // dieses Element dominiert ...
   "domination_ego_bonus_percent": 10,
   "domination_damage_bonus_percent": 10,
   "domination_critical_chance_bonus_percent": 20,
-  "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Playful.png"
+  "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Physical.png",
+  "flavor": "Physical"                          // UI-Anzeigename: Eccentric/Sensual/Exhibitionist/Physical/Playful/Dominatrix/Submissive/Voyeur
 }
 ```
 
-#### Element Mapping (internal ↔ display)
+#### Element-Mapping (intern <-> Anzeige)
 
-| Internal Type | Display Flavor | Synergy Bonus (per girl in team) | Bonus Type |
-|---------------|---------------|----------------------------------|------------|
-| `darkness` | Dominatrix | 2% | Damage |
-| `psychic` | Submissive | 2% | Defense |
-| `light` | Voyeur | 2% | Harmony |
-| `fire` | Eccentric | **10%** | Critical Hit Damage |
-| `nature` | Exhibitionist | 3% | Ego |
-| `stone` | Physical | 2% | Critical Hit Chance |
-| `sun` | Playful | 2% | Decrease Defense of Opponent |
-| `water` | Sensual | 3% | Recover on Hit |
+| Interner Typ | Anzeigename (`flavor`) | Synergie-Bonus pro Team-Girl | Bonus-Typ |
+|--------------|------------------------|------------------------------|-----------|
+| `fire` | Eccentric | **+10%** | Critical Hit Damage |
+| `water` | Sensual | +3% | Recover on Hit |
+| `nature` | Exhibitionist | +3% | Ego (HP) |
+| `stone` | Physical | +2% | Critical Hit Chance |
+| `sun` | Playful | +2% | Decrease Defense of Opponent |
+| `darkness` | Dominatrix | +2% | Damage |
+| `psychic` | Submissive | +2% | Defense |
+| `light` | Voyeur | +2% | Harmony |
 
-Harem-wide bonus (per girl owned, not in team):
+Quelle: `TeamScoringService.ELEMENT_SYNERGY_PER_GIRL` und `BlessingService` Klassen-Mapping.
 
-| Internal Type | Harem Bonus |
-|---------------|-------------|
-| `darkness`, `psychic`, `light`, `stone`, `sun` | 0.07% per girl |
-| `fire` | 0.35% per girl |
-| `nature`, `water` | 0.1% per girl |
+### Trait-Daten
 
-### Trait Data
-
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `zodiac` | string | `"♐︎ Sagittarius"` | Full Unicode string with symbol |
-| `hair_color1` | string | `"F99"` | Hex color code (without #) |
-| `hair_color2` | string | | Second hair color (multicolored) |
-| `eye_color1` | string | `"F90"` | Hex color code (without #) |
-| `eye_color2` | string | | Second eye color |
-| `position_img` | string | `"3.png"` | Favorite position as image filename |
+| Feld | Typ | Beispiel | Notiz |
+|------|-----|----------|-------|
+| `zodiac` | string | `"\u2650 Sagittarius"` | Unicode-Glyph + englischer Name. `TraitMappings.resolveZodiac` strippt das Glyph. |
+| `hair_color1` | string | `"F99"` | Hex-Code (ohne `#`). Map siehe `TraitMappings.ts` |
+| `hair_color2` | string | | zweiter Haarton (multicoloriert), oft leer |
+| `eye_color1` | string | `"F90"` | Hex-Code |
+| `eye_color2` | string | | zweite Augenfarbe |
+| `position_img` | string | `"3.png"` | Lieblings-Position als Bilddateiname |
 
 ### Skills & Equipment
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `skill_tiers_info` | object | Skill tier information |
-| `armor` | object | Equipped items |
+| Feld | Typ | Notiz |
+|------|-----|-------|
+| `skill_tiers_info` | object | Skill-Tier-Info (Tier 1 bis 5; Tier 4/5 nutzt der BDSM-Sim) |
+| `armor` | object | aktuell ausgeruestete Items |
 | `upgrade_quests` | object | |
-| `can_upgrade` | boolean | |
 
-### Images & Display
+### Bilder & Anzeige
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `images` | object | `{ava: [], ico: []}` |
-| `ico` | string | Icon URL |
-| `avatar` | string | Avatar URL |
-| `black_avatar` | string | |
-| `default_avatar` | string | |
-| `grade_skins` | object | |
-| `grade_offsets` | object | |
-| `grade_offset_values` | object | |
-| `animated_grades` | object | |
-| `scene_paths` | object | |
-| `preview` | object | |
+| Feld | Typ |
+|------|-----|
+| `images` | object |
+| `ico` | string |
+| `avatar` | string |
+| `black_avatar` | string |
+| `default_avatar` | string |
+| `grade_skins` | object |
+| `grade_offsets` | object |
+| `grade_offset_values` | object |
+| `animated_grades` | object |
+| `scene_paths` | object |
 
-### Salary & Economy
+### Salary & Wirtschaft
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `salary` | number | |
-| `salary_timer` | number | |
+| Feld | Typ |
+|------|-----|
+| `salary` | number |
+| `salary_timer` | number |
+| `salary_per_hour` | number |
+| `pay_time` | number |
+| `pay_in` | number |
+| `ts_pay` | number |
+| `shards` | number |
+
+---
+
+## 3. `data-new-girl-tooltip` -- Feldliste (11 Felder)
+
+Zugriff: `$('.girl_img', element).attr('data-new-girl-tooltip')` -> `JSON.parse`.
+Gesetzt durch: das Spiel selbst (nicht HHauto).
+Verfuegbar auf: Edit-Team-Page (DOM-Elemente mit `div[id_girl]`).
+
+Wird vom Legacy-Algorithmus genutzt, wenn `availableGirls` nicht verfuegbar ist.
+
+| Feld | Typ | Beispiel |
+|------|-----|----------|
+| `name` | string | `"Karole"` |
+| `level` | number | `1` |
+| `rarity` | string | `"rare"` |
+| `class` | number | `1` |
+| `element` | string | `"water"` |
+| `element_data` | object | gleiche Struktur wie in availableGirls |
+| `caracs` | object | `{carac1: 1.9, carac2: 2.2, carac3: 4.5}` |
+| `graded2` | string | HTML-Grade-String |
+| `skill_tiers_info` | object | |
 | `salary_per_hour` | number | |
-| `pay_time` | number | |
-| `pay_in` | number | |
-| `ts_pay` | number | Timestamp of last pay |
-| `salaries` | object | |
-| `shards` | number | |
+| `blessed_attributes` | object | |
+
+**NICHT im Tooltip:** `blessing_bonuses`, `zodiac`, `hair_color1/2`, `eye_color1/2`, `position_img`, `id_girl`, `armor`, `awakening_level` und ~50 weitere Felder.
+
+Konsequenz: der Legacy-Algorithmus kann keine Tier-3-Trait-Matches berechnen und keinen Klassenfilter ueber `class` machen (DOM-Element-Wrapper bietet `id_girl` in einem anderen Attribut).
 
 ---
 
-## 3. data-new-girl-tooltip — Field List (11 fields)
+## 4. Blessing-API-Response
 
-Accessed via: `$('.girl_img', element).attr('data-new-girl-tooltip')` → JSON.parse
-Set by: **The game itself** (not HHauto)
-Available on: Edit Team page (DOM elements with `div[id_girl]`)
+Endpoint: `action=get_girls_blessings`.
+Intercepted in `BlessingService.fetchAndCache()` (manuell ausgeloest beim Home-Page-Besuch). Cache-Lebensdauer: 12 Stunden.
+Zusaetzlich: `Spreadsheet.run()` injiziert einen Spreadsheet-Link in das Blessing-Popup.
 
-| Field | Type | Example | Notes |
-|-------|------|---------|-------|
-| `name` | string | `"Karole"` | |
-| `level` | number | `1` | |
-| `rarity` | string | `"rare"` | |
-| `class` | string | | |
-| `element` | string | `"water"` | Internal type |
-| `element_data` | object | Same structure as availableGirls | |
-| `caracs` | object | `{carac1: 1.9, carac2: 2.2, carac3: 4.5}` | Stats at current level |
-| `graded2` | string | | HTML grade string |
-| `skill_tiers_info` | object | | |
-| `salary_per_hour` | number | | |
-| `blessed_attributes` | unknown | | Present but not yet inspected |
+Response-Struktur:
 
-**NOT available in tooltip:** `blessing_bonuses`, `zodiac`, `hair_color1/2`, `eye_color1/2`, `position_img`, `id_girl`, `armor`, `awakening_level`, and ~50 other fields.
-
----
-
-## 4. Blessing API Response
-
-Endpoint: `action=get_girls_blessings`
-Intercepted in: `src/Module/Spreadsheet.ts` line 34
-Currently used for: Spreadsheet link injection only (response data discarded)
-
-```
+```jsonc
 {
   "active": [
     {
       "title": "Week of the Playful",
       "description": "All girls with <span class=\"blessing-condition\">Element Playful</span> gain <span class=\"blessing-bonus\">+ 20%</span> bonus on all attributes.",
-      "remaining_time": 487876,     // seconds until this blessing expires
-      "starts_in": -113323          // negative = already started
+      "remaining_time": 487876,     // Sekunden bis Ablauf
+      "starts_in": -113323          // negativ = bereits gestartet
     },
     {
       "title": "Week of the Sagittarius",
-      "description": "All girls with <span class=\"blessing-condition\">Zodiac sign Sagittarius</span> gain <span class=\"blessing-bonus\">+ 30%</span> bonus on all attributes.",
+      "description": "...<span class=\"blessing-condition\">Zodiac sign Sagittarius</span>... <span class=\"blessing-bonus\">+ 30%</span>...",
       "remaining_time": 487876,
       "starts_in": -113323
     },
     {
       "title": "Week of the Corkscrewer",
-      "description": "All girls with <span class=\"blessing-condition\">Role Corkscrewer</span> gain <span class=\"blessing-bonus\">+ 30%</span> bonus on all attributes in Love Labyrinth.",
+      "description": "...<span class=\"blessing-condition\">Role Corkscrewer</span>... + 30%... in Love Labyrinth.",
       "remaining_time": 487876,
       "starts_in": -113323
     }
   ],
-  "upcoming": [
-    {
-      "title": "Week of the Bridge",
-      "description": "...Favorite position Bridge... + 25%...",
-      "remaining_time": 1092676,
-      "starts_in": 487877
-    },
-    {
-      "title": "Week of the Capricorn",
-      "description": "...Zodiac sign Capricorn... + 35%...",
-      "remaining_time": 1092676,
-      "starts_in": 487877
-    },
-    {
-      "title": "Week of the Pleasurelock",
-      "description": "...Role Pleasurelock... + 40%... in Love Labyrinth.",
-      "remaining_time": 1092676,
-      "starts_in": 487877
-    }
-  ],
+  "upcoming": [ ... ],
   "success": true
 }
 ```
 
-### Blessing Slot Structure (per week)
+### Slot-Struktur (pro Woche)
 
-| Slot | Type | League Relevant | Example |
-|------|------|-----------------|---------|
-| Slot 1 | Element OR Position OR Hair/Eye Color | **Yes** | "Week of the Playful" (+20%) |
-| Slot 2 | Zodiac | **Yes** | "Week of the Sagittarius" (+30%) |
-| Slot 3 | Role | **No** (Love Labyrinth only) | "Week of the Corkscrewer" (+30%) |
+| Slot | Typ | League-Relevant | Beispiel |
+|------|-----|------------------|----------|
+| Slot 1 | Element ODER Position ODER Hair/Eye Color | **ja** | "Week of the Playful" (+20%) |
+| Slot 2 | Zodiac | **ja** | "Week of the Sagittarius" (+30%) |
+| Slot 3 | Role | **nein** (Love-Labyrinth-Only) | "Week of the Corkscrewer" (+30%) |
 
-Labyrinth-only blessings can be identified by `"in Love Labyrinth"` in the description.
+Labyrinth-only-Blessings erkennbar an `"in Love Labyrinth"` in der Description. `BlessingService.parseTraits` filtert sie via:
 
-### Parsing Hints
+```typescript
+if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth')) continue;
+```
 
-- Condition type: extract from `<span class="blessing-condition">...</span>`
-- Bonus value: extract from `<span class="blessing-bonus">+ XX%</span>`
-- Condition categories seen: `"Element ..."`, `"Zodiac sign ..."`, `"Favorite position ..."`, `"Role ..."`
-- Expected but not yet confirmed: `"Hair color ..."`, `"Eye color ..."`
+### `BlessingService` Cache-Felder
+
+`BlessingService.getCached()` liefert ein Objekt:
+
+| Feld | Typ | Beispiel |
+|------|-----|----------|
+| `timestamp` | number | `1714903123456` |
+| `raw` | object | komplette API-Response |
+| `blessedTraits` | string[] | `['eyeColor', 'zodiac']` (kategoriale Match) |
+| `blessedValues` | object | `{eyeColor: 'golden', zodiac: 'sagittarius'}` (konkreter Wert) |
+| `blessedElement` | string | optional, falls Element-Blessing aktiv (`'fire'`, `'sun'`, ...) |
+
+### Parsing-Hinweise
+
+- Condition-Type aus `<span class="blessing-condition">...</span>`
+- Bonus-Wert aus `<span class="blessing-bonus">+ XX%</span>`
+- Gesehene Condition-Kategorien: `"Element ..."`, `"Zodiac sign ..."`, `"Favourite position ..."`, `"Favorite position ..."`, `"Role ..."`
+- Erwartet aber selten beobachtet: `"Hair color ..."`, `"Eye color ..."`
 
 ---
 
-## Equipment
+## 5. Equipment
 
-`availableGirls.caracs` is **equipment-free**. Verified by dump comparison (2026-05-05):
+`availableGirls.caracs` ist **equipment-free**. Dieses Faktum wird per Dump-Vergleich verifiziert (2026-05-05):
 
 ```
 teamGirls.blessed_caracs == availableGirls.caracs
 ```
 
-The team builder reads `caracs` directly. **No unequip is required** before scoring.
-A UI hint reminds the user that the displayed power excludes equipment and
-recommends running `Stuff Team` after applying the team.
+Der Team-Builder liest `caracs` direkt. **Kein Unequip noetig vor Score.** Ein UI-Hinweis erinnert den User, dass Equipment nicht enthalten ist und empfiehlt `Stuff Team` nach dem Anlegen des Teams.
 
 ---
 
-## 5. Relevant Source Files
+## 6. Relevante Source-Files (v7.35.21)
 
-### Team Selection (v4 — current as of v7.35.21)
+### Team-Selection (v4 -- aktiv)
 
-| File | Key Function | Purpose |
-|------|-------------|---------|
-| `src/Service/TeamScoringService.ts` | `filterEligible(girls, playerClass)` | Hard filter: Mythic/Legendary 5★ AND class === playerClass |
-| `src/Service/TeamScoringService.ts` | `getMainCarac(girl, playerClass)` | Returns carac1/2/3 based on player class (1/2/3) |
-| `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Stat scoring (main_carac) for both modes |
-| `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier 3 trait matching bonus |
-| `src/Service/TeamScoringService.ts` | `findTraitGroups(girls, class, blessed?)` | Group girls by element pair + shared trait value |
-| `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Element synergy calculation (informational only) |
-| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader ranking: Mythic only, Tier-5 priority |
-| `src/Service/TeamBuilderService.ts` | `buildTeam(girls, mode, level, playerClass)` | Main entry: filter, cluster compare, leader, slot-fill |
-| `src/Service/TeamBuilderService.ts` | `getElementDistribution()` | Element count summary for UI |
-| `src/Service/TraitMappings.ts` | `resolve(category, value)` | Hex/position/zodiac to readable label, runtime + fallback |
-| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v4 if availableGirls present, else legacy |
-| `src/Module/TeamModule.ts` | `setTopTeamV2()` | Resolves player class via HeroHelper.getClass(), maps data, calls TeamBuilderService |
-| `src/Module/TeamModule.ts` | `setTopTeamLegacy()` | Old tooltip-based algorithm (fallback) |
-| `src/Module/TeamModule.ts` | `updateTeamUI()` | Shared UI logic with synergy + trait info overlay |
-| `src/Module/TeamModule.ts` | `moduleChangeTeam()` | Button setup (Current Best, Possible Best, Unequip) |
-| `src/Module/TeamModule.ts` | `assignTopTeam()` | Assigns selected top team |
-| `src/Module/TeamModule.ts` | `getSelectedGirls()` | Reads current team members |
+| Datei | Schluessel-Funktion | Zweck |
+|-------|---------------------|-------|
+| `src/Service/TeamScoringService.ts` | `filterEligible(girls, playerClass)` | Hard-Filter: Mythic/Legendary 5* AND class === playerClass |
+| `src/Service/TeamScoringService.ts` | `getMainCarac(girl, playerClass)` | gibt carac1/2/3 anhand Player-Klasse zurueck |
+| `src/Service/TeamScoringService.ts` | `scoreCurrentBest()`, `scoreBestPossible()` | Score (main_carac) fuer beide Modi |
+| `src/Service/TeamScoringService.ts` | `calculateTier3TeamBonus()` | Tier-3 Trait-Match-Bonus |
+| `src/Service/TeamScoringService.ts` | `findTraitGroups(girls, class, blessed?)` | gruppiere nach Element-Paar + gemeinsamem Trait-Wert |
+| `src/Service/TeamScoringService.ts` | `calculateSynergies()`, `calculateSynergyValue()` | Synergie-Berechnung (informational) |
+| `src/Service/TeamScoringService.ts` | `rankLeaderCandidates()` | Leader-Ranking: Mythic only, Tier-5-Prioritaet |
+| `src/Service/TeamBuilderService.ts` | `buildTeam(girls, mode, level, playerClass)` | Haupt-Eintritt: Filter, Cluster-Vergleich, Leader, Slot-Fill |
+| `src/Service/TeamBuilderService.ts` | `getElementDistribution()` | Element-Counts fuer UI |
+| `src/Service/TraitMappings.ts` | `resolve(category, value)` | Hex/Position/Zodiac -> lesbares Label, Runtime + Fallback |
+| `src/Module/TeamModule.ts` | `setTopTeam()` | Dispatch: v4 wenn availableGirls vorhanden, sonst Legacy |
+| `src/Module/TeamModule.ts` | `setTopTeamV2()` | resolved Player-Klasse via HeroHelper.getClass(), mappt Daten, ruft TeamBuilderService |
+| `src/Module/TeamModule.ts` | `setTopTeamLegacy()` | alte Tooltip-basierte Auswahl (Fallback) |
+| `src/Module/TeamModule.ts` | `updateTeamUI()` | gemeinsame UI-Logik mit Synergie- + Trait-Info-Box |
+| `src/Module/TeamModule.ts` | `moduleChangeTeam()` | Button-Setup (Current Best, Possible Best, Unequip) |
+| `src/Module/TeamModule.ts` | `assignTopTeam()` | weist das ausgewaehlte Top-Team zu |
+| `src/Module/TeamModule.ts` | `getSelectedGirls()` | liest aktuelle Team-Mitglieder |
 
 ### Tests
 
-| File | Tests | Purpose |
-|------|-------|---------|
-| `spec/Service/TeamScoringService.spec.ts` | 53 | Synergies, Tier-5, scoring, filtering (class+rarity), Tier-3 traits |
-| `spec/Service/TeamBuilderService.spec.ts` | 20 | Team building, class filter, modes, leader selection |
+| Datei | Tests | Zweck |
+|-------|-------|-------|
+| `spec/Service/TeamScoringService.spec.ts` | 53 | Synergien, Tier-5, Scoring, Filter (Klasse + Rarity), Tier-3-Traits |
+| `spec/Service/TeamBuilderService.spec.ts` | 20 | Team-Building, Klassen-Filter, Modi, Leader-Selection |
 
-### Girl Data Loading
+### Girl-Daten-Loading
 
-| File | Key Function | Purpose |
-|------|-------------|---------|
-| `src/Module/harem/Harem.ts` | `getGirlsList()` | Loads girls from game globals — lines 93-112 |
-| `src/Module/harem/Harem.ts` | `getGirlMapSorted()` | Sorted girl list — lines 59-90 |
-| `src/Module/harem/Harem.ts` | `getHaremGirlsFromOcdIfExist()` | OCD script cache fallback — line 114 |
-| `src/Module/harem/HaremGirl.ts` | | Individual girl data access |
-| `src/Helper/HHHelper.ts` | `getHHVars(path)` | Bridge to `unsafeWindow` globals — lines 23-50 |
+| Datei | Schluessel-Funktion | Zweck |
+|-------|---------------------|-------|
+| `src/Module/harem/Harem.ts` | `getGirlsList()` | laedt Girls aus Game-Globals -- liest erst OCD-Cache, dann availableGirls/girlsDataList/girls_data_list |
+| `src/Module/harem/Harem.ts` | `getGirlMapSorted()` | sortierte Girl-Liste aus `shared.GirlSalaryManager.girlsMap` |
+| `src/Module/harem/Harem.ts` | `getHaremGirlsFromOcdIfExist()` | OCD-Skript-Cache als Fallback |
+| `src/Module/harem/HaremGirl.ts` | | Einzelner-Girl-Daten-Zugriff |
+| `src/Helper/HHHelper.ts` | `getHHVars(path)` | Bridge zu `unsafeWindow`-Globals |
 
 ### Blessing & Spreadsheet
 
-| File | Key Function | Purpose |
-|------|-------------|---------|
-| `src/Module/Spreadsheet.ts` | `run()` | Intercepts `get_girls_blessings` API — line 34 |
-| `src/config/HHEnvVariables.ts` | | Config including `girlToolTipData` — line 58 |
+| Datei | Schluessel-Funktion | Zweck |
+|-------|---------------------|-------|
+| `src/Service/BlessingService.ts` | `fetchAndCache()` | manueller Pull der Blessings, 12h-Cache in `TK.blessingsCache` |
+| `src/Service/BlessingService.ts` | `parseBlessedValues()` | extrahiert konkrete Blessing-Werte aus den Descriptions |
+| `src/Module/Spreadsheet.ts` | `run()` | injiziert Spreadsheet-Link ins Blessing-Popup |
 
-### Battle Simulation
+### Battle-Simulation (siehe `bdsm-battle-simulator.md`)
 
-| File | Key Function | Purpose |
-|------|-------------|---------|
-| `src/Helper/BDSMHelper.ts` | | Battle simulation with element synergies |
-| `src/model/BDSMPlayer.ts` | | Player battle model (hp, atk, crit, bonuses) |
+| Datei | Zweck |
+|-------|-------|
+| `src/Helper/BDSMHelper.ts` | Battle-Simulation mit Element-Synergien, Domination, Crit, Tier-4/5-Skills |
+| `src/model/BDSMPlayer.ts` | Player-Modell (HP, Atk, Crit, Bonuses, Tier-4/5) |
+| `src/model/BDSMSimu.ts` | Simulationsergebnis (win, loss, points, scoreClass) |
 
-### Models
+### Modelle
 
-| File | Purpose |
-|------|---------|
-| `src/model/KK/KKHaremGirl.ts` | Girl data model — 62 fields |
-| `src/model/KK/KKTeamGirl.ts` | Team member wrapper (girl + skills) |
-| `src/model/TeamData.ts` | Team structure (7 girls + scroll counts) |
-| `src/model/KK/KKHero.ts` | Player/hero model |
-| `src/model/KK/KKLeagueOpponent.ts` | Opponent model (has `girls_count_per_element`) |
+| Datei | Zweck |
+|-------|-------|
+| `src/model/KK/KKHaremGirl.ts` | Girl-Daten-Modell -- 62 Felder |
+| `src/model/KK/KKTeamGirl.ts` | Team-Member-Wrapper (Girl + Skills) |
+| `src/model/TeamData.ts` | Team-Struktur (7 Girls + Scroll-Counts) |
+| `src/model/KK/KKHero.ts` | Player/Hero-Modell |
+| `src/model/KK/KKLeagueOpponent.ts` | League-Gegner-Modell (mit `girls_count_per_element`) |
 
 ### UI / i18n
 
-| File | Key | Value |
-|------|-----|-------|
-| `src/i18n/en.ts` line 281 | `ChangeTeamButton` | "Current Best" |
-| `src/i18n/en.ts` line 282 | `ChangeTeamButton2` | "Possible Best" |
-| `src/i18n/en.ts` | `AssignTopTeam` | Button to assign the selected top team |
+| Datei | Key | Wert |
+|-------|-----|------|
+| `src/i18n/en.ts` | `ChangeTeamButton` | "Current Best" |
+| `src/i18n/en.ts` | `ChangeTeamButton2` | "Possible Best" |
+| `src/i18n/en.ts` | `AssignTopTeam` | Button zum Anwenden des Top-Teams |
 
 ---
 
-## 6. setTopTeam Logic
+## 7. `setTopTeam` Logik (v4, aktuell)
 
-### v3 (active when `availableGirls` is available)
+Datenquelle: `getHHVars("availableGirls")` -- 62 Felder pro Girl auf Edit-Team-Page.
 
 ```
-Data source: getHHVars("availableGirls") — 62 fields per girl
+Filter (beide Modi):
+  Klasse:    g.class === playerClass         (1=HC, 2=Charm, 3=KH; HARD)
+  Rarity:    Mythic immer
+             Legendary nur wenn nb_grades >= 5
+             alles andere: raus
 
-Rarity filter (both modes):
-  Mythic (nb_grades = 6):    always included
-  Legendary (nb_grades = 5): included
-  Legendary (nb_grades = 3): excluded
-  All other rarities:        excluded
+Score:
+  Mode 1 ("Current Best"):
+    score = caracs.caracN              (N = playerClass; bereits gesegnet)
 
-Mode 1 ("Current Best"):
-  Score:  caracs.carac1 + caracs.carac2 + caracs.carac3
-          (already blessed values)
-
-Mode 2 ("Best Possible"):
-  Score:  (carac1 + carac2 + carac3) / level * playerLevel
-          / (1 + 0.3 * graded) * (1 + 0.3 * nb_grades)
+  Mode 2 ("Best Possible"):
+    score = max(
+      caracs.caracN,
+      caracs.caracN / max(level,1) * playerLevel
+                    / (1 + 0.3 * graded)
+                    * (1 + 0.3 * nb_grades)
+    )
 
 Process:
-  1. Map availableGirls to GirlData[]
-     (element via element_data.type, traits via zodiac/hair_color1/eye_color1/position_img)
-  2. Filter to Mythic (6★) + Legendary (5★ only)
-  3. Score all candidates, sort descending, take top 50
-  4. Find best trait group (element pair + shared trait value, min 3 girls)
-  5. Select leader from pool (Mythic only, Shield > Stun > Execute > Reflect)
-  6. Fill slots 2-7: unified per-slot comparison (statScore + synergyDelta + tier3Delta)
-     — trait-group and non-group girls compete directly on each slot
-     — high-stat blessed girls can beat weak trait-group members
-  7. Calculate Tier 3 bonus (1.0% Mythic / 0.8% Legendary per trait match)
-  8. Show 7 girls with element emojis, leader skill, trait + synergy info panel
-  9. Add "Assign Top Team" button
+  1. Map availableGirls -> GirlData[]
+     (element via element_data.type, Traits via zodiac/hair_color1/eye_color1/position_img,
+      class als integer durchreichen)
+  2. filterEligible(girls, playerClass)        -- Klasse + Rarity-Filter
+  3. Score alle Kandidaten, sortiere desc, KEIN Pool-Cap (alle eligible)
+  4. detectBlessedTraits(...)                  -- aktive Blessing-Kategorien aus blessing_bonuses
+  5. findTraitGroups(...)                      -- Cluster nach Element-Paar + Trait-Wert,
+                                                  blessed Cluster bekommen x1.5 Score-Boost
+  6. Top 5 Cluster + alle blessed Cluster evaluieren
+  7. Pro Cluster: Team mit Leader + 6 Slot-Fills bauen
+     - Leader: Mythic, Tier-5 Shield(4) > Stun(3) > Execute(2) > Reflect(1)
+     - Slot 2-7 in 3 Passes:
+       Pass 1: Element-Paar + Trait-Match
+       Pass 2: Element-Paar (irgendein Trait)
+       Pass 3: irgendein Element by Score
+  8. Vergleiche Cluster nach effective Power = main_sum * (1 + tier3Bonus)
+  9. Beste Cluster gewinnt; alle Alternativen werden in result.alternatives aufgelistet
+  10. UI-Box: Klar-Namen, Klassen-Hinweis, Equipment-Hinweis, Power-Vergleich
 ```
 
-### Legacy (fallback when `availableGirls` is unavailable)
+### Legacy-Fallback (aktiv, wenn `availableGirls` nicht da)
+
+Datenquelle: `data-new-girl-tooltip` -- 11 Felder pro Girl per DOM-Parsing.
+Kein Klassen-Filter, kein Trait-Matching, keine Leader-Skill-Optimierung.
 
 ```
-Data source: data-new-girl-tooltip — 11 fields per girl (DOM parsing)
-No rarity filter, no trait matching, no leader skill optimization.
-
-Process:
-  1. Iterate all div[id_girl] elements on page
-  2. Parse tooltip JSON from .girl_img child
-  3. Calculate score per girl (same stat formulas as v3)
-  4. Keep top 16 in sorted arrays (deckID, deckStat)
-  5. Hide non-top girls, show top 16 with rank numbers
-  6. Add "Assign Top Team" button
+1. Iteriere alle div[id_girl] auf der Seite
+2. Parse Tooltip-JSON aus .girl_img child
+3. Score pro Girl (Mode 1: caracs_sum, Mode 2: caracs_sum projiziert)
+4. Halte Top 16 in sortierten Arrays (deckID, deckStat)
+5. Verstecke Nicht-Top-Girls, zeige Top 16 mit Rang-Nummern
+6. "Assign Top Team"-Button hinzufuegen
 ```
+
+Die Legacy-Logik kann den Klassen-Filter nicht anwenden (das `class`-Feld ist im Tooltip zwar present, der Filter ist aber im `setTopTeamLegacy` nie implementiert worden) und liefert deshalb potenziell schlechtere Teams.
 
 ---
 
-## 7. Element Counter Bonuses (from BDSMHelper.ts)
+## 8. Element-Counter-Boni (siehe `bdsm-battle-simulator.md`)
 
-Two triangle systems for elemental advantage in battle:
+Zwei separate Cycles fuer elementare Vorteile im Kampf:
 
-**Triangle 1 — Critical Hit Chance (+20%):**
+**Cycle 1 -- Crit-Chance (+20%):**
 ```
-darkness (Dominatrix) → light (Voyeur) → psychic (Submissive) → darkness
-```
-
-**Triangle 2 — Damage (+10%) & Ego (+10%):**
-```
-fire (Eccentric) → nature (Exhibitionist) → stone (Physical) → sun (Playful) → water (Sensual) → fire
+darkness (Dominatrix) -> light (Voyeur) -> psychic (Submissive) -> darkness
 ```
 
-Extracted in BDSMHelper from `team.synergies`:
+**Cycle 2 -- Damage (+10%) UND Ego (+10%):**
 ```
-critDamage  = synergies.find(type === 'fire').bonus_multiplier
-critChance  = synergies.find(type === 'stone').bonus_multiplier
-defReduce   = synergies.find(type === 'sun').bonus_multiplier
-healOnHit   = synergies.find(type === 'water').bonus_multiplier
+fire (Eccentric) -> nature (Exhibitionist) -> stone (Physical) -> sun (Playful) -> water (Sensual) -> fire
 ```
+
+Die Cycles sind in `BDSMHelper.ELEMENTS` als `chance` (3 Elemente) und `egoDamage` (5 Elemente) definiert. Der Team-Algorithmus verwendet diese Counter-Logik aktuell **nicht** -- weil der Gegner zur Auswahl-Zeit nicht bekannt ist.
 
 ---
 
-## 8. Version History
+## 9. Versionshistorie
 
-| Version | Change |
-|---------|--------|
-| v7.34.0 | v2: synergy-aware greedy algorithm with leader Tier-5 optimization, element UI overlay, legacy fallback. PR #1519. |
-| v7.34.7 | v3: Tier-3 trait-group optimization, trait matching with element pairs, trait info panel. |
-| v7.34.13 | Rarity filter: exclude 3-star legendaries, only 5★ Legendary + 6★ Mythic considered. |
-| v7.34.14 | Unified slot-fill: per-slot comparison with tier 3 delta, blessed girls can beat weak trait members. |
+| Version | Aenderung |
+|---------|-----------|
+| v7.34.0 | v2: synergy-aware Greedy mit Leader-Tier-5-Optimierung, Element-UI-Overlay, Legacy-Fallback. PR #1519. |
+| v7.34.7 | v3: Tier-3-Trait-Gruppen-Optimierung, Trait-Matching mit Element-Paaren, Trait-Info-Panel. |
+| v7.34.13 | Rarity-Filter: 3-Sterne-Legendaries ausgeschlossen, nur 5* Legendary + 6* Mythic. |
+| v7.34.14 | Unified Slot-Fill mit Tier-3-Delta. |
+| v7.35.x | Hex-Mapping-Bug, BlessingService-Cache (`Temp_blessingsCache`), kleinere UI-Korrekturen. |
+| v7.35.20 | Interim-Versuch: simpler "Top 7 by stats with element-cluster tiebreaker". Wurde durch v7.35.21 ersetzt. |
+| v7.35.21 | v4-Algorithmus: main_carac-Score, Klassen-Filter, Klar-Namen via TraitMappings, Cluster-Vergleich nach effective Power, kein Pool-Cap, Equipment-Hinweis (Issues #1340, #1573). |

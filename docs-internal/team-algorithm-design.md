@@ -19,7 +19,7 @@ HH-Wiki und das Tom-208-Userscript. Anforderungen sind in
 `INPUT/league-team-algorithmus-spec.md` konsolidiert.
 
 ```
-v3 (bis 7.35.x):              v4 (ab 7.35.21):
+v3 (bis 7.35.19):             v4 (ab 7.35.21):
   Score = caracs_sum            Score = main_carac (HC=c1, Charm=c2, KH=c3)
   Position-Penalty 0.80         entfaellt
   5%-Synergie-Tiebreaker        entfaellt
@@ -117,7 +117,7 @@ score = max(projected, current_caracN)
 
 ### Phase 3: Trait-Gruppen
 
-Aus dem Top-50-Pool werden Girls nach Element-Paar und gemeinsamem
+Aus allen eligible Girls (kein Pool-Cap) werden Girls nach Element-Paar und gemeinsamem
 Trait-Wert gruppiert. Gruppen-Score:
 
 ```
