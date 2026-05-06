@@ -8,3 +8,25 @@ PROJEKTANWEISUNGEN.md
 
 # Lokale Dump-Dateien vom Debug-Inspector (nicht syncen)
 INPUT/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-Indexdateien
+.DS_Store
+Thumbs.db
+
+# Logs (lokale Diagnose-Dumps)
+*.log
+_logs_*/
+
+# TypeScript inkrementeller Build-Cache
+*.tsbuildinfo
+
+# Editor-Backups
+*.bak
+*.orig
+*.tmp

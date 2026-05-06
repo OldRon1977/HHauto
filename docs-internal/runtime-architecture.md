@@ -64,7 +64,7 @@ KEIN @grant unsafeWindow - HHAuto verlaesst sich darauf, dass unsafeWindow auch 
 
 ### Wie der Debug-Inspector es macht
 
-HHAuto_debug_inspector.user.js v4.5.0 hat @noframes - laeuft nur im Top-Window - und sucht aktiv nach dem Iframe via bekannte IDs oder per Scan auf shared/Hero/availableGirls. Schaltet dann auf iframe.contentWindow um.
+bonus-scripts/HHAuto_debug_inspector.user.js v4.5.0 hat @noframes - laeuft nur im Top-Window - und sucht aktiv nach dem Iframe via bekannte IDs oder per Scan auf shared/Hero/availableGirls. Schaltet dann auf iframe.contentWindow um.
 
 ---
 
