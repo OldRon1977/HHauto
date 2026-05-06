@@ -425,31 +425,85 @@ export class TeamScoringService {
         girls: GirlData[],
         statScores: Map<number, number>,
         traitCategory?: TraitCategory,
-        traitValue?: string
+        traitValue?: string,
+        clusterElements?: ElementType[]
     ): GirlData[] {
         const mythicGirls = girls.filter(g => g.rarity === 'mythic');
         if (mythicGirls.length === 0) {
-            return TeamScoringService._sortLeaderCandidates(girls, statScores, traitCategory, traitValue);
+            // Beginner pool: no mythics. Tier-5 priority is pointless because
+            // legendary girls never have active tier-5 skills (skill_points_used
+            // is 0). Pick cluster membership first, then trait match, then stats.
+            return TeamScoringService._sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements);
         }
-        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue);
+        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue, clusterElements);
+    }
+
+    /**
+     * Sort leader candidates when no mythics are available.
+     * Order: cluster membership > trait match > stats.
+     * (Tier-5 priority is omitted because legendaries never have active tier-5 skills.)
+     */
+    private static _sortLeaderCandidatesNoMythic(
+        girls: GirlData[],
+        statScores: Map<number, number>,
+        traitCategory?: TraitCategory,
+        traitValue?: string,
+        clusterElements?: ElementType[]
+    ): GirlData[] {
+        return [...girls].sort((a, b) => {
+            // Primary: cluster membership
+            if (clusterElements && clusterElements.length > 0) {
+                const aInCluster = clusterElements.includes(a.element);
+                const bInCluster = clusterElements.includes(b.element);
+                if (aInCluster !== bInCluster) {
+                    return aInCluster ? -1 : 1;
+                }
+            }
+            // Secondary: trait match
+            if (traitCategory && traitValue) {
+                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
+                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
+                if (aMatches !== bMatches) {
+                    return aMatches ? -1 : 1;
+                }
+            }
+            // Tertiary: stat score
+            const scoreA = statScores.get(a.id_girl) || 0;
+            const scoreB = statScores.get(b.id_girl) || 0;
+            return scoreB - scoreA;
+        });
     }
 
     private static _sortLeaderCandidates(
         girls: GirlData[],
         statScores: Map<number, number>,
         traitCategory?: TraitCategory,
-        traitValue?: string
+        traitValue?: string,
+        clusterElements?: ElementType[]
     ): GirlData[] {
         return [...girls].sort((a, b) => {
             const tier5A = ELEMENT_TO_TIER5[a.element];
             const tier5B = ELEMENT_TO_TIER5[b.element];
 
             // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect)
+            // Applied GLOBALLY across all mythics, NOT gated by the chosen cluster.
+            // A Mythic with Shield wins over a Mythic with Execute even if the
+            // Shield mythic is from a different element pair than the cluster.
             if (tier5A.priority !== tier5B.priority) {
                 return tier5B.priority - tier5A.priority;
             }
 
-            // Secondary: trait match bonus
+            // Secondary: cluster membership (prefer leaders from the chosen
+            // trait cluster's element pair when tier-5 priority is equal).
+            if (clusterElements && clusterElements.length > 0) {
+                const aInCluster = clusterElements.includes(a.element);
+                const bInCluster = clusterElements.includes(b.element);
+                if (aInCluster !== bInCluster) {
+                    return aInCluster ? -1 : 1;
+                }
+            }
+
+            // Tertiary: trait match bonus
             if (traitCategory && traitValue) {
                 const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
                 const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
@@ -458,7 +512,7 @@ export class TeamScoringService {
                 }
             }
 
-            // Tertiary: stat score
+            // Quaternary: stat score
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;

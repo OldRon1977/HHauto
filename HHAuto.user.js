@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.22
+// @version      7.35.23
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -17314,22 +17314,32 @@ class TeamScoringService {
      * Rank leader candidates by element priority (Shield > Stun > Execute > Reflect).
      * Leader must be Mythic. Among same priority: prefer trait match, then highest stats.
      */
-    static rankLeaderCandidates(girls, statScores, traitCategory, traitValue) {
+    static rankLeaderCandidates(girls, statScores, traitCategory, traitValue, clusterElements) {
         const mythicGirls = girls.filter(g => g.rarity === 'mythic');
         if (mythicGirls.length === 0) {
-            return TeamScoringService._sortLeaderCandidates(girls, statScores, traitCategory, traitValue);
+            // Beginner pool: no mythics. Tier-5 priority is pointless because
+            // legendary girls never have active tier-5 skills (skill_points_used
+            // is 0). Pick cluster membership first, then trait match, then stats.
+            return TeamScoringService._sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements);
         }
-        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue);
+        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue, clusterElements);
     }
-    static _sortLeaderCandidates(girls, statScores, traitCategory, traitValue) {
+    /**
+     * Sort leader candidates when no mythics are available.
+     * Order: cluster membership > trait match > stats.
+     * (Tier-5 priority is omitted because legendaries never have active tier-5 skills.)
+     */
+    static _sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements) {
         return [...girls].sort((a, b) => {
-            const tier5A = ELEMENT_TO_TIER5[a.element];
-            const tier5B = ELEMENT_TO_TIER5[b.element];
-            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect)
-            if (tier5A.priority !== tier5B.priority) {
-                return tier5B.priority - tier5A.priority;
+            // Primary: cluster membership
+            if (clusterElements && clusterElements.length > 0) {
+                const aInCluster = clusterElements.includes(a.element);
+                const bInCluster = clusterElements.includes(b.element);
+                if (aInCluster !== bInCluster) {
+                    return aInCluster ? -1 : 1;
+                }
             }
-            // Secondary: trait match bonus
+            // Secondary: trait match
             if (traitCategory && traitValue) {
                 const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
                 const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
@@ -17338,6 +17348,40 @@ class TeamScoringService {
                 }
             }
             // Tertiary: stat score
+            const scoreA = statScores.get(a.id_girl) || 0;
+            const scoreB = statScores.get(b.id_girl) || 0;
+            return scoreB - scoreA;
+        });
+    }
+    static _sortLeaderCandidates(girls, statScores, traitCategory, traitValue, clusterElements) {
+        return [...girls].sort((a, b) => {
+            const tier5A = ELEMENT_TO_TIER5[a.element];
+            const tier5B = ELEMENT_TO_TIER5[b.element];
+            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect)
+            // Applied GLOBALLY across all mythics, NOT gated by the chosen cluster.
+            // A Mythic with Shield wins over a Mythic with Execute even if the
+            // Shield mythic is from a different element pair than the cluster.
+            if (tier5A.priority !== tier5B.priority) {
+                return tier5B.priority - tier5A.priority;
+            }
+            // Secondary: cluster membership (prefer leaders from the chosen
+            // trait cluster's element pair when tier-5 priority is equal).
+            if (clusterElements && clusterElements.length > 0) {
+                const aInCluster = clusterElements.includes(a.element);
+                const bInCluster = clusterElements.includes(b.element);
+                if (aInCluster !== bInCluster) {
+                    return aInCluster ? -1 : 1;
+                }
+            }
+            // Tertiary: trait match bonus
+            if (traitCategory && traitValue) {
+                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
+                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
+                if (aMatches !== bMatches) {
+                    return aMatches ? -1 : 1;
+                }
+            }
+            // Quaternary: stat score
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;
@@ -17468,6 +17512,8 @@ class TeamBuilderService {
                 }
             }
         }
+        const clusterElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
+        const leaderInCluster = clusterElements.includes(leader.element);
         return {
             girls: team,
             statScores,
@@ -17483,19 +17529,32 @@ class TeamBuilderService {
             effectivePower: bestBuilt.power,
             alternatives,
             playerClass,
+            leaderInCluster,
         };
     }
     /**
      * Build a team for a specific trait group.
      *
-     * Pass 1: same element pair + matching trait value (max Tier-3 bonus).
-     * Pass 2: same element pair, any trait value (still keeps cluster).
-     * Pass 3: any element by score (last-resort fillers).
+     * Leader (position 1): picked GLOBALLY from all mythics by tier-5
+     * priority (Shield > Stun > Execute > Reflect). Cluster membership is
+     * only a tiebreaker among same-priority candidates. The leader's job
+     * is the defensive skill, not the trait-3 stack.
+     *
+     * Slots 2-7: cluster-bound to maximize the tier-3 bonus.
+     *   Pass 1: same element pair + matching trait value (max Tier-3 bonus).
+     *   Pass 2: same element pair, any trait value (still keeps cluster).
+     *   Pass 3: any element by score (last-resort fillers).
      */
     static _buildTeamForGroup(cat, val, pool, scoreMap) {
         const elems = ELEMENT_PAIRS_MAP[cat] || [];
-        const leaders = pool.filter(g => g.rarity === 'mythic' && elems.includes(g.element));
-        const ranked = TeamScoringService.rankLeaderCandidates(leaders.length > 0 ? leaders : pool, scoreMap, cat, val);
+        // Leader pool: ALL mythics globally (not gated by cluster).
+        // Cluster membership is passed as tiebreaker via clusterElements.
+        // If no mythics exist (beginner accounts), fall back to legendary
+        // candidates and let cluster membership become the primary
+        // discriminator since legendary tier-5 skills are typically empty.
+        const mythicPool = pool.filter(g => g.rarity === 'mythic');
+        const leaderCandidates = mythicPool.length > 0 ? mythicPool : pool;
+        const ranked = TeamScoringService.rankLeaderCandidates(leaderCandidates, scoreMap, cat, val, elems);
         if (ranked.length === 0)
             return null;
         const team = [ranked[0]];
@@ -18368,17 +18427,37 @@ class TeamModule {
                 blessingBonuses: g.blessing_bonuses || undefined,
             });
         });
-        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel, playerClass);
+        // Build BOTH modes so we can detect when "Best Possible" produces
+        // the same team as "Current Best" — this happens when the top 7
+        // girls are already at full development potential (max level + max
+        // grades). We then surface that fact in the info box instead of
+        // letting the user think the buttons are broken (issue #1603).
+        const resultMode1 = TeamBuilderService.buildTeam(girls, 1, playerLevel, playerClass);
+        const resultMode2 = TeamBuilderService.buildTeam(girls, 2, playerLevel, playerClass);
+        const result = mode === 1 ? resultMode1 : resultMode2;
         if (!result) {
             LogUtils_logHHAuto('Not enough girls for team selection v2 (mode ' + mode + '), falling back to legacy');
             TeamModule.setTopTeamLegacy(mode);
             return;
         }
+        // Mode-diff detection: identical top-7 (any order) means the pool
+        // is already maximised and Best Possible cannot improve on Current
+        // Best. We set this flag on BOTH results so the UI can show it
+        // regardless of which mode the user clicked.
+        let modesIdentical = false;
+        if (resultMode1 && resultMode2) {
+            const ids1 = new Set(resultMode1.girls.map(g => g.id_girl));
+            const ids2 = new Set(resultMode2.girls.map(g => g.id_girl));
+            modesIdentical = ids1.size === ids2.size && [...ids1].every(id => ids2.has(id));
+        }
+        result.modesIdentical = modesIdentical;
         const deckID = result.girls.map(g => g.id_girl);
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
         const dist = TeamBuilderService.getElementDistribution(result);
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
-        LogUtils_logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}`);
+        const inClusterStr = result.leaderInCluster ? 'in-cluster' : 'cross-cluster';
+        const identStr = modesIdentical ? ', modes identical' : '';
+        LogUtils_logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}${identStr}`);
         // UI update: same approach as legacy — hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
     }
@@ -18524,24 +18603,39 @@ class TeamModule {
                 }).join(' | ')
                 : '';
             const fallbackNote = traitFromRuntime ? '' : '<div style="color:#fc6; font-size:10px;">Trait label uses fallback dictionary (game runtime not yet loaded -- may be inaccurate for new color codes).</div>';
+            const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
+            const leaderClusterNote = teamResult.leaderInCluster
+                ? ''
+                : '<div style="color:#fc6; font-size:10px;">Leader is from a different element pair than positions 2-7. The cluster constraint applies to slots 2-7 only; the leader is picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>';
+            const modesIdenticalNote = teamResult.modesIdentical
+                ? '<div style="color:#fc6; font-size:10px;">Best Possible matches Current Best -- your top 7 girls are already at full development potential (max level + max grades).</div>'
+                : '';
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 300px; z-index: 10;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
                 background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
                 border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
                 <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
                 <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> -- only ${playerClassName} girls considered</div>
+
+                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
+                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName})</div>
+                <div style="color:#aaa; font-size:10px;">Picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>
+                ${leaderClusterNote}
+
+                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-7)</div>
                 <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/7 girls match)</div>
                 <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
-                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element})</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${((_a = teamResult.effectivePower) === null || _a === void 0 ? void 0 : _a.toLocaleString()) || 'N/A'}</div>
+
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
                 <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
                 ${altsHtml ? `<div style="color:#aaa; font-size:10px; margin-top:2px;">${altsHtml}</div>` : ''}
                 ${fallbackNote}
+                ${modesIdenticalNote}
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
                 <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
@@ -24790,7 +24884,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.22";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.23";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

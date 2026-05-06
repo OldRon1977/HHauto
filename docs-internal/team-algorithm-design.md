@@ -163,15 +163,29 @@ Drei Pass-Strategie pro Cluster:
 Pass 1 maximiert Tier-3-Match. Pass 2 haelt das Mono-Element-Bonus.
 Pass 3 ist nur Reserve, falls die Gruppe weniger als 7 Girls hat.
 
-### Phase 6: Leader
+### Phase 6: Leader (ab v7.35.23: global)
 
-Leader muss Mythic sein und idealerweise zum Cluster-Element-Paar gehoeren.
+Leader (Position 1) wird **global** gepickt, nicht Cluster-gebunden. Tier-5-Prio gilt fuer alle Mythics, unabhaengig von der Cluster-Wahl. Slots 2-7 bleiben weiterhin Cluster-gebunden (Phase 5).
 
 | Prioritaet | Kriterium |
 |-----------|----------|
-| 1 (primaer) | Tier-5-Skill: Shield(4) > Stun(3) > Execute(2) > Reflect(1) |
-| 2 (sekundaer) | Trait-Match (Leader teilt Cluster-Trait-Wert) |
-| 3 (tertiaer) | main_carac-Score |
+| 1 (primaer) | Mythic-Filter (mit Legendary-Fallback fuer Beginner-Pools) |
+| 2 (sekundaer) | Tier-5-Skill: Shield(4) > Stun(3) > Execute(2) > Reflect(1) - **GLOBAL** ueber alle Elemente |
+| 3 (tertiaer) | Cluster-Mitgliedschaft (Leader-Element gehoert zum Cluster-Paar) - Tiebreaker bei gleicher Tier-5-Prio |
+| 4 (quartaer) | Trait-Match (Leader teilt Cluster-Trait-Wert) |
+| 5 (final) | main_carac-Score |
+
+Beispiel: Cluster ist `eyeColor=Blue` (Element-Paar darkness+fire). Spieler hat eine Light-Mythic (Shield, Prio 4). Leader wird die Light-Mythic, obwohl sie nicht im Cluster ist - der Shield-Skill ist im Combat wichtiger als ein zusaetzlicher Trait-Match. Slots 2-7 bleiben darkness/fire-Girls aus dem Cluster.
+
+#### Sonderfall: Beginner-Pool ohne Mythics
+
+Wenn 0 Mythics existieren, faellt das Skript auf Legendary 5*-Girls zurueck. Da Legendaries praktisch nie aktive Tier-5-Skills haben (`skill_points_used == 0`), waere die Tier-5-Sortierung wirkungslos. Stattdessen gilt fuer Legendary-Leader:
+
+| Prioritaet | Kriterium |
+|-----------|----------|
+| 1 | Cluster-Mitgliedschaft |
+| 2 | Trait-Match |
+| 3 | main_carac-Score |
 
 | Element | Tier-5 Skill | Prioritaet |
 |---------|-------------|------------|
@@ -187,13 +201,15 @@ Info-Box (oben mittig, dunkel, halbtransparent):
 - Klassen-Hinweis: "Class: <Hardcore/Charm/Know-how> -- only X girls considered"
 - Trait optimiert: "[emoji] eyeColor = 'Blue' (4/7 girls match)"
 - Tier-3-Bonus: "+X.X% total stat boost"
-- Leader: Name + Tier-5-Skill + Element-Klasse
+- Leader-Block (Position 1): Name + Tier-5-Skill + Element-Klasse + Hinweis bei Cross-Cluster
+- Cluster-Block (Positions 2-7): Trait, Element-Paar, Tier-3-Bonus, Effective Power
 - Element-Verteilung: "Eccentric x3, Sensual x2, ..."
 - Effective Power
 - Active Blessings + Match-Indikator
 - Compared: Liste der evaluierten Cluster-Alternativen mit Power
 - Equipment-Hinweis: "Stats are equipment-free. Hit Stuff Team after applying."
 - Mode-Hinweis: aktueller Modus (Current Best vs. Best Possible)
+- Mode-Diff: Hinweis "Best Possible matches Current Best" wenn beide Modi dieselben Top-7-Girls liefern (Pool ist bereits voll entwickelt)
 
 Klar-Namen via `TraitMappings.resolve(category, value)`. Wenn der
 Runtime-Lookup fehlschlaegt (z.B. GT nicht geladen), erscheint ein

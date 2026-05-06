@@ -223,6 +223,117 @@ describe('TeamBuilderService', () => {
             expect(result.girls[0]).toBeDefined();
             expect(['fire', 'darkness']).toContain(result.girls[0].element);
         });
+
+        it('should pick a Shield mythic globally even if cluster is eyeColor (cross-cluster leader)', () => {
+            // Cluster will be eyeColor=blue (lots of dark/fire girls).
+            // A single light mythic (Shield) exists. The new logic must
+            // pick it as leader despite being outside the cluster pair.
+            const eyeCluster = Array.from({ length: 8 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                eyeColor: 'blue',
+            }));
+            const lightShieldMythic = makeGirl({
+                id_girl: 999,
+                element: 'light',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 1000,        // lower stats, must still win
+                hairColor: 'blonde',
+            });
+            const result = TeamBuilderService.buildTeam([...eyeCluster, lightShieldMythic], 1, 100, 3)!;
+            expect(result.traitCategory).toBe('eyeColor');
+            expect(result.girls[0].id_girl).toBe(999);
+            expect(result.leaderTier5.name).toBe('Shield');
+            expect(result.leaderInCluster).toBe(false);
+        });
+
+        it('should fill positions 2-7 from the cluster even when leader is cross-cluster', () => {
+            const eyeCluster = Array.from({ length: 8 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                eyeColor: 'blue',
+            }));
+            const lightShieldMythic = makeGirl({
+                id_girl: 999,
+                element: 'light',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 1000,
+                hairColor: 'blonde',
+            });
+            const result = TeamBuilderService.buildTeam([...eyeCluster, lightShieldMythic], 1, 100, 3)!;
+            // Slots 2-7 must all be from the eyeColor cluster (fire or darkness)
+            for (let i = 1; i < 7; i++) {
+                expect(['fire', 'darkness']).toContain(result.girls[i].element);
+            }
+        });
+
+        it('should mark leaderInCluster=true when leader is from the chosen cluster pair', () => {
+            const hairCluster = Array.from({ length: 8 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'light' : 'nature',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                hairColor: 'blonde',
+            }));
+            const result = TeamBuilderService.buildTeam(hairCluster, 1, 100, 3)!;
+            expect(result.traitCategory).toBe('hairColor');
+            expect(result.leaderInCluster).toBe(true);
+        });
+
+        it('should fall back to legendaries for leader when no mythics exist (beginner pool)', () => {
+            // 8 legendary 5* girls, no mythics. Leader must come from this pool.
+            const legendaries = Array.from({ length: 8 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'legendary',
+                class: 3,
+                nb_grades: 5,
+                graded: 5,
+                carac3: 4000,
+                eyeColor: 'blue',
+            }));
+            const result = TeamBuilderService.buildTeam(legendaries, 1, 100, 3);
+            expect(result).not.toBeNull();
+            expect(result!.girls[0].rarity).toBe('legendary');
+        });
+
+        it('should prefer cluster legendary as leader when no mythics exist', () => {
+            // Cluster will be eyeColor=blue. Two legendary candidates with
+            // identical (zero) tier-5 priority: one in cluster (fire), one
+            // out of cluster (light). The cluster member must win.
+            const eyeCluster = Array.from({ length: 7 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: 'fire',
+                rarity: 'legendary',
+                class: 3,
+                nb_grades: 5,
+                graded: 5,
+                carac3: 4000,
+                eyeColor: 'blue',
+            }));
+            const lightLegendary = makeGirl({
+                id_girl: 999,
+                element: 'light',
+                rarity: 'legendary',
+                class: 3,
+                nb_grades: 5,
+                graded: 5,
+                carac3: 4000,
+                hairColor: 'blonde',
+            });
+            const result = TeamBuilderService.buildTeam([...eyeCluster, lightLegendary], 1, 100, 3)!;
+            // No mythics, no tier-5 differentiation -> cluster tiebreaker decides
+            expect(result.girls[0].element).toBe('fire');
+        });
     });
 
     describe('Mode 2: Best Possible', () => {
@@ -278,6 +389,7 @@ describe('TeamBuilderService', () => {
             effectivePower: 0,
             alternatives: [],
             playerClass: 3,
+            leaderInCluster: true,
         };
 
         it('should count elements correctly', () => {

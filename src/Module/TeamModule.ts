@@ -498,7 +498,14 @@ export class TeamModule {
             blessingBonuses: g.blessing_bonuses || undefined,
         }));
 
-        const result = TeamBuilderService.buildTeam(girls, mode, playerLevel, playerClass);
+        // Build BOTH modes so we can detect when "Best Possible" produces
+        // the same team as "Current Best" — this happens when the top 7
+        // girls are already at full development potential (max level + max
+        // grades). We then surface that fact in the info box instead of
+        // letting the user think the buttons are broken (issue #1603).
+        const resultMode1 = TeamBuilderService.buildTeam(girls, 1, playerLevel, playerClass);
+        const resultMode2 = TeamBuilderService.buildTeam(girls, 2, playerLevel, playerClass);
+        const result = mode === 1 ? resultMode1 : resultMode2;
 
         if (!result) {
             logHHAuto('Not enough girls for team selection v2 (mode ' + mode + '), falling back to legacy');
@@ -506,11 +513,25 @@ export class TeamModule {
             return;
         }
 
+        // Mode-diff detection: identical top-7 (any order) means the pool
+        // is already maximised and Best Possible cannot improve on Current
+        // Best. We set this flag on BOTH results so the UI can show it
+        // regardless of which mode the user clicked.
+        let modesIdentical = false;
+        if (resultMode1 && resultMode2) {
+            const ids1 = new Set(resultMode1.girls.map(g => g.id_girl));
+            const ids2 = new Set(resultMode2.girls.map(g => g.id_girl));
+            modesIdentical = ids1.size === ids2.size && [...ids1].every(id => ids2.has(id));
+        }
+        (result as any).modesIdentical = modesIdentical;
+
         const deckID = result.girls.map(g => g.id_girl);
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
         const dist = TeamBuilderService.getElementDistribution(result);
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
-        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}`);
+        const inClusterStr = result.leaderInCluster ? 'in-cluster' : 'cross-cluster';
+        const identStr = modesIdentical ? ', modes identical' : '';
+        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}${identStr}`);
 
         // UI update: same approach as legacy — hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
@@ -680,24 +701,40 @@ export class TeamModule {
 
             const fallbackNote = traitFromRuntime ? '' : '<div style="color:#fc6; font-size:10px;">Trait label uses fallback dictionary (game runtime not yet loaded -- may be inaccurate for new color codes).</div>';
 
+            const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
+            const leaderClusterNote = teamResult.leaderInCluster
+                ? ''
+                : '<div style="color:#fc6; font-size:10px;">Leader is from a different element pair than positions 2-7. The cluster constraint applies to slots 2-7 only; the leader is picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>';
+            const modesIdenticalNote = (teamResult as any).modesIdentical
+                ? '<div style="color:#fc6; font-size:10px;">Best Possible matches Current Best -- your top 7 girls are already at full development potential (max level + max grades).</div>'
+                : '';
+
             const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 300px; z-index: 10;
+                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
                 background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
                 border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
                 <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
                 <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> -- only ${playerClassName} girls considered</div>
+
+                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
+                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName})</div>
+                <div style="color:#aaa; font-size:10px;">Picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>
+                ${leaderClusterNote}
+
+                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-7)</div>
                 <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/7 girls match)</div>
                 <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
-                <div><b>Leader:</b> ${teamResult.girls[0].name} (${teamResult.leaderTier5.name} / ${TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element})</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${teamResult.effectivePower?.toLocaleString() || 'N/A'}</div>
+
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
                 <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
                 ${altsHtml ? `<div style="color:#aaa; font-size:10px; margin-top:2px;">${altsHtml}</div>` : ''}
                 ${fallbackNote}
+                ${modesIdenticalNote}
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
                 <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>

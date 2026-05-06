@@ -34,6 +34,7 @@ export interface TeamResult {
     effectivePower: number;        // main_sum * (1 + tier3Bonus)
     alternatives: Array<{ traitCategory: string; traitValue: string; effectivePower: number }>;
     playerClass: PlayerClass;       // 1=HC, 2=Charm, 3=KH (for UI display)
+    leaderInCluster: boolean;       // true if leader element belongs to the cluster pair
 }
 
 export type ScoringMode = 1 | 2;  // 1 = Current Best, 2 = Best Possible
@@ -153,6 +154,9 @@ export class TeamBuilderService {
             }
         }
 
+        const clusterElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
+        const leaderInCluster = clusterElements.includes(leader.element);
+
         return {
             girls: team,
             statScores,
@@ -168,20 +172,33 @@ export class TeamBuilderService {
             effectivePower: bestBuilt.power,
             alternatives,
             playerClass,
+            leaderInCluster,
         };
     }
 
     /**
      * Build a team for a specific trait group.
      *
-     * Pass 1: same element pair + matching trait value (max Tier-3 bonus).
-     * Pass 2: same element pair, any trait value (still keeps cluster).
-     * Pass 3: any element by score (last-resort fillers).
+     * Leader (position 1): picked GLOBALLY from all mythics by tier-5
+     * priority (Shield > Stun > Execute > Reflect). Cluster membership is
+     * only a tiebreaker among same-priority candidates. The leader's job
+     * is the defensive skill, not the trait-3 stack.
+     *
+     * Slots 2-7: cluster-bound to maximize the tier-3 bonus.
+     *   Pass 1: same element pair + matching trait value (max Tier-3 bonus).
+     *   Pass 2: same element pair, any trait value (still keeps cluster).
+     *   Pass 3: any element by score (last-resort fillers).
      */
     private static _buildTeamForGroup(cat: TraitCategory, val: string, pool: GirlData[], scoreMap: Map<number, number>): GirlData[] | null {
         const elems = ELEMENT_PAIRS_MAP[cat] || [];
-        const leaders = pool.filter(g => g.rarity === 'mythic' && elems.includes(g.element));
-        const ranked = TeamScoringService.rankLeaderCandidates(leaders.length > 0 ? leaders : pool, scoreMap, cat, val);
+        // Leader pool: ALL mythics globally (not gated by cluster).
+        // Cluster membership is passed as tiebreaker via clusterElements.
+        // If no mythics exist (beginner accounts), fall back to legendary
+        // candidates and let cluster membership become the primary
+        // discriminator since legendary tier-5 skills are typically empty.
+        const mythicPool = pool.filter(g => g.rarity === 'mythic');
+        const leaderCandidates = mythicPool.length > 0 ? mythicPool : pool;
+        const ranked = TeamScoringService.rankLeaderCandidates(leaderCandidates, scoreMap, cat, val, elems);
         if (ranked.length === 0) return null;
 
         const team: GirlData[] = [ranked[0]];
