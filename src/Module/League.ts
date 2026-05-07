@@ -34,6 +34,7 @@ import {
     setTimer,
     TimeHelper
 } from '../Helper/index';
+import { decideShouldFight, ShouldFightState } from './League.pure';
 import {
     addNutakuSession,
     autoLoop,
@@ -223,17 +224,35 @@ export class LeagueHelper {
             // Last league hour //TODO
             logHHAuto("Last League hour");
         }
-        const energyAboveThreshold = humanLikeRun && LeagueHelper.getEnergy() > threshold || LeagueHelper.getEnergy() > Math.max(threshold, runThreshold-1);
-        const paranoiaSpending = LeagueHelper.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('challenge') > 0;
+        const energy = LeagueHelper.getEnergy();
+        const paranoiaSpending = ParanoiaService.checkParanoiaSpendings('challenge');
         const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
-        // logHHAuto('League:', {threshold: threshold, runThreshold:runThreshold, energyAboveThreshold: energyAboveThreshold});
+        const timerExpired = checkTimer('nextLeaguesTime');
+        // checkTimer returns true once the timer has run out; convert to the
+        // numeric form the pure function expects (negative or zero = expired).
+        const timerLeft = timerExpired ? 0 : 1;
 
-        if(checkTimer('nextLeaguesTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
+        const state: ShouldFightState = {
+            energy,
+            threshold,
+            runThreshold,
+            humanLikeRun,
+            timerLeft,
+            paranoiaSpending,
+            boosterRequired: needBoosterToFight,
+            boosterEquipped: haveBoosterEquiped,
+        };
+
+        const energyAboveThreshold =
+            (humanLikeRun && energy > threshold) ||
+            energy > Math.max(threshold, runThreshold - 1);
+
+        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
             logHHAuto('Time for league but no booster equipped');
         }
 
-        return (checkTimer('nextLeaguesTime') && energyAboveThreshold && (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight)) || paranoiaSpending;
+        return decideShouldFight(state);
     }
 
     /* static async _refreshSorting(){

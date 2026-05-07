@@ -13542,6 +13542,41 @@ LabyrinthAuto.NORMAL = "1";
 LabyrinthAuto.HARD = "2";
 LabyrinthAuto.LABYRINTH_SELECTOR = ['easy', 'normal', 'hard'];
 
+;// CONCATENATED MODULE: ./src/Module/League.pure.ts
+// League.pure.ts -- Pure decision logic for league automation.
+//
+// Extracted from LeagueHelper.isTimeToFight to enable direct unit tests
+// without spying on static methods. No globals, no storage, no jQuery,
+// no DOM. Input = data, output = decision.
+//
+// The impure adapter LeagueHelper.isTimeToFight reads globals and storage,
+// builds a ShouldFightState, and delegates here.
+/**
+ * Decide whether the league module should fight right now.
+ *
+ * Mirrors the original logic of LeagueHelper.isTimeToFight bit by bit:
+ *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
+ *                          run out)
+ *   - energyAboveThreshold: humanLikeRun loosens the upper bound, otherwise
+ *                          energy must exceed max(threshold, runThreshold - 1)
+ *   - paranoiaOverride:    spend any positive amount of paranoia energy as
+ *                          long as energy > 0
+ *   - boosterCheck:        either boosters are not required, or they are
+ *                          required AND equipped
+ *
+ * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
+ * spending is active.
+ */
+function decideShouldFight(state) {
+    const { energy, threshold, runThreshold, humanLikeRun, timerLeft, paranoiaSpending, boosterRequired, boosterEquipped, } = state;
+    const timerExpired = timerLeft <= 0;
+    const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
+        energy > Math.max(threshold, runThreshold - 1);
+    const paranoiaOverride = energy > 0 && paranoiaSpending > 0;
+    const boosterCheck = (boosterRequired && boosterEquipped) || !boosterRequired;
+    return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
+}
+
 ;// CONCATENATED MODULE: ./src/Module/League.ts
 var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -13563,6 +13598,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
+
 
 
 
@@ -13714,15 +13750,30 @@ class LeagueHelper {
             // Last league hour //TODO
             LogUtils_logHHAuto("Last League hour");
         }
-        const energyAboveThreshold = humanLikeRun && LeagueHelper.getEnergy() > threshold || LeagueHelper.getEnergy() > Math.max(threshold, runThreshold - 1);
-        const paranoiaSpending = LeagueHelper.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('challenge') > 0;
+        const energy = LeagueHelper.getEnergy();
+        const paranoiaSpending = ParanoiaService.checkParanoiaSpendings('challenge');
         const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
-        // logHHAuto('League:', {threshold: threshold, runThreshold:runThreshold, energyAboveThreshold: energyAboveThreshold});
-        if (checkTimer('nextLeaguesTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
+        const timerExpired = checkTimer('nextLeaguesTime');
+        // checkTimer returns true once the timer has run out; convert to the
+        // numeric form the pure function expects (negative or zero = expired).
+        const timerLeft = timerExpired ? 0 : 1;
+        const state = {
+            energy,
+            threshold,
+            runThreshold,
+            humanLikeRun,
+            timerLeft,
+            paranoiaSpending,
+            boosterRequired: needBoosterToFight,
+            boosterEquipped: haveBoosterEquiped,
+        };
+        const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
+            energy > Math.max(threshold, runThreshold - 1);
+        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
             LogUtils_logHHAuto('Time for league but no booster equipped');
         }
-        return (checkTimer('nextLeaguesTime') && energyAboveThreshold && (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight)) || paranoiaSpending;
+        return decideShouldFight(state);
     }
     /* static async _refreshSorting(){
         const columnHeadSelector = '.league_content .data-list .data-column[sorting]';
