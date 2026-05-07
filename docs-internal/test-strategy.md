@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **0 (immediate hygiene)** -- in progress
-- Last completed task: 0.1 (fdescribe -> describe in Champion.spec.ts)
+- Last completed task: 0.3 (subjective findings handled)
 - Last commit: <set in commit message>
-- Next step: task 0.2 (handle xit tests)
+- Next step: task 0.4 (extend MockHelper)
 
 ## Context
 
@@ -99,10 +99,17 @@ because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
   - Precondition: question B answered, hidden tests known
   - Verification: `npm test` shows more passing tests than before
   - If tests turn red: decide individually (fix or xit)
-- [ ] **0.2** Handle xit tests according to answer A
-  - On \"Inventory\": list under \"xit inventory\" below
-  - Per test: fix, drop, or leave xit'd with a GitHub-issue link
-- [ ] **0.3** Apply findings 3/4/5 according to answer C
+- [x] **0.2** Handle xit tests according to answer A (2026-05-07)
+  - 7 xit tests inventoried, 5 reactivated (all green), 2 empty stubs removed
+  - TimeHelper: canCollectCompetitionActive + getSecondsLeftBeforeNewCompetition (stubs removed)
+  - Season: 2 low-mojo tests reactivated, with `Setting_autoSeasonSkipLowMojo=true` set in the tests
+  - HaremGirl: \"Button and no girl\" reactivated, green without further changes
+  - League: \"should return false during the last hour...\" reactivated, green without further changes
+  - PageNavigationService: `toHaveBeenCalledWith` -> `expect.stringContaining` (test bug, timestamp prefix)
+- [x] **0.3** Findings 3/4/5 per answer C: nothing to do in stage 0
+  - C-3c (Pachinko string mapping): defer to the Pachinko refactor
+  - C-4c (Pipeline.config value asserts): defer to the next Pipeline change
+  - C-5b (League jest.spyOn): keep until stage 1 (pure-function extraction replaces them)
 - [ ] **0.4** Extend MockHelper with:
   - `mockBoosterInventory(boosters)` -- writes Temp_boosterStatus
   - `mockSetting(key, value)` -- localStorage Setting_*
@@ -271,3 +278,4 @@ findNextChamptionTime with 1 test.
 |---|---|
 | 2026-05-07 | Initial draft, state before stage 0 |
 | 2026-05-07 | Task 0.1 done: fdescribe -> describe. Tests: 549 passed / 7 skipped / 556 total |
+| 2026-05-07 | Tasks 0.2 + 0.3 done: every xit handled. Tests: 554 passed / 0 skipped / 554 total |

@@ -146,7 +146,7 @@ describe("League", function () {
             expect(result).toBeTruthy();
         });
 
-        xit("should return false during the last hour of the league if energy is insufficient", function () {
+        it("should return false during the last hour of the league if energy is insufficient", function () {
             jest.spyOn(LeagueHelper, "getLeagueEndTime").mockReturnValue(3500); // 1 hour left
             localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoLeaguesThreshold", "15");
             localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoLeaguesRunThreshold", "20");

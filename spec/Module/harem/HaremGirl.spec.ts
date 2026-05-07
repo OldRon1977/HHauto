@@ -52,7 +52,7 @@ describe("HaremGirl", function () {
             mockGirl();
             expect(HaremGirl.canGiftGirl()).toBeFalsy();
         });
-        xit("Button and no girl", function () {
+        it("Button and no girl", function () {
             document.body.innerHTML = HTML_START + AFF_BUTTON;
             expect(HaremGirl.canGiftGirl()).toBeFalsy();
         });

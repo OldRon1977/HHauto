@@ -71,7 +71,7 @@ describe("PageNavigationService", function () {
             expect(result).toEqual(originalObject);
         });
 
-        xit("should log an error if Nutaku is detected but no session is found", function () {
+        it("should log an error if Nutaku is detected but no session is found", function () {
             const originalUrl = "/some/path";
             Object.defineProperty(window, 'location', {
                 value: {
@@ -84,7 +84,7 @@ describe("PageNavigationService", function () {
 
             addNutakuSession(originalUrl);
 
-            expect(logSpy).toHaveBeenCalledWith("ERROR Nutaku detected and no session found");
+            expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("ERROR Nutaku detected and no session found"));
 
             logSpy.mockRestore();
         });
