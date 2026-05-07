@@ -6,9 +6,9 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 ## Status
 
 - Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
-- Letzte abgeschlossene Task: 0.4 (MockHelper erweitert um 5 Helper)
-- Letzter Commit: 756004a (Branch chore/test-hygiene, lokal -- Push offen)
-- Naechster Schritt: Task 0.5 (Coverage-Reporter aktivieren)
+- Letzte abgeschlossene Task: 0.5 (Coverage-Reporter aktiviert)
+- Letzter Commit: 2b48603 (Branch chore/test-hygiene, lokal -- Push offen)
+- Naechster Schritt: Task 0.6 (GitHub-Issue fuer CI-Coverage-Reporting anlegen)
 
 ## Kontext
 
@@ -129,10 +129,12 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
   - `mockGameGlobals({heroLevel, energies, settings})` -- Welt-Setup
   - Datei: spec/testHelpers/MockHelpers.ts (143 Zeilen erweitert)
   - Anmerkung: Hartkodierte Storage-Praefixe abloest durch Imports aus src/config (HHStoredVarPrefixKey, TK)
-- [ ] **0.5** Coverage-Reporter aktivieren (HTML + lcov)
-  - In `jest.config.ts`: `coverageReporters: ['text', 'text-summary', 'lcov', 'clover', 'html']`
+- [x] **0.5** Coverage-Reporter aktiviert (commit 2b48603, 2026-05-07)
+  - jest.config.ts: coverageReporters = text, text-summary, lcov, clover, html
   - Kein Threshold-Gate
-  - Verifikation: `npm test`, dann `coverage/lcov-report/index.html` im Browser
+  - text-summary erscheint am Ende jedes npm-test-Laufs
+  - HTML-Report unter coverage/lcov-report/index.html
+  - Aktuelle Werte: 28.92% Stmt / 17.11% Cond / 24.10% Methods / 29.60% Lines
 - [ ] **0.6** Coverage-Reporting via GitHub Action (Issue als Reminder)
   - Issue im Repo anlegen mit Titel "Coverage-Reporting in CI"
   - Nicht jetzt umsetzen, nur Reminder
@@ -295,3 +297,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | Task 0.1 erledigt: fdescribe -> describe (commit 6fa1e64). Tests: 549 passed / 7 skipped / 556 total |
 | 2026-05-07 | Task 0.2 erledigt: alle xit behandelt (commit 0d1aee3). Tests: 554 passed / 0 skipped / 554 total |
 | 2026-05-07 | Task 0.4 erledigt: MockHelper +5 Funktionen (commit 756004a). Tests bleiben 554 passed |
+| 2026-05-07 | Task 0.5 erledigt: Coverage-Reporter aktiviert (commit 2b48603) |
