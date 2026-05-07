@@ -66,15 +66,4 @@ describe("Time Helper", function () {
         });
     });
 
-    describe("canCollectCompetitionActive", function () {
-        xit("default", function () {
-            //expect(TimeHelper.canCollectCompetitionActive()).toBeTruthy()
-        });
-    });
-
-    describe("getSecondsLeftBeforeNewCompetition", function () {
-        xit("default", function () {
-            //expect(TimeHelper.getSecondsLeftBeforeNewCompetition()).toBe(0);
-        });
-    });
 });

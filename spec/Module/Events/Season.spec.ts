@@ -228,8 +228,9 @@ describe("Season event", function () {
     });
 
     describe("getBestOppo low mojo", function () {
-        xit("low mojo", function () {
+        it("low mojo", function () {
             mockSeasonTierLevel(20);
+            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo", "true");
             const OPPO_AA = { ...OPPO_A };
             OPPO_AA.mojo = 5;
             let result = Season.getBestOppo([OPPO_AA, OPPO_AA, OPPO_AA]);
@@ -252,8 +253,9 @@ describe("Season event", function () {
             expect(result.chosenIndex).toBe(0);
         });
 
-        xit("low mojo, energy not max with cards", function () {
+        it("low mojo, energy not max with cards", function () {
             mockSeasonTierLevel(20);
+            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoSeasonSkipLowMojo", "true");
             const OPPO_AA = { ...OPPO_A };
             OPPO_AA.mojo = 5;
             let result = Season.getBestOppo([OPPO_AA, OPPO_AA, OPPO_AA], 11, 15);
