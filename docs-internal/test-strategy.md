@@ -6,9 +6,10 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **2 in progress** (mini fixtures from the dump)
-- Last completed tasks: 2.1 + 2.2 + 2.6 bundled (League fixtures + shared loader; merged into main via PR #1626, commit 7395a0a)
-- Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 2 task 2.3 (HaremGirl fixtures from page index 0). Reuses spec/testHelpers/Fixtures.ts. Also the natural place to revisit the parseGirlsFromGameData parser deferred from stage 1 task 1.3.
+- Last completed task: 2.3 (HaremGirl fixtures from page index 19, merged into main via PR #1628, commit ab78a5a)
+- Open reminder: issue #1614 (CI coverage reporting; tracked, not in stage 2 scope)
+- Next step: stage 2 task 2.4 (Champion fixtures from page index 8 / `/champions-map.html`). Reuses spec/testHelpers/Fixtures.ts.
+- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl fixture is sized to feed.
 
 ## Context
 
@@ -259,11 +260,34 @@ the core.
     not needed for this fixture set, will be added when a League
     parser test needs it.
   - Merged via PR #1626 (commit 7395a0a).
-- [ ] **2.3** HaremGirl fixtures
-  - Source: page index 0 (`/home.html`) `girls_full.game.shared.Hero`
-  - Selection: 3 girls (1 mythic 6/6, 1 legendary 5/5, 1 common)
-  - File: `spec/fixtures/haremGirl/sample-girls.json`
-  - Tests: `parseGirlsFromGameData`, `calculateSalary`, filter functions
+- [x] **2.3** HaremGirl fixtures (2026-05-07)
+  - Plan deviation (documented in fixture README): plan listed page
+    index 0 (`/home.html`) and the path `girls_full.game.shared.Hero`.
+    The actual dump has the harem on page index 19 (`/waifu.html`)
+    under the dotted-key path `girls_full["game.girls_data_list"]`.
+    `girls_full.game.shared.Hero` on page 0 contains 28 hero-side
+    records, not the harem. Field selection follows the real dump.
+  - Source: `pages[19].girls_full["game.girls_data_list"]`
+  - Selection: 3 girls covering the rarity / max-grade range
+    * `id_girl=118565805` (Untamed Levitya, mythic, `nb_grades=6`)
+    * `id_girl=118816` (Fanny & Fione, legendary, `nb_grades=5`)
+    * `id_girl=5` (Princess Agate, common, `nb_grades=5`)
+    All three are owned with `shards=100` and `level=750`.
+  - Files written:
+    * `spec/fixtures/haremGirl/sample-girls.json` -- 3 girls,
+      whitelisted to parser-relevant fields (ids, classification,
+      progress, caracs, salary, element/blessing, skill tiers, grade
+      offsets); avatar urls and decoration metadata dropped.
+    * `spec/fixtures/haremGirl/README.md` -- audit trail.
+  - Tests: 6 smoke tests in `spec/fixtures/haremGirl/Fixtures.spec.ts`
+    confirming entry count, rarity slot coverage, numeric ids and
+    progress fields, the caracs object, salary fields, and the absence
+    of dropped metadata. 621 total (615 + 6).
+  - Scoping: per stage 2 rule (test code only), the deferred parser
+    `parseGirlsFromGameData` from stage 1 task 1.3 stays deferred. It
+    will land in stage 3 alongside the parser tests this fixture is
+    sized to feed.
+  - Merged via PR #1628 (commit ab78a5a).
 - [ ] **2.4** Champion fixtures
   - Source: page index 8 (`/champions-map.html`)
   - Files: `spec/fixtures/champion/champion-map.json`, `active-champion.json`
@@ -388,3 +412,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 1.4 done: `decideBurst` and `shouldRunStandardHandler` extracted, 18 new pure tests (610 total), bundle diff structural, signature changed from plan (handler pipeline has no single picker; remaining handlers deferred to stage 3), merged via PR #1623 (commit 44aa97d) |
 | 2026-05-07 | Stage 1 finished: 4 pure modules, 56 new tests across 4 PRs (1.1-1.4) |
 | 2026-05-07 | Tasks 2.1 + 2.2 + 2.6 done (bundled): League fixtures (3 mid-tier opponents, tier-3 rewards) + shared loader `Fixtures.ts`, 5 new smoke tests (615 total), no src changes, plan deviation in opponent field set documented in fixture README, merged via PR #1626 (commit 7395a0a) |
+| 2026-05-07 | Task 2.3 done: HaremGirl fixture (3 girls -- mythic 6/6 + legendary 5/5 + common 5/5) + 6 new smoke tests (621 total), no src changes, plan deviation in source path documented in fixture README (page 19 /waifu.html instead of plan's page 0 /home.html), `parseGirlsFromGameData` parser stays deferred to stage 3 per stage 2 rule, merged via PR #1628 (commit ab78a5a) |
