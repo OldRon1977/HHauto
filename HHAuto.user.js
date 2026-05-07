@@ -11236,6 +11236,89 @@ class HaremFilter {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/harem/HaremGirl.pure.ts
+// HaremGirl.pure.ts -- Pure equipment scoring/comparison helpers.
+//
+// Extracted from HaremGirl (private static methods) so the resonance and
+// stat-sum logic can be unit-tested without DOM, jQuery, or globals.
+// HaremGirl now imports these for optimizeEquipmentSlots and the (currently
+// unused) findBestItem helper.
+//
+// The data shape is intentionally loose -- the game API uses untyped JSON
+// and the original methods accepted `any`. We mirror that here and document
+// the keys we read.
+/**
+ * Sum of all stat fields plus the count of class/element/figure resonance
+ * matches against the wearer.
+ *
+ * Matches the original implementation byte for byte:
+ *   - missing carac fields default to 0
+ *   - resonance_bonuses as an array is ignored (zero matches)
+ *   - identifier comparison is stringified on both sides
+ */
+function scoreItem(item, girl) {
+    const c = item.caracs;
+    const caracSum = (c.carac1 || 0) +
+        (c.carac2 || 0) +
+        (c.carac3 || 0) +
+        (c.damage || 0) +
+        (c.defense || 0) +
+        (c.ego || 0);
+    let resonanceMatches = 0;
+    if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
+        const rb = item.resonance_bonuses;
+        if (rb.class && String(rb.class.identifier) === String(girl.class))
+            resonanceMatches++;
+        if (rb.element && String(rb.element.identifier) === String(girl.element))
+            resonanceMatches++;
+        if (rb.figure && String(rb.figure.identifier) === String(girl.figure))
+            resonanceMatches++;
+    }
+    return { caracSum, resonanceMatches };
+}
+/**
+ * Pick the highest-scoring item from a list. Tiebreakers, in order:
+ *   1. caracSum
+ *   2. resonanceMatches
+ *   3. carac1+carac2+carac3 (excluding damage/defense/ego)
+ *
+ * Returns null on an empty list. Currently unused in the codebase but kept
+ * as part of the equipment helper trio for parity with the original module.
+ */
+function findBestItem(items, girl) {
+    if (items.length === 0)
+        return null;
+    return items.slice().sort((a, b) => {
+        const sa = scoreItem(a, girl);
+        const sb = scoreItem(b, girl);
+        if (sb.caracSum !== sa.caracSum)
+            return sb.caracSum - sa.caracSum;
+        if (sb.resonanceMatches !== sa.resonanceMatches)
+            return sb.resonanceMatches - sa.resonanceMatches;
+        const ca = a.caracs;
+        const cb = b.caracs;
+        return (((cb.carac1 || 0) + (cb.carac2 || 0) + (cb.carac3 || 0)) -
+            ((ca.carac1 || 0) + (ca.carac2 || 0) + (ca.carac3 || 0)));
+    })[0];
+}
+/**
+ * Decide whether `candidate` should replace `current`. Always true if no
+ * current item is equipped (or current.caracs is missing). Otherwise the
+ * candidate must beat the current on caracSum, or tie on caracSum and beat
+ * on resonanceMatches.
+ */
+function isBetter(candidate, current, girl) {
+    if (!current || !current.caracs)
+        return true;
+    const sc = scoreItem(candidate, girl);
+    const se = scoreItem(current, girl);
+    if (sc.caracSum > se.caracSum)
+        return true;
+    if (sc.caracSum === se.caracSum && sc.resonanceMatches > se.resonanceMatches)
+        return true;
+    return false;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/harem/HaremGirl.ts
 var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -11256,6 +11339,7 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 //
 // Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
 //
+
 
 
 
@@ -12010,46 +12094,6 @@ class HaremGirl {
             });
         });
     }
-    static scoreItem(item, girl) {
-        const c = item.caracs;
-        const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
-        let resonanceMatches = 0;
-        if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
-            const rb = item.resonance_bonuses;
-            if (rb.class && String(rb.class.identifier) === String(girl.class))
-                resonanceMatches++;
-            if (rb.element && String(rb.element.identifier) === String(girl.element))
-                resonanceMatches++;
-            if (rb.figure && String(rb.figure.identifier) === String(girl.figure))
-                resonanceMatches++;
-        }
-        return { caracSum, resonanceMatches };
-    }
-    static findBestItem(items, girl) {
-        if (items.length === 0)
-            return null;
-        return items.sort((a, b) => {
-            const sa = HaremGirl.scoreItem(a, girl);
-            const sb = HaremGirl.scoreItem(b, girl);
-            if (sb.caracSum !== sa.caracSum)
-                return sb.caracSum - sa.caracSum;
-            if (sb.resonanceMatches !== sa.resonanceMatches)
-                return sb.resonanceMatches - sa.resonanceMatches;
-            return ((b.caracs.carac1 || 0) + (b.caracs.carac2 || 0) + (b.caracs.carac3 || 0))
-                - ((a.caracs.carac1 || 0) + (a.caracs.carac2 || 0) + (a.caracs.carac3 || 0));
-        })[0];
-    }
-    static isBetter(candidate, current, girl) {
-        if (!current || !current.caracs)
-            return true;
-        const sc = HaremGirl.scoreItem(candidate, girl);
-        const se = HaremGirl.scoreItem(current, girl);
-        if (sc.caracSum > se.caracSum)
-            return true;
-        if (sc.caracSum === se.caracSum && sc.resonanceMatches > se.resonanceMatches)
-            return true;
-        return false;
-    }
     /**
      * Force the game's lazy-loaded inventory panel to render all items.
      * The game renders inventory items on-demand as the container is scrolled.
@@ -12149,8 +12193,8 @@ class HaremGirl {
                 }
                 // Rank candidates: total stats, then resonance, then individual stats
                 const sorted = inventoryItems.slice().sort((a, b) => {
-                    const sa = HaremGirl.scoreItem(a.data, girl);
-                    const sb = HaremGirl.scoreItem(b.data, girl);
+                    const sa = scoreItem(a.data, girl);
+                    const sb = scoreItem(b.data, girl);
                     if (sb.caracSum !== sa.caracSum)
                         return sb.caracSum - sa.caracSum;
                     if (sb.resonanceMatches !== sa.resonanceMatches)
@@ -12159,8 +12203,8 @@ class HaremGirl {
                     return ((cb.carac1 || 0) + (cb.carac2 || 0) + (cb.carac3 || 0)) - ((ca.carac1 || 0) + (ca.carac2 || 0) + (ca.carac3 || 0));
                 });
                 const bestInventory = sorted[0];
-                const bestScore = HaremGirl.scoreItem(bestInventory.data, girl);
-                const shouldReplace = HaremGirl.isBetter(bestInventory.data, equippedData, girl);
+                const bestScore = scoreItem(bestInventory.data, girl);
+                const shouldReplace = isBetter(bestInventory.data, equippedData, girl);
                 if (shouldReplace) {
                     LogUtils_logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
                     // Capture previous equipped identity so we can verify a real change below (see issue #1573)
@@ -12266,7 +12310,7 @@ class HaremGirl {
                     }
                 }
                 else {
-                    const eqScore = equippedData ? HaremGirl.scoreItem(equippedData, girl) : null;
+                    const eqScore = equippedData ? scoreItem(equippedData, girl) : null;
                     LogUtils_logHHAuto(`Slot ${i}: current item is optimal (L${equippedData === null || equippedData === void 0 ? void 0 : equippedData.level} ${equippedData === null || equippedData === void 0 ? void 0 : equippedData.rarity}, score=${eqScore === null || eqScore === void 0 ? void 0 : eqScore.caracSum})`);
                 }
             }

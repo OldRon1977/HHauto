@@ -27,6 +27,7 @@ import { gotoPage } from "../../Service/index";
 import { displayHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from "../../Utils/index";
 import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { KKHaremGirl, TeamData } from "../../model/index";
+import { isBetter, scoreItem } from "./HaremGirl.pure";
 
 
 export class HaremGirl {
@@ -850,40 +851,6 @@ export class HaremGirl {
         });
     }
 
-    private static scoreItem(item: any, girl: KKHaremGirl): { caracSum: number, resonanceMatches: number } {
-        const c = item.caracs;
-        const caracSum = (c.carac1 || 0) + (c.carac2 || 0) + (c.carac3 || 0) + (c.damage || 0) + (c.defense || 0) + (c.ego || 0);
-        let resonanceMatches = 0;
-        if (item.resonance_bonuses && !Array.isArray(item.resonance_bonuses)) {
-            const rb = item.resonance_bonuses;
-            if (rb.class && String(rb.class.identifier) === String(girl.class)) resonanceMatches++;
-            if (rb.element && String(rb.element.identifier) === String(girl.element)) resonanceMatches++;
-            if (rb.figure && String(rb.figure.identifier) === String(girl.figure)) resonanceMatches++;
-        }
-        return { caracSum, resonanceMatches };
-    }
-
-    private static findBestItem(items: any[], girl: KKHaremGirl): any {
-        if (items.length === 0) return null;
-        return items.sort((a, b) => {
-            const sa = HaremGirl.scoreItem(a, girl);
-            const sb = HaremGirl.scoreItem(b, girl);
-            if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
-            if (sb.resonanceMatches !== sa.resonanceMatches) return sb.resonanceMatches - sa.resonanceMatches;
-            return ((b.caracs.carac1||0)+(b.caracs.carac2||0)+(b.caracs.carac3||0))
-                 - ((a.caracs.carac1||0)+(a.caracs.carac2||0)+(a.caracs.carac3||0));
-        })[0];
-    }
-
-    private static isBetter(candidate: any, current: any, girl: KKHaremGirl): boolean {
-        if (!current || !current.caracs) return true;
-        const sc = HaremGirl.scoreItem(candidate, girl);
-        const se = HaremGirl.scoreItem(current, girl);
-        if (sc.caracSum > se.caracSum) return true;
-        if (sc.caracSum === se.caracSum && sc.resonanceMatches > se.resonanceMatches) return true;
-        return false;
-    }
-
     /**
      * Force the game's lazy-loaded inventory panel to render all items.
      * The game renders inventory items on-demand as the container is scrolled.
@@ -980,8 +947,8 @@ export class HaremGirl {
 
             // Rank candidates: total stats, then resonance, then individual stats
             const sorted = inventoryItems.slice().sort((a, b) => {
-                const sa = HaremGirl.scoreItem(a.data, girl);
-                const sb = HaremGirl.scoreItem(b.data, girl);
+                const sa = scoreItem(a.data, girl);
+                const sb = scoreItem(b.data, girl);
                 if (sb.caracSum !== sa.caracSum) return sb.caracSum - sa.caracSum;
                 if (sb.resonanceMatches !== sa.resonanceMatches) return sb.resonanceMatches - sa.resonanceMatches;
                 const ca = a.data.caracs, cb = b.data.caracs;
@@ -989,8 +956,8 @@ export class HaremGirl {
             });
             const bestInventory = sorted[0];
 
-            const bestScore = HaremGirl.scoreItem(bestInventory.data, girl);
-            const shouldReplace = HaremGirl.isBetter(bestInventory.data, equippedData, girl);
+            const bestScore = scoreItem(bestInventory.data, girl);
+            const shouldReplace = isBetter(bestInventory.data, equippedData, girl);
 
             if (shouldReplace) {
                 logHHAuto(`Slot ${i}: replacing with better item (L${bestInventory.data.level} ${bestInventory.data.rarity}, score=${bestScore.caracSum}, resonance=${bestScore.resonanceMatches})`);
@@ -1090,7 +1057,7 @@ export class HaremGirl {
                     logHHAuto(`Slot ${i}: equip failed after ${MAX_EQUIP_ATTEMPTS} attempts, skipping`);
                 }
             } else {
-                const eqScore = equippedData ? HaremGirl.scoreItem(equippedData, girl) : null;
+                const eqScore = equippedData ? scoreItem(equippedData, girl) : null;
                 logHHAuto(`Slot ${i}: current item is optimal (L${equippedData?.level} ${equippedData?.rarity}, score=${eqScore?.caracSum})`);
             }
         }
