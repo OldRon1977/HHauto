@@ -6,9 +6,9 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 ## Status
 
 - Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
-- Letzte abgeschlossene Task: 0.2 (alle xit-Tests behandelt, 0 skipped)
-- Letzter Commit: 0d1aee3 (Branch chore/test-hygiene, lokal -- Push offen)
-- Naechster Schritt: Task 0.3 (Findings 3/4/5 -- C-3c, C-4c, C-5b: alle 'spaeter' bzw. 'bis Stufe 1', daher in Stufe 0 nichts zu tun -> direkt zu 0.4)
+- Letzte abgeschlossene Task: 0.4 (MockHelper erweitert um 5 Helper)
+- Letzter Commit: 756004a (Branch chore/test-hygiene, lokal -- Push offen)
+- Naechster Schritt: Task 0.5 (Coverage-Reporter aktivieren)
 
 ## Kontext
 
@@ -121,13 +121,14 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
   - C-3c (Pachinko String-Mapping): spaeter beim Pachinko-Refactor
   - C-4c (Pipeline.config Konfigwert-Asserts): spaeter beim Pipeline-Anfassen
   - C-5b (League jest.spyOn): bleibt bis Stufe 1 (Pure-Function-Extraktion ersetzt sie)
-- [ ] **0.4** MockHelper erweitern um:
-  - `mockBoosterInventory(boosters)` -- setzt sessionStorage Temp_haveBooster
-  - `mockSettings(key, value)` -- localStorage HHAuto_Setting_*
-  - `mockTimer(name, secondsLeft)` -- TimerHelper-Wrapper
-  - `mockAjaxSuccess(response)` / `mockAjaxError(error)` -- hh_ajax-Mock
-  - `mockGameGlobals({ heroLevel, energies, settings, ... })` -- Welt-Setup
-  - Datei: `spec/testHelpers/MockHelpers.ts` (existiert)
+- [x] **0.4** MockHelper erweitert (commit 756004a, 2026-05-07)
+  - `mockBoosterInventory({normal, mythic})` -- localStorage Temp_boosterStatus
+  - `mockSetting(key, value)` -- localStorage Setting_*
+  - `mockTimer(name, secondsLeft)` -- localStorage Temp_Timers; <=0 clears
+  - `mockAjaxSuccess(response)` / `mockAjaxError(error)` -- shared.general.hh_ajax
+  - `mockGameGlobals({heroLevel, energies, settings})` -- Welt-Setup
+  - Datei: spec/testHelpers/MockHelpers.ts (143 Zeilen erweitert)
+  - Anmerkung: Hartkodierte Storage-Praefixe abloest durch Imports aus src/config (HHStoredVarPrefixKey, TK)
 - [ ] **0.5** Coverage-Reporter aktivieren (HTML + lcov)
   - In `jest.config.ts`: `coverageReporters: ['text', 'text-summary', 'lcov', 'clover', 'html']`
   - Kein Threshold-Gate
@@ -293,3 +294,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | C-5 revidiert auf b (Konflikt-Vermeidung mit Stufe 1) |
 | 2026-05-07 | Task 0.1 erledigt: fdescribe -> describe (commit 6fa1e64). Tests: 549 passed / 7 skipped / 556 total |
 | 2026-05-07 | Task 0.2 erledigt: alle xit behandelt (commit 0d1aee3). Tests: 554 passed / 0 skipped / 554 total |
+| 2026-05-07 | Task 0.4 erledigt: MockHelper +5 Funktionen (commit 756004a). Tests bleiben 554 passed |
