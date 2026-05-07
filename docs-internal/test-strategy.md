@@ -6,9 +6,9 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 ## Status
 
 - Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
-- Letzte abgeschlossene Task: 0.5 (Coverage-Reporter aktiviert)
-- Letzter Commit: 2b48603 (Branch chore/test-hygiene, lokal -- Push offen)
-- Naechster Schritt: Task 0.6 (GitHub-Issue fuer CI-Coverage-Reporting anlegen)
+- Letzte abgeschlossene Task: 0.6 (GitHub-Issue #1612 fuer CI-Coverage-Reporting angelegt)
+- Letzter Commit: 7f83ccd (Branch chore/test-hygiene, lokal -- Push offen)
+- Naechster Schritt: Task 0.7 (Push, PR, Merge gemaess Workflow-Rules)
 
 ## Kontext
 
@@ -135,8 +135,9 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
   - text-summary erscheint am Ende jedes npm-test-Laufs
   - HTML-Report unter coverage/lcov-report/index.html
   - Aktuelle Werte: 28.92% Stmt / 17.11% Cond / 24.10% Methods / 29.60% Lines
-- [ ] **0.6** Coverage-Reporting via GitHub Action (Issue als Reminder)
-  - Issue im Repo anlegen mit Titel "Coverage-Reporting in CI"
+- [x] **0.6** Coverage-Reporting via GitHub Action (Issue als Reminder, 2026-05-07)
+  - Issue: https://github.com/OldRon1977/HHauto/issues/1612 ("Coverage-Reporting in CI")
+  - Body referenziert diesen Plan
   - Nicht jetzt umsetzen, nur Reminder
 - [ ] **0.7** Stufe 0 abgeschlossen -- Commit `chore(test): hygiene + mock-helper`
   - Kein Versions-Bump (nur Tests)
@@ -298,3 +299,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | Task 0.2 erledigt: alle xit behandelt (commit 0d1aee3). Tests: 554 passed / 0 skipped / 554 total |
 | 2026-05-07 | Task 0.4 erledigt: MockHelper +5 Funktionen (commit 756004a). Tests bleiben 554 passed |
 | 2026-05-07 | Task 0.5 erledigt: Coverage-Reporter aktiviert (commit 2b48603) |
+| 2026-05-07 | Task 0.6 erledigt: Issue #1612 angelegt |
