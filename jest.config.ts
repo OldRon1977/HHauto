@@ -35,13 +35,10 @@ const config: Config = {
   // Indicates which provider should be used to instrument code for coverage
   // coverageProvider: "babel",
 
-  // A list of reporter names that Jest uses when writing coverage reports
-  // coverageReporters: [
-  //   "json",
-  //   "text",
-  //   "lcov",
-  //   "clover"
-  // ],
+  // A list of reporter names that Jest uses when writing coverage reports.
+  // text-summary prints a condensed table at the bottom of the run; html
+  // emits coverage/lcov-report/index.html for browser inspection.
+  coverageReporters: ["text", "text-summary", "lcov", "clover", "html"],
 
   // An object that configures minimum threshold enforcement for coverage results
   // coverageThreshold: undefined,
