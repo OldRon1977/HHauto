@@ -5,10 +5,10 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 
 ## Status
 
-- Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
-- Letzte abgeschlossene Task: 0.6 (GitHub-Issue #1612 fuer CI-Coverage-Reporting angelegt)
-- Letzter Commit: 7f83ccd (Branch chore/test-hygiene, lokal -- Push offen)
-- Naechster Schritt: Task 0.7 (Push, PR, Merge gemaess Workflow-Rules)
+- Aktuelle Stufe: **0 (Sofort-Hygiene)** -- abgeschlossen, Push und PR ausstehend
+- Letzte abgeschlossene Task: 0.7 (Stufe 0 abgeschlossen)
+- Letzter Commit: <wird beim Push gesetzt> (Branch chore/test-hygiene, 12 Commits, lokal)
+- Naechster Schritt: Push + PR-Review + Merge, danach Stufe 1 (Pure-Function-Extraktion)
 
 ## Kontext
 
@@ -139,10 +139,10 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
   - Issue: https://github.com/OldRon1977/HHauto/issues/1612 ("Coverage-Reporting in CI")
   - Body referenziert diesen Plan
   - Nicht jetzt umsetzen, nur Reminder
-- [ ] **0.7** Stufe 0 abgeschlossen -- Commit `chore(test): hygiene + mock-helper`
+- [x] **0.7** Stufe 0 abgeschlossen (2026-05-07)
+  - Branch: chore/test-hygiene mit 12 Commits
   - Kein Versions-Bump (nur Tests)
-  - Branch: `chore/test-hygiene`
-  - Push + PR + Merge gemaess Workflow-Rules
+  - Push + PR + Merge gemaess Workflow-Rules: in Arbeit (PR ausstehend)
 
 ### Stufe 1 -- Pure-Function-Extraktion (2-3 Tage, hoher ROI)
 
@@ -300,3 +300,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | Task 0.4 erledigt: MockHelper +5 Funktionen (commit 756004a). Tests bleiben 554 passed |
 | 2026-05-07 | Task 0.5 erledigt: Coverage-Reporter aktiviert (commit 2b48603) |
 | 2026-05-07 | Task 0.6 erledigt: Issue #1612 angelegt |
+| 2026-05-07 | Stufe 0 abgeschlossen (Tasks 0.1-0.7), Branch bereit fuer Push |
