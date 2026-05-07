@@ -33,3 +33,6 @@ _logs_*/
 
 # Lokale Diagramm-Renderings (nicht im Repo)
 docs-internal/diagrams/
+
+# Jest Test-Run Artefakte (lokale --json Outputs)
+jest-*.json
