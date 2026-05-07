@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **0 finished**, ready to start **stage 1 (pure-function extraction)**
-- Last completed task: 0.7 (stage 0 merged via PR #1615 into main, commit c4d6837)
+- Current stage: **1 in progress** (pure-function extraction)
+- Last completed task: 1.1 (League pure function `decideShouldFight`, merged via PR #1617 into main, commit 27b5e39)
 - Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 1 task 1.1 (League pure function `decideShouldFight`)
+- Next step: stage 1 task 1.2 (Champion `selectNextChampion`)
 
 ## Context
 
@@ -110,33 +110,35 @@ Goal: extract decision logic out of the large modules into pure functions.
 Input = data, output = decision. No globals, no jQuery, no storage reads in
 the core.
 
-- [ ] **1.1** League: `decideShouldFight(state) -> bool`
+- [x] **1.1** League: `decideShouldFight(state) -> bool` (2026-05-07)
   - Source: `src/Module/League.ts` `LeagueHelper.isTimeToFight`
-  - Existing tests: `spec/Module/League.spec.ts` describe block `isTimeToFight`
-    (currently 8 tests, all green, several use `jest.spyOn` on static methods)
-  - Proposed pure function signature:
+  - New module: `src/Module/League.pure.ts` exports `decideShouldFight` and `ShouldFightState`
+  - Final signature drops `heroLevel`, `energyMax`, `leagueEndTime` (none used
+    by the decision) and adds `humanLikeRun` (drives the energy threshold):
     ```ts
     type ShouldFightState = {
-      heroLevel: number;
       energy: number;
-      energyMax: number;
       threshold: number;
       runThreshold: number;
+      humanLikeRun: boolean;
       timerLeft: number;
-      leagueEndTime: number;
       paranoiaSpending: number;
       boosterRequired: boolean;
       boosterEquipped: boolean;
     };
     function decideShouldFight(state: ShouldFightState): boolean;
     ```
-  - Public API stays the same: `LeagueHelper.isTimeToFight()` reads globals
-    and storage, builds the state, then delegates to `decideShouldFight`.
-  - Tests: 8-12 cases against the pure function, replacing the brittle spy
-    tests (C-5b decision).
-  - Branch: `refactor/pure-functions-league`
-  - Acceptance: all existing 554 tests stay green, new pure-function tests
-    pass, no behaviour change in the bundle.
+  - `LeagueHelper.isTimeToFight()` builds the state and delegates. Public API
+    unchanged. Existing `spec/Module/League.spec.ts isTimeToFight` block kept
+    as is (still uses spies); the spec/Module/League.pure.spec.ts file
+    contains 12 spy-free tests covering the same scenarios plus humanLikeRun
+    on/off, paranoia at zero energy, and a negative timer.
+  - Behaviour delta: `ParanoiaService.checkParanoiaSpendings('challenge')` is
+    now called unconditionally; previously it was short-circuited away when
+    energy was zero. Read-only call, no side effects.
+  - Tests: 566 passed (554 + 12), 0 skipped, 40 suites.
+  - Bundle diff: structural only.
+  - Merged via PR #1617, commit 27b5e39.
 - [ ] **1.2** Champion: `selectNextChampion(champions, settings, level) -> champion?`
   - Extract filter + sort logic from the Champion module
   - Tests: walk through filter settings, hero-level thresholds
@@ -280,3 +282,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Stage 0 finished (tasks 0.1-0.7), branch ready for push |
 | 2026-05-07 | Stage 0 merged via PR #1615 (commit c4d6837) |
 | 2026-05-07 | Stage 1 prep: plan consolidated, task 1.1 detailed, session handoff rewritten for stage 1 |
+| 2026-05-07 | Task 1.1 done: `decideShouldFight` extracted, 12 new pure tests (566 total), bundle diff structural, merged via PR #1617 (commit 27b5e39) |
