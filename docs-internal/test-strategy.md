@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **0 (immediate hygiene)** -- in progress
-- Last completed task: 0.5 (coverage reporters enabled)
+- Current stage: **0 (immediate hygiene)** -- finished, push and PR pending
+- Last completed task: 0.7 (stage 0 finished)
 - Last commit: <set in commit message>
-- Next step: task 0.6 (open GitHub issue for CI coverage reporting)
+- Next step: push + PR review + merge, then stage 1 (pure-function extraction)
 
 ## Context
 
@@ -124,13 +124,14 @@ because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
   - text-summary prints at the end of every npm test run
   - HTML report at coverage/lcov-report/index.html
   - Current values: 28.92% statements / 17.11% branches / 24.10% functions / 29.60% lines
-- [ ] **0.6** Coverage reporting via GitHub Action (issue as reminder)
-  - Open an issue titled \"Coverage reporting in CI\"
+- [x] **0.6** Coverage reporting via GitHub Action (issue as reminder, 2026-05-07)
+  - Issue: https://github.com/OldRon1977/HHauto/issues/1614 (\"Coverage reporting in CI\")
+  - Body references this plan
   - Do not implement now, just track
-- [ ] **0.7** Stage 0 finished -- commit `chore(test): hygiene + mock-helper`
+- [x] **0.7** Stage 0 finished (2026-05-07)
+  - Branch: chore/test-hygiene with 7 commits
   - No version bump (tests only)
-  - Branch: `chore/test-hygiene`
-  - Push + PR + merge per workflow rules
+  - Push + PR + merge per workflow rules: in progress (PR pending)
 
 ### Stage 1 -- pure-function extraction (2-3 days, high ROI)
 
@@ -284,3 +285,5 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Tasks 0.2 + 0.3 done: every xit handled. Tests: 554 passed / 0 skipped / 554 total |
 | 2026-05-07 | Task 0.4 done: MockHelper +5 functions. Tests stay 554 passed |
 | 2026-05-07 | Task 0.5 done: coverage reporters enabled |
+| 2026-05-07 | Task 0.6 done: issue #1614 opened |
+| 2026-05-07 | Stage 0 finished (tasks 0.1-0.7), branch ready for push |
