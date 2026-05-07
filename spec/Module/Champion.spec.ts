@@ -34,7 +34,7 @@ describe("Champion module", function () {
     });
 
 
-    fdescribe("_setTimer", function () {
+    describe("_setTimer", function () {
         const TIME_1 = 123;
         const TIME_2 = 456;
         const TIME_COOLDOWN = 3600;

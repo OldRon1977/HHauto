@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **0 (immediate hygiene)** -- not started
-- Last completed task: --
-- Last commit: --
-- Next step: stage 0 task 0.1 (fdescribe -> describe in Champion.spec.ts)
+- Current stage: **0 (immediate hygiene)** -- in progress
+- Last completed task: 0.1 (fdescribe -> describe in Champion.spec.ts)
+- Last commit: <set in commit message>
+- Next step: task 0.2 (handle xit tests)
 
 ## Context
 
@@ -95,7 +95,7 @@ because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
 
 ### Stage 0 -- immediate hygiene (1-2h, no risk)
 
-- [ ] **0.1** `fdescribe` -> `describe` in `spec/Module/Champion.spec.ts:37`
+- [x] **0.1** `fdescribe` -> `describe` in `spec/Module/Champion.spec.ts:37` (2026-05-07)
   - Precondition: question B answered, hidden tests known
   - Verification: `npm test` shows more passing tests than before
   - If tests turn red: decide individually (fix or xit)
@@ -270,3 +270,4 @@ findNextChamptionTime with 1 test.
 | Date | Change |
 |---|---|
 | 2026-05-07 | Initial draft, state before stage 0 |
+| 2026-05-07 | Task 0.1 done: fdescribe -> describe. Tests: 549 passed / 7 skipped / 556 total |
