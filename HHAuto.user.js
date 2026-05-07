@@ -18648,6 +18648,24 @@ class TeamModule {
         result.previousMainSumOtherMode = previousMainSumOtherMode;
         result.currentModeName = mode === 1 ? 'Current Best' : 'Best Possible';
         result.otherModeName = mode === 1 ? 'Best Possible' : 'Current Best';
+        // Pool stats for the info box: how big is the eligible pool of
+        // own-class girls vs the total Mythic+Legendary5* pool, including
+        // a per-class breakdown for cross-class transparency.
+        const isHighRarity = (g) => g.rarity === 'mythic' || (g.rarity === 'legendary' && Number(g.nb_grades) >= 5);
+        const ownClass = girls.filter(g => isHighRarity(g) && (typeof g.class !== 'number' || g.class === playerClass));
+        const otherClass = {};
+        for (const g of girls) {
+            if (!isHighRarity(g))
+                continue;
+            if (typeof g.class !== 'number' || g.class === playerClass)
+                continue;
+            otherClass[g.class] = (otherClass[g.class] || 0) + 1;
+        }
+        result.poolStats = {
+            ownClass: ownClass.length,
+            otherClass, // { 1: n_HC, 2: n_Charm, 3: n_KH }
+            ownClassMythics: ownClass.filter(g => g.rarity === 'mythic').length,
+        };
         const deckID = result.girls.map(g => g.id_girl);
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
         const dist = TeamBuilderService.getElementDistribution(result);
@@ -18796,6 +18814,31 @@ class TeamModule {
             const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
             const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
             const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
+            // Class explainer: show why only own-class girls are used,
+            // including pool size and per-class breakdown of what gets
+            // filtered out. Cross-class girls are intentionally never
+            // considered because the league/season formulas reward only
+            // the player's main class carac, so the script optimizes for
+            // that single stat (Performance Handbook, Slynia 2021;
+            // Wiki: 'never build cross-class').
+            const poolStats = teamResult.poolStats;
+            let classExplainerHtml = '';
+            if (poolStats) {
+                const otherClassParts = [];
+                for (const c of [1, 2, 3]) {
+                    if (c === teamResult.playerClass)
+                        continue;
+                    const n = poolStats.otherClass[c];
+                    if (!n)
+                        continue;
+                    otherClassParts.push(`${n} ${TeamModule.PLAYER_CLASS_NAME[c] || ('class ' + c)}`);
+                }
+                const otherTotal = otherClassParts.length > 0 ? ' (skipped: ' + otherClassParts.join(', ') + ')' : '';
+                classExplainerHtml = `<br/><span style="color:#bbb; font-size:10px;">Eligible pool: <b>${poolStats.ownClass}</b> ${playerClassName} girls (Mythic + Legendary 5*), of which ${poolStats.ownClassMythics} mythic. Cross-class girls ignored${otherTotal} -- league math rewards only your main class stat (${mainCaracLabel}), so cross-class girls cannot win on the metric that counts.</span>`;
+                if (poolStats.ownClass < 7) {
+                    classExplainerHtml += `<br/><span style="color:#fc6; font-size:10px;"><b>WARNING:</b> Fewer than 7 own-class Mythic/Legendary-5* girls available. Script falls back to legacy team selection (no Tier-3 / cluster optimization). Build up your ${playerClassName} roster to enable the full algorithm.</span>`;
+                }
+            }
             // Read delta info that setTopTeamV2 attached to the result
             // (previous mainSum for the same mode or the other mode, if any).
             const fmtPct = (current, prev) => {
@@ -18853,7 +18896,7 @@ class TeamModule {
                 border-radius: 4px; font-size: 11px; line-height: 1.5;
             ">
                 <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
-                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> -- only ${playerClassName} girls considered</div>
+                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> ${classExplainerHtml}</div>
 
                 <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
                 <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName})</div>

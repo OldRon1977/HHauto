@@ -28,6 +28,8 @@ The team info box now shows a Mythic Audit: every mythic in your class is listed
 
 The team v2 log line now includes the player class and which carac is used as the main stat (carac1 for Hardcore, carac2 for Charm, carac3 for Know-how), plus the Main Sum -- the sum of the main class carac across the 7 picked girls. Main Sum is also shown in the info box, with a delta vs the previous click and vs the other mode (Current Best / Best Possible). Effective Power stays as the tie-breaker, but Main Sum makes the optimization target visible.
 
+The class line in the info box now explains why only own-class girls are considered: it shows the pool size (Mythic + Legendary 5*) of the player class, the number of mythics in that pool, and how many cross-class girls were skipped per class. League and season formulas reward only the main class carac, so cross-class girls cannot win on the metric that counts. When the own-class pool drops below 7 girls, a warning marks the fall-back to legacy team selection (no Tier-3 / cluster optimization).
+
 Heads-up for issue reports comparing total team power: Total Power in the game UI includes equipment, the script's Effective Power does not. To compare the two on equal footing, unequip all girls first, then look at both numbers.
 
 ### v7.35.24 - Best Possible projects to the awakening cap

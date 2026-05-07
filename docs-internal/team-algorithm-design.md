@@ -242,6 +242,7 @@ Wenn 0 Mythics existieren, faellt das Skript auf Legendary 5*-Girls zurueck. Da 
 Info-Box (oben mittig, dunkel, halbtransparent):
 
 - Mythic Audit (ab v7.35.25): listet alle Mythics der Spielerklasse auf. Status pro Mythic: 'leader' / 'pos2to7' (mit Position) / 'excluded' (mit Grund: andere Cluster, gleicher Trait aber niedrigere Stats, falsche Klasse). Hilft, Daten- vs. Algorithmus-Bugs zu unterscheiden, wenn Spieler eine Mythic vermissen.
+- Class Explainer (ab v7.35.25): direkt unter dem Klassen-Hinweis steht der Pool-Stand: Anzahl Eligible-Girls (Mythic + Legendary 5*) der eigenen Klasse, davon Mythics, plus eine Aufschluesselung der ignorierten Cross-Class-Girls je Klasse. Begruendung warum keine Cross-Class-Girls verwendet werden (league math rewards nur main class carac). Wenn der Pool unter 7 liegt, kommt eine WARNING dass das Skript auf Legacy-Auswahl zurueckfaellt.
 - Main Sum (ab v7.35.25): Summe der Hauptklassen-Carac (carac1/2/3 je nach Spieler-Klasse) ueber alle 7 Team-Girls. Headline-Zahl, die in der Optimierung im Vordergrund steht. Bei wiederholten Klicks auf Current Best / Best Possible wird ein Delta zur vorigen Auswahl angezeigt (gruen = besser, rot = schlechter), inkl. Vergleich zum jeweils anderen Modus. Ergaenzt Effective Power, das Tier-3-Bonus mit einrechnet.
 
 - Klassen-Hinweis: "Class: <Hardcore/Charm/Know-how> -- only X girls considered"
