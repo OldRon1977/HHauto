@@ -6,10 +6,10 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **2 in progress** (mini fixtures from the dump)
-- Last completed task: 2.4 (Champion fixtures from page index 7, merged into main via PR #1630, commit b2ab9d7)
+- Last completed task: 2.5 (EventModule fixtures from page index 13, merged into main via PR #1632, commit 13c5f82)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, not in stage 2 scope)
-- Next step: stage 2 task 2.5 (EventModule fixtures from page index 13 / `/event.html`). Reuses spec/testHelpers/Fixtures.ts.
-- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl / champion fixtures are sized to feed.
+- Next step: stage 2 task 2.7 (stage 2 closure -- branch `chore/test-strategy-stage2-close` summarising the four fixture PRs and the loader, plus a final docs-internal change-log entry).
+- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl / champion / event fixtures are sized to feed.
 - Champion-map fixture deferred: page 8 (`/champions-map.html`) carries no champion JSON in the dump (the map is DOM-only). A map fixture would need an HTML snippet, which the plan blocks ("snapshot tests for HTML"). Champion-map fixtures stay deferred until a different testing approach for DOM-derived state is in scope.
 
 ## Context
@@ -324,9 +324,38 @@ the core.
     and `teamRest` legitimately nullable), team length, redacted
     participants, and reward structure. 628 total (621 + 7).
   - Merged via PR #1630 (commit b2ab9d7).
-- [ ] **2.5** EventModule fixtures
+- [x] **2.5** EventModule fixtures (2026-05-07)
   - Source: page index 13 (`/event.html`)
-  - File: `spec/fixtures/event/event-detection.json`
+  - File: `spec/fixtures/event/event-detection.json` -- compound
+    fixture combining the event header and the mega-event flag, both
+    consumed by event detection logic.
+  - Plan note: plan listed one file without further specification.
+    The compound shape combines the two sources of event detection
+    that real consumers use together (event header and mega-event
+    flag); both are sourced from the same page.
+    `battle.event_data` and `battle.current_event` are exact
+    duplicates in this dump; only one is fixtured.
+  - Contents:
+    * `event_data` -- header from `pages[13].battle.event_data`
+      (`event_name`, `type`, `identifier`, timers,
+      `can_participate`, `participation_info`, `progression_href`).
+      The `girls` field is substituted in from
+      `pages[13].girls_full["game.event_girls"]` to break the
+      inspector's circular marker. Each girl is reduced to the
+      haremGirl whitelist plus event-specific extensions
+      (`source`, `source_list`, `own`, `role_data`); avatar urls
+      and decoration metadata are dropped. Captured event:
+      `cumback_contest_188` ("Cumback Contests").
+    * `mega_event` -- `{ active, time_remaining }` from
+      `battle.mega_event_active` /
+      `battle.mega_event_time_remaining`. Captured snapshot has the
+      mega event active.
+  - Tests: 5 smoke tests in `spec/fixtures/event/Fixtures.spec.ts`
+    covering top-level shape, event_data identity / timers /
+    participation gate types, the substituted girls list with the
+    whitelist applied, dropped asset urls / decoration metadata, and
+    the mega_event shape. 633 total (628 + 5).
+  - Merged via PR #1632 (commit 13c5f82).
 - [x] **2.6** Fixture loader helper (2026-05-07)
   - File: `spec/testHelpers/Fixtures.ts`
   - Function: `loadFixture(modulePath: string, name: string): unknown`
@@ -447,3 +476,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Tasks 2.1 + 2.2 + 2.6 done (bundled): League fixtures (3 mid-tier opponents, tier-3 rewards) + shared loader `Fixtures.ts`, 5 new smoke tests (615 total), no src changes, plan deviation in opponent field set documented in fixture README, merged via PR #1626 (commit 7395a0a) |
 | 2026-05-07 | Task 2.3 done: HaremGirl fixture (3 girls -- mythic 6/6 + legendary 5/5 + common 5/5) + 6 new smoke tests (621 total), no src changes, plan deviation in source path documented in fixture README (page 19 /waifu.html instead of plan's page 0 /home.html), `parseGirlsFromGameData` parser stays deferred to stage 3 per stage 2 rule, merged via PR #1628 (commit ab78a5a) |
 | 2026-05-07 | Task 2.4 done: Champion fixture (active-champion from page 7 with redacted participants and stripped asset urls) + 7 new smoke tests (628 total), no src changes, plan deviation in source path documented in fixture README (page 7 /club-champion.html instead of plan's page 8 /champions-map.html), champion-map fixture deferred (DOM-only data, no JSON to extract), merged via PR #1630 (commit b2ab9d7) |
+| 2026-05-07 | Task 2.5 done: Event fixture (event-detection from page 13, compound event_data + mega_event) + 5 new smoke tests (633 total), no src changes, no plan deviation (plan specified only the file name), merged via PR #1632 (commit 13c5f82) |
