@@ -5,12 +5,14 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **2 in progress** (mini fixtures from the dump)
-- Last completed task: 2.5 (EventModule fixtures from page index 13, merged into main via PR #1632, commit 13c5f82)
-- Open reminder: issue #1614 (CI coverage reporting; tracked, not in stage 2 scope)
-- Next step: stage 2 task 2.7 (stage 2 closure -- branch `chore/test-strategy-stage2-close` summarising the four fixture PRs and the loader, plus a final docs-internal change-log entry).
-- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl / champion / event fixtures are sized to feed.
-- Champion-map fixture deferred: page 8 (`/champions-map.html`) carries no champion JSON in the dump (the map is DOM-only). A map fixture would need an HTML snippet, which the plan blocks ("snapshot tests for HTML"). Champion-map fixtures stay deferred until a different testing approach for DOM-derived state is in scope.
+- Current stage: **2 finished**, ready to start **stage 3 (decision-logic coverage)**
+- Last completed task: 2.7 (stage 2 closure)
+- Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
+- Next step: stage 3 task 3.1 (ClubChampion decision tests). Pre-condition is that stage 1 already produced the relevant pure functions; the league / haremGirl / champion / event fixtures from stage 2 are available via `loadFixture(modulePath, name)`.
+- Carried-forward reminders for stage 3:
+  - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
+  - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
+  - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
 
 ## Context
 
@@ -361,7 +363,37 @@ the core.
   - Function: `loadFixture(modulePath: string, name: string): unknown`
   - Implementation: synchronous `fs.readFileSync` + `JSON.parse`. Returns `unknown`; callers narrow types at the use site (preferred over `any` per workspace rule 08).
   - Bundled with 2.1 + 2.2 in PR #1626. The League fixture is the first concrete consumer; future module fixtures (haremGirl, champion, event) reuse the same loader.
-- [ ] **2.7** Stage 2 finished -- one commit per module, branch `feat/test-fixtures-<module>`
+- [x] **2.7** Stage 2 finished (2026-05-07)
+  - Branch per fixture set as planned (`feat/test-fixtures-<module>`):
+    `feat/test-fixtures-league` (PR #1626), `feat/test-fixtures-haremgirl`
+    (PR #1628), `feat/test-fixtures-champion` (PR #1630),
+    `feat/test-fixtures-event` (PR #1632). Each fixture-set PR was
+    followed by its own `docs/test-strategy-stage2-task<n>` doc PR
+    (PR #1627 / #1629 / #1631 / #1633). Closure on
+    `chore/test-strategy-stage2-close`.
+  - 4 fixture sets and the shared loader introduced; 23 new smoke
+    tests (5 + 6 + 7 + 5) bring the suite from 610 to 633 total.
+    Suite count: 43 -> 47.
+  - No production code changes in stage 2; per the stage rule the
+    deferred `parseGirlsFromGameData` parser stays deferred to
+    stage 3 alongside the parser tests the fixtures are sized to feed.
+  - Two of the five fixture tasks were renegotiated mid-flight when
+    the plan's pre-inspection guesses did not match the dump:
+    - 2.2 (League): plan listed `member.id_country`, `member.lvl`,
+      `team.theme_elements[]`, `team.girls[]`. Dump has those at top
+      level and `team` is an HTML snippet; the field selection
+      followed the dump.
+    - 2.3 (HaremGirl): plan pointed at page 0
+      (`girls_full.game.shared.Hero`), which is hero-side data. The
+      harem actually lives on page 19
+      (`girls_full["game.girls_data_list"]`).
+    - 2.4 (Champion): plan listed page 8 and two files; page 8
+      carries no champion JSON. Active-champion sourced from page 7
+      under `battle.championData`. Champion-map fixture deferred
+      (DOM-only data, no JSON to extract).
+  - Task 2.5 (Event): no plan deviation; compound shape
+    (`event_data` + `mega_event`) chosen as a documented design call
+    and recorded in the fixture README.
 
 ### Stage 3 -- decision-logic coverage (2-3 days)
 
@@ -477,3 +509,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 2.3 done: HaremGirl fixture (3 girls -- mythic 6/6 + legendary 5/5 + common 5/5) + 6 new smoke tests (621 total), no src changes, plan deviation in source path documented in fixture README (page 19 /waifu.html instead of plan's page 0 /home.html), `parseGirlsFromGameData` parser stays deferred to stage 3 per stage 2 rule, merged via PR #1628 (commit ab78a5a) |
 | 2026-05-07 | Task 2.4 done: Champion fixture (active-champion from page 7 with redacted participants and stripped asset urls) + 7 new smoke tests (628 total), no src changes, plan deviation in source path documented in fixture README (page 7 /club-champion.html instead of plan's page 8 /champions-map.html), champion-map fixture deferred (DOM-only data, no JSON to extract), merged via PR #1630 (commit b2ab9d7) |
 | 2026-05-07 | Task 2.5 done: Event fixture (event-detection from page 13, compound event_data + mega_event) + 5 new smoke tests (633 total), no src changes, no plan deviation (plan specified only the file name), merged via PR #1632 (commit 13c5f82) |
+| 2026-05-07 | Stage 2 finished: 4 fixture sets (league / haremGirl / champion / event) + shared loader, 23 new smoke tests across 4 fixture PRs (1626/1628/1630/1632) and 4 doc PRs (1627/1629/1631/1633), 633 total, no src changes; three plan deviations documented in the affected fixture READMEs; deferrals for stage 3 (parseGirlsFromGameData) and beyond (champion-map needs a different testing approach for DOM-derived state) carried forward in the status block |
