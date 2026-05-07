@@ -1,0 +1,259 @@
+{
+  "event_data": {
+    "event_name": "Cumback Contests",
+    "type": "cumback_contest",
+    "seconds_until_event_end": 168660,
+    "event_duration_seconds": 257400,
+    "identifier": "cumback_contest_188",
+    "can_participate": true,
+    "participation_info": "You are currently unable to participate in the event.\nYou need to be level 20 and start World 2 in order to participate.",
+    "progression_href": "/quest/1828",
+    "girls": [
+      {
+        "id_girl": 917446702,
+        "id_girl_ref": 118,
+        "id_member": 183406,
+        "name": "Rock Venam",
+        "class": 1,
+        "figure": 2,
+        "element": "sun",
+        "rarity": "legendary",
+        "level": 1,
+        "xp": 0,
+        "nb_grades": 3,
+        "graded": 1,
+        "graded2": "<g ></g><g class=\"grey\"></g><g class=\"grey\"></g>",
+        "Graded": "★☆☆",
+        "shards": 100,
+        "affection": 6300,
+        "awakening_level": 0,
+        "armor": [],
+        "carac1": 9.3,
+        "carac2": 3.21,
+        "carac3": 4.39,
+        "caracs": {
+          "carac1": 9.3,
+          "carac2": 3.21,
+          "carac3": 4.39
+        },
+        "caracs_sum": 16.900000000000002,
+        "salary": 1580,
+        "salary_per_hour": 1053.33,
+        "salary_timer": 90,
+        "pay_in": 0,
+        "pay_time": 5400,
+        "ts_pay": 1777969047,
+        "orgasm": 473,
+        "element_data": {
+          "type": "sun",
+          "weakness": "stone",
+          "domination": "water",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Playful.png",
+          "flavor": "Playful"
+        },
+        "blessed_attributes": [
+          "carac1",
+          "carac2",
+          "carac3",
+          "ego",
+          "damage",
+          "defense",
+          "chance",
+          "speed",
+          "mana_starting",
+          "mana_generation"
+        ],
+        "blessing_bonuses": {
+          "pvp_v3": {
+            "carac1": [
+              30
+            ],
+            "carac2": [
+              30
+            ],
+            "carac3": [
+              30
+            ]
+          },
+          "pvp_v4": {
+            "carac1": [
+              30
+            ],
+            "carac2": [
+              30
+            ],
+            "carac3": [
+              30
+            ]
+          }
+        },
+        "can_be_blessed": true,
+        "can_be_blessed_pvp4": true,
+        "grade_offset_values": [
+          [
+            330,
+            333
+          ],
+          [
+            328
+          ],
+          [
+            291
+          ],
+          [
+            1252
+          ]
+        ],
+        "grade_offsets": {
+          "static": [
+            330,
+            328,
+            291,
+            1252
+          ],
+          "animated": [
+            333,
+            328,
+            291,
+            1252
+          ]
+        },
+        "source": {
+          "name": "harem",
+          "group": {
+            "name": "harem",
+            "id": null
+          },
+          "ongoing": true,
+          "sentence": "I'm already attracted to you. Find me in your Harem!",
+          "anchor_source": {
+            "url": "/characters/917446702",
+            "label": "Go to Harem",
+            "disabled": false
+          },
+          "anchor_win_from": [
+            {
+              "url": "/characters/917446702",
+              "label": "Go to Harem",
+              "disabled": false
+            }
+          ],
+          "playable": true
+        },
+        "source_list": {
+          "harem": [
+            {
+              "name": "harem",
+              "group": {
+                "name": "harem",
+                "id": null
+              },
+              "ongoing": true,
+              "sentence": "I'm already attracted to you. Find me in your Harem!",
+              "anchor_source": {
+                "url": "/characters/917446702",
+                "label": "Go to Harem",
+                "disabled": false
+              },
+              "anchor_win_from": [
+                {
+                  "url": "/characters/917446702",
+                  "label": "Go to Harem",
+                  "disabled": false
+                }
+              ],
+              "playable": true
+            }
+          ],
+          "cumback_contest": [
+            {
+              "name": "cumback_contest",
+              "group": {
+                "name": "cumback_contest",
+                "id": 188
+              },
+              "ongoing": true,
+              "sentence": "Get me in <i>Cumback Contests</i>",
+              "anchor_source": {
+                "url": "/activities.html?tab=contests",
+                "label": "Go to Contests",
+                "disabled": false
+              },
+              "anchor_win_from": [
+                {
+                  "url": "/activities.html?tab=contests",
+                  "label": "Go to Contests",
+                  "disabled": false
+                }
+              ],
+              "playable": true
+            }
+          ],
+          "crazy_cumback_contest": [
+            {
+              "name": "crazy_cumback_contest",
+              "group": {
+                "name": "crazy_cumback_contest",
+                "id": 8
+              },
+              "ongoing": false,
+              "sentence": "I was available in <i>Crazy Cumback Contest</i>, I’ll be back later!",
+              "anchor_source": {
+                "url": "/activities.html?tab=contests",
+                "label": "Go to Contests",
+                "disabled": false
+              },
+              "anchor_win_from": [
+                {
+                  "url": "/activities.html?tab=contests",
+                  "label": "Go to Contests",
+                  "disabled": false
+                }
+              ],
+              "playable": true
+            }
+          ],
+          "season_tier": [
+            {
+              "name": "season_tier",
+              "group": {
+                "name": "season_tier",
+                "id": 21001
+              },
+              "ongoing": false,
+              "sentence": "I was available in <i>Festival Flirting</i>, I’ll be back later!",
+              "anchor_source": {
+                "url": "/season.html",
+                "label": "Go to Season",
+                "disabled": false
+              },
+              "anchor_win_from": [
+                {
+                  "url": "/season.html",
+                  "label": "Go to Season",
+                  "disabled": false
+                }
+              ],
+              "playable": true
+            }
+          ]
+        },
+        "own": true,
+        "role_data": {
+          "id": 9,
+          "name": "Pleasurelock",
+          "flavour": "Pleasurelock",
+          "description": "When Crit - adds half of the damage dealt by the opponent in the previous attack to her own damage. "
+        }
+      }
+    ],
+    "event_data": []
+  },
+  "mega_event": {
+    "active": true,
+    "time_remaining": 2242260
+  }
+}
