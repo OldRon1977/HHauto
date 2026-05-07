@@ -1,0 +1,388 @@
+[
+  {
+    "id_girl": 118565805,
+    "id_girl_ref": 111,
+    "id_member": 183406,
+    "name": "Untamed Levitya",
+    "class": 2,
+    "figure": 5,
+    "element": "darkness",
+    "rarity": "mythic",
+    "level": 750,
+    "xp": 1432338,
+    "nb_grades": 6,
+    "graded": 6,
+    "graded2": "<g ></g><g ></g><g ></g><g ></g><g ></g><g ></g>",
+    "Graded": "★★★★★★",
+    "shards": 100,
+    "affection": 437635,
+    "awakening_level": 10,
+    "armor": [],
+    "carac1": 4620,
+    "carac2": 11550,
+    "carac3": 5250,
+    "caracs": {
+      "carac1": 4620,
+      "carac2": 11550,
+      "carac3": 5250
+    },
+    "caracs_sum": 21420,
+    "salary": 40950,
+    "salary_per_hour": 5850,
+    "salary_timer": 420,
+    "pay_in": 8778,
+    "pay_time": 25200,
+    "ts_pay": 1777991756,
+    "orgasm": 599760,
+    "element_data": {
+      "type": "darkness",
+      "weakness": "psychic",
+      "domination": "light",
+      "domination_ego_bonus_percent": 10,
+      "domination_damage_bonus_percent": 10,
+      "domination_critical_chance_bonus_percent": 20,
+      "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Dominatrix.png",
+      "flavor": "Dominatrix"
+    },
+    "blessed_attributes": [],
+    "blessing_bonuses": [],
+    "can_be_blessed": false,
+    "can_be_blessed_pvp4": false,
+    "skill_tiers_info": {
+      "1": {
+        "tier": 1,
+        "icon": "cash",
+        "skill_points_used": 0,
+        "icon_path": "/images/pictures/design/girl_skills/cash_icon.png"
+      },
+      "2": {
+        "tier": 2,
+        "icon": "stats_boost",
+        "skill_points_used": 0,
+        "icon_path": "/images/pictures/design/girl_skills/stats_boost_icon.png"
+      },
+      "3": {
+        "tier": 3,
+        "icon": "eye_color",
+        "skill_points_used": 0,
+        "icon_path": "https://hh2.hh-content.com/pictures/design/blessings_icons/eye_colors/eye_color_CCC.png"
+      },
+      "4": {
+        "tier": 4,
+        "icon": "special_passives",
+        "skill_points_used": 0,
+        "icon_path": "/images/pictures/design/girl_skills/special_passives_icon.png"
+      },
+      "5": {
+        "tier": 5,
+        "icon": "active_skills",
+        "skill_points_used": 0,
+        "icon_path": "/images/pictures/design/girl_skills/active_skills_icon.png"
+      }
+    },
+    "grade_offset_values": [
+      [
+        170,
+        260
+      ],
+      [
+        176
+      ],
+      [
+        162
+      ],
+      [
+        216
+      ],
+      [
+        161
+      ],
+      [
+        195
+      ],
+      [
+        1176
+      ]
+    ],
+    "grade_offsets": {
+      "static": [
+        170,
+        176,
+        162,
+        216,
+        161,
+        195,
+        1176
+      ],
+      "animated": [
+        260,
+        176,
+        162,
+        216,
+        161,
+        195,
+        1176
+      ]
+    }
+  },
+  {
+    "id_girl": 118816,
+    "id_girl_ref": 136,
+    "id_member": 183406,
+    "name": "Fanny & Fione",
+    "class": 2,
+    "figure": 6,
+    "element": "light",
+    "rarity": "legendary",
+    "level": 750,
+    "xp": 573227,
+    "nb_grades": 5,
+    "graded": 5,
+    "graded2": "<g ></g><g ></g><g ></g><g ></g><g ></g>",
+    "Graded": "★★★★★",
+    "shards": 100,
+    "affection": 85740,
+    "awakening_level": 10,
+    "armor": [],
+    "carac1": 4850,
+    "carac2": 10150,
+    "carac3": 3912.5,
+    "caracs": {
+      "carac1": 4850,
+      "carac2": 10150,
+      "carac3": 3912.5
+    },
+    "caracs_sum": 18912.5,
+    "salary": 27846,
+    "salary_per_hour": 3978,
+    "salary_timer": 420,
+    "pay_in": 8778,
+    "pay_time": 25200,
+    "ts_pay": 1777991756,
+    "orgasm": 529550,
+    "element_data": {
+      "type": "light",
+      "weakness": "darkness",
+      "domination": "psychic",
+      "domination_ego_bonus_percent": 10,
+      "domination_damage_bonus_percent": 10,
+      "domination_critical_chance_bonus_percent": 20,
+      "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Submissive.png",
+      "flavor": "Submissive"
+    },
+    "blessed_attributes": [
+      "ego",
+      "damage",
+      "defense",
+      "chance",
+      "speed",
+      "mana_starting",
+      "mana_generation"
+    ],
+    "blessing_bonuses": {
+      "pvp_v4": {
+        "carac1": [
+          20
+        ],
+        "carac2": [
+          20
+        ],
+        "carac3": [
+          20
+        ]
+      }
+    },
+    "can_be_blessed": false,
+    "can_be_blessed_pvp4": true,
+    "skill_tiers_info": {
+      "1": {
+        "tier": 1,
+        "icon": "cash",
+        "skill_points_used": 6,
+        "icon_path": "/images/pictures/design/girl_skills/cash_icon.png"
+      },
+      "2": {
+        "tier": 2,
+        "icon": "stats_boost",
+        "skill_points_used": 9,
+        "icon_path": "/images/pictures/design/girl_skills/stats_boost_icon.png"
+      },
+      "3": {
+        "tier": 3,
+        "icon": "hair_color",
+        "skill_points_used": 4,
+        "icon_path": "https://hh2.hh-content.com/pictures/design/blessings_icons/hair_colors/hair_color_F00.png"
+      },
+      "4": {
+        "tier": 4,
+        "icon": "special_passives",
+        "skill_points_used": 4,
+        "icon_path": "/images/pictures/design/girl_skills/special_passives_icon.png"
+      },
+      "5": {
+        "tier": 5,
+        "icon": "active_skills",
+        "skill_points_used": 0,
+        "icon_path": "/images/pictures/design/girl_skills/active_skills_icon.png"
+      }
+    },
+    "grade_offset_values": [
+      [
+        310
+      ],
+      [
+        292
+      ],
+      [
+        445
+      ],
+      [
+        226
+      ],
+      [
+        1430
+      ],
+      [
+        1403
+      ]
+    ],
+    "grade_offsets": {
+      "static": [
+        310,
+        292,
+        445,
+        226,
+        1430,
+        1403
+      ],
+      "animated": [
+        310,
+        292,
+        445,
+        226,
+        1430,
+        1403
+      ]
+    }
+  },
+  {
+    "id_girl": 5,
+    "id_girl_ref": 5,
+    "id_member": 183406,
+    "name": "Princess Agate",
+    "class": 3,
+    "figure": 10,
+    "element": "water",
+    "rarity": "common",
+    "level": 750,
+    "xp": 358367,
+    "nb_grades": 5,
+    "graded": 5,
+    "graded2": "<g ></g><g ></g><g ></g><g ></g><g ></g>",
+    "Graded": "★★★★★",
+    "shards": 100,
+    "affection": 15533,
+    "awakening_level": 10,
+    "armor": [],
+    "carac1": 4287.5,
+    "carac2": 4287.5,
+    "carac3": 6850,
+    "caracs": {
+      "carac1": 4287.5,
+      "carac2": 4287.5,
+      "carac3": 6850
+    },
+    "caracs_sum": 15425,
+    "salary": 27846,
+    "salary_per_hour": 3978,
+    "salary_timer": 420,
+    "pay_in": 8778,
+    "pay_time": 25200,
+    "ts_pay": 1777991756,
+    "orgasm": 431900,
+    "element_data": {
+      "type": "water",
+      "weakness": "sun",
+      "domination": "fire",
+      "domination_ego_bonus_percent": 10,
+      "domination_damage_bonus_percent": 10,
+      "domination_critical_chance_bonus_percent": 20,
+      "ico_url": "https://hh2.hh-content.com/pictures/girls_elements/Sensual.png",
+      "flavor": "Sensual"
+    },
+    "blessed_attributes": [],
+    "blessing_bonuses": [],
+    "can_be_blessed": false,
+    "can_be_blessed_pvp4": false,
+    "skill_tiers_info": {
+      "1": {
+        "tier": 1,
+        "icon": "cash",
+        "skill_points_used": 6,
+        "icon_path": "/images/pictures/design/girl_skills/cash_icon.png"
+      },
+      "2": {
+        "tier": 2,
+        "icon": "stats_boost",
+        "skill_points_used": 6,
+        "icon_path": "/images/pictures/design/girl_skills/stats_boost_icon.png"
+      },
+      "3": {
+        "tier": 3,
+        "icon": "figure",
+        "skill_points_used": 3,
+        "icon_path": "https://hh2.hh-content.com/pictures/design/blessings_icons/positions/fav_pose_10.png"
+      },
+      "4": {
+        "tier": 4,
+        "icon": "special_passives",
+        "skill_points_used": 3,
+        "icon_path": "/images/pictures/design/girl_skills/special_passives_icon.png"
+      },
+      "5": {
+        "tier": 5,
+        "icon": "active_skills",
+        "skill_points_used": 1,
+        "icon_path": "/images/pictures/design/girl_skills/active_skills_icon.png"
+      }
+    },
+    "grade_offset_values": [
+      [
+        420
+      ],
+      [
+        428
+      ],
+      [
+        437
+      ],
+      [
+        406
+      ],
+      [
+        417
+      ],
+      [
+        401
+      ]
+    ],
+    "grade_offsets": {
+      "static": [
+        420,
+        428,
+        437,
+        406,
+        417,
+        401
+      ],
+      "animated": [
+        420,
+        428,
+        437,
+        406,
+        417,
+        401
+      ]
+    }
+  }
+]
