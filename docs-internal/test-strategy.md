@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **1 finished**, ready to start **stage 2 (mini fixtures from the dump)**
-- Last completed task: 1.5 (stage 1 closed; tasks 1.1-1.4 merged into main; final commit 44aa97d via PR #1623)
+- Current stage: **2 in progress** (mini fixtures from the dump)
+- Last completed tasks: 2.1 + 2.2 + 2.6 bundled (League fixtures + shared loader; merged into main via PR #1626, commit 7395a0a)
 - Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 2 task 2.1 (create fixture directory `spec/fixtures/<module>/`)
+- Next step: stage 2 task 2.3 (HaremGirl fixtures from page index 0). Reuses spec/testHelpers/Fixtures.ts. Also the natural place to revisit the parseGirlsFromGameData parser deferred from stage 1 task 1.3.
 
 ## Context
 
@@ -226,12 +226,39 @@ the core.
 
 ### Stage 2 -- mini fixtures from the dump (3-4 days)
 
-- [ ] **2.1** Create fixture directory: `spec/fixtures/<module>/`
-- [ ] **2.2** Extract League fixtures from the dump
+- [x] **2.1** Create fixture directory: `spec/fixtures/<module>/` (2026-05-07)
+  - Created `spec/fixtures/league/` as the first module directory, with sibling `README.md` audit trail
+  - Future module directories (haremGirl, champion, event) follow the same pattern
+  - Merged via PR #1626 (commit 7395a0a)
+- [x] **2.2** Extract League fixtures from the dump (2026-05-07)
   - Source: `INPUT/hhauto_dump_*.json` page index 1 (`/leagues.html`)
-  - Fields: `teams.opponents_list[0..2]`, `battle.league_rewards`, `hero.shared.Hero.energies.challenge`
-  - Files: `spec/fixtures/league/opponents-mid-tier.json`, `league-rewards-tier3.json`
-  - Tests: `parseOpponents(fixture) -> Opponent[]`, `parseLeagueRewards(fixture) -> RewardTier[]`
+  - Plan deviation (documented in fixture README): plan listed
+    `member.id_country`, `member.lvl`, `team.theme_elements[]`,
+    `team.girls[]` per opponent. The dump has those fields at top
+    level (`level`, `power`, `country`, `nickname`) and `team` is
+    an HTML snippet string, not an object. Field selection follows
+    the real dump shape.
+  - Files written:
+    * `spec/fixtures/league/opponents-mid-tier.json` -- 3 entries
+      (places 50-52, mid-tier by league place) extracted from
+      `pages[1].teams.opponents_list[49:52]`. Nicknames redacted
+      to `Player_1..3`, `player.club` removed. Fields kept:
+      top-level `id_member`/`level`/`power`/`place`/`country`/
+      `can_fight`/`nickname` plus `player.{id_fighter, level,
+      class, current_season_mojo}`.
+    * `spec/fixtures/league/league-rewards-tier3.json` -- tier 3
+      of `pages[1].battle.league_rewards` in full (rank brackets
+      1, 4, 15, 30, 45, 60, 75, 200, plus `name`).
+    * `spec/fixtures/league/README.md` -- audit trail (source,
+      selection, redactions, refresh procedure).
+  - Tests: 5 smoke tests in `spec/fixtures/league/Fixtures.spec.ts`
+    confirming entry count, numeric ID fields, redaction pattern,
+    and expected rank brackets. Parser tests deferred to a stage 3
+    decision-logic PR -- no parser exists yet.
+  - Energy snapshot (`hero.shared.Hero.energies.challenge`) deferred:
+    not needed for this fixture set, will be added when a League
+    parser test needs it.
+  - Merged via PR #1626 (commit 7395a0a).
 - [ ] **2.3** HaremGirl fixtures
   - Source: page index 0 (`/home.html`) `girls_full.game.shared.Hero`
   - Selection: 3 girls (1 mythic 6/6, 1 legendary 5/5, 1 common)
@@ -243,9 +270,11 @@ the core.
 - [ ] **2.5** EventModule fixtures
   - Source: page index 13 (`/event.html`)
   - File: `spec/fixtures/event/event-detection.json`
-- [ ] **2.6** Fixture loader helper
+- [x] **2.6** Fixture loader helper (2026-05-07)
   - File: `spec/testHelpers/Fixtures.ts`
-  - Function: `loadFixture(module, name) -> any`
+  - Function: `loadFixture(modulePath: string, name: string): unknown`
+  - Implementation: synchronous `fs.readFileSync` + `JSON.parse`. Returns `unknown`; callers narrow types at the use site (preferred over `any` per workspace rule 08).
+  - Bundled with 2.1 + 2.2 in PR #1626. The League fixture is the first concrete consumer; future module fixtures (haremGirl, champion, event) reuse the same loader.
 - [ ] **2.7** Stage 2 finished -- one commit per module, branch `feat/test-fixtures-<module>`
 
 ### Stage 3 -- decision-logic coverage (2-3 days)
@@ -358,3 +387,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 1.3 done: equipment scoring helpers (`scoreItem`/`findBestItem`/`isBetter`) extracted, 16 new pure tests (592 total), bundle diff structural, scope changed from plan (no parser exists; girls parser deferred to stage 2), merged via PR #1621 (commit dfa13f5) |
 | 2026-05-07 | Task 1.4 done: `decideBurst` and `shouldRunStandardHandler` extracted, 18 new pure tests (610 total), bundle diff structural, signature changed from plan (handler pipeline has no single picker; remaining handlers deferred to stage 3), merged via PR #1623 (commit 44aa97d) |
 | 2026-05-07 | Stage 1 finished: 4 pure modules, 56 new tests across 4 PRs (1.1-1.4) |
+| 2026-05-07 | Tasks 2.1 + 2.2 + 2.6 done (bundled): League fixtures (3 mid-tier opponents, tier-3 rewards) + shared loader `Fixtures.ts`, 5 new smoke tests (615 total), no src changes, plan deviation in opponent field set documented in fixture README, merged via PR #1626 (commit 7395a0a) |
