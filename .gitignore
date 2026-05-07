@@ -30,3 +30,6 @@ _logs_*/
 *.bak
 *.orig
 *.tmp
+
+# Lokale Diagramm-Renderings (nicht im Repo)
+docs-internal/diagrams/
