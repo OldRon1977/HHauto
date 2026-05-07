@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **1 in progress** (pure-function extraction)
-- Last completed task: 1.2 (Champion timer scan `decideNextChampionTime`, merged via PR #1619 into main, commit 524bde0)
+- Last completed task: 1.3 (HaremGirl equipment scoring helpers, merged via PR #1621 into main, commit dfa13f5)
 - Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 1 task 1.3 (HaremGirl `parseGirlsFromGameData`)
+- Next step: stage 1 task 1.4 (AutoLoopActions `pickNextAction`)
 
 ## Context
 
@@ -165,10 +165,31 @@ the core.
   - Tests: 576 passed (566 + 10), 0 skipped, 41 suites.
   - Bundle diff: structural only.
   - Merged via PR #1619, commit 524bde0.
-- [ ] **1.3** HaremGirl: `parseGirlsFromGameData(rawData) -> Girl[]`
-  - Pure parser from `unsafeWindow.shared.Hero.girls` -> typed `Girl[]`
-  - Input fixtures from the dump (stage 2 backfills them)
-  - Tests: synthetic mini inputs (3 girls, varied rarities)
+- [x] **1.3** HaremGirl equipment scoring helpers extracted (2026-05-07)
+  - Plan deviation (agreed with the user before implementation): no
+    `parseGirlsFromGameData` exists in the module. The decision logic
+    that fits stage 1 is the equipment helper trio, which previously
+    had zero unit tests. A girls parser belongs in stage 2 alongside
+    the dump fixtures and is deferred there.
+  - New module: `src/Module/harem/HaremGirl.pure.ts` exports
+    `scoreItem`, `findBestItem`, `isBetter`, plus the typed
+    `EquipmentItem` and `EquipmentScore` shapes.
+  - `HaremGirl.optimizeEquipmentSlots` now imports the module
+    functions instead of calling private static methods. The three
+    private methods are removed from the class.
+  - Bit-for-bit equivalent to the original code, including the
+    stringified identifier comparison and the array-shaped
+    `resonance_bonuses` no-op contract.
+  - Side-finding: `findBestItem` has no remaining callers. It stays
+    in the pure module for parity with the trio; a separate cleanup
+    can drop it later.
+  - Tests: 592 passed (576 + 16), 0 skipped, 42 suites.
+  - Bundle diff: structural only.
+  - Merged via PR #1621, commit dfa13f5.
+  - Original plan signature deferred to stage 2:
+    ```ts
+    function parseGirlsFromGameData(rawData: unknown): Girl[];
+    ```
 - [ ] **1.4** AutoLoopActions: `pickNextAction(state) -> action`
   - State: active modules, timers, energy values, settings
   - Output: one of the action types
@@ -307,3 +328,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Stage 1 prep: plan consolidated, task 1.1 detailed, session handoff rewritten for stage 1 |
 | 2026-05-07 | Task 1.1 done: `decideShouldFight` extracted, 12 new pure tests (566 total), bundle diff structural, merged via PR #1617 (commit 27b5e39) |
 | 2026-05-07 | Task 1.2 done: `decideNextChampionTime` extracted, 10 new pure tests (576 total), bundle diff structural, signature changed from plan (no champion is selected, only the next check time), merged via PR #1619 (commit 524bde0) |
+| 2026-05-07 | Task 1.3 done: equipment scoring helpers (`scoreItem`/`findBestItem`/`isBetter`) extracted, 16 new pure tests (592 total), bundle diff structural, scope changed from plan (no parser exists; girls parser deferred to stage 2), merged via PR #1621 (commit dfa13f5) |
