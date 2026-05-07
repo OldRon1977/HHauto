@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **0 (immediate hygiene)** -- in progress
-- Last completed task: 0.3 (subjective findings handled)
+- Last completed task: 0.4 (MockHelper extended)
 - Last commit: <set in commit message>
-- Next step: task 0.4 (extend MockHelper)
+- Next step: task 0.5 (enable coverage reporters)
 
 ## Context
 
@@ -110,13 +110,14 @@ because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
   - C-3c (Pachinko string mapping): defer to the Pachinko refactor
   - C-4c (Pipeline.config value asserts): defer to the next Pipeline change
   - C-5b (League jest.spyOn): keep until stage 1 (pure-function extraction replaces them)
-- [ ] **0.4** Extend MockHelper with:
-  - `mockBoosterInventory(boosters)` -- writes Temp_boosterStatus
+- [x] **0.4** MockHelper extended (2026-05-07)
+  - `mockBoosterInventory({normal, mythic})` -- localStorage Temp_boosterStatus
   - `mockSetting(key, value)` -- localStorage Setting_*
-  - `mockTimer(name, secondsLeft)` -- TimerHelper wrapper
-  - `mockAjaxSuccess(response)` / `mockAjaxError(error)` -- hh_ajax mock
-  - `mockGameGlobals({ heroLevel, energies, settings, ... })` -- world setup
-  - File: `spec/testHelpers/MockHelpers.ts` (exists)
+  - `mockTimer(name, secondsLeft)` -- localStorage Temp_Timers; <=0 clears
+  - `mockAjaxSuccess(response)` / `mockAjaxError(error)` -- shared.general.hh_ajax
+  - `mockGameGlobals({ heroLevel, energies, settings })` -- world setup
+  - File: spec/testHelpers/MockHelpers.ts (143 lines added)
+  - Note: storage prefixes pulled from src/config (HHStoredVarPrefixKey, TK) instead of hardcoded literals
 - [ ] **0.5** Enable coverage reporters (HTML + lcov)
   - In `jest.config.ts`: `coverageReporters: ['text', 'text-summary', 'lcov', 'clover', 'html']`
   - No threshold gate
@@ -279,3 +280,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Initial draft, state before stage 0 |
 | 2026-05-07 | Task 0.1 done: fdescribe -> describe. Tests: 549 passed / 7 skipped / 556 total |
 | 2026-05-07 | Tasks 0.2 + 0.3 done: every xit handled. Tests: 554 passed / 0 skipped / 554 total |
+| 2026-05-07 | Task 0.4 done: MockHelper +5 functions. Tests stay 554 passed |
