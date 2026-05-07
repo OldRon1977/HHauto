@@ -6,10 +6,11 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **2 in progress** (mini fixtures from the dump)
-- Last completed task: 2.3 (HaremGirl fixtures from page index 19, merged into main via PR #1628, commit ab78a5a)
+- Last completed task: 2.4 (Champion fixtures from page index 7, merged into main via PR #1630, commit b2ab9d7)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, not in stage 2 scope)
-- Next step: stage 2 task 2.4 (Champion fixtures from page index 8 / `/champions-map.html`). Reuses spec/testHelpers/Fixtures.ts.
-- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl fixture is sized to feed.
+- Next step: stage 2 task 2.5 (EventModule fixtures from page index 13 / `/event.html`). Reuses spec/testHelpers/Fixtures.ts.
+- Stage 2 scoping note: per the stage rule (test code only), the `parseGirlsFromGameData` parser deferred from stage 1 task 1.3 stays deferred. It moves to stage 3 alongside the parser tests the haremGirl / champion fixtures are sized to feed.
+- Champion-map fixture deferred: page 8 (`/champions-map.html`) carries no champion JSON in the dump (the map is DOM-only). A map fixture would need an HTML snippet, which the plan blocks ("snapshot tests for HTML"). Champion-map fixtures stay deferred until a different testing approach for DOM-derived state is in scope.
 
 ## Context
 
@@ -288,9 +289,41 @@ the core.
     will land in stage 3 alongside the parser tests this fixture is
     sized to feed.
   - Merged via PR #1628 (commit ab78a5a).
-- [ ] **2.4** Champion fixtures
-  - Source: page index 8 (`/champions-map.html`)
-  - Files: `spec/fixtures/champion/champion-map.json`, `active-champion.json`
+- [x] **2.4** Champion fixtures (2026-05-07)
+  - Plan deviation (documented in fixture README): plan listed page
+    index 8 (`/champions-map.html`) and two files
+    (`champion-map.json`, `active-champion.json`). Reality:
+    * Page 8 carries no champion data; the map is rendered
+      client-side from DOM only. The dump's `dom_data_attributes`
+      payload for that page is page chrome, not parser-relevant.
+    * Page 7 (`/club-champion.html`) carries the active champion
+      under `battle.championData`, plus the team side-channel
+      under `girls_full["game.championData.team"]` that breaks
+      the inspector's circular marker.
+  - `champion-map.json` is intentionally not produced. The
+    `Champion.pure.ts decideNextChampionTime` function from stage 1
+    task 1.2 operates on DOM-derived state; an HTML fixture is what
+    it would consume, and the strategy plan blocks "snapshot tests
+    for HTML". Champion-map fixtures stay deferred.
+  - Source: `pages[7].battle.championData` plus
+    `pages[7].girls_full["game.championData.team"]` for the team
+    substitution.
+  - Files written:
+    * `spec/fixtures/champion/active-champion.json` -- champion
+      with girl whitelist (id_girl, id_girl_ref, name, class,
+      figure, element, rarity, level, nb_grades, carac1..3),
+      timers, canDraft/freeDrafts/priceEnergy/hero_damage, reward
+      (with `item.ico` stripped), fight (with `participants[].nickname`
+      redacted to `Player_1..19` and `participants[].avatar` dropped),
+      and the 10-member team (with `team[].ico` dropped).
+    * `spec/fixtures/champion/README.md` -- audit trail with the
+      PII / asset-url scan procedure.
+  - Tests: 7 smoke tests in `spec/fixtures/champion/Fixtures.spec.ts`
+    covering top-level keys, champion sub-object types, dropped
+    asset urls and bubble/scene text, timers shape (`championRest`
+    and `teamRest` legitimately nullable), team length, redacted
+    participants, and reward structure. 628 total (621 + 7).
+  - Merged via PR #1630 (commit b2ab9d7).
 - [ ] **2.5** EventModule fixtures
   - Source: page index 13 (`/event.html`)
   - File: `spec/fixtures/event/event-detection.json`
@@ -413,3 +446,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Stage 1 finished: 4 pure modules, 56 new tests across 4 PRs (1.1-1.4) |
 | 2026-05-07 | Tasks 2.1 + 2.2 + 2.6 done (bundled): League fixtures (3 mid-tier opponents, tier-3 rewards) + shared loader `Fixtures.ts`, 5 new smoke tests (615 total), no src changes, plan deviation in opponent field set documented in fixture README, merged via PR #1626 (commit 7395a0a) |
 | 2026-05-07 | Task 2.3 done: HaremGirl fixture (3 girls -- mythic 6/6 + legendary 5/5 + common 5/5) + 6 new smoke tests (621 total), no src changes, plan deviation in source path documented in fixture README (page 19 /waifu.html instead of plan's page 0 /home.html), `parseGirlsFromGameData` parser stays deferred to stage 3 per stage 2 rule, merged via PR #1628 (commit ab78a5a) |
+| 2026-05-07 | Task 2.4 done: Champion fixture (active-champion from page 7 with redacted participants and stripped asset urls) + 7 new smoke tests (628 total), no src changes, plan deviation in source path documented in fixture README (page 7 /club-champion.html instead of plan's page 8 /champions-map.html), champion-map fixture deferred (DOM-only data, no JSON to extract), merged via PR #1630 (commit b2ab9d7) |
