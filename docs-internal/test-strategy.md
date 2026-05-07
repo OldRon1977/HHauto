@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **1 in progress** (pure-function extraction)
-- Last completed task: 1.1 (League pure function `decideShouldFight`, merged via PR #1617 into main, commit 27b5e39)
+- Last completed task: 1.2 (Champion timer scan `decideNextChampionTime`, merged via PR #1619 into main, commit 524bde0)
 - Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 1 task 1.2 (Champion `selectNextChampion`)
+- Next step: stage 1 task 1.3 (HaremGirl `parseGirlsFromGameData`)
 
 ## Context
 
@@ -139,9 +139,32 @@ the core.
   - Tests: 566 passed (554 + 12), 0 skipped, 40 suites.
   - Bundle diff: structural only.
   - Merged via PR #1617, commit 27b5e39.
-- [ ] **1.2** Champion: `selectNextChampion(champions, settings, level) -> champion?`
-  - Extract filter + sort logic from the Champion module
-  - Tests: walk through filter settings, hero-level thresholds
+- [x] **1.2** Champion: timer scan extracted as `decideNextChampionTime` (2026-05-07)
+  - Plan deviation (agreed with the user before implementation): the
+    Champion module does not select a champion. It scans the existing
+    map and decides when the adapter should look again. The pure
+    function reflects that.
+  - New module: `src/Module/Champion.pure.ts` exports `decideNextChampionTime` and `ChampionTimerEntry` / `ChampionTimerDecision`.
+  - Signature:
+    ```ts
+    type ChampionTimerEntry = { inFilter: boolean; timer: number; started: boolean };
+    type ChampionTimerDecision = { minTime: number; minTimeEnded: number };
+    function decideNextChampionTime(
+      champions: ChampionTimerEntry[],
+      autoChampsForceStart: boolean,
+    ): ChampionTimerDecision;
+    ```
+  - `Champion.findNextChamptionTime` builds the input list from
+    `getChampionListFromMap()` (still impure, DOM-bound) and feeds the
+    deterministic decision into `randomInterval` plus `_setTimer`.
+  - Bit-for-bit equivalent to the original loop, including the
+    misleading variable names: `minTime` keeps the LARGEST timer
+    below 1800s, not the smallest. Refactor, not a bug fix.
+  - Side-clean: drop an unused `debugEnabled` local the loop no
+    longer references.
+  - Tests: 576 passed (566 + 10), 0 skipped, 41 suites.
+  - Bundle diff: structural only.
+  - Merged via PR #1619, commit 524bde0.
 - [ ] **1.3** HaremGirl: `parseGirlsFromGameData(rawData) -> Girl[]`
   - Pure parser from `unsafeWindow.shared.Hero.girls` -> typed `Girl[]`
   - Input fixtures from the dump (stage 2 backfills them)
@@ -283,3 +306,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Stage 0 merged via PR #1615 (commit c4d6837) |
 | 2026-05-07 | Stage 1 prep: plan consolidated, task 1.1 detailed, session handoff rewritten for stage 1 |
 | 2026-05-07 | Task 1.1 done: `decideShouldFight` extracted, 12 new pure tests (566 total), bundle diff structural, merged via PR #1617 (commit 27b5e39) |
+| 2026-05-07 | Task 1.2 done: `decideNextChampionTime` extracted, 10 new pure tests (576 total), bundle diff structural, signature changed from plan (no champion is selected, only the next check time), merged via PR #1619 (commit 524bde0) |
