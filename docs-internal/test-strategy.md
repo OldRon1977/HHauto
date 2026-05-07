@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **1 in progress** (pure-function extraction)
-- Last completed task: 1.3 (HaremGirl equipment scoring helpers, merged via PR #1621 into main, commit dfa13f5)
+- Current stage: **1 finished**, ready to start **stage 2 (mini fixtures from the dump)**
+- Last completed task: 1.5 (stage 1 closed; tasks 1.1-1.4 merged into main; final commit 44aa97d via PR #1623)
 - Open reminder: issue #1614 (CI coverage reporting)
-- Next step: stage 1 task 1.4 (AutoLoopActions `pickNextAction`)
+- Next step: stage 2 task 2.1 (create fixture directory `spec/fixtures/<module>/`)
 
 ## Context
 
@@ -190,12 +190,39 @@ the core.
     ```ts
     function parseGirlsFromGameData(rawData: unknown): Girl[];
     ```
-- [ ] **1.4** AutoLoopActions: `pickNextAction(state) -> action`
-  - State: active modules, timers, energy values, settings
-  - Output: one of the action types
-  - Hardest extraction -- may need to be split into sub-functions
-- [ ] **1.5** Stage 1 finished -- one commit per module, branch per module
-  - Branch: `refactor/pure-functions-<module>`
+- [x] **1.4** AutoLoop: `decideBurst` and `shouldRunStandardHandler` (2026-05-07)
+  - Plan deviation (agreed with the user before implementation): the
+    plan suggested a single `pickNextAction(state)` selector, but
+    AutoLoop is a sequential handler pipeline, not a one-shot picker.
+    Each handler has its own pre-conditions; only the unified
+    `runStandardHandler` entry has a guard cascade worth extracting
+    today. The remaining ~30 hand-rolled handlers each follow a
+    slightly different pattern and are deferred to stage 3.
+  - New module: `src/Service/AutoLoop.pure.ts` exports `decideBurst`,
+    `shouldRunStandardHandler`, and the typed `BurstState` /
+    `StandardHandlerGuard` shapes.
+  - `getBurst()` (in AutoLoop.ts) now reads the DOM overlays itself
+    and delegates the decision to `decideBurst`.
+  - `runStandardHandler()` (in AutoLoopActions.ts) now builds a
+    `StandardHandlerGuard` and delegates to
+    `shouldRunStandardHandler`. Affects 9 callsites that already
+    register handlers via the descriptor pattern.
+  - Bit-for-bit equivalent: same guard order, same
+    `requiresAutoLoop=undefined -> default-true` semantics, same
+    overlay-beats-settings short-circuit.
+  - Tests: 610 passed (592 + 18), 0 skipped, 43 suites.
+  - Bundle diff: structural only.
+  - Merged via PR #1623, commit 44aa97d.
+- [x] **1.5** Stage 1 finished (2026-05-07)
+  - Branch per module convention held: `refactor/pure-functions-league`,
+    `refactor/pure-functions-champion`,
+    `refactor/pure-functions-haremgirl-equipment`,
+    `refactor/pure-functions-autoloop`.
+  - 4 new pure modules (League, Champion, HaremGirl, AutoLoop) with 56
+    new tests; tests went from 554 to 610.
+  - Two of the four tasks (1.3, 1.4) were renegotiated with the user
+    when the planned signature did not fit the actual code; see the
+    individual task notes.
 
 ### Stage 2 -- mini fixtures from the dump (3-4 days)
 
@@ -329,3 +356,5 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 1.1 done: `decideShouldFight` extracted, 12 new pure tests (566 total), bundle diff structural, merged via PR #1617 (commit 27b5e39) |
 | 2026-05-07 | Task 1.2 done: `decideNextChampionTime` extracted, 10 new pure tests (576 total), bundle diff structural, signature changed from plan (no champion is selected, only the next check time), merged via PR #1619 (commit 524bde0) |
 | 2026-05-07 | Task 1.3 done: equipment scoring helpers (`scoreItem`/`findBestItem`/`isBetter`) extracted, 16 new pure tests (592 total), bundle diff structural, scope changed from plan (no parser exists; girls parser deferred to stage 2), merged via PR #1621 (commit dfa13f5) |
+| 2026-05-07 | Task 1.4 done: `decideBurst` and `shouldRunStandardHandler` extracted, 18 new pure tests (610 total), bundle diff structural, signature changed from plan (handler pipeline has no single picker; remaining handlers deferred to stage 3), merged via PR #1623 (commit 44aa97d) |
+| 2026-05-07 | Stage 1 finished: 4 pure modules, 56 new tests across 4 PRs (1.1-1.4) |
