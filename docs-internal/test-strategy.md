@@ -5,10 +5,10 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 
 ## Status
 
-- Aktuelle Stufe: **0 (Sofort-Hygiene)** -- noch nicht gestartet
-- Letzte abgeschlossene Task: --
-- Letzter Commit: --
-- Naechster Schritt: Stufe 0 Task 0.1 (fdescribe -> describe in Champion.spec.ts)
+- Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
+- Letzte abgeschlossene Task: 0.1 (fdescribe -> describe in Champion.spec.ts)
+- Letzter Commit: 6fa1e64 (Branch chore/test-hygiene, lokal -- Push offen)
+- Naechster Schritt: Task 0.2 (xit-Tests behandeln) ODER PR fuer 0.1 oeffnen, je nach Praeferenz
 
 ## Kontext
 
@@ -106,7 +106,7 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
 
 ### Stufe 0 -- Sofort-Hygiene (1-2h, kein Risiko)
 
-- [ ] **0.1** `fdescribe` -> `describe` in `spec/Module/Champion.spec.ts:39`
+- [x] **0.1** `fdescribe` -> `describe` in `spec/Module/Champion.spec.ts:37` (commit 6fa1e64, 2026-05-07)
   - Vorbedingung: Frage B beantwortet, Liste der versteckten Tests bekannt
   - Verifikation: `npm test` zeigt mehr passed Tests als vorher
   - Wenn Tests rot werden: einzeln entscheiden (fix oder xit)
@@ -284,3 +284,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | Erstanlage, Stand vor Stufe 0 |
 | 2026-05-07 | Antworten A=Inv, B=Inv, C-3c/C-4c/C-5c eingetragen, xit/fdescribe inventarisiert |
 | 2026-05-07 | C-5 revidiert auf b (Konflikt-Vermeidung mit Stufe 1) |
+| 2026-05-07 | Task 0.1 erledigt: fdescribe -> describe (commit 6fa1e64). Tests: 549 passed / 7 skipped / 556 total |
