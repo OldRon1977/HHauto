@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **0 (immediate hygiene)** -- in progress
-- Last completed task: 0.4 (MockHelper extended)
+- Last completed task: 0.5 (coverage reporters enabled)
 - Last commit: <set in commit message>
-- Next step: task 0.5 (enable coverage reporters)
+- Next step: task 0.6 (open GitHub issue for CI coverage reporting)
 
 ## Context
 
@@ -118,10 +118,12 @@ because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
   - `mockGameGlobals({ heroLevel, energies, settings })` -- world setup
   - File: spec/testHelpers/MockHelpers.ts (143 lines added)
   - Note: storage prefixes pulled from src/config (HHStoredVarPrefixKey, TK) instead of hardcoded literals
-- [ ] **0.5** Enable coverage reporters (HTML + lcov)
-  - In `jest.config.ts`: `coverageReporters: ['text', 'text-summary', 'lcov', 'clover', 'html']`
+- [x] **0.5** Coverage reporters enabled (2026-05-07)
+  - jest.config.ts: coverageReporters = text, text-summary, lcov, clover, html
   - No threshold gate
-  - Verification: `npm test`, then open `coverage/lcov-report/index.html`
+  - text-summary prints at the end of every npm test run
+  - HTML report at coverage/lcov-report/index.html
+  - Current values: 28.92% statements / 17.11% branches / 24.10% functions / 29.60% lines
 - [ ] **0.6** Coverage reporting via GitHub Action (issue as reminder)
   - Open an issue titled \"Coverage reporting in CI\"
   - Do not implement now, just track
@@ -281,3 +283,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 0.1 done: fdescribe -> describe. Tests: 549 passed / 7 skipped / 556 total |
 | 2026-05-07 | Tasks 0.2 + 0.3 done: every xit handled. Tests: 554 passed / 0 skipped / 554 total |
 | 2026-05-07 | Task 0.4 done: MockHelper +5 functions. Tests stay 554 passed |
+| 2026-05-07 | Task 0.5 done: coverage reporters enabled |
