@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **0 (immediate hygiene)** -- finished, push and PR pending
-- Last completed task: 0.7 (stage 0 finished)
-- Last commit: <set in commit message>
-- Next step: push + PR review + merge, then stage 1 (pure-function extraction)
+- Current stage: **0 finished**, ready to start **stage 1 (pure-function extraction)**
+- Last completed task: 0.7 (stage 0 merged via PR #1615 into main, commit c4d6837)
+- Open reminder: issue #1614 (CI coverage reporting)
+- Next step: stage 1 task 1.1 (League pure function `decideShouldFight`)
 
 ## Context
 
@@ -37,46 +37,17 @@ and add the date plus commit hash in the Status field.
 - Storage migration tests
 - Extended MockHelper (world setup helper)
 
-## Open questions answered before stage 0
+## Decisions taken before stage 0 (archive)
 
-### Question A -- inventory of `xit` tests
+- A: xit tests inventoried (7 found, all addressed in task 0.2).
+- B: fdescribe-hidden tests inventoried (1 found, fixed in task 0.1).
+- C-3 (Pachinko string-mapping tautology): defer to the Pachinko refactor.
+- C-4 (Pipeline.config value asserts): defer to the next Pipeline change.
+- C-5 (League jest.spyOn on static methods): keep until stage 1 task 1.1
+  replaces them with the pure function.
 
-Locate every disabled `xit(...)` test in the spec tree and list it with
-file/line/test name? Effort: 5 minutes, plain grep, no code change.
-
-**Answer:** Inventory.
-
-### Question B -- inventory of tests hidden by `fdescribe`
-
-List the tests in `spec/Module/Champion.spec.ts` that currently do not run
-because of `fdescribe(\"_setTimer\", ...)`. Effort: 2 minutes, read only.
-
-**Answer:** Inventory.
-
-### Question C -- handling of subjective findings 3, 4, 5
-
-#### C-3 Pachinko.spec.ts (string-mapping tautology, ~12 it cases)
-- a) Drop
-- b) Keep
-- c) Defer to the Pachinko refactor
-
-**Answer:** c
-
-#### C-4 Pipeline.config.spec.ts (config-value asserts like `priority === 13`)
-- a) Drop value asserts, keep schema asserts
-- b) Keep everything
-- c) Defer to the next Pipeline change
-
-**Answer:** c
-
-#### C-5 League.spec.ts::isTimeToFight (`jest.spyOn` on static methods)
-- a) Drop
-- b) Keep until stage 1 (pure-function extraction replaces them)
-- c) Rewrite immediately to constructor injection / function parameters
-
-**Answer:** b (originally c, revised to avoid conflict with stage 1 task 1.1)
-
-**Default recommendation from the review:** C-3a, C-4a, C-5b.
+Default recommendation from the review was: C-3a, C-4a, C-5b. Final answers:
+C-3c, C-4c, C-5b.
 
 ## Findings with evidence
 
@@ -140,12 +111,32 @@ Input = data, output = decision. No globals, no jQuery, no storage reads in
 the core.
 
 - [ ] **1.1** League: `decideShouldFight(state) -> bool`
-  - Extract from `LeagueHelper.isTimeToFight`
-  - State type: `{ heroLevel, energy, energyMax, threshold, runThreshold,
-    timerLeft, leagueEndTime, paranoia, boosterRequired, boosterEquipped }`
-  - Public API of the class stays, internally calls the pure function
-  - Tests: 8-12 concrete cases with expected bool
-  - If question C-5 answered with \"b\": replace the old spy tests now
+  - Source: `src/Module/League.ts` `LeagueHelper.isTimeToFight`
+  - Existing tests: `spec/Module/League.spec.ts` describe block `isTimeToFight`
+    (currently 8 tests, all green, several use `jest.spyOn` on static methods)
+  - Proposed pure function signature:
+    ```ts
+    type ShouldFightState = {
+      heroLevel: number;
+      energy: number;
+      energyMax: number;
+      threshold: number;
+      runThreshold: number;
+      timerLeft: number;
+      leagueEndTime: number;
+      paranoiaSpending: number;
+      boosterRequired: boolean;
+      boosterEquipped: boolean;
+    };
+    function decideShouldFight(state: ShouldFightState): boolean;
+    ```
+  - Public API stays the same: `LeagueHelper.isTimeToFight()` reads globals
+    and storage, builds the state, then delegates to `decideShouldFight`.
+  - Tests: 8-12 cases against the pure function, replacing the brittle spy
+    tests (C-5b decision).
+  - Branch: `refactor/pure-functions-league`
+  - Acceptance: all existing 554 tests stay green, new pure-function tests
+    pass, no behaviour change in the bundle.
 - [ ] **1.2** Champion: `selectNextChampion(champions, settings, level) -> champion?`
   - Extract filter + sort logic from the Champion module
   - Tests: walk through filter settings, hero-level thresholds
@@ -287,3 +278,5 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 0.5 done: coverage reporters enabled |
 | 2026-05-07 | Task 0.6 done: issue #1614 opened |
 | 2026-05-07 | Stage 0 finished (tasks 0.1-0.7), branch ready for push |
+| 2026-05-07 | Stage 0 merged via PR #1615 (commit c4d6837) |
+| 2026-05-07 | Stage 1 prep: plan consolidated, task 1.1 detailed, session handoff rewritten for stage 1 |

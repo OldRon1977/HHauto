@@ -1,93 +1,126 @@
-# Session handoff -- HHAuto test strategy
+# Session handoff -- HHAuto test strategy, stage 1
 
-Status: 2026-05-07. The previous session analysed the test inventory, ran a
-review with sub-agents, and produced the plan. The plan file lives at
-`docs-internal/test-strategy.md` and is the source of truth.
+Status: 2026-05-07. Stage 0 is finished and merged into main (PR #1615,
+commit c4d6837). Plan file `docs-internal/test-strategy.md` is the source
+of truth and already contains the detailed entry point for stage 1
+task 1.1.
 
-## Prompt for a new session (copy and paste)
+## Prompt for the new session (copy-paste into a fresh chat)
 
 ```
-We are continuing the HHAuto test strategy. Preparation from the previous
-session is finished, the plan is at `docs-internal/test-strategy.md`.
+We continue the HHAuto test strategy. Stage 0 is finished and merged.
+Plan file: `docs-internal/test-strategy.md` is the source of truth.
 
 == Language and style ==
 German output, terse, no filler. Direct and factual responses.
-Workspace rules apply (Git identity oldron1977@gmail.com, workflow,
-agent anonymity, file writes via Python+UTF8 only -- see workspace rule
+Workspace rules apply: Git identity oldron1977@gmail.com, workflow
+(branch -> implement -> commit -> push -> approval -> PR -> rebase
+merge), agent anonymity (no AI / Co-Authored-By in commits, branches,
+PR text, or code), file writes via Python+UTF8 only (workspace rule
 05_File_Write_Workaround).
 
-Repository content (commits, PR/issue text, code comments) is in English.
+Repository content (commits, PR/issue text, code comments,
+docs-internal) is in English.
 
 == Path ==
 c:\\Users\\StephanMesser\\.kiro\\Arbeitsplatz\\HHAuto
 
 == First action ==
 1. Read `docs-internal/test-strategy.md`. The status block on top tells
-   you where we are.
-2. Check whether questions A, B, C in the \"Open questions\" section have
-   been answered. If any field is empty: ask the user, update the plan,
-   only then start stage 0.
-3. If everything is answered: continue with the next unchecked task.
+   you where we are. Stage 0 is closed; stage 1 task 1.1 has a
+   detailed signature and acceptance criteria.
+2. Read `src/Module/League.ts` `LeagueHelper.isTimeToFight` plus the
+   existing `spec/Module/League.spec.ts` describe block `isTimeToFight`.
+   That is the surgical area for task 1.1.
+3. Confirm with the user before introducing new public API or breaking
+   any existing test.
 
-== Pending answers (user must answer if still open) ==
+== Stage 1 entry point: task 1.1 (League pure function) ==
 
-A) Inventory the xit tests? Effort 5 min, no code change.
-   Answer: \"Inventory\" or \"Skip\"
+Goal: Extract the decision logic of `LeagueHelper.isTimeToFight` into a
+pure function `decideShouldFight(state) -> bool` so the brittle
+`jest.spyOn` tests on static methods (finding C-5) can be replaced by
+direct unit tests of the pure function.
 
-B) Inventory the tests hidden by fdescribe in Champion.spec.ts?
-   Effort 2 min, no code change.
-   Answer: \"Inventory\" or \"Skip\"
+Proposed signature (see plan for the latest version):
+```
+type ShouldFightState = {
+  heroLevel: number;
+  energy: number;
+  energyMax: number;
+  threshold: number;
+  runThreshold: number;
+  timerLeft: number;
+  leagueEndTime: number;
+  paranoiaSpending: number;
+  boosterRequired: boolean;
+  boosterEquipped: boolean;
+};
+function decideShouldFight(state: ShouldFightState): boolean;
+```
 
-C) Subjective findings 3, 4, 5 -- for each:
-   - C-3 Pachinko string-mapping tests: a drop / b keep / c defer
-   - C-4 Pipeline.config value asserts: a values out + schema stays /
-         b keep all / c defer
-   - C-5 League jest.spyOn on static methods: a drop /
-         b keep until stage 1 replaces them / c rewrite immediately
+Public API stays: `LeagueHelper.isTimeToFight()` keeps reading globals
+and storage, then delegates to the pure function.
 
-   Default recommendation from the review: C-3a, C-4a, C-5b.
+Acceptance criteria:
+- All existing 554 tests stay green.
+- New pure-function tests cover 8-12 cases (default, low energy,
+  active timer, paranoia, boosters required + equipped, last hour of
+  the league + insufficient energy).
+- No behaviour change in the bundle (`npm run build` succeeds, diff
+  on `HHAuto.user.js` is purely structural).
+
+Branch: `refactor/pure-functions-league`.
 
 == Workflow per task ==
-1. Branch (`chore/test-hygiene`, `refactor/pure-functions-<module>`,
-   `feat/test-fixtures-<module>` etc.)
-2. Implement
-3. `npm test` and where appropriate `npm run build` locally
-4. Commit (no AI mention, no Co-Authored-By)
-5. Push
-6. Wait for user approval
-7. Open PR, merge with `gh pr merge --rebase --delete-branch`
+1. Branch.
+2. Implement (code + tests + docs in the same commit if it changes
+   behaviour or API).
+3. `npm test` and `npm run build` locally.
+4. Commit (no AI mention, no Co-Authored-By).
+5. Push.
+6. Wait for user approval.
+7. Open PR, merge with `gh pr merge --rebase --delete-branch`.
 8. Tick the checkbox in `docs-internal/test-strategy.md`,
-   update the status block, append to the change log
+   update the status block, append to the change log.
 
 == Important ==
 - Do NOT auto-add tests without a plan reference.
-- For every finding provide evidence (file + line) before patching.
+- For every claim about behaviour: provide evidence (file + line)
+  before patching.
 - When in doubt: ask the user, do not guess.
-- The plan file is the single source of truth. Update its status there.
+- Plan file is the single source of truth. Update its status there.
 
-== Data ==
-- `INPUT/hhauto_dump_*.json` (41 MB, 2026-05-05, 30 pages)
-- `INPUT/HH_DebugLog_*.log` (3 files, ~10h old)
+== Open reminders ==
+- Issue #1614 \"Coverage reporting in CI\" -- not part of stage 1, just
+  a tracker for stage 4 / a future CI sweep.
+
+== Data sources (unchanged from stage 0) ==
+- `INPUT/hhauto_dump_*.json` (41 MB, 2026-05-05, 30 pages).
+- `INPUT/HH_DebugLog_*.log` (3 files, ~10h old at the time of capture).
 - Inspector script if a fresh dump is needed:
-  `bonus-scripts/HHAuto_debug_inspector.user.js` v4.5.0
+  `bonus-scripts/HHAuto_debug_inspector.user.js` v4.5.0.
 ```
 
-## What this session produced
+## What was done in stage 0 (for context, not action)
 
-- Test inventory analysed: 39 specs, 556 tests, coverage 30/17/24%.
-- Review with 6 sub-agents (3 pro / 3 contra).
-- Roadmap with 5 stages (0-4); blocked: snapshots, Stryker,
-  fast-check as a phase, coverage gate, full dump split.
-- 8 findings documented with evidence (Champion.spec.ts fdescribe is the
-  most severe).
-- Plan file `docs-internal/test-strategy.md` created with tasks,
-  checkboxes, open questions, xit inventory table, fdescribe inventory
-  table.
+- 39 specs / 554 tests / coverage 28.92% statements.
+- `fdescribe` removed from Champion.spec.ts (1 test surfaced).
+- 7 `xit` tests handled: 2 empty stubs dropped, 5 reactivated and green.
+- MockHelper extended: `mockBoosterInventory`, `mockSetting`,
+  `mockTimer`, `mockAjaxSuccess`, `mockAjaxError`, `mockGameGlobals`.
+- Coverage reporters set: text, text-summary, lcov, clover, html.
+- Plan and session handoff documented.
+- Issue #1614 opened for CI coverage reporting (deferred).
+- Merged via PR #1615 (commit c4d6837).
 
-## Open before stage 0
+## Pre-flight checks before stage 1
 
-1. Question A: inventory xit yes/no
-2. Question B: inventory fdescribe-hidden tests yes/no
-3. Question C: 3 sub-decisions on Pachinko / Pipeline.config / League
+- `git status` clean, on `main`.
+- `git pull` to be sure main is up to date.
+- `git config user.email` shows `oldron1977@gmail.com`.
+- `npm test` shows 554 passed / 0 skipped / 554 total.
+- `npm run build` succeeds with `HHAuto.user.js` rebuilt without diff
+  (apart from line endings).
 
-Stage 0 cannot start until these are answered.
+If any of these fails, stop and ask before starting stage 1.
