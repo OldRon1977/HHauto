@@ -1957,6 +1957,58 @@ class Bundles {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/Champion.pure.ts
+// Champion.pure.ts -- Pure decision logic for the champions auto module.
+//
+// Extracted from Champion.findNextChamptionTime so the timer scan can be
+// unit-tested without DOM access, jQuery, randomInterval, or the timer
+// helper. Input = a list of champion decision rows + the relevant
+// settings; output = the deterministic tuple (minTime, minTimeEnded)
+// that the impure adapter feeds into randomInterval and _setTimer.
+//
+// The variable naming is preserved from the original implementation:
+// despite the name, both fields hold MAX values for the entries that
+// match their respective bucket. minTime is the largest entry below
+// 1800s, minTimeEnded is the largest known positive timer overall.
+// We do not change this contract here -- only extract it.
+/**
+ * Reproduce the existing findNextChamptionTime scan bit by bit. The input
+ * list is iterated in order; the first ready (timer === 0) or
+ * force-start-eligible entry short-circuits with minTime=0/minTimeEnded=-1.
+ *
+ * Bit-for-bit equivalence to the in-place loop is the explicit goal -- the
+ * inner > comparison (instead of <) and the early break are preserved on
+ * purpose so that the adapter behaviour does not shift.
+ */
+function decideNextChampionTime(champions, autoChampsForceStart) {
+    let minTime = -1;
+    let minTimeEnded = -1;
+    for (const champion of champions) {
+        if (!champion.inFilter) {
+            continue;
+        }
+        const currTime = champion.timer;
+        if (currTime === 0) {
+            return { minTime: 0, minTimeEnded: -1 };
+        }
+        if (currTime > 0) {
+            if (currTime > minTimeEnded) {
+                minTimeEnded = currTime;
+            }
+            // Original wording (preserved): largest timer below 1800s.
+            if (currTime > minTime && currTime < 1800) {
+                minTime = currTime;
+            }
+            continue;
+        }
+        // currTime < 0
+        if (!champion.started && autoChampsForceStart) {
+            return { minTime: 0, minTimeEnded: -1 };
+        }
+    }
+    return { minTime, minTimeEnded };
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Events/CumbackContests.ts
 // CumbackContests.ts -- Cumback Contest event handling and auto-collection.
 //
@@ -5360,6 +5412,7 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 class Champion {
     run() {
     }
@@ -5823,38 +5876,11 @@ class Champion {
     }
     static findNextChamptionTime(championMap = undefined) {
         if (getPage() == ConfigHelper.getHHScriptVars("pagesIDChampionsMap")) {
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
             const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
-            var minTime = -1; // less than 15min
-            var minTimeEnded = -1;
-            var currTime;
             if (championMap == undefined) {
                 championMap = Champion.getChampionListFromMap();
             }
-            // if (debugEnabled) logHHAuto('championMap: ', championMap);
-            for (let i = 0; i < championMap.length; i++) {
-                if (championMap[i].inFilter) {
-                    currTime = championMap[i].timer;
-                    if (currTime === 0) {
-                        minTime = 0;
-                        minTimeEnded = -1; // end loop so value is not accurate
-                        break;
-                    }
-                    else if (currTime > 0) {
-                        if (currTime > minTimeEnded) {
-                            minTimeEnded = currTime;
-                        }
-                        if (currTime > minTime && currTime < 1800) {
-                            minTime = currTime;
-                        } // less than 30min
-                    }
-                    else if (!championMap[i].started && autoChampsForceStart) {
-                        minTime = 0;
-                        minTimeEnded = -1; // end loop so value is not accurate
-                        break;
-                    }
-                }
-            }
+            const { minTime, minTimeEnded } = decideNextChampionTime(championMap, autoChampsForceStart);
             //fetching min
             let nextChampionTime;
             LogUtils_logHHAuto('minTimeEnded: ' + minTimeEnded + ', minTime:' + minTime);

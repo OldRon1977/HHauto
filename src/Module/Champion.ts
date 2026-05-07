@@ -27,6 +27,7 @@ import { gotoPage } from "../Service/index";
 import { getHHAjax, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { ChampionModel } from "../model/index";
+import { decideNextChampionTime } from './Champion.pure';
 import { EventModule } from "./Events/index";
 import { QuestHelper } from "./Quest";
 
@@ -541,34 +542,14 @@ export class Champion {
 
     static findNextChamptionTime(championMap: ChampionModel[]=undefined) {
         if (getPage() == ConfigHelper.getHHScriptVars("pagesIDChampionsMap")) {
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
             const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStart) === "true";
-            var minTime = -1; // less than 15min
-            var minTimeEnded = -1;
-            var currTime: number;
 
             if (championMap == undefined) {
                 championMap = Champion.getChampionListFromMap();
             }
-            // if (debugEnabled) logHHAuto('championMap: ', championMap);
-            for (let i=0;i<championMap.length;i++)
-            {
-                if(championMap[i].inFilter) {
-                    currTime = championMap[i].timer;
-                    if(currTime === 0) {
-                        minTime = 0;
-                        minTimeEnded = -1; // end loop so value is not accurate
-                        break;
-                    }else if (currTime > 0) {
-                        if (currTime > minTimeEnded) {minTimeEnded = currTime;}
-                        if (currTime > minTime && currTime < 1800) {minTime = currTime;} // less than 30min
-                    } else if (!championMap[i].started && autoChampsForceStart) {
-                        minTime = 0;
-                        minTimeEnded = -1; // end loop so value is not accurate
-                        break;
-                    }
-                }
-            }
+
+            const { minTime, minTimeEnded } = decideNextChampionTime(championMap, autoChampsForceStart);
+
             //fetching min
             let nextChampionTime: number;
 
