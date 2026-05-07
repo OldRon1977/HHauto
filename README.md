@@ -16,21 +16,23 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
-### v7.35.25 - Mythic coverage and leader picked after slots 2-7
+### v7.35.25 - Mythic coverage, slot order, and richer team info box
 
-Two changes to the team-selection algorithm based on feedback from issues #1573 (Frank) and #1603 (Dimka).
+Algorithm refinements driven by feedback in issues #1573 (Frank) and #1603 (Dimka).
 
-Positions 2-7 are now filled before the leader is picked. Strong cluster girls are no longer "stolen" by leader selection, and the leader is then chosen from whatever is left in the pool. The leader hierarchy stays the same: mythic preferred, tier-5 priority Shield > Stun > Execute > Reflect, cluster membership and trait match as tiebreakers.
+**Slot order:** Positions 2-7 are now filled before the leader. The leader is picked from whatever is left in the pool, so a strong cluster girl can no longer be consumed by leader selection. Leader hierarchy stays the same: mythic, tier-5 priority Shield > Stun > Execute > Reflect, cluster membership and trait match as tiebreakers.
 
-The slot-fill logic now considers cross-cluster mythics. The team builder evaluates two strategies (cluster-priority and mythic-priority) and keeps the variant with the higher Effective Power. This guarantees that strong mythics are no longer silently dropped just because they belong to a different element pair, while weak cross-cluster mythics still cannot break a healthy Tier-3 chain.
+**Mythic coverage:** The slot fill evaluates two strategies (cluster-priority and mythic-priority) and keeps the variant with the higher Effective Power. Strong cross-cluster mythics now enter the team when including them beats the cluster-only Tier-3 chain. Weak cross-cluster mythics still cannot break a healthy chain. A leader swap step guarantees a mythic leader whenever any mythic exists in the player's class.
 
-The team info box now shows a Mythic Audit: every mythic in your class is listed as either leader, in slots 2-7, or excluded with a reason (other cluster, lower stats, wrong class). This makes it possible to verify whether a missing mythic is the algorithm's choice or a data issue.
+**Info box additions:**
+- Mythic Audit lists every mythic in the player's class with status (leader, in slots 2-7, or excluded with reason).
+- Class line shows the eligible pool size (own-class Mythic + Legendary 5*), the mythic count, and how many cross-class girls were skipped per class. Explains that league math rewards only the main class carac, so cross-class girls cannot win on the metric that counts.
+- Main Sum (sum of the main class carac across the 7 picked girls) is shown next to Effective Power, with green/red deltas vs the previous click and vs the other mode.
+- Yellow warning when the own-class pool drops below 7 girls (script falls back to the legacy DOM-based team selection without Tier-3 optimization).
 
-The team v2 log line now includes the player class and which carac is used as the main stat (carac1 for Hardcore, carac2 for Charm, carac3 for Know-how), plus the Main Sum -- the sum of the main class carac across the 7 picked girls. Main Sum is also shown in the info box, with a delta vs the previous click and vs the other mode (Current Best / Best Possible). Effective Power stays as the tie-breaker, but Main Sum makes the optimization target visible.
+**Logging:** The Team v2 log line now starts with the player class, the carac used as main stat (carac1/2/3), and the Main Sum, so the optimization target is directly visible in debug logs.
 
-The class line in the info box now explains why only own-class girls are considered: it shows the pool size (Mythic + Legendary 5*) of the player class, the number of mythics in that pool, and how many cross-class girls were skipped per class. League and season formulas reward only the main class carac, so cross-class girls cannot win on the metric that counts. When the own-class pool drops below 7 girls, a warning marks the fall-back to legacy team selection (no Tier-3 / cluster optimization).
-
-Heads-up for issue reports comparing total team power: Total Power in the game UI includes equipment, the script's Effective Power does not. To compare the two on equal footing, unequip all girls first, then look at both numbers.
+**Heads-up:** the game UI's Total Power reacts to equipment, the script's Effective Power does not. To compare the two on equal footing, unequip all girls first, then look at both numbers.
 
 ### v7.35.24 - Best Possible projects to the awakening cap
 
