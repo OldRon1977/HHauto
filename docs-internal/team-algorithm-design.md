@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-05-06
-verified-against-version: 7.35.24
+last-verified: 2026-05-07
+verified-against-version: 7.35.25
 status: current
 ---
 
@@ -159,22 +159,56 @@ tier3Bonus   = Summe ueber alle Mitglieder von:
 Die Gruppe mit hoechster `effectivePower` gewinnt. Alle evaluierten
 Alternativen landen in `result.alternatives` fuer die UI-Anzeige.
 
-### Phase 5: Slot-Fill (innerhalb einer Gruppe)
+### Phase 5: Slot-Fill (ab v7.35.25 zwei-Variant)
 
-Drei Pass-Strategie pro Cluster:
+Slots 2-7 werden VOR dem Leader gefuellt (Frank-Anforderung aus Issue #1573). Damit kann ein starker Cluster-Slot nicht durch die Leader-Auswahl belegt werden, der Leader wird aus dem Rest gepickt.
 
-| Pass | Filter | Sortiert nach |
-|------|--------|---------------|
-| 1 | Element gehoert zum Cluster-Paar UND traitValue matcht | main_carac desc |
-| 2 | Element gehoert zum Cluster-Paar (beliebiger trait) | main_carac desc |
-| 3 | beliebiges Element | main_carac desc |
+Pro Cluster werden zwei Slot-Varianten gebaut und nach `main_sum * (1 + tier3Bonus)` verglichen. Die hoehere Effective Power gewinnt. So gibt es Rainbow-Teams nur, wenn sie tatsaechlich besser sind.
 
-Pass 1 maximiert Tier-3-Match. Pass 2 haelt das Mono-Element-Bonus.
-Pass 3 ist nur Reserve, falls die Gruppe weniger als 7 Girls hat.
+**Variant A: cluster-first** (Tier-3-Chain bevorzugen)
 
-### Phase 6: Leader (ab v7.35.23: global)
+| Pass | Filter |
+|------|--------|
+| 1 | Cluster-Mythic + traitValue match |
+| 2 | Cluster-Mythic, beliebiger trait |
+| 3 | Cluster-Legendary + traitValue match |
+| 4 | Cluster-Legendary, beliebiger trait |
+| 5 | Cross-Cluster-Mythic |
+| 6 | Beliebige verbleibende Girl |
 
-Leader (Position 1) wird **global** gepickt, nicht Cluster-gebunden. Tier-5-Prio gilt fuer alle Mythics, unabhaengig von der Cluster-Wahl. Slots 2-7 bleiben weiterhin Cluster-gebunden (Phase 5).
+**Variant B: mythic-first** (Mythic-Coverage bevorzugen, Issue #1603)
+
+| Pass | Filter |
+|------|--------|
+| 1 | Cluster-Mythic + traitValue match |
+| 2 | Cluster-Mythic, beliebiger trait |
+| 3 | Cross-Cluster-Mythic |
+| 4 | Cluster-Legendary + traitValue match |
+| 5 | Cluster-Legendary, beliebiger trait |
+| 6 | Beliebige verbleibende Girl |
+
+Beide Varianten fuellen 6 Slots. Anschliessend wird Effective Power gerechnet, die hoehere wird verwendet.
+
+### Phase 6: Leader (ab v7.35.25: nach Slots 2-7)
+
+Leader (Position 1) wird NACH den Slots 2-7 aus dem verbleibenden Pool gepickt.
+
+| Prioritaet | Kriterium |
+|-----------|----------|
+| 1 | Mythic bevorzugt (Fallback siehe unten) |
+| 2 | Tier-5-Skill: Shield(4) > Stun(3) > Execute(2) > Reflect(1) - GLOBAL |
+| 3 | Cluster-Mitgliedschaft (Tiebreaker) |
+| 4 | Trait-Match (Tiebreaker) |
+| 5 | main_carac-Score |
+
+#### Leader-Swap
+
+Falls keine Mythic mehr im verbleibenden Pool ist (alle 5-6 Mythics in Slots 2-7 verbraucht), aber Slots Mythics enthalten und mindestens eine Legendary uebrig ist:
+
+1. Schwaechste Slot-Mythic wird Leader.
+2. Staerkste verbleibende Legendary nimmt deren Slot ein.
+
+Garantiert: solange mindestens 1 Mythic existiert, ist sie Leader. Alle Mythics bleiben sichtbar (keine wird stumm fallengelassen).
 
 | Prioritaet | Kriterium |
 |-----------|----------|
@@ -206,6 +240,8 @@ Wenn 0 Mythics existieren, faellt das Skript auf Legendary 5*-Girls zurueck. Da 
 ### Phase 7: UI
 
 Info-Box (oben mittig, dunkel, halbtransparent):
+
+- Mythic Audit (ab v7.35.25): listet alle Mythics der Spielerklasse auf. Status pro Mythic: 'leader' / 'pos2to7' (mit Position) / 'excluded' (mit Grund: andere Cluster, gleicher Trait aber niedrigere Stats, falsche Klasse). Hilft, Daten- vs. Algorithmus-Bugs zu unterscheiden, wenn Spieler eine Mythic vermissen.
 
 - Klassen-Hinweis: "Class: <Hardcore/Charm/Know-how> -- only X girls considered"
 - Trait optimiert: "[emoji] eyeColor = 'Blue' (4/7 girls match)"
@@ -404,3 +440,4 @@ Fallback fuer Spec-Tests und den Fall dass GT noch nicht geladen ist.
 | 7.35.21 | v4: main_carac-Score, Klassen-Filter, Klar-Namen, Equipment-Hinweis (Issues #1340, #1573) |
 | 7.35.23 | Leader global gepickt (Tier-5 ueber alle Mythics), Mode-Diff-Detection, Beginner-Pool ohne Mythics (Issues #1573, #1603) |
 | 7.35.24 | Best-Possible projiziert auf Awakening-Cap 750 statt playerLevel (Issue #1603) |
+| 7.35.25 | Slots 2-7 vor Leader gepickt, zwei Slot-Varianten (cluster-first vs mythic-first) per Effective Power, Mythic-Audit in UI, Leader-Swap fuer komplette Mythic-Coverage (Issues #1573, #1603) |

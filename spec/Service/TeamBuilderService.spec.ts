@@ -372,6 +372,236 @@ describe('TeamBuilderService', () => {
         });
     });
 
+
+    describe('Leader picked AFTER positions 2-7 (issue #1573)', () => {
+
+        it('should not consume a strong cluster girl as leader if a weaker mythic exists for the leader role', () => {
+            // 7 strong cluster mythics (eyeColor=blue, fire/darkness) plus
+            // one weak Light/Shield mythic (out of cluster). The Light
+            // mythic must lead, so the 7 cluster mythics should ALL appear
+            // in positions 2-7 (only 6 fit, but the strongest 6 must be
+            // there -- the weak one stays excluded).
+            const strongCluster = Array.from({ length: 7 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000 + i,
+                eyeColor: 'blue',
+            }));
+            const weakLightLeader = makeGirl({
+                id_girl: 999,
+                element: 'light',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 1000,
+                hairColor: 'blonde',
+            });
+            const result = TeamBuilderService.buildTeam([...strongCluster, weakLightLeader], 1, 100, 3)!;
+
+            // Leader must be the Light/Shield mythic (priority 4)
+            expect(result.girls[0].id_girl).toBe(999);
+            expect(result.leaderTier5.name).toBe('Shield');
+
+            // Positions 2-7 must contain the 6 highest-stat cluster mythics
+            const slotIds = result.girls.slice(1).map(g => g.id_girl).sort();
+            expect(slotIds).toEqual([101, 102, 103, 104, 105, 106]);
+        });
+    });
+
+    describe('Mythic pass for cross-cluster girls (issue #1603)', () => {
+
+        it('should include cross-cluster mythics in positions 2-7 before any cross-cluster legendary', () => {
+            // 4 cluster mythics (eyeColor=blue) -- not enough to fill 6 slots.
+            // 3 cross-cluster mythics (hairColor=blonde, light/nature).
+            // 5 cross-cluster legendaries (zodiac, stone/psychic).
+            // Slots 2-7 must contain 4 cluster mythics + 2 cross-cluster mythics.
+            // Legendaries must NOT enter the team unless mythics run out.
+            const clusterMythics = Array.from({ length: 4 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                eyeColor: 'blue',
+            }));
+            const crossClusterMythics = Array.from({ length: 3 }, (_, i) => makeGirl({
+                id_girl: 200 + i,
+                element: i % 2 === 0 ? 'light' : 'nature',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 4000 - i,
+                hairColor: 'blonde',
+            }));
+            const crossClusterLegendaries = Array.from({ length: 5 }, (_, i) => makeGirl({
+                id_girl: 300 + i,
+                element: 'stone',
+                rarity: 'legendary',
+                class: 3,
+                nb_grades: 5,
+                graded: 5,
+                carac3: 3000,           // weaker than the cluster mythics
+                zodiac: 'Aries',
+            }));
+
+            const result = TeamBuilderService.buildTeam(
+                [...clusterMythics, ...crossClusterMythics, ...crossClusterLegendaries],
+                1, 100, 3
+            )!;
+
+            // Every mythic of the player's class must be either leader or in slots 2-7
+            const teamIds = new Set(result.girls.map(g => g.id_girl));
+            const mythicIds = [...clusterMythics, ...crossClusterMythics].map(g => g.id_girl);
+            for (const id of mythicIds) {
+                expect(teamIds.has(id)).toBe(true);
+            }
+
+            // No legendary should be in the team (we have exactly 7 mythics)
+            const hasAnyLegendary = result.girls.some(g => g.rarity === 'legendary');
+            expect(hasAnyLegendary).toBe(false);
+        });
+
+        it('should fall back to legendaries only after all mythics are placed', () => {
+            // 3 cluster mythics + 2 cross-cluster mythics = 5 mythics total.
+            // Cross-cluster mythics are strong enough that the mythic-first
+            // variant beats cluster-first on Effective Power.
+            // Need 7 slots. The remaining 2 must come from legendaries.
+            const clusterMythics = Array.from({ length: 3 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: 'fire',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                eyeColor: 'blue',
+            }));
+            const crossClusterMythics = Array.from({ length: 2 }, (_, i) => makeGirl({
+                id_girl: 200 + i,
+                element: 'light',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 8000,           // strong enough to beat cluster-first
+                hairColor: 'blonde',
+            }));
+            const legendaries = Array.from({ length: 10 }, (_, i) => makeGirl({
+                id_girl: 300 + i,
+                element: 'fire',
+                rarity: 'legendary',
+                class: 3,
+                nb_grades: 5,
+                graded: 5,
+                carac3: 2000,           // weak legendaries
+                eyeColor: 'blue',
+            }));
+
+            const result = TeamBuilderService.buildTeam(
+                [...clusterMythics, ...crossClusterMythics, ...legendaries],
+                1, 100, 3
+            )!;
+
+            // All 5 mythics must appear in the team
+            const mythicIds = [...clusterMythics, ...crossClusterMythics].map(g => g.id_girl);
+            const teamIds = new Set(result.girls.map(g => g.id_girl));
+            for (const id of mythicIds) {
+                expect(teamIds.has(id)).toBe(true);
+            }
+
+            // Exactly 2 legendaries fill the remaining slots
+            const legendaryCount = result.girls.filter(g => g.rarity === 'legendary').length;
+            expect(legendaryCount).toBe(2);
+        });
+
+        it('should NOT add weak cross-cluster mythics when cluster-only beats them on Effective Power', () => {
+            // 7 strong cluster mythics + 1 weak cross-cluster mythic.
+            // The cluster team has full Tier-3 chain; including the weak
+            // cross-cluster mythic would dilute it. Must keep cluster-only.
+            const clusterMythics = Array.from({ length: 7 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: i % 2 === 0 ? 'fire' : 'darkness',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000,
+                eyeColor: 'blue',
+            }));
+            const weakCross = makeGirl({
+                id_girl: 999,
+                element: 'light',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 100,           // very weak
+                hairColor: 'blonde',
+            });
+            const result = TeamBuilderService.buildTeam([...clusterMythics, weakCross], 1, 100, 3)!;
+
+            // Team must NOT include the weak cross-cluster mythic in slots 2-7
+            const weakInTeam = result.girls.slice(1).some(g => g.id_girl === 999);
+            // Weak mythic might be leader (only Shield-priority mythic),
+            // which is the existing leader-priority behavior.
+            // The point of this test: it must NOT take a slot 2-7.
+            if (!weakInTeam && result.girls[0].id_girl === 999) {
+                // Acceptable: weak mythic became leader (Shield > others), 6 cluster mythics in slots
+                expect(result.girls.slice(1).every(g => g.element === 'fire' || g.element === 'darkness')).toBe(true);
+            } else if (!weakInTeam) {
+                // Acceptable: leader is a cluster mythic, weak excluded entirely
+                expect(weakInTeam).toBe(false);
+            } else {
+                // Not acceptable: weak mythic stole a cluster slot
+                throw new Error('Weak cross-cluster mythic stole a cluster slot');
+            }
+        });
+    });
+
+    describe('Mythic audit (issue #1573, #1603)', () => {
+
+        it('should report status for every player-class mythic', () => {
+            const girls = makeTraitPool(20);
+            const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+
+            // makeTraitPool generates mythics. Audit must contain all of them.
+            const mythicCount = girls.filter(g => g.rarity === 'mythic').length;
+            expect(result.mythicAudit.length).toBe(mythicCount);
+
+            // The 7 girls in the team must be marked leader/pos2to7
+            const inTeamCount = result.mythicAudit.filter(e => e.status !== 'excluded').length;
+            expect(inTeamCount).toBe(7);
+
+            // The first audit entry must be the leader
+            expect(result.mythicAudit[0].status).toBe('leader');
+            expect(result.mythicAudit[0].position).toBe(1);
+        });
+
+        it('should give a reason for excluded mythics', () => {
+            // Mix of cluster + cross-cluster mythics. With 8 cluster mythics,
+            // one is excluded; the audit must explain why.
+            const clusterMythics = Array.from({ length: 8 }, (_, i) => makeGirl({
+                id_girl: 100 + i,
+                element: 'fire',
+                rarity: 'mythic',
+                class: 3,
+                carac3: 5000 - i,    // lower stats for higher i -> last is excluded
+                eyeColor: 'blue',
+            }));
+            const result = TeamBuilderService.buildTeam(clusterMythics, 1, 100, 3)!;
+            const excluded = result.mythicAudit.filter(e => e.status === 'excluded');
+            expect(excluded).toHaveLength(1);
+            expect(excluded[0].reason).toBeDefined();
+            expect(excluded[0].reason!.length).toBeGreaterThan(0);
+        });
+
+        it('should flag wrong-class mythics in the audit', () => {
+            // Player class 3 (KH). Add a class-1 mythic -- it must show up as
+            // excluded with the wrong-class reason.
+            const girls = [
+                ...makeTraitPool(20),
+                makeGirl({ id_girl: 999, rarity: 'mythic', class: 1, carac1: 99999, eyeColor: 'blue' }),
+            ];
+            const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+            const wrongClass = result.mythicAudit.find(e => e.id_girl === 999);
+            expect(wrongClass).toBeDefined();
+            expect(wrongClass!.status).toBe('excluded');
+            expect(wrongClass!.reason).toMatch(/wrong class/i);
+        });
+    });
+
     describe('getElementDistribution', () => {
 
         const baseResult: TeamResult = {
@@ -390,6 +620,7 @@ describe('TeamBuilderService', () => {
             alternatives: [],
             playerClass: 3,
             leaderInCluster: true,
+            mythicAudit: [],
         };
 
         it('should count elements correctly', () => {

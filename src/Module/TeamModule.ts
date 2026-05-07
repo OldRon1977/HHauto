@@ -692,6 +692,22 @@ export class TeamModule {
             const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
             const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
 
+            // Mythic audit (issue #1573, #1603): show every mythic in the
+            // player's class with its team status. Excluded mythics get a
+            // reason so the user can confirm whether the algorithm or the
+            // data is at fault.
+            const auditEntries = teamResult.mythicAudit || [];
+            const auditInTeam = auditEntries.filter((e: any) => e.status !== 'excluded');
+            const auditExcluded = auditEntries.filter((e: any) => e.status === 'excluded');
+            const auditTotalLine = `${auditEntries.length} mythics in your harem (player class): ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
+            const auditExcludedHtml = auditExcluded.length > 0
+                ? '<div style="color:#aaa; font-size:10px; margin-top:2px; max-height:120px; overflow-y:auto; border:1px solid #444; padding:3px;">'
+                    + '<b>Excluded mythics:</b><br/>'
+                    + auditExcluded.slice(0, 20).map((e: any) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}): ${e.reason || 'unknown'}`).join('<br/>')
+                    + (auditExcluded.length > 20 ? `<br/>... and ${auditExcluded.length - 20} more` : '')
+                    + '</div>'
+                : '';
+
             const altsHtml = teamResult.alternatives && teamResult.alternatives.length > 1
                 ? '<b>Compared:</b> ' + teamResult.alternatives.map((a: { traitCategory: string; traitValue: string; effectivePower: number }) => {
                         const r = TraitMappings.resolve(a.traitCategory as any, a.traitValue);
@@ -728,6 +744,11 @@ export class TeamModule {
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${teamResult.effectivePower?.toLocaleString() || 'N/A'}</div>
+
+                <hr style="border-color:#555; margin:4px 0"/>
+                <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
+                <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
+                ${auditExcludedHtml}
 
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>

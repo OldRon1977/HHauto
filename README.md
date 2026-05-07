@@ -16,6 +16,18 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ## Latest Updates
 
+### v7.35.25 - Mythic coverage and leader picked after slots 2-7
+
+Two changes to the team-selection algorithm based on feedback from issues #1573 (Frank) and #1603 (Dimka).
+
+Positions 2-7 are now filled before the leader is picked. Strong cluster girls are no longer "stolen" by leader selection, and the leader is then chosen from whatever is left in the pool. The leader hierarchy stays the same: mythic preferred, tier-5 priority Shield > Stun > Execute > Reflect, cluster membership and trait match as tiebreakers.
+
+The slot-fill logic now considers cross-cluster mythics. The team builder evaluates two strategies (cluster-priority and mythic-priority) and keeps the variant with the higher Effective Power. This guarantees that strong mythics are no longer silently dropped just because they belong to a different element pair, while weak cross-cluster mythics still cannot break a healthy Tier-3 chain.
+
+The team info box now shows a Mythic Audit: every mythic in your class is listed as either leader, in slots 2-7, or excluded with a reason (other cluster, lower stats, wrong class). This makes it possible to verify whether a missing mythic is the algorithm's choice or a data issue.
+
+Heads-up for issue reports comparing total team power: Total Power in the game UI includes equipment, the script's Effective Power does not. To compare the two on equal footing, unequip all girls first, then look at both numbers.
+
 ### v7.35.24 - Best Possible projects to the awakening cap
 
 Best Possible mode now projects every girl to the level cap of 750 instead of your current player level. The previous behaviour was a leftover from before the awakening system existed and went unnoticed for a long time. Once top girls became awakened beyond the player level, Best Possible silently collapsed to the same picks as Current Best because the projection had no room left to grow. The mode now consistently answers what each girl would be worth at full awakening, independent of your level.

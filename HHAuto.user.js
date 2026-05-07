@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.24
+// @version      7.35.25
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -17414,19 +17414,26 @@ class TeamScoringService {
 // TeamBuilderService.ts -- Builds optimal 7-girl teams using Tier 3
 // trait-group optimization (v4).
 //
-// Algorithm:
+// Algorithm (since v7.35.25):
 //   1. Hard-filter to Mythic + Legendary 5-star, player class only
 //   2. Score by player main-carac (current or projected)
 //   3. Find best trait group (element pair + shared trait value)
 //      compared by main_sum * (1 + tier3Bonus)
-//   4. Select Mythic leader (Shield/Stun priority)
-//   5. Fill slots 2-7 from trait group, then by main-carac
+//   4. Fill positions 2-7 first (6 slots), in this order:
+//        Pass 1  cluster element-pair + matching trait value
+//        Pass 2  cluster element-pair, any trait value
+//        Pass 2a all remaining MYTHICS outside the cluster
+//                (so strong mythics are never ignored, issue #1603)
+//        Pass 3  legendaries outside the cluster (last resort)
+//   5. Pick the leader from the remaining pool (issue #1573):
+//        Mythic preferred, tier-5 priority Shield > Stun > Execute > Reflect,
+//        cluster membership and trait match as tiebreakers, stats last.
+//   6. Audit every mythic in the player's class for the UI: position
+//      in the team, or the reason why it was excluded (other cluster,
+//      lower stats than top picks, ...).
 
 const TEAM_SIZE = 7;
-// No pool cap: the Mythic + Legendary-5* filter is already strict
-// (max ~170 girls per class even if a player owned every released one).
-// Capping here would only risk excluding viable mythics on edge cases.
-// CANDIDATE_POOL_SIZE removed in v7.35.21.
+const POS_2_TO_7 = 6; // slots filled before the leader
 // Map trait category to its element pair for quick lookup
 const ELEMENT_PAIRS_MAP = {
     'eyeColor': ['darkness', 'fire'],
@@ -17440,7 +17447,7 @@ class TeamBuilderService {
      *
      * @param allGirls    - All available girls (from availableGirls)
      * @param mode        - 1 = Current Best, 2 = Best Possible
-     * @param playerLevel - Player's current level (needed for mode 2)
+     * @param playerLevel - Player's current level (kept for legacy callers; not used in scoring)
      * @param playerClass - Player's class (1=HC, 2=Charm, 3=KH)
      * @returns TeamResult with the selected 7 girls, or null if not enough girls
      */
@@ -17458,14 +17465,12 @@ class TeamBuilderService {
                 : TeamScoringService.scoreBestPossible(girl, playerClass, playerLevel);
             scoreMap.set(girl.id_girl, score);
         }
-        // Pre-sort and pick a reasonable candidate pool
-        // Sort by score; no cap -- evaluate every eligible girl
+        // Sort by score; no cap -- evaluate every eligible girl.
         const pool = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
         // Phase 2b: Detect active blessings (informational + heuristic)
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
         // Phase 3: Build teams for multiple trait groups, pick highest effective power
         const traitGroups = TeamScoringService.findTraitGroups(pool, playerClass, blessedCategories);
-        // Evaluate top groups + all blessed groups
         const groupsToEvaluate = [];
         const seenKeys = new Set();
         for (const g of traitGroups.slice(0, 5)) {
@@ -17487,7 +17492,6 @@ class TeamBuilderService {
         if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
             groupsToEvaluate.push(traitGroups[0]);
         }
-        // Build a team for each group and compare effective power
         let bestBuilt = null;
         const alternatives = [];
         for (const group of groupsToEvaluate) {
@@ -17525,6 +17529,7 @@ class TeamBuilderService {
         }
         const clusterElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
         const leaderInCluster = clusterElements.includes(leader.element);
+        const mythicAudit = TeamBuilderService._buildMythicAudit(allGirls, team, scoreMap, traitCategory, traitValue, clusterElements, playerClass);
         return {
             girls: team,
             statScores,
@@ -17541,70 +17546,232 @@ class TeamBuilderService {
             alternatives,
             playerClass,
             leaderInCluster,
+            mythicAudit,
         };
     }
     /**
      * Build a team for a specific trait group.
      *
-     * Leader (position 1): picked GLOBALLY from all mythics by tier-5
-     * priority (Shield > Stun > Execute > Reflect). Cluster membership is
-     * only a tiebreaker among same-priority candidates. The leader's job
-     * is the defensive skill, not the trait-3 stack.
+     * Order changed in v7.35.25 (issue #1573, Frank's request):
+     *   1. Fill positions 2-7 first (6 slots) using the four-pass logic.
+     *   2. Pick the leader from the remaining pool.
      *
-     * Slots 2-7: cluster-bound to maximize the tier-3 bonus.
-     *   Pass 1: same element pair + matching trait value (max Tier-3 bonus).
-     *   Pass 2: same element pair, any trait value (still keeps cluster).
-     *   Pass 3: any element by score (last-resort fillers).
+     * Pass logic for positions 2-7:
+     *   Pass 1  cluster element-pair AND matching trait value (max tier-3)
+     *   Pass 2  cluster element-pair (any trait value, keeps mono-element)
+     *   Pass 2a all remaining MYTHICS outside the cluster (NEW, issue #1603)
+     *   Pass 3  any remaining girls by score (legendary fillers)
+     *
+     * Leader (position 1): mythic preferred, tier-5 priority
+     * (Shield > Stun > Execute > Reflect), cluster membership and trait
+     * match as tiebreakers.
      */
     static _buildTeamForGroup(cat, val, pool, scoreMap) {
         const elems = ELEMENT_PAIRS_MAP[cat] || [];
-        // Leader pool: ALL mythics globally (not gated by cluster).
-        // Cluster membership is passed as tiebreaker via clusterElements.
-        // If no mythics exist (beginner accounts), fall back to legendary
-        // candidates and let cluster membership become the primary
-        // discriminator since legendary tier-5 skills are typically empty.
-        const mythicPool = pool.filter(g => g.rarity === 'mythic');
-        const leaderCandidates = mythicPool.length > 0 ? mythicPool : pool;
+        // Build BOTH strategies, score them, pick the higher Effective Power.
+        // Avoids rainbow teams when cluster-only fill gives a better
+        // tier-3 chain than mythic-priority fill (and vice versa).
+        const variantA = TeamBuilderService._buildVariant(elems, cat, val, pool, scoreMap, 'cluster-first');
+        const variantB = TeamBuilderService._buildVariant(elems, cat, val, pool, scoreMap, 'mythic-first');
+        if (!variantA && !variantB)
+            return null;
+        if (!variantA)
+            return variantB;
+        if (!variantB)
+            return variantA;
+        const epA = TeamBuilderService._effectivePower(variantA, scoreMap);
+        const epB = TeamBuilderService._effectivePower(variantB, scoreMap);
+        return epA >= epB ? variantA : variantB;
+    }
+    /**
+     * Build one variant (slot-fill strategy + leader swap).
+     */
+    static _buildVariant(elems, cat, val, pool, scoreMap, strategy) {
+        const slots = TeamBuilderService._fillSlotsTwoToSeven(elems, val, pool, scoreMap, strategy);
+        if (slots.length < POS_2_TO_7)
+            return null;
+        const usedIds = new Set(slots.map(g => g.id_girl));
+        const remaining = pool.filter(g => !usedIds.has(g.id_girl));
+        if (remaining.length === 0)
+            return null;
+        // Leader swap: if no mythic is left in the pool but slots contain
+        // mythics AND legendaries are available, swap the weakest slot
+        // mythic out and use it as leader. Guarantees a mythic leader
+        // whenever any mythic exists (Frank's request).
+        const remainingMythic = remaining.find(g => g.rarity === 'mythic');
+        let leaderCandidates = remaining;
+        let workingSlots = slots;
+        if (!remainingMythic) {
+            const slotMythics = slots.filter(g => g.rarity === 'mythic');
+            const remainingLegendary = remaining.find(g => g.rarity === 'legendary');
+            if (slotMythics.length > 0 && remainingLegendary) {
+                const weakestSlotMythic = slotMythics
+                    .slice()
+                    .sort((a, b) => (scoreMap.get(a.id_girl) || 0) - (scoreMap.get(b.id_girl) || 0))[0];
+                const strongestRemainingLegendary = remaining
+                    .filter(g => g.rarity === 'legendary')
+                    .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0))[0];
+                workingSlots = slots.map(g => g.id_girl === weakestSlotMythic.id_girl ? strongestRemainingLegendary : g);
+                leaderCandidates = [weakestSlotMythic];
+            }
+            else {
+                leaderCandidates = remaining;
+            }
+        }
+        else {
+            leaderCandidates = remaining.filter(g => g.rarity === 'mythic');
+        }
         const ranked = TeamScoringService.rankLeaderCandidates(leaderCandidates, scoreMap, cat, val, elems);
         if (ranked.length === 0)
             return null;
-        const team = [ranked[0]];
-        const used = new Set([ranked[0].id_girl]);
-        // Pass 1: matching trait value AND correct element
-        const pass1 = pool
-            .filter(g => !used.has(g.id_girl) && elems.includes(g.element) && TeamScoringService.getTraitValue(g) === val)
-            .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-        for (const g of pass1) {
-            if (team.length >= TEAM_SIZE)
-                break;
-            team.push(g);
-            used.add(g.id_girl);
-        }
-        // Pass 2: correct element, any trait value
-        if (team.length < TEAM_SIZE) {
-            const pass2 = pool
-                .filter(g => !used.has(g.id_girl) && elems.includes(g.element))
-                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-            for (const g of pass2) {
-                if (team.length >= TEAM_SIZE)
+        return [ranked[0], ...workingSlots];
+    }
+    /**
+     * Compute Effective Power = main_sum * (1 + tier3Bonus) for a built team.
+     */
+    static _effectivePower(team, scoreMap) {
+        const sum = team.reduce((s, g) => s + (scoreMap.get(g.id_girl) || 0), 0);
+        const t3 = TeamScoringService.calculateTier3TeamBonus(team);
+        return sum * (1 + t3);
+    }
+    /**
+     * Fill positions 2-7 (6 slots) using a pass-based strategy.
+     *
+     * Two variants are produced and the caller compares Effective Power.
+     *
+     * mythic-first: cluster mythics, then cross-cluster mythics, then
+     *               cluster legendaries, then any. Prefers mythic
+     *               coverage even at the cost of Tier-3 bonus.
+     * cluster-first: cluster mythics, then cluster legendaries, then
+     *                cross-cluster mythics, then any. Prefers Tier-3
+     *                bonus even if some mythics are skipped.
+     *
+     * The caller (see _buildTeamForGroup) computes Effective Power
+     * (main_sum * (1 + tier3Bonus)) for both variants and keeps the
+     * better one. That way rainbow teams only happen when they
+     * actually beat the cluster team on raw effective power.
+     */
+    static _fillSlotsTwoToSeven(elems, val, pool, scoreMap, strategy = 'cluster-first') {
+        const team = [];
+        const used = new Set();
+        const byScoreDesc = (a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
+        const fillPass = (predicate) => {
+            const candidates = pool
+                .filter(g => !used.has(g.id_girl) && predicate(g))
+                .sort(byScoreDesc);
+            for (const g of candidates) {
+                if (team.length >= POS_2_TO_7)
                     break;
                 team.push(g);
                 used.add(g.id_girl);
             }
+        };
+        // Step 1 (both strategies): cluster mythics with trait match.
+        // These are the strongest contributors and never hurt either way.
+        fillPass(g => g.rarity === 'mythic'
+            && elems.includes(g.element)
+            && TeamScoringService.getTraitValue(g) === val);
+        // Step 2 (both): cluster mythics with any trait value.
+        if (team.length < POS_2_TO_7) {
+            fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
         }
-        // Pass 3: any element by score
-        if (team.length < TEAM_SIZE) {
-            const pass3 = pool
-                .filter(g => !used.has(g.id_girl))
-                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-            for (const g of pass3) {
-                if (team.length >= TEAM_SIZE)
-                    break;
-                team.push(g);
-                used.add(g.id_girl);
+        if (strategy === 'mythic-first') {
+            // Step 3a: cross-cluster mythics before any legendary.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => g.rarity === 'mythic');
+            }
+            // Step 4a: cluster legendaries with trait match.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => elems.includes(g.element)
+                    && TeamScoringService.getTraitValue(g) === val);
+            }
+            // Step 5a: cluster legendaries any trait.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => elems.includes(g.element));
             }
         }
-        return team.length >= TEAM_SIZE ? team : null;
+        else {
+            // Cluster-first: keep Tier-3 chain intact before mixing in
+            // cross-cluster mythics.
+            // Step 3b: cluster legendaries with trait match.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => elems.includes(g.element)
+                    && TeamScoringService.getTraitValue(g) === val);
+            }
+            // Step 4b: cluster legendaries any trait.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => elems.includes(g.element));
+            }
+            // Step 5b: cross-cluster mythics.
+            if (team.length < POS_2_TO_7) {
+                fillPass(g => g.rarity === 'mythic');
+            }
+        }
+        // Step 6 (both): any remaining girls by score.
+        if (team.length < POS_2_TO_7) {
+            fillPass(() => true);
+        }
+        return team;
+    }
+    /**
+     * Build the mythic audit list shown in the UI.
+     */
+    static _buildMythicAudit(allGirls, team, scoreMap, traitCategory, traitValue, clusterElements, playerClass) {
+        const teamIds = new Map();
+        team.forEach((g, idx) => teamIds.set(g.id_girl, idx + 1));
+        const entries = [];
+        for (const girl of allGirls) {
+            if (girl.rarity !== 'mythic')
+                continue;
+            const mainCarac = TeamScoringService.getMainCarac(girl, playerClass);
+            const pos = teamIds.get(girl.id_girl);
+            if (pos === 1) {
+                entries.push({
+                    id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                    mainCarac, status: 'leader', position: 1,
+                });
+                continue;
+            }
+            if (pos !== undefined) {
+                entries.push({
+                    id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                    mainCarac, status: 'pos2to7', position: pos,
+                });
+                continue;
+            }
+            let reason;
+            if (typeof girl.class === 'number' && girl.class !== playerClass) {
+                reason = 'wrong class (filtered out)';
+            }
+            else {
+                const girlCategory = TeamScoringService.getTraitCategory(girl.element);
+                const girlValue = TeamScoringService.getTraitValue(girl);
+                if (girlCategory === traitCategory && girlValue === traitValue) {
+                    reason = 'same trait, lower stats than top picks';
+                }
+                else if (clusterElements.includes(girl.element)) {
+                    reason = 'cluster element, different trait value: '
+                        + girlCategory + '=' + (girlValue || '?');
+                }
+                else {
+                    reason = 'other cluster: ' + girlCategory + '=' + (girlValue || '?');
+                }
+            }
+            entries.push({
+                id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                mainCarac, status: 'excluded', reason,
+            });
+        }
+        entries.sort((a, b) => {
+            const aIn = a.status !== 'excluded';
+            const bIn = b.status !== 'excluded';
+            if (aIn !== bIn)
+                return aIn ? -1 : 1;
+            if (aIn && bIn)
+                return (a.position || 99) - (b.position || 99);
+            return b.mainCarac - a.mainCarac;
+        });
+        return entries;
     }
     /**
      * Get a summary of element distribution in the team.
@@ -18607,6 +18774,21 @@ class TeamModule {
             const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
             const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
             const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
+            // Mythic audit (issue #1573, #1603): show every mythic in the
+            // player's class with its team status. Excluded mythics get a
+            // reason so the user can confirm whether the algorithm or the
+            // data is at fault.
+            const auditEntries = teamResult.mythicAudit || [];
+            const auditInTeam = auditEntries.filter((e) => e.status !== 'excluded');
+            const auditExcluded = auditEntries.filter((e) => e.status === 'excluded');
+            const auditTotalLine = `${auditEntries.length} mythics in your harem (player class): ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
+            const auditExcludedHtml = auditExcluded.length > 0
+                ? '<div style="color:#aaa; font-size:10px; margin-top:2px; max-height:120px; overflow-y:auto; border:1px solid #444; padding:3px;">'
+                    + '<b>Excluded mythics:</b><br/>'
+                    + auditExcluded.slice(0, 20).map((e) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}): ${e.reason || 'unknown'}`).join('<br/>')
+                    + (auditExcluded.length > 20 ? `<br/>... and ${auditExcluded.length - 20} more` : '')
+                    + '</div>'
+                : '';
             const altsHtml = teamResult.alternatives && teamResult.alternatives.length > 1
                 ? '<b>Compared:</b> ' + teamResult.alternatives.map((a) => {
                     const r = TraitMappings.resolve(a.traitCategory, a.traitValue);
@@ -18640,6 +18822,11 @@ class TeamModule {
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${((_a = teamResult.effectivePower) === null || _a === void 0 ? void 0 : _a.toLocaleString()) || 'N/A'}</div>
+
+                <hr style="border-color:#555; margin:4px 0"/>
+                <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
+                <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
+                ${auditExcludedHtml}
 
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
@@ -24895,7 +25082,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.23";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.25";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
