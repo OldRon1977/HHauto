@@ -1,0 +1,47 @@
+[
+  {
+    "id_member": 334202,
+    "nickname": "Player_1",
+    "level": 701,
+    "power": 2482758,
+    "place": 50,
+    "country": "US",
+    "can_fight": 0,
+    "player": {
+      "id_fighter": 334202,
+      "level": 701,
+      "class": 2,
+      "current_season_mojo": 6443
+    }
+  },
+  {
+    "id_member": 772285,
+    "nickname": "Player_2",
+    "level": 689,
+    "power": 2435749,
+    "place": 51,
+    "country": "BE",
+    "can_fight": 0,
+    "player": {
+      "id_fighter": 772285,
+      "level": 689,
+      "class": 2,
+      "current_season_mojo": 7393
+    }
+  },
+  {
+    "id_member": 1641859,
+    "nickname": "Player_3",
+    "level": 672,
+    "power": 2768743,
+    "place": 52,
+    "country": "MX",
+    "can_fight": 0,
+    "player": {
+      "id_fighter": 1641859,
+      "level": 672,
+      "class": 1,
+      "current_season_mojo": 5185
+    }
+  }
+]

@@ -1,0 +1,109 @@
+{
+  "1": {
+    "label": "1<sup>st</sup>",
+    "rewards_segment": 1,
+    "equipment": false,
+    "gift": false,
+    "hc": 432,
+    "sc": 0,
+    "combativity": 6,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": {
+      "o_m1": 1
+    },
+    "shards": "[circular]"
+  },
+  "4": {
+    "label": "2-4<sup>th</sup>",
+    "rewards_segment": 4,
+    "equipment": false,
+    "gift": false,
+    "hc": 288,
+    "sc": 0,
+    "combativity": 5,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "15": {
+    "label": "5-15<sup>th</sup>",
+    "rewards_segment": 15,
+    "equipment": false,
+    "gift": false,
+    "hc": 174,
+    "sc": 0,
+    "combativity": 4,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "30": {
+    "label": "16-30<sup>th</sup>",
+    "rewards_segment": 30,
+    "equipment": false,
+    "gift": false,
+    "hc": 132,
+    "sc": 0,
+    "combativity": 3,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "45": {
+    "label": "31-45<sup>th</sup>",
+    "rewards_segment": 45,
+    "equipment": false,
+    "gift": false,
+    "hc": 96,
+    "sc": 0,
+    "combativity": 2,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "60": {
+    "label": "46-60<sup>th</sup>",
+    "rewards_segment": 60,
+    "equipment": false,
+    "gift": false,
+    "hc": 66,
+    "sc": 0,
+    "combativity": 1,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "75": {
+    "label": "61-75<sup>th</sup>",
+    "rewards_segment": 75,
+    "equipment": false,
+    "gift": false,
+    "hc": 42,
+    "sc": 0,
+    "combativity": 1,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": "[circular]"
+  },
+  "200": {
+    "label": "76<sup>th</sup>+",
+    "rewards_segment": 200,
+    "equipment": false,
+    "gift": false,
+    "hc": 0,
+    "sc": 0,
+    "combativity": 1,
+    "energy_kiss": 0,
+    "energy_worship": 0,
+    "orbs": [],
+    "shards": []
+  },
+  "name": "Wanker III"
+}
