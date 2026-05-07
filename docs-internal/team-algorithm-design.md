@@ -242,6 +242,7 @@ Wenn 0 Mythics existieren, faellt das Skript auf Legendary 5*-Girls zurueck. Da 
 Info-Box (oben mittig, dunkel, halbtransparent):
 
 - Mythic Audit (ab v7.35.25): listet alle Mythics der Spielerklasse auf. Status pro Mythic: 'leader' / 'pos2to7' (mit Position) / 'excluded' (mit Grund: andere Cluster, gleicher Trait aber niedrigere Stats, falsche Klasse). Hilft, Daten- vs. Algorithmus-Bugs zu unterscheiden, wenn Spieler eine Mythic vermissen.
+- Main Sum (ab v7.35.25): Summe der Hauptklassen-Carac (carac1/2/3 je nach Spieler-Klasse) ueber alle 7 Team-Girls. Headline-Zahl, die in der Optimierung im Vordergrund steht. Bei wiederholten Klicks auf Current Best / Best Possible wird ein Delta zur vorigen Auswahl angezeigt (gruen = besser, rot = schlechter), inkl. Vergleich zum jeweils anderen Modus. Ergaenzt Effective Power, das Tier-3-Bonus mit einrechnet.
 
 - Klassen-Hinweis: "Class: <Hardcore/Charm/Know-how> -- only X girls considered"
 - Trait optimiert: "[emoji] eyeColor = 'Blue' (4/7 girls match)"
@@ -262,6 +263,24 @@ Hinweis "Trait label uses fallback dictionary -- may be inaccurate
 for new color codes".
 
 ---
+
+## Logging
+
+Pro Aufruf von ``setTopTeamV2`` wird eine Zeile geloggt::
+
+```
+Team v2 [Current Best]: Class=Know-how (carac3), MainSum=123,456, Leader=<Name> (Shield, in-cluster), Trait: eyeColor=Blue (5/7), Tier3: 27.0%, Elements: 5x darkness, 1x fire, 1x light
+```
+
+Felder:
+
+- ``Class`` -- Spieler-Klasse + verwendetes carac-Feld (carac1/2/3) zur direkten Pruefung.
+- ``MainSum`` -- Summe der Hauptklassen-Carac aller 7 Team-Girls.
+- ``Leader`` -- Pos-1-Girl mit Tier-5-Skill und ob im Cluster.
+- ``Trait`` -- gewaehlter Cluster-Wert und Match-Anzahl.
+- ``Tier3`` -- Team-weiter Tier-3-Bonus.
+- ``Elements`` -- Element-Verteilung im Team.
+- ``modes identical`` -- Suffix wenn Best Possible und Current Best dieselben 7 Girls liefern.
 
 ## Klar-Namen-Mapping (TraitMappings)
 

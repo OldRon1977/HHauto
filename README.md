@@ -26,6 +26,8 @@ The slot-fill logic now considers cross-cluster mythics. The team builder evalua
 
 The team info box now shows a Mythic Audit: every mythic in your class is listed as either leader, in slots 2-7, or excluded with a reason (other cluster, lower stats, wrong class). This makes it possible to verify whether a missing mythic is the algorithm's choice or a data issue.
 
+The team v2 log line now includes the player class and which carac is used as the main stat (carac1 for Hardcore, carac2 for Charm, carac3 for Know-how), plus the Main Sum -- the sum of the main class carac across the 7 picked girls. Main Sum is also shown in the info box, with a delta vs the previous click and vs the other mode (Current Best / Best Possible). Effective Power stays as the tie-breaker, but Main Sum makes the optimization target visible.
+
 Heads-up for issue reports comparing total team power: Total Power in the game UI includes equipment, the script's Effective Power does not. To compare the two on equal footing, unequip all girls first, then look at both numbers.
 
 ### v7.35.24 - Best Possible projects to the awakening cap

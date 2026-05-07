@@ -525,13 +525,27 @@ export class TeamModule {
         }
         (result as any).modesIdentical = modesIdentical;
 
+        // Remember main sum per mode so the info box can show a
+        // mode-vs-mode delta (Current Best vs Best Possible). The
+        // previous-call sum is persisted on the class until reload.
+        const previousMainSumOtherMode = TeamModule.lastMainSum[mode === 1 ? 2 : 1];
+        const previousMainSumSameMode = TeamModule.lastMainSum[mode];
+        TeamModule.lastMainSum[mode] = result.mainSum;
+        // Stash delta context on the result so updateTeamUI can render it.
+        (result as any).previousMainSumSameMode = previousMainSumSameMode;
+        (result as any).previousMainSumOtherMode = previousMainSumOtherMode;
+        (result as any).currentModeName = mode === 1 ? 'Current Best' : 'Best Possible';
+        (result as any).otherModeName = mode === 1 ? 'Best Possible' : 'Current Best';
+
         const deckID = result.girls.map(g => g.id_girl);
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
         const dist = TeamBuilderService.getElementDistribution(result);
         const distStr = dist.map(d => `${d.count}x ${d.element}`).join(', ');
         const inClusterStr = result.leaderInCluster ? 'in-cluster' : 'cross-cluster';
         const identStr = modesIdentical ? ', modes identical' : '';
-        logHHAuto(`Team v2 [${modeName}]: Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}${identStr}`);
+        const playerClassNameLog = TeamModule.PLAYER_CLASS_NAME[result.playerClass] || ('class ' + result.playerClass);
+        const mainCaracLabel = result.playerClass === 1 ? 'carac1' : (result.playerClass === 2 ? 'carac2' : 'carac3');
+        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), MainSum=${result.mainSum.toLocaleString()}, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}${identStr}`);
 
         // UI update: same approach as legacy — hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
@@ -616,6 +630,13 @@ export class TeamModule {
         3: 'Know-how',
     };
 
+    /**
+     * Last MainSum per mode, kept in memory so the info box can show
+     * "+X% vs Current Best / Best Possible" when the user clicks the
+     * other mode button. Cleared on page reload.
+     */
+    private static lastMainSum: { [mode: number]: number } = {};
+
     private static updateTeamUI(deckID: number[], teamResult?: TeamResult) {
         const arr = $('div[id_girl]');
         // Remove all existing topNumber elements to prevent stale entries
@@ -692,6 +713,29 @@ export class TeamModule {
             const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
             const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
 
+            const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
+            // Read delta info that setTopTeamV2 attached to the result
+            // (previous mainSum for the same mode or the other mode, if any).
+            const fmtPct = (current: number, prev: number): string => {
+                if (!prev || prev === current) return '';
+                const diff = current - prev;
+                const pct = (diff / prev) * 100;
+                const sign = diff >= 0 ? '+' : '';
+                const colour = diff >= 0 ? '#7f7' : '#f77';
+                return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
+            };
+            const prevSame = (teamResult as any).previousMainSumSameMode as number | undefined;
+            const prevOther = (teamResult as any).previousMainSumOtherMode as number | undefined;
+            const currentModeName = (teamResult as any).currentModeName as string | undefined;
+            const otherModeName = (teamResult as any).otherModeName as string | undefined;
+            let mainSumDeltaHtml = '';
+            if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
+                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
+            }
+            if (prevOther && otherModeName) {
+                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevOther) + ` vs ${otherModeName}`;
+            }
+
             // Mythic audit (issue #1573, #1603): show every mythic in the
             // player's class with its team status. Excluded mythics get a
             // reason so the user can confirm whether the algorithm or the
@@ -744,6 +788,8 @@ export class TeamModule {
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${teamResult.effectivePower?.toLocaleString() || 'N/A'}</div>
+                <div><b>Main Sum (${mainCaracLabel}):</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
+                <div style="color:#aaa; font-size:10px;">Sum of your main class stat across the 7 picked girls. League-relevant headline number.</div>
 
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>

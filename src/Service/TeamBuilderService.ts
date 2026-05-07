@@ -60,6 +60,7 @@ export interface TeamResult {
     alternatives: Array<{ traitCategory: string; traitValue: string; effectivePower: number }>;
     playerClass: PlayerClass;       // 1=HC, 2=Charm, 3=KH (for UI display)
     leaderInCluster: boolean;       // true if leader element belongs to the cluster pair
+    mainSum: number;                // sum of main-class carac across the 7 team girls (HC=carac1, Charm=carac2, KH=carac3)
     mythicAudit: MythicAuditEntry[]; // every player-class mythic with status (issue #1573, #1603)
 }
 
@@ -181,6 +182,17 @@ export class TeamBuilderService {
             allGirls, team, scoreMap, traitCategory, traitValue, clusterElements, playerClass
         );
 
+        // Sum of the player's main carac across the 7 team girls.
+        // This is the league-relevant headline number: in the BDSM stat
+        // formulas (Slynia Performance Handbook), TeamPower is summed
+        // across all caracs of all girls, but only the main class stat
+        // matters for the player's combat math. We log the main_sum so
+        // the user can verify the algorithm's optimization target.
+        const mainSum = team.reduce(
+            (acc, g) => acc + TeamScoringService.getMainCarac(g, playerClass),
+            0
+        );
+
         return {
             girls: team,
             statScores,
@@ -197,6 +209,7 @@ export class TeamBuilderService {
             alternatives,
             playerClass,
             leaderInCluster,
+            mainSum,
             mythicAudit,
         };
     }

@@ -620,6 +620,7 @@ describe('TeamBuilderService', () => {
             alternatives: [],
             playerClass: 3,
             leaderInCluster: true,
+            mainSum: 0,
             mythicAudit: [],
         };
 
