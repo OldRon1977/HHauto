@@ -92,6 +92,7 @@ import {
     handleBossBangFight,
     handleGoHome,
 } from './AutoLoopActions';
+import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
 import { scheduler } from './Scheduler';
 
@@ -101,21 +102,18 @@ export let busy = false;
 export function getBurst()
 {
     const sMenu = document.getElementById('sMenu');
-    if (sMenu != null)
-    {
-        if (sMenu.style.display!=='none' )// && !document.getElementById("DebugDialog").open)
-        {
-            return false;
-        }
-    }
-    if ($('#contains_all>nav>[rel=content]').length >0)
-    {
-        if ($('#contains_all>nav>[rel=content]')[0].style.display === "block")// && !document.getElementById("DebugDialog").open)
-        {
-            return false;
-        }
-    }
-    return getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"&&(!(getStoredValue(HHStoredVarPrefixKey+SK.paranoia) ==="true") || getStoredValue(HHStoredVarPrefixKey+TK.burst) ==="true");
+    const sMenuVisible = sMenu != null && sMenu.style.display !== 'none';
+
+    const $navContent = $('#contains_all>nav>[rel=content]');
+    const navContentBlock = $navContent.length > 0 && ($navContent[0] as HTMLElement).style.display === 'block';
+
+    return decideBurst({
+        sMenuVisible,
+        navContentBlock,
+        master: getStoredValue(HHStoredVarPrefixKey + SK.master) === "true",
+        paranoia: getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true",
+        burst: getStoredValue(HHStoredVarPrefixKey + TK.burst) === "true",
+    });
 }
 
 

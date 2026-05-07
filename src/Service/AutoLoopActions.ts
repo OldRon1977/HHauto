@@ -17,6 +17,7 @@
 
 import { AutoLoopContext } from './AutoLoopContext';
 import { ModuleHandlerDescriptor } from '../model/IModule';
+import { shouldRunStandardHandler } from './AutoLoop.pure';
 import {
     checkTimer,
     checkTimerMustExist,
@@ -91,11 +92,17 @@ import { isAutoLoopActive } from './AutoLoop';
  * → check lastAction → check isReady → log → execute → update busy & lastAction.
  */
 export async function runStandardHandler(ctx: AutoLoopContext, d: ModuleHandlerDescriptor): Promise<void> {
-    if (ctx.busy) return;
-    if (d.requiresAutoLoop !== false && !isAutoLoopActive()) return;
-    if (d.requiresCompetition && !ctx.canCollectCompetitionActive) return;
-    if (ctx.lastActionPerformed !== "none" && ctx.lastActionPerformed !== d.action) return;
-    if (!d.isReady()) return;
+    const shouldRun = shouldRunStandardHandler({
+        ctxBusy: ctx.busy,
+        autoLoopActive: isAutoLoopActive(),
+        competitionActive: ctx.canCollectCompetitionActive,
+        lastActionPerformed: ctx.lastActionPerformed,
+        requiresAutoLoop: d.requiresAutoLoop,
+        requiresCompetition: d.requiresCompetition,
+        handlerAction: d.action,
+        isReady: d.isReady(),
+    });
+    if (!shouldRun) return;
 
     logHHAuto(d.name);
     const result = await d.execute();

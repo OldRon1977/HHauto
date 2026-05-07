@@ -23477,6 +23477,48 @@ class AdsService {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Service/AutoLoop.pure.ts
+// AutoLoop.pure.ts -- Pure decision logic for the auto-loop scheduler.
+//
+// Two helpers:
+//   - decideBurst: replicates the storage/DOM-reading guard at the top
+//     of getBurst(). The DOM reads (sMenu visibility, nav content
+//     visibility) stay in the adapter; this function takes booleans.
+//   - shouldRunStandardHandler: replicates the pre-condition cascade
+//     at the top of runStandardHandler. The actual handler invocation
+//     and ctx mutation stay impure.
+//
+// Both are extracted byte-for-byte. Refactor, not a behaviour change.
+/**
+ * Replicates getBurst() except the DOM reads.
+ *
+ * Returns false if either UI overlay is showing (sMenu or nav content),
+ * otherwise:
+ *     master AND (NOT paranoia OR burst)
+ *
+ * Bit-for-bit equivalent to the original short-circuit.
+ */
+function decideBurst(state) {
+    if (state.sMenuVisible)
+        return false;
+    if (state.navContentBlock)
+        return false;
+    return state.master && (!state.paranoia || state.burst);
+}
+function shouldRunStandardHandler(g) {
+    if (g.ctxBusy)
+        return false;
+    if (g.requiresAutoLoop !== false && !g.autoLoopActive)
+        return false;
+    if (g.requiresCompetition && !g.competitionActive)
+        return false;
+    if (g.lastActionPerformed !== "none" && g.lastActionPerformed !== g.handlerAction)
+        return false;
+    if (!g.isReady)
+        return false;
+    return true;
+}
+
 ;// CONCATENATED MODULE: ./src/Service/AutoLoopActions.ts
 // AutoLoopActions.ts
 //
@@ -23510,6 +23552,7 @@ var AutoLoopActions_awaiter = (undefined && undefined.__awaiter) || function (th
 
 
 
+
 // ---------------------------------------------------------------------------
 //  Standard handler utility – reduces boilerplate for simple module handlers
 // ---------------------------------------------------------------------------
@@ -23520,15 +23563,17 @@ var AutoLoopActions_awaiter = (undefined && undefined.__awaiter) || function (th
  */
 function runStandardHandler(ctx, d) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy)
-            return;
-        if (d.requiresAutoLoop !== false && !isAutoLoopActive())
-            return;
-        if (d.requiresCompetition && !ctx.canCollectCompetitionActive)
-            return;
-        if (ctx.lastActionPerformed !== "none" && ctx.lastActionPerformed !== d.action)
-            return;
-        if (!d.isReady())
+        const shouldRun = shouldRunStandardHandler({
+            ctxBusy: ctx.busy,
+            autoLoopActive: isAutoLoopActive(),
+            competitionActive: ctx.canCollectCompetitionActive,
+            lastActionPerformed: ctx.lastActionPerformed,
+            requiresAutoLoop: d.requiresAutoLoop,
+            requiresCompetition: d.requiresCompetition,
+            handlerAction: d.action,
+            isReady: d.isReady(),
+        });
+        if (!shouldRun)
             return;
         LogUtils_logHHAuto(d.name);
         const result = yield d.execute();
@@ -25070,22 +25115,20 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 let busy = false;
 function getBurst() {
     const sMenu = document.getElementById('sMenu');
-    if (sMenu != null) {
-        if (sMenu.style.display !== 'none') // && !document.getElementById("DebugDialog").open)
-         {
-            return false;
-        }
-    }
-    if ($('#contains_all>nav>[rel=content]').length > 0) {
-        if ($('#contains_all>nav>[rel=content]')[0].style.display === "block") // && !document.getElementById("DebugDialog").open)
-         {
-            return false;
-        }
-    }
-    return getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && (!(getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true") || getStoredValue(HHStoredVarPrefixKey + TK.burst) === "true");
+    const sMenuVisible = sMenu != null && sMenu.style.display !== 'none';
+    const $navContent = $('#contains_all>nav>[rel=content]');
+    const navContentBlock = $navContent.length > 0 && $navContent[0].style.display === 'block';
+    return decideBurst({
+        sMenuVisible,
+        navContentBlock,
+        master: getStoredValue(HHStoredVarPrefixKey + SK.master) === "true",
+        paranoia: getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true",
+        burst: getStoredValue(HHStoredVarPrefixKey + TK.burst) === "true",
+    });
 }
 function CheckSpentPoints() {
     let oldValues = getStoredJSON(HHStoredVarPrefixKey + TK.CheckSpentPoints, -1);
