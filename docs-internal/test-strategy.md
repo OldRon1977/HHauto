@@ -6,9 +6,9 @@ und Datum + Commit-Hash im "Status"-Feld nachtragen.
 ## Status
 
 - Aktuelle Stufe: **0 (Sofort-Hygiene)** -- in Arbeit
-- Letzte abgeschlossene Task: 0.1 (fdescribe -> describe in Champion.spec.ts)
-- Letzter Commit: 6fa1e64 (Branch chore/test-hygiene, lokal -- Push offen)
-- Naechster Schritt: Task 0.2 (xit-Tests behandeln) ODER PR fuer 0.1 oeffnen, je nach Praeferenz
+- Letzte abgeschlossene Task: 0.2 (alle xit-Tests behandelt, 0 skipped)
+- Letzter Commit: 0d1aee3 (Branch chore/test-hygiene, lokal -- Push offen)
+- Naechster Schritt: Task 0.3 (Findings 3/4/5 -- C-3c, C-4c, C-5b: alle 'spaeter' bzw. 'bis Stufe 1', daher in Stufe 0 nichts zu tun -> direkt zu 0.4)
 
 ## Kontext
 
@@ -110,10 +110,17 @@ die wegen `fdescribe("_setTimer",...)` aktuell nicht laufen?
   - Vorbedingung: Frage B beantwortet, Liste der versteckten Tests bekannt
   - Verifikation: `npm test` zeigt mehr passed Tests als vorher
   - Wenn Tests rot werden: einzeln entscheiden (fix oder xit)
-- [ ] **0.2** xit-Tests behandeln gemaess Antwort A
-  - Wenn "Inventarisiere": Liste in dieser Datei unter "xit-Inventar" eintragen
-  - Pro Test: reparieren, loeschen, oder mit GitHub-Issue-Link xit lassen
-- [ ] **0.3** Findings 3/4/5 gemaess Antwort C umsetzen
+- [x] **0.2** xit-Tests behandeln gemaess Antwort A (commit 0d1aee3, 2026-05-07)
+  - 7 xit-Tests inventarisiert, 5 reaktiviert (alle gruen), 2 leere Stubs entfernt
+  - TimeHelper: canCollectCompetitionActive + getSecondsLeftBeforeNewCompetition (Stubs entfernt)
+  - Season: 2 low-mojo-Tests reaktiviert + Setting autoSeasonSkipLowMojo=true im Test gesetzt
+  - HaremGirl: "Button and no girl" reaktiviert, gruen ohne weitere Aenderung
+  - League: "should return false during the last hour..." reaktiviert, gruen ohne weitere Aenderung
+  - PageNavigationService: toHaveBeenCalledWith -> expect.stringContaining (Test-Bug, Zeitstempel-Praefix)
+- [x] **0.3** Findings 3/4/5 gemaess Antwort C: in Stufe 0 nichts zu tun
+  - C-3c (Pachinko String-Mapping): spaeter beim Pachinko-Refactor
+  - C-4c (Pipeline.config Konfigwert-Asserts): spaeter beim Pipeline-Anfassen
+  - C-5b (League jest.spyOn): bleibt bis Stufe 1 (Pure-Function-Extraktion ersetzt sie)
 - [ ] **0.4** MockHelper erweitern um:
   - `mockBoosterInventory(boosters)` -- setzt sessionStorage Temp_haveBooster
   - `mockSettings(key, value)` -- localStorage HHAuto_Setting_*
@@ -285,3 +292,4 @@ Schwester-Block findNextChamptionTime mit 1 Test.
 | 2026-05-07 | Antworten A=Inv, B=Inv, C-3c/C-4c/C-5c eingetragen, xit/fdescribe inventarisiert |
 | 2026-05-07 | C-5 revidiert auf b (Konflikt-Vermeidung mit Stufe 1) |
 | 2026-05-07 | Task 0.1 erledigt: fdescribe -> describe (commit 6fa1e64). Tests: 549 passed / 7 skipped / 556 total |
+| 2026-05-07 | Task 0.2 erledigt: alle xit behandelt (commit 0d1aee3). Tests: 554 passed / 0 skipped / 554 total |
