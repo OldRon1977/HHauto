@@ -1,0 +1,43 @@
+{
+  "active": [
+    {
+      "title": "Week of the Dolphin",
+      "description": "All girls with <span class=\"blessing-condition\">Favorite position Dolphin</span> gain <span class=\"blessing-bonus\">+ 30%</span> bonus on all attributes.",
+      "remaining_time": 514347,
+      "starts_in": -90452
+    },
+    {
+      "title": "Week of the Grey",
+      "description": "All girls with <span class=\"blessing-condition\">Eye Color Grey</span> gain <span class=\"blessing-bonus\">+ 40%</span> bonus on all attributes.",
+      "remaining_time": 514347,
+      "starts_in": -90452
+    },
+    {
+      "title": "Week of the Bugger",
+      "description": "All girls with <span class=\"blessing-condition\">Role Bugger</span> gain <span class=\"blessing-bonus\">+ 20%</span> bonus on all attributes in Love Labyrinth.",
+      "remaining_time": 514347,
+      "starts_in": -90452
+    }
+  ],
+  "upcoming": [
+    {
+      "title": "Week of the Green",
+      "description": "All girls with <span class=\"blessing-condition\">Hair Color Green</span> gain <span class=\"blessing-bonus\">+ 40%</span> bonus on all attributes.",
+      "remaining_time": 1119147,
+      "starts_in": 514348
+    },
+    {
+      "title": "Week of the Red",
+      "description": "All girls with <span class=\"blessing-condition\">Eye Color Red</span> gain <span class=\"blessing-bonus\">+ 25%</span> bonus on all attributes.",
+      "remaining_time": 1119147,
+      "starts_in": 514348
+    },
+    {
+      "title": "Week of the Sexomancer",
+      "description": "All girls with <span class=\"blessing-condition\">Role Sexomancer</span> gain <span class=\"blessing-bonus\">+ 20%</span> bonus on all attributes in Love Labyrinth.",
+      "remaining_time": 1119147,
+      "starts_in": 514348
+    }
+  ],
+  "success": true
+}
