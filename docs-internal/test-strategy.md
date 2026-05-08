@@ -6,13 +6,17 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **4 in progress** (reliability layer)
-- Last completed task: 4.1 first endpoint slice (live-blessings AJAX schema)
+- Last completed task: 4.1 (AJAX schema tests -- closed after inventory pass)
 - Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4 alongside the storage-migration tests)
-- Next step: stage 4 task 4.1 next endpoint slice. The plan calls for one validator test per AJAX response type; the next candidates from the dump are `pages[*].battle.*` and `pages[*].girls_full.*`. Pick the next shape, copy a redacted sample to `spec/fixtures/<endpoint>/`, and add one parser test per response type that asserts the parser does not crash on real payloads.
+- Next step: stage 4 task 4.2 (storage migration tests). Mine `INPUT/HH_DebugLog_*.log` for old `Setting_*` / `Temp_*` snapshots, set the storage to the old shape, call the reader, assert no exception escapes (default value falls in if necessary).
 - Carried-forward reminders for stage 4:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
   - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
+  - Inspector-observed AJAX endpoints without an HHAuto consumer (audit hint, no test follow-up):
+    - `process_rewards_queue` (page 0 / Home, response `{ rewards, success }`, ~29 bytes)
+    - `show_specific_girl_grade` (class=`Hero`, page 19 / Waifu, response `{ ava, ico, success }`, ~245 bytes)
+    Both are game-internal UI calls. If HHAuto starts consuming them later, an AJAX schema test belongs in the same `spec/fixtures/<endpoint>/` layout as the live-blessings slice.
 
 ## Context
 
@@ -655,10 +659,8 @@ module.
 
 ### Stage 4 -- reliability layer (1-2 days)
 
-- [ ] **4.1** AJAX schema tests
-  - Real responses from the dump as fixtures (e.g. `live_blessings_api.live`)
-  - One validator test per response type: `parseResponse(realResponse)` does not crash
-  - First endpoint slice landed: live-blessings (2026-05-08)
+- [x] **4.1** AJAX schema tests (2026-05-08)
+  - First endpoint slice (live-blessings) landed:
     - Source: `pages[*].live_blessings_api.live` (action=`get_girls_blessings`).
       All 30 dump pages carry the same envelope shape; three temporal
       snapshots persisted as `page-00.json` / `page-14.json` /
@@ -680,6 +682,35 @@ module.
       `response.active`.
     - Tests: 717 passed (711 + 6), 53 suites.
     - Merged via PR #1648, commit 3e647be.
+  - Inspector inventory pass (active capture, observer enhancements):
+    - v4.6.0 added a per-step XHR observer (PR #1650).
+    - v4.6.1 added auto-update URLs (PR #1651).
+    - v4.7.0 fixed the install-too-late bug: hooks now install at
+      script start via `startHookSweep()` and persist for the inspector
+      lifetime; `window.fetch` is patched too; per-step buffer slicing
+      via `ajaxBufferMark()` / `ajaxBufferSliceFrom()` (PR #1652).
+    - Fresh tour bundle captured 2026-05-08T13:35:50Z with v4.7.0:
+      `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-08T13-35-50-669Z.json`.
+  - Inventory result: only one observed read-only AJAX endpoint with
+    an HHAuto consumer (`get_girls_blessings`, already covered above).
+    Two additional observed endpoints have no consumer in `src/`:
+    - `process_rewards_queue` (page 0 / Home, ~29 bytes)
+    - `show_specific_girl_grade` (class=`Hero`, page 19 / Waifu,
+      ~245 bytes)
+    Both are game-internal UI calls; HHAuto neither sends nor parses
+    them today. Recorded as audit hints in the Status block.
+  - Plan deviation (closing 4.1 with one schema test set instead of
+    multiple): the strategy plan listed `pages[*].battle.*` and
+    `pages[*].girls_full.*` as additional candidates. After re-reading
+    the data sources inventory and the inspector capture, those paths
+    are page-injected game globals (already covered as fixtures in
+    stage 2: league / haremGirl / champion / event), not AJAX
+    responses. Adding "page-global schema tests" would extend stage 2
+    rather than stage 4 task 4.1. The remaining 12 AJAX call sites in
+    `src/` are all writes (do_battles_leagues, market_buy, etc.) and
+    cannot be exercised in the inspector without game-state effects.
+    4.1 is therefore closed at one slice with an explicit no-consumer
+    note for the two extra observed endpoints.
 - [ ] **4.2** Storage migration tests
   - Old storage values from earlier versions as fixtures
   - Test: reader does not crash, default value kicks in
@@ -781,3 +812,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 3.6 done: LivelyScene pure-function extraction (`decideCollectTrigger`, `selectClaimablePieces`) + 13 new pure tests (711 total), bundle diff structural; BossBang skipped (no isolatable pure logic, same rationale class as 3.3 MonthlyCard); plan deviation in scope documented in the task entry (`isAvailable` / `timer reset` headings did not map onto either module's actual code), merged via PR #1645 (commit 546df93) |
 | 2026-05-08 | Stage 3 finished: 5 pure modules (ClubChampion / Pantheon / Labyrinth / Bundles / LivelyScene), 76 new tests across 5 refactor PRs (1636/1638/1641/1643/1645) and 6 doc PRs (1637/1640/1642/1644/1646 plus the 3.3 skip-only doc PR), 711 total; six of seven sub-tasks renegotiated mid-flight when the plan's symbol names did not match the actual code; two sub-tasks shipped as documented skips (3.3 MonthlyCard -- module name is misleading; 3.6 BossBang half -- DOM-only); behaviour deltas documented per task, all read-only and without game-state effects |
 | 2026-05-08 | Task 4.1 first endpoint slice: live-blessings AJAX schema fixtures (3 temporal snapshots) + parser smoke test (`parseTraits` / `parseBlessedValues` / `parseElement` / `parseBlessingPercent` on real payloads via a typed `BlessingParserSurface` view; no `any`); fixture content is the inner `live_blessings_api.live` value (= actual game-API response BlessingService consumes); 6 new tests (717 total, 53 suites); coverage 30.13->30.55 statements / 18.94->19.67 branches / 25.79->26.15 functions / 30.69->31.06 lines; no plan deviation; merged via PR #1648 (commit 3e647be) |
+| 2026-05-08 | Task 4.1 closed: inspector inventory pass via v4.7.0 (PRs #1650/#1651/#1652 -- per-step XHR observer, auto-update URLs, persistent XHR + fetch hooks). Fresh tour bundle (`hhauto_dump_..._2026-05-08T13-35-50-669Z.json`, inspector v4.7.0) shows three observed endpoints across all 32 pages: `get_girls_blessings` (covered by the live-blessings slice), `process_rewards_queue`, `show_specific_girl_grade`. The latter two have no HHAuto consumer; recorded as audit hints. Plan deviation documented (closing 4.1 with one schema test set; remaining `pages[*].battle.*` / `pages[*].girls_full.*` paths are page-globals already covered in stage 2 fixtures, not AJAX responses; remaining 12 src/ AJAX call sites are writes and not testable from the inspector). Next step: stage 4 task 4.2 (storage migration tests) |
