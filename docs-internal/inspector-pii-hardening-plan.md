@@ -6,360 +6,453 @@ Status: 2026-05-08. Plan only -- no implementation yet.
 
 - Current stage: not started.
 - Trigger: stage 4 closure carried this forward as a separate
-  feature track. The inspector userscript currently emits dumps
-  that contain hero-side PII, auth tokens, exact stat fingerprints,
-  and personal data of opposing players (League opponents,
-  Champion-fight participants, club hierarchy). These dumps are
-  fine for local-only debugging but block any user-to-user dump
-  sharing.
+  feature track. Inspector userscript dumps currently leak hero
+  PII, an auth token (chat_token JWT), exact stat fingerprints,
+  Club hierarchy, opposing players' data, browser locale, and a
+  full HHAuto settings export. Re-identification across multiple
+  shared dumps via correlation against public game data is
+  trivial today.
 - Target: inspector userscript v4.8.0 with an opt-in
-  ``PII_MODE = "anonymize"`` mode that runs every captured page
-  through a five-layer redaction pipeline before download. Default
-  stays ``"off"`` so existing local-only workflows are unchanged.
+  ``PII_MODE = "share"`` mode that produces a public-shareable
+  dump suitable for filing GitHub issues. Default stays
+  ``"off"`` so existing local-only workflows are unchanged.
 
-## Context
+## Use case (single source of truth)
 
-### Inventory result from the v4.7.0 dump
+Public dumps end up as attachments on GitHub issues. They must
+support investigation of the bugs users actually file. The
+private repo dumps (``PII_MODE = "off"``) remain available to
+the maintainer for cases that need full state.
 
-A search for the developer's nickname on a real tour bundle found
-**69 plain-text occurrences** of the player name across 18 pages.
-The PII surface goes beyond the name:
+### What public dumps must support
 
-| Cluster | Examples in dump | Where |
-|---|---|---|
-| Hero name | ``hero_infos.infos.name``, ``hero.hero_data.nickname``, multiple ``girls_full.game.shared.Hero`` copies | every page |
-| Hero numeric IDs | ``hero_infos.infos.id``, all ``id_member`` / ``id_fighter`` references | every page |
-| Club identity | ``hero_infos.club.{id_club, name, leader_id, leader_name, co_leaders[]}`` | every page |
-| Auth token | ``hero_infos.club.chat_token`` (a base64 JWT with member_id, nickname, club_id and a signature) | every page |
-| Stat fingerprint | ``hero_infos.infos.{caracs.*, Xp.cur, level, harem_endurance}``, ``hero_infos.infos.questing.{step, id_quest, id_world}`` | every page |
-| Other players' nicknames | ``pages[*].teams.opponents_list[*].{nickname, player.nickname, player.club}``, ``pages[*].battle.championData.fight.participants[*].nickname`` (and avatar URLs) | League page, Champion page |
-| Other players' IDs | ``opponents_list[*].id_member``, ``opponents_list[*].player.id_fighter``, ``co_leaders[]`` | League / Club pages |
-| Asset URLs personalised by ID | ``footer_image_path``, ``avatar`` URLs in fight participants | every page that exposes them |
+A scan of 200 issues (open + closed, 2023-09 to 2026-05) ranks
+the recurring topics:
 
-Even with the hero name removed, the combination of
-``caracs.carac1/2/3 + level + xp + club_name + questing.step``
-identifies a single player in the game (verified during the stage 4
-closure inventory). Re-identification therefore requires layered
-redaction, not just name stripping.
+| # | Topic | Bug-labeled hits | What the data needs to show |
+|---|---|---|---|
+| 1 | Troll battles / bosses | 38 | Hero caracs, harem girls, equipment, energy levels, troll list |
+| 2 | Harem-girl / equipment / Stuff Team | 34 | Full harem (girlsMap), equipment data, blessings, salary |
+| 3 | New domains / boss names | 20 | (no dump needed -- handled via env config updates) |
+| 4 | Events (Mythic, LoveRaid, Sultry, DP, Pass) | 19 | event_data, mega_event_*, event girls, sandalwood booster state |
+| 5 | Navigation / loops / stuck | 15 | tour_meta, current page, HHAuto setting subset |
+| 6 | Season + Season-Arena | 14 | opponents_list, league_rewards, synergies, energies |
+| 7 | UI / menu / settings | 12 | (small subset of HHAuto settings) |
 
-### Constraints
+Roughly 70% of bugs need hero caracs + harem + battle game-state.
+Roughly 30% additionally need a small slice of HHAuto settings
+(timer / threshold / event-toggle keys). Re-identification-relevant
+fields (Club, Quest, XP, league points, opponent nicknames,
+chat_token, browser locale) are needed for none of the bug
+categories.
 
-- The inspector is a single-file userscript
-  (``bonus-scripts/HHAuto_debug_inspector.user.js``). The
-  redaction pipeline must live inside that file (no external
-  module).
-- Only ``unsafeWindow``, the iframe contentWindow, and the
-  emitted JSON object are touched. The pipeline must never modify
-  game state or persist anything visible to the game.
-- Test fixtures captured under ``spec/fixtures/`` today come from a
-  non-anonymised dump on the developer's machine and stay
-  un-anonymised. Anonymisation is for *sharing* output only, not
-  for *consumption* of test data.
+### Non-goals
 
-### Out of scope (deliberate)
-
-- Server-side / Cloudflare-Worker post-processing -- everything
-  happens in-browser before download.
-- Re-running the test suite on anonymised dumps -- fixtures stay
-  on real values; the redaction pipeline does not target the
-  Stage 2 / 4 fixtures themselves.
-- Stripping game asset CDN URLs that are not personalised
-  (icons, generic backgrounds). Those are public.
+- Schema-only / pure-audit dumps. The previous draft listed an
+  ``"anonymize"`` mode for that; dropped because no user has
+  ever asked for it.
+- Round-trip parity with the local-only dump. The shared dump
+  should be useful, not equivalent.
+- Re-anonymising existing public dumps after the fact. Anyone
+  who shared a dump pre-v4.8.0 is on their own.
 
 ## Architecture
 
-### Activation modes
+### Activation
 
 A single top-of-script constant controls the pipeline:
 
 ```js
-const PII_MODE = "off"; // "off" | "anonymize"
+const PII_MODE = "off"; // "off" | "share"
 ```
 
-- ``off`` (default, current behaviour): no redaction. The
-  inspector emits a verbatim dump.
-- ``anonymize``: the redaction pipeline runs after
-  ``dumpEverything`` + ``fetchBlessings`` and before
-  ``safeStringify`` / ``downloadJson``.
+- ``off`` (default, current behaviour): no redaction, full
+  dump.
+- ``share``: the share pipeline runs after ``dumpEverything`` +
+  ``fetchBlessings`` and before ``safeStringify`` /
+  ``downloadJson``.
 
 A second activation surface is the UI: an additional button
-``DUMP THIS PAGE (ANONYMISED)`` next to the existing
-``DUMP THIS PAGE`` (and a parallel toggle in the AUTO TOUR flow).
+``DUMP FOR SHARING`` next to the existing ``DUMP THIS PAGE``.
 Either path runs the same pipeline; the constant is the single
-source of truth that the buttons forward to.
+source of truth.
 
-### Redaction pipeline (five layers)
+### Share pipeline (whitelist + four steps)
 
-The pipeline is a list of pure functions
-``(dump: Dict, ctx: AnonymiseContext) -> Dict``. Each layer reads
-and writes the same dump object in place. The context carries an
-ID hashmap and a per-dump random salt:
+The pipeline is a sequence of pure functions
+``(dump: Dict, ctx: ShareContext) -> Dict``. The context carries
+the per-dump random salt and an ID hashmap:
 
 ```js
 const ctx = {
   salt: hexRandom(16),
-  idMap: new Map(),  // canonical_id -> short hash like "abc123"
+  idMap: new Map(),  // id_girl -> short hash like "g_abc123"
 };
 ```
 
-#### Layer 1 -- Plain-text stripping
+#### Step 0 -- Top-level whitelist
 
-Replaces literal player and club names everywhere in the dump.
-Performed via deep traversal that, for every string value,
-substitutes:
+The whitelist defines which top-level keys of each ``page``
+survive. Everything else is dropped before any other step runs.
 
-- the captured hero nickname -> ``Player_<heroHash>``
-- the captured club name -> ``Club_<clubHash>``
-- a small list of personalised URL prefixes -> empty string or
-  ``[redacted]`` (e.g. ``footer_image_path`` if it embeds a
-  user-specific share token).
+Per ``page`` keys kept:
 
-The hero nickname and club name are read once at pipeline start
-from the canonical sources
-(``hero_infos.infos.name`` / ``hero_infos.club.name``).
+- ``tour_meta`` (label, expected_page, actual_page, match)
+- ``game_context.body_page`` (only this sub-key)
+- ``meta`` (full -- per-page meta)
+- ``hero_infos`` (heavily filtered, see below)
+- ``girls_full`` (full -- contains the harem)
+- ``battle`` (heavily filtered, see below)
+- ``teams`` (filtered to numeric / structural fields only)
+- ``ajax_observed`` (full -- already redactable in v4.7.0
+  format)
+- ``local_storage`` (filtered to a settings whitelist)
 
-#### Layer 2 -- Auth and token stripping
+Per ``page.hero_infos`` keys kept:
 
-Removes (sets to ``"[redacted]"`` or deletes the property):
+- ``infos.level``
+- ``infos.class``
+- ``infos.caracs`` (full sub-object)
+- ``infos.questing.id_world``  (only -- step / id_quest /
+  num_step / current_url are redacted)
 
-- ``hero_infos.club.chat_token`` (JWT).
-- Any property whose key matches
-  ``/(token|secret|csrf|cookie)/i``.
-- Any string value that matches a heuristic token pattern
-  (``[A-Za-z0-9+/]{40,}={0,2}`` or a JWT three-segment shape) and
-  appears in keys not whitelisted as plausible game-data
-  (whitelist still TBD; default is conservative redaction).
+Per ``page.battle`` keys kept:
 
-Pure stripping -- no replacement with synthetic tokens. A removed
-token is never restored.
+- ``daily_goals_list``
+- ``contests_timer``
+- ``event_data`` (with ``girls`` whitelisted -- see Step 3)
+- ``current_event``
+- ``mega_event_active``
+- ``mega_event_time_remaining`` (rounded to nearest minute --
+  see Step 5)
+- ``labyrinth_data``
+- ``penta_drill_data``
+- ``synergies``
+- ``love_raids``
+- ``championData`` (with ``fight.participants`` redacted -- see
+  Step 3)
+- ``league_rewards``
+- ``current_tier_number``
 
-#### Layer 3 -- Consistent ID hashing
+Per ``page.teams`` keys kept:
 
-Walks the dump again with a recursive replacer that, for every
-key matching one of the documented player-identifier patterns,
-runs the value through ``hashId``:
+- ``opponents_list[*]`` keeps ``level``, ``power``, ``place``,
+  ``country``, ``can_fight``, ``current_season_mojo`` from
+  ``player``, ``boosters`` if present.
+- All ``nickname`` / ``player.nickname`` / ``player.club`` /
+  ``id_member`` / ``id_fighter`` / ``match_history`` /
+  ``player_league_points`` are dropped or redacted in Step 3.
 
-```js
-function hashId(rawId, ctx) {
-  if (!ctx.idMap.has(rawId)) {
-    ctx.idMap.set(rawId, shortHash(rawId + ":" + ctx.salt));
-  }
-  return ctx.idMap.get(rawId);
-}
-```
+Top-level keys to drop entirely (page-level cleanup):
 
-Hashed key list (re-confirm against fresh dump before
-implementation):
+- ``hero`` (raw window globals copy -- redundant with
+  ``hero_infos``)
+- ``hh_namespace`` and ``shared_namespace`` (full game globals;
+  re-identifying via runtime versions / browser state)
+- ``dom_data_attributes`` (page-render fingerprint)
+- ``girl_sources`` (debug listing)
+- ``hero_infos.infos.footer_image_path`` and similar
+  asset-personalisation fields
+- ``hero_infos.club`` (entirely -- Club identifies the player
+  at-rank-N in the club list)
+- ``hero_infos.infos.Xp`` (entirely -- exact XP is a strong
+  fingerprint over time)
+- ``hero_infos.infos.harem_endurance`` and other infos fields
+  not in the keep-list
 
-- ``id_member``, ``id_fighter``, ``id_player``
-- ``id_club``, ``leader_id``
-- ``co_leaders[]`` (array of player IDs)
-- ``id_team`` (per-page TeamData)
-- ``id_quest``, ``id_world`` (questing block)
-- ``created_by``
+#### Step 1 -- Plain-text and asset-URL stripping
 
-**Not hashed** (intentional, to keep test fixtures meaningful):
+Recursive walk over the post-whitelist dump. For every string
+value:
 
-- ``id_girl``, ``id_girl_ref`` -- these are global game
-  identifiers shared across all players. Hashing them would
-  break Stage 2 / 4 fixtures and serves no PII purpose.
+- Replace the captured hero nickname with ``[redacted]``.
+- Replace any string that matches a personalised CDN URL
+  pattern (``/[a-f0-9]{32}\.png``, JWT-shaped tokens, etc.) with
+  ``[redacted]``.
+- Drop ``hero_infos.club.chat_token`` and any property whose key
+  matches ``/(token|secret|csrf|cookie)/i`` (defence in depth --
+  the whitelist already removes ``hero_infos.club``).
 
-The salt is generated per dump and **not persisted**, so two
-shared dumps cannot be cross-correlated through their hashes.
+The hero nickname is read once at pipeline start from the
+canonical source (``hero_infos.infos.name``) before Step 0 runs.
 
-#### Layer 4 -- Stat fingerprint bucketing (optional)
+#### Step 2 -- Settings whitelist
 
-Gated by an additional flag ``PII_BUCKET_FINGERPRINTS``
-(default: ``true`` when ``PII_MODE === "anonymize"``, false
-otherwise). Rounds high-precision stat values to 5%-buckets so
-that ``carac1=56821`` becomes ``carac1=57000``. Targets:
+The Inspector currently captures every ``HHAuto_Setting_*`` and
+``HHAuto_Temp_*`` key (~188 entries). Only a small subset is
+relevant for the recurring bug categories. Replace the
+``local_storage`` block with a filtered copy that retains only:
 
-- ``hero_infos.infos.caracs.*``
-- ``hero_infos.infos.Xp.{cur, min, max, next_max, left}``
-- ``hero_infos.infos.harem_endurance``
-- ``hero_infos.infos.questing.step`` (round to 100)
+**Threshold / timer / paranoia**
 
-**Tradeoff**: bucketing changes the values the test suite would
-compute against if a future fixture ever sourced from an
-anonymised dump. Layer 4 is therefore opt-in and clearly
-flagged in the resulting dump's meta block as
-``meta.pii_buckets_applied: true``.
+- ``HHAuto_Setting_paranoia``, ``HHAuto_Setting_paranoiaSettings``
+- ``HHAuto_Setting_paranoiaSpendsBefore``
+- ``HHAuto_Setting_safeSecondsForContest``
+- ``HHAuto_Setting_collectAllTimer``
+- ``HHAuto_Setting_buyCombat``, ``HHAuto_Setting_buyCombTimer``
+- ``HHAuto_Setting_buyMythicCombat``,
+  ``HHAuto_Setting_buyMythicCombTimer``
 
-#### Layer 5 -- Other players' data
+**Auto-X domain toggles + thresholds (per HHAuto domain)**
 
-Same redaction rules applied to non-hero records:
+- League: ``autoLeagues``, ``autoLeaguesCollect``,
+  ``autoLeaguesAllowWinCurrent``,
+  ``autoLeaguesBoostedOnly``, ``autoLeaguesRunThreshold``,
+  ``autoLeaguesForceOneFight``,
+  ``autoLeaguesSelectedIndex``, ``autoLeaguesSortIndex``,
+  ``autoLeaguesThreshold``, ``autoLeaguesSecurityThreshold``
+- Season: ``autoSeason``, ``autoSeasonCollect``,
+  ``autoSeasonCollectAll``, ``autoSeasonIgnoreNoGirls``,
+  ``autoSeasonPassReds``, ``autoSeasonThreshold``,
+  ``autoSeasonRunThreshold``, ``autoSeasonMaxTier``,
+  ``autoSeasonMaxTierNb``, ``autoSeasonBoostedOnly``,
+  ``autoSeasonSkipLowMojo``
+- PentaDrill: ``autoPentaDrill``,
+  ``autoPentaDrillCollect``, ``autoPentaDrillCollectAll``,
+  ``autoPentaDrillThreshold``,
+  ``autoPentaDrillRunThreshold``,
+  ``autoPentaDrillBoostedOnly``
+- Champion: ``autoChamps``,
+  ``autoChampAlignTimer``,
+  ``autoChampsForceStart``, ``autoChampsFilter``,
+  ``autoChampsTeamLoop``, ``autoChampsGirlThreshold``,
+  ``autoChampsTeamKeepSecondLine``,
+  ``autoChampsUseEne``, ``autoBuildChampsTeam``,
+  ``autoChampsForceStartEventGirl``, ``autoClubChamp``,
+  ``autoClubChampMax``, ``autoClubForceStart``
+- Troll: ``autoTrollBattle``,
+  ``autoTrollMythicByPassParanoia``,
+  ``autoTrollSelectedIndex``, ``autoTrollThreshold``,
+  ``autoTrollRunThreshold``,
+  ``autoTrollLoveRaidByPassThreshold``,
+  ``eventTrollOrder``, ``autoBuyTrollNumber``,
+  ``autoBuyMythicTrollNumber``
+- LoveRaid: ``autoLoveRaidMythicOnly``, ``plusLoveRaid``,
+  ``autoLoveRaidSelectedIndex``,
+  ``buyLoveRaidCombat``,
+  ``autoBuyLoveRaidTrollNumber``
+- Bundles: ``autoFreeBundlesCollect``,
+  ``autoFreeBundlesCollectablesList``
+- Events: ``plusEventSandalWood``,
+  ``plusEventMythicSandalWood``,
+  ``plusEventLoveRaidSandalWood``, ``plusGirlSkins``
+- Pantheon: ``autoPantheonBoostedOnly``
+- Pachinko: ``autoFreePachinko``
+- Boosters: ``autoBuyBoosters``, ``autoBuyBoostersFilter``,
+  ``autoEquipBoosters``, ``autoEquipBoostersSlots``,
+  ``maxBooster``, ``minShardsX10``, ``minShardsX50``,
+  ``sandalwoodMinShardsThreshold``, ``useX10Fights``,
+  ``useX50Fights``
+- Salary: ``autoSalary``, ``autoSalaryMinSalary``
+- Stats: ``autoStats``, ``autoStatsSwitch``
+- General: ``mousePause``, ``mousePauseTimeout``,
+  ``waitforContest``, ``master``, ``updateMarket``
 
-- ``pages[*].teams.opponents_list[*].nickname`` ->
-  ``Opponent_<hashedId>``
-- ``pages[*].teams.opponents_list[*].player.nickname`` -> dito
-- ``pages[*].teams.opponents_list[*].player.club`` -> remove
-  property entirely (would otherwise leak another player's
-  club ID and name)
-- ``pages[*].battle.championData.fight.participants[*].nickname``
-  -> ``Participant_<hashedId>``
-- ``pages[*].battle.championData.fight.participants[*].avatar``
-  -> remove property (URLs encode the player's avatar choice)
-- ``co_leaders[]`` -> already covered by Layer 3 hashing
+**Temp values worth keeping for diagnosis**
 
-Keeps the structure intact so the dump is still parseable; only
-identifying surface is replaced.
+- ``HHAuto_Temp_sandalwoodMaxUsages``
+- ``HHAuto_Temp_boosterStatus`` (post Step 1 redaction --
+  contains item IDs only)
 
-### Audit metadata
+All other ``HHAuto_*`` storage keys are dropped. UI-customisation
+toggles, persistence flags, and per-user statistics are not
+needed for the bug categories above.
+
+#### Step 3 -- ID hashing and pseudonymisation
+
+Walk the dump and apply ``hashId`` to:
+
+- ``id_girl`` and ``id_girl_ref`` (every occurrence) -- with
+  per-dump salt for cross-dump non-correlation.
+- ``id_member``, ``id_fighter`` in opponents lists / champion
+  participants.
+- ``id_team`` (per-page TeamData).
+
+For every entry in the harem (``girlsMap`` / ``availableGirls``)
+plus every event-girl listing (``current_event.girls``,
+``event_data.girls``, ``event_girls``), replace the ``name`` field
+with a sequential pseudonym:
+
+- The harem list is randomly shuffled (per-dump random
+  permutation, not persisted) so that two dumps from the same
+  player do not produce the same ``GirlNNNN`` ordering.
+- After shuffling, names become ``Girl0001``, ``Girl0002``,
+  ... ``GirlNNNN``.
+- Event-girl lists get ``EventGirl0001``, ``EventGirl0002``, ...
+- Champion-team lists get ``TeamGirl0001``, ``TeamGirl0002``, ...
+
+The pseudonym is keyed off the position in the (shuffled) list,
+so the dump still carries usable structure ("the team picked
+girl 3 of the harem in slot 1") without revealing which
+canonical girl was meant.
+
+For opponent / participant nicknames:
+
+- ``opponents_list[*].nickname`` and ``.player.nickname`` ->
+  ``Opponent_<hashId>``
+- ``participants[*].nickname`` -> ``Participant_<hashId>``
+- ``participants[*].avatar`` -> drop entirely
+- ``opponents_list[*].player.club`` -> drop entirely
+
+Hash references stay consistent within one dump (an opponent
+referenced by ``id_member`` in two pages produces the same
+``Opponent_<hashId>`` both times).
+
+#### Step 4 -- Audit block
 
 The pipeline writes a small ``meta.pii`` block into the bundle:
 
 ```js
 dump.meta.pii = {
-  mode: "anonymize",
-  layers_applied: ["plain_text", "tokens", "ids", "buckets", "opponents"],
-  layer_counts: {
-    plain_text: 69,    // matches replaced
-    tokens_removed: 1,
-    ids_hashed: 41,
-    bucketed_fields: 8,
-    opponents_redacted: 100
-  },
-  salt_present: true,  // never the salt itself
-  pii_buckets_applied: true,
+  mode: "share",
+  pipeline_version: 1,
   inspector_version: VERSION,
-  pipeline_version: 1
+  pages_processed: pages.length,
+  layers_applied: [
+    "top_level_whitelist",
+    "plain_text_strip",
+    "settings_whitelist",
+    "id_hash_and_pseudonymise",
+  ],
+  layer_counts: {
+    top_level_keys_dropped: 7,
+    plain_text_replacements: 87,
+    storage_keys_dropped: 138,
+    storage_keys_kept: 50,
+    ids_hashed: 41,
+    girls_pseudonymised: 1716,
+  },
+  salt_present: true, // never the salt itself
 };
 ```
 
-This audit block is **the only way to verify after-the-fact** that
-a shared dump was actually anonymised. A consumer (or CI tool)
-can grep for ``meta.pii.mode === "anonymize"`` before accepting
-the dump as a reproduction input.
+This audit block is the only way for a consumer (issue triager,
+CI tool) to verify that a shared dump went through the share
+pipeline. A receiver can grep for ``meta.pii.mode === "share"``
+before accepting the dump.
 
-## Roadmap (5 slices)
+#### Step 5 -- Time / counter rounding (small but important)
+
+Two values that turn into a fingerprint over multiple dumps:
+
+- ``meta.timestamp`` (Inspector's own dump timestamp) ->
+  rounded to the hour.
+- ``mega_event_time_remaining`` -> rounded to the minute.
+- All ``timestamp_ms`` / ``duration_ms`` fields inside
+  ``ajax_observed`` -> redacted to ``null``.
+- ``server_time``, ``starts_in``, ``remaining_time`` from
+  blessings live and event timers are kept (already public-data
+  ranges).
+
+## Roadmap (3 slices)
 
 Each slice is its own branch + PR, mirroring the stage 2 / 3 / 4
 convention.
 
-### Slice 1 -- Skeleton + Layer 1 + Layer 2
+### Slice 1 -- Whitelist + Steps 1, 2
 
-Branch: ``feat/inspector-pii-anonymize-skeleton``
+Branch: ``feat/inspector-pii-share-skeleton``
 
-- Add ``PII_MODE`` constant + ``PII_BUCKET_FINGERPRINTS`` flag.
-- Add the pipeline scaffolding (``redactDump(dump, ctx) ->
-  redactedDump``), called from ``performStep`` and the
-  ``DUMP THIS PAGE`` click handler when ``PII_MODE !== "off"``.
-- Implement Layer 1 (plain-text) and Layer 2 (tokens). These two
-  unblock the first level of safety.
+- Add ``PII_MODE`` constant + UI button ``DUMP FOR SHARING``.
+- Implement Step 0 (top-level whitelist), Step 1 (plain-text +
+  token strip), Step 2 (settings whitelist).
 - Add the ``meta.pii`` audit block (with empty / partial counts
-  for layers not yet active).
-- Bump inspector to ``v4.8.0-pii-1``.
+  for steps not yet active).
+- Bump inspector to ``v4.8.0-share-1``.
 
 Acceptance:
 
-- A non-anonymised dump (current default) is byte-identical to
-  v4.7.0 except for the inspector ``VERSION`` constant.
-- An anonymised dump no longer contains the hero nickname or the
-  club ``chat_token`` anywhere (verified by a Python search
-  script reused from the stage 4 inventory).
+- An ``off``-mode dump is byte-identical to v4.7.0 except for
+  the ``VERSION`` constant.
+- A ``share``-mode dump no longer contains the hero nickname,
+  the ``chat_token``, the entire ``hero_infos.club`` block, the
+  full ``HHAuto_Setting_*`` export, ``hero_infos.infos.Xp``,
+  ``hero_infos.infos.questing.{step, id_quest, num_step,
+  current_url}``, ``hh_namespace``, ``shared_namespace``,
+  or ``dom_data_attributes``.
+- A Python verifier script (reused from the stage 4 inventory
+  pass) confirms zero remaining occurrences of the captured
+  hero nickname.
 
-### Slice 2 -- Layer 3 (consistent ID hashing)
+### Slice 2 -- Step 3 (ID hashing + pseudonyms + shuffle) + Step 5 (rounding)
 
-Branch: ``feat/inspector-pii-id-hashing``
+Branch: ``feat/inspector-pii-share-pseudonyms``
 
 - Implement ``hashId`` with a per-dump random salt.
-- Walk the dump and apply hashing to the documented key list.
-- Update the audit block with ``ids_hashed`` count.
-- Bump to ``v4.8.0-pii-2``.
-
-Acceptance:
-
-- Same ``id_member`` value always maps to the same hash within
-  one dump.
-- Two anonymised dumps (different runs) do not produce the same
-  hash for the same source ID (per-dump salt).
-- ``id_girl`` / ``id_girl_ref`` remain unchanged.
-
-### Slice 3 -- Layer 5 (opponents / champion fight / club)
-
-Branch: ``feat/inspector-pii-other-players``
-
-- Implement opponent and participant redaction with hash-based
-  pseudonyms (``Opponent_<hash>`` keyed off the hashed
-  ``id_member`` from Layer 3, so opponent and player references
-  stay linked across pages).
-- Drop ``player.club`` and ``participants[*].avatar``.
+- Walk every harem / event-girl / champion-team list, shuffle,
+  pseudonymise.
+- Hash opponent / participant ``id_member`` references and
+  drop nicknames + avatars.
+- Round ``meta.timestamp`` to the hour and
+  ``mega_event_time_remaining`` to the minute. Strip
+  ``ajax_observed[*].{timestamp_ms, duration_ms}``.
 - Update the audit block.
-- Bump to ``v4.8.0-pii-3``.
+- Bump to ``v4.8.0-share-2``.
 
 Acceptance:
 
-- League opponent list still has 100 entries with all
-  numeric / structural fields intact, only nicknames replaced
-  and ``player.club`` gone.
-- Champion fight participants still have their power /
-  carac fields, only nicknames replaced and avatars dropped.
+- Same ``id_girl`` value always maps to the same hash within
+  one dump. Two share-mode dumps from the same player produce
+  different hashes for the same source ID (per-dump salt).
+- Harem ordering differs between two share-mode dumps of the
+  same player (shuffle).
+- ``Girl0001`` does not correspond to the same canonical girl
+  across two dumps.
 
-### Slice 4 -- Layer 4 (fingerprint bucketing, opt-in)
+### Slice 3 -- Docs + closure
 
-Branch: ``feat/inspector-pii-fingerprint-bucketing``
-
-- Add 5%-bucketing for the documented stat fields plus 100-bucket
-  for ``questing.step``.
-- Gated by ``PII_BUCKET_FINGERPRINTS``; off by default unless
-  ``PII_MODE = "anonymize"``.
-- Audit block: ``bucketed_fields`` count and a sample of
-  before/after pairs (truncated to first three).
-- Bump to ``v4.8.0-pii-4``.
-
-Acceptance:
-
-- ``carac1=56821`` -> ``carac1=57000`` (rounded to nearest 5%).
-- Test runs against existing fixtures stay green
-  (``npm test`` -- no fixture comes from an anonymised dump).
-
-### Slice 5 -- Docs + closure
-
-Branch: ``feat/inspector-pii-docs`` (or
-``chore/inspector-pii-close``)
+Branch: ``feat/inspector-pii-share-docs``
 
 - Update inspector header ``@description`` to mention the
-  anonymise mode.
+  share mode.
 - Add a section to the inspector userscript's leading comment
-  explaining ``PII_MODE``, ``PII_BUCKET_FINGERPRINTS``, the
-  audit block, and the per-dump salt design.
-- Add a brief ``docs-internal/inspector-pii-hardening.md``
-  closure note linking back to this plan.
-- Update ``README.md`` if user-facing instructions are needed.
-- Final inspector version: ``v4.8.0`` (drop the ``-pii-N``
-  suffix).
+  explaining ``PII_MODE``, the audit block, and the per-dump
+  salt design.
+- Add ``docs-internal/inspector-pii-share-mode.md`` -- a short
+  closure note linking back to this plan and listing the
+  fields kept / dropped in the share dump (the canonical
+  reference for issue triagers).
+- Update ``README.md`` with a short "How to file a bug with a
+  dump" section.
+- Final inspector version: ``v4.8.0`` (drop the
+  ``-share-N`` suffix).
 
 Acceptance:
 
-- All four prior slices merged.
+- All two prior slices merged.
 - ``@version`` / ``VERSION`` constant aligned to ``4.8.0``.
-- A round-trip test: emit one anonymised dump, run a Python
-  script that asserts none of the documented PII patterns
-  survive, and append the script's output to this plan as an
-  audit example.
+- Round-trip test: emit one share-mode dump, run a Python
+  verifier that asserts none of the documented PII patterns
+  survive, and append the verifier's output to this plan as
+  an audit example.
 
 ## Open questions (deliberate, decided in the implementing session)
 
-- Should ``PII_MODE`` be a runtime-configurable Tampermonkey menu
-  command instead of a top-of-script constant? Pro: easy to
-  toggle without editing the source. Con: easy to forget which
-  mode is active. Suggested default: keep the constant, add a
-  Tampermonkey menu command in slice 5 if requested.
-- Should anonymised dumps be saved into a separate IndexedDB
-  store so that ``REVIEW BUNDLE`` always shows the un-anonymised
-  source? Or should we always anonymise on download and keep the
-  raw dump only in IndexedDB? Default proposal: anonymise on
-  download only; the IndexedDB store always holds the raw dump
-  so the developer can re-emit if needed.
-- Bucketing granularity for ``Xp.cur`` (5% might still be too
-  precise on a level-645 hero). Decide once we have a second
-  data point.
+- Should the share-mode harem shuffle be deterministic on
+  ``salt`` so that re-running on the same dump produces the
+  same pseudonyms? Pro: stable diffs between two anonymisation
+  runs of the same source. Con: makes the share pipeline a
+  pure function of ``(dump, salt)``, which is easier to verify
+  but a known property an attacker can exploit. Default
+  proposal: yes, deterministic on salt; the salt is randomised
+  per dump anyway.
+- Should ``ajax_observed`` carry full request bodies or only
+  endpoint metadata? Some issue categories (Mythic event loop)
+  benefit from the bodies. Default proposal: keep bodies, run
+  Step 1 plain-text strip over them so any leaked PII is
+  caught.
+- Should we add an explicit ``meta.pii.warning_for_user``
+  field that says "this dump went through anonymisation;
+  contact the maintainer privately if you need full state"?
+  Default proposal: yes, makes the share dump self-documenting.
 
 ## References
 
 - Test strategy plan: ``docs-internal/test-strategy.md``,
   stage 4 carry-forward block.
 - Inventory pass: stage 4 closure conversation, 2026-05-08.
+- Issue topic analysis: 200 issues sampled 2026-05-08 (top 7
+  bug clusters listed above).
 - Inspector: ``bonus-scripts/HHAuto_debug_inspector.user.js``
   (current ``v4.7.0`` at ``main`` HEAD ``3b9eb4a``).
 
@@ -367,4 +460,5 @@ Acceptance:
 
 | Date | Change |
 |---|---|
-| 2026-05-08 | Plan drafted. No implementation yet. |
+| 2026-05-08 | Plan drafted -- 5-layer pipeline, 5 slices. |
+| 2026-05-08 | Plan rewritten after issue topic scan and tighter use-case definition. Single ``share`` mode. Whitelist-based instead of layer-based. 3 slices instead of 5. Caracs intentionally NOT bucketed (Team-Auswahl-Logik braucht echte Werte). |
