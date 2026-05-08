@@ -1,0 +1,23 @@
+{
+  "localStorage.HHAuto_Setting_settPerTab": "false",
+  "localStorage.HHAuto_Setting_autoAffW": "false",
+  "localStorage.HHAuto_Setting_autoBuyBoosters": "false",
+  "localStorage.HHAuto_Setting_paranoia": "true",
+  "localStorage.HHAuto_Setting_master": "false",
+  "localStorage.HHAuto_Setting_autoAff": "500000000",
+  "localStorage.HHAuto_Setting_autoExp": "500000000",
+  "localStorage.HHAuto_Setting_autoStats": "500000000",
+  "localStorage.HHAuto_Setting_autoSalaryMinSalary": "20000",
+  "localStorage.HHAuto_Setting_maxBooster": "10",
+  "localStorage.HHAuto_Setting_minShardsX10": "10",
+  "localStorage.HHAuto_Setting_autoBuyBoostersFilter": "B1;B2;B3;B4",
+  "localStorage.HHAuto_Setting_autoChampsFilter": "1;2;3;4;5;6",
+  "localStorage.HHAuto_Setting_autoEquipBoostersSlots": "B1;B2;B3;B4",
+  "localStorage.HHAuto_Setting_autoPowerPlacesIndexFilter": "1;2;3",
+  "localStorage.HHAuto_Setting_eventTrollOrder": "1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20",
+  "localStorage.HHAuto_Setting_autoSeasonCollectablesList": "[]",
+  "localStorage.HHAuto_Setting_autoPentaDrillCollectablesList": "[]",
+  "localStorage.HHAuto_Setting_autoFreeBundlesCollectablesList": "[]",
+  "localStorage.HHAuto_Setting_paranoiaSettings": "140-320/Sleep:28800-30400|Active:250-460|Casual:1500-2700/6:Sleep|8:Casual|10:Active|12:Casual|14:Active|18:Casual|20:Active|22:Casual|24:Sleep",
+  "sessionStorage.HHAuto_Temp_sandalwoodMaxUsages": "11"
+}
