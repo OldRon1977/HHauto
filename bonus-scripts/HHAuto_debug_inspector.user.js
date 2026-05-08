@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.5.0
-// @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages.
+// @version      4.6.0
+// @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -22,7 +22,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.5.0';
+    const VERSION = '4.6.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
@@ -71,6 +71,11 @@
     const PAGE_LOAD_WAIT_MS = 8000;     // wait for body[page] to match
     const POST_LOAD_SETTLE_MS = 1500;   // extra wait after match for late-binding JS
     const PAGE_TRANSITION_DELAY_MS = 800;
+
+    // Passive AJAX-response capture (Game-API only, observed via XHR hook).
+    const AJAX_CAPTURE_PER_STEP_LIMIT = 50;            // max responses per step
+    const AJAX_CAPTURE_RESPONSE_BYTE_LIMIT = 100 * 1024; // truncate larger responses
+    const AJAX_CAPTURE_SETTLE_EXTRA_MS = 1500;         // additional wait while observer is active
 
     // ==================== STORAGE ====================
 
@@ -642,6 +647,144 @@
         callback({ live: null, error: 'ajax not available' });
     }
 
+    // ==================== AJAX OBSERVER (passive XHR capture) ====================
+    // Hooks XMLHttpRequest.prototype.open + send while active and records every
+    // Game-AJAX response that completes during the capture window. Game-AJAX is
+    // identified by a relative URL or by an action= / class= form parameter in
+    // the request URL or body. Read-only: no requests are issued by the observer
+    // itself; it only watches what the page (and other userscripts) send.
+
+    function looksLikeGameAjax(url, body) {
+        try {
+            if (!url) return false;
+            // Same-origin or relative paths win
+            if (url.charAt(0) === '/' && url.charAt(1) !== '/') return true;
+            try {
+                const u = new URL(url, location.href);
+                if (u.host === location.host) {
+                    if (/[?&](action|class)=/.test(u.search)) return true;
+                    if (u.pathname.indexOf('/phoenix-') === 0) return true;
+                    if (u.pathname.indexOf('/ajax.php') >= 0) return true;
+                    if (u.pathname.indexOf('/api') >= 0) return true;
+                    return true; // same-origin -> assume game
+                }
+            } catch (e) {}
+            // body-based check
+            if (typeof body === 'string' && /(^|&)(action|class)=/.test(body)) return true;
+        } catch (e) {}
+        return false;
+    }
+
+    function extractRequestActionClass(url, body) {
+        let action = null;
+        let class_ = null;
+        try {
+            const u = new URL(url, location.href);
+            action = u.searchParams.get('action');
+            class_ = u.searchParams.get('class');
+        } catch (e) {}
+        if ((!action || !class_) && typeof body === 'string') {
+            try {
+                const p = new URLSearchParams(body);
+                if (!action) action = p.get('action');
+                if (!class_) class_ = p.get('class');
+            } catch (e) {}
+        }
+        return { action: action, class_: class_ };
+    }
+
+    function createAjaxObserver(ctx) {
+        const captured = [];
+        const win = ctx && ctx.win ? ctx.win : unsafeWindow;
+        const XHR = win && win.XMLHttpRequest ? win.XMLHttpRequest : null;
+        if (!XHR || !XHR.prototype) {
+            return { start: function() {}, stop: function() { return []; } };
+        }
+        const origOpen = XHR.prototype.open;
+        const origSend = XHR.prototype.send;
+        let active = false;
+
+        function hookOpen(method, url) {
+            try {
+                this.__hh_inspector_method = (method || 'GET').toUpperCase();
+                this.__hh_inspector_url = url || '';
+                this.__hh_inspector_t0 = Date.now();
+            } catch (e) {}
+            return origOpen.apply(this, arguments);
+        }
+
+        function hookSend(body) {
+            try {
+                const xhr = this;
+                const url = xhr.__hh_inspector_url || '';
+                const bodyStr = typeof body === 'string' ? body : null;
+                if (looksLikeGameAjax(url, bodyStr)) {
+                    const reqInfo = extractRequestActionClass(url, bodyStr);
+                    xhr.addEventListener('readystatechange', function() {
+                        try {
+                            if (xhr.readyState !== 4) return;
+                            if (!active) return;
+                            if (captured.length >= AJAX_CAPTURE_PER_STEP_LIMIT) return;
+                            let text = '';
+                            try { text = xhr.responseText || ''; } catch (e) {}
+                            const fullSize = text.length;
+                            const truncated = fullSize > AJAX_CAPTURE_RESPONSE_BYTE_LIMIT;
+                            const textOut = truncated ? text.substring(0, AJAX_CAPTURE_RESPONSE_BYTE_LIMIT) : text;
+                            let json = null;
+                            if (!truncated && textOut) {
+                                try { json = JSON.parse(textOut); } catch (e) {}
+                            }
+                            captured.push({
+                                url: url,
+                                method: xhr.__hh_inspector_method || 'GET',
+                                status: xhr.status || 0,
+                                duration_ms: Date.now() - (xhr.__hh_inspector_t0 || Date.now()),
+                                timestamp_ms: Date.now(),
+                                request: {
+                                    action: reqInfo.action,
+                                    class_: reqInfo.class_
+                                },
+                                response: {
+                                    truncated: truncated,
+                                    text_size: fullSize,
+                                    json: json,
+                                    text: json !== null ? null : textOut
+                                }
+                            });
+                        } catch (e) {}
+                    });
+                }
+            } catch (e) {}
+            return origSend.apply(this, arguments);
+        }
+
+        return {
+            start: function() {
+                if (active) return;
+                try {
+                    XHR.prototype.open = hookOpen;
+                    XHR.prototype.send = hookSend;
+                    captured.length = 0;
+                    active = true;
+                } catch (e) {
+                    console.error(LOG_PREFIX, 'AJAX observer start failed:', e);
+                    active = false;
+                }
+            },
+            stop: function() {
+                if (!active) return [];
+                try {
+                    XHR.prototype.open = origOpen;
+                    XHR.prototype.send = origSend;
+                } catch (e) {
+                    console.error(LOG_PREFIX, 'AJAX observer stop failed:', e);
+                }
+                active = false;
+                return captured.slice();
+            }
+        };
+    }
+
     // ==================== UI ====================
 
     function mkBtn(text, color, onclick) {
@@ -736,6 +879,12 @@
 
         const ctx = detectMode();
         setStatusBar('<b style=\"color:#ffb827\">' + (globalIdx+1) + '. ' + step.label + '</b> &mdash; dumping data...');
+
+        const observer = createAjaxObserver(ctx);
+        observer.start();
+        // Give the page a window to issue its natural Game-AJAX calls before we dump.
+        await sleep(AJAX_CAPTURE_SETTLE_EXTRA_MS);
+
         const dump = dumpEverything(ctx);
 
         await new Promise(function(resolve) {
@@ -744,6 +893,8 @@
                 resolve();
             });
         });
+
+        dump.ajax_observed = observer.stop();
 
         const actualPage = getCurrentBodyPage(ctx);
         dump.tour_meta = {
@@ -940,14 +1091,20 @@
         single.style.cssText = 'background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
         single.onclick = function() {
             const ctx = detectMode();
-            const dump = dumpEverything(ctx);
-            fetchBlessings(ctx, function(blessings) {
-                dump.live_blessings_api = blessings;
-                const text = safeStringify(dump);
-                const body = (ctx.doc || document).querySelector('body[page]');
-                const suffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
-                showSingleDumpOverlay(text, suffix);
-            });
+            const observer = createAjaxObserver(ctx);
+            observer.start();
+            // Brief capture window so any in-flight or auto-fired Game-AJAX is recorded.
+            setTimeout(function() {
+                const dump = dumpEverything(ctx);
+                fetchBlessings(ctx, function(blessings) {
+                    dump.live_blessings_api = blessings;
+                    dump.ajax_observed = observer.stop();
+                    const text = safeStringify(dump);
+                    const body = (ctx.doc || document).querySelector('body[page]');
+                    const suffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
+                    showSingleDumpOverlay(text, suffix);
+                });
+            }, AJAX_CAPTURE_SETTLE_EXTRA_MS);
         };
 
         const tour = document.createElement('div');
