@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **2 finished**, ready to start **stage 3 (decision-logic coverage)**
-- Last completed task: 2.7 (stage 2 closure)
+- Current stage: **3 in progress**, task 3.1 done; next is task 3.2 (Pantheon)
+- Last completed task: 3.1 (ClubChampion pure-function extraction + decision tests)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.1 (ClubChampion decision tests). Pre-condition is that stage 1 already produced the relevant pure functions; the league / haremGirl / champion / event fixtures from stage 2 are available via `loadFixture(modulePath, name)`.
+- Next step: stage 3 task 3.2 (Pantheon decision tests). Inspect `src/Module/Pantheon.ts` for decision points; extract pure logic into `src/Module/Pantheon.pure.ts` if a stage-1-style extraction fits, else document the substitution.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -404,7 +404,36 @@ energy edge, AJAX error.
 Precondition: stage 1 has produced a pure function for the respective
 module.
 
-- [ ] **3.1** ClubChampion -- isTimeToFight, getNextChampionTime
+- [x] **3.1** ClubChampion -- pure decision logic extracted (2026-05-08)
+  - Plan deviation (agreed with the user before implementation): the
+    plan listed `isTimeToFight` + `getNextChampionTime`. ClubChampion
+    has no `isTimeToFight` equivalent that fits the pure pattern --
+    the fight decision in `doClubChampionStuff` is interleaved with
+    DOM scraping, ajax clicks, and `gotoPage` navigation, so
+    extracting it would move more code than it tests.
+    `getNextChampionTime` is renamed to `decideNextClubChampionTime`
+    to match the actual concern (range selection) and to avoid the
+    name clash with `Champion.pure.decideNextChampionTime` from
+    stage 1 task 1.2. A second small decision,
+    `decideAlignedClubChampionTimer`, is split out of `_setTimer`
+    because it is the only other piece of pure logic in the module.
+  - New module: `src/Module/ClubChampion.pure.ts` exports
+    `decideNextClubChampionTime`, `decideAlignedClubChampionTimer`,
+    and the typed `NextClubChampionTimerState` /
+    `NextClubChampionTimerDecision` /
+    `AlignClubChampionTimerState` shapes.
+  - `ClubChampion.updateClubChampionTimer` builds the input state
+    and delegates the range to `decideNextClubChampionTime`. The
+    `[min, max]` tuple goes back into `randomInterval`, same as
+    before.
+  - `ClubChampion._setTimer` builds the input state and delegates
+    the alignment to `decideAlignedClubChampionTimer`. The result
+    is handed to `setTimer`, same as before.
+  - Bit-for-bit equivalent: all threshold comparisons (`>7200`,
+    `>10`, `<1200`) keep their strict semantics. Bundle diff is
+    structural only.
+  - Tests: 648 passed (633 + 15), 0 skipped, 48 suites.
+  - Merged via PR #1636, commit d6e4e38.
 - [ ] **3.2** Pantheon -- isEnabled (real logic, not trivial), isTimeToFight
 - [ ] **3.3** MonthlyCard -- shouldClaim, getNextClaimTime
 - [ ] **3.4** LabyrinthAuto -- entire decision pipeline
@@ -510,3 +539,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 2.4 done: Champion fixture (active-champion from page 7 with redacted participants and stripped asset urls) + 7 new smoke tests (628 total), no src changes, plan deviation in source path documented in fixture README (page 7 /club-champion.html instead of plan's page 8 /champions-map.html), champion-map fixture deferred (DOM-only data, no JSON to extract), merged via PR #1630 (commit b2ab9d7) |
 | 2026-05-07 | Task 2.5 done: Event fixture (event-detection from page 13, compound event_data + mega_event) + 5 new smoke tests (633 total), no src changes, no plan deviation (plan specified only the file name), merged via PR #1632 (commit 13c5f82) |
 | 2026-05-07 | Stage 2 finished: 4 fixture sets (league / haremGirl / champion / event) + shared loader, 23 new smoke tests across 4 fixture PRs (1626/1628/1630/1632) and 4 doc PRs (1627/1629/1631/1633), 633 total, no src changes; three plan deviations documented in the affected fixture READMEs; deferrals for stage 3 (parseGirlsFromGameData) and beyond (champion-map needs a different testing approach for DOM-derived state) carried forward in the status block |
+| 2026-05-08 | Task 3.1 done: ClubChampion pure-function extraction (`decideNextClubChampionTime`, `decideAlignedClubChampionTimer`) + 15 new pure tests (648 total), bundle diff structural, plan deviation in extracted scope documented in the task entry (no `isTimeToFight` equivalent in the module; `getNextChampionTime` renamed to `decideNextClubChampionTime` for clarity and to avoid the name clash with `Champion.pure.decideNextChampionTime`), merged via PR #1636 (commit d6e4e38) |
