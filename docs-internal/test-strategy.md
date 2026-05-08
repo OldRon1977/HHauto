@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **4 in progress** (reliability layer)
-- Last completed task: 4.3 (multi-domain smoke)
-- Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4)
-- Next step: stage 4 task 4.4 (closure). Pick up issue #1614 here -- enable coverage reporting in CI via a GitHub Action, no threshold gate (per the strategy plan).
+- Current stage: **4 finished** (reliability layer)
+- Last completed task: 4.4 (stage 4 closure -- CI coverage reporting picked up under refs #1614)
+- Open reminder: none. Issue #1614 is referenced in PR #1659; the issue stays open until the reporter (and any CI consumers) verifies the comment + artefact behaviour live, then it is closed manually.
+- Next step: none planned. The strategy plan ends with stage 4. New stages (e.g. browser-end-to-end smoke, mutation testing experiments, deeper domain-specific suites) require a fresh planning round with the user.
 - Carried-forward reminders for stage 4:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -776,7 +776,74 @@ module.
   - Coverage unchanged (ConfigHelper was already covered by the
     existing 10 tests).
   - Merged via PR #1657, commit d191c47.
-- [ ] **4.4** Stage 4 finished -- branch `feat/test-reliability`
+- [x] **4.4** Stage 4 finished (2026-05-08)
+  - CI coverage reporting picked up under refs #1614:
+    - `jest.config.ts`: `json-summary` reporter added so the comment
+      action can read `coverage/coverage-summary.json`.
+    - `.github/workflows/ci.yml`:
+      - `permissions` block: `contents: read`,
+        `pull-requests: write` (minimum scope required by the
+        comment action).
+      - Upload `coverage/` as workflow artefact `coverage-report`,
+        retention 14 days, `if: always()` so the artefact is
+        available even on a failed test step.
+      - On `pull_request` events, post a coverage summary as a PR
+        comment using `MishaKav/jest-coverage-comment@v1.0.23`
+        (pinned, Marketplace latest as of 2026-05-08).
+        `create-new-comment: false` so the comment is updated in
+        place across pushes.
+    - Reporting only -- no threshold gate (review consensus, plan
+      constraint).
+    - Merged via PR #1659, commit 284938d. Issue #1614 referenced
+      (no auto-close keyword); it stays open until the reporter
+      verifies the live comment + artefact behaviour and is then
+      closed manually.
+  - Plan deviation (closure shape): the plan listed a single closure
+    task on a single branch `feat/test-reliability`. Stage 4 was
+    actually shipped as four task-scoped branches mirroring stage 2
+    and stage 3:
+    - `feat/test-ajax-schema-live-blessings` (PR #1648, 4.1 first
+      slice -- AJAX schema)
+    - `feat/inspector-passive-ajax-capture` (PR #1650, 4.1
+      inspector v4.6.0)
+    - `feat/inspector-auto-update-urls` (PR #1651, 4.1 inspector
+      v4.6.1)
+    - `feat/inspector-persistent-ajax-hooks` (PR #1652, 4.1
+      inspector v4.7.0)
+    - `feat/test-storage-migration-helpers` (PR #1654, 4.2 helpers)
+    - `feat/test-multi-domain-smoke` (PR #1657, 4.3 smoke)
+    - `feat/ci-coverage-reporting` (PR #1659, 4.4 CI coverage)
+    plus six matching `docs/test-strategy-...` PRs and this
+    closure (`chore/test-strategy-stage4-close`).
+  - Stage 4 totals:
+    - 7 code PRs and 6 doc PRs across the four tasks.
+    - Tests: 711 -> 765 (+54) across 53 -> 54 suites.
+    - Coverage: 30.13 -> 30.62 statements / 18.94 -> 19.75
+      branches / 25.79 -> 26.22 functions / 30.69 -> 31.12 lines.
+    - One inspector userscript bumped from v4.5.0 to v4.7.0
+      (per-step XHR observer -> auto-update URLs -> persistent
+      XHR + fetch hooks).
+    - `npm run build`: succeeds. `HHAuto.user.js` build drift
+      discarded after every build per workspace convention.
+  - Carried-forward into the next planning round (not blocking
+    closure):
+    - `parseGirlsFromGameData(rawData) -> Girl[]` parser stays
+      deferred (sized fixture exists in
+      `spec/fixtures/haremGirl/sample-girls.json`).
+    - Champion-map fixture stays deferred (DOM-only data, needs a
+      different testing approach for DOM-derived state).
+    - League energy snapshot
+      (`hero.shared.Hero.energies.challenge`) stays deferred until
+      a League parser test needs it.
+    - Inspector-observed AJAX endpoints without an HHAuto consumer
+      (`process_rewards_queue`, `show_specific_girl_grade`); audit
+      hint, no test follow-up unless HHAuto starts consuming them.
+    - Optional 4.2 follow-up slices (`extractHHVars` corrupted
+      `Temp_Logging`; `setDefaults` boot path).
+    - Inspector PII hardening for shared player dumps (id_member,
+      club ids, chat_token, caracs/xp/level/quest_step, opponent /
+      club-leader nicknames). Tracked as a new feature for the
+      inspector userscript; not part of stage 4.
 
 ## Deliberately dropped (do not implement)
 
@@ -873,3 +940,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 4.2 first slice: storage-migration helpers spec (`safeJsonParse` / `isJSON` / `getStoredJSON` edge cases) plus a real settings snapshot smoke pass; `spec/fixtures/storage-snapshot/setting-snapshot.json` curated from `INPUT/HH_DebugLog_1778140621437.log` (21 keys covering boolean / integer / semicolon-list / JSON-array / custom-format / sessionStorage payloads). 26 new tests (743 total, 54 suites). Coverage 30.55->30.62 statements / 19.67->19.75 branches / 26.15->26.22 functions / 31.06->31.12 lines. Plan deviation documented (`isJSON` is intentionally a liberal regex pre-check; `safeJsonParse` remains the hard no-throw guard). No `src/` change. Merged via PR #1654 (commit 3d1f208) |
 | 2026-05-08 | Task 4.2 closed (helpers slice only): plan deviation documented after re-reading live source -- the four module-level `JSON.parse(getStored...)` sites the plan listed are either commented out (`BDSMHelper:428`, `AutoLoopActions:169`, `EventModule:792`) or already covered by the helpers slice (`Market:38` defensive log + `getStoredJSON`, `Shop:101` `isJSON` + `getStoredJSON`); no remaining ungauarded `JSON.parse` site in live code. Optional follow-up slices recorded but not blocking (`extractHHVars` corrupted `Temp_Logging`; `setDefaults` boot-path). Next step: stage 4 task 4.3 (multi-domain smoke) |
 | 2026-05-08 | Task 4.3 done: multi-domain smoke covering all 21 hostnames in `HHKnownEnvironnements` (HentaiHeroes 6 / ComixHarem 2 / GayHarem 3 / GayPornstarHarem 2 / MangaRpg 2 / PornstarHarem 2 / TransPornstarHarem 2 / AmourAgent 1 / SexyHeroes 1) plus a sanity guard against new hostnames; appended to existing `spec/Helper/ConfigHelper.spec.ts` (per user direction, instead of new `spec/config/Domain.spec.ts` file). 22 new tests (765 total, 54 suites). Plan deviations documented (exact-match instead of `domain.includes()`; appended instead of new file; `tour` subdomain in handoff was a filename artefact). No `src/` change. Merged via PR #1657 (commit d191c47) |
+| 2026-05-08 | Stage 4 finished: 4.4 closure picked up issue #1614 (CI coverage reporting). `jest.config.ts` adds `json-summary` reporter; `.github/workflows/ci.yml` adds permissions block (contents=read, pull-requests=write), uploads `coverage/` as workflow artefact, and posts a PR coverage comment via `MishaKav/jest-coverage-comment@v1.0.23` (pinned, Marketplace latest as of 2026-05-08); reporting only, no threshold gate. Stage 4 totals: 7 code PRs + 6 doc PRs across tasks 4.1-4.4 plus this closure; 711 -> 765 tests (+54), 53 -> 54 suites; coverage 30.13->30.62 statements / 18.94->19.75 branches / 25.79->26.22 functions / 30.69->31.12 lines; inspector userscript v4.5.0 -> v4.7.0. Plan deviation documented (per-task branches mirroring stages 2 + 3 instead of the plan's single `feat/test-reliability` branch). Carried-forward deferrals for the next planning round listed in the closure block. Merged via PR #1659 (commit 284938d) for the 4.4 code part |
