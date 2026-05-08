@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 in progress**, tasks 3.1 - 3.4 done; next is task 3.5 (Bundles)
-- Last completed task: 3.4 (Labyrinth path pipeline pure-function extraction + decision tests)
+- Current stage: **3 in progress**, tasks 3.1 - 3.5 done; next is task 3.6 (LivelyScene + BossBang)
+- Last completed task: 3.5 (Bundles `getExpiryTime` pure-function extraction + decision tests)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.5 (Bundles visibility / trigger tests). Inspect `src/Module/Bundles.ts` for decision points; extract pure logic if a stage-1-style extraction fits, else document the substitution.
+- Next step: stage 3 task 3.6 (LivelyScene + BossBang -- isAvailable, timer reset). Inspect both modules for decision points; extract pure logic if a stage-1-style extraction fits, else document the substitution.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -525,7 +525,35 @@ module.
     by Labyrinth.pure)".
   - Tests: 692 passed (664 + 28), 0 skipped, 50 suites.
   - Merged via PR #1641, commit c16adc2.
-- [ ] **3.5** Bundles -- visibility / trigger
+- [x] **3.5** Bundles -- pure decision logic extracted (2026-05-08)
+  - Plan deviation (agreed with the user before implementation):
+    plan listed "visibility / trigger". Bundles has no
+    visibility check (the trigger is
+    `getSecondsLeft('nextFreeBundlesCollectTime')` external to
+    the module). `Bundles.goAndCollectFreeBundles` is a DOM /
+    click / `setTimeout` pipeline with no isolatable pure logic.
+    The only piece of pure logic in the module is the 24-hour
+    threshold check inside `Bundles.getExpiryTime`; the
+    extraction targets that single function.
+  - New module: `src/Module/Bundles.pure.ts` exports
+    `decideExpiryTime` and the typed `ExpiryTimeState` shape.
+    Three-branch cascade: `null` -> fallback, `>= 24*3600` ->
+    fallback (strict `<` boundary), otherwise -> scraped.
+  - `Bundles.getExpiryTime` scrapes the DOM, computes the
+    fallback value, and delegates the threshold decision. The
+    original ERROR log is preserved and now fires whenever the
+    fallback branch is taken (matching the original fallthrough
+    behaviour).
+  - Bit-for-bit equivalent: the 24-hour boundary stays strict
+    `<`; exactly `24 * 3600` falls through to the fallback.
+  - Behaviour delta: `randomInterval(60, 180)` is now called
+    unconditionally as part of computing `fallbackSeconds`;
+    previously it was only called in the fallback branch.
+    `randomInterval` is read-only and has no game-state effect.
+    Same delta type as League stage 1 task 1.1 and Pantheon
+    stage 3 task 3.2.
+  - Tests: 698 passed (692 + 6), 0 skipped, 51 suites.
+  - Merged via PR #1643, commit cc8c80c.
 - [ ] **3.6** LivelyScene, BossBang -- isAvailable, timer reset
 - [ ] **3.7** Stage 3 finished -- branch `feat/test-decision-logic`
 
@@ -631,3 +659,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 3.2 done: Pantheon pure-function extraction (`decideIsEnabled`, `decideShouldFight`) + 16 new pure tests (664 total), bundle diff structural, no plan deviation in scope; behaviour delta documented (`ParanoiaService.checkParanoiaSpendings` now called unconditionally, mirroring League stage 1 task 1.1), merged via PR #1638 (commit e54db73) |
 | 2026-05-08 | Task 3.3 skipped: MonthlyCard has no claim flow / timer / hero-level gate -- its single public method `updateInputPattern()` only builds regex strings for the settings UI, fully covered by the existing `MonthlyCards.spec.ts` (24 tests). No code change, no PR, only doc update; tests stay at 664 / 49 suites. |
 | 2026-05-08 | Task 3.4 done: Labyrinth path pipeline pure-function extraction (`getNextIndices`, `buildPathsFromMatrix`, `filterPathsWithTreasure`, `sortPathsByDifficulty`, `decideBetterOption`) + 28 new pure tests (692 total), bundle diff structural, plan deviation in module choice documented in the task entry (`LabyrinthAuto.run()` has no isolatable pure logic; the actual decision pipeline lives in `Labyrinth.ts`); behaviour delta documented (five inner debug-log lines inside `findBetter` removed, all under `debugEnabled === true` and without game-state effects), merged via PR #1641 (commit c16adc2) |
+| 2026-05-08 | Task 3.5 done: Bundles `getExpiryTime` pure-function extraction (`decideExpiryTime`) + 6 new pure tests (698 total), bundle diff structural, plan deviation in scope documented in the task entry (no visibility/trigger logic in the module; only the 24-hour threshold check is pure); behaviour delta documented (`randomInterval(60, 180)` now called unconditionally, mirroring League stage 1 task 1.1 and Pantheon stage 3 task 3.2), merged via PR #1643 (commit cc8c80c) |
