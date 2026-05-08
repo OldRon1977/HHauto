@@ -27,6 +27,10 @@ import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Booster } from "./Booster";
 import { DailyGoals } from './DailyGoals';
+import {
+    decideIsEnabled,
+    decideShouldFight,
+} from './Pantheon.pure';
 
 export class Pantheon {
 
@@ -67,7 +71,11 @@ export class Pantheon {
     }
 
     static isEnabled(){
-        return ConfigHelper.getHHScriptVars("isEnabledPantheon", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON");
+        return decideIsEnabled({
+            enabled: ConfigHelper.getHHScriptVars("isEnabledPantheon", false),
+            heroLevel: HeroHelper.getLevel(),
+            minLevel: ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON"),
+        });
     }
 
     static isTimeToFight(){
@@ -75,18 +83,32 @@ export class Pantheon {
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
         const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun) === "true";
 
-        const energyAboveThreshold = humanLikeRun && Pantheon.getEnergy() > threshold || Pantheon.getEnergy() > Math.max(threshold, runThreshold-1);
-        const paranoiaSpending = Pantheon.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('worship') > 0;
+        const energy = Pantheon.getEnergy();
         const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true";
-        const haveBoosterEquiped = Booster.haveBoosterEquiped();
+        const haveBoosterEquipped = Booster.haveBoosterEquiped();
+        const timerExpired = checkTimer('nextPantheonTime');
 
-        const isDailyGoal = DailyGoals.isPantheonDailyGoal();
+        // Energy gate (mirrors the pure function) -- pre-computed only
+        // for the diagnostic log line below.
+        const energyAboveThreshold =
+            (humanLikeRun && energy > threshold)
+            || energy > Math.max(threshold, runThreshold - 1);
 
-        if(checkTimer('nextPantheonTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
+        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquipped) {
             logHHAuto('Time for pantheon but no booster equipped');
         }
 
-        return (checkTimer('nextPantheonTime') && energyAboveThreshold && (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight || isDailyGoal)) || paranoiaSpending;
+        return decideShouldFight({
+            energy,
+            threshold,
+            runThreshold,
+            humanLikeRun,
+            timerExpired,
+            paranoiaSpending: ParanoiaService.checkParanoiaSpendings('worship'),
+            needBoosterToFight,
+            haveBoosterEquipped,
+            isDailyGoal: DailyGoals.isPantheonDailyGoal(),
+        });
     }
 
     static run()
