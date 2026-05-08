@@ -36,3 +36,6 @@ docs-internal/diagrams/
 
 # Jest test-run artefacts (local --json outputs)
 jest-*.json
+
+# Lokale Audit-/Patch-Skripte fuer den Inspector (nicht syncen)
+docs-internal/skripte/

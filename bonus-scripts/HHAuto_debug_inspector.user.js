@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.7.0
+// @version      4.8.0-share-1
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -24,8 +24,15 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.7.0';
+    const VERSION = '4.8.0-share-1';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
+
+    // PII share-mode toggle. Single source of truth for the share pipeline.
+    //   "off"   -> dumps are not anonymised (default, byte-identical to v4.7.0).
+    //   "share" -> share pipeline runs after dumpEverything+fetchBlessings and
+    //              before safeStringify+downloadJson. The DUMP FOR SHARING button
+    //              forces share mode regardless of this constant.
+    const PII_MODE = "off"; // "off" | "share"
 
     // ==================== CONFIGURATION ====================
 
@@ -883,6 +890,400 @@
         return slice;
     }
 
+    // ==================== PII SHARE-MODE PIPELINE ====================
+    //
+    // Optional anonymisation pipeline. Activated by:
+    //   1. Setting PII_MODE = "share" at the top of this script (single source
+    //      of truth for the AUTO TOUR and DUMP THIS PAGE entry points).
+    //   2. Clicking the dedicated DUMP FOR SHARING button (forces share mode
+    //      for that one click regardless of PII_MODE).
+    // Both routes feed the same pure pipeline. Off-mode dumps are byte-identical
+    // to v4.7.0 except for the inspector VERSION string.
+    //
+    // Pipeline shape: (bundle) -> bundle, where bundle is { meta, pages: [...] }.
+    // The single-dump handler wraps a single page into a 1-page bundle, runs
+    // the pipeline, then unwraps the page. The audit block lives in:
+    //   - bundle.meta.pii  for tour dumps
+    //   - dump.meta.pii    for single-page dumps
+    //
+    // Steps implemented in v4.8.0-share-1:
+    //   Step 0 - top-level whitelist
+    //   Step 1 - plain-text + token strip
+    //   Step 2 - settings whitelist
+    //   Step 4 - audit block
+    // Steps deferred to slice 2 (-share-2):
+    //   Step 3 - id hashing + pseudonyms + per-dump shuffle
+    //   Step 5 - time / counter rounding
+
+    const SHARE_PIPELINE_VERSION = 1;
+    const SHARE_PII_WARNING = "Dump went through anonymisation. Suitable for public bug reports.";
+
+    // Step 0 - per-page top-level whitelist. game_context handled separately
+    // (only its body_page sub-key is kept).
+    const SHARE_PAGE_KEYS = new Set([
+        'tour_meta', 'meta', 'hero_infos', 'girls_full', 'battle', 'teams',
+        'ajax_observed', 'local_storage'
+    ]);
+
+    // Step 0 - hero_infos sub-whitelist
+    const SHARE_HERO_INFOS_INFOS_KEYS = new Set(['level', 'class', 'caracs', 'questing']);
+    const SHARE_HERO_INFOS_QUESTING_KEYS = new Set(['id_world']);
+
+    // Step 0 - battle sub-whitelist
+    const SHARE_BATTLE_KEYS = new Set([
+        'daily_goals_list', 'contests_timer', 'event_data', 'current_event',
+        'mega_event_active', 'mega_event_time_remaining', 'labyrinth_data',
+        'penta_drill_data', 'synergies', 'love_raids', 'championData',
+        'league_rewards', 'current_tier_number'
+    ]);
+
+    // Step 0 - teams.opponents_list[*] keep set (player.* sub-keys filtered too).
+    // Re-id fields (nickname, id_member, id_fighter, club, match_history,
+    // player_league_points) are dropped here and will be hashed in slice 2.
+    const SHARE_OPP_KEYS = new Set([
+        'level', 'power', 'place', 'country', 'can_fight',
+        'current_season_mojo', 'boosters', 'player'
+    ]);
+    const SHARE_OPP_PLAYER_KEYS = new Set([
+        'level', 'power', 'place', 'country', 'can_fight',
+        'current_season_mojo', 'boosters'
+    ]);
+
+    // Step 2 - localStorage settings whitelist (HHAuto_Setting_* / HHAuto_Temp_*).
+    const SHARE_SETTINGS_WHITELIST = new Set([
+        'HHAuto_Setting_paranoia',
+        'HHAuto_Setting_paranoiaSettings',
+        'HHAuto_Setting_paranoiaSpendsBefore',
+        'HHAuto_Setting_safeSecondsForContest',
+        'HHAuto_Setting_collectAllTimer',
+        'HHAuto_Setting_buyCombat',
+        'HHAuto_Setting_buyCombTimer',
+        'HHAuto_Setting_buyMythicCombat',
+        'HHAuto_Setting_buyMythicCombTimer',
+        'HHAuto_Setting_autoLeagues',
+        'HHAuto_Setting_autoLeaguesCollect',
+        'HHAuto_Setting_autoLeaguesAllowWinCurrent',
+        'HHAuto_Setting_autoLeaguesBoostedOnly',
+        'HHAuto_Setting_autoLeaguesRunThreshold',
+        'HHAuto_Setting_autoLeaguesForceOneFight',
+        'HHAuto_Setting_autoLeaguesSelectedIndex',
+        'HHAuto_Setting_autoLeaguesSortIndex',
+        'HHAuto_Setting_autoLeaguesThreshold',
+        'HHAuto_Setting_autoLeaguesSecurityThreshold',
+        'HHAuto_Setting_autoSeason',
+        'HHAuto_Setting_autoSeasonCollect',
+        'HHAuto_Setting_autoSeasonCollectAll',
+        'HHAuto_Setting_autoSeasonIgnoreNoGirls',
+        'HHAuto_Setting_autoSeasonPassReds',
+        'HHAuto_Setting_autoSeasonThreshold',
+        'HHAuto_Setting_autoSeasonRunThreshold',
+        'HHAuto_Setting_autoSeasonMaxTier',
+        'HHAuto_Setting_autoSeasonMaxTierNb',
+        'HHAuto_Setting_autoSeasonBoostedOnly',
+        'HHAuto_Setting_autoSeasonSkipLowMojo',
+        'HHAuto_Setting_autoPentaDrill',
+        'HHAuto_Setting_autoPentaDrillCollect',
+        'HHAuto_Setting_autoPentaDrillCollectAll',
+        'HHAuto_Setting_autoPentaDrillThreshold',
+        'HHAuto_Setting_autoPentaDrillRunThreshold',
+        'HHAuto_Setting_autoPentaDrillBoostedOnly',
+        'HHAuto_Setting_autoChamps',
+        'HHAuto_Setting_autoChampAlignTimer',
+        'HHAuto_Setting_autoChampsForceStart',
+        'HHAuto_Setting_autoChampsFilter',
+        'HHAuto_Setting_autoChampsTeamLoop',
+        'HHAuto_Setting_autoChampsGirlThreshold',
+        'HHAuto_Setting_autoChampsTeamKeepSecondLine',
+        'HHAuto_Setting_autoChampsUseEne',
+        'HHAuto_Setting_autoBuildChampsTeam',
+        'HHAuto_Setting_autoChampsForceStartEventGirl',
+        'HHAuto_Setting_autoClubChamp',
+        'HHAuto_Setting_autoClubChampMax',
+        'HHAuto_Setting_autoClubForceStart',
+        'HHAuto_Setting_autoTrollBattle',
+        'HHAuto_Setting_autoTrollMythicByPassParanoia',
+        'HHAuto_Setting_autoTrollSelectedIndex',
+        'HHAuto_Setting_autoTrollThreshold',
+        'HHAuto_Setting_autoTrollRunThreshold',
+        'HHAuto_Setting_autoTrollLoveRaidByPassThreshold',
+        'HHAuto_Setting_eventTrollOrder',
+        'HHAuto_Setting_autoBuyTrollNumber',
+        'HHAuto_Setting_autoBuyMythicTrollNumber',
+        'HHAuto_Setting_autoLoveRaidMythicOnly',
+        'HHAuto_Setting_plusLoveRaid',
+        'HHAuto_Setting_autoLoveRaidSelectedIndex',
+        'HHAuto_Setting_buyLoveRaidCombat',
+        'HHAuto_Setting_autoBuyLoveRaidTrollNumber',
+        'HHAuto_Setting_autoFreeBundlesCollect',
+        'HHAuto_Setting_autoFreeBundlesCollectablesList',
+        'HHAuto_Setting_plusEventSandalWood',
+        'HHAuto_Setting_plusEventMythicSandalWood',
+        'HHAuto_Setting_plusEventLoveRaidSandalWood',
+        'HHAuto_Setting_plusGirlSkins',
+        'HHAuto_Setting_autoPantheonBoostedOnly',
+        'HHAuto_Setting_autoFreePachinko',
+        'HHAuto_Setting_autoBuyBoosters',
+        'HHAuto_Setting_autoBuyBoostersFilter',
+        'HHAuto_Setting_autoEquipBoosters',
+        'HHAuto_Setting_autoEquipBoostersSlots',
+        'HHAuto_Setting_maxBooster',
+        'HHAuto_Setting_minShardsX10',
+        'HHAuto_Setting_minShardsX50',
+        'HHAuto_Setting_sandalwoodMinShardsThreshold',
+        'HHAuto_Setting_useX10Fights',
+        'HHAuto_Setting_useX50Fights',
+        'HHAuto_Setting_autoSalary',
+        'HHAuto_Setting_autoSalaryMinSalary',
+        'HHAuto_Setting_autoStats',
+        'HHAuto_Setting_autoStatsSwitch',
+        'HHAuto_Setting_mousePause',
+        'HHAuto_Setting_mousePauseTimeout',
+        'HHAuto_Setting_waitforContest',
+        'HHAuto_Setting_master',
+        'HHAuto_Setting_updateMarket',
+        'HHAuto_Temp_sandalwoodMaxUsages',
+        'HHAuto_Temp_boosterStatus'
+    ]);
+
+    // Step 1 - patterns to redact in plain text (defence in depth).
+    const SHARE_TOKEN_KEY_PATTERN = /(token|secret|csrf|cookie)/i;
+    // JWT-shaped: 3 base64url-ish segments, first >= 20 chars, others >= 10.
+    const SHARE_JWT_PATTERN = /[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g;
+    // Personalised CDN asset paths: /<32 hex>.<image-ext>
+    const SHARE_CDN_HASH_PATTERN = /\/[a-f0-9]{32}\.(?:png|jpg|jpeg|webp|gif)\b/gi;
+
+    function shareReadHeroNickname(page) {
+        try {
+            const v = page && page.hero_infos && page.hero_infos.infos && page.hero_infos.infos.name;
+            if (typeof v === 'string' && v.length > 0) return v;
+        } catch (e) {}
+        return null;
+    }
+
+    function sharePickKeys(obj, allowed) {
+        if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+        const out = {};
+        for (const k of Object.keys(obj)) {
+            if (allowed.has(k)) out[k] = obj[k];
+        }
+        return out;
+    }
+
+    function shareApplyTopLevelWhitelist(page, counters) {
+        if (!page || typeof page !== 'object') return page;
+        const out = {};
+        let droppedCount = 0;
+        for (const k of Object.keys(page)) {
+            if (k === 'game_context' || SHARE_PAGE_KEYS.has(k)) continue;
+            droppedCount += 1;
+        }
+        if ('meta' in page) out.meta = page.meta;
+        if ('tour_meta' in page) out.tour_meta = page.tour_meta;
+        if ('game_context' in page) {
+            const gc = page.game_context || {};
+            const slim = {};
+            if ('body_page' in gc) slim.body_page = gc.body_page;
+            out.game_context = slim;
+        }
+        if ('hero_infos' in page) {
+            const hi = page.hero_infos || {};
+            const slim = {};
+            if (hi.infos && typeof hi.infos === 'object') {
+                const infosOut = {};
+                for (const ik of Object.keys(hi.infos)) {
+                    if (!SHARE_HERO_INFOS_INFOS_KEYS.has(ik)) continue;
+                    if (ik === 'questing' && hi.infos.questing && typeof hi.infos.questing === 'object') {
+                        const qOut = {};
+                        for (const qk of Object.keys(hi.infos.questing)) {
+                            if (SHARE_HERO_INFOS_QUESTING_KEYS.has(qk)) qOut[qk] = hi.infos.questing[qk];
+                        }
+                        infosOut.questing = qOut;
+                    } else {
+                        infosOut[ik] = hi.infos[ik];
+                    }
+                }
+                slim.infos = infosOut;
+            }
+            out.hero_infos = slim;
+        }
+        if ('girls_full' in page) out.girls_full = page.girls_full;
+        if ('battle' in page) {
+            out.battle = sharePickKeys(page.battle, SHARE_BATTLE_KEYS);
+        }
+        if ('teams' in page) {
+            const teams = page.teams || {};
+            const teamsOut = {};
+            for (const tk of Object.keys(teams)) {
+                const tv = teams[tk];
+                if (Array.isArray(tv) && tk === 'opponents_list') {
+                    teamsOut[tk] = tv.map(function(opp) {
+                        if (!opp || typeof opp !== 'object') return opp;
+                        const slim = sharePickKeys(opp, SHARE_OPP_KEYS);
+                        if (slim.player && typeof slim.player === 'object') {
+                            slim.player = sharePickKeys(slim.player, SHARE_OPP_PLAYER_KEYS);
+                        }
+                        return slim;
+                    });
+                } else {
+                    teamsOut[tk] = tv;
+                }
+            }
+            out.teams = teamsOut;
+        }
+        if ('ajax_observed' in page) out.ajax_observed = page.ajax_observed;
+        if ('local_storage' in page) out.local_storage = page.local_storage;
+
+        if (counters) counters.top_level_keys_dropped += droppedCount;
+        return out;
+    }
+
+    function shareWalkPlainText(node, nickname, counters) {
+        if (node === null || node === undefined) return node;
+        const t = typeof node;
+        if (t === 'string') {
+            let s = node;
+            let changed = false;
+            if (nickname && s.indexOf(nickname) !== -1) {
+                s = s.split(nickname).join('[redacted]');
+                changed = true;
+            }
+            if (s.match(SHARE_JWT_PATTERN)) {
+                s = s.replace(SHARE_JWT_PATTERN, '[redacted]');
+                changed = true;
+            }
+            if (s.match(SHARE_CDN_HASH_PATTERN)) {
+                s = s.replace(SHARE_CDN_HASH_PATTERN, '/[redacted]');
+                changed = true;
+            }
+            if (changed && counters) counters.plain_text_replacements += 1;
+            return s;
+        }
+        if (t !== 'object') return node;
+        if (Array.isArray(node)) {
+            for (let i = 0; i < node.length; i++) {
+                node[i] = shareWalkPlainText(node[i], nickname, counters);
+            }
+            return node;
+        }
+        for (const k of Object.keys(node)) {
+            if (SHARE_TOKEN_KEY_PATTERN.test(k)) {
+                delete node[k];
+                if (counters) counters.token_keys_dropped += 1;
+                continue;
+            }
+            node[k] = shareWalkPlainText(node[k], nickname, counters);
+        }
+        return node;
+    }
+
+    function shareFilterLocalStorage(localStorageObj, counters) {
+        if (!localStorageObj || typeof localStorageObj !== 'object') return localStorageObj;
+        const out = {};
+        for (const bucketKey of Object.keys(localStorageObj)) {
+            const bucket = localStorageObj[bucketKey];
+            if (!bucket || typeof bucket !== 'object') {
+                out[bucketKey] = bucket;
+                continue;
+            }
+            const slim = {};
+            for (const k of Object.keys(bucket)) {
+                if (SHARE_SETTINGS_WHITELIST.has(k)) {
+                    slim[k] = bucket[k];
+                    if (counters) counters.storage_keys_kept += 1;
+                } else {
+                    if (counters) counters.storage_keys_dropped += 1;
+                }
+            }
+            out[bucketKey] = slim;
+        }
+        return out;
+    }
+
+    function applyShareModePipeline(bundle) {
+        if (!bundle || typeof bundle !== 'object') return bundle;
+        const counters = {
+            top_level_keys_dropped: 0,
+            plain_text_replacements: 0,
+            token_keys_dropped: 0,
+            storage_keys_kept: 0,
+            storage_keys_dropped: 0,
+            ids_hashed: 0,
+            girls_pseudonymised: 0,
+            timestamps_rounded: 0
+        };
+        const pages = Array.isArray(bundle.pages) ? bundle.pages : [];
+        // Snapshot the hero nickname before the whitelist drops it.
+        let nickname = null;
+        for (let i = 0; i < pages.length; i++) {
+            const n = shareReadHeroNickname(pages[i]);
+            if (n) { nickname = n; break; }
+        }
+        for (let i = 0; i < pages.length; i++) {
+            let page = pages[i];
+            page = shareApplyTopLevelWhitelist(page, counters);
+            if (page && page.local_storage) {
+                page.local_storage = shareFilterLocalStorage(page.local_storage, counters);
+            }
+            shareWalkPlainText(page, nickname, counters);
+            pages[i] = page;
+        }
+        if (!bundle.meta || typeof bundle.meta !== 'object') bundle.meta = {};
+        bundle.meta.pii = {
+            mode: "share",
+            pipeline_version: SHARE_PIPELINE_VERSION,
+            inspector_version: VERSION,
+            pages_processed: pages.length,
+            layers_applied: [
+                "top_level_whitelist",
+                "plain_text_strip",
+                "settings_whitelist"
+            ],
+            layer_counts: {
+                top_level_keys_dropped: counters.top_level_keys_dropped,
+                plain_text_replacements: counters.plain_text_replacements,
+                token_keys_dropped: counters.token_keys_dropped,
+                storage_keys_kept: counters.storage_keys_kept,
+                storage_keys_dropped: counters.storage_keys_dropped,
+                ids_hashed: counters.ids_hashed,
+                girls_pseudonymised: counters.girls_pseudonymised,
+                timestamps_rounded: counters.timestamps_rounded
+            },
+            warning_for_user: SHARE_PII_WARNING,
+            salt_present: false
+        };
+        return bundle;
+    }
+
+    function applyShareModeToSingleDump(dump) {
+        const wrapper = { meta: {}, pages: [dump] };
+        applyShareModePipeline(wrapper);
+        const out = wrapper.pages[0] || {};
+        if (!out.meta || typeof out.meta !== 'object') out.meta = {};
+        out.meta.pii = wrapper.meta.pii;
+        return out;
+    }
+
+    function runSingleDump(forceShare) {
+        const ctx = detectMode();
+        try { installAjaxHooks(ctx && ctx.win); } catch (e) {}
+        const markerIdx = ajaxBufferMark();
+        // Brief capture window so any in-flight or auto-fired Game-AJAX is recorded.
+        setTimeout(function() {
+            const dump = dumpEverything(ctx);
+            fetchBlessings(ctx, function(blessings) {
+                dump.live_blessings_api = blessings;
+                dump.ajax_observed = ajaxBufferSliceFrom(markerIdx, AJAX_CAPTURE_PER_STEP_LIMIT);
+                const useShare = !!forceShare || PII_MODE === "share";
+                const finalDump = useShare ? applyShareModeToSingleDump(dump) : dump;
+                const text = safeStringify(finalDump);
+                const body = (ctx.doc || document).querySelector('body[page]');
+                const baseSuffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
+                const suffix = useShare ? baseSuffix + '_share' : baseSuffix;
+                showSingleDumpOverlay(text, suffix);
+            });
+        }, AJAX_CAPTURE_SETTLE_EXTRA_MS);
+    }
+
     // ==================== UI ====================
 
     function mkBtn(text, color, onclick) {
@@ -1130,6 +1531,10 @@
             },
             pages: pages
         };
+        if (PII_MODE === "share") {
+            try { applyShareModePipeline(bundle); }
+            catch (e) { console.error(LOG_PREFIX, 'share pipeline failed:', e); }
+        }
         const text = safeStringify(bundle);
         const sizeKb = Math.round(text.length / 1024);
         downloadJson(text, 'tour');
@@ -1189,23 +1594,13 @@
         const single = document.createElement('div');
         single.textContent = 'DUMP THIS PAGE';
         single.style.cssText = 'background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
-        single.onclick = function() {
-            const ctx = detectMode();
-            try { installAjaxHooks(ctx && ctx.win); } catch (e) {}
-            const markerIdx = ajaxBufferMark();
-            // Brief capture window so any in-flight or auto-fired Game-AJAX is recorded.
-            setTimeout(function() {
-                const dump = dumpEverything(ctx);
-                fetchBlessings(ctx, function(blessings) {
-                    dump.live_blessings_api = blessings;
-                    dump.ajax_observed = ajaxBufferSliceFrom(markerIdx, AJAX_CAPTURE_PER_STEP_LIMIT);
-                    const text = safeStringify(dump);
-                    const body = (ctx.doc || document).querySelector('body[page]');
-                    const suffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
-                    showSingleDumpOverlay(text, suffix);
-                });
-            }, AJAX_CAPTURE_SETTLE_EXTRA_MS);
-        };
+        single.onclick = function() { runSingleDump(false); };
+
+        const share = document.createElement('div');
+        share.textContent = 'DUMP FOR SHARING';
+        share.style.cssText = 'background:#ff9800;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
+        share.title = 'Forces PII share-mode pipeline (anonymises hero nickname, drops chat_token, settings whitelist).';
+        share.onclick = function() { runSingleDump(true); };
 
         const tour = document.createElement('div');
         tour.textContent = 'AUTO TOUR';
@@ -1214,6 +1609,7 @@
         tour.title = AUTO_TOUR.length + ' auto pages, then ' + MANUAL_TOUR.length + ' manual pages, then bundle download.';
 
         wrap.appendChild(single);
+        wrap.appendChild(share);
         wrap.appendChild(tour);
         document.body.appendChild(wrap);
     }
