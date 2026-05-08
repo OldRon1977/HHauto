@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 in progress**, task 3.1 done; next is task 3.2 (Pantheon)
-- Last completed task: 3.1 (ClubChampion pure-function extraction + decision tests)
+- Current stage: **3 in progress**, tasks 3.1 + 3.2 done; next is task 3.3 (MonthlyCard)
+- Last completed task: 3.2 (Pantheon pure-function extraction + decision tests)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.2 (Pantheon decision tests). Inspect `src/Module/Pantheon.ts` for decision points; extract pure logic into `src/Module/Pantheon.pure.ts` if a stage-1-style extraction fits, else document the substitution.
+- Next step: stage 3 task 3.3 (MonthlyCard decision tests). Inspect `src/Module/MonthlyCard.ts` for decision points (`shouldClaim`, `getNextClaimTime` per the plan); extract pure logic into `src/Module/MonthlyCard.pure.ts` if a stage-1-style extraction fits, else document the substitution.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -434,7 +434,34 @@ module.
     structural only.
   - Tests: 648 passed (633 + 15), 0 skipped, 48 suites.
   - Merged via PR #1636, commit d6e4e38.
-- [ ] **3.2** Pantheon -- isEnabled (real logic, not trivial), isTimeToFight
+- [x] **3.2** Pantheon -- pure decision logic extracted (2026-05-08)
+  - No plan deviation in scope: both `isEnabled` and
+    `isTimeToFight` extracted as pure functions. Naming follows the
+    stage-1 convention (`decideIsEnabled`, `decideShouldFight`); the
+    `decideShouldFight` symbol shadows the same name in
+    `League.pure` only at the file boundary, callers import from
+    `Pantheon.pure` directly so no global collision.
+  - New module: `src/Module/Pantheon.pure.ts` exports
+    `decideIsEnabled`, `decideShouldFight`, and the typed
+    `IsEnabledState` / `ShouldFightState` shapes.
+  - `Pantheon.isEnabled` builds the state and delegates.
+  - `Pantheon.isTimeToFight` builds the state and delegates. The
+    impure adapter recomputes `energyAboveThreshold` locally only
+    because the existing diagnostic log line ("Time for pantheon
+    but no booster equipped") still depends on it; the pure
+    function recomputes the same expression independently.
+  - Bit-for-bit equivalent: `>=` on the level gate, strict `>` on
+    the energy gate, `runThreshold - 1` off-by-one preserved,
+    operator precedence preserved on the booster branch
+    (`(needBoosterToFight && haveBoosterEquipped) || !needBooster
+    ToFight || isDailyGoal`).
+  - Behaviour delta: `ParanoiaService.checkParanoiaSpendings(
+    'worship')` is now called unconditionally; previously it was
+    short-circuited away when energy was zero. Read-only call,
+    no side effects. Same delta accepted in League stage 1
+    task 1.1.
+  - Tests: 664 passed (648 + 16), 0 skipped, 49 suites.
+  - Merged via PR #1638, commit e54db73.
 - [ ] **3.3** MonthlyCard -- shouldClaim, getNextClaimTime
 - [ ] **3.4** LabyrinthAuto -- entire decision pipeline
 - [ ] **3.5** Bundles -- visibility / trigger
@@ -540,3 +567,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Task 2.5 done: Event fixture (event-detection from page 13, compound event_data + mega_event) + 5 new smoke tests (633 total), no src changes, no plan deviation (plan specified only the file name), merged via PR #1632 (commit 13c5f82) |
 | 2026-05-07 | Stage 2 finished: 4 fixture sets (league / haremGirl / champion / event) + shared loader, 23 new smoke tests across 4 fixture PRs (1626/1628/1630/1632) and 4 doc PRs (1627/1629/1631/1633), 633 total, no src changes; three plan deviations documented in the affected fixture READMEs; deferrals for stage 3 (parseGirlsFromGameData) and beyond (champion-map needs a different testing approach for DOM-derived state) carried forward in the status block |
 | 2026-05-08 | Task 3.1 done: ClubChampion pure-function extraction (`decideNextClubChampionTime`, `decideAlignedClubChampionTimer`) + 15 new pure tests (648 total), bundle diff structural, plan deviation in extracted scope documented in the task entry (no `isTimeToFight` equivalent in the module; `getNextChampionTime` renamed to `decideNextClubChampionTime` for clarity and to avoid the name clash with `Champion.pure.decideNextChampionTime`), merged via PR #1636 (commit d6e4e38) |
+| 2026-05-08 | Task 3.2 done: Pantheon pure-function extraction (`decideIsEnabled`, `decideShouldFight`) + 16 new pure tests (664 total), bundle diff structural, no plan deviation in scope; behaviour delta documented (`ParanoiaService.checkParanoiaSpendings` now called unconditionally, mirroring League stage 1 task 1.1), merged via PR #1638 (commit e54db73) |
