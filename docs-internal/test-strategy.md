@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **4 in progress** (reliability layer)
-- Last completed task: 4.2 first slice (storage-migration helpers `safeJsonParse` / `isJSON` / `getStoredJSON` plus a real settings snapshot smoke pass)
-- Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4 alongside the storage-migration tests)
-- Next step: stage 4 task 4.2 next slice. Module-level migration tests for the four sites that call `JSON.parse` directly on a stored value (BDSMHelper, EventModule, AutoLoopActions, Shop -- all guarded by `isJSON` today, so the contract is the same no-throw / fall-back-to-default). Pick one site per slice.
+- Last completed task: 4.2 (storage migration tests -- closed after one slice)
+- Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4)
+- Next step: stage 4 task 4.3 (multi-domain smoke). Per domain clone (`hentaiheroes.com`, `gayharem.com`, `comixharem.com`, `mangarpg.com`, plus the `tour` subdomain captured in the dump) one test for `domain.includes()` and `ConfigHelper` domain detection. New file `spec/config/Domain.spec.ts`.
 - Carried-forward reminders for stage 4:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -711,11 +711,8 @@ module.
     cannot be exercised in the inspector without game-state effects.
     4.1 is therefore closed at one slice with an explicit no-consumer
     note for the two extra observed endpoints.
-- [ ] **4.2** Storage migration tests
-  - Old storage values from earlier versions as fixtures
-  - Test: reader does not crash, default value kicks in
-  - Source: `INPUT/HH_DebugLog_*.log` contains current storage snapshots
-  - First slice landed: storage-migration helpers (2026-05-08)
+- [x] **4.2** Storage migration tests (2026-05-08)
+  - Helpers slice (only slice):
     - `spec/Service/StorageMigration.spec.ts` -- 26 new tests covering
       `safeJsonParse` / `isJSON` / `getStoredJSON` edge cases plus a
       smoke pass over a real settings snapshot.
@@ -725,12 +722,34 @@ module.
       sessionStorage payloads.
     - Plan deviation documented in the spec: `isJSON` is intentionally
       a liberal regex pre-check; `safeJsonParse` remains the hard
-      no-throw guard. Tightening the regex is out of scope here.
+      no-throw guard.
     - No `src/` change.
     - Tests: 743 passed (717 + 26), 54 suites.
     - Coverage: 30.62 statements / 19.75 branches / 26.22 functions /
       31.12 lines (was 30.55 / 19.67 / 26.15 / 31.06).
     - Merged via PR #1654, commit 3d1f208.
+  - Closure rationale (plan deviation, agreed with the user before
+    closing): the plan listed module-level migration tests for the
+    four sites that combine `isJSON` with `JSON.parse` on stored
+    values. After re-reading the live source:
+    - `BDSMHelper.ts:428` and `AutoLoopActions.ts:169` are commented
+      out (`by const ...` / `//console.log(...)`); not live code.
+    - `Market.ts:38` only uses `isJSON` for a defensive log line; the
+      actual parse goes through `getStoredJSON` (already covered).
+    - `Shop.ts:101` uses `isJSON` + `getStoredJSON`; both already
+      covered.
+    - `EventModule.ts:792` is inside a `/* ... */` block; not live.
+    There is no remaining ungauarded `JSON.parse(getStoredValue(...))`
+    site in live code that the helpers slice does not already cover.
+    A `setDefaults` boot-path test was offered as an alternative slice
+    and explicitly declined; defaults flow through the same
+    `getStoredValue` reader the helpers slice covers.
+  - Optional follow-up slices recorded for future reference (not
+    blocking 4.2):
+    - `extractHHVars` with corrupted `Temp_Logging` (defensive parse
+      already in place, so test value is small).
+    - `setDefaults` boot path coverage (every registered key -> the
+      registry default after a `localStorage.clear()`).
 - [ ] **4.3** Multi-domain smoke
   - Per domain clone (hentaiheroes, gayharem, comixharem, mangarpg, ...) one
     test for `domain.includes()` and ConfigHelper domain detection
@@ -830,3 +849,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 4.1 first endpoint slice: live-blessings AJAX schema fixtures (3 temporal snapshots) + parser smoke test (`parseTraits` / `parseBlessedValues` / `parseElement` / `parseBlessingPercent` on real payloads via a typed `BlessingParserSurface` view; no `any`); fixture content is the inner `live_blessings_api.live` value (= actual game-API response BlessingService consumes); 6 new tests (717 total, 53 suites); coverage 30.13->30.55 statements / 18.94->19.67 branches / 25.79->26.15 functions / 30.69->31.06 lines; no plan deviation; merged via PR #1648 (commit 3e647be) |
 | 2026-05-08 | Task 4.1 closed: inspector inventory pass via v4.7.0 (PRs #1650/#1651/#1652 -- per-step XHR observer, auto-update URLs, persistent XHR + fetch hooks). Fresh tour bundle (`hhauto_dump_..._2026-05-08T13-35-50-669Z.json`, inspector v4.7.0) shows three observed endpoints across all 32 pages: `get_girls_blessings` (covered by the live-blessings slice), `process_rewards_queue`, `show_specific_girl_grade`. The latter two have no HHAuto consumer; recorded as audit hints. Plan deviation documented (closing 4.1 with one schema test set; remaining `pages[*].battle.*` / `pages[*].girls_full.*` paths are page-globals already covered in stage 2 fixtures, not AJAX responses; remaining 12 src/ AJAX call sites are writes and not testable from the inspector). Next step: stage 4 task 4.2 (storage migration tests) |
 | 2026-05-08 | Task 4.2 first slice: storage-migration helpers spec (`safeJsonParse` / `isJSON` / `getStoredJSON` edge cases) plus a real settings snapshot smoke pass; `spec/fixtures/storage-snapshot/setting-snapshot.json` curated from `INPUT/HH_DebugLog_1778140621437.log` (21 keys covering boolean / integer / semicolon-list / JSON-array / custom-format / sessionStorage payloads). 26 new tests (743 total, 54 suites). Coverage 30.55->30.62 statements / 19.67->19.75 branches / 26.15->26.22 functions / 31.06->31.12 lines. Plan deviation documented (`isJSON` is intentionally a liberal regex pre-check; `safeJsonParse` remains the hard no-throw guard). No `src/` change. Merged via PR #1654 (commit 3d1f208) |
+| 2026-05-08 | Task 4.2 closed (helpers slice only): plan deviation documented after re-reading live source -- the four module-level `JSON.parse(getStored...)` sites the plan listed are either commented out (`BDSMHelper:428`, `AutoLoopActions:169`, `EventModule:792`) or already covered by the helpers slice (`Market:38` defensive log + `getStoredJSON`, `Shop:101` `isJSON` + `getStoredJSON`); no remaining ungauarded `JSON.parse` site in live code. Optional follow-up slices recorded but not blocking (`extractHHVars` corrupted `Temp_Logging`; `setDefaults` boot-path). Next step: stage 4 task 4.3 (multi-domain smoke) |
