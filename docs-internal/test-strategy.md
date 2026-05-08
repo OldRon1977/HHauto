@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 in progress**, tasks 3.1 + 3.2 done; next is task 3.3 (MonthlyCard)
-- Last completed task: 3.2 (Pantheon pure-function extraction + decision tests)
+- Current stage: **3 in progress**, tasks 3.1 + 3.2 + 3.3 done; next is task 3.4 (LabyrinthAuto)
+- Last completed task: 3.3 (MonthlyCard -- skipped after inspection, no decision-logic candidate; documented in the task entry)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.3 (MonthlyCard decision tests). Inspect `src/Module/MonthlyCard.ts` for decision points (`shouldClaim`, `getNextClaimTime` per the plan); extract pure logic into `src/Module/MonthlyCard.pure.ts` if a stage-1-style extraction fits, else document the substitution.
+- Next step: stage 3 task 3.4 (LabyrinthAuto decision pipeline). Inspect `src/Module/LabyrinthAuto.ts` for decision points; extract pure logic into `src/Module/LabyrinthAuto.pure.ts` if a stage-1-style extraction fits, else document the substitution.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -462,7 +462,29 @@ module.
     task 1.1.
   - Tests: 664 passed (648 + 16), 0 skipped, 49 suites.
   - Merged via PR #1638, commit e54db73.
-- [ ] **3.3** MonthlyCard -- shouldClaim, getNextClaimTime
+- [x] **3.3** MonthlyCard -- skipped after inspection, no decision-logic candidate (2026-05-08)
+  - Plan deviation (agreed with the user before any change): the
+    plan listed `shouldClaim` + `getNextClaimTime`. The module has
+    neither. Despite the name, `MonthlyCard.ts` does not handle
+    monthly-card claiming or timers; its single public method
+    `updateInputPattern()` builds regex strings for the settings-
+    UI input validators (`HHAuto_inputPattern.*`) based on
+    `getEnergyMax()` of League / Season / Pantheon / PentaDrill /
+    Quest / Troll. There is no claim flow, no timer, no AJAX call,
+    no hero-level gate.
+  - Stage-3 acceptance criteria (default / boundaries / setting-
+    off / hero-level too low / timer active / energy edge / AJAX
+    error) do not map onto string-building. The existing
+    `spec/Module/MonthlyCards.spec.ts` already covers all 6
+    energy-type tier mappings with 24 tests; the function is
+    additionally wrapped in a try/catch which addresses the
+    "AJAX error" class without extra tests.
+  - Decision: skip 3.3 as a no-op stage-3 task. No code change,
+    no pure module, no new tests. Tests stay at 664 / 49 suites.
+  - Singleton-mutation cleanup of `updateInputPattern` (replacing
+    the in-place `HHAuto_inputPattern.*` writes with a returned
+    object) is style refactoring, not test-strategy work, and
+    will be filed separately if the user decides to pursue it.
 - [ ] **3.4** LabyrinthAuto -- entire decision pipeline
 - [ ] **3.5** Bundles -- visibility / trigger
 - [ ] **3.6** LivelyScene, BossBang -- isAvailable, timer reset
@@ -568,3 +590,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-07 | Stage 2 finished: 4 fixture sets (league / haremGirl / champion / event) + shared loader, 23 new smoke tests across 4 fixture PRs (1626/1628/1630/1632) and 4 doc PRs (1627/1629/1631/1633), 633 total, no src changes; three plan deviations documented in the affected fixture READMEs; deferrals for stage 3 (parseGirlsFromGameData) and beyond (champion-map needs a different testing approach for DOM-derived state) carried forward in the status block |
 | 2026-05-08 | Task 3.1 done: ClubChampion pure-function extraction (`decideNextClubChampionTime`, `decideAlignedClubChampionTimer`) + 15 new pure tests (648 total), bundle diff structural, plan deviation in extracted scope documented in the task entry (no `isTimeToFight` equivalent in the module; `getNextChampionTime` renamed to `decideNextClubChampionTime` for clarity and to avoid the name clash with `Champion.pure.decideNextChampionTime`), merged via PR #1636 (commit d6e4e38) |
 | 2026-05-08 | Task 3.2 done: Pantheon pure-function extraction (`decideIsEnabled`, `decideShouldFight`) + 16 new pure tests (664 total), bundle diff structural, no plan deviation in scope; behaviour delta documented (`ParanoiaService.checkParanoiaSpendings` now called unconditionally, mirroring League stage 1 task 1.1), merged via PR #1638 (commit e54db73) |
+| 2026-05-08 | Task 3.3 skipped: MonthlyCard has no claim flow / timer / hero-level gate -- its single public method `updateInputPattern()` only builds regex strings for the settings UI, fully covered by the existing `MonthlyCards.spec.ts` (24 tests). No code change, no PR, only doc update; tests stay at 664 / 49 suites. |
