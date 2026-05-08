@@ -5,16 +5,12 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 finished**, ready to start **stage 4 (reliability layer)**
-- Last completed task: 3.7 (stage 3 closure)
+- Current stage: **4 in progress** (reliability layer)
+- Last completed task: 4.1 first endpoint slice (live-blessings AJAX schema)
 - Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4 alongside the storage-migration tests)
-- Next step: stage 4 task 4.1 (AJAX schema tests). Pick a real AJAX response from the dump (e.g. `live_blessings_api.live`), copy a redacted sample into a `spec/fixtures/<endpoint>/` set, and add one parser test per response type that asserts the parser does not crash on real payloads.
+- Next step: stage 4 task 4.1 next endpoint slice. The plan calls for one validator test per AJAX response type; the next candidates from the dump are `pages[*].battle.*` and `pages[*].girls_full.*`. Pick the next shape, copy a redacted sample to `spec/fixtures/<endpoint>/`, and add one parser test per response type that asserts the parser does not crash on real payloads.
 - Carried-forward reminders for stage 4:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
-  - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
-  - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
-- Carried-forward reminders for stage 3:
-  - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
   - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
 
@@ -662,6 +658,28 @@ module.
 - [ ] **4.1** AJAX schema tests
   - Real responses from the dump as fixtures (e.g. `live_blessings_api.live`)
   - One validator test per response type: `parseResponse(realResponse)` does not crash
+  - First endpoint slice landed: live-blessings (2026-05-08)
+    - Source: `pages[*].live_blessings_api.live` (action=`get_girls_blessings`).
+      All 30 dump pages carry the same envelope shape; three temporal
+      snapshots persisted as `page-00.json` / `page-14.json` /
+      `page-29.json` to feed every parser branch (position, eyeColor,
+      labyrinth-filter rejection in active; hairColor / element / role
+      in upcoming).
+    - Inspector wraps the AJAX response as `{ live: <response>, error
+      }`; stored fixture content is the inner `live` value, i.e. the
+      actual game-API response that `BlessingService.fetchAndCache()`
+      consumes. No PII, no asset URLs, no IDs in this endpoint --
+      fixtures are stored verbatim.
+    - Schema test: `spec/fixtures/live-blessings/Schema.spec.ts` calls
+      every BlessingService parser (`parseTraits`, `parseBlessedValues`,
+      `parseElement`, `parseBlessingPercent`) on each snapshot and
+      asserts no-crash plus type plausibility. Private statics
+      (`parseTraits`, `parseElement`) accessed through a typed
+      `BlessingParserSurface` view; no `any`.
+    - No `src/` change in this slice; existing parsers are pure on
+      `response.active`.
+    - Tests: 717 passed (711 + 6), 53 suites.
+    - Merged via PR #1648, commit 3e647be.
 - [ ] **4.2** Storage migration tests
   - Old storage values from earlier versions as fixtures
   - Test: reader does not crash, default value kicks in
@@ -762,3 +780,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 3.5 done: Bundles `getExpiryTime` pure-function extraction (`decideExpiryTime`) + 6 new pure tests (698 total), bundle diff structural, plan deviation in scope documented in the task entry (no visibility/trigger logic in the module; only the 24-hour threshold check is pure); behaviour delta documented (`randomInterval(60, 180)` now called unconditionally, mirroring League stage 1 task 1.1 and Pantheon stage 3 task 3.2), merged via PR #1643 (commit cc8c80c) |
 | 2026-05-08 | Task 3.6 done: LivelyScene pure-function extraction (`decideCollectTrigger`, `selectClaimablePieces`) + 13 new pure tests (711 total), bundle diff structural; BossBang skipped (no isolatable pure logic, same rationale class as 3.3 MonthlyCard); plan deviation in scope documented in the task entry (`isAvailable` / `timer reset` headings did not map onto either module's actual code), merged via PR #1645 (commit 546df93) |
 | 2026-05-08 | Stage 3 finished: 5 pure modules (ClubChampion / Pantheon / Labyrinth / Bundles / LivelyScene), 76 new tests across 5 refactor PRs (1636/1638/1641/1643/1645) and 6 doc PRs (1637/1640/1642/1644/1646 plus the 3.3 skip-only doc PR), 711 total; six of seven sub-tasks renegotiated mid-flight when the plan's symbol names did not match the actual code; two sub-tasks shipped as documented skips (3.3 MonthlyCard -- module name is misleading; 3.6 BossBang half -- DOM-only); behaviour deltas documented per task, all read-only and without game-state effects |
+| 2026-05-08 | Task 4.1 first endpoint slice: live-blessings AJAX schema fixtures (3 temporal snapshots) + parser smoke test (`parseTraits` / `parseBlessedValues` / `parseElement` / `parseBlessingPercent` on real payloads via a typed `BlessingParserSurface` view; no `any`); fixture content is the inner `live_blessings_api.live` value (= actual game-API response BlessingService consumes); 6 new tests (717 total, 53 suites); coverage 30.13->30.55 statements / 18.94->19.67 branches / 25.79->26.15 functions / 30.69->31.06 lines; no plan deviation; merged via PR #1648 (commit 3e647be) |
