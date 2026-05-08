@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.6.1
+// @version      4.7.0
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -24,7 +24,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.6.1';
+    const VERSION = '4.7.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
@@ -649,18 +649,19 @@
         callback({ live: null, error: 'ajax not available' });
     }
 
-    // ==================== AJAX OBSERVER (passive XHR capture) ====================
-    // Hooks XMLHttpRequest.prototype.open + send while active and records every
-    // Game-AJAX response that completes during the capture window. Game-AJAX is
-    // identified by a relative URL or by an action= / class= form parameter in
-    // the request URL or body. Read-only: no requests are issued by the observer
-    // itself; it only watches what the page (and other userscripts) send.
+    // ==================== AJAX OBSERVER (persistent XHR + fetch capture) ====================
+    // Patches XMLHttpRequest.prototype and window.fetch on the target window(s).
+    // Hooks install once per window (idempotent via __hh_inspector_hooked) and run
+    // for the full inspector lifetime; the per-step buffer is sliced via marker
+    // indices. Read-only: no requests are issued by the observer itself.
+
+    const __hh_ajax_buffer = [];
 
     function looksLikeGameAjax(url, body) {
         try {
             if (!url) return false;
             // Same-origin or relative paths win
-            if (url.charAt(0) === '/' && url.charAt(1) !== '/') return true;
+            if (typeof url === 'string' && url.charAt(0) === '/' && url.charAt(1) !== '/') return true;
             try {
                 const u = new URL(url, location.href);
                 if (u.host === location.host) {
@@ -695,96 +696,191 @@
         return { action: action, class_: class_ };
     }
 
-    function createAjaxObserver(ctx) {
-        const captured = [];
-        const win = ctx && ctx.win ? ctx.win : unsafeWindow;
-        const XHR = win && win.XMLHttpRequest ? win.XMLHttpRequest : null;
-        if (!XHR || !XHR.prototype) {
-            return { start: function() {}, stop: function() { return []; } };
-        }
-        const origOpen = XHR.prototype.open;
-        const origSend = XHR.prototype.send;
-        let active = false;
+    function recordCaptured(meta) {
+        try {
+            // Soft cap to keep memory bounded across very long tours.
+            if (__hh_ajax_buffer.length > 5000) __hh_ajax_buffer.shift();
+            __hh_ajax_buffer.push(meta);
+        } catch (e) {}
+    }
 
-        function hookOpen(method, url) {
-            try {
-                this.__hh_inspector_method = (method || 'GET').toUpperCase();
-                this.__hh_inspector_url = url || '';
-                this.__hh_inspector_t0 = Date.now();
-            } catch (e) {}
-            return origOpen.apply(this, arguments);
+    function buildResponseSlot(text) {
+        const fullSize = (text && text.length) || 0;
+        const truncated = fullSize > AJAX_CAPTURE_RESPONSE_BYTE_LIMIT;
+        const out = truncated ? text.substring(0, AJAX_CAPTURE_RESPONSE_BYTE_LIMIT) : (text || '');
+        let json = null;
+        if (!truncated && out) {
+            try { json = JSON.parse(out); } catch (e) {}
         }
-
-        function hookSend(body) {
-            try {
-                const xhr = this;
-                const url = xhr.__hh_inspector_url || '';
-                const bodyStr = typeof body === 'string' ? body : null;
-                if (looksLikeGameAjax(url, bodyStr)) {
-                    const reqInfo = extractRequestActionClass(url, bodyStr);
-                    xhr.addEventListener('readystatechange', function() {
-                        try {
-                            if (xhr.readyState !== 4) return;
-                            if (!active) return;
-                            if (captured.length >= AJAX_CAPTURE_PER_STEP_LIMIT) return;
-                            let text = '';
-                            try { text = xhr.responseText || ''; } catch (e) {}
-                            const fullSize = text.length;
-                            const truncated = fullSize > AJAX_CAPTURE_RESPONSE_BYTE_LIMIT;
-                            const textOut = truncated ? text.substring(0, AJAX_CAPTURE_RESPONSE_BYTE_LIMIT) : text;
-                            let json = null;
-                            if (!truncated && textOut) {
-                                try { json = JSON.parse(textOut); } catch (e) {}
-                            }
-                            captured.push({
-                                url: url,
-                                method: xhr.__hh_inspector_method || 'GET',
-                                status: xhr.status || 0,
-                                duration_ms: Date.now() - (xhr.__hh_inspector_t0 || Date.now()),
-                                timestamp_ms: Date.now(),
-                                request: {
-                                    action: reqInfo.action,
-                                    class_: reqInfo.class_
-                                },
-                                response: {
-                                    truncated: truncated,
-                                    text_size: fullSize,
-                                    json: json,
-                                    text: json !== null ? null : textOut
-                                }
-                            });
-                        } catch (e) {}
-                    });
-                }
-            } catch (e) {}
-            return origSend.apply(this, arguments);
-        }
-
         return {
-            start: function() {
-                if (active) return;
-                try {
-                    XHR.prototype.open = hookOpen;
-                    XHR.prototype.send = hookSend;
-                    captured.length = 0;
-                    active = true;
-                } catch (e) {
-                    console.error(LOG_PREFIX, 'AJAX observer start failed:', e);
-                    active = false;
-                }
-            },
-            stop: function() {
-                if (!active) return [];
-                try {
-                    XHR.prototype.open = origOpen;
-                    XHR.prototype.send = origSend;
-                } catch (e) {
-                    console.error(LOG_PREFIX, 'AJAX observer stop failed:', e);
-                }
-                active = false;
-                return captured.slice();
-            }
+            truncated: truncated,
+            text_size: fullSize,
+            json: json,
+            text: json !== null ? null : out
         };
+    }
+
+    function patchXHR(targetWin) {
+        try {
+            const XHR = targetWin && targetWin.XMLHttpRequest;
+            if (!XHR || !XHR.prototype) return false;
+            if (XHR.prototype.__hh_inspector_hooked) return false;
+            XHR.prototype.__hh_inspector_hooked = true;
+
+            const origOpen = XHR.prototype.open;
+            const origSend = XHR.prototype.send;
+
+            XHR.prototype.open = function(method, url) {
+                try {
+                    this.__hh_inspector_method = (method || 'GET').toUpperCase();
+                    this.__hh_inspector_url = url || '';
+                    this.__hh_inspector_t0 = Date.now();
+                } catch (e) {}
+                return origOpen.apply(this, arguments);
+            };
+
+            XHR.prototype.send = function(body) {
+                try {
+                    const xhr = this;
+                    const url = xhr.__hh_inspector_url || '';
+                    const bodyStr = typeof body === 'string' ? body : null;
+                    if (looksLikeGameAjax(url, bodyStr)) {
+                        const reqInfo = extractRequestActionClass(url, bodyStr);
+                        xhr.addEventListener('readystatechange', function() {
+                            try {
+                                if (xhr.readyState !== 4) return;
+                                let text = '';
+                                try { text = xhr.responseText || ''; } catch (e) {}
+                                recordCaptured({
+                                    transport: 'xhr',
+                                    url: url,
+                                    method: xhr.__hh_inspector_method || 'GET',
+                                    status: xhr.status || 0,
+                                    duration_ms: Date.now() - (xhr.__hh_inspector_t0 || Date.now()),
+                                    timestamp_ms: Date.now(),
+                                    request: { action: reqInfo.action, class_: reqInfo.class_ },
+                                    response: buildResponseSlot(text)
+                                });
+                            } catch (e) {}
+                        });
+                    }
+                } catch (e) {}
+                return origSend.apply(this, arguments);
+            };
+            return true;
+        } catch (e) {
+            console.warn(LOG_PREFIX, 'patchXHR failed:', e);
+            return false;
+        }
+    }
+
+    function patchFetch(targetWin) {
+        try {
+            if (!targetWin || typeof targetWin.fetch !== 'function') return false;
+            if (targetWin.__hh_inspector_fetch_hooked) return false;
+            targetWin.__hh_inspector_fetch_hooked = true;
+
+            const origFetch = targetWin.fetch;
+
+            targetWin.fetch = function(input, init) {
+                let url = '';
+                let method = 'GET';
+                let body = null;
+                try {
+                    if (typeof input === 'string') {
+                        url = input;
+                    } else if (input && typeof input === 'object') {
+                        if (typeof input.url === 'string') url = input.url;
+                        if (typeof input.method === 'string') method = input.method.toUpperCase();
+                    }
+                    if (init) {
+                        if (typeof init.method === 'string') method = init.method.toUpperCase();
+                        if (init.body !== undefined && init.body !== null) {
+                            if (typeof init.body === 'string') body = init.body;
+                            else if (init.body && typeof URLSearchParams !== 'undefined' && init.body instanceof URLSearchParams) {
+                                body = init.body.toString();
+                            }
+                        }
+                    }
+                } catch (e) {}
+
+                const t0 = Date.now();
+                const isGame = looksLikeGameAjax(url, body);
+                const reqInfo = isGame ? extractRequestActionClass(url, body) : null;
+                const promise = origFetch.apply(this, arguments);
+
+                if (!isGame) return promise;
+
+                return promise.then(function(resp) {
+                    try {
+                        const cloned = (resp && typeof resp.clone === 'function') ? resp.clone() : null;
+                        if (cloned && typeof cloned.text === 'function') {
+                            cloned.text().then(function(text) {
+                                try {
+                                    recordCaptured({
+                                        transport: 'fetch',
+                                        url: url,
+                                        method: method,
+                                        status: resp.status || 0,
+                                        duration_ms: Date.now() - t0,
+                                        timestamp_ms: Date.now(),
+                                        request: { action: reqInfo.action, class_: reqInfo.class_ },
+                                        response: buildResponseSlot(text)
+                                    });
+                                } catch (e) {}
+                            }).catch(function() {});
+                        }
+                    } catch (e) {}
+                    return resp;
+                }, function(err) {
+                    try {
+                        recordCaptured({
+                            transport: 'fetch',
+                            url: url,
+                            method: method,
+                            status: 0,
+                            duration_ms: Date.now() - t0,
+                            timestamp_ms: Date.now(),
+                            request: { action: reqInfo ? reqInfo.action : null, class_: reqInfo ? reqInfo.class_ : null },
+                            response: { truncated: false, text_size: 0, json: null, text: null, error: String(err && err.message || err) }
+                        });
+                    } catch (e) {}
+                    throw err;
+                });
+            };
+            return true;
+        } catch (e) {
+            console.warn(LOG_PREFIX, 'patchFetch failed:', e);
+            return false;
+        }
+    }
+
+    function installAjaxHooks(targetWin) {
+        if (!targetWin) return { xhr: false, fetch: false };
+        return { xhr: patchXHR(targetWin), fetch: patchFetch(targetWin) };
+    }
+
+    // Polling sweep: pick up new iframe contentWindows that appear after page reloads.
+    let __hh_hook_sweep_started = false;
+    function startHookSweep() {
+        if (__hh_hook_sweep_started) return;
+        __hh_hook_sweep_started = true;
+        try { installAjaxHooks(unsafeWindow); } catch (e) {}
+        setInterval(function() {
+            try {
+                const ctx = detectMode();
+                if (ctx && ctx.win && ctx.win !== unsafeWindow) {
+                    installAjaxHooks(ctx.win);
+                }
+            } catch (e) {}
+        }, 250);
+    }
+
+    function ajaxBufferMark() { return __hh_ajax_buffer.length; }
+    function ajaxBufferSliceFrom(markerIdx, perStepLimit) {
+        const slice = __hh_ajax_buffer.slice(markerIdx);
+        if (slice.length > perStepLimit) return slice.slice(slice.length - perStepLimit);
+        return slice;
     }
 
     // ==================== UI ====================
@@ -869,6 +965,7 @@
 
     async function performStep(globalIdx, step, isManual) {
         console.log(LOG_PREFIX, 'Step', globalIdx + 1, ':', step.label, 'expected=' + step.expected);
+        const stepMarkerIdx = ajaxBufferMark();
         let waited;
         if (!isManual) {
             // Auto step - wait for body[page] to match expected
@@ -880,11 +977,12 @@
         await sleep(POST_LOAD_SETTLE_MS);
 
         const ctx = detectMode();
+        // Hooks were installed at script start and re-applied to any new iframe via
+        // startHookSweep(); we only need a marker here.
+        try { installAjaxHooks(ctx && ctx.win); } catch (e) {}
         setStatusBar('<b style=\"color:#ffb827\">' + (globalIdx+1) + '. ' + step.label + '</b> &mdash; dumping data...');
 
-        const observer = createAjaxObserver(ctx);
-        observer.start();
-        // Give the page a window to issue its natural Game-AJAX calls before we dump.
+        // Give the page a window to issue its natural Game-AJAX calls.
         await sleep(AJAX_CAPTURE_SETTLE_EXTRA_MS);
 
         const dump = dumpEverything(ctx);
@@ -896,7 +994,7 @@
             });
         });
 
-        dump.ajax_observed = observer.stop();
+        dump.ajax_observed = ajaxBufferSliceFrom(stepMarkerIdx, AJAX_CAPTURE_PER_STEP_LIMIT);
 
         const actualPage = getCurrentBodyPage(ctx);
         dump.tour_meta = {
@@ -1093,14 +1191,14 @@
         single.style.cssText = 'background:#ff4444;color:white;padding:14px 20px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;box-shadow:0 2px 10px rgba(0,0,0,0.5);text-align:center;';
         single.onclick = function() {
             const ctx = detectMode();
-            const observer = createAjaxObserver(ctx);
-            observer.start();
+            try { installAjaxHooks(ctx && ctx.win); } catch (e) {}
+            const markerIdx = ajaxBufferMark();
             // Brief capture window so any in-flight or auto-fired Game-AJAX is recorded.
             setTimeout(function() {
                 const dump = dumpEverything(ctx);
                 fetchBlessings(ctx, function(blessings) {
                     dump.live_blessings_api = blessings;
-                    dump.ajax_observed = observer.stop();
+                    dump.ajax_observed = ajaxBufferSliceFrom(markerIdx, AJAX_CAPTURE_PER_STEP_LIMIT);
                     const text = safeStringify(dump);
                     const body = (ctx.doc || document).querySelector('body[page]');
                     const suffix = body ? body.getAttribute('page').replace(/[^a-z0-9]/gi, '_') : 'page';
@@ -1144,6 +1242,7 @@
 
     function init() {
         console.log(LOG_PREFIX, 'init, location:', location.href);
+        startHookSweep();
         startupCleanup();
         const state = loadState();
         if (state && state.running) {
