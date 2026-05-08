@@ -24,6 +24,12 @@ import {
 } from '../Helper/index';
 import { logHHAuto, safeJsonParse } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import {
+    buildPathsFromMatrix,
+    decideBetterOption,
+    filterPathsWithTreasure,
+    sortPathsByDifficulty as sortPathsByDifficultyPure,
+} from './Labyrinth.pure';
 import { RelicManager } from './RelicManager';
 
 class LabyrinthOpponent{
@@ -335,100 +341,15 @@ export class Labyrinth {
     }
 
     static filterPathWithNoTreasue(paths: LabyrinthOpponent[][]): LabyrinthOpponent[][] {
-        return paths.filter((path) => {
-            return path.filter((opponent) => opponent.isTreasure).length > 0;
-        });
+        return filterPathsWithTreasure(paths);
     }
 
     static sortPathsByDifficulty(paths: LabyrinthOpponent[][]): LabyrinthOpponent[][] {
-        return paths.sort((pathA, pathB) => {
-            let difficultyA = 0;
-            let difficultyB = 0;
-            pathA.forEach((opponent) => {
-                difficultyA += opponent.opponentDifficulty;
-            });
-            pathB.forEach((opponent) => {
-                difficultyB += opponent.opponentDifficulty;
-            });
-            return difficultyA - difficultyB;
-        });
+        return sortPathsByDifficultyPure(paths);
     }
 
     static createPathFromMatrix(matrix: LabyrinthOpponent[][]): LabyrinthOpponent[][] {
-        /*
-        Rules:
-        The curent matrix have 11 rows. Each row have 2 or 3 cell alternatively.
-        If next row have 3 cell, each cell can reach 2 cell of the next row (Cell 1 can reach cell 1 and 2 of the next row, cell 2 can reach 2 and 3 of the next row)
-        If next row have two cell, cell 1 can only access cell 1 of next row, cell 2 can access 1 and 2 of next row, cell 3 can only access cell 2 of next row.
-        last row have only one cell (boss)
-        */
-
-
-        const rows = matrix.length;
-        const paths: LabyrinthOpponent[][] = [];
-        if (rows === 0) return paths;
-
-        const lastRow = rows - 1;
-
-        const getNextIndices = (currIdx: number, currLen: number, nextLen: number): number[] => {
-            // If next row is the boss row (only one cell), every current cell goes to that single cell
-            if (nextLen === 1) return [0];
-
-            // start row, next has 2: 0 -> [0,1]
-            if (currLen === 1 && nextLen === 2) {
-                return [0, 1];
-            }
-
-            // current row has 2, next has 3: 0 -> [0,1], 1 -> [1,2]
-            if (currLen === 2 && nextLen === 3) {
-                return currIdx === 0 ? [0, 1] : [1, 2];
-            }
-
-            // current row has 3, next has 2: 0->[0], 1->[0,1], 2->[1]
-            if (currLen === 3 && nextLen === 2) {
-                if (currIdx === 0) return [0];
-                if (currIdx === 1) return [0, 1];
-                return [1];
-            }
-            logHHAuto('Labyrinth pathing logic error: currLen=' + currLen + ', nextLen=' + nextLen);
-
-            // fallback: try to keep same index if possible
-            /*const res: number[] = [];
-            if (currIdx < nextLen) res.push(currIdx);
-            if (currIdx + 1 < nextLen) res.push(currIdx + 1);
-            return res;*/
-        };
-
-        const dfs = (row: number, idx: number, acc: LabyrinthOpponent[]) => {
-            acc.push(matrix[row][idx]);
-
-            if (row === lastRow) {
-                paths.push(acc.slice());
-                acc.pop();
-                return;
-            }
-
-            const nextRow = row + 1;
-            const currLen = matrix[row].length;
-            const nextLen = matrix[nextRow].length;
-
-            const nextIndices = getNextIndices(idx, currLen, nextLen);
-            for (const ni of nextIndices) {
-                if (ni >= 0 && ni < nextLen) dfs(nextRow, ni, acc);
-            }
-
-            acc.pop();
-        };
-
-        let startRow = 0;
-        while (startRow < rows && (!matrix[startRow] || matrix[startRow].length === 0)) startRow++;
-        if (startRow >= rows) return paths;
-
-        for (let i = 0; i < matrix[startRow].length; i++) {
-            dfs(startRow, i, []);
-        }   
-
-        return paths;
+        return buildPathsFromMatrix(matrix);
     }
 
     static getResetTime() {
@@ -445,75 +366,30 @@ export class Labyrinth {
 
     static findBetter(options: LabyrinthOpponent[]): LabyrinthOpponent{
         const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) == "true";
-
-        const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0
-        let choosenOption:LabyrinthOpponent|null = null;
-        let firstOption:LabyrinthOpponent|null = null;
+        const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled) logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled) logHHAuto("haveGirlWounded " + haveGirlWounded);
         if (debugEnabled) logHHAuto("chooseMoreReward " + chooseMoreReward);
-        const floor = Labyrinth.getCurrentFloorNumber();
 
-        if (options.length > 0) {
-            firstOption = options[0];
-        }
-        if (!haveGirlWounded || floor < 3) {
-            // remove Shrine
-            options = options.filter((option) => !option.isShrine);
-        } else if (floor >= 3 && options.filter((option) => option.isShrine).length > 0) {
-            // Keep only shrine
-            options = options.filter((option) => option.isShrine);
-        }
-        if (options.filter((option) => option.isTreasure).length > 0) {
-            // Keep only laby coins
-            options = options.filter((option) => option.isTreasure);
-        }
-        if (!chooseMoreReward && floor < 3 && options.filter((option) => option.opponentDifficulty == 1).length > 0) {
-            // Keep only easy opponent
-            options = options.filter((option) => option.opponentDifficulty == 1);
-        }
-        if (debugEnabled) logHHAuto("Options after filter" + JSON.stringify(options));
-
-        options.forEach((option) =>
-        {
-            let isBetter = false;
-            if(option.button && option.isNext) {
-                if (choosenOption == null)
-                {
-                    if(debugEnabled) logHHAuto('first');
-                    isBetter = true;
-                }
-                else if (chooseMoreReward)
-                {
-                    if (choosenOption.opponentDifficulty < option.opponentDifficulty) {
-                        if (debugEnabled) logHHAuto('More reward: higher difficulty group');
-                        isBetter = true;
-                    }
-                    else if (choosenOption.opponentDifficulty == option.opponentDifficulty && choosenOption.power > option.power) {
-                        if (debugEnabled) logHHAuto('More reward: Powerless opponent');
-                        isBetter = true;
-                    }
-                } else {
-                    if (choosenOption.isOpponent && !option.isOpponent)
-                    {
-                        if(debugEnabled) logHHAuto('Not opponent');
-                        isBetter = true;
-                    }
-                    else if (choosenOption.isOpponent && option.isOpponent && choosenOption.power > option.power )
-                    {
-                        if(debugEnabled) logHHAuto('Powerless opponent');
-                        isBetter = true;
-                    }
-                }
-            }
-
-            if (isBetter) {
-                choosenOption = option;
-            }
+        const liteOptions = options.map(option => ({
+            opponentDifficulty: option.opponentDifficulty,
+            isTreasure: option.isTreasure,
+            isShrine: option.isShrine,
+            isNext: option.isNext,
+            isOpponent: option.isOpponent,
+            power: option.power,
+            hasButton: option.button !== null && option.button !== undefined,
+            __orig: option,
+        }));
+        const chosen = decideBetterOption({
+            options: liteOptions,
+            chooseMoreReward,
+            haveGirlWounded,
+            floor: Labyrinth.getCurrentFloorNumber(),
         });
-        if (choosenOption == null && firstOption != null) choosenOption = firstOption;
-        return choosenOption;
+        if (debugEnabled) logHHAuto("Options after filter (handled by Labyrinth.pure)");
+        return chosen === null ? null as unknown as LabyrinthOpponent : (chosen as { __orig: LabyrinthOpponent }).__orig;
     }
 
     static appendChoosenTag(option){
