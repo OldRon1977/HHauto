@@ -5,10 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 in progress**, tasks 3.1 + 3.2 + 3.3 done; next is task 3.4 (LabyrinthAuto)
-- Last completed task: 3.3 (MonthlyCard -- skipped after inspection, no decision-logic candidate; documented in the task entry)
+- Current stage: **3 in progress**, tasks 3.1 - 3.4 done; next is task 3.5 (Bundles)
+- Last completed task: 3.4 (Labyrinth path pipeline pure-function extraction + decision tests)
 - Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.4 (LabyrinthAuto decision pipeline). Inspect `src/Module/LabyrinthAuto.ts` for decision points; extract pure logic into `src/Module/LabyrinthAuto.pure.ts` if a stage-1-style extraction fits, else document the substitution.
+- Next step: stage 3 task 3.5 (Bundles visibility / trigger tests). Inspect `src/Module/Bundles.ts` for decision points; extract pure logic if a stage-1-style extraction fits, else document the substitution.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -485,7 +485,46 @@ module.
     the in-place `HHAuto_inputPattern.*` writes with a returned
     object) is style refactoring, not test-strategy work, and
     will be filed separately if the user decides to pursue it.
-- [ ] **3.4** LabyrinthAuto -- entire decision pipeline
+- [x] **3.4** Labyrinth path pipeline -- pure decision logic extracted (2026-05-08)
+  - Plan deviation (agreed with the user before implementation):
+    plan listed `LabyrinthAuto -- entire decision pipeline`.
+    `LabyrinthAuto.run()` is a DOM / click / navigation sequence
+    with no isolatable decision logic. The actual pure logic lives
+    one module over, in `Labyrinth.ts`: `createPathFromMatrix`,
+    `filterPathWithNoTreasue`, `sortPathsByDifficulty`, and
+    `findBetter`. The extraction targets those four functions.
+  - New module: `src/Module/Labyrinth.pure.ts` exports
+    `getNextIndices`, `buildPathsFromMatrix`,
+    `filterPathsWithTreasure`, `sortPathsByDifficulty`,
+    `decideBetterOption`, plus the typed `LabyrinthPathOpponent` /
+    `LabyrinthOpponentLite` / `FindBetterState` shapes. The
+    path-pipeline functions are generic over
+    `LabyrinthPathOpponent` (only `opponentDifficulty` +
+    `isTreasure` are read); `decideBetterOption` is generic over
+    `LabyrinthOpponentLite` (adds `isShrine`, `isNext`,
+    `isOpponent`, `power`, `hasButton`).
+  - `Labyrinth.createPathFromMatrix`,
+    `Labyrinth.filterPathWithNoTreasue` (typo retained at the
+    adapter boundary; pure function uses corrected name),
+    `Labyrinth.sortPathsByDifficulty`, and `Labyrinth.findBetter`
+    delegate to the pure functions. `findBetter` projects the
+    DOM-bound `LabyrinthOpponent[]` onto `LabyrinthOpponentLite[]`
+    (mapping `option.button` truthiness onto `hasButton`,
+    attaching `__orig` as a back-reference) before delegating, and
+    returns the original record afterwards.
+  - Bit-for-bit equivalent: all filter cascades, the strict
+    comparisons (`==`, `<`, `>`), and the fallback to
+    `firstOption` when no eligible option survives are preserved.
+  - Behaviour delta: the five inner debug-log lines inside
+    `findBetter` ("first", "More reward: higher difficulty
+    group", "More reward: Powerless opponent", "Not
+    opponent", "Powerless opponent") are gone. They only fired
+    when `debugEnabled === true` and never affected game state.
+    The three outer debug logs and the post-filter log are kept;
+    the post-filter log now reads "Options after filter (handled
+    by Labyrinth.pure)".
+  - Tests: 692 passed (664 + 28), 0 skipped, 50 suites.
+  - Merged via PR #1641, commit c16adc2.
 - [ ] **3.5** Bundles -- visibility / trigger
 - [ ] **3.6** LivelyScene, BossBang -- isAvailable, timer reset
 - [ ] **3.7** Stage 3 finished -- branch `feat/test-decision-logic`
@@ -591,3 +630,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 3.1 done: ClubChampion pure-function extraction (`decideNextClubChampionTime`, `decideAlignedClubChampionTimer`) + 15 new pure tests (648 total), bundle diff structural, plan deviation in extracted scope documented in the task entry (no `isTimeToFight` equivalent in the module; `getNextChampionTime` renamed to `decideNextClubChampionTime` for clarity and to avoid the name clash with `Champion.pure.decideNextChampionTime`), merged via PR #1636 (commit d6e4e38) |
 | 2026-05-08 | Task 3.2 done: Pantheon pure-function extraction (`decideIsEnabled`, `decideShouldFight`) + 16 new pure tests (664 total), bundle diff structural, no plan deviation in scope; behaviour delta documented (`ParanoiaService.checkParanoiaSpendings` now called unconditionally, mirroring League stage 1 task 1.1), merged via PR #1638 (commit e54db73) |
 | 2026-05-08 | Task 3.3 skipped: MonthlyCard has no claim flow / timer / hero-level gate -- its single public method `updateInputPattern()` only builds regex strings for the settings UI, fully covered by the existing `MonthlyCards.spec.ts` (24 tests). No code change, no PR, only doc update; tests stay at 664 / 49 suites. |
+| 2026-05-08 | Task 3.4 done: Labyrinth path pipeline pure-function extraction (`getNextIndices`, `buildPathsFromMatrix`, `filterPathsWithTreasure`, `sortPathsByDifficulty`, `decideBetterOption`) + 28 new pure tests (692 total), bundle diff structural, plan deviation in module choice documented in the task entry (`LabyrinthAuto.run()` has no isolatable pure logic; the actual decision pipeline lives in `Labyrinth.ts`); behaviour delta documented (five inner debug-log lines inside `findBetter` removed, all under `debugEnabled === true` and without game-state effects), merged via PR #1641 (commit c16adc2) |
