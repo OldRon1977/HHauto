@@ -38,7 +38,7 @@ const config: Config = {
   // A list of reporter names that Jest uses when writing coverage reports.
   // text-summary prints a condensed table at the bottom of the run; html
   // emits coverage/lcov-report/index.html for browser inspection.
-  coverageReporters: ["text", "text-summary", "lcov", "clover", "html"],
+  coverageReporters: ["text", "text-summary", "json-summary", "lcov", "clover", "html"],
 
   // An object that configures minimum threshold enforcement for coverage results
   // coverageThreshold: undefined,

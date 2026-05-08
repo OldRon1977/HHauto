@@ -9,6 +9,9 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -28,3 +31,21 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+      - name: Comment coverage summary on PR
+        if: github.event_name == 'pull_request'
+        uses: MishaKav/jest-coverage-comment@v1.0.23
+        with:
+          coverage-summary-path: coverage/coverage-summary.json
+          summary-title: "Coverage summary"
+          hide-summary: false
+          create-new-comment: false
+          junitxml-path: ""
