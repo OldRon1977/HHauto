@@ -26,6 +26,11 @@ import { autoLoop, gotoPage } from "../../Service/index";
 import { isJSON, logHHAuto } from "../../Utils/index";
 import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { HHEvent, HHEventData, HHEventList, KKPuzzlePieces } from "../../model/index";
+import {
+    PuzzlePieceLite,
+    decideCollectTrigger,
+    selectClaimablePieces,
+} from "./LivelyScene.pure";
 
 export class LivelyScene {
 
@@ -53,34 +58,38 @@ export class LivelyScene {
 
         const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
 
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" || manualCollectAll
-            || remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true") {
+        const shouldTrigger = decideCollectTrigger({
+            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+            manualCollectAll,
+            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+            remainingTime,
+            limitBeforeEnd: getLimitTimeBeforeEnd(),
+        });
+        if (shouldTrigger) {
             LivelyScene.goAndCollect(remainingTime, manualCollectAll);
         }
 
     }
 
     static parseClaimableRewards(remainingTime: number, manualCollectAll = false) {
-        const claimablePieces: KKPuzzlePieces[] = [];
         const puzzlePieces: KKPuzzlePieces[] = getHHVars('current_event.event_data.puzzle_pieces');
         const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
         const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
         const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
 
-        // logHHAuto("Checking double penetration event for collectable rewards.");
+        const projected: (PuzzlePieceLite & { __orig: KKPuzzlePieces })[] = puzzlePieces.map((piece) => ({
+            reward_unlocked: piece.reward_unlocked,
+            reward_claimed: piece.reward_claimed,
+            rewardType: piece?.reward?.shards ? 'girl_shards' : piece?.reward?.rewards[0].type,
+            __orig: piece,
+        }));
 
-        for (let currentPiece = 0; currentPiece < puzzlePieces.length; currentPiece++) {
-            const puzzlePiece:KKPuzzlePieces = puzzlePieces[currentPiece];
-            if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                let rewardType = puzzlePiece?.reward?.shards ? 'girl_shards' : puzzlePiece?.reward?.rewards[0].type;
-
-                if (rewardsToCollect.includes(rewardType) && needToCollect || needToCollectAll || manualCollectAll) {
-                    // logHHAuto(`Reward to collect ${puzzlePiece?.reward?.rewards[0].value}x${puzzlePiece?.reward?.rewards[0].type}`);
-                    claimablePieces.push(puzzlePiece);
-                }
-            }
-
-        }
+        const claimablePieces = selectClaimablePieces(projected, {
+            rewardsToCollect,
+            needToCollect,
+            needToCollectAll,
+            manualCollectAll,
+        }).map((p) => p.__orig);
 
         logHHAuto('claimablePieces', claimablePieces);
         return claimablePieces;
