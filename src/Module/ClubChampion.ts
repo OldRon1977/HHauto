@@ -25,6 +25,10 @@ import { gotoPage } from "../Service/index";
 import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Champion } from './index';
+import {
+    decideAlignedClubChampionTimer,
+    decideNextClubChampionTime,
+} from './ClubChampion.pure';
 import { QuestHelper } from "./Quest";
 
 export class ClubChampion {
@@ -60,29 +64,21 @@ export class ClubChampion {
         }
         return 0; // -1 is only when no timer on club page
     }
-    
+
     static updateClubChampionTimer()
     {
         var page=getPage();
         if (page==ConfigHelper.getHHScriptVars("pagesIDClub"))
         {
             logHHAuto('on clubs');
-            let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-            let noTimer = (secsToNextTimer === -1);
-            let nextClubChampionTime: number;
-
-            if (secsToNextTimer === -1)
-            {
-                nextClubChampionTime = randomInterval(15*60, 17*60);
-            }
-            else if (secsToNextTimer > 7200 && getStoredValue(HHStoredVarPrefixKey+SK.autoClubForceStart) === "true")
-            {
-                nextClubChampionTime = randomInterval(115*60, 125*60);
-            }
-            else
-            {
-                nextClubChampionTime = randomInterval(secsToNextTimer, 180 + secsToNextTimer);
-            }
+            const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+            const noTimer = (secsToNextTimer === -1);
+            const decision = decideNextClubChampionTime({
+                secsToNextTimer,
+                autoClubForceStart:
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true",
+            });
+            const nextClubChampionTime = randomInterval(decision.minTime, decision.maxTime);
             ClubChampion._setTimer(nextClubChampionTime);
             return noTimer;
         }
@@ -92,7 +88,7 @@ export class ClubChampion {
     /** From club champion page */
     static getRemainingRestTime(): number{
         let remainingRestTime = 0;
-        
+
         let timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
         if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
             remainingRestTime = Number(convertTimeToInt(timerElm));
@@ -198,11 +194,11 @@ export class ClubChampion {
                 logHHAuto('Click champions tab');
                 $("#club_champions_tab").trigger('click');
             }
-    
+
             let Started = $("div.club-champion-members-challenges .player-row").length === 1;
             let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
             let noTimer = secsToNextTimer === -1;
-    
+
             if ((Started || getStoredValue(HHStoredVarPrefixKey+SK.autoClubForceStart) === "true") && noTimer)
             {
                 let ticketUsed = 0;
@@ -240,18 +236,19 @@ export class ClubChampion {
     }
 
     /**
-     * 
-     * @param {number} nextClubChampionTime 
+     *
+     * @param {number} nextClubChampionTime
      * @private
      */
     static _setTimer(nextClubChampionTime: number): void {
-        if (getStoredValue(HHStoredVarPrefixKey+SK.autoChamps) ==="true" && getStoredValue(HHStoredVarPrefixKey+SK.autoChampAlignTimer) === "true") {
-            const champTimeLeft = getSecondsLeft('nextChampionTime');
-            if(nextClubChampionTime > 10 && champTimeLeft < 1200 && nextClubChampionTime < 1200) { // align settings
-                // 20 min for standard wait time
-                nextClubChampionTime = Math.max(nextClubChampionTime, champTimeLeft);
-            }
-        }
-        setTimer('nextClubChampionTime', nextClubChampionTime);
+        const aligned = decideAlignedClubChampionTimer({
+            proposedTime: nextClubChampionTime,
+            champTimeLeft: getSecondsLeft('nextChampionTime'),
+            autoChamps:
+                getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true",
+            autoChampAlignTimer:
+                getStoredValue(HHStoredVarPrefixKey + SK.autoChampAlignTimer) === "true",
+        });
+        setTimer('nextClubChampionTime', aligned);
     }
 }
