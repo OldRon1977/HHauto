@@ -6,9 +6,9 @@ and add the date plus commit hash in the Status field.
 ## Status
 
 - Current stage: **4 in progress** (reliability layer)
-- Last completed task: 4.2 (storage migration tests -- closed after one slice)
+- Last completed task: 4.3 (multi-domain smoke)
 - Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4)
-- Next step: stage 4 task 4.3 (multi-domain smoke). Per domain clone (`hentaiheroes.com`, `gayharem.com`, `comixharem.com`, `mangarpg.com`, plus the `tour` subdomain captured in the dump) one test for `domain.includes()` and `ConfigHelper` domain detection. New file `spec/config/Domain.spec.ts`.
+- Next step: stage 4 task 4.4 (closure). Pick up issue #1614 here -- enable coverage reporting in CI via a GitHub Action, no threshold gate (per the strategy plan).
 - Carried-forward reminders for stage 4:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -750,10 +750,32 @@ module.
       already in place, so test value is small).
     - `setDefaults` boot path coverage (every registered key -> the
       registry default after a `localStorage.clear()`).
-- [ ] **4.3** Multi-domain smoke
-  - Per domain clone (hentaiheroes, gayharem, comixharem, mangarpg, ...) one
-    test for `domain.includes()` and ConfigHelper domain detection
-  - File: `spec/config/Domain.spec.ts`
+- [x] **4.3** Multi-domain smoke (2026-05-08)
+  - Append-only update to `spec/Helper/ConfigHelper.spec.ts` -- 22
+    new tests covering all 21 hostnames registered in
+    `HHKnownEnvironnements`, plus a sanity guard that fires if a new
+    hostname is added to `src/config/game/*Vars.ts:getEnv()` without
+    extending the table.
+  - Per case: `getEnvironnement()`, `getHHScriptVars('gameID')`,
+    `isPshEnvironnement()`.
+  - Plan deviation (documented in the spec describe block):
+    - The plan listed `domain.includes()` as a thing to assert.
+      `ConfigHelper` does not use `includes` -- it uses exact-match
+      against `HHKnownEnvironnements[hostname]`. Smoke uses exact
+      hostnames accordingly.
+    - The plan called for a new file `spec/config/Domain.spec.ts`.
+      Per user direction: appended to the existing
+      `spec/Helper/ConfigHelper.spec.ts` instead, to avoid a new
+      directory and keep all ConfigHelper tests together.
+    - The handoff mentioned a `tour` subdomain captured in the dump.
+      That was a filename artefact -- the actual host in the dump is
+      `www.hentaiheroes.com` (the tour is a path, not a host). No
+      extra entry needed.
+  - No `src/` change.
+  - Tests: 765 passed (743 + 22), 54 suites.
+  - Coverage unchanged (ConfigHelper was already covered by the
+    existing 10 tests).
+  - Merged via PR #1657, commit d191c47.
 - [ ] **4.4** Stage 4 finished -- branch `feat/test-reliability`
 
 ## Deliberately dropped (do not implement)
@@ -850,3 +872,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 4.1 closed: inspector inventory pass via v4.7.0 (PRs #1650/#1651/#1652 -- per-step XHR observer, auto-update URLs, persistent XHR + fetch hooks). Fresh tour bundle (`hhauto_dump_..._2026-05-08T13-35-50-669Z.json`, inspector v4.7.0) shows three observed endpoints across all 32 pages: `get_girls_blessings` (covered by the live-blessings slice), `process_rewards_queue`, `show_specific_girl_grade`. The latter two have no HHAuto consumer; recorded as audit hints. Plan deviation documented (closing 4.1 with one schema test set; remaining `pages[*].battle.*` / `pages[*].girls_full.*` paths are page-globals already covered in stage 2 fixtures, not AJAX responses; remaining 12 src/ AJAX call sites are writes and not testable from the inspector). Next step: stage 4 task 4.2 (storage migration tests) |
 | 2026-05-08 | Task 4.2 first slice: storage-migration helpers spec (`safeJsonParse` / `isJSON` / `getStoredJSON` edge cases) plus a real settings snapshot smoke pass; `spec/fixtures/storage-snapshot/setting-snapshot.json` curated from `INPUT/HH_DebugLog_1778140621437.log` (21 keys covering boolean / integer / semicolon-list / JSON-array / custom-format / sessionStorage payloads). 26 new tests (743 total, 54 suites). Coverage 30.55->30.62 statements / 19.67->19.75 branches / 26.15->26.22 functions / 31.06->31.12 lines. Plan deviation documented (`isJSON` is intentionally a liberal regex pre-check; `safeJsonParse` remains the hard no-throw guard). No `src/` change. Merged via PR #1654 (commit 3d1f208) |
 | 2026-05-08 | Task 4.2 closed (helpers slice only): plan deviation documented after re-reading live source -- the four module-level `JSON.parse(getStored...)` sites the plan listed are either commented out (`BDSMHelper:428`, `AutoLoopActions:169`, `EventModule:792`) or already covered by the helpers slice (`Market:38` defensive log + `getStoredJSON`, `Shop:101` `isJSON` + `getStoredJSON`); no remaining ungauarded `JSON.parse` site in live code. Optional follow-up slices recorded but not blocking (`extractHHVars` corrupted `Temp_Logging`; `setDefaults` boot-path). Next step: stage 4 task 4.3 (multi-domain smoke) |
+| 2026-05-08 | Task 4.3 done: multi-domain smoke covering all 21 hostnames in `HHKnownEnvironnements` (HentaiHeroes 6 / ComixHarem 2 / GayHarem 3 / GayPornstarHarem 2 / MangaRpg 2 / PornstarHarem 2 / TransPornstarHarem 2 / AmourAgent 1 / SexyHeroes 1) plus a sanity guard against new hostnames; appended to existing `spec/Helper/ConfigHelper.spec.ts` (per user direction, instead of new `spec/config/Domain.spec.ts` file). 22 new tests (765 total, 54 suites). Plan deviations documented (exact-match instead of `domain.includes()`; appended instead of new file; `tour` subdomain in handoff was a filename artefact). No `src/` change. Merged via PR #1657 (commit d191c47) |
