@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.6.0
+// @version      4.6.1
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -17,12 +17,14 @@
 // @grant        GM_xmlhttpRequest
 // @run-at       document-idle
 // @noframes
+// @updateURL    https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto_debug_inspector.user.js
+// @downloadURL  https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto_debug_inspector.user.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    const VERSION = '4.6.0';
+    const VERSION = '4.6.1';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // ==================== CONFIGURATION ====================
