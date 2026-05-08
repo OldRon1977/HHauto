@@ -1,15 +1,14 @@
-# Session handoff -- HHAuto test strategy, stage 3
+# Session handoff -- HHAuto test strategy, stage 4
 
-Status: 2026-05-07. Stage 2 is finished and merged into main (final
-commit e80e6cf closing the plan, last fixture commit 13c5f82 for
-task 2.5 via PR #1632). Plan file `docs-internal/test-strategy.md`
-is the source of truth and already contains the detailed entry point
-for stage 3.
+Status: 2026-05-08. Stage 3 is finished and merged into main (final
+closure commit will land via this branch). Plan file
+`docs-internal/test-strategy.md` is the source of truth and already
+contains the detailed entry point for stage 4.
 
 ## Prompt for the new session (copy-paste into a fresh chat)
 
 ```
-We continue the HHAuto test strategy. Stage 2 is finished and merged.
+We continue the HHAuto test strategy. Stage 3 is finished and merged.
 Plan file: `docs-internal/test-strategy.md` is the source of truth.
 
 == Language and style ==
@@ -24,97 +23,92 @@ Repository content (commits, PR/issue text, code comments,
 docs-internal) is in English.
 
 == Path ==
-c:\\Users\\StephanMesser\\.kiro\\Arbeitsplatz\\HHAuto
+c:\Users\StephanMesser\.kiro\Arbeitsplatz\HHAuto
 
 == First action ==
 1. Read `docs-internal/test-strategy.md`. The status block on top
-   tells you where we are. Stage 2 is closed; stage 3 starts with
-   task 3.1 (ClubChampion decision tests).
-2. Read this handoff in full -- the stage-3 conventions, fixture
-   inventory, and pure-function inventory are spelled out below to
-   avoid a guessing round.
-3. Confirm the proposed first slice (3.1) with the user before
-   touching production code. Stage 3 changes are allowed under
-   `src/` because the deferred parsers from stage 1 task 1.3 and
-   the decision-logic functions for tasks 3.1-3.6 must be added
-   somewhere -- but every src change still needs the user's sign-off.
+   tells you where we are. Stage 3 is closed; stage 4 starts with
+   task 4.1 (AJAX schema tests).
+2. Read this handoff in full -- the stage-4 conventions, fixture
+   inventory, pure-function inventory, and parking lot are spelled
+   out below to avoid a guessing round.
+3. Confirm the proposed first slice (4.1) with the user before
+   touching production code. Stage 4 changes are allowed under
+   `src/` only when an AJAX validator or a storage-migration helper
+   is being added; everything else must stay in `spec/`.
 
-== Stage 3 entry point: task 3.1 (ClubChampion) ==
+== Stage 4 entry point: task 4.1 (AJAX schema tests) ==
 
-Goal: cover the ClubChampion decision pipeline with focused tests:
-default, boundaries, setting-off, hero-level too low, timer active,
-energy edge, AJAX error. 4-8 tests per decision function.
+Goal: per AJAX response shape, capture one redacted real payload
+from the dump and add a parser test that asserts the parser does
+not crash on it. The strategy plan calls out
+`live_blessings_api.live` as the canonical first candidate.
 
-Pre-condition (from the plan): stage 1 has produced pure functions
-for the modules in stages 3 and 4. ClubChampion currently has none.
-The first stage-3 PR therefore has two halves:
-
-1. Pure-function extraction for ClubChampion.
-   - Inspect `src/Module/ClubChampion.ts` first; identify the decision
-     points (`isTimeToFight`, `getNextChampionTime` per the plan).
-     If those names do not match the actual function names, document
-     the substitution before extracting.
-   - Extract decision logic into `src/Module/ClubChampion.pure.ts`,
-     same pattern as stage 1 (data in, decision out, no globals,
-     no jQuery, no storage).
-2. Decision-logic tests for the new pure module.
-   - Use the champion fixture from stage 2
-     (`spec/fixtures/champion/active-champion.json`) where it
-     applies. Other inputs (settings, hero level, timer state) come
-     as plain literals or via the existing `MockHelpers.ts` builders.
-   - Smoke checks for the fixture itself stay where they are; the
-     parser-style tests added in stage 3 replace those at the parser
-     boundary, not at the fixture boundary.
+Pre-condition (from the plan): real responses live in the dump under
+`pages[*].live_blessings_api`, and similar structures appear at
+`pages[*].battle.*` and `pages[*].girls_full.*`. Pick one shape, copy
+a small redacted sample to `spec/fixtures/<endpoint>/`, and add the
+test.
 
 Acceptance criteria:
-- Existing 633 tests stay green.
-- New pure module + tests added; the impure adapter delegates to it
-  bit-for-bit (structural diff only at the bundle level, same rule
-  as stage 1).
-- No DOM, no jQuery, no `unsafeWindow` in the new pure module or in
-  any of the new tests.
+- Existing 711 tests stay green.
+- Per response type, exactly one parser test that calls the actual
+  parser on the captured payload and asserts it returns without
+  throwing.
+- No DOM, no jQuery, no `unsafeWindow` in the new tests.
 
-Branch: `refactor/pure-functions-clubchampion` for the extraction +
-tests bundle, mirroring stage 1's branch convention.
+Branch: `feat/test-ajax-schema-<endpoint>` (e.g.
+`feat/test-ajax-schema-live-blessings`) for each endpoint set.
 
-== Stage 3 ground rules ==
+== Stage 4 ground rules ==
 
-- Stage 3 IS allowed to change `src/`. Stage 1's pure-extraction
-  pattern is the template: bit-for-bit equivalent extraction first,
-  decision-logic tests second.
-- Tests live next to the existing module specs
-  (`spec/Module/<Module>.pure.spec.ts`) for parity with stage 1.
-- Smoke tests under `spec/fixtures/<module>/Fixtures.spec.ts` stay.
-  They confirm fixture shape, not parser behaviour.
-- Each task in stage 3 ships as a separate fixture-set or refactor
-  PR plus a docs PR, same workflow as stage 2.
-- The deferred `parseGirlsFromGameData(rawData) -> Girl[]` parser is
-  the natural pairing with task 3.x for HaremGirl-touching modules.
-  Plan it into the earliest stage-3 task that needs it; until then,
-  the haremGirl fixture is unused beyond its smoke tests.
+- The same separation as stage 2: parser tests live next to fixture
+  tests under `spec/fixtures/<endpoint>/Schema.spec.ts`. Smoke tests
+  for fixture shape stay separate.
+- Each task in stage 4 ships as a fixture-set or test-only PR plus a
+  docs PR, same workflow as stages 2 and 3.
+- `loadFixture(modulePath, name)` from `spec/testHelpers/Fixtures.ts`
+  is the loader; module path is `<endpoint>` (e.g. `live-blessings`).
+- The deferred `parseGirlsFromGameData(rawData) -> Girl[]` parser
+  belongs in stage 4 if it is what produces the schema-validated
+  output for a haremGirl AJAX response. Otherwise it stays deferred.
 
-== Reminder: deferrals carried into stage 3 ==
+== Stage 4 task list (from the plan) ==
 
-- `parseGirlsFromGameData(rawData) -> Girl[]` parser (deferred from
-  stage 1 task 1.3). Fixture sized to feed it:
-  `spec/fixtures/haremGirl/sample-girls.json`.
-- Champion-map fixture (deferred from task 2.4). Page 8
+- 4.1 AJAX schema tests -- one validator test per response type.
+- 4.2 Storage migration tests -- old storage values from earlier
+  versions as fixtures, assert the reader does not crash.
+  `INPUT/HH_DebugLog_*.log` carries current storage snapshots.
+- 4.3 Multi-domain smoke -- per domain clone (hentaiheroes,
+  gayharem, comixharem, mangarpg, ...) one test for
+  `domain.includes()` and ConfigHelper domain detection. New file
+  `spec/config/Domain.spec.ts`.
+- 4.4 Stage 4 finished -- closure task. Pick up issue #1614 (CI
+  coverage reporting) here.
+
+== Reminder: deferrals carried into stage 4 ==
+
+- `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1
+  task 1.3). Fixture sized to feed it:
+  `spec/fixtures/haremGirl/sample-girls.json`. Stage 3 did not need
+  it; reactivate when a haremGirl-touching parser test lands in
+  stage 4.
+- Champion-map fixture (deferred from stage 2 task 2.4). Page 8
   (`/champions-map.html`) carries no champion JSON in the dump --
-  the map is rendered client-side from DOM. Reactivation depends on
-  a different testing approach for DOM-derived state.
-- League energy snapshot
-  (`hero.shared.Hero.energies.challenge`) (deferred from task 2.2).
-  Add when a League parser test needs it; not part of the league
-  fixture today.
+  the map is rendered client-side from DOM. Reactivation depends
+  on a different testing approach for DOM-derived state.
+- League energy snapshot (`hero.shared.Hero.energies.challenge`)
+  (deferred from stage 2 task 2.2). Add when a League parser test
+  needs it; not part of the league fixture today.
 
 == Workflow per task ==
 
-1. Branch (`refactor/pure-functions-<module>` for extraction +
-   tests, `feat/test-decision-<module>` for test-only adds).
-2. Implement.
-3. `npm test` and `npm run build` locally. The build line-ending
-   drift on `HHAuto.user.js` is discarded with
-   `git checkout HHAuto.user.js` before commit.
+1. Branch (`feat/test-ajax-schema-<endpoint>`,
+   `feat/test-storage-migration-<area>`, etc.).
+2. Implement (fixture + spec + maybe a thin validator under `src/`).
+3. `npm test` and `npm run build` locally. Discard the
+   `HHAuto.user.js` rebuild drift before commit
+   (`git checkout HHAuto.user.js`).
 4. Commit (no AI mention, no Co-Authored-By).
 5. Push.
 6. Wait for user approval.
@@ -126,21 +120,21 @@ tests bundle, mirroring stage 1's branch convention.
 == Important ==
 
 - Plan file is the single source of truth. Update its status there.
-- Every src/ change is a deviation from the stage 1/2 pattern --
-  the user must sign off before code outside spec/ moves.
-- For every fixture entry needed beyond what stage 2 produced:
-  copy real shape, redact PII, keep size small. Never invent fields
-  the dump does not have.
+- Every src/ change is a deviation from the stage 4 baseline (test-
+  only) -- the user must sign off before code outside spec/ moves.
+- For every fixture entry: copy real shape, redact PII / asset URLs,
+  keep size small. Never invent fields the dump does not have.
 
 == Open reminders ==
 
-- Issue #1614 "Coverage reporting in CI" -- not part of stage 3,
-  picked up in stage 4 (reliability layer).
+- Issue #1614 "Coverage reporting in CI" -- not yet implemented.
+  Stage 4 task 4.4 (closure) is the latest reasonable point to
+  pick this up.
 - HaremGirl pure module exports `findBestItem` which has no callers.
-  Cleanup is independent of stage 3 and not blocking; can be
-  collapsed when a HaremGirl-touching stage-3 task lands nearby.
+  Cleanup is independent of stage 4 and not blocking; can be
+  collapsed when a HaremGirl-touching stage-4 task lands nearby.
 
-== Data sources (unchanged from stage 2) ==
+== Data sources (unchanged from stages 2 + 3) ==
 
 - Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-05T12-11-40-985Z.json`
   (41 MB, 30 pages, captured 2026-05-05).
@@ -153,89 +147,130 @@ tests bundle, mirroring stage 1's branch convention.
     spec/fixtures/champion/active-champion.json
     spec/fixtures/event/event-detection.json
 - Logs: `INPUT/HH_DebugLog_*.log` (3 files, captured alongside the
-  dump). Parsing snapshots may show up here; storage-migration tests
-  in stage 4 will mine these.
+  dump). Storage-migration tests in stage 4 task 4.2 will mine these
+  for old `Setting_*` / `Temp_*` snapshots.
 - If a fresh dump is needed: ask the user (inspector script:
   `bonus-scripts/HHAuto_debug_inspector.user.js` v4.5.0).
 
-== Pre-flight checks before stage 3 ==
+== Pure module inventory at end of stage 3 ==
+
+- src/Module/League.pure.ts -- `decideShouldFight`
+- src/Module/Champion.pure.ts -- `decideNextChampionTime`
+- src/Module/harem/HaremGirl.pure.ts -- `scoreItem`,
+  `findBestItem` (orphaned -- no callers), `isBetter`
+- src/Service/AutoLoop.pure.ts -- `decideBurst`,
+  `shouldRunStandardHandler`
+- src/Module/ClubChampion.pure.ts -- `decideNextClubChampionTime`,
+  `decideAlignedClubChampionTimer`
+- src/Module/Pantheon.pure.ts -- `decideIsEnabled`,
+  `decideShouldFight`
+- src/Module/Labyrinth.pure.ts -- `getNextIndices`,
+  `buildPathsFromMatrix`, `filterPathsWithTreasure`,
+  `sortPathsByDifficulty`, `decideBetterOption`
+- src/Module/Bundles.pure.ts -- `decideExpiryTime`
+- src/Module/Events/LivelyScene.pure.ts -- `decideCollectTrigger`,
+  `selectClaimablePieces`
+
+Modules without a pure module yet (deferred to either stage 4
+parser work or as out-of-scope refactoring): MonthlyCard
+(string-building only), BossBang (DOM-only), every module not
+listed above.
+
+== Pre-flight checks before stage 4 ==
 
 - `git status` clean, on `main`.
 - `git fetch origin main` then `git log HEAD..origin/main --oneline`
   shows nothing (local main up to date).
 - `git config user.email` shows `oldron1977@gmail.com`.
-- `npm test` shows 633 passed / 0 skipped / 633 total / 47 suites.
+- `npm test` shows 711 passed / 0 skipped / 711 total / 52 suites.
 - `npm run build` succeeds. `HHAuto.user.js` may show a line-ending
   diff after building -- discard with `git checkout HHAuto.user.js`
   before committing.
 
-If any of these fails, stop and ask before starting stage 3.
+If any of these fails, stop and ask before starting stage 4.
 
 == State summary at handoff ==
 
-- main HEAD: e80e6cf ("docs(test): close stage 2")
-- Tests: 633 passed (47 suites). Coverage: 29.53% / 18.19% / 24.67%
-  / 30.12% (statements / branches / functions / lines).
-- 4 fixture sets introduced in stage 2:
-    spec/fixtures/league/         (3 files: opponents, rewards, README, plus the spec)
-    spec/fixtures/haremGirl/      (3 files)
-    spec/fixtures/champion/       (3 files)
-    spec/fixtures/event/          (3 files)
-- 1 shared loader: spec/testHelpers/Fixtures.ts (loadFixture).
-- 4 stage-2 fixture-set PRs merged: #1626, #1628, #1630, #1632.
-- 4 stage-2 doc PRs merged: #1627, #1629, #1631, #1633.
-- 1 stage-2 closure PR merged: #1634.
+- main HEAD: <to be filled in once the closure PR is merged>
+- Tests: 711 passed (52 suites). Coverage: ~30.7% statements /
+  ~18.7% branches / ~25.7% functions / ~30.7% lines (approximate;
+  exact values land in the closure run).
+- 5 stage-3 refactor PRs merged: #1636 (ClubChampion), #1638
+  (Pantheon), #1641 (Labyrinth), #1643 (Bundles), #1645
+  (LivelyScene).
+- 5 stage-3 doc PRs merged: #1637, #1640 (skip-only for 3.3 with
+  no code PR), #1642, #1644, #1646.
+- 1 stage-3 closure PR merged: <to be filled in by the closure PR>.
 ```
 
-## What was done in stage 2 (for context, not action)
+## What was done in stage 3 (for context, not action)
 
-- 4 fixture sets and one shared loader. League / haremGirl /
-  champion / event each got a JSON fixture, a sibling README, and a
-  smoke spec. The loader (`spec/testHelpers/Fixtures.ts`) is a
-  six-line synchronous `fs.readFileSync` + `JSON.parse` returning
-  `unknown`.
-- 23 new smoke tests (5 + 6 + 7 + 5). Total moved from 610 to 633.
-  Suite count: 43 -> 47.
-- Three of the five fixture tasks were renegotiated mid-flight:
-  - 2.2 (League): plan listed `member.id_country` / `member.lvl` /
-    `team.theme_elements[]` / `team.girls[]` per opponent. The
-    actual dump has those fields at top level and `team` is an HTML
-    snippet; the field selection followed the dump.
-  - 2.3 (HaremGirl): plan pointed at page 0
-    (`girls_full.game.shared.Hero`). That path is hero-side data,
-    not the harem. Harem actually lives on page 19
-    (`girls_full["game.girls_data_list"]`).
-  - 2.4 (Champion): plan listed page 8 and two files. Page 8
-    carries no champion JSON in the dump; active-champion sourced
-    from page 7. Champion-map fixture deferred (DOM-only data).
+- 5 new pure modules and 76 new tests across 5 refactor PRs
+  (3.1 ClubChampion, 3.2 Pantheon, 3.4 Labyrinth, 3.5 Bundles,
+  3.6 LivelyScene). Total moved from 633 to 711. Suite count:
+  47 -> 52.
+- Two of the seven sub-tasks shipped as documented skips:
+  - 3.3 MonthlyCard: module is misleadingly named -- the single
+    public method only builds regex strings for the settings UI;
+    no claim flow, no timer, no AJAX, no hero-level gate. Existing
+    spec already covers all six tier mappings with 24 tests.
+  - 3.6 BossBang half: DOM-driven team-search loop with `click()`
+    side effects; no isolatable pure logic. The other half of 3.6
+    (LivelyScene) shipped normally.
+- Six of the seven sub-tasks were renegotiated mid-flight when the
+  plan's pre-inspection guesses (`isTimeToFight` /
+  `getNextChampionTime` / `shouldClaim` / `getNextClaimTime` /
+  `entire decision pipeline` / `visibility / trigger` /
+  `isAvailable, timer reset`) did not match the actual code:
+  - 3.1 (ClubChampion): no `isTimeToFight` equivalent fits the pure
+    pattern; `getNextChampionTime` renamed to
+    `decideNextClubChampionTime` to avoid the name clash with
+    `Champion.pure.decideNextChampionTime`.
+  - 3.2 (Pantheon): scope held; only naming follows stage 1
+    convention.
+  - 3.3 (MonthlyCard): see above (skipped).
+  - 3.4 (Labyrinth): `LabyrinthAuto.run` has no isolatable pure
+    logic; the actual decision pipeline lives in `Labyrinth.ts`
+    (createPathFromMatrix, filterPathWithNoTreasue,
+    sortPathsByDifficulty, findBetter). All four extracted.
+  - 3.5 (Bundles): no visibility / trigger logic; only the 24-hour
+    threshold check inside `getExpiryTime` is pure. Mini-extraction.
+  - 3.6 (LivelyScene): `isAvailable` is trivial, `timer reset` has
+    no branch; the actual pure logic is the two OR cascades inside
+    `parse` and `parseClaimableRewards`.
+- Behaviour deltas accepted, all read-only and without game-state
+  effects (same class as League stage 1 task 1.1):
+  - 3.2 (Pantheon): `ParanoiaService.checkParanoiaSpendings(
+    'worship')` now called unconditionally.
+  - 3.5 (Bundles): `randomInterval(60, 180)` now called
+    unconditionally as part of computing `fallbackSeconds`.
+  - 3.4 (Labyrinth): five inner debug-log lines inside `findBetter`
+    removed; all gated by `debugEnabled`.
 - Side findings to keep on the radar:
   - `parseGirlsFromGameData(rawData) -> Girl[]` deferred from stage
-    1 task 1.3, naturally pairs with the first stage-3 task that
-    touches HaremGirl decision logic.
-  - `findBestItem` in HaremGirl.pure has no remaining callers.
-  - Champion-map fixture deferral until DOM-derived state has its
-    own testing approach.
+    1 task 1.3 stays deferred. Stage 4 (parser tests) is the
+    natural slot.
+  - `findBestItem` in `HaremGirl.pure` still has no callers.
+    Cleanup is independent.
+  - Champion-map fixture deferral (stage 2 task 2.4) carries
+    forward; needs a different approach for DOM-derived state.
 
-## Stage 3 design notes (for the agent before the first action)
+## Stage 4 design notes (for the agent before the first action)
 
-- Stage 3 is allowed to change production code under `src/`. The
-  pattern is stage 1's pure-extraction model: each task adds (or
-  reuses) one `<Module>.pure.ts`, then the impure adapter delegates
-  to it bit-for-bit.
-- Stage 1 already produced pure modules for League, Champion,
-  HaremGirl, AutoLoop. Modules without a pure module yet:
-  ClubChampion, Pantheon, MonthlyCard, LabyrinthAuto, Bundles,
-  LivelyScene, BossBang. Stage 3 tasks 3.1-3.6 each cover one or
-  two of these.
-- Decision-logic tests are 4-8 per pure function (default,
-  boundaries, setting-off, hero-level too low, timer active,
-  energy edge, AJAX error). Less is fine if the function has fewer
-  natural boundaries; more is fine if it has more.
-- Fixtures from stage 2 are the input shape for parser tests.
-  Fixture loading goes through `loadFixture(modulePath, name)`;
-  no direct `fs.readFileSync` in production code.
-- The parser deferred from task 1.3
-  (`parseGirlsFromGameData(rawData) -> Girl[]`) belongs in the
-  earliest stage-3 task that touches HaremGirl decision logic.
-  Until then, the haremGirl fixture is unused beyond its smoke
-  tests.
+- Stage 4 is allowed to change production code under `src/` only
+  when an AJAX validator or a storage-migration helper is being
+  added. The default is test-only.
+- 4.1 (AJAX schema tests): one validator test per response type
+  asserts that the parser does not crash on a real payload from the
+  dump. Pick one endpoint per PR; do not bundle.
+- 4.2 (Storage migration tests): mine `INPUT/HH_DebugLog_*.log` for
+  old `Setting_*` / `Temp_*` snapshots. The test should set the
+  storage to the old shape, call the reader, and assert that no
+  exception escapes (default value falls in if necessary).
+- 4.3 (Multi-domain smoke): one test per domain clone exercising
+  `ConfigHelper.getHHScriptVars` domain detection. New file
+  `spec/config/Domain.spec.ts`. Domains: `hentaiheroes.com`,
+  `gayharem.com`, `comixharem.com`, `mangarpg.com`, plus the
+  `tour` subdomain captured in the dump.
+- 4.4 (Closure): same shape as 2.7 / 3.7; pick up issue #1614 (CI
+  coverage reporting) at this point if not earlier.

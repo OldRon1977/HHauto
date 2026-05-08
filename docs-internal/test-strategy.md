@@ -5,10 +5,14 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **3 in progress**, tasks 3.1 - 3.6 done; next is task 3.7 (stage 3 closure)
-- Last completed task: 3.6 (LivelyScene pure-function extraction + decision tests; BossBang skipped after inspection)
-- Open reminder: issue #1614 (CI coverage reporting; tracked, will be picked up in stage 4)
-- Next step: stage 3 task 3.7 (stage 3 closure). Summarise the six tasks (3.1 - 3.6) and finalise the change log; close stage 3.
+- Current stage: **3 finished**, ready to start **stage 4 (reliability layer)**
+- Last completed task: 3.7 (stage 3 closure)
+- Open reminder: issue #1614 (CI coverage reporting; will be picked up in stage 4 task 4.4 alongside the storage-migration tests)
+- Next step: stage 4 task 4.1 (AJAX schema tests). Pick a real AJAX response from the dump (e.g. `live_blessings_api.live`), copy a redacted sample into a `spec/fixtures/<endpoint>/` set, and add one parser test per response type that asserts the parser does not crash on real payloads.
+- Carried-forward reminders for stage 4:
+  - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
+  - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
+  - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
 - Carried-forward reminders for stage 3:
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
@@ -586,7 +590,72 @@ module.
     `remainingTime` vs `limitBeforeEnd` preserved.
   - Tests: 711 passed (698 + 13), 0 skipped, 52 suites.
   - Merged via PR #1645, commit 546df93.
-- [ ] **3.7** Stage 3 finished -- branch `feat/test-decision-logic`
+- [x] **3.7** Stage 3 finished (2026-05-08)
+  - Branch per task held: `refactor/pure-functions-clubchampion`
+    (PR #1636), `refactor/pure-functions-pantheon` (PR #1638),
+    `refactor/pure-functions-labyrinth` (PR #1641),
+    `refactor/pure-functions-bundles` (PR #1643),
+    `refactor/pure-functions-livelyscene` (PR #1645). Each
+    refactor PR was followed by its own
+    `docs/test-strategy-stage3-task<n>` doc PR (PR #1637 /
+    #1640 / #1642 / #1644 / #1646). Task 3.3 (MonthlyCard)
+    shipped as a doc-only skip
+    (`docs/test-strategy-stage3-task33-skip`, PR #1640).
+    Closure on `chore/test-strategy-stage3-close`. Plan's
+    suggested unified branch `feat/test-decision-logic` was
+    not used: the per-module branch convention from stage 1
+    survived stage 3 unchanged because each task ships its
+    own pure module.
+  - 5 new pure modules produced (`ClubChampion.pure`,
+    `Pantheon.pure`, `Labyrinth.pure`, `Bundles.pure`,
+    `LivelyScene.pure`) with 76 new tests across 5 refactor
+    PRs (3.1 - 3.2, 3.4 - 3.6); tests went from 633 to 711.
+    Suite count: 47 -> 52.
+  - Two of the seven sub-tasks shipped as documented skips:
+    * 3.3 (MonthlyCard): module name is misleading -- the
+      single public method `updateInputPattern()` only builds
+      regex strings for the settings UI from the six energy-
+      type `getEnergyMax()` values. No claim flow, no timer,
+      no AJAX, no hero-level gate. The existing
+      `MonthlyCards.spec.ts` already covers all six tier
+      mappings with 24 tests, and the function is wrapped in
+      a try/catch. Stage-3 acceptance criteria do not map
+      onto string-building. Singleton-mutation cleanup
+      (replacing in-place `HHAuto_inputPattern.*` writes with
+      a returned object) is style refactoring and is filed
+      separately if pursued.
+    * 3.6 (BossBang half): `parse()` is a DOM-driven team-
+      search loop with `click()` side effects in the loop
+      body; the rest is DOM / click / navigation. There is
+      no `isAvailable` check; the timer is unconditional from
+      the DOM with no reset branch. No isolatable pure logic.
+  - Six of the seven sub-tasks were renegotiated mid-flight
+    when the plan's `isTimeToFight` / `getNextChampionTime` /
+    `shouldClaim` / `getNextClaimTime` / `entire decision
+    pipeline` / `visibility / trigger` / `isAvailable, timer
+    reset` headings did not match the actual code; see the
+    individual task notes. Net result: every module that had
+    real pure decision logic now has a `<Module>.pure.ts`
+    module.
+  - Behaviour deltas accepted across stage 3, all read-only and
+    without game-state effects (same class as League stage 1
+    task 1.1):
+    * 3.2 (Pantheon): `ParanoiaService.checkParanoiaSpendings(
+      'worship')` now called unconditionally.
+    * 3.5 (Bundles): `randomInterval(60, 180)` now called
+      unconditionally as part of computing `fallbackSeconds`.
+    * 3.4 (Labyrinth): five inner debug-log lines inside
+      `findBetter` removed; all gated by `debugEnabled`.
+    * Side-finding from 3.1 (ClubChampion): the impure
+      adapter calls `randomInterval(decision.minTime,
+      decision.maxTime)` once where the original called it
+      three times across mutually exclusive branches; same
+      number of random draws per call site, no behaviour
+      change.
+  - Stage 4 (reliability layer) inherits three deferrals from
+    stage 1/2: `parseGirlsFromGameData` parser, the champion-
+    map fixture, and the League energy snapshot. None of
+    these blocked stage 3.
 
 ### Stage 4 -- reliability layer (1-2 days)
 
@@ -692,3 +761,4 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 3.4 done: Labyrinth path pipeline pure-function extraction (`getNextIndices`, `buildPathsFromMatrix`, `filterPathsWithTreasure`, `sortPathsByDifficulty`, `decideBetterOption`) + 28 new pure tests (692 total), bundle diff structural, plan deviation in module choice documented in the task entry (`LabyrinthAuto.run()` has no isolatable pure logic; the actual decision pipeline lives in `Labyrinth.ts`); behaviour delta documented (five inner debug-log lines inside `findBetter` removed, all under `debugEnabled === true` and without game-state effects), merged via PR #1641 (commit c16adc2) |
 | 2026-05-08 | Task 3.5 done: Bundles `getExpiryTime` pure-function extraction (`decideExpiryTime`) + 6 new pure tests (698 total), bundle diff structural, plan deviation in scope documented in the task entry (no visibility/trigger logic in the module; only the 24-hour threshold check is pure); behaviour delta documented (`randomInterval(60, 180)` now called unconditionally, mirroring League stage 1 task 1.1 and Pantheon stage 3 task 3.2), merged via PR #1643 (commit cc8c80c) |
 | 2026-05-08 | Task 3.6 done: LivelyScene pure-function extraction (`decideCollectTrigger`, `selectClaimablePieces`) + 13 new pure tests (711 total), bundle diff structural; BossBang skipped (no isolatable pure logic, same rationale class as 3.3 MonthlyCard); plan deviation in scope documented in the task entry (`isAvailable` / `timer reset` headings did not map onto either module's actual code), merged via PR #1645 (commit 546df93) |
+| 2026-05-08 | Stage 3 finished: 5 pure modules (ClubChampion / Pantheon / Labyrinth / Bundles / LivelyScene), 76 new tests across 5 refactor PRs (1636/1638/1641/1643/1645) and 6 doc PRs (1637/1640/1642/1644/1646 plus the 3.3 skip-only doc PR), 711 total; six of seven sub-tasks renegotiated mid-flight when the plan's symbol names did not match the actual code; two sub-tasks shipped as documented skips (3.3 MonthlyCard -- module name is misleading; 3.6 BossBang half -- DOM-only); behaviour deltas documented per task, all read-only and without game-state effects |
