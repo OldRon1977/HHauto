@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.8.0-share-1
+// @version      4.8.0-share-2
 // @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -24,7 +24,7 @@
 (function() {
     'use strict';
 
-    const VERSION = '4.8.0-share-1';
+    const VERSION = '4.8.0-share-2';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // PII share-mode toggle. Single source of truth for the share pipeline.
@@ -906,20 +906,133 @@
     //   - bundle.meta.pii  for tour dumps
     //   - dump.meta.pii    for single-page dumps
     //
-    // Steps implemented in v4.8.0-share-1:
+    // Steps implemented in v4.8.0-share-2:
     //   Step 0 - top-level whitelist
-    //   Step 1 - plain-text + token strip
+    //   Step 1 - plain-text + token strip (defence in depth)
     //   Step 2 - settings whitelist
-    //   Step 4 - audit block
-    // Steps deferred to slice 2 (-share-2):
     //   Step 3 - id hashing + pseudonyms + per-dump shuffle
+    //   Step 4 - audit block
     //   Step 5 - time / counter rounding
+    //
+    // Order inside applyShareModePipeline (per page):
+    //   snapshot hero nickname  ->  Step 3 (raw page; reads id_member etc.
+    //   before the whitelist drops them)  ->  Step 5 (raw page)  ->  Step 0
+    //   (top-level whitelist)  ->  Step 2 (local_storage filter)  ->  Step 1
+    //   (recursive plain-text strip as a backstop)  ->  Step 4 audit block.
 
-    const SHARE_PIPELINE_VERSION = 1;
+    const SHARE_PIPELINE_VERSION = 2;
     const SHARE_PII_WARNING = "Dump went through anonymisation. Suitable for public bug reports.";
 
-    // Step 0 - per-page top-level whitelist. game_context handled separately
-    // (only its body_page sub-key is kept).
+    // ---------- Per-dump context (salt + id map). Salt never leaves the dump. ----------
+
+    function shareHexRandom(byteCount) {
+        const out = new Array(byteCount);
+        try {
+            const arr = new Uint8Array(byteCount);
+            (typeof crypto !== 'undefined' ? crypto : (typeof window !== 'undefined' ? window.crypto : null)).getRandomValues(arr);
+            for (let i = 0; i < byteCount; i++) {
+                out[i] = (arr[i] < 16 ? '0' : '') + arr[i].toString(16);
+            }
+        } catch (e) {
+            // Fallback (only if crypto.getRandomValues is unavailable for some reason).
+            for (let i = 0; i < byteCount; i++) {
+                const r = Math.floor(Math.random() * 256);
+                out[i] = (r < 16 ? '0' : '') + r.toString(16);
+            }
+        }
+        return out.join('');
+    }
+
+    // FNV-1a 64-bit using BigInt (ES2020, available in all modern userscript
+    // engines). Output is the first 12 hex chars of the 16-hex digest.
+    // This is a non-cryptographic hash. It is sufficient against statistical
+    // re-correlation across dumps because the salt is fresh per dump and not
+    // persisted; it is not a defence against an attacker with salt access.
+    const SHARE_FNV_OFFSET = 0xcbf29ce484222325n;
+    const SHARE_FNV_PRIME = 0x100000001b3n;
+    const SHARE_FNV_MASK = 0xffffffffffffffffn;
+    function shareFnv1a64Hex(s) {
+        let h = SHARE_FNV_OFFSET;
+        for (let i = 0; i < s.length; i++) {
+            h = (h ^ BigInt(s.charCodeAt(i) & 0xff)) & SHARE_FNV_MASK;
+            h = (h * SHARE_FNV_PRIME) & SHARE_FNV_MASK;
+        }
+        const hex = h.toString(16);
+        const padded = ('0000000000000000' + hex).slice(-16);
+        return padded.substring(0, 12);
+    }
+
+    function shareInitContext() {
+        return {
+            salt: shareHexRandom(16),
+            idMap: new Map(),
+            seqHarem: 0,
+            seqEvent: 0,
+            seqTeam: 0,
+            seqOppAnon: 0,
+            counters: null
+        };
+    }
+
+    function shareHashId(rawId, ctx) {
+        if (rawId === undefined || rawId === null || rawId === '') return rawId;
+        const key = String(rawId);
+        if (ctx.idMap.has(key)) return ctx.idMap.get(key);
+        const hash = shareFnv1a64Hex(ctx.salt + ':' + key);
+        ctx.idMap.set(key, hash);
+        if (ctx.counters) ctx.counters.ids_hashed += 1;
+        return hash;
+    }
+
+    // ---------- Salt-seeded PRNG (xmur3 + mulberry32) for deterministic shuffle. ----------
+
+    function shareXmur3(str) {
+        let h = 1779033703 ^ str.length;
+        for (let i = 0; i < str.length; i++) {
+            h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+            h = (h << 13) | (h >>> 19);
+        }
+        return function() {
+            h = Math.imul(h ^ (h >>> 16), 2246822507);
+            h = Math.imul(h ^ (h >>> 13), 3266489909);
+            h ^= h >>> 16;
+            return h >>> 0;
+        };
+    }
+
+    function shareMulberry32(seed) {
+        let t = seed >>> 0;
+        return function() {
+            t = (t + 0x6D2B79F5) >>> 0;
+            let r = Math.imul(t ^ (t >>> 15), 1 | t);
+            r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+            return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
+    function sharePrng(salt) {
+        const seed = shareXmur3('shuffle:' + salt)();
+        return shareMulberry32(seed);
+    }
+
+    function shareShuffleInPlace(arr, prng) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(prng() * (i + 1));
+            const tmp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = tmp;
+        }
+        return arr;
+    }
+
+    function sharePadSeq(n) {
+        const s = String(n);
+        return s.length >= 4 ? s : ('0000' + s).slice(-4);
+    }
+
+    // ---------- Step 0 / 2 / 1 whitelists and patterns. ----------
+
+    // Step 0 - per-page top-level whitelist.
     const SHARE_PAGE_KEYS = new Set([
         'tour_meta', 'meta', 'hero_infos', 'girls_full', 'battle', 'teams',
         'ajax_observed', 'local_storage'
@@ -937,16 +1050,17 @@
         'league_rewards', 'current_tier_number'
     ]);
 
-    // Step 0 - teams.opponents_list[*] keep set (player.* sub-keys filtered too).
-    // Re-id fields (nickname, id_member, id_fighter, club, match_history,
-    // player_league_points) are dropped here and will be hashed in slice 2.
+    // Step 0 - teams.opponents_list[*] keep set. Slice 2 keeps nickname /
+    // id_member so Step 3 (run before the whitelist) can replace them with
+    // pseudonyms that survive into the final dump.
     const SHARE_OPP_KEYS = new Set([
         'level', 'power', 'place', 'country', 'can_fight',
-        'current_season_mojo', 'boosters', 'player'
+        'current_season_mojo', 'boosters', 'player', 'nickname',
+        'id_member', 'id_fighter'
     ]);
     const SHARE_OPP_PLAYER_KEYS = new Set([
         'level', 'power', 'place', 'country', 'can_fight',
-        'current_season_mojo', 'boosters'
+        'current_season_mojo', 'boosters', 'nickname', 'id_member'
     ]);
 
     // Step 2 - localStorage settings whitelist (HHAuto_Setting_* / HHAuto_Temp_*).
@@ -1052,6 +1166,11 @@
     // Personalised CDN asset paths: /<32 hex>.<image-ext>
     const SHARE_CDN_HASH_PATTERN = /\/[a-f0-9]{32}\.(?:png|jpg|jpeg|webp|gif)\b/gi;
 
+    // Field-name sets recognised by Step 3 walks.
+    const SHARE_ID_FIELDS = new Set(['id_girl', 'id_girl_ref', 'id_member', 'id_fighter', 'id_team']);
+
+    // ---------- Helpers ----------
+
     function shareReadHeroNickname(page) {
         try {
             const v = page && page.hero_infos && page.hero_infos.infos && page.hero_infos.infos.name;
@@ -1069,7 +1188,192 @@
         return out;
     }
 
-    function shareApplyTopLevelWhitelist(page, counters) {
+    // ---------- Step 3: pseudonyms + id hashing on the raw page. ----------
+
+    function sharePseudonymiseGirlList(list, ctx, prefix) {
+        if (!Array.isArray(list)) return list;
+        // Map index field for stable counter selection.
+        let counterRef;
+        if (prefix === 'Girl') counterRef = 'seqHarem';
+        else if (prefix === 'EventGirl') counterRef = 'seqEvent';
+        else counterRef = 'seqTeam';
+
+        const prng = sharePrng(ctx.salt + ':' + prefix);
+        const indices = list.map(function(_, i) { return i; });
+        shareShuffleInPlace(indices, prng);
+
+        const reordered = new Array(list.length);
+        for (let i = 0; i < indices.length; i++) {
+            reordered[i] = list[indices[i]];
+        }
+
+        for (let i = 0; i < reordered.length; i++) {
+            const item = reordered[i];
+            ctx[counterRef] += 1;
+            const pseudonym = prefix + sharePadSeq(ctx[counterRef]);
+            if (item && typeof item === 'object') {
+                if ('name' in item) item.name = pseudonym;
+                if ('Name' in item) item.Name = pseudonym;
+                if ('nickname' in item) item.nickname = pseudonym;
+                if ('id_girl' in item) item.id_girl = shareHashId(item.id_girl, ctx);
+                if ('id_girl_ref' in item) item.id_girl_ref = shareHashId(item.id_girl_ref, ctx);
+            }
+            if (ctx.counters) ctx.counters.girls_pseudonymised += 1;
+        }
+        return reordered;
+    }
+
+    function sharePseudonymiseOpponent(opp, ctx) {
+        if (!opp || typeof opp !== 'object') return opp;
+        let token;
+        const rawIdMember = opp.id_member !== undefined ? opp.id_member
+            : (opp.player && opp.player.id_member !== undefined ? opp.player.id_member : null);
+        if (rawIdMember !== null && rawIdMember !== undefined && rawIdMember !== 0 && rawIdMember !== '0') {
+            token = shareHashId(rawIdMember, ctx);
+        } else {
+            ctx.seqOppAnon += 1;
+            token = 'anon' + sharePadSeq(ctx.seqOppAnon);
+        }
+        const pseudo = 'Opponent_' + token;
+        if ('nickname' in opp) opp.nickname = pseudo;
+        if (opp.player && typeof opp.player === 'object') {
+            if ('nickname' in opp.player) opp.player.nickname = pseudo;
+            if ('club' in opp.player) delete opp.player.club;
+            if ('id_member' in opp.player) opp.player.id_member = token;
+        }
+        if ('id_member' in opp) opp.id_member = token;
+        if ('id_fighter' in opp) opp.id_fighter = shareHashId(opp.id_fighter, ctx);
+        return opp;
+    }
+
+    function sharePseudonymiseParticipant(p, ctx) {
+        if (!p || typeof p !== 'object') return p;
+        const token = (p.id_member !== undefined && p.id_member !== null && p.id_member !== 0)
+            ? shareHashId(p.id_member, ctx)
+            : (function() { ctx.seqOppAnon += 1; return 'anon' + sharePadSeq(ctx.seqOppAnon); })();
+        if ('nickname' in p) p.nickname = 'Participant_' + token;
+        if ('avatar' in p) delete p.avatar;
+        if ('id_member' in p) p.id_member = token;
+        if ('id_fighter' in p) p.id_fighter = shareHashId(p.id_fighter, ctx);
+        return p;
+    }
+
+    function shareApplyPseudonyms(page, ctx) {
+        if (!page || typeof page !== 'object') return page;
+
+        // Harem girls: page.girls_full is an object keyed by source path with
+        // arrays of girls. Shuffle each list independently.
+        const gf = page.girls_full;
+        if (gf && typeof gf === 'object') {
+            for (const k of Object.keys(gf)) {
+                if (Array.isArray(gf[k])) {
+                    gf[k] = sharePseudonymiseGirlList(gf[k], ctx, 'Girl');
+                }
+            }
+        }
+
+        // Event girls: battle.event_data.girls and battle.current_event.girls.
+        const battle = page.battle;
+        if (battle && typeof battle === 'object') {
+            if (battle.event_data && Array.isArray(battle.event_data.girls)) {
+                battle.event_data.girls = sharePseudonymiseGirlList(battle.event_data.girls, ctx, 'EventGirl');
+            }
+            if (battle.current_event && Array.isArray(battle.current_event.girls)) {
+                battle.current_event.girls = sharePseudonymiseGirlList(battle.current_event.girls, ctx, 'EventGirl');
+            }
+
+            // Champion participants -- shuffle, then pseudonymise each.
+            const cd = battle.championData;
+            if (cd && cd.fight && Array.isArray(cd.fight.participants)) {
+                const prng = sharePrng(ctx.salt + ':Participant');
+                shareShuffleInPlace(cd.fight.participants, prng);
+                cd.fight.participants = cd.fight.participants.map(function(p) {
+                    return sharePseudonymiseParticipant(p, ctx);
+                });
+            }
+        }
+
+        // Opponents in teams.opponents_list.
+        const teams = page.teams;
+        if (teams && typeof teams === 'object' && Array.isArray(teams.opponents_list)) {
+            teams.opponents_list = teams.opponents_list.map(function(o) {
+                return sharePseudonymiseOpponent(o, ctx);
+            });
+        }
+
+        // Final id-only sweep across the whole page for any id_* still raw.
+        shareWalkHashIds(page, ctx, new WeakSet());
+        return page;
+    }
+
+    function shareWalkHashIds(node, ctx, seen) {
+        if (node === null || node === undefined) return node;
+        if (typeof node !== 'object') return node;
+        if (seen.has(node)) return node;
+        seen.add(node);
+        if (Array.isArray(node)) {
+            for (let i = 0; i < node.length; i++) shareWalkHashIds(node[i], ctx, seen);
+            return node;
+        }
+        for (const k of Object.keys(node)) {
+            const v = node[k];
+            if (SHARE_ID_FIELDS.has(k)) {
+                if (typeof v === 'number' || (typeof v === 'string' && /^[0-9]+$/.test(v))) {
+                    node[k] = shareHashId(v, ctx);
+                    continue;
+                }
+            }
+            if (v && typeof v === 'object') shareWalkHashIds(v, ctx, seen);
+        }
+        return node;
+    }
+
+    // ---------- Step 5: rounding. ----------
+
+    function shareRoundIsoToHour(iso) {
+        if (typeof iso !== 'string') return iso;
+        // Expect ISO 8601 like "2026-05-08T14:23:45.678Z" -> "2026-05-08T14:00:00.000Z".
+        const m = iso.match(/^(\d{4}-\d{2}-\d{2}T\d{2}):\d{2}:\d{2}(\.\d+)?Z$/);
+        if (!m) return iso;
+        return m[1] + ':00:00.000Z';
+    }
+
+    function shareApplyRounding(page, ctx) {
+        if (!page || typeof page !== 'object') return page;
+        if (page.meta && typeof page.meta.timestamp === 'string') {
+            const before = page.meta.timestamp;
+            const after = shareRoundIsoToHour(before);
+            if (after !== before) {
+                page.meta.timestamp = after;
+                if (ctx.counters) ctx.counters.timestamps_rounded += 1;
+            }
+        }
+        if (page.battle && typeof page.battle === 'object') {
+            const v = page.battle.mega_event_time_remaining;
+            if (typeof v === 'number' && isFinite(v)) {
+                page.battle.mega_event_time_remaining = Math.floor(v / 60) * 60;
+                if (ctx.counters) ctx.counters.timestamps_rounded += 1;
+            }
+        }
+        if (Array.isArray(page.ajax_observed)) {
+            for (const entry of page.ajax_observed) {
+                if (!entry || typeof entry !== 'object') continue;
+                if ('timestamp_ms' in entry) {
+                    entry.timestamp_ms = null;
+                    if (ctx.counters) ctx.counters.timestamps_rounded += 1;
+                }
+                if ('duration_ms' in entry) {
+                    entry.duration_ms = null;
+                    if (ctx.counters) ctx.counters.timestamps_rounded += 1;
+                }
+            }
+        }
+        return page;
+    }
+
+    // ---------- Step 0: top-level whitelist (slice 1, refined). ----------
+
+    function shareApplyTopLevelWhitelist(page, ctx) {
         if (!page || typeof page !== 'object') return page;
         const out = {};
         let droppedCount = 0;
@@ -1133,11 +1437,13 @@
         if ('ajax_observed' in page) out.ajax_observed = page.ajax_observed;
         if ('local_storage' in page) out.local_storage = page.local_storage;
 
-        if (counters) counters.top_level_keys_dropped += droppedCount;
+        if (ctx.counters) ctx.counters.top_level_keys_dropped += droppedCount;
         return out;
     }
 
-    function shareWalkPlainText(node, nickname, counters) {
+    // ---------- Step 1: plain-text walk (backstop). ----------
+
+    function shareWalkPlainText(node, nickname, counters, seen) {
         if (node === null || node === undefined) return node;
         const t = typeof node;
         if (t === 'string') {
@@ -1159,9 +1465,11 @@
             return s;
         }
         if (t !== 'object') return node;
+        if (seen.has(node)) return node;
+        seen.add(node);
         if (Array.isArray(node)) {
             for (let i = 0; i < node.length; i++) {
-                node[i] = shareWalkPlainText(node[i], nickname, counters);
+                node[i] = shareWalkPlainText(node[i], nickname, counters, seen);
             }
             return node;
         }
@@ -1171,10 +1479,12 @@
                 if (counters) counters.token_keys_dropped += 1;
                 continue;
             }
-            node[k] = shareWalkPlainText(node[k], nickname, counters);
+            node[k] = shareWalkPlainText(node[k], nickname, counters, seen);
         }
         return node;
     }
+
+    // ---------- Step 2: settings whitelist. ----------
 
     function shareFilterLocalStorage(localStorageObj, counters) {
         if (!localStorageObj || typeof localStorageObj !== 'object') return localStorageObj;
@@ -1199,8 +1509,11 @@
         return out;
     }
 
+    // ---------- Top-level pipeline runner. ----------
+
     function applyShareModePipeline(bundle) {
         if (!bundle || typeof bundle !== 'object') return bundle;
+        const ctx = shareInitContext();
         const counters = {
             top_level_keys_dropped: 0,
             plain_text_replacements: 0,
@@ -1211,22 +1524,43 @@
             girls_pseudonymised: 0,
             timestamps_rounded: 0
         };
+        ctx.counters = counters;
+
         const pages = Array.isArray(bundle.pages) ? bundle.pages : [];
-        // Snapshot the hero nickname before the whitelist drops it.
+        // Snapshot the hero nickname before whitelist/pseudonymise drop or rewrite it.
         let nickname = null;
         for (let i = 0; i < pages.length; i++) {
             const n = shareReadHeroNickname(pages[i]);
             if (n) { nickname = n; break; }
         }
+
         for (let i = 0; i < pages.length; i++) {
             let page = pages[i];
-            page = shareApplyTopLevelWhitelist(page, counters);
+            // Step 3 first -- must read raw page (id_member etc.) before whitelist drops them.
+            shareApplyPseudonyms(page, ctx);
+            // Step 5 next -- works on raw page too (mega_event_time_remaining etc.).
+            shareApplyRounding(page, ctx);
+            // Step 0 - whitelist now (drops everything else).
+            page = shareApplyTopLevelWhitelist(page, ctx);
+            // Step 2 - settings whitelist on local_storage.
             if (page && page.local_storage) {
                 page.local_storage = shareFilterLocalStorage(page.local_storage, counters);
             }
-            shareWalkPlainText(page, nickname, counters);
+            // Step 1 - plain-text strip as backstop.
+            shareWalkPlainText(page, nickname, counters, new WeakSet());
             pages[i] = page;
         }
+
+        // Round bundle-level timestamp too (tour bundles).
+        if (bundle.meta && typeof bundle.meta.timestamp === 'string') {
+            const before = bundle.meta.timestamp;
+            const after = shareRoundIsoToHour(before);
+            if (after !== before) {
+                bundle.meta.timestamp = after;
+                counters.timestamps_rounded += 1;
+            }
+        }
+
         if (!bundle.meta || typeof bundle.meta !== 'object') bundle.meta = {};
         bundle.meta.pii = {
             mode: "share",
@@ -1236,7 +1570,9 @@
             layers_applied: [
                 "top_level_whitelist",
                 "plain_text_strip",
-                "settings_whitelist"
+                "settings_whitelist",
+                "id_hash_and_pseudonymise",
+                "rounding"
             ],
             layer_counts: {
                 top_level_keys_dropped: counters.top_level_keys_dropped,
@@ -1249,7 +1585,7 @@
                 timestamps_rounded: counters.timestamps_rounded
             },
             warning_for_user: SHARE_PII_WARNING,
-            salt_present: false
+            salt_present: true
         };
         return bundle;
     }
