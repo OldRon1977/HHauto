@@ -1832,6 +1832,37 @@ Booster._battleResponseResolve = null;
 /** TTL for boosterStatus freshness in milliseconds (10 minutes). */
 Booster.BOOSTER_STATUS_TTL_MS = 10 * 60 * 1000;
 
+;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
+// Bundles.pure.ts -- Pure decision logic for the free-bundle collector.
+//
+// Extracted from Bundles.getExpiryTime so the 24-hour threshold check
+// can be unit-tested without DOM access, jQuery, or randomInterval.
+//
+// The impure adapter Bundles.getExpiryTime scrapes the popup timer
+// from the DOM and falls back to maxCollectionDelay + jitter when the
+// timer is missing or claims to be more than a day in the future
+// (which happens with stale or malformed DOM state). This pure
+// function captures only the threshold decision; the fallback value
+// itself is computed by the adapter and passed in.
+/**
+ * Reproduce Bundles.getExpiryTime bit by bit:
+ *
+ *   if scrapedSeconds === null            -> fallbackSeconds
+ *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
+ *   otherwise                              -> scrapedSeconds
+ *
+ * The 24-hour boundary is strict (<): the original code reads
+ * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
+ * exactly 24 * 3600 falls through to the fallback branch.
+ */
+function decideExpiryTime(state) {
+    if (state.scrapedSeconds === null)
+        return state.fallbackSeconds;
+    if (state.scrapedSeconds >= 24 * 3600)
+        return state.fallbackSeconds;
+    return state.scrapedSeconds;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Bundles.ts
 // Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
 //
@@ -1845,17 +1876,21 @@ Booster.BOOSTER_STATUS_TTL_MS = 10 * 60 * 1000;
 
 
 
+
 class Bundles {
     static getExpiryTime() {
         const timerRequest = `#popup-payment-container .period_deal .shop-timer span[rel=expires]`;
+        let scrapedSeconds = null;
         if ($(timerRequest).length > 0) {
-            const freeBundleTimer = Number(convertTimeToInt($(timerRequest).text()));
-            LogUtils_logHHAuto('freeBundleTimer', freeBundleTimer);
-            if (freeBundleTimer < (24 * 3600))
-                return freeBundleTimer;
+            scrapedSeconds = Number(convertTimeToInt($(timerRequest).text()));
+            LogUtils_logHHAuto('freeBundleTimer', scrapedSeconds);
         }
-        LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
-        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+        const fallbackSeconds = ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+        const decision = decideExpiryTime({ scrapedSeconds, fallbackSeconds });
+        if (scrapedSeconds === null || scrapedSeconds >= 24 * 3600) {
+            LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
+        }
+        return decision;
     }
     static goAndCollectFreeBundles() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
@@ -2263,6 +2298,72 @@ class KinkyCumpetition {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.pure.ts
+// LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
+//
+// Extracted from LivelyScene.parse and LivelyScene.parseClaimableRewards
+// so the collect-trigger cascade and the puzzle-piece filter can be
+// unit-tested without DOM access, jQuery, storage, or game globals.
+//
+// Two decisions live here:
+//
+// 1. decideCollectTrigger -- the three-branch OR cascade in
+//    LivelyScene.parse that decides whether to invoke goAndCollect at
+//    all. Triggered by any of:
+//      - autoCollect setting on (continuous polling)
+//      - manualCollectAll flag on (user-initiated full sweep)
+//      - autoCollectAll setting on AND remainingTime is below the
+//        end-of-event threshold
+//
+// 2. selectClaimablePieces -- the loop in parseClaimableRewards that
+//    walks the puzzle-piece list and keeps only the entries that are
+//    unlocked-but-not-claimed AND match the per-piece eligibility
+//    rule: matching rewardType under needToCollect, OR needToCollectAll
+//    (any rewardType), OR manualCollectAll (any rewardType).
+/**
+ * Reproduce the OR cascade in LivelyScene.parse bit by bit:
+ *
+ *   autoCollect
+ *   || manualCollectAll
+ *   || (remainingTime < limitBeforeEnd && autoCollectAll)
+ *
+ * Operator precedence preserved: && binds tighter than ||, so the
+ * end-of-event branch parses as one parenthesised conjunction.
+ */
+function decideCollectTrigger(state) {
+    return (state.autoCollect
+        || state.manualCollectAll
+        || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
+}
+/**
+ * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
+ * Walks the input list and keeps every piece for which:
+ *
+ *   reward_unlocked AND NOT reward_claimed
+ *   AND (
+ *     (rewardsToCollect.includes(rewardType) AND needToCollect)
+ *     OR needToCollectAll
+ *     OR manualCollectAll
+ *   )
+ *
+ * Operator precedence preserved (&& binds tighter than ||): the per-
+ * type allowlist only gates the per-poll branch; the two sweep modes
+ * accept any rewardType.
+ */
+function selectClaimablePieces(pieces, state) {
+    const claimable = [];
+    for (const piece of pieces) {
+        if (piece.reward_unlocked && !piece.reward_claimed) {
+            const allowedByType = state.rewardsToCollect.includes(piece.rewardType)
+                && state.needToCollect;
+            if (allowedByType || state.needToCollectAll || state.manualCollectAll) {
+                claimable.push(piece);
+            }
+        }
+    }
+    return claimable;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.ts
 var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -2282,6 +2383,7 @@ var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Lively Scene event is active)
 //
+
 
 
 
@@ -2305,29 +2407,37 @@ class LivelyScene {
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
         const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" || manualCollectAll
-            || remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true") {
+        const shouldTrigger = decideCollectTrigger({
+            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+            manualCollectAll,
+            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+            remainingTime,
+            limitBeforeEnd: getLimitTimeBeforeEnd(),
+        });
+        if (shouldTrigger) {
             LivelyScene.goAndCollect(remainingTime, manualCollectAll);
         }
     }
     static parseClaimableRewards(remainingTime, manualCollectAll = false) {
-        var _a, _b;
-        const claimablePieces = [];
         const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
         const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
         const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
         const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
-        // logHHAuto("Checking double penetration event for collectable rewards.");
-        for (let currentPiece = 0; currentPiece < puzzlePieces.length; currentPiece++) {
-            const puzzlePiece = puzzlePieces[currentPiece];
-            if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                let rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
-                if (rewardsToCollect.includes(rewardType) && needToCollect || needToCollectAll || manualCollectAll) {
-                    // logHHAuto(`Reward to collect ${puzzlePiece?.reward?.rewards[0].value}x${puzzlePiece?.reward?.rewards[0].type}`);
-                    claimablePieces.push(puzzlePiece);
-                }
-            }
-        }
+        const projected = puzzlePieces.map((piece) => {
+            var _a, _b;
+            return ({
+                reward_unlocked: piece.reward_unlocked,
+                reward_claimed: piece.reward_claimed,
+                rewardType: ((_a = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type,
+                __orig: piece,
+            });
+        });
+        const claimablePieces = selectClaimablePieces(projected, {
+            rewardsToCollect,
+            needToCollect,
+            needToCollectAll,
+            manualCollectAll,
+        }).map((p) => p.__orig);
         LogUtils_logHHAuto('claimablePieces', claimablePieces);
         return claimablePieces;
     }
@@ -5954,6 +6064,84 @@ class Club {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/ClubChampion.pure.ts
+// ClubChampion.pure.ts -- Pure decision logic for the club-champion auto module.
+//
+// Extracted from ClubChampion.updateClubChampionTimer and
+// ClubChampion._setTimer so the range selection and timer alignment can be
+// unit-tested without DOM access, jQuery, randomInterval, or the timer
+// helper.
+//
+// Two decisions live here:
+//
+// 1. decideNextClubChampionTime maps the scraped "seconds to next timer"
+//    plus the autoClubForceStart setting onto the [min, max] window the
+//    impure adapter then feeds into randomInterval. The girl-reward
+//    substitution is deliberately NOT modelled here -- it happens at the
+//    DOM-scrape boundary (getNextClubChampionTimer) and feeds a
+//    pre-substituted secsToNextTimer into this function. That keeps the
+//    pure layer uniform: input is one number, output is one window.
+//
+// 2. decideAlignedClubChampionTimer reproduces the small alignment branch
+//    in _setTimer: if both autoChamps and autoChampAlignTimer are on AND
+//    both timers fall into the alignment window, return max(proposed,
+//    champTimeLeft); otherwise return the proposed value untouched.
+//
+// Bit-for-bit equivalence is the explicit goal -- thresholds (>7200, >10,
+// <1200) keep their strict comparisons.
+/**
+ * Map the scraped timer plus force-start flag to a [min, max] window for
+ * randomInterval. Reproduces the three-branch cascade in
+ * updateClubChampionTimer line by line:
+ *
+ *   secsToNextTimer === -1                     -> [15*60, 17*60]   no-timer
+ *   secsToNextTimer >  7200 && force-start     -> [115*60, 125*60] force-start
+ *   else                                       -> [secs, secs+180] normal
+ *
+ * The 7200s threshold is strict (>): a timer of exactly 7200 falls
+ * through to the normal branch.
+ */
+function decideNextClubChampionTime(state) {
+    if (state.secsToNextTimer === -1) {
+        return { minTime: 15 * 60, maxTime: 17 * 60, reason: 'no-timer' };
+    }
+    if (state.secsToNextTimer > 7200 && state.autoClubForceStart) {
+        return { minTime: 115 * 60, maxTime: 125 * 60, reason: 'force-start' };
+    }
+    return {
+        minTime: state.secsToNextTimer,
+        maxTime: 180 + state.secsToNextTimer,
+        reason: 'normal',
+    };
+}
+/**
+ * Reproduce the alignment branch in _setTimer:
+ *
+ *   if (autoChamps && autoChampAlignTimer
+ *       && proposedTime > 10 && champTimeLeft < 1200 && proposedTime < 1200)
+ *       proposedTime = max(proposedTime, champTimeLeft);
+ *
+ * All three threshold comparisons are strict on purpose:
+ *   proposedTime > 10  -- skip near-immediate retries
+ *   champTimeLeft < 1200, proposedTime < 1200 -- only align when both are
+ *   below 20 minutes
+ *
+ * The intent of the alignment is to bundle club-champion and
+ * single-champion runs onto the same wake-up: when both fire within the
+ * next 20 minutes, the later one wins so the script does not page-cycle
+ * twice in quick succession.
+ */
+function decideAlignedClubChampionTimer(state) {
+    if (state.autoChamps
+        && state.autoChampAlignTimer
+        && state.proposedTime > 10
+        && state.champTimeLeft < 1200
+        && state.proposedTime < 1200) {
+        return Math.max(state.proposedTime, state.champTimeLeft);
+    }
+    return state.proposedTime;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/ClubChampion.ts
 var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -5973,6 +6161,7 @@ var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisA
 // Depends on: Club.ts (membership check), TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop)
 //
+
 
 
 
@@ -6010,18 +6199,13 @@ class ClubChampion {
         var page = getPage();
         if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
             LogUtils_logHHAuto('on clubs');
-            let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-            let noTimer = (secsToNextTimer === -1);
-            let nextClubChampionTime;
-            if (secsToNextTimer === -1) {
-                nextClubChampionTime = randomInterval(15 * 60, 17 * 60);
-            }
-            else if (secsToNextTimer > 7200 && getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true") {
-                nextClubChampionTime = randomInterval(115 * 60, 125 * 60);
-            }
-            else {
-                nextClubChampionTime = randomInterval(secsToNextTimer, 180 + secsToNextTimer);
-            }
+            const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+            const noTimer = (secsToNextTimer === -1);
+            const decision = decideNextClubChampionTime({
+                secsToNextTimer,
+                autoClubForceStart: getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true",
+            });
+            const nextClubChampionTime = randomInterval(decision.minTime, decision.maxTime);
             ClubChampion._setTimer(nextClubChampionTime);
             return noTimer;
         }
@@ -6167,14 +6351,13 @@ class ClubChampion {
      * @private
      */
     static _setTimer(nextClubChampionTime) {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.autoChampAlignTimer) === "true") {
-            const champTimeLeft = getSecondsLeft('nextChampionTime');
-            if (nextClubChampionTime > 10 && champTimeLeft < 1200 && nextClubChampionTime < 1200) { // align settings
-                // 20 min for standard wait time
-                nextClubChampionTime = Math.max(nextClubChampionTime, champTimeLeft);
-            }
-        }
-        setTimer('nextClubChampionTime', nextClubChampionTime);
+        const aligned = decideAlignedClubChampionTimer({
+            proposedTime: nextClubChampionTime,
+            champTimeLeft: getSecondsLeft('nextChampionTime'),
+            autoChamps: getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true",
+            autoChampAlignTimer: getStoredValue(HHStoredVarPrefixKey + SK.autoChampAlignTimer) === "true",
+        });
+        setTimer('nextClubChampionTime', aligned);
     }
 }
 
@@ -12438,6 +12621,208 @@ class HaremSalary {
 
 
 
+;// CONCATENATED MODULE: ./src/Module/Labyrinth.pure.ts
+// Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
+// and the "find better option" selector.
+//
+// Extracted from Labyrinth.createPathFromMatrix,
+// Labyrinth.filterPathWithNoTreasue, Labyrinth.sortPathsByDifficulty,
+// and Labyrinth.findBetter so the path-building DFS, the treasure
+// filter, the difficulty sort, and the option ranker can be unit-
+// tested without DOM access, jQuery, globals, or storage.
+//
+// The functions are generic over the opponent record so the impure
+// adapter can keep its DOM-bound `LabyrinthOpponent` shape (with
+// jQuery `button` / `cell` handles) while the pure layer only needs
+// the deterministic decision fields.
+/**
+ * Reproduce the inner `getNextIndices` closure of
+ * createPathFromMatrix bit by bit. Returns the indices in the next
+ * row that the cell at (currIdx, currLen) can reach.
+ *
+ * Adjacency rules from the original code:
+ *   - nextLen === 1 (boss row): every cell maps to [0]
+ *   - currLen 1 -> nextLen 2: 0 -> [0, 1]
+ *   - currLen 2 -> nextLen 3: 0 -> [0, 1], 1 -> [1, 2]
+ *   - currLen 3 -> nextLen 2: 0 -> [0], 1 -> [0, 1], 2 -> [1]
+ *   - any other shape returns undefined (matches the original
+ *     fallback where the function exits without a return value)
+ */
+function getNextIndices(currIdx, currLen, nextLen) {
+    if (nextLen === 1)
+        return [0];
+    if (currLen === 1 && nextLen === 2)
+        return [0, 1];
+    if (currLen === 2 && nextLen === 3)
+        return currIdx === 0 ? [0, 1] : [1, 2];
+    if (currLen === 3 && nextLen === 2) {
+        if (currIdx === 0)
+            return [0];
+        if (currIdx === 1)
+            return [0, 1];
+        return [1];
+    }
+    return undefined;
+}
+/**
+ * Reproduce createPathFromMatrix bit by bit. DFS over a
+ * row-of-cells matrix using the adjacency rules in
+ * getNextIndices.
+ *
+ * Empty leading rows are skipped (`while !matrix[startRow] ||
+ * length === 0`) -- this preserves the original quirk that the
+ * matrix may carry empty rows ahead of the first real row.
+ */
+function buildPathsFromMatrix(matrix) {
+    const rows = matrix.length;
+    const paths = [];
+    if (rows === 0)
+        return paths;
+    const lastRow = rows - 1;
+    const dfs = (row, idx, acc) => {
+        acc.push(matrix[row][idx]);
+        if (row === lastRow) {
+            paths.push(acc.slice());
+            acc.pop();
+            return;
+        }
+        const nextRow = row + 1;
+        const currLen = matrix[row].length;
+        const nextLen = matrix[nextRow].length;
+        const nextIndices = getNextIndices(idx, currLen, nextLen);
+        if (nextIndices === undefined) {
+            // Original fallback path: function returns undefined and
+            // the for-of below would throw. The impure adapter logged
+            // an error before the (commented-out) fallback. Pure
+            // version keeps the same shape: no further descent on an
+            // unrecognised row pair.
+            acc.pop();
+            return;
+        }
+        for (const ni of nextIndices) {
+            if (ni >= 0 && ni < nextLen)
+                dfs(nextRow, ni, acc);
+        }
+        acc.pop();
+    };
+    let startRow = 0;
+    while (startRow < rows && (!matrix[startRow] || matrix[startRow].length === 0)) {
+        startRow++;
+    }
+    if (startRow >= rows)
+        return paths;
+    for (let i = 0; i < matrix[startRow].length; i++) {
+        dfs(startRow, i, []);
+    }
+    return paths;
+}
+/**
+ * Reproduce filterPathWithNoTreasue (typo preserved at the adapter
+ * boundary). Keep only paths that contain at least one treasure cell.
+ */
+function filterPathsWithTreasure(paths) {
+    return paths.filter((path) => path.filter((opponent) => opponent.isTreasure).length > 0);
+}
+/**
+ * Reproduce sortPathsByDifficulty. Sort paths ascending by the sum
+ * of their opponent difficulties. The original used a mutating
+ * .sort() and returned the same array; the pure version mirrors that
+ * (callers must accept that the input array is sorted in place).
+ */
+function sortPathsByDifficulty(paths) {
+    return paths.sort((pathA, pathB) => {
+        let difficultyA = 0;
+        let difficultyB = 0;
+        pathA.forEach((opponent) => {
+            difficultyA += opponent.opponentDifficulty;
+        });
+        pathB.forEach((opponent) => {
+            difficultyB += opponent.opponentDifficulty;
+        });
+        return difficultyA - difficultyB;
+    });
+}
+/**
+ * Reproduce Labyrinth.findBetter bit by bit. Filter cascade:
+ *
+ *   1. shrines: drop unless (haveGirlWounded AND floor >= 3)
+ *      else if floor >= 3 AND any shrine present: keep only shrines
+ *   2. treasures: if any treasure present, keep only treasures
+ *   3. easy bias: !chooseMoreReward AND floor < 3 AND any
+ *      opponentDifficulty == 1 present: keep only those
+ *
+ * Then iterate the filtered list and pick the best:
+ *
+ *   - Only options with hasButton AND isNext are eligible.
+ *   - First eligible option becomes the seed.
+ *   - chooseMoreReward branch:
+ *       * higher opponentDifficulty wins
+ *       * tied difficulty: lower power wins
+ *   - else (default) branch:
+ *       * non-opponent beats opponent
+ *       * two opponents: lower power wins
+ *
+ * If no eligible option survives, fall back to the FIRST element of
+ * the ORIGINAL options array (before any filter ran).
+ */
+function decideBetterOption(state) {
+    let { options } = state;
+    const { chooseMoreReward, haveGirlWounded, floor } = state;
+    let firstOption = null;
+    if (options.length > 0) {
+        firstOption = options[0];
+    }
+    if (!haveGirlWounded || floor < 3) {
+        options = options.filter((option) => !option.isShrine);
+    }
+    else if (floor >= 3 && options.filter((option) => option.isShrine).length > 0) {
+        options = options.filter((option) => option.isShrine);
+    }
+    if (options.filter((option) => option.isTreasure).length > 0) {
+        options = options.filter((option) => option.isTreasure);
+    }
+    if (!chooseMoreReward
+        && floor < 3
+        && options.filter((option) => option.opponentDifficulty == 1).length > 0) {
+        options = options.filter((option) => option.opponentDifficulty == 1);
+    }
+    let chosenOption = null;
+    options.forEach((option) => {
+        let isBetter = false;
+        if (option.hasButton && option.isNext) {
+            if (chosenOption == null) {
+                isBetter = true;
+            }
+            else if (chooseMoreReward) {
+                if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
+                    isBetter = true;
+                }
+                else if (chosenOption.opponentDifficulty == option.opponentDifficulty
+                    && chosenOption.power > option.power) {
+                    isBetter = true;
+                }
+            }
+            else {
+                if (chosenOption.isOpponent && !option.isOpponent) {
+                    isBetter = true;
+                }
+                else if (chosenOption.isOpponent
+                    && option.isOpponent
+                    && chosenOption.power > option.power) {
+                    isBetter = true;
+                }
+            }
+        }
+        if (isBetter) {
+            chosenOption = option;
+        }
+    });
+    if (chosenOption == null && firstOption != null) {
+        chosenOption = firstOption;
+    }
+    return chosenOption;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/RelicManager.ts
 var RelicManager_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -12599,6 +12984,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 //             TeamModule.ts (team setup)
 // Used by: Service/index.ts (main automation loop)
 //
+
 
 
 
@@ -12870,89 +13256,13 @@ class Labyrinth {
         return paths;
     }
     static filterPathWithNoTreasue(paths) {
-        return paths.filter((path) => {
-            return path.filter((opponent) => opponent.isTreasure).length > 0;
-        });
+        return filterPathsWithTreasure(paths);
     }
     static sortPathsByDifficulty(paths) {
-        return paths.sort((pathA, pathB) => {
-            let difficultyA = 0;
-            let difficultyB = 0;
-            pathA.forEach((opponent) => {
-                difficultyA += opponent.opponentDifficulty;
-            });
-            pathB.forEach((opponent) => {
-                difficultyB += opponent.opponentDifficulty;
-            });
-            return difficultyA - difficultyB;
-        });
+        return sortPathsByDifficulty(paths);
     }
     static createPathFromMatrix(matrix) {
-        /*
-        Rules:
-        The curent matrix have 11 rows. Each row have 2 or 3 cell alternatively.
-        If next row have 3 cell, each cell can reach 2 cell of the next row (Cell 1 can reach cell 1 and 2 of the next row, cell 2 can reach 2 and 3 of the next row)
-        If next row have two cell, cell 1 can only access cell 1 of next row, cell 2 can access 1 and 2 of next row, cell 3 can only access cell 2 of next row.
-        last row have only one cell (boss)
-        */
-        const rows = matrix.length;
-        const paths = [];
-        if (rows === 0)
-            return paths;
-        const lastRow = rows - 1;
-        const getNextIndices = (currIdx, currLen, nextLen) => {
-            // If next row is the boss row (only one cell), every current cell goes to that single cell
-            if (nextLen === 1)
-                return [0];
-            // start row, next has 2: 0 -> [0,1]
-            if (currLen === 1 && nextLen === 2) {
-                return [0, 1];
-            }
-            // current row has 2, next has 3: 0 -> [0,1], 1 -> [1,2]
-            if (currLen === 2 && nextLen === 3) {
-                return currIdx === 0 ? [0, 1] : [1, 2];
-            }
-            // current row has 3, next has 2: 0->[0], 1->[0,1], 2->[1]
-            if (currLen === 3 && nextLen === 2) {
-                if (currIdx === 0)
-                    return [0];
-                if (currIdx === 1)
-                    return [0, 1];
-                return [1];
-            }
-            LogUtils_logHHAuto('Labyrinth pathing logic error: currLen=' + currLen + ', nextLen=' + nextLen);
-            // fallback: try to keep same index if possible
-            /*const res: number[] = [];
-            if (currIdx < nextLen) res.push(currIdx);
-            if (currIdx + 1 < nextLen) res.push(currIdx + 1);
-            return res;*/
-        };
-        const dfs = (row, idx, acc) => {
-            acc.push(matrix[row][idx]);
-            if (row === lastRow) {
-                paths.push(acc.slice());
-                acc.pop();
-                return;
-            }
-            const nextRow = row + 1;
-            const currLen = matrix[row].length;
-            const nextLen = matrix[nextRow].length;
-            const nextIndices = getNextIndices(idx, currLen, nextLen);
-            for (const ni of nextIndices) {
-                if (ni >= 0 && ni < nextLen)
-                    dfs(nextRow, ni, acc);
-            }
-            acc.pop();
-        };
-        let startRow = 0;
-        while (startRow < rows && (!matrix[startRow] || matrix[startRow].length === 0))
-            startRow++;
-        if (startRow >= rows)
-            return paths;
-        for (let i = 0; i < matrix[startRow].length; i++) {
-            dfs(startRow, i, []);
-        }
-        return paths;
+        return buildPathsFromMatrix(matrix);
     }
     static getResetTime() {
         const timerRequest = `.cleared-labyrinth-container:visible .labyrinth-timer span[rel=expires]`;
@@ -12967,8 +13277,6 @@ class Labyrinth {
     static findBetter(options) {
         const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) == "true";
         const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0;
-        let choosenOption = null;
-        let firstOption = null;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
             LogUtils_logHHAuto("Options " + JSON.stringify(options));
@@ -12976,68 +13284,25 @@ class Labyrinth {
             LogUtils_logHHAuto("haveGirlWounded " + haveGirlWounded);
         if (debugEnabled)
             LogUtils_logHHAuto("chooseMoreReward " + chooseMoreReward);
-        const floor = Labyrinth.getCurrentFloorNumber();
-        if (options.length > 0) {
-            firstOption = options[0];
-        }
-        if (!haveGirlWounded || floor < 3) {
-            // remove Shrine
-            options = options.filter((option) => !option.isShrine);
-        }
-        else if (floor >= 3 && options.filter((option) => option.isShrine).length > 0) {
-            // Keep only shrine
-            options = options.filter((option) => option.isShrine);
-        }
-        if (options.filter((option) => option.isTreasure).length > 0) {
-            // Keep only laby coins
-            options = options.filter((option) => option.isTreasure);
-        }
-        if (!chooseMoreReward && floor < 3 && options.filter((option) => option.opponentDifficulty == 1).length > 0) {
-            // Keep only easy opponent
-            options = options.filter((option) => option.opponentDifficulty == 1);
-        }
-        if (debugEnabled)
-            LogUtils_logHHAuto("Options after filter" + JSON.stringify(options));
-        options.forEach((option) => {
-            let isBetter = false;
-            if (option.button && option.isNext) {
-                if (choosenOption == null) {
-                    if (debugEnabled)
-                        LogUtils_logHHAuto('first');
-                    isBetter = true;
-                }
-                else if (chooseMoreReward) {
-                    if (choosenOption.opponentDifficulty < option.opponentDifficulty) {
-                        if (debugEnabled)
-                            LogUtils_logHHAuto('More reward: higher difficulty group');
-                        isBetter = true;
-                    }
-                    else if (choosenOption.opponentDifficulty == option.opponentDifficulty && choosenOption.power > option.power) {
-                        if (debugEnabled)
-                            LogUtils_logHHAuto('More reward: Powerless opponent');
-                        isBetter = true;
-                    }
-                }
-                else {
-                    if (choosenOption.isOpponent && !option.isOpponent) {
-                        if (debugEnabled)
-                            LogUtils_logHHAuto('Not opponent');
-                        isBetter = true;
-                    }
-                    else if (choosenOption.isOpponent && option.isOpponent && choosenOption.power > option.power) {
-                        if (debugEnabled)
-                            LogUtils_logHHAuto('Powerless opponent');
-                        isBetter = true;
-                    }
-                }
-            }
-            if (isBetter) {
-                choosenOption = option;
-            }
+        const liteOptions = options.map(option => ({
+            opponentDifficulty: option.opponentDifficulty,
+            isTreasure: option.isTreasure,
+            isShrine: option.isShrine,
+            isNext: option.isNext,
+            isOpponent: option.isOpponent,
+            power: option.power,
+            hasButton: option.button !== null && option.button !== undefined,
+            __orig: option,
+        }));
+        const chosen = decideBetterOption({
+            options: liteOptions,
+            chooseMoreReward,
+            haveGirlWounded,
+            floor: Labyrinth.getCurrentFloorNumber(),
         });
-        if (choosenOption == null && firstOption != null)
-            choosenOption = firstOption;
-        return choosenOption;
+        if (debugEnabled)
+            LogUtils_logHHAuto("Options after filter (handled by Labyrinth.pure)");
+        return chosen === null ? null : chosen.__orig;
     }
     static appendChoosenTag(option) {
         option.button.append(`<img class="labChosen" src=${ConfigHelper.getHHScriptVars("powerCalcImages").chosen}>`);
@@ -14390,7 +14655,21 @@ class LeagueHelper {
                 }
             }
             else {
-                // Switch to the correct screen
+                // Switch to the correct screen, but only when no other
+                // classic AutoLoop handler is currently working. Pipeline
+                // handlers have no lastActionPerformed guard, so without
+                // this check the league chain would navigate to the
+                // leaderboard while e.g. Quest is still on its own page,
+                // producing a leaderboard<->quest ping-pong loop
+                // (issue #1664). Skip silently; the Scheduler minInterval
+                // cool-down will retry on the next eligible tick.
+                const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
+                if (lastActionPerformed !== undefined
+                    && lastActionPerformed !== "none"
+                    && lastActionPerformed !== "league") {
+                    LogUtils_logHHAuto("Skip switching to leagues screen, busy with: " + lastActionPerformed);
+                    return;
+                }
                 LogUtils_logHHAuto("Switching to leagues screen.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
                 return;
@@ -14960,6 +15239,59 @@ class Missions {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/Pantheon.pure.ts
+// Pantheon.pure.ts -- Pure decision logic for the pantheon auto module.
+//
+// Extracted from Pantheon.isEnabled and Pantheon.isTimeToFight so the
+// boolean cascades can be unit-tested without globals, storage, jQuery,
+// or DOM access. Input = data, output = decision.
+//
+// The impure adapter Pantheon.isEnabled reads ConfigHelper plus
+// HeroHelper, builds an IsEnabledState, and delegates here. The impure
+// adapter Pantheon.isTimeToFight reads ConfigHelper, storage, the
+// Hero energy global, ParanoiaService, Booster, and DailyGoals; it
+// then builds a ShouldFightState and delegates here.
+/**
+ * Reproduce Pantheon.isEnabled bit by bit:
+ *
+ *   isEnabledPantheon AND heroLevel >= LEVEL_MIN_PANTHEON
+ *
+ * The level gate is non-strict (>=), matching the original.
+ */
+function decideIsEnabled(state) {
+    return state.enabled && state.heroLevel >= state.minLevel;
+}
+/**
+ * Reproduce Pantheon.isTimeToFight bit by bit. Original line:
+ *
+ *   (checkTimer('nextPantheonTime') && energyAboveThreshold &&
+ *    (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight
+ *     || isDailyGoal)) || paranoiaSpending
+ *
+ * with
+ *
+ *   energyAboveThreshold = humanLikeRun && energy > threshold
+ *                          || energy > max(threshold, runThreshold - 1)
+ *   paranoiaSpending     = energy > 0 && paranoiaCheck > 0
+ *
+ * Operator precedence is preserved: && binds tighter than ||, so the
+ * three OR-ed booster branches keep their natural structure
+ * (booster-required-and-equipped OR booster-not-required OR daily-goal).
+ *
+ * Threshold comparisons are strict (>) on the lower bound and the
+ * runThreshold-1 expression keeps the off-by-one the original code uses.
+ */
+function Pantheon_pure_decideShouldFight(state) {
+    const { energy, threshold, runThreshold, humanLikeRun, timerExpired, paranoiaSpending, needBoosterToFight, haveBoosterEquipped, isDailyGoal, } = state;
+    const energyAboveThreshold = (humanLikeRun && energy > threshold)
+        || energy > Math.max(threshold, runThreshold - 1);
+    const paranoiaOverride = energy > 0 && paranoiaSpending > 0;
+    const boosterCheck = (needBoosterToFight && haveBoosterEquipped)
+        || !needBoosterToFight
+        || isDailyGoal;
+    return (timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Pantheon.ts
 // Pantheon.ts -- Automates Pantheon fights: opponent selection and energy management.
 //
@@ -14970,6 +15302,7 @@ class Missions {
 // Depends on: TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
+
 
 
 
@@ -15013,21 +15346,38 @@ class Pantheon {
         return Tegzd;
     }
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledPantheon", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON");
+        return decideIsEnabled({
+            enabled: ConfigHelper.getHHScriptVars("isEnabledPantheon", false),
+            heroLevel: HeroHelper.getLevel(),
+            minLevel: ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON"),
+        });
     }
     static isTimeToFight() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
         const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun) === "true";
-        const energyAboveThreshold = humanLikeRun && Pantheon.getEnergy() > threshold || Pantheon.getEnergy() > Math.max(threshold, runThreshold - 1);
-        const paranoiaSpending = Pantheon.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('worship') > 0;
+        const energy = Pantheon.getEnergy();
         const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonBoostedOnly) === "true";
-        const haveBoosterEquiped = Booster.haveBoosterEquiped();
-        const isDailyGoal = DailyGoals.isPantheonDailyGoal();
-        if (checkTimer('nextPantheonTime') && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
+        const haveBoosterEquipped = Booster.haveBoosterEquiped();
+        const timerExpired = checkTimer('nextPantheonTime');
+        // Energy gate (mirrors the pure function) -- pre-computed only
+        // for the diagnostic log line below.
+        const energyAboveThreshold = (humanLikeRun && energy > threshold)
+            || energy > Math.max(threshold, runThreshold - 1);
+        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquipped) {
             LogUtils_logHHAuto('Time for pantheon but no booster equipped');
         }
-        return (checkTimer('nextPantheonTime') && energyAboveThreshold && (needBoosterToFight && haveBoosterEquiped || !needBoosterToFight || isDailyGoal)) || paranoiaSpending;
+        return Pantheon_pure_decideShouldFight({
+            energy,
+            threshold,
+            runThreshold,
+            humanLikeRun,
+            timerExpired,
+            paranoiaSpending: ParanoiaService.checkParanoiaSpendings('worship'),
+            needBoosterToFight,
+            haveBoosterEquipped,
+            isDailyGoal: DailyGoals.isPantheonDailyGoal(),
+        });
     }
     static run() {
         LogUtils_logHHAuto("Performing auto Pantheon.");

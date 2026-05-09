@@ -869,7 +869,22 @@ export class LeagueHelper {
         }
         else
         {
-            // Switch to the correct screen
+            // Switch to the correct screen, but only when no other
+            // classic AutoLoop handler is currently working. Pipeline
+            // handlers have no lastActionPerformed guard, so without
+            // this check the league chain would navigate to the
+            // leaderboard while e.g. Quest is still on its own page,
+            // producing a leaderboard<->quest ping-pong loop
+            // (issue #1664). Skip silently; the Scheduler minInterval
+            // cool-down will retry on the next eligible tick.
+            const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
+            if (lastActionPerformed !== undefined
+                && lastActionPerformed !== "none"
+                && lastActionPerformed !== "league")
+            {
+                logHHAuto("Skip switching to leagues screen, busy with: " + lastActionPerformed);
+                return;
+            }
             logHHAuto("Switching to leagues screen.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
             return;

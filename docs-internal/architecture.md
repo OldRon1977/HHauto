@@ -115,6 +115,14 @@ Aktuell migrierte Handler:
 | 1 | handleEventParsing | non-atomic | laeuft fast jeden Tick, `minIntervalMs: 2000` |
 | 13 | handleLeague | atomic | Fight-Sequenz darf nicht unterbrochen werden, `minIntervalMs: 60000`, `totalTimeoutMs: 30000` |
 
+### Pipeline-vs-Klassische-Handler: lastActionPerformed-Guard
+
+Pipeline-Handler haben (im Gegensatz zu klassischen AutoLoop-Handlern) **keinen Zugriff** auf `ctx.lastActionPerformed`. Sie reichern ihren Storage-Read selbst an.
+
+Konkret in `LeagueHelper.doLeagueBattle()`: bevor von einer fremden Page (z.B. Quest) auf das Leaderboard navigiert wird, wird `Temp_lastActionPerformed` gelesen. Ist es weder `none` noch `league`, wird die Navigation unterdrueckt. Sonst wuerde ein klassischer Handler (z.B. `handleQuest`), der gerade auf seiner Page hantiert aber `ctx.busy=false` setzt (z.B. weil ein Button noch in einer Animation ist), die League-Pipeline triggern, die dann blind eine Gegen-Navigation startet -- klassischer Pingpong-Loop (issue #1664).
+
+Der `navInFlight`-Mutex aus issue #1598 verhindert nur Doppelnavigationen im **selben** Heartbeat. Cross-Heartbeat-Pingpongs zwischen klassischen Handlern und Pipeline-Handlern brauchen den `lastActionPerformed`-Guard zusaetzlich.
+
 Aufruf am Ende jeder AutoLoop-Iteration via `await scheduler.tick()`.
 
 Watchdog: Ueberhaengende Chains werden nach `totalTimeoutMs` killed. SOFT/HARD Interrupts: `interruptible === 'always'`-Handler werden von hoeher-priorisierten Handlern preempted.
