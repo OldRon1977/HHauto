@@ -14,6 +14,35 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ---
 
+## How to file a bug with a dump
+
+Bug reports are easier to investigate with a dump of the actual game state.
+The repository ships an inspector userscript at
+`bonus-scripts/HHAuto_debug_inspector.user.js` that produces such dumps,
+including an opt-in **share mode** that anonymises the dump for public use.
+
+1. Install the inspector userscript:
+   <https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto_debug_inspector.user.js>
+2. Open the page where the bug occurs. Wait for it to load fully.
+3. Click the orange **DUMP FOR SHARING** button in the inspector overlay
+   (next to `DUMP THIS PAGE` and `AUTO TOUR`). The dump downloads as a
+   single JSON file.
+4. Attach the JSON file to your GitHub issue.
+
+The share-mode pipeline removes hero nickname, chat_token, club details,
+exact XP, browser fingerprint blocks, and most HHAuto settings. Harem
+girls, event girls, opponents, and ids are pseudonymised with a fresh
+salt per dump, so two dumps from the same player cannot be correlated.
+
+To verify a dump went through the pipeline, look for `meta.pii.mode`
+equal to `"share"` and an `audit` block at `meta.pii.layer_counts`.
+
+Full reference: see `docs-internal/inspector-pii-share-mode.md` for the
+list of fields kept, dropped, and pseudonymised.
+
+---
+
+
 ## Latest Updates
 
 ### v7.35.25 - Mythic coverage, slot order, and richer team info box

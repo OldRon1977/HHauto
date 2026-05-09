@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.8.0-share-2
-// @description  Full game data dumper. Works in both iframe and top-window mode. Auto-tour with persistent state across page reloads. Manual phase for protected pages. Passive XHR observer captures Game-AJAX responses per step (read-only).
+// @version      4.8.0
+// @description  Full game data dumper. DUMP THIS PAGE / DUMP FOR SHARING / AUTO TOUR. Persistent XHR + fetch hooks. Optional PII share-mode pipeline anonymises dumps for public bug reports.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
 // @match        http*://*.gayharem.com/*
@@ -22,9 +22,35 @@
 // ==/UserScript==
 
 (function() {
+    //
+    // PII share-mode (since v4.8.0)
+    // ----------------------------
+    // The inspector can produce two kinds of dumps:
+    //
+    //   * Default (PII_MODE = "off", DUMP THIS PAGE / AUTO TOUR):
+    //     full local-only dump with hero nickname, chat_token, full
+    //     HHAuto settings export, opponent nicknames etc. Suitable
+    //     for private maintainer review only.
+    //
+    //   * Share mode (PII_MODE = "share" or DUMP FOR SHARING button):
+    //     dump goes through an anonymisation pipeline with five steps
+    //     (top-level whitelist, plain-text strip, settings whitelist,
+    //     id hashing + pseudonymisation with per-dump shuffle, time
+    //     rounding) plus an audit block at meta.pii. A fresh random
+    //     salt is generated per dump and never persisted, so two
+    //     consecutive share-mode dumps from the same player produce
+    //     decorrelated id hashes and a different harem permutation.
+    //     Suitable for public bug reports.
+    //
+    // The DUMP FOR SHARING button forces share mode for a single click
+    // regardless of PII_MODE, so the user does not need to edit the
+    // script to file a bug. AUTO TOUR honours PII_MODE.
+    //
+    // Reference: docs-internal/inspector-pii-share-mode.md
+    //
     'use strict';
 
-    const VERSION = '4.8.0-share-2';
+    const VERSION = '4.8.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // PII share-mode toggle. Single source of truth for the share pipeline.

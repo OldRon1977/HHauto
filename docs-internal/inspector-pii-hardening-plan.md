@@ -1,21 +1,17 @@
 # Inspector PII Hardening Plan
 
-Status: 2026-05-08. Plan only -- no implementation yet.
+Status: 2026-05-09. Implementation complete -- inspector v4.8.0 (slices 1, 2, 3 merged).
 
 ## Status
 
-- Current stage: not started.
-- Trigger: stage 4 closure carried this forward as a separate
-  feature track. Inspector userscript dumps currently leak hero
-  PII, an auth token (chat_token JWT), exact stat fingerprints,
-  Club hierarchy, opposing players' data, browser locale, and a
-  full HHAuto settings export. Re-identification across multiple
-  shared dumps via correlation against public game data is
-  trivial today.
-- Target: inspector userscript v4.8.0 with an opt-in
-  ``PII_MODE = "share"`` mode that produces a public-shareable
-  dump suitable for filing GitHub issues. Default stays
-  ``"off"`` so existing local-only workflows are unchanged.
+- Current stage: complete (slice 3 of 3 merged).
+- Inspector version: v4.8.0.
+- Reference for issue triagers and contributors:
+  ``docs-internal/inspector-pii-share-mode.md`` (canonical
+  field-by-field listing of what is kept, dropped, and
+  pseudonymised in a share-mode dump).
+- User-facing entry point: README section "How to file a bug
+  with a dump".
 
 ## Use case (single source of truth)
 
@@ -462,3 +458,6 @@ Acceptance:
 |---|---|
 | 2026-05-08 | Plan drafted -- 5-layer pipeline, 5 slices. |
 | 2026-05-08 | Plan rewritten after issue topic scan and tighter use-case definition. Single ``share`` mode. Whitelist-based instead of layer-based. 3 slices instead of 5. Caracs intentionally NOT bucketed (Team-Auswahl-Logik braucht echte Werte). |
+| 2026-05-08 | Slice 1 merged (PR #1663). PII_MODE constant + DUMP FOR SHARING button + Steps 0/1/2 + audit block. Inspector v4.8.0-share-1. |
+| 2026-05-09 | Slice 2 merged (PR #1665). Step 3 (FNV-1a 64-bit + per-dump salt + mulberry32 shuffle + pseudonyms) and Step 5 (rounding). Inspector v4.8.0-share-2. |
+| 2026-05-09 | Slice 3 merged. Doku closure: header @description, leading comment block, ``docs-internal/inspector-pii-share-mode.md``, README "How to file a bug with a dump". Final inspector v4.8.0. |
