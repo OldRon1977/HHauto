@@ -45,6 +45,12 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.27 - Fix: Bypass reserve now applies to +Raid and +Raid Stars
+
+The Bypass reserve toggle was ignored for +Raid and +Raid Stars fights. Both modes always fought as soon as a raid girl was available, regardless of the energy threshold or the toggle state. The toggle now controls the threshold consistently: when OFF, the troll threshold applies to raid fights too; when ON, raid fights start as soon as energy is above zero.
+
+The +Raid Stars tooltip and the Bypass reserve tooltip were updated to reflect the new behaviour.
+
 ### v7.35.26 - Fix: leagues and quest no longer ping-pong
 
 Addresses the loop reported in issue #1664 where the script kept switching between the leagues page and the current quest page without making progress. The league module now waits for the active task to finish before changing pages, so the loop can no longer form.

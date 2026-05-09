@@ -313,12 +313,14 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 )
                 ||
                 (
-                    // Raid Stars: raid with girl grade >= configured minimum (independent, bypasses threshold)
+                    // Raid Stars: raid with girl grade >= configured minimum.
+                    // Bypass reserve toggle controls whether the troll threshold applies.
                     (raidStarsRaid?.id_girl)
                     &&
                     (
-                        ctx.currentPower > 0
-                        || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy
+                        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
+                            ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+                            : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
                     )
                 )
                 ||
@@ -333,12 +335,14 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 )
                 ||
                 (
-                    // +Raid: user-selected Love raid (independent from troll threshold)
+                    // +Raid: user-selected Love raid.
+                    // Bypass reserve toggle controls whether the troll threshold applies.
                     (LoveRaidManager.isActivated() && loveRaid?.id_girl)
                     &&
                     (
-                        ctx.currentPower > 0
-                        || Troll.canBuyFightForRaid(loveRaid, false).canBuy
+                        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
+                            ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+                            : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
                     )
                 )
             )
