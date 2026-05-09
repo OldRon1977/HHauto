@@ -45,6 +45,14 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.26 - Fix: leagues and quest no longer ping-pong
+
+Addresses the loop reported in issue #1664 where the script kept switching between the leagues page and the current quest page without making progress. The league module now waits for the active task to finish before changing pages, so the loop can no longer form.
+
+Refs #1664.
+
+---
+
 ### v7.35.25 - Mythic coverage, slot order, and richer team info box
 
 Algorithm refinements driven by feedback in issues #1573 (Frank) and #1603 (Dimka).
