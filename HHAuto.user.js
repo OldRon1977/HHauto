@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.27
+// @version      7.35.28
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -8190,7 +8190,7 @@ class GenericBattle {
             }
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true") {
                 LogUtils_logHHAuto("Go back to Penta drill arena after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(2000, 4000));
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(5000, 8000));
             }
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())) {
                 LogUtils_logHHAuto("Go back to Pantheon arena after Pantheon temple.");
@@ -15590,7 +15590,7 @@ class PentaDrill {
                     LogUtils_logHHAuto("setting autoloop to false");
                     LogUtils_logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
                     location.href = addNutakuSession(toGoTo);
-                    yield TimeHelper.sleep(randomInterval(4000, 8000));
+                    yield TimeHelper.sleep(randomInterval(5000, 8000));
                     return true;
                 }
             }
@@ -15605,7 +15605,7 @@ class PentaDrill {
                 performButton.trigger('click');
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 LogUtils_logHHAuto("setting autoloop to false");
-                yield TimeHelper.sleep(randomInterval(4000, 6000));
+                yield TimeHelper.sleep(randomInterval(5000, 8000));
                 //setTimer('nextPentaDrillTime',10);
                 return true;
             }
@@ -25695,7 +25695,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.27";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.28";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

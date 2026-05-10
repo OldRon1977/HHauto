@@ -45,6 +45,12 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.28 - Penta Drill: delays adjusted further
+
+Delays between Penta Drill actions have been increased again to avoid blank screens caused by clicks landing before the server response.
+
+---
+
 ### v7.35.27 - Fix: Bypass reserve now applies to +Raid and +Raid Stars
 
 The Bypass reserve toggle was ignored for +Raid and +Raid Stars fights. Both modes always fought as soon as a raid girl was available, regardless of the energy threshold or the toggle state. The toggle now controls the threshold consistently: when OFF, the troll threshold applies to raid fights too; when ON, raid fights start as soon as energy is above zero.

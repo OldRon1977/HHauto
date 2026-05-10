@@ -95,7 +95,7 @@ export class GenericBattle {
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrill) === "true")
             {
                 logHHAuto("Go back to Penta drill arena after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"),{},randomInterval(2000,4000));
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"),{},randomInterval(5000,8000));
             }
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal()))
             {
