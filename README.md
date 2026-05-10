@@ -53,8 +53,6 @@ Three changes that together address the "Forbidden" reports still seen on top of
 - **Cold-start delay:** when the script wakes up after a long pause (tab in background, hibernation, slow first paint), the very first navigation is delayed by a few extra seconds. This avoids the first call hitting the server before it has settled.
 - **Smarter Forbidden retry:** once Forbidden is detected, each consecutive retry waits longer than the previous one (one minute, two, four, ... up to thirty), with random jitter. The counter resets as soon as the script is back to a healthy state. Manually closing the tab and opening a fresh one always resets it as well.
 
-Refs #1598.
-
 ### v7.35.28 - Penta Drill: delays adjusted further
 
 Delays between Penta Drill actions have been increased again to avoid blank screens caused by clicks landing before the server response.
