@@ -88,12 +88,35 @@ import {
     bindMouseEvents
 } from "./MouseService";
 import { disableToolTipsDisplay, enableToolTipsDisplay, manageToolTipsDisplay } from "./TooltipService";
+import { installAjaxTracker } from './AjaxTracker';
+import { nextForbiddenDelaySeconds } from './ForbiddenBackoff';
 
 var started=false;
 var debugMenuID;
 var heroRetryTimer: ReturnType<typeof setTimeout> | null = null;
 var heroRetryCount = 0;
 const HERO_MAX_RETRIES = 15;
+
+// Persistent Forbidden backoff (issue #1598).
+//
+// The reload-delay formula lives in ForbiddenBackoff.ts so it can be
+// unit-tested in isolation. The counter itself lives in sessionStorage
+// so it survives location.reload() but resets when the user closes the
+// tab. On a successful start() (Hero object available), the counter is
+// cleared, so a single transient Forbidden does not penalise later runs.
+const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+
+// Cold-start delay (issue #1598).
+//
+// After a long inactivity (PC hibernation, tab in background, slow page
+// load) the very first AJAX call from this script tab can hit a
+// rate-limited server window. We delay the initial autoLoop tick by a
+// few seconds when the last recorded activity is older than the
+// threshold below, giving the page time to settle before any module
+// fires a navigation.
+const COLD_START_THRESHOLD_MS = 60 * 1000;
+const COLD_START_DELAY_MS = 4000;
+const NORMAL_START_DELAY_MS = 1000;
 
 export class StartService {
     static checkVersion()
@@ -172,14 +195,31 @@ export function hardened_start()
 {
     debugMenuID = GM_registerMenuCommand(getTextForUI("saveDebug","elementText"), saveHHDebugLog);
     //GM_unregisterMenuCommand(debugMenuID);
+    // Install the AJAX request counter as early as possible so any later
+    // page-changing module call can wait for in-flight game POSTs to
+    // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
+    try { installAjaxTracker(); } catch (e) { /* tracker is best-effort */ }
+
     if ((unsafeWindow as any).jQuery == undefined) {
         console.log("HHAUTO WARNING: No jQuery found.");
 
         try {
             const forbiddenWords = document.getElementsByTagName('body')[0].innerText === 'Forbidden';
             if (forbiddenWords) {
-                const time = randomInterval(1*60, 5*60) ;
-                logHHAuto('HHAUTO WARNING: "Forbidden" detected, reloading the page in '+time+' seconds');
+                // Persistent backoff: each consecutive Forbidden doubles
+                // the window. Counter survives reload, resets on a
+                // successful start() (Hero available) or tab close.
+                let count = 0;
+                try {
+                    const raw = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
+                    count = raw ? parseInt(raw, 10) : 0;
+                    if (!Number.isFinite(count) || count < 0) count = 0;
+                } catch (e) { /* sessionStorage unavailable */ }
+                count += 1;
+                try { sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count)); } catch (e) {}
+
+                const time = nextForbiddenDelaySeconds(count);
+                logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
                 setTimeout(() => { location.reload(); }, time * 1000);
             }
         } catch (error) {}
@@ -492,7 +532,24 @@ export function start() {
         SurveyService.showSurveyPopup();
     }
 
-    setTimeout(autoLoop, 1000);
+    // Reached the autoLoop start path -> Hero is available, the page is
+    // healthy, so the recent Forbidden chain (if any) is over.
+    try { sessionStorage.removeItem(FORBIDDEN_COUNT_KEY); } catch (e) {}
+
+    // Cold-start delay: if the script has been idle for a while (tab in
+    // background, hibernation, slow first paint) give the page extra
+    // time before the first navigation, otherwise the very first
+    // gotoPage() can race the server's rate-limit window (issue #1598).
+    let initialDelayMs: number = NORMAL_START_DELAY_MS;
+    try {
+        const last = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
+        const lastTs = typeof last?.dateTime === 'number' ? last.dateTime : 0;
+        if (lastTs > 0 && (Date.now() - lastTs) > COLD_START_THRESHOLD_MS) {
+            initialDelayMs = COLD_START_DELAY_MS;
+            logHHAuto('Cold start detected (last activity > ' + Math.round(COLD_START_THRESHOLD_MS/1000) + 's ago), delaying first autoLoop by ' + initialDelayMs + 'ms');
+        }
+    } catch (e) { /* fall back to normal delay */ }
+    setTimeout(autoLoop, initialDelayMs);
 
     // Manual survey button
     $("#settingsSurvey").on("click", function() {

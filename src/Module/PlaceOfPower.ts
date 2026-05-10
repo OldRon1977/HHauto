@@ -22,7 +22,7 @@ import {
     TimeHelper,
     RewardHelper
 } from '../Helper/index';
-import { autoLoop, gotoPage } from '../Service/index';
+import { autoLoop, gotoPage, waitForAjaxIdle } from '../Service/index';
 import { isJSON, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Harem } from './index';
@@ -197,9 +197,17 @@ export class PlaceOfPower {
             {
                 $(buttonClaimQuery).first().trigger('click');
                 logHHAuto("Claimed reward for PoP : " + $(buttonClaimQuery).first().parent().attr('pop_id'));
-                await TimeHelper.sleep(randomInterval(700, 1100));
+                // The claim click fires an ajax.php POST. We must wait for
+                // that POST to complete before changing the page, otherwise
+                // window.location.href cancels the request (NS_BINDING_ABORTED)
+                // and the server answers the next call with Forbidden
+                // (issue #1598, especially under Firefox Private Browsing
+                // where the AJAX takes 2-3 seconds).
+                await waitForAjaxIdle(8000, 400);
                 RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(4000, 5000)); // fail safe
+                // Wait again in case closing the popup itself fires a request.
+                await waitForAjaxIdle(4000, 200);
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                 return true;
             }
 

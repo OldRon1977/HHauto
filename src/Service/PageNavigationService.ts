@@ -20,6 +20,17 @@ import { ConfigHelper, getPage, queryStringGetParam, randomInterval, setStoredVa
 import { QuestHelper } from '../Module/index';
 import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { waitForAjaxIdle } from './AjaxTracker';
+
+// How long to wait for in-flight XHRs before navigating away. The game
+// can take several seconds to answer in slow environments (Firefox
+// Private Browsing has been observed at 2-3s per AJAX). 8s is a
+// conservative cap; the wait short-circuits as soon as the queue is
+// empty, so the typical path stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 8000;
+// Extra delay after AJAX idle before changing window.location, to let
+// any synchronous follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
 
 // Module-level mutex: true while a navigation has been scheduled but the
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
@@ -193,13 +204,27 @@ export function gotoPage(page,inArgs={},delay = -1)
         logHHAuto("setting autoloop to false");
         logHHAuto('GotoPage : '+togoto+' in '+delay+'ms.');
         navInFlight = true;
-        setTimeout(function () {window.location.href = window.location.origin + togoto;},delay);
+        const targetUrl = togoto;
+        setTimeout(function () {
+            // Wait for any in-flight game AJAX (e.g. PoP claim POSTs) to
+            // finish before changing the URL. Setting window.location.href
+            // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
+            // state-changing request can make the server answer Forbidden
+            // on the next call (issue #1598).
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+                window.location.href = window.location.origin + targetUrl;
+            });
+        }, delay);
     }
     else
     {
         logHHAuto("Couldn't find page path. Page was undefined...");
         navInFlight = true;
-        setTimeout(function () {location.reload();},delay);
+        setTimeout(function () {
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+                location.reload();
+            });
+        }, delay);
     }
 }
 

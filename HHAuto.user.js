@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.28
+// @version      7.35.29
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -13339,6 +13339,55 @@ class Labyrinth {
 Labyrinth.HAREM_SELECTED_GIRLS = '.harem-panel-girls .harem-girl-container.selected'; // in my squad
 Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 
+;// CONCATENATED MODULE: ./src/Helper/ConfigHelper.ts
+/**
+ * ConfigHelper.ts - Environment detection and per-environment variable lookup
+ *
+ * The game runs on multiple domains (HH, PH, NPH, etc.), each with
+ * slightly different page IDs, URLs, and feature flags. This helper
+ * detects which environment the script is running on by matching the
+ * current hostname against a known list, then resolves configuration
+ * variables for that environment. When an environment-specific value is
+ * not defined, it falls back to the "global" defaults.
+ *
+ * Almost every other helper and module depends on ConfigHelper to obtain
+ * page IDs, URL paths, element selectors, and feature toggles.
+ */
+
+
+class ConfigHelper {
+    static getEnvironnement() {
+        let environnement = "global";
+        if (HHKnownEnvironnements[window.location.hostname] !== undefined) {
+            environnement = HHKnownEnvironnements[window.location.hostname].name;
+        }
+        else {
+            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/OldRon1977/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/OldRon1977/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
+        }
+        return environnement;
+    }
+    static isPshEnvironnement() {
+        return ["PH_prod", "NPH_prod"].includes(ConfigHelper.getEnvironnement());
+    }
+    static getHHScriptVars(id, logNotFound = true) {
+        const environnement = ConfigHelper.getEnvironnement();
+        if (HHEnvVariables[environnement] !== undefined && HHEnvVariables[environnement][id] !== undefined) {
+            return HHEnvVariables[environnement][id];
+        }
+        else {
+            if (HHEnvVariables["global"] !== undefined && HHEnvVariables["global"][id] !== undefined) {
+                return HHEnvVariables["global"][id];
+            }
+            else {
+                if (logNotFound) {
+                    LogUtils_logHHAuto("not found var for " + environnement + "/" + id);
+                }
+                return null;
+            }
+        }
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Helper/PageHelper.ts
 // PageHelper.ts
 //
@@ -13462,6 +13511,16 @@ function getPage(checkUnknown = false, checkPop = false) {
 
 
 
+
+// How long to wait for in-flight XHRs before navigating away. The game
+// can take several seconds to answer in slow environments (Firefox
+// Private Browsing has been observed at 2-3s per AJAX). 8s is a
+// conservative cap; the wait short-circuits as soon as the queue is
+// empty, so the typical path stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 8000;
+// Extra delay after AJAX idle before changing window.location, to let
+// any synchronous follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
 // Module-level mutex: true while a navigation has been scheduled but the
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
 let navInFlight = false;
@@ -13622,12 +13681,26 @@ function gotoPage(page, inArgs = {}, delay = -1) {
         LogUtils_logHHAuto("setting autoloop to false");
         LogUtils_logHHAuto('GotoPage : ' + togoto + ' in ' + delay + 'ms.');
         navInFlight = true;
-        setTimeout(function () { window.location.href = window.location.origin + togoto; }, delay);
+        const targetUrl = togoto;
+        setTimeout(function () {
+            // Wait for any in-flight game AJAX (e.g. PoP claim POSTs) to
+            // finish before changing the URL. Setting window.location.href
+            // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
+            // state-changing request can make the server answer Forbidden
+            // on the next call (issue #1598).
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+                window.location.href = window.location.origin + targetUrl;
+            });
+        }, delay);
     }
     else {
         LogUtils_logHHAuto("Couldn't find page path. Page was undefined...");
         navInFlight = true;
-        setTimeout(function () { location.reload(); }, delay);
+        setTimeout(function () {
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+                location.reload();
+            });
+        }, delay);
     }
 }
 function addNutakuSession(togoto) {
@@ -16456,9 +16529,17 @@ class PlaceOfPower {
                 if ($(buttonClaimQuery).length > 0) {
                     $(buttonClaimQuery).first().trigger('click');
                     LogUtils_logHHAuto("Claimed reward for PoP : " + $(buttonClaimQuery).first().parent().attr('pop_id'));
-                    yield TimeHelper.sleep(randomInterval(700, 1100));
+                    // The claim click fires an ajax.php POST. We must wait for
+                    // that POST to complete before changing the page, otherwise
+                    // window.location.href cancels the request (NS_BINDING_ABORTED)
+                    // and the server answers the next call with Forbidden
+                    // (issue #1598, especially under Firefox Private Browsing
+                    // where the AJAX takes 2-3 seconds).
+                    yield waitForAjaxIdle(8000, 400);
                     RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(4000, 5000)); // fail safe
+                    // Wait again in case closing the popup itself fires a request.
+                    yield waitForAjaxIdle(4000, 200);
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                     return true;
                 }
                 const filteredPopsStr = getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter);
@@ -23721,53 +23802,125 @@ function checkAndClosePopup(inBurst) {
 
 
 
-;// CONCATENATED MODULE: ./src/Helper/ConfigHelper.ts
+;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
+// AjaxTracker.ts
+//
+// Lightweight pending-XHR counter. Installed once at script start.
+// Wraps XMLHttpRequest.send to count in-flight requests so the
+// navigation layer can wait for the game to finish its current
+// AJAX work before changing pages.
+//
+// Why: window.location.href = ... cancels any in-flight XHR with
+// NS_BINDING_ABORTED. When the cancelled request is a state-changing
+// POST (e.g. PoP claim), the server can answer the next request with
+// HTTP Forbidden. Waiting for AJAX idle before navigating prevents
+// that race.
+//
+// Public API:
+//   installAjaxTracker()  -- call once at script start
+//   pendingAjaxCount()    -- current number of in-flight XHRs
+//   waitForAjaxIdle(timeoutMs, settleMs) -- resolves when idle
+//
+// Used by: PageNavigationService.gotoPage()
+var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+let pending = 0;
+let installed = false;
+let restoreSend = null;
 /**
- * ConfigHelper.ts - Environment detection and per-environment variable lookup
+ * Install the XHR counter hook. Idempotent.
+ * Hooks XMLHttpRequest.prototype.send to count in-flight requests
+ * via a single loadend listener (covers success, error, abort, timeout).
  *
- * The game runs on multiple domains (HH, PH, NPH, etc.), each with
- * slightly different page IDs, URLs, and feature flags. This helper
- * detects which environment the script is running on by matching the
- * current hostname against a known list, then resolves configuration
- * variables for that environment. When an environment-specific value is
- * not defined, it falls back to the "global" defaults.
- *
- * Almost every other helper and module depends on ConfigHelper to obtain
- * page IDs, URL paths, element selectors, and feature toggles.
+ * Returns true if the hook was installed (or was already installed),
+ * false if no XMLHttpRequest constructor is available in this scope.
  */
-
-
-class ConfigHelper {
-    static getEnvironnement() {
-        let environnement = "global";
-        if (HHKnownEnvironnements[window.location.hostname] !== undefined) {
-            environnement = HHKnownEnvironnements[window.location.hostname].name;
-        }
-        else {
-            fillHHPopUp("unknownURL", "Game URL unknown", '<p>This HH URL is unknown to the script.<br>To add it please open an issue in <a href="https://github.com/OldRon1977/HHauto/issues" target="_blank">Github</a> with following informations : <br>Hostname : ' + window.location.hostname + '<br>gameID : ' + $('body[page][id]').attr('id') + '<br>You can also use this direct link : <a  target="_blank" href="https://github.com/OldRon1977/HHauto/issues/new?template=enhancement_request.md&title=Support%20for%20' + window.location.hostname + '&body=Please%20add%20new%20URL%20with%20these%20infos%20%3A%20%0A-%20hostname%20%3A%20' + window.location.hostname + '%0A-%20gameID%20%3A%20' + $('body[page][id]').attr('id') + '%0AThanks">Github issue</a></p>');
-        }
-        return environnement;
+function installAjaxTracker() {
+    if (installed)
+        return true;
+    // Resolve the constructor lazily so tests can swap the global
+    // XMLHttpRequest before calling install().
+    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
+        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
+        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
+    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
+        return false;
     }
-    static isPshEnvironnement() {
-        return ["PH_prod", "NPH_prod"].includes(ConfigHelper.getEnvironnement());
-    }
-    static getHHScriptVars(id, logNotFound = true) {
-        const environnement = ConfigHelper.getEnvironnement();
-        if (HHEnvVariables[environnement] !== undefined && HHEnvVariables[environnement][id] !== undefined) {
-            return HHEnvVariables[environnement][id];
+    const origSend = xhrCtor.prototype.send;
+    xhrCtor.prototype.send = function (...args) {
+        pending++;
+        const decrement = () => {
+            if (pending > 0)
+                pending--;
+        };
+        // loadend fires once for both success and failure paths
+        this.addEventListener('loadend', decrement, { once: true });
+        return origSend.apply(this, args);
+    };
+    restoreSend = () => {
+        try {
+            xhrCtor.prototype.send = origSend;
         }
-        else {
-            if (HHEnvVariables["global"] !== undefined && HHEnvVariables["global"][id] !== undefined) {
-                return HHEnvVariables["global"][id];
-            }
-            else {
-                if (logNotFound) {
-                    LogUtils_logHHAuto("not found var for " + environnement + "/" + id);
-                }
-                return null;
-            }
+        catch (e) { /* ignore */ }
+    };
+    installed = true;
+    LogUtils_logHHAuto('[AjaxTracker] installed');
+    return true;
+}
+/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
+function pendingAjaxCount() {
+    return pending;
+}
+/**
+ * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
+ * After idle is detected, wait an extra settleMs to let synchronous
+ * follow-up code (e.g. DOM updates triggered by the response) finish.
+ *
+ * Polls every 50ms. Returns true if idle was reached, false on timeout.
+ */
+function waitForAjaxIdle(timeoutMs = 8000, settleMs = 250) {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+        if (!installed) {
+            // Tracker not installed -> behave like immediate idle, just settle.
+            yield sleep(settleMs);
+            return true;
         }
+        const deadline = Date.now() + timeoutMs;
+        while (pending > 0 && Date.now() < deadline) {
+            yield sleep(50);
+        }
+        const reachedIdle = pending === 0;
+        if (!reachedIdle) {
+            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
+        }
+        if (settleMs > 0) {
+            yield sleep(settleMs);
+        }
+        return reachedIdle;
+    });
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+/** Reset internal state and remove the prototype hook. Test-only. */
+function _resetAjaxTrackerForTests() {
+    if (restoreSend) {
+        try {
+            restoreSend();
+        }
+        catch (e) { /* ignore */ }
     }
+    restoreSend = null;
+    pending = 0;
+    installed = false;
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AdsService.ts
@@ -25695,7 +25848,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.28";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.29";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -26618,6 +26771,38 @@ function disableToolTipsDisplay(important = false) {
     GM_addStyle('.tooltipHH:hover span.tooltipHHtext { display: none' + importantAddendum + '}');
 }
 
+;// CONCATENATED MODULE: ./src/Service/ForbiddenBackoff.ts
+// ForbiddenBackoff.ts
+//
+// Exponential backoff calculator for the persistent Forbidden counter
+// used by StartService.hardened_start() (issue #1598).
+//
+// Each consecutive Forbidden response doubles the random reload window,
+// capped at FORBIDDEN_CAP_SECONDS. A jitter of +/- 20% is applied so
+// multiple tabs hitting the same rate-limit do not all retry in lockstep.
+const FORBIDDEN_BASE_SECONDS = 60;
+const FORBIDDEN_CAP_SECONDS = 30 * 60;
+const FORBIDDEN_MIN_DELAY_SECONDS = 30;
+const FORBIDDEN_JITTER_RANGE = 0.4; // +/- 20%
+/**
+ * Compute the next reload delay in seconds for a given consecutive
+ * Forbidden count.
+ *
+ * count is 1-based: the 1st Forbidden produces FORBIDDEN_BASE_SECONDS,
+ * the 2nd doubles it, and so on, up to FORBIDDEN_CAP_SECONDS.
+ *
+ * @param count    number of consecutive Forbidden responses (>= 1)
+ * @param random   RNG returning a value in [0, 1). Defaults to Math.random.
+ *                 Injected so unit tests can produce deterministic results.
+ */
+function nextForbiddenDelaySeconds(count, random = Math.random) {
+    const safeCount = Math.max(1, Math.floor(count));
+    const factor = Math.pow(2, safeCount - 1);
+    const target = Math.min(FORBIDDEN_BASE_SECONDS * factor, FORBIDDEN_CAP_SECONDS);
+    const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
+    return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
+}
+
 ;// CONCATENATED MODULE: ./src/Service/StartService.ts
 // StartService.ts
 //
@@ -26652,11 +26837,32 @@ function disableToolTipsDisplay(important = false) {
 
 
 
+
+
 var started = false;
 var debugMenuID;
 var heroRetryTimer = null;
 var heroRetryCount = 0;
 const HERO_MAX_RETRIES = 15;
+// Persistent Forbidden backoff (issue #1598).
+//
+// The reload-delay formula lives in ForbiddenBackoff.ts so it can be
+// unit-tested in isolation. The counter itself lives in sessionStorage
+// so it survives location.reload() but resets when the user closes the
+// tab. On a successful start() (Hero object available), the counter is
+// cleared, so a single transient Forbidden does not penalise later runs.
+const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+// Cold-start delay (issue #1598).
+//
+// After a long inactivity (PC hibernation, tab in background, slow page
+// load) the very first AJAX call from this script tab can hit a
+// rate-limited server window. We delay the initial autoLoop tick by a
+// few seconds when the last recorded activity is older than the
+// threshold below, giving the page time to settle before any module
+// fires a navigation.
+const COLD_START_THRESHOLD_MS = 60 * 1000;
+const COLD_START_DELAY_MS = 4000;
+const NORMAL_START_DELAY_MS = 1000;
 class StartService {
     static checkVersion() {
         let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
@@ -26721,13 +26927,36 @@ function setDefaults(force = false) {
 function hardened_start() {
     debugMenuID = GM_registerMenuCommand(getTextForUI("saveDebug", "elementText"), saveHHDebugLog);
     //GM_unregisterMenuCommand(debugMenuID);
+    // Install the AJAX request counter as early as possible so any later
+    // page-changing module call can wait for in-flight game POSTs to
+    // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
+    try {
+        installAjaxTracker();
+    }
+    catch (e) { /* tracker is best-effort */ }
     if (unsafeWindow.jQuery == undefined) {
         console.log("HHAUTO WARNING: No jQuery found.");
         try {
             const forbiddenWords = document.getElementsByTagName('body')[0].innerText === 'Forbidden';
             if (forbiddenWords) {
-                const time = randomInterval(1 * 60, 5 * 60);
-                LogUtils_logHHAuto('HHAUTO WARNING: "Forbidden" detected, reloading the page in ' + time + ' seconds');
+                // Persistent backoff: each consecutive Forbidden doubles
+                // the window. Counter survives reload, resets on a
+                // successful start() (Hero available) or tab close.
+                let count = 0;
+                try {
+                    const raw = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
+                    count = raw ? parseInt(raw, 10) : 0;
+                    if (!Number.isFinite(count) || count < 0)
+                        count = 0;
+                }
+                catch (e) { /* sessionStorage unavailable */ }
+                count += 1;
+                try {
+                    sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
+                }
+                catch (e) { }
+                const time = nextForbiddenDelaySeconds(count);
+                LogUtils_logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
                 setTimeout(() => { location.reload(); }, time * 1000);
             }
         }
@@ -26987,7 +27216,27 @@ function start() {
     if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
     }
-    setTimeout(autoLoop, 1000);
+    // Reached the autoLoop start path -> Hero is available, the page is
+    // healthy, so the recent Forbidden chain (if any) is over.
+    try {
+        sessionStorage.removeItem(FORBIDDEN_COUNT_KEY);
+    }
+    catch (e) { }
+    // Cold-start delay: if the script has been idle for a while (tab in
+    // background, hibernation, slow first paint) give the page extra
+    // time before the first navigation, otherwise the very first
+    // gotoPage() can race the server's rate-limit window (issue #1598).
+    let initialDelayMs = NORMAL_START_DELAY_MS;
+    try {
+        const last = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
+        const lastTs = typeof (last === null || last === void 0 ? void 0 : last.dateTime) === 'number' ? last.dateTime : 0;
+        if (lastTs > 0 && (Date.now() - lastTs) > COLD_START_THRESHOLD_MS) {
+            initialDelayMs = COLD_START_DELAY_MS;
+            LogUtils_logHHAuto('Cold start detected (last activity > ' + Math.round(COLD_START_THRESHOLD_MS / 1000) + 's ago), delaying first autoLoop by ' + initialDelayMs + 'ms');
+        }
+    }
+    catch (e) { /* fall back to normal delay */ }
+    setTimeout(autoLoop, initialDelayMs);
     // Manual survey button
     $("#settingsSurvey").on("click", function () {
         SurveyService.showSurveyPopup();
@@ -27016,6 +27265,7 @@ function start() {
  *  - AdsService     -- suppress or relocate in-game ads
  *  - TooltipService -- show/hide HHAuto menu tooltips
  */
+
 
 
 

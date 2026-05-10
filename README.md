@@ -45,6 +45,16 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.29 - Fewer "Forbidden" errors (Place of Power, slow networks, after hibernation)
+
+Three changes that together address the "Forbidden" reports still seen on top of v7.35.22 (issue #1598), especially in Firefox Private Browsing and after the PC was suspended.
+
+- **Place of Power claim:** the script now waits for the claim AJAX to finish before it changes pages. Previously, on slower connections the page change cancelled the open claim request, which the server then answered with Forbidden on the next call.
+- **Cold-start delay:** when the script wakes up after a long pause (tab in background, hibernation, slow first paint), the very first navigation is delayed by a few extra seconds. This avoids the first call hitting the server before it has settled.
+- **Smarter Forbidden retry:** once Forbidden is detected, each consecutive retry waits longer than the previous one (one minute, two, four, ... up to thirty), with random jitter. The counter resets as soon as the script is back to a healthy state. Manually closing the tab and opening a fresh one always resets it as well.
+
+Refs #1598.
+
 ### v7.35.28 - Penta Drill: delays adjusted further
 
 Delays between Penta Drill actions have been increased again to avoid blank screens caused by clicks landing before the server response.

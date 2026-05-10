@@ -17,6 +17,7 @@
  *  - AdsService     -- suppress or relocate in-game ads
  *  - TooltipService -- show/hide HHAuto menu tooltips
  */
+export * from './AjaxTracker'
 export * from './AdsService'
 export * from './AutoLoop'
 export * from './FeaturePopupService'
