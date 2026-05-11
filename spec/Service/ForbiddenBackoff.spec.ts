@@ -1,9 +1,11 @@
 import {
     nextForbiddenDelaySeconds,
+    nextStreakCount,
     FORBIDDEN_BASE_SECONDS,
     FORBIDDEN_CAP_SECONDS,
     FORBIDDEN_MIN_DELAY_SECONDS,
     FORBIDDEN_JITTER_RANGE,
+    FORBIDDEN_STREAK_WINDOW_MS,
 } from "../../src/Service/ForbiddenBackoff";
 
 describe("nextForbiddenDelaySeconds", () => {
@@ -62,5 +64,35 @@ describe("nextForbiddenDelaySeconds", () => {
             expect(v).toBeGreaterThanOrEqual(lo);
             expect(v).toBeLessThanOrEqual(hi);
         }
+    });
+});
+
+describe("nextStreakCount", () => {
+    it("returns 1 when there is no previous Forbidden", () => {
+        expect(nextStreakCount(0, 0, 1_000_000)).toBe(1);
+    });
+
+    it("returns 1 when the previous count is invalid", () => {
+        expect(nextStreakCount(-3, 1_000_000, 1_000_000)).toBe(1);
+    });
+
+    it("increments the count when previous Forbidden is recent", () => {
+        const now = 10_000_000;
+        const recent = now - 30_000; // 30s ago, well inside the window
+        expect(nextStreakCount(1, recent, now)).toBe(2);
+        expect(nextStreakCount(4, recent, now)).toBe(5);
+    });
+
+    it("resets to 1 when previous Forbidden is older than the streak window", () => {
+        const now = 10_000_000;
+        const old = now - FORBIDDEN_STREAK_WINDOW_MS - 1;
+        expect(nextStreakCount(7, old, now)).toBe(1);
+    });
+
+    it("treats the streak as alive at exactly the window boundary", () => {
+        const now = 10_000_000;
+        const atBoundary = now - FORBIDDEN_STREAK_WINDOW_MS;
+        // <= window means streak continues
+        expect(nextStreakCount(2, atBoundary, now)).toBe(3);
     });
 });

@@ -45,6 +45,15 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.30 - "Forbidden" backoff actually escalates now (Private Browsing follow-up)
+
+Follow-up to v7.35.29 based on logs from Firefox Private Browsing where the same Forbidden kept reappearing every minute.
+
+- **Backoff escalates correctly.** Previously the retry counter reset whenever the script briefly recovered between two Forbiddens, so every reload waited only ~60 seconds. The counter now treats Forbiddens within five minutes as the same streak, so the wait actually doubles to two, four, eight, sixteen minutes (cap thirty) until the streak ends.
+- **Don't navigate away while AJAX is still busy.** If the in-flight AJAX wait times out, the script no longer changes the page. It releases the navigation lock and tries again on the next loop tick. Cancelling an in-flight game request was the original cause of the Forbidden response in the first place.
+- **AJAX wait raised to 15 seconds.** The previous 8s cap was too tight for very slow connections (Firefox Private Browsing has been observed at 10-12s per response).
+- **Less log noise.** The "navigation already in flight, ignoring" line is now throttled to at most once every five seconds.
+
 ### v7.35.29 - Fewer "Forbidden" errors (Place of Power, slow networks, after hibernation)
 
 Three changes that together address the "Forbidden" reports still seen on top of v7.35.22 (issue #1598), especially in Firefox Private Browsing and after the PC was suspended.

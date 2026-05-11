@@ -23,11 +23,12 @@ import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { waitForAjaxIdle } from './AjaxTracker';
 
 // How long to wait for in-flight XHRs before navigating away. The game
-// can take several seconds to answer in slow environments (Firefox
-// Private Browsing has been observed at 2-3s per AJAX). 8s is a
-// conservative cap; the wait short-circuits as soon as the queue is
-// empty, so the typical path stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 8000;
+// can take well over 8 seconds to answer in slow environments (Firefox
+// Private Browsing has been observed sending the same response 10-12s
+// after the request). 15s is a conservative cap; the wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
 // Extra delay after AJAX idle before changing window.location, to let
 // any synchronous follow-up code (DOM updates, popup handling) finish.
 const AJAX_IDLE_SETTLE_MS = 250;
@@ -36,11 +37,21 @@ const AJAX_IDLE_SETTLE_MS = 250;
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
 let navInFlight = false;
 
+// Throttle the "navigation already in flight" log line so a slow AJAX
+// wait does not flood the log with one entry per AutoLoop tick (issue
+// #1598 follow-up). Only emit once per NAV_BLOCKED_LOG_INTERVAL_MS.
+const NAV_BLOCKED_LOG_INTERVAL_MS = 5000;
+let lastNavBlockedLogAt = 0;
+
 // Returns true if on correct page.
 export function gotoPage(page,inArgs={},delay = -1)
 {
     if (navInFlight) {
-        logHHAuto('gotoPage: navigation already in flight, ignoring '+page);
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            logHHAuto('gotoPage: navigation already in flight, ignoring '+page);
+        }
         return false;
     }
     var cp=getPage();
@@ -210,8 +221,17 @@ export function gotoPage(page,inArgs={},delay = -1)
             // finish before changing the URL. Setting window.location.href
             // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
             // state-changing request can make the server answer Forbidden
-            // on the next call (issue #1598).
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+            // on the next call (issue #1598). If the wait times out (the
+            // server is genuinely slow), abort the navigation and let
+            // AutoLoop retry on the next tick instead of cancelling the
+            // open request.
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+                if (!idle) {
+                    logHHAuto('gotoPage: AJAX still busy after '+AJAX_IDLE_TIMEOUT_MS+'ms, deferring navigation to '+targetUrl);
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                    navInFlight = false;
+                    return;
+                }
                 window.location.href = window.location.origin + targetUrl;
             });
         }, delay);
@@ -221,7 +241,13 @@ export function gotoPage(page,inArgs={},delay = -1)
         logHHAuto("Couldn't find page path. Page was undefined...");
         navInFlight = true;
         setTimeout(function () {
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+                if (!idle) {
+                    logHHAuto('gotoPage: AJAX still busy after '+AJAX_IDLE_TIMEOUT_MS+'ms, deferring reload');
+                    setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
+                    navInFlight = false;
+                    return;
+                }
                 location.reload();
             });
         }, delay);

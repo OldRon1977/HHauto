@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.29
+// @version      7.35.30
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -13513,21 +13513,31 @@ function getPage(checkUnknown = false, checkPop = false) {
 
 
 // How long to wait for in-flight XHRs before navigating away. The game
-// can take several seconds to answer in slow environments (Firefox
-// Private Browsing has been observed at 2-3s per AJAX). 8s is a
-// conservative cap; the wait short-circuits as soon as the queue is
-// empty, so the typical path stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 8000;
+// can take well over 8 seconds to answer in slow environments (Firefox
+// Private Browsing has been observed sending the same response 10-12s
+// after the request). 15s is a conservative cap; the wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
 // Extra delay after AJAX idle before changing window.location, to let
 // any synchronous follow-up code (DOM updates, popup handling) finish.
 const AJAX_IDLE_SETTLE_MS = 250;
 // Module-level mutex: true while a navigation has been scheduled but the
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
 let navInFlight = false;
+// Throttle the "navigation already in flight" log line so a slow AJAX
+// wait does not flood the log with one entry per AutoLoop tick (issue
+// #1598 follow-up). Only emit once per NAV_BLOCKED_LOG_INTERVAL_MS.
+const NAV_BLOCKED_LOG_INTERVAL_MS = 5000;
+let lastNavBlockedLogAt = 0;
 // Returns true if on correct page.
 function gotoPage(page, inArgs = {}, delay = -1) {
     if (navInFlight) {
-        LogUtils_logHHAuto('gotoPage: navigation already in flight, ignoring ' + page);
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            LogUtils_logHHAuto('gotoPage: navigation already in flight, ignoring ' + page);
+        }
         return false;
     }
     var cp = getPage();
@@ -13687,8 +13697,17 @@ function gotoPage(page, inArgs = {}, delay = -1) {
             // finish before changing the URL. Setting window.location.href
             // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
             // state-changing request can make the server answer Forbidden
-            // on the next call (issue #1598).
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+            // on the next call (issue #1598). If the wait times out (the
+            // server is genuinely slow), abort the navigation and let
+            // AutoLoop retry on the next tick instead of cancelling the
+            // open request.
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+                if (!idle) {
+                    LogUtils_logHHAuto('gotoPage: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation to ' + targetUrl);
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    navInFlight = false;
+                    return;
+                }
                 window.location.href = window.location.origin + targetUrl;
             });
         }, delay);
@@ -13697,7 +13716,13 @@ function gotoPage(page, inArgs = {}, delay = -1) {
         LogUtils_logHHAuto("Couldn't find page path. Page was undefined...");
         navInFlight = true;
         setTimeout(function () {
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function () {
+            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+                if (!idle) {
+                    LogUtils_logHHAuto('gotoPage: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring reload');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    navInFlight = false;
+                    return;
+                }
                 location.reload();
             });
         }, delay);
@@ -25848,7 +25873,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.29";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.30";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -26802,6 +26827,35 @@ function nextForbiddenDelaySeconds(count, random = Math.random) {
     const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
     return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
 }
+/**
+ * Window during which consecutive Forbidden responses are treated as the
+ * same streak (and therefore keep escalating the backoff). If the gap
+ * between two Forbiddens is larger than this window, the counter resets
+ * to 1 because the script clearly recovered for a while in between.
+ */
+const FORBIDDEN_STREAK_WINDOW_MS = 5 * 60 * 1000;
+/**
+ * Decide the next streak count given the previous count and the time
+ * since the previous Forbidden.
+ *
+ * - If there was no previous Forbidden, the new count is 1.
+ * - If the previous Forbidden is older than FORBIDDEN_STREAK_WINDOW_MS,
+ *   the streak counts as broken and the new count is 1.
+ * - Otherwise, the new count is the previous count + 1.
+ *
+ * Pure function so it can be unit-tested without sessionStorage.
+ *
+ * @param prevCount      previous stored count (>= 0)
+ * @param prevTimestamp  ms epoch of previous Forbidden, or 0 if none
+ * @param now            current ms epoch
+ */
+function nextStreakCount(prevCount, prevTimestamp, now) {
+    if (!prevTimestamp || prevCount < 1)
+        return 1;
+    if (now - prevTimestamp > FORBIDDEN_STREAK_WINDOW_MS)
+        return 1;
+    return prevCount + 1;
+}
 
 ;// CONCATENATED MODULE: ./src/Service/StartService.ts
 // StartService.ts
@@ -26852,6 +26906,7 @@ const HERO_MAX_RETRIES = 15;
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
 const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
 // Cold-start delay (issue #1598).
 //
 // After a long inactivity (PC hibernation, tab in background, slow page
@@ -26940,19 +26995,28 @@ function hardened_start() {
             const forbiddenWords = document.getElementsByTagName('body')[0].innerText === 'Forbidden';
             if (forbiddenWords) {
                 // Persistent backoff: each consecutive Forbidden doubles
-                // the window. Counter survives reload, resets on a
-                // successful start() (Hero available) or tab close.
-                let count = 0;
+                // the window. The counter only resets when no Forbidden
+                // has been seen for FORBIDDEN_STREAK_WINDOW_MS, so
+                // brief recoveries (e.g. one PoP claim succeeding
+                // between two Forbiddens) do not reset the streak.
+                let prevCount = 0;
+                let prevAt = 0;
                 try {
-                    const raw = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
-                    count = raw ? parseInt(raw, 10) : 0;
-                    if (!Number.isFinite(count) || count < 0)
-                        count = 0;
+                    const rawCount = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
+                    prevCount = rawCount ? parseInt(rawCount, 10) : 0;
+                    if (!Number.isFinite(prevCount) || prevCount < 0)
+                        prevCount = 0;
+                    const rawAt = sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY);
+                    prevAt = rawAt ? parseInt(rawAt, 10) : 0;
+                    if (!Number.isFinite(prevAt) || prevAt < 0)
+                        prevAt = 0;
                 }
                 catch (e) { /* sessionStorage unavailable */ }
-                count += 1;
+                const now = Date.now();
+                const count = nextStreakCount(prevCount, prevAt, now);
                 try {
                     sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
+                    sessionStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
                 }
                 catch (e) { }
                 const time = nextForbiddenDelaySeconds(count);
@@ -27216,12 +27280,6 @@ function start() {
     if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
     }
-    // Reached the autoLoop start path -> Hero is available, the page is
-    // healthy, so the recent Forbidden chain (if any) is over.
-    try {
-        sessionStorage.removeItem(FORBIDDEN_COUNT_KEY);
-    }
-    catch (e) { }
     // Cold-start delay: if the script has been idle for a while (tab in
     // background, hibernation, slow first paint) give the page extra
     // time before the first navigation, otherwise the very first

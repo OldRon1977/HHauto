@@ -89,7 +89,7 @@ import {
 } from "./MouseService";
 import { disableToolTipsDisplay, enableToolTipsDisplay, manageToolTipsDisplay } from "./TooltipService";
 import { installAjaxTracker } from './AjaxTracker';
-import { nextForbiddenDelaySeconds } from './ForbiddenBackoff';
+import { nextForbiddenDelaySeconds, nextStreakCount } from './ForbiddenBackoff';
 
 var started=false;
 var debugMenuID;
@@ -105,6 +105,7 @@ const HERO_MAX_RETRIES = 15;
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
 const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
 
 // Cold-start delay (issue #1598).
 //
@@ -207,16 +208,27 @@ export function hardened_start()
             const forbiddenWords = document.getElementsByTagName('body')[0].innerText === 'Forbidden';
             if (forbiddenWords) {
                 // Persistent backoff: each consecutive Forbidden doubles
-                // the window. Counter survives reload, resets on a
-                // successful start() (Hero available) or tab close.
-                let count = 0;
+                // the window. The counter only resets when no Forbidden
+                // has been seen for FORBIDDEN_STREAK_WINDOW_MS, so
+                // brief recoveries (e.g. one PoP claim succeeding
+                // between two Forbiddens) do not reset the streak.
+                let prevCount = 0;
+                let prevAt = 0;
                 try {
-                    const raw = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
-                    count = raw ? parseInt(raw, 10) : 0;
-                    if (!Number.isFinite(count) || count < 0) count = 0;
+                    const rawCount = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
+                    prevCount = rawCount ? parseInt(rawCount, 10) : 0;
+                    if (!Number.isFinite(prevCount) || prevCount < 0) prevCount = 0;
+                    const rawAt = sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY);
+                    prevAt = rawAt ? parseInt(rawAt, 10) : 0;
+                    if (!Number.isFinite(prevAt) || prevAt < 0) prevAt = 0;
                 } catch (e) { /* sessionStorage unavailable */ }
-                count += 1;
-                try { sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count)); } catch (e) {}
+
+                const now = Date.now();
+                const count = nextStreakCount(prevCount, prevAt, now);
+                try {
+                    sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
+                    sessionStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
+                } catch (e) {}
 
                 const time = nextForbiddenDelaySeconds(count);
                 logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
@@ -531,10 +543,6 @@ export function start() {
     if (SurveyService.shouldShowSurvey()) {
         SurveyService.showSurveyPopup();
     }
-
-    // Reached the autoLoop start path -> Hero is available, the page is
-    // healthy, so the recent Forbidden chain (if any) is over.
-    try { sessionStorage.removeItem(FORBIDDEN_COUNT_KEY); } catch (e) {}
 
     // Cold-start delay: if the script has been idle for a while (tab in
     // background, hibernation, slow first paint) give the page extra
