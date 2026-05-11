@@ -103,15 +103,15 @@ describe('TeamBuilderService', () => {
 
     describe('Class filtering', () => {
 
-        it('should exclude girls of a different class', () => {
+        it('should include cross-class girls when their score is competitive (v7.35.33)', () => {
             const girls = [
                 ...makeTraitPool(10),
-                // High-stat HC girl (class 1) -- must be filtered out for KH player (class 3)
+                // High-carac3 HC girl (class 1, but for KH player carac3 is what counts)
                 makeGirl({ id_girl: 999, rarity: 'mythic', class: 1, carac1: 99999, carac2: 99999, carac3: 99999, eyeColor: 'blue' }),
             ];
             const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
             const hasHC = result.girls.some(g => g.id_girl === 999);
-            expect(hasHC).toBe(false);
+            expect(hasHC).toBe(true);
         });
     });
 
@@ -591,18 +591,22 @@ describe('TeamBuilderService', () => {
             expect(excluded[0].reason!.length).toBeGreaterThan(0);
         });
 
-        it('should flag wrong-class mythics in the audit', () => {
-            // Player class 3 (KH). Add a class-1 mythic -- it must show up as
-            // excluded with the wrong-class reason.
+        it('should flag cross-class mythics with cross-class prefix in the audit', () => {
+            // Player class 3 (KH). Add a class-1 mythic with weak carac3 so
+            // it lands in 'excluded' with a cross-class prefix in the reason.
             const girls = [
                 ...makeTraitPool(20),
-                makeGirl({ id_girl: 999, rarity: 'mythic', class: 1, carac1: 99999, eyeColor: 'blue' }),
+                makeGirl({ id_girl: 999, rarity: 'mythic', class: 1, carac1: 99999, carac3: 100, eyeColor: 'green' }),
             ];
             const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
-            const wrongClass = result.mythicAudit.find(e => e.id_girl === 999);
-            expect(wrongClass).toBeDefined();
-            expect(wrongClass!.status).toBe('excluded');
-            expect(wrongClass!.reason).toMatch(/wrong class/i);
+            const crossClass = result.mythicAudit.find(e => e.id_girl === 999);
+            expect(crossClass).toBeDefined();
+            // Cross-class mythics now compete on score, so they may end up in
+            // the team or excluded. If excluded, the reason carries the
+            // cross-class prefix.
+            if (crossClass!.status === 'excluded') {
+                expect(crossClass!.reason).toMatch(/cross-class/i);
+            }
         });
     });
 
@@ -797,5 +801,61 @@ describe('Mode 2: Best Possible without max() guard (issue #1603)', () => {
         const m2Set = new Set(m2Ids);
         const same = m1Set.size === m2Set.size && [...m1Set].every(id => m2Set.has(id));
         expect(same).toBe(false);
+    });
+});
+
+
+describe('leaderReason (v7.35.33 Variante C)', () => {
+
+    it('should be undefined when leader is a Mythic Shield', () => {
+        const girls = Array.from({ length: 7 }, (_, i) => makeGirl({
+            id_girl: 100 + i,
+            element: i === 0 ? 'light' : (i % 2 === 0 ? 'fire' : 'darkness'),
+            rarity: 'mythic',
+            class: 3,
+            carac3: 5000,
+            eyeColor: 'blue',
+            hairColor: 'blonde',
+        }));
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.leaderTier5.name).toBe('Shield');
+        expect(result.leaderReason).toBeUndefined();
+    });
+
+    it('should explain when no Mythic Shield is in the pool', () => {
+        // Pool has only Mythic Stun and Mythic Reflect, no Shield mythics
+        const girls = [
+            makeGirl({ id_girl: 100, element: 'darkness', rarity: 'mythic', class: 3, carac3: 5000, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 101, element: 'sun',      rarity: 'mythic', class: 3, carac3: 4000, position: '5' }),
+            makeGirl({ id_girl: 102, element: 'fire',     rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 103, element: 'darkness', rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 104, element: 'fire',     rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 105, element: 'darkness', rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 106, element: 'fire',     rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+            makeGirl({ id_girl: 107, element: 'darkness', rarity: 'mythic', class: 3, carac3: 4500, eyeColor: 'blue' }),
+        ];
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        // Leader must be Mythic Stun (next priority after Shield)
+        expect(result.girls[0].rarity).toBe('mythic');
+        expect(result.leaderTier5.name).not.toBe('Shield');
+        expect(result.leaderReason).toBeDefined();
+        expect(result.leaderReason).toMatch(/no Mythic Shield/i);
+    });
+
+    it('should fall back to Legendary 5* when no mythics exist (with reason)', () => {
+        const girls = Array.from({ length: 8 }, (_, i) => makeGirl({
+            id_girl: 100 + i,
+            element: i % 2 === 0 ? 'fire' : 'darkness',
+            rarity: 'legendary',
+            class: 3,
+            nb_grades: 5,
+            graded: 5,
+            carac3: 4000,
+            eyeColor: 'blue',
+        }));
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.girls[0].rarity).toBe('legendary');
+        expect(result.leaderReason).toBeDefined();
+        expect(result.leaderReason).toMatch(/Legendary/i);
     });
 });

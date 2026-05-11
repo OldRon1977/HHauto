@@ -72,6 +72,7 @@ export interface TeamSlotInfo {
 
 export interface TeamResult {
     girls: GirlData[];          // 7 girls, index 0 = leader
+    leaderReason?: string;      // why this leader was picked (when not Mythic-Shield)
     statScores: number[];       // mode-aware score per slot
     synergyValue: number;       // legacy weighted synergy (informational)
     elementSynergyMultiplier: number;  // sum of per-element bonuses (used in EffectivePower)
@@ -147,8 +148,9 @@ export class TeamBuilderService {
         // Detect blessed categories (informational, surfaced in audit/UI).
         const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
 
-        // Find candidate trait groups, scored mode-aware.
-        const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn);
+        // Find candidate trait groups, scored mode-aware. Blessed
+        // categories get a boost so the build phase tries them first.
+        const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedCategories);
 
         // Evaluate top groups + any blessed-category groups not in the top.
         const groupsToEvaluate: TraitGroupResult[] = [];
@@ -193,6 +195,12 @@ export class TeamBuilderService {
         const leaderTier5 = TeamScoringService.getTier5Skill(leader.element);
         const leaderBonus = TeamScoringService.getLeaderBonus(leaderTier5);
         const tier3Bonus = TeamScoringService.calculateTier3TeamBonus(team);
+
+        // leaderReason: explain the pick when it's not a Mythic Shield.
+        // Variante C precedence is: Mythic Shield (best) > Mythic Stun >
+        // Mythic Execute > Mythic Reflect > Legendary fallback. The reason
+        // text states which step was taken and why.
+        const leaderReason = TeamBuilderService._buildLeaderReason(leader, leaderTier5, candidates);
 
         let traitMatchCount = 0;
         for (const girl of team) {
@@ -247,6 +255,7 @@ export class TeamBuilderService {
 
         return {
             girls: team,
+            leaderReason,
             statScores,
             synergyValue,
             elementSynergyMultiplier,
@@ -440,6 +449,43 @@ export class TeamBuilderService {
     }
 
     /**
+     * Build a human-readable explanation of why this leader was picked.
+     *
+     * Variante C precedence (issue #1603):
+     *   Mythic Shield > Mythic Stun > Mythic Execute > Mythic Reflect
+     *   > Legendary 5* (any tier-5 / no tier-5).
+     *
+     * If the leader is not a Mythic Shield, the reason explains which
+     * higher-priority candidate was missing or why the selected pick
+     * still made it through the slot-swap fallback.
+     */
+    private static _buildLeaderReason(
+        leader: GirlData,
+        leaderTier5: { id: number; name: string; priority: number },
+        candidates: GirlData[]
+    ): string | undefined {
+        const isMythicShield = leader.rarity === 'mythic' && leaderTier5.name === 'Shield';
+        if (isMythicShield) return undefined; // ideal case, no reason needed
+
+        const mythics = candidates.filter(g => g.rarity === 'mythic');
+        const mythicShieldCount = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Shield').length;
+        const mythicStunCount   = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Stun').length;
+        const mythicExecCount   = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Execute').length;
+
+        const parts: string[] = [];
+        if (mythicShieldCount === 0) parts.push('no Mythic Shield in pool');
+        else parts.push('Mythic Shield needed for slot 2-7 cluster fill, no swap candidate');
+        if (leader.rarity === 'mythic') {
+            if (leaderTier5.name === 'Stun')    parts.push('fallback to Mythic Stun (tier-5 priority 3)');
+            if (leaderTier5.name === 'Execute') parts.push(`fallback to Mythic Execute (no Mythic Stun: ${mythicStunCount === 0 ? 'pool empty' : 'all swapped to slots'})`);
+            if (leaderTier5.name === 'Reflect') parts.push(`fallback to Mythic Reflect (no Mythic Stun/Execute: stun=${mythicStunCount}, execute=${mythicExecCount} available)`);
+        } else {
+            parts.push(`fallback to Legendary 5* (${leaderTier5.name}, no Mythic available)`);
+        }
+        return parts.join('; ');
+    }
+
+    /**
      * Build the mythic audit list shown in the UI.
      */
     private static _buildMythicAudit(
@@ -480,20 +526,18 @@ export class TeamBuilderService {
                 continue;
             }
 
+            const isCrossClass = typeof girl.class === 'number' && girl.class !== playerClass;
+            const crossClassPrefix = isCrossClass ? 'cross-class, ' : '';
+            const girlCategory = TeamScoringService.getTraitCategory(girl.element);
+            const girlValue = TeamScoringService.getTraitValue(girl);
             let reason: string;
-            if (typeof girl.class === 'number' && girl.class !== playerClass) {
-                reason = 'wrong class (filtered out)';
+            if (girlCategory === traitCategory && girlValue === traitValue) {
+                reason = crossClassPrefix + 'same trait, lower stats than top picks';
+            } else if (clusterElements.includes(girl.element)) {
+                reason = crossClassPrefix + 'cluster element, different trait value: '
+                    + girlCategory + '=' + (girlValue || '?');
             } else {
-                const girlCategory = TeamScoringService.getTraitCategory(girl.element);
-                const girlValue = TeamScoringService.getTraitValue(girl);
-                if (girlCategory === traitCategory && girlValue === traitValue) {
-                    reason = 'same trait, lower stats than top picks';
-                } else if (clusterElements.includes(girl.element)) {
-                    reason = 'cluster element, different trait value: '
-                        + girlCategory + '=' + (girlValue || '?');
-                } else {
-                    reason = 'other cluster: ' + girlCategory + '=' + (girlValue || '?');
-                }
+                reason = crossClassPrefix + 'other cluster: ' + girlCategory + '=' + (girlValue || '?');
             }
             entries.push({
                 id_girl: girl.id_girl, name: girl.name, element: girl.element,

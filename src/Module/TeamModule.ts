@@ -553,7 +553,8 @@ export class TeamModule {
         const epStr = result.effectivePower.toLocaleString();
         const ps = result.poolStats;
         const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
-        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+        const leaderReasonStr = result.leaderReason ? `, LeaderReason="${result.leaderReason}"` : '';
+        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
 
         // Per-slot detail line for diagnosis: tells the issue reporter
         // exactly which 7 girls were picked, with level/awakening/grades/score
@@ -834,8 +835,9 @@ export class TeamModule {
                 <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> ${classExplainerHtml}</div>
 
                 <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
-                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName})</div>
-                <div style="color:#aaa; font-size:10px;">Picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>
+                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName}, ${teamResult.girls[0].rarity})</div>
+                <div style="color:#aaa; font-size:10px;">Picked by tier-5 priority Shield &gt; Stun &gt; Execute &gt; Reflect, then mainCarac (Variante C).</div>
+                ${teamResult.leaderReason ? `<div style="color:#fc6; font-size:10px;"><b>Leader is not Mythic Shield:</b> ${teamResult.leaderReason}.</div>` : ''}
                 ${leaderClusterNote}
 
                 <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-7)</div>

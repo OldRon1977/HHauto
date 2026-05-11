@@ -133,15 +133,15 @@ describe('TeamScoringService', () => {
             expect(filtered.map(g => g.id_girl)).toEqual([1, 2]);
         });
 
-        it('should filter out girls of a different class', () => {
+        it('should keep girls of any class (cross-class allowed since v7.35.33)', () => {
             const girls = [
                 makeGirl({ id_girl: 1, rarity: 'mythic', nb_grades: 6, class: 1 }),
                 makeGirl({ id_girl: 2, rarity: 'mythic', nb_grades: 6, class: 2 }),
                 makeGirl({ id_girl: 3, rarity: 'mythic', nb_grades: 6, class: 3 }),
             ];
             const filtered = TeamScoringService.filterEligible(girls, 3);
-            expect(filtered).toHaveLength(1);
-            expect(filtered[0].id_girl).toBe(3);
+            expect(filtered).toHaveLength(3);
+            expect(filtered.map(g => g.id_girl).sort()).toEqual([1, 2, 3]);
         });
 
         it('should keep girls with no class field (treat as eligible)', () => {

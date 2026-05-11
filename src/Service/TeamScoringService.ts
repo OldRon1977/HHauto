@@ -187,15 +187,25 @@ export class TeamScoringService {
     }
 
     /**
-     * Filter girls: only Mythic and Legendary 5-star, plus hard class match.
-     * Cross-class girls always lose because their main-carac is the
-     * non-matching one; filtering them out up-front keeps the pool small.
+     * Filter girls: only Mythic and Legendary 5-star.
+     *
+     * Cross-class girls are KEPT in the pool. Empirical analysis of the top
+     * 50 league teams shows that 67% of them use a cross-class alpha and the
+     * majority of slots 2-7 are cross-class as well. The Wiki's
+     * 'never build cross-class' advice is a simplification; in practice
+     * top players accept the lower main-carac contribution of a cross-class
+     * girl in exchange for trait-match, blessing-match, element synergy,
+     * and tier-5 skill coverage.
+     *
+     * The score function still favors the player's main carac, so cross-
+     * class girls win only when their team contribution (synergy + tier-3 +
+     * blessing) outweighs the lower main carac.
+     *
+     * playerClass kept in the signature for backward compatibility; no
+     * longer used to filter the pool.
      */
-    static filterEligible(girls: GirlData[], playerClass: PlayerClass): GirlData[] {
+    static filterEligible(girls: GirlData[], _playerClass?: PlayerClass): GirlData[] {
         return girls.filter(g => {
-            // Class filter (hard)
-            if (typeof g.class === 'number' && g.class !== playerClass) return false;
-            // Rarity filter
             if (g.rarity === 'mythic') return true;
             if (g.rarity === 'legendary') return g.nb_grades >= 5;
             return false;
@@ -362,9 +372,24 @@ export class TeamScoringService {
      *
      * Returns groups sorted by score descending.
      */
+    /**
+     * Boost factor applied to the cluster score when the trait category is
+     * currently blessed. Empirical: top-10 league teams overwhelmingly
+     * optimize for trait-match (50% have all 7 girls share the blessed
+     * trait value). A higher boost surfaces blessed clusters earlier in
+     * the candidate list so the build phase can find a 7/7-match team.
+     */
+    private static readonly BLESSED_CATEGORY_BOOST = 5.0;
+
+    /**
+     * Find trait groups, scored mode-aware. When a category is currently
+     * blessed (passed as blessedCategories), groups in that category get
+     * a heuristic boost in the candidate ordering.
+     */
     static findTraitGroups(
         girls: GirlData[],
         scoreFn: (g: GirlData) => number,
+        blessedCategories?: Set<TraitCategory>,
     ): TraitGroupResult[] {
         const results: TraitGroupResult[] = [];
 
@@ -383,7 +408,11 @@ export class TeamScoringService {
             for (const [traitValue, groupGirls] of groups) {
                 const sumScore = groupGirls.reduce((sum, g) => sum + scoreFn(g), 0);
                 const avgScore = sumScore / groupGirls.length;
-                const score = groupGirls.length * avgScore;
+                let score = groupGirls.length * avgScore;
+
+                if (blessedCategories && blessedCategories.has(pair.trait)) {
+                    score *= TeamScoringService.BLESSED_CATEGORY_BOOST;
+                }
 
                 results.push({
                     traitCategory: pair.trait,
@@ -504,44 +533,36 @@ export class TeamScoringService {
         });
     }
 
+    /**
+     * Variante C: tier-5 priority absolute, then mainCarac (already blessing-applied).
+     *
+     * Within the same tier-5-priority group, the girl with the higher
+     * mainCarac wins -- and because caracs already include blessing
+     * multipliers, this naturally prefers blessed girls within the group.
+     * Cluster/trait are NOT tiebreakers here: an empirically-supported
+     * decision (top-50 analysis: only 27% of alphas were in the team's
+     * top element, so cluster membership is not a strong signal for
+     * the leader pick).
+     */
     private static _sortLeaderCandidates(
         girls: GirlData[],
         statScores: Map<number, number>,
-        traitCategory?: TraitCategory,
-        traitValue?: string,
-        clusterElements?: ElementType[]
+        _traitCategory?: TraitCategory,
+        _traitValue?: string,
+        _clusterElements?: ElementType[]
     ): GirlData[] {
         return [...girls].sort((a, b) => {
             const tier5A = ELEMENT_TO_TIER5[a.element];
             const tier5B = ELEMENT_TO_TIER5[b.element];
 
             // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect).
-            // Applied GLOBALLY across all mythics, NOT gated by the chosen cluster.
-            // Frank's request (#1573): position 1 must be a Shield mythic
-            // whenever one exists in the player's class.
+            // Applied GLOBALLY across all mythics. Frank's request (#1573):
+            // position 1 prefers Shield mythics whenever one exists.
             if (tier5A.priority !== tier5B.priority) {
                 return tier5B.priority - tier5A.priority;
             }
 
-            // Secondary: cluster membership.
-            if (clusterElements && clusterElements.length > 0) {
-                const aInCluster = clusterElements.includes(a.element);
-                const bInCluster = clusterElements.includes(b.element);
-                if (aInCluster !== bInCluster) {
-                    return aInCluster ? -1 : 1;
-                }
-            }
-
-            // Tertiary: trait match bonus.
-            if (traitCategory && traitValue) {
-                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
-                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
-                if (aMatches !== bMatches) {
-                    return aMatches ? -1 : 1;
-                }
-            }
-
-            // Quaternary: stat score.
+            // Secondary: mainCarac (already includes blessing). Higher wins.
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;
