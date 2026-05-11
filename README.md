@@ -45,6 +45,13 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.31 - Event/league ping-pong loop with stale events
+
+The script could bounce between the leagues page and the current event page every few seconds without making progress when an unfinished event still sat in the list with an expired refresh timestamp.
+
+- **The right event gets refreshed.** The "is a refresh due" check and the actual parse step looked at different events, so a stale entry could keep firing the trigger forever while the script kept reparsing a different, still-fresh event. The parse step now picks the actually stale event, so the timestamp gets written and the trigger stops firing.
+- **No more event/league bounce.** Once the stale entry is refreshed the parser stays quiet on its next tick, so the leagues page and the event page no longer alternate while time and energy are spent on navigation only.
+
 ### v7.35.30 - "Forbidden" backoff actually escalates now (Private Browsing follow-up)
 
 Follow-up to v7.35.29 based on logs from Firefox Private Browsing where the same Forbidden kept reappearing every minute.

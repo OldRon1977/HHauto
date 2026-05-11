@@ -28,14 +28,16 @@ jest.mock('../../src/Helper/index', () => ({
 jest.mock('../../src/config/index', () => ({
   HHStoredVarPrefixKey: 'HHAuto_',
   SK: { master: 'master' },
-  TK: { eventIDs: 'eventIDs' },
+  TK: { eventsList: 'Temp_eventsList' },
 }));
 
 jest.mock('../../src/Utils/index', () => ({
   logHHAuto: jest.fn(),
 }));
 
-import { pipeline, HandlerConfig } from '../../src/Service/Pipeline.config';
+import { pipeline, HandlerConfig, getStaleEventIDs } from '../../src/Service/Pipeline.config';
+import { getStoredValue } from '../../src/Helper/index';
+const getStoredValueMock = getStoredValue as jest.Mock;
 
 describe('Pipeline.config', () => {
   describe('pipeline array', () => {
@@ -185,6 +187,73 @@ describe('Pipeline.config', () => {
       await expect(
         handler.onFailure!('doLeagueBattle', 'test error')
       ).resolves.toBeUndefined();
+    });
+  });
+
+
+  describe('getStaleEventIDs (issue #1673)', () => {
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+    });
+
+    it('returns empty list when storage is empty', () => {
+      getStoredValueMock.mockReturnValue(undefined);
+      expect(getStaleEventIDs(1000)).toEqual([]);
+    });
+
+    it('returns empty list when all events are fresh', () => {
+      const eventList = {
+        event_251: { id: 'event_251', isCompleted: false, next_refresh: 2000 },
+        path_event_76: { id: 'path_event_76', isCompleted: false, next_refresh: 3000 },
+      };
+      getStoredValueMock.mockReturnValue(JSON.stringify(eventList));
+      expect(getStaleEventIDs(1000)).toEqual([]);
+    });
+
+    it('skips completed events even if next_refresh is stale', () => {
+      const eventList = {
+        old_event: { id: 'old_event', isCompleted: true, next_refresh: 100 },
+      };
+      getStoredValueMock.mockReturnValue(JSON.stringify(eventList));
+      expect(getStaleEventIDs(1000)).toEqual([]);
+    });
+
+    it('returns the stale event when fresh event is listed first (Issue #1673)', () => {
+      // Reproduces issue #1673: event_251 (Plus event) was fresh, but a stale
+      // path_event_76 (Path of Attraction) entry kept the precondition firing.
+      // Without this fix, fn would parse event_251 (eventIDs[0]) and leave the
+      // stale PoA entry untouched, looping forever.
+      const eventList = {
+        event_251: { id: 'event_251', isCompleted: false, next_refresh: 5000 },
+        path_event_76: { id: 'path_event_76', isCompleted: false, next_refresh: 100 },
+      };
+      getStoredValueMock.mockReturnValue(JSON.stringify(eventList));
+      expect(getStaleEventIDs(1000)).toEqual(['path_event_76']);
+    });
+
+    it('returns multiple stale events in insertion order', () => {
+      const eventList = {
+        a: { id: 'a', isCompleted: false, next_refresh: 100 },
+        b: { id: 'b', isCompleted: false, next_refresh: 5000 },
+        c: { id: 'c', isCompleted: false, next_refresh: 200 },
+      };
+      getStoredValueMock.mockReturnValue(JSON.stringify(eventList));
+      expect(getStaleEventIDs(1000)).toEqual(['a', 'c']);
+    });
+
+    it('treats missing or non-finite next_refresh as stale', () => {
+      const eventList = {
+        no_refresh: { id: 'no_refresh', isCompleted: false },
+        nan_refresh: { id: 'nan_refresh', isCompleted: false, next_refresh: 'oops' },
+      };
+      getStoredValueMock.mockReturnValue(JSON.stringify(eventList));
+      expect(getStaleEventIDs(1000).sort()).toEqual(['nan_refresh', 'no_refresh']);
+    });
+
+    it('returns sentinel ID on malformed JSON to preserve fallback parse', () => {
+      getStoredValueMock.mockReturnValue('not-json');
+      const result = getStaleEventIDs(1000);
+      expect(result).toEqual(['__parse_error__']);
     });
   });
 });

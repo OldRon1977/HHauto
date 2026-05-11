@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.30
+// @version      7.35.31
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -25195,44 +25195,29 @@ const handleEventParsing = {
         // Events feature must be enabled
         if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true)
             return false;
-        // Skip if no event has reached its next_refresh window. Otherwise the
-        // handler navigates to the event page on every tick even though the
-        // event data is still fresh, which collides with handleLeague (and any
-        // other navigation-triggering handler) and produces a ping-pong loop
-        // between the leagues and the event pages.
-        try {
-            const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
-            const eventList = storedList ? JSON.parse(storedList) : {};
-            const now = Date.now();
-            return Object.keys(eventList).some(id => {
-                const ev = eventList[id];
-                if (!ev || ev.isCompleted)
-                    return false;
-                const nextRefresh = Number(ev.next_refresh);
-                // Trigger if next_refresh is missing/0 (first run) or in the past.
-                return !Number.isFinite(nextRefresh) || nextRefresh <= now;
-            });
-        }
-        catch (_a) {
-            // On unexpected storage shape, fall back to the previous behaviour
-            // (always trigger) so we don't accidentally skip a parse cycle.
-            return true;
-        }
+        // Trigger only if at least one stale event exists. Otherwise the handler
+        // would navigate to the event page on every tick even though the event
+        // data is still fresh, which collided with handleLeague (and any other
+        // navigation-triggering handler) and produced a ping-pong loop between
+        // the leagues and the event pages (issue #1598, #1673).
+        return getStaleEventIDs().length > 0;
     },
     steps: [
         {
             name: 'parseEvents',
             fn: () => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    // Delegate to existing EventModule logic.
-                    // eventIDs are determined at runtime from stored event list.
-                    const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
-                    const eventList = storedList ? JSON.parse(storedList) : {};
-                    const eventIDs = Object.keys(eventList).filter(id => { var _a; return !((_a = eventList[id]) === null || _a === void 0 ? void 0 : _a.isCompleted); });
-                    if (eventIDs.length === 0) {
+                    // Parse the first stale event. precondition + fn must agree on the
+                    // selection: parsing any non-stale event would leave the original
+                    // stale event untouched, so the precondition would keep firing on
+                    // the next tick (issue #1673 -- a stale Path of Attraction entry
+                    // kept the loop alive while a fresh Plus Event was being reparsed
+                    // every tick).
+                    const staleIDs = getStaleEventIDs();
+                    if (staleIDs.length === 0) {
                         return { ok: true }; // nothing to parse
                     }
-                    yield EventModule.parseEventPage(eventIDs[0]);
+                    yield EventModule.parseEventPage(staleIDs[0]);
                     return { ok: true };
                 }
                 catch (err) {
@@ -25244,6 +25229,34 @@ const handleEventParsing = {
     ],
     totalTimeoutMs: 20000,
 };
+/**
+ * Return the IDs of all unfinished events whose `next_refresh` is missing,
+ * non-finite, or already in the past. Exported for direct unit testing in
+ * Pipeline.config.spec.ts.
+ *
+ * On unexpected storage shape this returns a single sentinel ID so that the
+ * caller still triggers a parse cycle (preserves the previous fallback
+ * behaviour where the precondition returned true on parse errors).
+ */
+function getStaleEventIDs(now = Date.now()) {
+    try {
+        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        const eventList = storedList ? JSON.parse(storedList) : {};
+        return Object.keys(eventList).filter(id => {
+            const ev = eventList[id];
+            if (!ev || ev.isCompleted)
+                return false;
+            const nextRefresh = Number(ev.next_refresh);
+            return !Number.isFinite(nextRefresh) || nextRefresh <= now;
+        });
+    }
+    catch (_a) {
+        // Unexpected storage shape: pretend a parse is needed so we don't
+        // accidentally skip a refresh cycle. The actual parseEventPage call
+        // tolerates an empty/garbage tab via its own "global" fallback.
+        return ['__parse_error__'];
+    }
+}
 // ---------------------------------------------------------------------------
 //  Handler: handleLeague
 //  Priority 13 -- matches original AutoLoop ordering.
@@ -25873,7 +25886,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.30";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.31";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
