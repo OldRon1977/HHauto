@@ -73,6 +73,59 @@ export class BlessingService {
         return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
     }
 
+    /**
+     * Authoritative per-girl blessing multiplier from the game's
+     * blessing_bonuses field. This is the single source of truth for
+     * 'is this girl currently blessed and by how much'.
+     *
+     * The game writes the active per-class blessing percentages into
+     * blessing_bonuses.pvp_v3 (current league) and pvp_v4 (next league
+     * version). Each is shaped { caracN: number[] }; the list contains
+     * one entry per active blessing affecting the girl, applied
+     * multiplicatively. Examples:
+     *   pvp_v3.carac1 = []         -> no blessing -> multiplier 1.0
+     *   pvp_v3.carac1 = [25]       -> +25%        -> multiplier 1.25
+     *   pvp_v3.carac1 = [40, 25]   -> +40% AND +25% -> multiplier 1.75
+     *
+     * The girl's caracs sub-object already contains the multiplied stat,
+     * so the team builder does not need to multiply again. This helper
+     * is for diagnostics: 'is girl X blessed?' and 'how much'.
+     *
+     * Falls back from pvp_v4 to pvp_v3 (forwards-compatible with a future
+     * league version cutover).
+     */
+    static getEffectiveMultiplier(girl: { blessing_bonuses?: any; blessingBonuses?: any }): number {
+        const bb = (girl as any).blessing_bonuses ?? girl.blessingBonuses;
+        if (!bb || typeof bb !== 'object' || Array.isArray(bb)) return 1;
+        const v = bb.pvp_v4 ?? bb.pvp_v3;
+        if (!v || typeof v !== 'object') return 1;
+        const pcs = v.carac1;
+        if (!Array.isArray(pcs) || pcs.length === 0) return 1;
+        let mult = 1;
+        for (const p of pcs) {
+            const n = Number(p);
+            if (Number.isFinite(n) && n > 0) {
+                mult *= 1 + n / 100;
+            }
+        }
+        return mult;
+    }
+
+    /**
+     * List the blessing percentages currently active on this girl, in
+     * the order the game returned them. Useful for UI annotations like
+     * '(+25% blessing)' or '(+40%, +25% blessing)'.
+     */
+    static getActivePercents(girl: { blessing_bonuses?: any; blessingBonuses?: any }): number[] {
+        const bb = (girl as any).blessing_bonuses ?? girl.blessingBonuses;
+        if (!bb || typeof bb !== 'object' || Array.isArray(bb)) return [];
+        const v = bb.pvp_v4 ?? bb.pvp_v3;
+        if (!v || typeof v !== 'object') return [];
+        const pcs = v.carac1;
+        if (!Array.isArray(pcs)) return [];
+        return pcs.filter((p: any) => Number.isFinite(Number(p)) && Number(p) > 0).map((p: any) => Number(p));
+    }
+
     private static parseTraits(response: any): string[] {
         const traits: string[] = [];
         const active = response.active;

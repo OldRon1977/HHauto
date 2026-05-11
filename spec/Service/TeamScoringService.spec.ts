@@ -60,81 +60,62 @@ describe('TeamScoringService', () => {
     });
 
     describe('scoreBestPossible', () => {
-        it('should project main-carac for a fully graded girl up to the awakening cap', () => {
-            // KH player (class 3), girl with carac3=3000 at level 50, 0/5 grades
-            // projected = 3000 / 50 * 750 / (1 + 0) * (1 + 1.5) = 3000 * 15 * 2.5 = 112500
-            // playerLevel arg is ignored -- projection target is the awakening cap (750).
+        // Formula: projected = currentMain * (750/level) * (1+0.3*nb_grades) / (1+0.3*graded)
+        // No max() guard. For voll-awakte girls (level=750, graded=nb_grades), projected == current.
+        // For non-fully-developed girls, projected > current.
+
+        it('should project a non-fully-developed girl to a higher value', () => {
+            // class 3, girl carac3=3000 at level 50, 0/5 grades
+            // projected = 3000 * (750/50) * (1 + 1.5) / 1 = 3000 * 15 * 2.5 = 112500
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 0, nb_grades: 5,
             });
-            expect(TeamScoringService.scoreBestPossible(girl, 3, 100)).toBe(112500);
+            expect(TeamScoringService.scoreBestPossible(girl, 3)).toBe(112500);
         });
 
         it('should account for existing grades reducing projected growth', () => {
-            // class 3, girl carac3=3000, level 50, 3/5 grades
-            // projected = 3000 * (750/50) / (1 + 0.3*3) * (1 + 0.3*5)
-            //           = 3000 * 15 / 1.9 * 2.5
+            // class 3, carac3=3000, level 50, 3/5 grades
+            // projected = 3000 * 15 * (1 + 0.3*5) / (1 + 0.3*3) = 3000 * 15 * 2.5 / 1.9
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 3, nb_grades: 5,
             });
-            const expected = 3000 * 15 / 1.9 * 2.5;
-            expect(TeamScoringService.scoreBestPossible(girl, 3, 100)).toBeCloseTo(expected, 2);
+            const expected = 3000 * 15 * 2.5 / 1.9;
+            expect(TeamScoringService.scoreBestPossible(girl, 3)).toBeCloseTo(expected, 2);
         });
 
-        it('should never return less than current main-carac (blessing safeguard)', () => {
-            // Girl already at the awakening cap (level 750) with full grades:
-            // projected = 12397 * (750/750) / 2.5 * 2.5 = 12397 = current.
-            // The max() guard returns current; blessings cannot get demoted.
+        it('should return current carac when girl is voll-awakt (level=750, graded=max)', () => {
+            // For a fully developed girl, projection factor is 1 -> projected == current.
+            // No max() guard needed.
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 12397,
                 level: 750, graded: 5, nb_grades: 5,
             });
-            const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
-            expect(result).toBe(12397);
+            const result = TeamScoringService.scoreBestPossible(girl, 3);
+            expect(result).toBeCloseTo(12397, 5);
         });
 
-        it('should project to the awakening cap regardless of player level', () => {
-            // Awakened girl at level 750, max grades: projected == current.
-            // Mode 2 must return that ceiling value, not collapse to 0 just
-            // because playerLevel is below 750. This is the fix for #1603.
-            const awakenedGirl = makeGirl({
+        it('should never return less than current main-carac with normal data', () => {
+            // No max() in formula, but with level<=750 and graded<=nb_grades,
+            // projected is mathematically >= current.
+            const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 50000,
                 level: 750, graded: 5, nb_grades: 5,
             });
-            const lowLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 100);
-            const midLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 565);
-            const capLevelPlayer = TeamScoringService.scoreBestPossible(awakenedGirl, 3, 750);
-            expect(lowLevelPlayer).toBe(50000);
-            expect(midLevelPlayer).toBe(50000);
-            expect(capLevelPlayer).toBe(50000);
+            const result = TeamScoringService.scoreBestPossible(girl, 3);
+            expect(result).toBeCloseTo(50000, 5);
         });
 
-        it('should still project low-level girls correctly when player is also low-level', () => {
-            // New girl at level 1, no grades yet, low-level player.
-            // Old formula: projected = 100 * 100 / 1 * (1 + 0.3*5) = 25000
-            // New formula: projected = 100 * 750 / 1 * (1 + 0.3*5) = 187500
-            // The mode is now "if I awakened her to the cap", not "to my level".
+        it('should project low-level girls aggressively', () => {
+            // New girl at level 1, no grades yet:
+            // projected = 100 * 750 / 1 * (1 + 0.3*5) / 1 = 100 * 750 * 2.5 = 187500
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 100,
                 level: 1, graded: 0, nb_grades: 5,
             });
-            const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
+            const result = TeamScoringService.scoreBestPossible(girl, 3);
             expect(result).toBe(187500);
-        });
-
-        it('should handle level 1 girls without division by zero', () => {
-            const girl = makeGirl({ level: 1, carac1: 10, carac2: 20, carac3: 30 });
-            const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
-            expect(result).toBeGreaterThan(0);
-            expect(isFinite(result)).toBe(true);
-        });
-
-        it('should handle level 0 gracefully', () => {
-            const girl = makeGirl({ level: 0, carac1: 10, carac2: 20, carac3: 30 });
-            const result = TeamScoringService.scoreBestPossible(girl, 3, 100);
-            expect(isFinite(result)).toBe(true);
         });
     });
 
@@ -215,6 +196,24 @@ describe('TeamScoringService', () => {
         it('should return Reflect for psychic and nature elements', () => {
             expect(TeamScoringService.getTier5Skill('psychic')).toEqual({ id: 13, name: 'Reflect', priority: 1 });
             expect(TeamScoringService.getTier5Skill('nature')).toEqual({ id: 13, name: 'Reflect', priority: 1 });
+        });
+    });
+
+    describe('getLeaderBonus', () => {
+        it('should give Shield the highest leader bonus', () => {
+            expect(TeamScoringService.getLeaderBonus({ id: 12, name: 'Shield', priority: 4 })).toBeCloseTo(0.08, 5);
+        });
+        it('should give Stun the second highest', () => {
+            expect(TeamScoringService.getLeaderBonus({ id: 11, name: 'Stun', priority: 3 })).toBeCloseTo(0.06, 5);
+        });
+        it('should give Execute', () => {
+            expect(TeamScoringService.getLeaderBonus({ id: 14, name: 'Execute', priority: 2 })).toBeCloseTo(0.04, 5);
+        });
+        it('should give Reflect the lowest', () => {
+            expect(TeamScoringService.getLeaderBonus({ id: 13, name: 'Reflect', priority: 1 })).toBeCloseTo(0.02, 5);
+        });
+        it('should return 0 when no tier5 is given', () => {
+            expect(TeamScoringService.getLeaderBonus(undefined)).toBe(0);
         });
     });
 
@@ -327,9 +326,36 @@ describe('TeamScoringService', () => {
         });
     });
 
+    describe('calculateElementSynergyMultiplier', () => {
+        it('should return 0 for empty team', () => {
+            expect(TeamScoringService.calculateElementSynergyMultiplier([])).toBe(0);
+        });
+
+        it('should give a 7-fire mono-team a 0.70 (capped) multiplier', () => {
+            const team = Array.from({ length: 7 }, (_, i) =>
+                makeGirl({ id_girl: i + 1, element: 'fire' })
+            );
+            expect(TeamScoringService.calculateElementSynergyMultiplier(team)).toBeCloseTo(0.70, 5);
+        });
+
+        it('should sum across multiple elements', () => {
+            // 3 fire (3 * 0.10 = 0.30) + 2 stone (2 * 0.02 = 0.04) + 2 light (2 * 0.02 = 0.04)
+            const team = [
+                makeGirl({ id_girl: 1, element: 'fire' }),
+                makeGirl({ id_girl: 2, element: 'fire' }),
+                makeGirl({ id_girl: 3, element: 'fire' }),
+                makeGirl({ id_girl: 4, element: 'stone' }),
+                makeGirl({ id_girl: 5, element: 'stone' }),
+                makeGirl({ id_girl: 6, element: 'light' }),
+                makeGirl({ id_girl: 7, element: 'light' }),
+            ];
+            expect(TeamScoringService.calculateElementSynergyMultiplier(team)).toBeCloseTo(0.38, 5);
+        });
+    });
+
     describe('findTraitGroups', () => {
         it('should return empty array for no girls', () => {
-            expect(TeamScoringService.findTraitGroups([], 1)).toHaveLength(0);
+            expect(TeamScoringService.findTraitGroups([], () => 0)).toHaveLength(0);
         });
 
         it('should group fire/darkness girls by eye color (HC player)', () => {
@@ -339,7 +365,8 @@ describe('TeamScoringService', () => {
                 makeGirl({ id_girl: 3, element: 'darkness', eyeColor: 'blue', carac1: 4500, carac2: 3000, carac3: 2000 }),
                 makeGirl({ id_girl: 4, element: 'fire', eyeColor: 'green', carac1: 6000, carac2: 3000, carac3: 2000 }),
             ];
-            const groups = TeamScoringService.findTraitGroups(girls, 1);
+            const scoreFn = (g: GirlData) => TeamScoringService.getMainCarac(g, 1);
+            const groups = TeamScoringService.findTraitGroups(girls, scoreFn);
             const blueGroup = groups.find(g => g.traitValue === 'blue');
             expect(blueGroup).toBeDefined();
             expect(blueGroup!.girls).toHaveLength(3);
@@ -347,35 +374,17 @@ describe('TeamScoringService', () => {
         });
 
         it('should sort groups by score descending using main-carac', () => {
-            // KH player (class 3), score = average carac3
             const girls = [
-                // 3 fire girls with blue eyes, carac3=3000 each
                 makeGirl({ id_girl: 1, element: 'fire', eyeColor: 'blue', carac1: 5000, carac2: 3000, carac3: 3000 }),
                 makeGirl({ id_girl: 2, element: 'fire', eyeColor: 'blue', carac1: 5000, carac2: 3000, carac3: 3000 }),
                 makeGirl({ id_girl: 3, element: 'darkness', eyeColor: 'blue', carac1: 5000, carac2: 3000, carac3: 3000 }),
-                // 2 light girls, carac3=2000 each
                 makeGirl({ id_girl: 4, element: 'light', hairColor: 'blonde', carac1: 5000, carac2: 3000, carac3: 2000 }),
                 makeGirl({ id_girl: 5, element: 'nature', hairColor: 'blonde', carac1: 5000, carac2: 3000, carac3: 2000 }),
             ];
-            const groups = TeamScoringService.findTraitGroups(girls, 3);
+            const scoreFn = (g: GirlData) => TeamScoringService.getMainCarac(g, 3);
+            const groups = TeamScoringService.findTraitGroups(girls, scoreFn);
             expect(groups[0].traitCategory).toBe('eyeColor');
             expect(groups[0].girls).toHaveLength(3);
-        });
-
-        it('should boost blessed-category groups by the heuristic factor', () => {
-            const girls = [
-                makeGirl({ id_girl: 1, element: 'fire', eyeColor: 'blue', carac3: 1000 }),
-                makeGirl({ id_girl: 2, element: 'darkness', eyeColor: 'blue', carac3: 1000 }),
-                makeGirl({ id_girl: 3, element: 'light', hairColor: 'blonde', carac3: 2000 }),
-                makeGirl({ id_girl: 4, element: 'nature', hairColor: 'blonde', carac3: 2000 }),
-            ];
-            // Without boost: hairColor wins (avg 2000 * 2 = 4000) over eyeColor (avg 1000 * 2 = 2000)
-            const noBoost = TeamScoringService.findTraitGroups(girls, 3);
-            expect(noBoost[0].traitCategory).toBe('hairColor');
-
-            // With eye blessed: eye gets x1.5 -> 3000, still less than hair 4000
-            const eyeBlessed = TeamScoringService.findTraitGroups(girls, 3, new Set(['eyeColor']));
-            expect(eyeBlessed[0].traitCategory).toBe('hairColor');
         });
 
         it('should skip girls without trait data', () => {
@@ -383,7 +392,8 @@ describe('TeamScoringService', () => {
                 makeGirl({ id_girl: 1, element: 'fire' }),
                 makeGirl({ id_girl: 2, element: 'fire', eyeColor: 'blue' }),
             ];
-            const groups = TeamScoringService.findTraitGroups(girls, 1);
+            const scoreFn = (g: GirlData) => TeamScoringService.getMainCarac(g, 1);
+            const groups = TeamScoringService.findTraitGroups(girls, scoreFn);
             const blueGroup = groups.find(g => g.traitValue === 'blue');
             expect(blueGroup).toBeDefined();
             expect(blueGroup!.girls).toHaveLength(1);

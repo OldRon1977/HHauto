@@ -171,11 +171,15 @@ describe('TeamBuilderService', () => {
             expect(result.traitMatchCount).toBe(fireOrDarknessInTeam);
         });
 
-        it('should expose effective power = main_sum * (1 + tier3Bonus)', () => {
+        it('should expose effective power = main_sum * (1+synergy) * (1+tier3) * (1+leaderBonus)', () => {
             const girls = makeTraitPool(10);
             const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
             const sum = result.statScores.reduce((s, n) => s + n, 0);
-            expect(result.effectivePower).toBe(Math.round(sum * (1 + result.tier3Bonus)));
+            const expected = sum
+                * (1 + result.elementSynergyMultiplier)
+                * (1 + result.tier3Bonus)
+                * (1 + result.leaderBonus);
+            expect(result.effectivePower).toBe(Math.round(expected));
         });
     });
 
@@ -608,7 +612,9 @@ describe('TeamBuilderService', () => {
             girls: [],
             statScores: [],
             synergyValue: 0,
+            elementSynergyMultiplier: 0,
             leaderTier5: { id: 12, name: 'Shield', priority: 4 },
+            leaderBonus: 0.08,
             elements: [],
             traitCategory: 'eyeColor',
             traitValue: 'blue',
@@ -621,7 +627,10 @@ describe('TeamBuilderService', () => {
             playerClass: 3,
             leaderInCluster: true,
             mainSum: 0,
+            projectedSum: 0,
             mythicAudit: [],
+            slotInfo: [],
+            poolStats: { ownClass: 0, otherClass: {}, ownClassMythics: 0, ownClassMythicsAtCap: 0, ownClassMythicsBlessed: 0 },
         };
 
         it('should count elements correctly', () => {
@@ -646,5 +655,147 @@ describe('TeamBuilderService', () => {
             expect(dist[1].count).toBe(3);
             expect(dist[2].count).toBe(1);
         });
+    });
+});
+
+describe('TeamBuilderService - new fields (issue #1603 Variante B)', () => {
+
+    it('should expose elementSynergyMultiplier on the result', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.elementSynergyMultiplier).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should expose leaderBonus = priority * 0.02', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.leaderBonus).toBeCloseTo(result.leaderTier5.priority * 0.02, 5);
+    });
+
+    it('should expose projectedSum next to mainSum', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.projectedSum).toBeGreaterThanOrEqual(result.mainSum);
+    });
+
+    it('should provide slotInfo for all 7 picked girls', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.slotInfo).toHaveLength(7);
+        for (const s of result.slotInfo) {
+            expect(s.id_girl).toBeDefined();
+            expect(s.score).toBeGreaterThan(0);
+            expect(Array.isArray(s.blessingPercents)).toBe(true);
+        }
+    });
+
+    it('should expose poolStats with mythic-at-cap and blessed counts', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        expect(result.poolStats).toBeDefined();
+        expect(result.poolStats.ownClass).toBeGreaterThanOrEqual(7);
+        expect(typeof result.poolStats.ownClassMythicsAtCap).toBe('number');
+        expect(typeof result.poolStats.ownClassMythicsBlessed).toBe('number');
+    });
+
+    it('should annotate audit entries with blessingPercents and blessingMultiplier', () => {
+        const girls = makeTraitPool(20);
+        const result = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
+        for (const e of result.mythicAudit) {
+            expect(Array.isArray(e.blessingPercents)).toBe(true);
+            expect(e.blessingMultiplier).toBeGreaterThanOrEqual(1);
+        }
+    });
+
+    it('should detect blessing_bonuses.pvp_v3 from raw game data on a girl', () => {
+        const blessed = makeGirl({
+            id_girl: 100, rarity: 'mythic', class: 3,
+            element: 'fire', eyeColor: 'blue', carac3: 5000,
+        });
+        // Game-data shape (snake_case from API)
+        (blessed as any).blessing_bonuses = { pvp_v3: { carac1: [40], carac2: [40], carac3: [40] } };
+
+        const others = Array.from({ length: 8 }, (_, i) => makeGirl({
+            id_girl: 200 + i, rarity: 'mythic', class: 3,
+            element: i % 2 === 0 ? 'fire' : 'darkness',
+            eyeColor: 'blue', carac3: 4000,
+        }));
+
+        const result = TeamBuilderService.buildTeam([blessed, ...others], 1, 100, 3)!;
+        // Audit must contain the blessed entry with the percent
+        const auditFor100 = result.mythicAudit.find(e => e.id_girl === 100);
+        expect(auditFor100).toBeDefined();
+        expect(auditFor100!.blessingPercents).toEqual([40]);
+        expect(auditFor100!.blessingMultiplier).toBeCloseTo(1.4, 5);
+    });
+});
+
+describe('Mode 2: Best Possible without max() guard (issue #1603)', () => {
+
+    it('should equal Mode 1 score when girl is voll-awakt', () => {
+        const fullyDeveloped = makeGirl({
+            id_girl: 1, rarity: 'mythic', class: 3,
+            element: 'fire', eyeColor: 'blue',
+            level: 750, graded: 5, nb_grades: 5,
+            carac1: 0, carac2: 0, carac3: 12000,
+        });
+        const others = Array.from({ length: 8 }, (_, i) => makeGirl({
+            id_girl: 100 + i, rarity: 'mythic', class: 3,
+            element: i % 2 === 0 ? 'fire' : 'darkness',
+            eyeColor: 'blue', carac3: 11000,
+            level: 750, graded: 5, nb_grades: 5,
+        }));
+        const allGirls = [fullyDeveloped, ...others];
+
+        const m1 = TeamBuilderService.buildTeam(allGirls, 1, 100, 3)!;
+        const m2 = TeamBuilderService.buildTeam(allGirls, 2, 100, 3)!;
+
+        // For voll-awakte girls, mode 1 score == mode 2 score per girl,
+        // so the sum across the team is identical too.
+        expect(m1.mainSum).toBeCloseTo(m2.mainSum, 5);
+    });
+
+    it('should rank a low-level mythic higher than a fully-developed one in Mode 2', () => {
+        // Fully-developed girl: carac3=10000, level=750, max grades.
+        // Low-level potential girl: carac3=200 at level 1, no grades.
+        // projected = 200 * (750/1) * (1 + 0.3*5) / 1 = 200 * 750 * 2.5 = 375000
+        // The low-level mythic must outrank the fully-developed one in Mode 2.
+        const fullyDev = makeGirl({
+            id_girl: 1, rarity: 'mythic', class: 3,
+            element: 'fire', eyeColor: 'blue',
+            level: 750, graded: 5, nb_grades: 5,
+            carac3: 10000,
+        });
+        const lowLevelPotential = makeGirl({
+            id_girl: 2, rarity: 'mythic', class: 3,
+            element: 'fire', eyeColor: 'blue',
+            level: 1, graded: 0, nb_grades: 5,
+            carac3: 200,
+        });
+        const fillers = makeTraitPool(10).map((g, i) => ({
+            ...g, id_girl: 100 + i,
+            element: 'fire' as ElementType, eyeColor: 'blue',
+            level: 750, graded: 5, nb_grades: 5,
+            carac3: 5000,
+        }));
+        const allGirls = [fullyDev, lowLevelPotential, ...fillers];
+
+        const m1 = TeamBuilderService.buildTeam(allGirls, 1, 100, 3)!;
+        const m2 = TeamBuilderService.buildTeam(allGirls, 2, 100, 3)!;
+
+        // Mode 1: fullyDev is in the team, lowLevelPotential is excluded.
+        const m1Ids = m1.girls.map(g => g.id_girl);
+        expect(m1Ids).toContain(1);
+
+        // Mode 2: lowLevelPotential's projected stat outranks fullyDev,
+        // so mode 2 must include the low-level mythic.
+        const m2Ids = m2.girls.map(g => g.id_girl);
+        expect(m2Ids).toContain(2);
+
+        // The two modes must differ.
+        const m1Set = new Set(m1Ids);
+        const m2Set = new Set(m2Ids);
+        const same = m1Set.size === m2Set.size && [...m1Set].every(id => m2Set.has(id));
+        expect(same).toBe(false);
     });
 });

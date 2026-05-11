@@ -537,22 +537,8 @@ export class TeamModule {
         (result as any).currentModeName = mode === 1 ? 'Current Best' : 'Best Possible';
         (result as any).otherModeName = mode === 1 ? 'Best Possible' : 'Current Best';
 
-        // Pool stats for the info box: how big is the eligible pool of
-        // own-class girls vs the total Mythic+Legendary5* pool, including
-        // a per-class breakdown for cross-class transparency.
-        const isHighRarity = (g: any): boolean => g.rarity === 'mythic' || (g.rarity === 'legendary' && Number(g.nb_grades) >= 5);
-        const ownClass = girls.filter(g => isHighRarity(g) && (typeof g.class !== 'number' || g.class === playerClass));
-        const otherClass: { [c: number]: number } = {};
-        for (const g of girls) {
-            if (!isHighRarity(g)) continue;
-            if (typeof g.class !== 'number' || g.class === playerClass) continue;
-            otherClass[g.class] = (otherClass[g.class] || 0) + 1;
-        }
-        (result as any).poolStats = {
-            ownClass: ownClass.length,
-            otherClass,                 // { 1: n_HC, 2: n_Charm, 3: n_KH }
-            ownClassMythics: ownClass.filter(g => g.rarity === 'mythic').length,
-        };
+        // poolStats is built by TeamBuilderService and exposed on the
+        // result. Read it for the info box (no recomputation here).
 
         const deckID = result.girls.map(g => g.id_girl);
         const modeName = mode === 1 ? 'Current Best' : 'Best Possible';
@@ -562,7 +548,26 @@ export class TeamModule {
         const identStr = modesIdentical ? ', modes identical' : '';
         const playerClassNameLog = TeamModule.PLAYER_CLASS_NAME[result.playerClass] || ('class ' + result.playerClass);
         const mainCaracLabel = result.playerClass === 1 ? 'carac1' : (result.playerClass === 2 ? 'carac2' : 'carac3');
-        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), MainSum=${result.mainSum.toLocaleString()}, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Tier3: ${(result.tier3Bonus * 100).toFixed(1)}%, Elements: ${distStr}${identStr}`);
+        const synStr = (result.elementSynergyMultiplier * 100).toFixed(1);
+        const ldrStr = (result.leaderBonus * 100).toFixed(0);
+        const epStr = result.effectivePower.toLocaleString();
+        const ps = result.poolStats;
+        const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
+        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${inClusterStr}), Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+
+        // Per-slot detail line for diagnosis: tells the issue reporter
+        // exactly which 7 girls were picked, with level/awakening/grades/score
+        // and any active blessing percent. Cross-checks against the game UI
+        // and against the pool stats above.
+        if (result.slotInfo && result.slotInfo.length > 0) {
+            const slotsStr = result.slotInfo.map((s, i) => {
+                const blStr = s.blessingPercents.length > 0 ? ` +${s.blessingPercents.join('/')}%` : '';
+                const tvStr = s.traitValue ? ` tv=${s.traitValue}` : '';
+                const cl = s.inCluster ? '*' : '';
+                return `[${i + 1}${cl}] ${s.name} (${s.rarity}/${s.element} lvl${s.level} aw${s.awakening_level ?? '?'} ${s.graded}/${s.nb_grades}${tvStr}${blStr} score=${Math.round(s.score)})`;
+            }).join(' | ');
+            logHHAuto(`Team v2 [${modeName}] slots: ${slotsStr}`);
+        }
 
         // UI update: same approach as legacy — hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
@@ -739,7 +744,7 @@ export class TeamModule {
             // the player's main class carac, so the script optimizes for
             // that single stat (Performance Handbook, Slynia 2021;
             // Wiki: 'never build cross-class').
-            const poolStats = (teamResult as any).poolStats as { ownClass: number; otherClass: { [c: number]: number }; ownClassMythics: number } | undefined;
+            const poolStats = teamResult.poolStats;
             let classExplainerHtml = '';
             if (poolStats) {
                 const otherClassParts: string[] = [];
@@ -750,7 +755,12 @@ export class TeamModule {
                     otherClassParts.push(`${n} ${TeamModule.PLAYER_CLASS_NAME[c] || ('class ' + c)}`);
                 }
                 const otherTotal = otherClassParts.length > 0 ? ' (skipped: ' + otherClassParts.join(', ') + ')' : '';
-                classExplainerHtml = `<br/><span style="color:#bbb; font-size:10px;">Eligible pool: <b>${poolStats.ownClass}</b> ${playerClassName} girls (Mythic + Legendary 5*), of which ${poolStats.ownClassMythics} mythic. Cross-class girls ignored${otherTotal} -- league math rewards only your main class stat (${mainCaracLabel}), so cross-class girls cannot win on the metric that counts.</span>`;
+                const atCap = (poolStats as any).ownClassMythicsAtCap;
+                const blessedM = (poolStats as any).ownClassMythicsBlessed;
+                const mythicDetail = (typeof atCap === 'number' && typeof blessedM === 'number')
+                    ? `${poolStats.ownClassMythics} mythic (${atCap} at level cap, ${blessedM} blessed)`
+                    : `${poolStats.ownClassMythics} mythic`;
+                classExplainerHtml = `<br/><span style="color:#bbb; font-size:10px;">Eligible pool: <b>${poolStats.ownClass}</b> ${playerClassName} girls (Mythic + Legendary 5*), of which ${mythicDetail}. Cross-class girls ignored${otherTotal} -- league math rewards only your main class stat (${mainCaracLabel}), so cross-class girls cannot win on the metric that counts.</span>`;
                 if (poolStats.ownClass < 7) {
                     classExplainerHtml += `<br/><span style="color:#fc6; font-size:10px;"><b>WARNING:</b> Fewer than 7 own-class Mythic/Legendary-5* girls available. Script falls back to legacy team selection (no Tier-3 / cluster optimization). Build up your ${playerClassName} roster to enable the full algorithm.</span>`;
                 }
@@ -786,10 +796,14 @@ export class TeamModule {
             const auditInTeam = auditEntries.filter((e: any) => e.status !== 'excluded');
             const auditExcluded = auditEntries.filter((e: any) => e.status === 'excluded');
             const auditTotalLine = `${auditEntries.length} mythics in your harem (player class): ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
+            const formatBlessingHint = (e: any): string => {
+                if (!e.blessingPercents || e.blessingPercents.length === 0) return '';
+                return ' <span style="color:#9f9;">+' + e.blessingPercents.join('/') + '%</span>';
+            };
             const auditExcludedHtml = auditExcluded.length > 0
                 ? '<div style="color:#aaa; font-size:10px; margin-top:2px; max-height:120px; overflow-y:auto; border:1px solid #444; padding:3px;">'
                     + '<b>Excluded mythics:</b><br/>'
-                    + auditExcluded.slice(0, 20).map((e: any) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}): ${e.reason || 'unknown'}`).join('<br/>')
+                    + auditExcluded.slice(0, 20).map((e: any) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}${formatBlessingHint(e)}): ${e.reason || 'unknown'}`).join('<br/>')
                     + (auditExcluded.length > 20 ? `<br/>... and ${auditExcluded.length - 20} more` : '')
                     + '</div>'
                 : '';

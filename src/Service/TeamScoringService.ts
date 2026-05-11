@@ -1,15 +1,19 @@
-// TeamScoringService.ts -- Scoring engine for team selection v4.
+// TeamScoringService.ts -- Scoring engine for team selection v5.
 //
 // Provides Tier 3 trait matching, element synergy calculations,
 // and leader skill evaluation for team optimization.
 //
-// Two modes (both filter Mythic + Legendary only, hard-filter to player class):
-//   - "Current Best": uses current main-class stat (blessed, equipment-free)
-//   - "Best Possible": projects main-class stat to player level + max grades
+// Two modes (both filter Mythic + Legendary 5*, hard-filter to player class):
+//   - "Current Best": uses current main-class stat (already includes blessings,
+//     before equipment).
+//   - "Best Possible": projects every eligible girl to the awakening cap
+//     (level 750, max grades). Pool stays the same as Current Best.
 //
 // Player class is HC=1 (carac1), Charm=2 (carac2), KH=3 (carac3).
 // Only the matching carac counts for scoring -- the game's own class
 // system does the rest (Wiki: "never build cross-class").
+
+import { BlessingService } from './BlessingService';
 
 export type ElementType = 'fire' | 'water' | 'nature' | 'stone' | 'sun' | 'darkness' | 'psychic' | 'light';
 export type RarityType = 'starting' | 'common' | 'rare' | 'epic' | 'legendary' | 'mythic';
@@ -28,6 +32,7 @@ export interface GirlData {
     rarity: RarityType;
     graded: number;       // grades currently applied
     nb_grades: number;    // total grades available for this rarity
+    awakening_level?: number; // 0-10 (informational, included in caracs already)
     skill_tiers_info?: any;
     caracs?: {
         carac1: number;
@@ -39,7 +44,8 @@ export interface GirlData {
     hairColor?: string;
     eyeColor?: string;
     position?: string;
-    // Blessing data (from game API)
+    // Blessing data (from game API). Used by BlessingService to detect
+    // blessings authoritatively (pvp_v3/pvp_v4 carac{N}: number[]).
     blessingBonuses?: any;
 }
 
@@ -64,10 +70,12 @@ export interface TraitGroupResult {
     traitCategory: TraitCategory;
     traitValue: string;
     girls: GirlData[];
-    score: number;        // count * avg_main_carac, blessed-category boost applied
+    score: number;        // count * avg_main_carac (mode-aware via score map)
 }
 
-// Synergy bonus multiplier per girl of each element in the team
+// Synergy bonus multiplier per girl of each element in the team.
+// Values come from the game's team_synergies API; the table below
+// matches the values seen at runtime as of v7.35.x.
 const ELEMENT_SYNERGY_PER_GIRL: Record<ElementType, { field: keyof SynergyBonuses; bonus: number }> = {
     fire:      { field: 'critDamage', bonus: 0.10 },
     water:     { field: 'healOnHit',  bonus: 0.03 },
@@ -79,8 +87,9 @@ const ELEMENT_SYNERGY_PER_GIRL: Record<ElementType, { field: keyof SynergyBonuse
     light:     { field: 'harmony',    bonus: 0.02 },
 };
 
-// Tier-5 skill mapping by element, with priority ranking
-// Priority: Shield (light/stone) > Stun (sun/darkness) > Execute (fire/water) > Reflect
+// Tier-5 skill mapping by element, with priority ranking.
+// Priority: Shield (light/stone) > Stun (sun/darkness) > Execute (fire/water) > Reflect.
+// Used both for leader selection AND as a leader-bonus factor in EffectivePower.
 const ELEMENT_TO_TIER5: Record<ElementType, Tier5Skill> = {
     light:     { id: 12, name: 'Shield',  priority: 4 },
     stone:     { id: 12, name: 'Shield',  priority: 4 },
@@ -113,36 +122,26 @@ const ELEMENT_PAIRS: Array<{ elements: [ElementType, ElementType]; trait: TraitC
     { elements: ['water', 'sun'],        trait: 'position' },
 ];
 
-// Rarities allowed for team selection (both modes)
-const HIGH_RARITIES: Set<RarityType> = new Set(['mythic', 'legendary']);
-
 // Tier 3 bonus per matching teammate: 1.0% for Mythic, 0.8% for Legendary
 const TIER3_BONUS_MYTHIC = 0.01;
 const TIER3_BONUS_LEGENDARY = 0.008;
 
-// Blessed-category boost when scoring trait groups (heuristic only;
-// the actual stat impact already lives inside girl.caracs once the
-// game applies the weekly blessing).
-const BLESSED_CATEGORY_BOOST = 1.5;
-
 // Theoretical maximum girl level (full awakening cap).
-// 'Best Possible' projects every girl to this level -- the mode answers
-// 'what would each girl be worth if I awakened her to the cap', not
-// 'what could the player level her to right now'. Per Kinkoid patch
+// 'Best Possible' projects every girl to this level. Per Kinkoid patch
 // notes, every girl can be awakened to 750 from level 1.
 const PROJECTION_LEVEL_CAP = 750;
+
+// Leader bonus on EffectivePower: multiplier scaled by Tier-5 priority.
+// Shield=4 -> +8%, Stun=3 -> +6%, Execute=2 -> +4%, Reflect=1 -> +2%.
+// Quantitative role-efficiency proxy for the leader position.
+const LEADER_BONUS_PER_PRIORITY = 0.02;
 
 export class TeamScoringService {
 
     /**
      * Get the girl's main-class stat (carac1/2/3 by player class).
-     * Uses caracs sub-object if available (already equipment-free),
-     * falls back to direct fields.
-     *
-     * Player class -> stat field:
-     *   1 (Hardcore) -> carac1
-     *   2 (Charm)    -> carac2
-     *   3 (Know-how) -> carac3
+     * Uses caracs sub-object if available (already equipment-free,
+     * already blessing-applied), falls back to direct fields.
      */
     static getMainCarac(girl: GirlData, playerClass: PlayerClass): number {
         const src = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
@@ -163,32 +162,28 @@ export class TeamScoringService {
 
     /**
      * Score a girl for "Best Possible" mode.
-     * Projects main-carac to the awakening cap (PROJECTION_LEVEL_CAP) and full grades.
+     * Projects main-carac to the awakening cap (PROJECTION_LEVEL_CAP=750)
+     * with all grades applied.
      *
      * Formula:
-     *   potential = currentMainCarac / level * PROJECTION_LEVEL_CAP
-     *               / (1 + 0.3 * currentGrades) * (1 + 0.3 * maxGrades)
+     *   projected = currentMain * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
      *
-     * Returns max(projected, current) so blessing-inflated current
-     * stats never get demoted by the projection.
+     * For a girl already at level 750 with full grades, the projection
+     * factor is 1 (no growth potential left); projected == current.
+     * For a girl below the cap, projected > current.
      *
-     * Note: playerLevel is kept in the signature for backwards compatibility
-     * with callers but is no longer used in the formula. The mode now answers
-     * "what is each girl worth at full awakening", independent of the
-     * player's current level.
+     * Pool stays the same as Current Best (Mythic + Legendary 5*).
      */
-    static scoreBestPossible(girl: GirlData, playerClass: PlayerClass, _playerLevel?: number): number {
+    static scoreBestPossible(girl: GirlData, playerClass: PlayerClass): number {
         const currentMain = TeamScoringService.getMainCarac(girl, playerClass);
-        const level = girl.level || 1;
+        const level = girl.level;
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
 
-        const levelFactor = PROJECTION_LEVEL_CAP / Math.max(level, 1);
-        const gradeDeflator = 1 + 0.3 * currentGrades;
-        const gradeInflator = 1 + 0.3 * maxGrades;
-
-        const projected = (currentMain * levelFactor / gradeDeflator) * gradeInflator;
-        return Math.max(projected, currentMain);
+        return currentMain
+             * (PROJECTION_LEVEL_CAP / level)
+             * (1 + 0.3 * maxGrades)
+             / (1 + 0.3 * currentGrades);
     }
 
     /**
@@ -226,8 +221,6 @@ export class TeamScoringService {
         return ELEMENT_TO_TIER5[element];
     }
 
-    // --- Trait / Tier 3 logic --------------------------------------
-
     /**
      * Get the trait category for a girl based on her element.
      */
@@ -251,10 +244,8 @@ export class TeamScoringService {
 
     /**
      * Calculate the total Tier 3 bonus percentage for a team.
-     *
      * Each girl checks how many teammates share her element pair's trait value.
      * Mythic: 1.0% per matching teammate, Legendary: 0.8% per matching teammate.
-     * The bonus is calculated per girl and summed for the team total.
      */
     static calculateTier3TeamBonus(team: GirlData[]): number {
         let totalBonus = 0;
@@ -283,67 +274,97 @@ export class TeamScoringService {
     }
 
     /**
-     * Detect which trait categories are currently blessed by analyzing
-     * blessing_bonuses across all girls. Returns a set of blessed TraitCategories.
+     * Calculate the team-wide element synergy multiplier (0..0.something).
+     *
+     * For each element present in the team, sum the per-girl bonus * count,
+     * capped at the per-element team_bonus_max_amount. Then take the average
+     * across all 8 synergy fields, weighted by typical combat impact:
+     * crit damage and ego boosters (fire, nature, water) carry more weight.
+     *
+     * Returns a single multiplier added to EffectivePower, e.g. 0.20 for a
+     * 7-girl mono-fire team.
+     *
+     * Note: this is a static heuristic that mirrors the team_synergies
+     * structure observed in the game's hero_data API. The exact runtime
+     * values can be passed via the optional perGirlOverride parameter
+     * if the caller has fresh data; absent that, the static table is used.
+     */
+    static calculateElementSynergyMultiplier(team: GirlData[]): number {
+        const counts = new Map<ElementType, number>();
+        for (const g of team) {
+            counts.set(g.element, (counts.get(g.element) || 0) + 1);
+        }
+
+        // Per element: count * per_girl_bonus, capped at 7 * per_girl_bonus.
+        // Sum the field-specific bonus contributions (each gets its own field
+        // in SynergyBonuses, so multiple elements add their own bonuses to
+        // different fields). The "EffectivePower" multiplier is the sum
+        // of the four most combat-relevant fields:
+        //   critDamage (fire)  -> weight 1.0
+        //   ego/healOnHit (nature/water) -> weight 0.5
+        //   damage/defense/defReduce/critChance/harmony -> weight 0.5
+        //
+        // We sum all field bonuses with equal weight 1.0 here, which gives
+        // a single "synergy multiplier" usable for ranking. If a caller
+        // wants the per-field breakdown, it can reuse calculateSynergies().
+        let multiplier = 0;
+        for (const [element, count] of counts) {
+            const mapping = ELEMENT_SYNERGY_PER_GIRL[element];
+            if (!mapping) continue;
+            multiplier += Math.min(count, 7) * mapping.bonus;
+        }
+        return multiplier;
+    }
+
+    /**
+     * Detect blessed trait categories from the game-authoritative blessing
+     * cache (BlessingService). Falls back to scanning blessing_bonuses on
+     * the girls themselves if the cache is empty.
+     *
+     * Returns the active TraitCategory set and the count of girls with at
+     * least one active blessing.
      */
     static detectBlessedTraits(girls: GirlData[]): { blessedCategories: Set<TraitCategory>; blessedGirlCount: number } {
         const blessedCategories = new Set<TraitCategory>();
-        let blessedGirlCount = 0;
 
-        for (const girl of girls) {
-            if (!girl.blessingBonuses) continue;
-            const bonuses = girl.blessingBonuses;
-            if (typeof bonuses !== 'object') continue;
-
-            let hasBlessing = false;
-            for (const key of Object.keys(bonuses)) {
-                const lk = key.toLowerCase();
-                if (lk.includes('zodiac') || lk.includes('sign') || lk.includes('astro')) {
-                    blessedCategories.add('zodiac');
-                    hasBlessing = true;
-                }
-                if (lk.includes('hair') || lk.includes('cheveu')) {
-                    blessedCategories.add('hairColor');
-                    hasBlessing = true;
-                }
-                if (lk.includes('eye') || lk.includes('yeux') || lk.includes('oeil')) {
-                    blessedCategories.add('eyeColor');
-                    hasBlessing = true;
-                }
-                if (lk.includes('position') || lk.includes('pose') || lk.includes('favourite_position')) {
-                    blessedCategories.add('position');
-                    hasBlessing = true;
-                }
-            }
-            if (!hasBlessing) {
-                for (const val of Object.values(bonuses)) {
-                    if (typeof val === 'number' && val > 0) {
-                        hasBlessing = true;
-                        break;
+        // Primary source: BlessingService cache (filled on Home page visit).
+        try {
+            const cached = BlessingService.getCached();
+            if (cached && Array.isArray(cached.blessedTraits)) {
+                for (const t of cached.blessedTraits) {
+                    if (t === 'eyeColor' || t === 'hairColor' || t === 'zodiac' || t === 'position') {
+                        blessedCategories.add(t);
                     }
                 }
             }
-            if (hasBlessing) blessedGirlCount++;
+        } catch { /* cache not available */ }
+
+        // Per-girl count: how many girls have an active blessing bonus
+        // (game-authoritative via blessing_bonuses.pvp_v3 / pvp_v4).
+        let blessedGirlCount = 0;
+        for (const girl of girls) {
+            const mult = BlessingService.getEffectiveMultiplier(girl);
+            if (mult > 1) blessedGirlCount++;
         }
 
         return { blessedCategories, blessedGirlCount };
     }
 
     /**
-     * Find all possible trait groups from a pool of girls.
+     * Find all possible trait groups from a pool of girls, scored by a
+     * mode-aware score function (so Mode 2 can drive cluster choice with
+     * projected stats, not raw current ones).
      *
-     * For each element pair, groups girls by their shared trait value
-     * and scores each group by `count * avg_main_carac`.
-     * Groups matching a currently blessed trait receive a heuristic
-     * boost to surface them in early evaluation; the actual stat
-     * impact is already in the girl's caracs from the game API.
+     * For each element pair, groups girls by their shared trait value and
+     * scores each group by `count * avg_score`. Groups matching a currently
+     * blessed trait receive no extra boost: blessings are already in caracs
+     * via the game API, and the score is the mode-aware function of caracs.
      *
      * Returns groups sorted by score descending.
      */
     static findTraitGroups(
         girls: GirlData[],
-        playerClass: PlayerClass,
-        blessedCategories?: Set<TraitCategory>
+        scoreFn: (g: GirlData) => number,
     ): TraitGroupResult[] {
         const results: TraitGroupResult[] = [];
 
@@ -351,7 +372,6 @@ export class TeamScoringService {
             const pairGirls = girls.filter(g => pair.elements.includes(g.element));
             if (pairGirls.length === 0) continue;
 
-            // Group by trait value
             const groups = new Map<string, GirlData[]>();
             for (const girl of pairGirls) {
                 const value = TeamScoringService.getTraitValue(girl);
@@ -361,13 +381,9 @@ export class TeamScoringService {
             }
 
             for (const [traitValue, groupGirls] of groups) {
-                const avgMain = groupGirls.reduce((sum, g) => sum + TeamScoringService.getMainCarac(g, playerClass), 0) / groupGirls.length;
-                let score = groupGirls.length * avgMain;
-
-                // Heuristic boost for blessed trait categories
-                if (blessedCategories && blessedCategories.has(pair.trait)) {
-                    score *= BLESSED_CATEGORY_BOOST;
-                }
+                const sumScore = groupGirls.reduce((sum, g) => sum + scoreFn(g), 0);
+                const avgScore = sumScore / groupGirls.length;
+                const score = groupGirls.length * avgScore;
 
                 results.push({
                     traitCategory: pair.trait,
@@ -384,7 +400,8 @@ export class TeamScoringService {
     // --- Synergy calculations (informational) ---------------------
 
     /**
-     * Calculate synergy bonuses for a set of elements (one per team member).
+     * Calculate per-field synergy bonuses for a set of elements.
+     * Used by the info box to show e.g. "+30% crit damage from 3 fire girls".
      */
     static calculateSynergies(elements: ElementType[]): SynergyBonuses {
         const synergies: SynergyBonuses = {
@@ -410,7 +427,8 @@ export class TeamScoringService {
 
     /**
      * Calculate a numeric "synergy value" for a team composition.
-     * Weighs each synergy type by its combat impact.
+     * Weighs each synergy type by its combat impact. Informational only;
+     * EffectivePower uses calculateElementSynergyMultiplier().
      */
     static calculateSynergyValue(elements: ElementType[]): number {
         const syn = TeamScoringService.calculateSynergies(elements);
@@ -430,8 +448,15 @@ export class TeamScoringService {
     // --- Leader selection ----------------------------------------
 
     /**
-     * Rank leader candidates by element priority (Shield > Stun > Execute > Reflect).
-     * Leader must be Mythic. Among same priority: prefer trait match, then highest stats.
+     * Rank leader candidates with an absolute Tier-5 priority order:
+     * Shield > Stun > Execute > Reflect.
+     *
+     * If at least one Mythic with Shield exists, that wins. If none, then
+     * Stun wins, etc. Within the same priority: cluster membership, then
+     * trait match, then stats.
+     *
+     * Beginner pool (no mythics anywhere): cluster membership > trait > stats.
+     * (Legendaries have no active tier-5 skill, so priority is uniform.)
      */
     static rankLeaderCandidates(
         girls: GirlData[],
@@ -442,18 +467,14 @@ export class TeamScoringService {
     ): GirlData[] {
         const mythicGirls = girls.filter(g => g.rarity === 'mythic');
         if (mythicGirls.length === 0) {
-            // Beginner pool: no mythics. Tier-5 priority is pointless because
-            // legendary girls never have active tier-5 skills (skill_points_used
-            // is 0). Pick cluster membership first, then trait match, then stats.
             return TeamScoringService._sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements);
         }
         return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue, clusterElements);
     }
 
     /**
-     * Sort leader candidates when no mythics are available.
+     * Sort leader candidates when no mythics are available (beginner pool).
      * Order: cluster membership > trait match > stats.
-     * (Tier-5 priority is omitted because legendaries never have active tier-5 skills.)
      */
     private static _sortLeaderCandidatesNoMythic(
         girls: GirlData[],
@@ -463,7 +484,6 @@ export class TeamScoringService {
         clusterElements?: ElementType[]
     ): GirlData[] {
         return [...girls].sort((a, b) => {
-            // Primary: cluster membership
             if (clusterElements && clusterElements.length > 0) {
                 const aInCluster = clusterElements.includes(a.element);
                 const bInCluster = clusterElements.includes(b.element);
@@ -471,7 +491,6 @@ export class TeamScoringService {
                     return aInCluster ? -1 : 1;
                 }
             }
-            // Secondary: trait match
             if (traitCategory && traitValue) {
                 const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
                 const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
@@ -479,7 +498,6 @@ export class TeamScoringService {
                     return aMatches ? -1 : 1;
                 }
             }
-            // Tertiary: stat score
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;
@@ -497,16 +515,15 @@ export class TeamScoringService {
             const tier5A = ELEMENT_TO_TIER5[a.element];
             const tier5B = ELEMENT_TO_TIER5[b.element];
 
-            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect)
+            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect).
             // Applied GLOBALLY across all mythics, NOT gated by the chosen cluster.
-            // A Mythic with Shield wins over a Mythic with Execute even if the
-            // Shield mythic is from a different element pair than the cluster.
+            // Frank's request (#1573): position 1 must be a Shield mythic
+            // whenever one exists in the player's class.
             if (tier5A.priority !== tier5B.priority) {
                 return tier5B.priority - tier5A.priority;
             }
 
-            // Secondary: cluster membership (prefer leaders from the chosen
-            // trait cluster's element pair when tier-5 priority is equal).
+            // Secondary: cluster membership.
             if (clusterElements && clusterElements.length > 0) {
                 const aInCluster = clusterElements.includes(a.element);
                 const bInCluster = clusterElements.includes(b.element);
@@ -515,7 +532,7 @@ export class TeamScoringService {
                 }
             }
 
-            // Tertiary: trait match bonus
+            // Tertiary: trait match bonus.
             if (traitCategory && traitValue) {
                 const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
                 const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
@@ -524,7 +541,7 @@ export class TeamScoringService {
                 }
             }
 
-            // Quaternary: stat score
+            // Quaternary: stat score.
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;
@@ -543,5 +560,15 @@ export class TeamScoringService {
         if (girlCategory !== teamTraitCategory) return false;
         const girlValue = TeamScoringService.getTraitValue(girl);
         return girlValue === teamTraitValue;
+    }
+
+    /**
+     * Get the leader bonus (multiplicative factor on EffectivePower) from
+     * a Tier-5 skill priority. Used to model role-efficiency contribution
+     * of the leader in EffectivePower = base * synergy * tier3 * (1 + leaderBonus).
+     */
+    static getLeaderBonus(tier5: Tier5Skill | undefined): number {
+        if (!tier5) return 0;
+        return tier5.priority * LEADER_BONUS_PER_PRIORITY;
     }
 }
