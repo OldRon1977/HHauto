@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.33
+// @version      7.35.34
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -18609,30 +18609,50 @@ class TeamBuilderService {
                 used.add(g.id_girl);
             }
         };
+        // Pass 1: Mythic + cluster element + trait match (ideal case).
         fillPass(g => g.rarity === 'mythic'
             && elems.includes(g.element)
             && TeamScoringService.getTraitValue(g) === val);
-        if (team.length < POS_2_TO_7) {
-            fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
-        }
         if (strategy === 'mythic-first') {
+            // Mythic-first: prioritize mythic coverage even if it costs trait match.
+            // Pass 2: Mythic + cluster element (any trait).
+            if (team.length < POS_2_TO_7)
+                fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
+            // Pass 3: Mythic outside cluster (cross-cluster mythic injection).
             if (team.length < POS_2_TO_7)
                 fillPass(g => g.rarity === 'mythic');
+            // Pass 4: Legendary + cluster + trait match.
             if (team.length < POS_2_TO_7)
                 fillPass(g => elems.includes(g.element)
                     && TeamScoringService.getTraitValue(g) === val);
+            // Pass 5: Legendary + cluster (any trait).
             if (team.length < POS_2_TO_7)
                 fillPass(g => elems.includes(g.element));
         }
         else {
+            // Cluster-first: prioritize trait-match chain (Tier-3 bonus) and
+            // cross-rarity matching before falling back to any-trait fillers.
+            //
+            // Pass 2 (NEW v7.35.34): Legendary 5* + cluster + trait match,
+            // BEFORE we drop the trait-match constraint to mythic-only-cluster.
+            // Empirical: in pools where Legendary 5* girls carry the right
+            // trait value but Mythics in the same pair don't, keeping the
+            // trait chain pays off more than forcing a Mythic into the slot.
             if (team.length < POS_2_TO_7)
-                fillPass(g => elems.includes(g.element)
+                fillPass(g => g.rarity === 'legendary'
+                    && elems.includes(g.element)
                     && TeamScoringService.getTraitValue(g) === val);
+            // Pass 3: Mythic + cluster (any trait).
+            if (team.length < POS_2_TO_7)
+                fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
+            // Pass 4: Legendary + cluster (any trait).
             if (team.length < POS_2_TO_7)
                 fillPass(g => elems.includes(g.element));
+            // Pass 5: Mythic outside cluster.
             if (team.length < POS_2_TO_7)
                 fillPass(g => g.rarity === 'mythic');
         }
+        // Final pass: anything to fill remaining slots.
         if (team.length < POS_2_TO_7)
             fillPass(() => true);
         return team;
@@ -19402,7 +19422,14 @@ class TeamModule {
         const ps = result.poolStats;
         const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
         const leaderReasonStr = result.leaderReason ? `, LeaderReason="${result.leaderReason}"` : '';
-        LogUtils_logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+        // Mode 2 = "Best Possible at full development": ProjectedSum is the
+        // headline value because the user picks girls to develop (mainSum
+        // is intentionally lower since some picks are still levelling up).
+        // Mode 1 = "Current Best": mainSum is the headline.
+        const sumLabel = mode === 2
+            ? `ProjSum=${result.projectedSum.toLocaleString()}, MainSum=${result.mainSum.toLocaleString()}`
+            : `MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}`;
+        LogUtils_logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, ${sumLabel}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
         // Per-slot detail line for diagnosis: tells the issue reporter
         // exactly which 7 girls were picked, with level/awakening/grades/score
         // and any active blessing percent. Cross-checks against the game UI
@@ -19480,7 +19507,7 @@ class TeamModule {
         TeamModule.updateTeamUI(deckID);
     }
     static updateTeamUI(deckID, teamResult) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e;
         const arr = $('div[id_girl]');
         // Remove all existing topNumber elements to prevent stale entries
         // from a previous team calculation (e.g. Current Best) interfering
@@ -19546,7 +19573,7 @@ class TeamModule {
             try {
                 cachedBlessings = BlessingService.getCached();
             }
-            catch ( /* cache not ready */_c) { /* cache not ready */ }
+            catch ( /* cache not ready */_f) { /* cache not ready */ }
             const blessedVals = (cachedBlessings === null || cachedBlessings === void 0 ? void 0 : cachedBlessings.blessedValues) || {};
             const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
                 ? cachedBlessings.blessedTraits.map((c) => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
@@ -19662,8 +19689,15 @@ class TeamModule {
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${((_a = teamResult.effectivePower) === null || _a === void 0 ? void 0 : _a.toLocaleString()) || 'N/A'}</div>
-                <div><b>Main Sum (${mainCaracLabel}):</b> ${((_b = teamResult.mainSum) === null || _b === void 0 ? void 0 : _b.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
+                ${currentModeName === 'Best Possible' ? `
+                <div><b>Projected Sum (${mainCaracLabel} at full development):</b> ${((_b = teamResult.projectedSum) === null || _b === void 0 ? void 0 : _b.toLocaleString()) || 'N/A'}</div>
+                <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
+                <div><b>Main Sum now:</b> ${((_c = teamResult.mainSum) === null || _c === void 0 ? void 0 : _c.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
+                ` : `
+                <div><b>Main Sum (${mainCaracLabel}):</b> ${((_d = teamResult.mainSum) === null || _d === void 0 ? void 0 : _d.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
                 <div style="color:#aaa; font-size:10px;">Sum of your main class stat across the 7 picked girls. League-relevant headline number.</div>
+                <div><b>Projected Sum:</b> ${((_e = teamResult.projectedSum) === null || _e === void 0 ? void 0 : _e.toLocaleString()) || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
+                `}
 
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
@@ -26062,7 +26096,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.33";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.34";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

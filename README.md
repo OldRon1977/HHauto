@@ -45,6 +45,13 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.34 - Trait-match priority and Mode 2 clarity
+
+- **Slot fill prefers Legendary 5* with trait match** over Mythic without trait match in the cluster-first strategy. Empirical: keeping the Tier-3 chain pays off more than forcing Mythic-only fills.
+- **Mode 2 info box puts ProjectedSum first.** Mode 2 = "if all girls were fully developed". The ProjectedSum is the relevant number; current MainSum is shown as a secondary line.
+- **Mode 2 log line** also puts ProjSum first to match the info-box ordering.
+- **Mode 1 unchanged** -- MainSum stays the headline, ProjectedSum is added as informational.
+
 ### v7.35.33 - Cross-class pool, blessing-trait priority, leader explanation
 
 - **Cross-class girls now in the pool.** The own-class hard filter is gone; cross-class girls compete on score and synergy. This is a deliberate deviation from the "never build cross-class" advice in the Kinkoid forum's *Your Performance Handbook* and is based on top-50 league analysis.

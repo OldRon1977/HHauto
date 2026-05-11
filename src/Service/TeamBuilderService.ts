@@ -399,26 +399,43 @@ export class TeamBuilderService {
             }
         };
 
+        // Pass 1: Mythic + cluster element + trait match (ideal case).
         fillPass(g => g.rarity === 'mythic'
             && elems.includes(g.element)
             && TeamScoringService.getTraitValue(g) === val);
 
-        if (team.length < POS_2_TO_7) {
-            fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
-        }
-
         if (strategy === 'mythic-first') {
+            // Mythic-first: prioritize mythic coverage even if it costs trait match.
+            // Pass 2: Mythic + cluster element (any trait).
+            if (team.length < POS_2_TO_7) fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
+            // Pass 3: Mythic outside cluster (cross-cluster mythic injection).
             if (team.length < POS_2_TO_7) fillPass(g => g.rarity === 'mythic');
+            // Pass 4: Legendary + cluster + trait match.
             if (team.length < POS_2_TO_7) fillPass(g => elems.includes(g.element)
                 && TeamScoringService.getTraitValue(g) === val);
+            // Pass 5: Legendary + cluster (any trait).
             if (team.length < POS_2_TO_7) fillPass(g => elems.includes(g.element));
         } else {
-            if (team.length < POS_2_TO_7) fillPass(g => elems.includes(g.element)
+            // Cluster-first: prioritize trait-match chain (Tier-3 bonus) and
+            // cross-rarity matching before falling back to any-trait fillers.
+            //
+            // Pass 2 (NEW v7.35.34): Legendary 5* + cluster + trait match,
+            // BEFORE we drop the trait-match constraint to mythic-only-cluster.
+            // Empirical: in pools where Legendary 5* girls carry the right
+            // trait value but Mythics in the same pair don't, keeping the
+            // trait chain pays off more than forcing a Mythic into the slot.
+            if (team.length < POS_2_TO_7) fillPass(g => g.rarity === 'legendary'
+                && elems.includes(g.element)
                 && TeamScoringService.getTraitValue(g) === val);
+            // Pass 3: Mythic + cluster (any trait).
+            if (team.length < POS_2_TO_7) fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
+            // Pass 4: Legendary + cluster (any trait).
             if (team.length < POS_2_TO_7) fillPass(g => elems.includes(g.element));
+            // Pass 5: Mythic outside cluster.
             if (team.length < POS_2_TO_7) fillPass(g => g.rarity === 'mythic');
         }
 
+        // Final pass: anything to fill remaining slots.
         if (team.length < POS_2_TO_7) fillPass(() => true);
         return team;
     }

@@ -554,7 +554,14 @@ export class TeamModule {
         const ps = result.poolStats;
         const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
         const leaderReasonStr = result.leaderReason ? `, LeaderReason="${result.leaderReason}"` : '';
-        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+        // Mode 2 = "Best Possible at full development": ProjectedSum is the
+        // headline value because the user picks girls to develop (mainSum
+        // is intentionally lower since some picks are still levelling up).
+        // Mode 1 = "Current Best": mainSum is the headline.
+        const sumLabel = mode === 2
+            ? `ProjSum=${result.projectedSum.toLocaleString()}, MainSum=${result.mainSum.toLocaleString()}`
+            : `MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}`;
+        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, ${sumLabel}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
 
         // Per-slot detail line for diagnosis: tells the issue reporter
         // exactly which 7 girls were picked, with level/awakening/grades/score
@@ -846,8 +853,15 @@ export class TeamModule {
                 <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
                 <div><b>Elements:</b> ${distHtml}</div>
                 <div><b>Effective Power:</b> ${teamResult.effectivePower?.toLocaleString() || 'N/A'}</div>
+                ${currentModeName === 'Best Possible' ? `
+                <div><b>Projected Sum (${mainCaracLabel} at full development):</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'}</div>
+                <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
+                <div><b>Main Sum now:</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
+                ` : `
                 <div><b>Main Sum (${mainCaracLabel}):</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
                 <div style="color:#aaa; font-size:10px;">Sum of your main class stat across the 7 picked girls. League-relevant headline number.</div>
+                <div><b>Projected Sum:</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
+                `}
 
                 <hr style="border-color:#555; margin:4px 0"/>
                 <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
