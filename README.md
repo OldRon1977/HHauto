@@ -47,11 +47,11 @@ list of fields kept, dropped, and pseudonymised.
 
 ### v7.35.33 - Cross-class pool, blessing-trait priority, leader explanation
 
-- **Cross-class girls allowed in the pool.** Top 50 league analysis showed 67% of alphas and the majority of slots 2-7 are cross-class. The hard own-class filter is gone; cross-class girls now compete on score and synergy.
-- **Blessed trait clusters get priority.** The blessing-category boost is back at 5x (was 1.5x); the build phase now tries blessed clusters first, matching the empirical top-10 pattern of maximizing trait match.
-- **Leader pick explained.** When position 1 is not a Mythic Shield, the info box and log line state which fallback step was taken (no Mythic Shield in pool, fallback to Mythic Stun, etc.).
-- **Variante C precedence.** Mythic Shield > Mythic Stun > Mythic Execute > Mythic Reflect > Legendary 5*. Within the same tier-5 priority, the higher mainCarac (already including blessing) wins.
-- **Audit shows cross-class status.** Excluded mythics from a different class are now flagged with a `cross-class,` prefix in the audit reason instead of being silently filtered out.
+- **Cross-class girls now in the pool.** The own-class hard filter is gone; cross-class girls compete on score and synergy. This is a deliberate deviation from the "never build cross-class" advice in the Kinkoid forum's *Your Performance Handbook* and is based on top-50 league analysis.
+- **Blessed trait clusters get priority** in the build phase.
+- **Leader pick explained.** When position 1 is not a Mythic Shield, the info box and log state which fallback step was taken.
+- **Variante C precedence.** Mythic Shield > Mythic Stun > Mythic Execute > Mythic Reflect > Legendary 5*. Within the same tier-5 priority, the higher mainCarac wins.
+- **Audit shows cross-class status** instead of silently filtering.
 
 ### v7.35.32 - League team builder rebuild
 
