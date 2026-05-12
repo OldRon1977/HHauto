@@ -79,7 +79,12 @@ export class QuestHelper {
                 logHHAuto("All quests finished, setting timer to check back later!");
                 if (checkTimer('nextMainQuestAttempt')) {setTimer('nextMainQuestAttempt', 604800);} // 1 week delay
                 setTimer('nextSideQuestAttempt', 604800); // 1 week delay
-                location.reload();
+                // Navigate away from /side-quests.html instead of reloading the
+                // same URL: the page id `side-quests` is not in the script's
+                // pagesKnownList, so subsequent autoLoop iterations would keep
+                // running handlers (e.g. handleChampionTicket) on the
+                // unrecognized page and cause issue #1672's energy-burn loop.
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
             return;
         }

@@ -5377,7 +5377,12 @@ class QuestHelper {
                     setTimer('nextMainQuestAttempt', 604800);
                 } // 1 week delay
                 setTimer('nextSideQuestAttempt', 604800); // 1 week delay
-                location.reload();
+                // Navigate away from /side-quests.html instead of reloading the
+                // same URL: the page id `side-quests` is not in the script's
+                // pagesKnownList, so subsequent autoLoop iterations would keep
+                // running handlers (e.g. handleChampionTicket) on the
+                // unrecognized page and cause issue #1672's energy-burn loop.
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
             return;
         }
@@ -13438,13 +13443,19 @@ function getPage(checkUnknown = false, checkPop = false) {
     var p = ob.getAttribute('page');
     let page = p;
     if (p == activitiesMainPage) {
-        if (tab === 'contests' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='contests']").length > 0) {
+        // Resolve Activities sub-tabs. The URL `tab` query param is the
+        // authoritative source; we only fall back to DOM `data-tab` matches
+        // when it is missing. Using sequential `if`s without `else` caused
+        // a daily_goals/contests loop on issue #1672: stale or transitional
+        // tab markers in the DOM made later branches override the correct
+        // value derived from the URL.
+        if (tab === 'contests' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='contests']").length > 0)) {
             page = ConfigHelper.getHHScriptVars("pagesIDContests");
         }
-        if (tab === 'missions' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='missions']").length > 0) {
+        else if (tab === 'missions' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='missions']").length > 0)) {
             page = ConfigHelper.getHHScriptVars("pagesIDMissions");
         }
-        if (tab === 'daily_goals' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='daily_goals']").length > 0) {
+        else if (tab === 'daily_goals' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='daily_goals']").length > 0)) {
             page = ConfigHelper.getHHScriptVars("pagesIDDailyGoals");
             if (checkPop && tab === 'pop') {
                 // Wrong POP targetted
@@ -13455,7 +13466,7 @@ function getPage(checkUnknown = false, checkPop = false) {
                 }
             }
         }
-        if (tab === 'pop' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length > 0) {
+        else if (tab === 'pop' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length > 0)) {
             // if on Pop menu
             var t;
             var popList = $("div.pop_list").not('[style*="display:none"]').not('[style*="display: none"]');

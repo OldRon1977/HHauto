@@ -42,15 +42,21 @@ export function getPage(checkUnknown = false, checkPop = false):string
     let page = p;
     if (p==activitiesMainPage)
     {
-        if (tab === 'contests' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='contests']").length>0)
+        // Resolve Activities sub-tabs. The URL `tab` query param is the
+        // authoritative source; we only fall back to DOM `data-tab` matches
+        // when it is missing. Using sequential `if`s without `else` caused
+        // a daily_goals/contests loop on issue #1672: stale or transitional
+        // tab markers in the DOM made later branches override the correct
+        // value derived from the URL.
+        if (tab === 'contests' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='contests']").length>0))
         {
             page = ConfigHelper.getHHScriptVars("pagesIDContests");
         }
-        if (tab === 'missions' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='missions']").length>0)
+        else if (tab === 'missions' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='missions']").length>0))
         {
             page = ConfigHelper.getHHScriptVars("pagesIDMissions");
         }
-        if (tab === 'daily_goals' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='daily_goals']").length>0)
+        else if (tab === 'daily_goals' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='daily_goals']").length>0))
         {
             page = ConfigHelper.getHHScriptVars("pagesIDDailyGoals");
 
@@ -64,7 +70,7 @@ export function getPage(checkUnknown = false, checkPop = false):string
                 }
             }
         }
-        if (tab === 'pop' || $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length>0)
+        else if (tab === 'pop' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length>0))
         {
             // if on Pop menu
             var t;
