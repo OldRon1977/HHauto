@@ -39,3 +39,5 @@ jest-*.json
 
 # Lokale Audit-/Patch-Skripte fuer den Inspector (nicht syncen)
 docs-internal/skripte/
+# Webpack bundle analyzer stats
+stats.json

@@ -4,7 +4,14 @@
     "allowJs": true,
     "target": "es6",
     "module": "es2020",
-    "lib": ["ES2023", "DOM"]
+    "lib": [
+      "ES2023",
+      "DOM"
+    ],
+    "skipLibCheck": true
   },
-  "include": ["src/**/*.ts", "spec/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "spec/**/*.ts"
+  ]
 }

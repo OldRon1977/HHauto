@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/index.ts",
+    "spec/**/*.spec.ts"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "spec/**/*.ts"
+  ],
+  "ignore": [
+    "build/**",
+    "coverage/**",
+    "HHAuto.user.js",
+    "bonus-scripts/**",
+    "INPUT/**"
+  ],
+  "ignoreDependencies": [
+    "karma",
+    "karma-browserify",
+    "karma-chrome-launcher",
+    "karma-commonjs",
+    "karma-jasmine"
+  ]
+}
