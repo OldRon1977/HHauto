@@ -49,3 +49,46 @@ jobs:
           hide-summary: false
           create-new-comment: false
           junitxml-path: ""
+
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (blocking)
+        run: npm run typecheck
+
+      - name: ESLint on changed lines (blocking on errors)
+        if: github.event_name == 'pull_request'
+        uses: reviewdog/action-eslint@v1.34.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          filter_mode: added
+          level: error
+          fail_level: error
+          eslint_flags: '--quiet "src/**/*.ts" "spec/**/*.ts"'
+
+      - name: Circular dependency baseline (blocking)
+        run: npm run deps:circular:check
+
+      - name: Knip dead exports (advisory)
+        continue-on-error: true
+        run: npm run deps:dead

@@ -11,6 +11,7 @@
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "deps:graph": "madge --extensions ts src",
     "deps:circular": "madge --circular --extensions ts src",
+    "deps:circular:check": "node scripts/check-circular-deps.mjs",
     "deps:dead": "knip",
     "deps:unused": "depcheck --ignores=\"karma*,@babel/*,babel-jest,ts-jest,ts-node\"",
     "dup:check": "jscpd src --min-lines 10 --min-tokens 70 --reporters console,html --output ./coverage/jscpd",
