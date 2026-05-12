@@ -45,6 +45,14 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.35 - Forbidden race fix in PoP, BossBang, Champion
+
+- **PoP claim path now waits up to 15s for the claim POST** before navigating, matching `gotoPage`. The previous 8s cap was too short for slow connections (Firefox Private Browsing has been observed taking 10-12s).
+- **Wait result is now respected.** When the AJAX wait times out, the navigation is deferred and AutoLoop retries on the next tick instead of cancelling the open POST.
+- **BossBang fight navigation** routed through the same AJAX-idle wait instead of writing `location.href` directly.
+- **Champion auto-team-build and reorder reload** routed through the same AJAX-idle wait instead of `location.reload()`.
+- **Shared timeout constants** so PageNavigation and individual modules cannot drift apart again.
+
 ### v7.35.34 - Trait-match priority and Mode 2 clarity
 
 - **Slot fill prefers Legendary 5* with trait match** over Mythic without trait match in the cluster-first strategy. Empirical: keeping the Tier-3 chain pays off more than forcing Mythic-only fills.
