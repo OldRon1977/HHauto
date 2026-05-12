@@ -42,17 +42,14 @@ list of fields kept, dropped, and pseudonymised.
 
 ---
 
-
 ## Latest Updates
 
 ### v7.35.36 - Daily-goals/contests and side-quest loops
 
-Two distinct loops on `/activities.html` and `/side-quests.html` reported in issue #1672 are fixed.
+Two distinct loops on `/activities.html` and `/side-quests.html` are fixed.
 
 - **Activities sub-tab detection no longer flips between tabs.** The four sub-tab branches (Contests, Missions, Daily Goals, PoP) used sequential `if`s without `else`. Stale or transitional `data-tab` markers in the DOM could make a later branch overwrite the correct value derived from the URL, so `?tab=contests` was sometimes reported as `daily_goals`. The block now uses `else if`, and the URL `tab` query param is the authoritative source. The DOM check is only used when `tab` is absent.
 - **No more buy-ticket loop on `/side-quests.html`.** When no side quests remained, the script reloaded the same URL. The page id `side-quests` is not registered, so the next AutoLoop pass kept running handlers on the unrecognized page; `handleChampionTicket` would buy a ticket, the nested `buyTicket()` would reload, and the loop burned quest energy on champion tickets. The script now navigates to home instead. The existing 1-week side-quest timer still prevents the path from being re-entered.
-
-Refs #1672.
 
 ### v7.35.35 - Forbidden race fix in PoP, BossBang, Champion
 
@@ -105,7 +102,7 @@ Follow-up to v7.35.29 based on logs from Firefox Private Browsing where the same
 
 ### v7.35.29 - Fewer "Forbidden" errors (Place of Power, slow networks, after hibernation)
 
-Three changes that together address the "Forbidden" reports still seen on top of v7.35.22 (issue #1598), especially in Firefox Private Browsing and after the PC was suspended.
+Three changes that together address the "Forbidden" reports still seen on top of v7.35.22, especially in Firefox Private Browsing and after the PC was suspended.
 
 - **Place of Power claim:** the script now waits for the claim AJAX to finish before it changes pages. Previously, on slower connections the page change cancelled the open claim request, which the server then answered with Forbidden on the next call.
 - **Cold-start delay:** when the script wakes up after a long pause (tab in background, hibernation, slow first paint), the very first navigation is delayed by a few extra seconds. This avoids the first call hitting the server before it has settled.
@@ -125,15 +122,13 @@ The +Raid Stars tooltip and the Bypass reserve tooltip were updated to reflect t
 
 ### v7.35.26 - Fix: leagues and quest no longer ping-pong
 
-Addresses the loop reported in issue #1664 where the script kept switching between the leagues page and the current quest page without making progress. The league module now waits for the active task to finish before changing pages, so the loop can no longer form.
-
-Refs #1664.
+The script no longer ping-pongs between the leagues page and the current quest page. The league module waits for the active task to finish before changing pages, so the loop can no longer form.
 
 ---
 
 ### v7.35.25 - Mythic coverage, slot order, and richer team info box
 
-Algorithm refinements driven by feedback in issues #1573 (Frank) and #1603 (Dimka).
+Algorithm refinements driven by feedback from Frank and Dimka.
 
 **Slot order:** Positions 2-7 are now filled before the leader. The leader is picked from whatever is left in the pool, so a strong cluster girl can no longer be consumed by leader selection. Leader hierarchy stays the same: mythic, tier-5 priority Shield > Stun > Execute > Reflect, cluster membership and trait match as tiebreakers.
 
@@ -172,7 +167,7 @@ If your top 7 girls are already at your level cap with full grades, both buttons
 
 ### v7.35.22 - Fix: "Forbidden" errors and event/league loop
 
-Two related fixes that address the wave of "Access forbidden" reports (issue #1598).
+Two related fixes that address the wave of "Access forbidden" reports.
 
 **What changed:**
 - Page navigation is now serialised. The script no longer fires two page changes within the same tick, which was the actual cause of the Forbidden responses.
@@ -180,13 +175,11 @@ Two related fixes that address the wave of "Access forbidden" reports (issue #15
 - The event parsing handler now respects each event's own refresh window (e.g. Path of Attraction's six-hour refresh). It no longer pulls the script back to the event page on every single tick when there is nothing new to parse, which was producing a ping-pong loop with active leagues.
 - The "What's New" popup is deactivated for this version.
 
-Addresses #1598.
-
 ---
 
 ### v7.35.21 - League team selection rebuilt
 
-The "Current Best" and "Best Possible" buttons now pick teams using a wider community-knowledge base (Kinkoid forum performance and elements topics, HH Wiki, Tom-208 userscript, plus Frank's input on issues #1340 and #1573).
+The "Current Best" and "Best Possible" buttons now pick teams using a wider community-knowledge base (Kinkoid forum performance and elements topics, HH Wiki, Tom-208 userscript, plus Frank's input).
 
 **Key changes:**
 - Selection is driven by your main class stat alone (HC=carac1, Charm=carac2, KH=carac3) instead of the raw stat sum.
@@ -231,7 +224,6 @@ The repository transfer from Roukys/HHauto to OldRon1977/HHauto is complete. The
 
 ---
 
-
 ### v7.35.18 - Last version before repository transfer
 
 This is the final release before the repository is transferred from `Roukys/HHauto` to `OldRon1977/HHauto`. No functional changes — only the in-app notification has been updated to inform users about the upcoming transfer.
@@ -242,8 +234,6 @@ After the transfer, GitHub will redirect all old URLs automatically. Tampermonke
 
 ### v7.35.17 - Multi-team comparison for optimal selection
 
-Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573).
-
 The team selection algorithm now builds multiple candidate teams (one per trait group) and compares their effective power (total stats multiplied by Tier 3 bonus). The team with the highest effective power wins, regardless of whether it matches the active blessing. The info box now shows the effective power and a comparison of all evaluated trait groups, so you can see exactly why a particular team was chosen - even if it differs from the current blessing.
 
 Additionally fixed: blessing value parsing for "Favorite position" and "Zodiac sign" patterns, and "Best Possible" mode no longer returns lower values than "Current Best" for fully leveled girls.
@@ -252,26 +242,21 @@ Additionally fixed: blessing value parsing for "Favorite position" and "Zodiac s
 
 ### v7.35.16 - Blessing-aware team selection, Penta Drill fix, auto-buy timer restored
 
-Addresses [#1573](https://github.com/Roukys/HHauto/issues/1573), [#1593](https://github.com/Roukys/HHauto/issues/1593), [#1594](https://github.com/Roukys/HHauto/issues/1594).
+**Team Selection:** The algorithm previously picked girls from random elements regardless of the chosen trait, resulting in teams with no actual Tier 3 bonus. It now correctly fills the team from the matching element pair first. Additionally, the script now automatically loads the active weekly blessings when visiting the Home page and caches them with a 12-hour validity. The team selection uses this data to prefer the blessed trait and value.
 
-**Team Selection (#1573):** The algorithm previously picked girls from random elements regardless of the chosen trait, resulting in teams with no actual Tier 3 bonus. It now correctly fills the team from the matching element pair first. Additionally, the script now automatically loads the active weekly blessings when visiting the Home page and caches them with a 12-hour validity. The team selection uses this data to prefer the blessed trait and value.
+**Info Box:** Completely reworked to explain the team choice. Shows the optimized trait with its actual name (e.g. "golden" instead of hex codes), Tier 3 bonus percentage, leader skill, and element distribution using class names (Dominatrix, Submissive, etc.) instead of confusing internal element names (darkness, psychic). Misleading symbols removed. Active blessings are displayed with match status and cache timestamp.
 
-**Info Box (#1573):** Completely reworked to explain the team choice. Shows the optimized trait with its actual name (e.g. "golden" instead of hex codes), Tier 3 bonus percentage, leader skill, and element distribution using class names (Dominatrix, Submissive, etc.) instead of confusing internal element names (darkness, psychic). Misleading symbols removed. Active blessings are displayed with match status and cache timestamp.
+**Equipment on slow connections:** Increased wait times and stability checks when loading inventory items, reducing failures on 4G or other slow connections.
 
-**Equipment on slow connections (#1573):** Increased wait times and stability checks when loading inventory items, reducing failures on 4G or other slow connections.
+**Penta Drill:** Increased the delay between steps from 2-3 seconds to 4-6 seconds, preventing the blank screen that occurred when the bot clicked before the server responded.
 
-**Penta Drill (#1593):** Increased the delay between steps from 2-3 seconds to 4-6 seconds, preventing the blank screen that occurred when the bot clicked before the server responded.
-
-**Auto-buy timer (#1594):** The "Hours to buy Event Combs." and "Hours to buy Mythic Combs." timer fields are back. Set a value (e.g. 16) and the script will only buy combat points when the event has fewer than 16 hours remaining and your energy is at 0. Set to 0 for immediate buying when energy is empty. This allows full use of natural regeneration before spending kobans.
+**Auto-buy timer:** The "Hours to buy Event Combs." and "Hours to buy Mythic Combs." timer fields are back. Set a value (e.g. 16) and the script will only buy combat points when the event has fewer than 16 hours remaining and your energy is at 0. Set to 0 for immediate buying when energy is empty. This allows full use of natural regeneration before spending kobans.
 
 **Note:** Visit the Home page at least once after updating so the blessings get loaded into the cache.
 
 ---
 
-
 ### v7.35.15 - Troll with girls now falls through to love raids
-
-Addresses [#1582](https://github.com/Roukys/HHauto/issues/1582).
 
 When `Last troll with girls` or `First troll with girls` was selected and no troll had any girls left, the script would skip fighting entirely and idle in a loop - even when love raids with girls were available. The troll selection now falls through to love raids as a fallback when no troll target is found, so raid girls are still fought as expected.
 
@@ -285,21 +270,17 @@ The HHAuto repository will be transferred to a new owner (`OldRon1977/HHauto`) i
 
 ### v7.35.13 - Troll fallback no longer fights unavailable trolls
 
-Fixes [#1582](https://github.com/OldRon1977/HHauto/issues/1582).
-
 When "Last troll with girls" or "First troll with girls" was selected and no troll had any girls left to collect, the script would fall back to fighting the first troll in the game - even if that troll had no girls either. This caused an endless loop of pointless fights and could navigate to a troll that was not yet unlocked, showing "This Troll is not available yet!" in the game. The script now correctly stops fighting and waits for Raids or Events when no troll with girls is available. Affects all game variants.
 
 ---
 
 ### v7.35.12 - "Possible Best" team assignment now works on first click
 
-Fixes an issue where clicking "Possible Best" after "Current Best" on the Edit Team page would assign the wrong girls. The correct team is now applied on the first attempt.
+Clicking "Possible Best" after "Current Best" on the Edit Team page no longer assigns the wrong girls. The correct team is applied on the first attempt.
 
 ---
 
 ### v7.35.11 - First/Last troll with girls no longer fights trolls without girls
-
-Addresses [#1582](https://github.com/OldRon1977/HHauto/issues/1582).
 
 When “Last troll with girls” or “First troll with girls” was selected and the only remaining trolls with girls were beyond the unlocked adventure range, the script would fight the last unlocked troll even though it had no girls left. The script now correctly skips trolls without girls and waits for Raids or Events instead.
 
@@ -307,15 +288,11 @@ When “Last troll with girls” or “First troll with girls” was selected an
 
 ### v7.35.10 - Equipment optimization: Slot 1 is equipped reliably again
 
-Fixes [#1573](https://github.com/OldRon1977/HHauto/issues/1573).
-
 During auto-equip the first equipment slot was often skipped, so the girl ended up wearing a worse item than the one the script had picked. The other slots were updated normally. The first slot is now equipped correctly on every run.
 
 ---
 
 ### v7.35.9 - Assign first 7 now applies the full team reliably
-
-Fixes [#1577](https://github.com/OldRon1977/HHauto/issues/1577).
 
 When using "Assign first 7" on the team edit page, some girls from the previous team could stay assigned instead of being replaced, leaving the team only partially updated. The new team is now applied correctly on the first click.
 
@@ -329,23 +306,17 @@ When +Raid Stars was the only active raid mode and energy ran out, the script wo
 
 ### v7.35.7 - League promotion threshold updated to top 20
 
-Fixes [#1567](https://github.com/OldRon1977/HHauto/issues/1567).
-
 The game now promotes the top 20 players of a league bracket instead of the top 15. The "Target League" / "Allow win" automation has been updated to match, so the script keeps you in the correct league instead of accidentally promoting or blocking fights based on the old cutoff.
 
 ---
 
 ### v7.35.6 - Booster auto-equip recovers from external changes
 
-Fixes [#1565](https://github.com/OldRon1977/HHauto/issues/1565).
-
 If boosters were changed in another browser or tab while the script was paused, auto-equip could get stuck retrying to equip already-occupied slots or repeatedly reload the Market page. The script now recognizes the out-of-sync state, refreshes the booster info from the Market and resumes normal operation.
 
 ---
 
 ### v7.35.5 - Simpler buy-combat and refined +Raid Stars
-
-Further addresses [#1565](https://github.com/OldRon1977/HHauto/issues/1565).
 
 **Buy combat controls simplified:**
 - Energy is now topped up immediately when empty and the event / mythic / raid girl has not been won yet - no more "last X hours" timing window
@@ -362,7 +333,7 @@ Further addresses [#1565](https://github.com/OldRon1977/HHauto/issues/1565).
 
 ### v7.35.4 - Troll menu: Event section separator and restored buy-combat controls
 
-Addresses [#1565](https://github.com/OldRon1977/HHauto/issues/1565). The Event section of the Troll Battle menu is now visually separated like Mythic and Raid, and the Buy Combat controls for Event are visible again.
+The Event section of the Troll Battle menu is now visually separated like Mythic and Raid, and the Buy Combat controls for Event are visible again.
 
 **What changed:**
 - Separator line added above the +Event row, matching Mythic and Raid styling
@@ -646,7 +617,7 @@ With this setup, the script will **never** fight a normal troll or a low-rarity 
 - **v7.32.1**: Fixed `+Mythic Raid` blocking all subsequent auto-loop handlers when no raid target was found. Added Season Max Tier display. Extended timer handling for Champion, ClubChampion, Labyrinth, PentaDrill, and Pantheon.
 - **v7.32.2**: Replaced boolean `+Mythic Raid` toggle with `+Raid Stars` grade dropdown. Added migration from old boolean setting to grade index.
 - **v7.32.3**: Fixed girl grade detection - now uses `nb_grades` field which returns the correct visible star count (3=rare, 5=legendary, 6=mythic).
-- **v7.32.4**: Added reusable `waitForAjaxEnd` function. Fixed reward collection redirect when no rewards found (#1496).
+- **v7.32.4**: Added reusable `waitForAjaxEnd` function. Fixed reward collection redirect when no rewards found.
 - **v7.32.5**: Added `+Girl Skins` toggle to include skin-only trolls in fight targets. Fixed raid selector reset behavior when user-selected girl is filtered by grade or page reloads.
 - **v7.32.5 Fixes**: Fixed raids with disabled source being incorrectly skipped during ongoing events. Fixed `+Raid` energy condition to bypass troll threshold for Cluster 3 raids. Prevented fighting locked trolls and filtered them from the raid selector dropdown.
 
@@ -655,10 +626,10 @@ With this setup, the script will **never** fight a normal troll or a low-rarity 
 ### v7.31.1 - League Optimization, Season Max Tier & Place of Power Fix
 
 **League Power Calculation Optimization**
-The league power calculation has been optimized for better performance (#1358). The algorithm now evaluates team strength more efficiently, reducing unnecessary computation during league fights.
+The league power calculation has been optimized for better performance. The algorithm now evaluates team strength more efficiently, reducing unnecessary computation during league fights.
 
 **Season: Max Tier Option**
-A new **Max Tier** option has been added to the Season module (#1496). This allows you to set the maximum tier for seasonal events. The option is ignored when "Ignore no girl" is checked, giving you full control over which girls to pursue during seasonal events.
+A new **Max Tier** option has been added to the Season module. This allows you to set the maximum tier for seasonal events. The option is ignored when "Ignore no girl" is checked, giving you full control over which girls to pursue during seasonal events.
 
 **Place of Power: Wait for Start**
 The script now correctly waits for a Place of Power event to fully start before navigating to the next page. Previously, the script could navigate away too early, causing missed POP events. Combined with a league fix that ensures proper handling of league state transitions.
