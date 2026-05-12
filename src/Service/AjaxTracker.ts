@@ -16,9 +16,24 @@
 //   pendingAjaxCount()    -- current number of in-flight XHRs
 //   waitForAjaxIdle(timeoutMs, settleMs) -- resolves when idle
 //
-// Used by: PageNavigationService.gotoPage()
+// Used by: PageNavigationService.gotoPage(), PlaceOfPower module.
 
 import { logHHAuto } from '../Utils/index';
+
+// Shared timing budget for all callers that wait on the game's AJAX
+// before navigating. Keeping these constants here means
+// PageNavigationService and individual modules cannot drift apart
+// (issue #1598: the PoP path used a tighter cap than gotoPage and
+// ignored timeouts, which re-introduced the cancel-mid-POST race).
+//
+// 15s is a conservative cap that covers the worst case observed in
+// Firefox Private Browsing (10-12s claim responses). The wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+export const AJAX_IDLE_TIMEOUT_MS = 15000;
+// Extra delay after AJAX idle before navigating, to let synchronous
+// follow-up code (DOM updates, popup handling) finish.
+export const AJAX_IDLE_SETTLE_MS = 250;
 
 let pending = 0;
 let installed = false;

@@ -3746,8 +3746,12 @@ class BossBang {
                 let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
                 if (teamIndexFound >= 0 && bangButton.length > 0) {
                     LogUtils_logHHAuto("Go to boss bang fight page");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    location.href = addNutakuSession(bangButton.attr('href'));
+                    // Use safeNavigateHref so any in-flight game AJAX completes
+                    // before the URL change. Direct location.href = ... cancels
+                    // open XHRs with NS_BINDING_ABORTED, which can trigger the
+                    // server-side Forbidden race (issue #1598).
+                    const href = addNutakuSession(bangButton.attr('href'));
+                    safeNavigateHref(href);
                     yield TimeHelper.sleep(randomInterval(3000, 5000));
                     return true;
                 }
@@ -5529,7 +5533,7 @@ class Champion {
     static ChampDisplayAutoTeamPopup(numberDone, numberEnd, remainingTime) {
         $(".champions-top__inner-wrapper").prepend('<div id="popup_message_champ" class="HHpopup_message" name="popup_message_champ" style="margin:0px;width:400px" ><a id="popup_message_champ_close" class="close">&times;</a>'
             + getTextForUI("autoChampsTeamLoop", "elementText") + ' : <br>' + numberDone + '/' + numberEnd + ' (' + remainingTime + 'sec)</div>');
-        $("#popup_message_champ_close").on("click", function () { location.reload(); });
+        $("#popup_message_champ_close").on("click", function () { safeReload(); });
     }
     static ChampClearAutoTeamPopup() {
         $("#popup_message_champ").each(function () { this.remove(); });
@@ -5725,7 +5729,10 @@ class Champion {
                     }
                     else {
                         LogUtils_logHHAuto("Auto team ended, refresh page, restarting autoloop");
-                        location.reload();
+                        // safeReload waits for any in-flight champion AJAX to
+                        // settle before reloading. Direct reload cancels open
+                        // XHRs and can trigger the Forbidden race (issue #1598).
+                        safeReload();
                     }
                 }
             });
@@ -5854,8 +5861,11 @@ class Champion {
             }
             LogUtils_logHHAuto('Finished ordering champion team');
             $("#orderTeam").removeAttr('disabled');
-            //if(oneGirlSwitched) 
-            location.reload();
+            //if(oneGirlSwitched)
+            // Use safeReload so the final reorder POST can complete before
+            // reloading. Direct reload here was observed to cancel the
+            // last switchGirls request and trigger Forbidden (issue #1598).
+            safeReload();
         });
     }
     static doChampionStuff() {
@@ -13512,16 +13522,6 @@ function getPage(checkUnknown = false, checkPop = false) {
 
 
 
-// How long to wait for in-flight XHRs before navigating away. The game
-// can take well over 8 seconds to answer in slow environments (Firefox
-// Private Browsing has been observed sending the same response 10-12s
-// after the request). 15s is a conservative cap; the wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 15000;
-// Extra delay after AJAX idle before changing window.location, to let
-// any synchronous follow-up code (DOM updates, popup handling) finish.
-const AJAX_IDLE_SETTLE_MS = 250;
 // Module-level mutex: true while a navigation has been scheduled but the
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
 let navInFlight = false;
@@ -13727,6 +13727,77 @@ function gotoPage(page, inArgs = {}, delay = -1) {
             });
         }, delay);
     }
+}
+/**
+ * Reload the current page after waiting for any in-flight game AJAX
+ * to finish. Equivalent to `location.reload()` but with the same
+ * NS_BINDING_ABORTED guard as gotoPage (see issue #1598).
+ *
+ * Honors the navInFlight mutex so concurrent callers cannot fire two
+ * reloads within the same tick. On AJAX-idle timeout, the reload is
+ * deferred and AutoLoop is re-enabled so the next tick can retry.
+ */
+function safeReload(delay = -1) {
+    if (navInFlight) {
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            LogUtils_logHHAuto('safeReload: navigation already in flight, ignoring reload');
+        }
+        return false;
+    }
+    if (typeof delay !== 'number' || delay === -1) {
+        delay = randomInterval(300, 500);
+    }
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto('safeReload: scheduled in ' + delay + 'ms');
+    navInFlight = true;
+    setTimeout(function () {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+            if (!idle) {
+                LogUtils_logHHAuto('safeReload: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring reload');
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                navInFlight = false;
+                return;
+            }
+            location.reload();
+        });
+    }, delay);
+    return true;
+}
+/**
+ * Navigate to an arbitrary URL after waiting for any in-flight game
+ * AJAX to finish. Use when gotoPage's page-ID switch cannot be used
+ * (e.g. event links provided as raw href). Same NS_BINDING_ABORTED
+ * guard as gotoPage (see issue #1598).
+ */
+function safeNavigateHref(url, delay = -1) {
+    if (navInFlight) {
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            LogUtils_logHHAuto('safeNavigateHref: navigation already in flight, ignoring ' + url);
+        }
+        return false;
+    }
+    if (typeof delay !== 'number' || delay === -1) {
+        delay = randomInterval(300, 500);
+    }
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto('safeNavigateHref: ' + url + ' in ' + delay + 'ms');
+    navInFlight = true;
+    setTimeout(function () {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+            if (!idle) {
+                LogUtils_logHHAuto('safeNavigateHref: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation to ' + url);
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                navInFlight = false;
+                return;
+            }
+            location.href = url;
+        });
+    }, delay);
+    return true;
 }
 function addNutakuSession(togoto) {
     if (unsafeWindow.hh_nutaku) {
@@ -16559,11 +16630,26 @@ class PlaceOfPower {
                     // window.location.href cancels the request (NS_BINDING_ABORTED)
                     // and the server answers the next call with Forbidden
                     // (issue #1598, especially under Firefox Private Browsing
-                    // where the AJAX takes 2-3 seconds).
-                    yield waitForAjaxIdle(8000, 400);
+                    // where the AJAX takes 10-12 seconds in the worst case).
+                    //
+                    // Use the same timeout budget as PageNavigationService, and
+                    // bail out if the wait times out. Navigating anyway would
+                    // cancel the still-open POST and re-introduce the race the
+                    // wait is meant to prevent. AutoLoop will retry next tick.
+                    const claimIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                    if (!claimIdle) {
+                        LogUtils_logHHAuto('PoP: claim AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring popup/navigation');
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        return true;
+                    }
                     RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
                     // Wait again in case closing the popup itself fires a request.
-                    yield waitForAjaxIdle(4000, 200);
+                    const popupIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                    if (!popupIdle) {
+                        LogUtils_logHHAuto('PoP: popup-close AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation');
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        return true;
+                    }
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                     return true;
                 }
@@ -24056,7 +24142,7 @@ function checkAndClosePopup(inBurst) {
 //   pendingAjaxCount()    -- current number of in-flight XHRs
 //   waitForAjaxIdle(timeoutMs, settleMs) -- resolves when idle
 //
-// Used by: PageNavigationService.gotoPage()
+// Used by: PageNavigationService.gotoPage(), PlaceOfPower module.
 var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -24067,6 +24153,20 @@ var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisAr
     });
 };
 
+// Shared timing budget for all callers that wait on the game's AJAX
+// before navigating. Keeping these constants here means
+// PageNavigationService and individual modules cannot drift apart
+// (issue #1598: the PoP path used a tighter cap than gotoPage and
+// ignored timeouts, which re-introduced the cancel-mid-POST race).
+//
+// 15s is a conservative cap that covers the worst case observed in
+// Firefox Private Browsing (10-12s claim responses). The wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
+// Extra delay after AJAX idle before navigating, to let synchronous
+// follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
 let pending = 0;
 let installed = false;
 let restoreSend = null;

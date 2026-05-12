@@ -8,7 +8,7 @@
 // Used by: EventModule.ts (called when Boss Bang event is active)
 //
 import { ConfigHelper, convertTimeToInt, getPage, getStoredValue, randomInterval, setStoredValue, setTimer, TimeHelper } from "../../Helper/index";
-import { addNutakuSession, gotoPage } from "../../Service/index";
+import { addNutakuSession, gotoPage, safeNavigateHref } from "../../Service/index";
 import { logHHAuto } from "../../Utils/index";
 import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
 import { HHEvent, HHEventData, HHEventList } from "../../model/index";
@@ -90,8 +90,12 @@ export class BossBang {
             let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
             if(teamIndexFound >= 0 && bangButton.length > 0) {
                 logHHAuto("Go to boss bang fight page");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                location.href = addNutakuSession(bangButton.attr('href')) as string;
+                // Use safeNavigateHref so any in-flight game AJAX completes
+                // before the URL change. Direct location.href = ... cancels
+                // open XHRs with NS_BINDING_ABORTED, which can trigger the
+                // server-side Forbidden race (issue #1598).
+                const href = addNutakuSession(bangButton.attr('href')) as string;
+                safeNavigateHref(href);
                 await TimeHelper.sleep(randomInterval(3000, 5000));
                 return true;
             } else {

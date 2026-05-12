@@ -23,7 +23,7 @@ import {
     hhButton,
     deleteStoredValue
 } from '../Helper/index';
-import { gotoPage } from "../Service/index";
+import { gotoPage, safeReload } from "../Service/index";
 import { getHHAjax, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { ChampionModel } from "../model/index";
@@ -39,7 +39,7 @@ export class Champion {
     {
         $(".champions-top__inner-wrapper").prepend('<div id="popup_message_champ" class="HHpopup_message" name="popup_message_champ" style="margin:0px;width:400px" ><a id="popup_message_champ_close" class="close">&times;</a>'
                         +getTextForUI("autoChampsTeamLoop","elementText")+' : <br>'+numberDone+'/'+numberEnd+' ('+remainingTime+'sec)</div>');
-        $("#popup_message_champ_close").on("click", function() {location.reload();});
+        $("#popup_message_champ_close").on("click", function() {safeReload();});
     }
     static ChampClearAutoTeamPopup()
     {
@@ -251,7 +251,10 @@ export class Champion {
                     Champion.orderTeam(champTeam);
                 } else {
                     logHHAuto("Auto team ended, refresh page, restarting autoloop");
-                    location.reload();
+                    // safeReload waits for any in-flight champion AJAX to
+                    // settle before reloading. Direct reload cancels open
+                    // XHRs and can trigger the Forbidden race (issue #1598).
+                    safeReload();
                 }
             }
         };
@@ -387,8 +390,11 @@ export class Champion {
 
         logHHAuto('Finished ordering champion team');
         $("#orderTeam").removeAttr('disabled');
-        //if(oneGirlSwitched) 
-            location.reload();
+        //if(oneGirlSwitched)
+            // Use safeReload so the final reorder POST can complete before
+            // reloading. Direct reload here was observed to cancel the
+            // last switchGirls request and trigger Forbidden (issue #1598).
+            safeReload();
     }
 
     static async doChampionStuff()

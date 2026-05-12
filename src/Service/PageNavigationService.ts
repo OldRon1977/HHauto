@@ -20,18 +20,7 @@ import { ConfigHelper, getPage, queryStringGetParam, randomInterval, setStoredVa
 import { QuestHelper } from '../Module/index';
 import { logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { waitForAjaxIdle } from './AjaxTracker';
-
-// How long to wait for in-flight XHRs before navigating away. The game
-// can take well over 8 seconds to answer in slow environments (Firefox
-// Private Browsing has been observed sending the same response 10-12s
-// after the request). 15s is a conservative cap; the wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 15000;
-// Extra delay after AJAX idle before changing window.location, to let
-// any synchronous follow-up code (DOM updates, popup handling) finish.
-const AJAX_IDLE_SETTLE_MS = 250;
+import { waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from './AjaxTracker';
 
 // Module-level mutex: true while a navigation has been scheduled but the
 // browser hasn't fully transitioned yet. Reset implicitly on page reload.
@@ -252,6 +241,79 @@ export function gotoPage(page,inArgs={},delay = -1)
             });
         }, delay);
     }
+}
+
+/**
+ * Reload the current page after waiting for any in-flight game AJAX
+ * to finish. Equivalent to `location.reload()` but with the same
+ * NS_BINDING_ABORTED guard as gotoPage (see issue #1598).
+ *
+ * Honors the navInFlight mutex so concurrent callers cannot fire two
+ * reloads within the same tick. On AJAX-idle timeout, the reload is
+ * deferred and AutoLoop is re-enabled so the next tick can retry.
+ */
+export function safeReload(delay = -1): boolean {
+    if (navInFlight) {
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            logHHAuto('safeReload: navigation already in flight, ignoring reload');
+        }
+        return false;
+    }
+    if (typeof delay !== 'number' || delay === -1) {
+        delay = randomInterval(300, 500);
+    }
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    logHHAuto('safeReload: scheduled in ' + delay + 'ms');
+    navInFlight = true;
+    setTimeout(function () {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+            if (!idle) {
+                logHHAuto('safeReload: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring reload');
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                navInFlight = false;
+                return;
+            }
+            location.reload();
+        });
+    }, delay);
+    return true;
+}
+
+/**
+ * Navigate to an arbitrary URL after waiting for any in-flight game
+ * AJAX to finish. Use when gotoPage's page-ID switch cannot be used
+ * (e.g. event links provided as raw href). Same NS_BINDING_ABORTED
+ * guard as gotoPage (see issue #1598).
+ */
+export function safeNavigateHref(url: string, delay = -1): boolean {
+    if (navInFlight) {
+        const now = Date.now();
+        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+            lastNavBlockedLogAt = now;
+            logHHAuto('safeNavigateHref: navigation already in flight, ignoring ' + url);
+        }
+        return false;
+    }
+    if (typeof delay !== 'number' || delay === -1) {
+        delay = randomInterval(300, 500);
+    }
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    logHHAuto('safeNavigateHref: ' + url + ' in ' + delay + 'ms');
+    navInFlight = true;
+    setTimeout(function () {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
+            if (!idle) {
+                logHHAuto('safeNavigateHref: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation to ' + url);
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                navInFlight = false;
+                return;
+            }
+            location.href = url;
+        });
+    }, delay);
+    return true;
 }
 
 export function addNutakuSession(togoto: string | Array<string> | Object): string | Array<string> | Object{

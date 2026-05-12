@@ -22,7 +22,7 @@ import {
     TimeHelper,
     RewardHelper
 } from '../Helper/index';
-import { autoLoop, gotoPage, waitForAjaxIdle } from '../Service/index';
+import { autoLoop, gotoPage, waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from '../Service/index';
 import { isJSON, logHHAuto } from '../Utils/index';
 import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
 import { Harem } from './index';
@@ -202,11 +202,26 @@ export class PlaceOfPower {
                 // window.location.href cancels the request (NS_BINDING_ABORTED)
                 // and the server answers the next call with Forbidden
                 // (issue #1598, especially under Firefox Private Browsing
-                // where the AJAX takes 2-3 seconds).
-                await waitForAjaxIdle(8000, 400);
+                // where the AJAX takes 10-12 seconds in the worst case).
+                //
+                // Use the same timeout budget as PageNavigationService, and
+                // bail out if the wait times out. Navigating anyway would
+                // cancel the still-open POST and re-introduce the race the
+                // wait is meant to prevent. AutoLoop will retry next tick.
+                const claimIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                if (!claimIdle) {
+                    logHHAuto('PoP: claim AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring popup/navigation');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    return true;
+                }
                 RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
                 // Wait again in case closing the popup itself fires a request.
-                await waitForAjaxIdle(4000, 200);
+                const popupIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                if (!popupIdle) {
+                    logHHAuto('PoP: popup-close AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    return true;
+                }
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                 return true;
             }
