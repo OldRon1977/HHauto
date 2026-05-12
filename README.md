@@ -45,6 +45,15 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.36 - Daily-goals/contests and side-quest loops
+
+Two distinct loops on `/activities.html` and `/side-quests.html` reported in issue #1672 are fixed.
+
+- **Activities sub-tab detection no longer flips between tabs.** The four sub-tab branches (Contests, Missions, Daily Goals, PoP) used sequential `if`s without `else`. Stale or transitional `data-tab` markers in the DOM could make a later branch overwrite the correct value derived from the URL, so `?tab=contests` was sometimes reported as `daily_goals`. The block now uses `else if`, and the URL `tab` query param is the authoritative source. The DOM check is only used when `tab` is absent.
+- **No more buy-ticket loop on `/side-quests.html`.** When no side quests remained, the script reloaded the same URL. The page id `side-quests` is not registered, so the next AutoLoop pass kept running handlers on the unrecognized page; `handleChampionTicket` would buy a ticket, the nested `buyTicket()` would reload, and the loop burned quest energy on champion tickets. The script now navigates to home instead. The existing 1-week side-quest timer still prevents the path from being re-entered.
+
+Refs #1672.
+
 ### v7.35.35 - Forbidden race fix in PoP, BossBang, Champion
 
 - **PoP claim path now waits up to 15s for the claim POST** before navigating, matching `gotoPage`. The previous 8s cap was too short for slow connections (Firefox Private Browsing has been observed taking 10-12s).
