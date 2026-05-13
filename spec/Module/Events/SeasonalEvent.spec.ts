@@ -1,4 +1,4 @@
-import { SeasonalEvent } from "../../../src/Module/index";
+import { SeasonalEvent } from '../../../src/Module/Events/Seasonal';
 
 describe("SeasonalEvent", function () {
     describe("styles", function () {

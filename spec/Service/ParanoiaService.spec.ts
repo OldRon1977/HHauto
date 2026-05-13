@@ -1,6 +1,6 @@
 import { ParanoiaService } from '../../src/Service/ParanoiaService';
-import { setStoredValue, getStoredValue } from '../../src/Helper/index';
-import { HHStoredVarPrefixKey } from '../../src/config/index';
+import { setStoredValue, getStoredValue } from '../../src/Helper/StorageHelper';
+import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 
 describe("ParanoiaService", function () {
     describe("checkParanoiaSpendings", function () {

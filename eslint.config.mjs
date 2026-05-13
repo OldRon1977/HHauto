@@ -73,6 +73,49 @@ export default [
       'eqeqeq': ['warn', 'smart'],
       'prefer-const': 'warn',
       'no-var': 'off', // Codebase uses `var` heavily; flag later if desired.
+      // Forbid barrel index.ts imports (re-introducing barrels).
+      // ADR-001 dropped index.ts barrels in favor of direct file imports
+      // to eliminate the circular-dependency epidemic. Adding a new
+      // barrel must be a deliberate, reviewed change.
+      // Pattern matches paths ending in '/index' explicitly. Folder-only
+      // imports like '../Helper' would also resolve to a barrel via Node
+      // module resolution; those are caught by `no-restricted-imports`
+      // patterns that target the exact folder names used as barrels in
+      // the past.
+      'no-restricted-imports': ['error', {
+        patterns: [
+          {
+            group: ['*/index'],
+            message: 'Direct index.ts imports are forbidden (ADR-001). Import the file that declares the symbol instead.',
+          },
+        ],
+        paths: [
+          { name: '../Helper', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../Module', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../Service', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../Utils', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../model', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../config', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../i18n', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../Events', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../harem', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../KK', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: '../game', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './Helper', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './Module', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './Service', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          // './Utils' deliberately not restricted: src/Utils/Utils.ts is a real file, sibling
+          // imports from src/Utils/HHPopup.ts and src/Utils/LogUtils.ts use './Utils' to refer
+          // to that file. The barrel was at src/Utils/index.ts, deleted in this PR.
+          { name: './model', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './config', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './i18n', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './Events', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './harem', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './KK', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+          { name: './game', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
+        ],
+      }],
     },
   },
   {

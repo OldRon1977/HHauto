@@ -1,4 +1,4 @@
-import { SultryMysteries } from "../../../src/Module/index";
+import { SultryMysteries } from '../../../src/Module/Events/SultryMysteries';
 import { MockHelper } from "../../testHelpers/MockHelpers";
 
 describe("SultryMysteries event", function () {

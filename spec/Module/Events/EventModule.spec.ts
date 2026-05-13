@@ -1,5 +1,5 @@
 import { setTimers } from "../../../src/Helper/TimerHelper";
-import { EventModule } from "../../../src/Module/index";
+import { EventModule } from '../../../src/Module/Events/EventModule';
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 import { MockHelper } from "../../testHelpers/MockHelpers";
 

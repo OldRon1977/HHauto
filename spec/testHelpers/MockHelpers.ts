@@ -1,4 +1,5 @@
-import { HHStoredVarPrefixKey, TK } from '../../src/config/index';
+import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
+import { TK } from '../../src/config/StorageKeys';
 
 export class MockHelper{
 

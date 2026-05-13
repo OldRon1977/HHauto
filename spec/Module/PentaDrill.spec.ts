@@ -1,5 +1,6 @@
 import { setTimer } from "../../src/Helper/TimerHelper";
-import { Booster, PentaDrill } from "../../src/Module/index";
+import { Booster } from '../../src/Module/Booster';
+import { PentaDrill } from '../../src/Module/PentaDrill';
 import { ParanoiaService } from "../../src/Service/ParanoiaService";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { MockHelper } from "../testHelpers/MockHelpers";

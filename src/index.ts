@@ -13,8 +13,11 @@
 // error pages, and delegates to start() which sets up the full menu,
 // timers, and auto-loop.
 
-import { hardened_start } from "./Service/index";
-import { KKDailyGoal, KKHero, KKLoveRaid, KKPentaDrillOpponents } from "./model/index";
+import { hardened_start } from "./Service/StartService";
+import { KKLoveRaid } from "./model/KK/KKLoveRaid";
+import { KKPentaDrillOpponents } from "./model/KK/KKPentaDrillOpponents";
+import { KKHero } from "./model/KK/KKHero";
+import { KKDailyGoal } from "./model/KK/kkDailyGoal";
 
 declare global {
     var love_raids: KKLoveRaid[] | undefined;

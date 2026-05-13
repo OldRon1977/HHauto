@@ -1,4 +1,4 @@
-import { HaremGirl } from "../../../src/Module/index";
+import { HaremGirl } from '../../../src/Module/harem/HaremGirl';
 
 describe("HaremGirl", function () {
     const HTML_START = `<!DOCTYPE html><div id="hh_hentai" page="event"><p>Hello world</p></div>`;

@@ -1,6 +1,7 @@
-import { isJSON, safeJsonParse } from "../../src/Utils/index";
+import { isJSON, safeJsonParse } from '../../src/Utils/Utils';
 import { getStoredJSON, getStoredValue, setStoredValue } from "../../src/Helper/StorageHelper";
-import { HHStoredVarPrefixKey, SK, TK } from "../../src/config/index";
+import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
+import { SK, TK } from "../../src/config/StorageKeys";
 import { loadFixture } from "../testHelpers/Fixtures";
 
 /**

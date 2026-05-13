@@ -1,4 +1,4 @@
-import { PathOfValue } from "../../src/Module/index";
+import { PathOfValue } from '../../src/Module/Events/PathOfValue';
 import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("PathOfValue", function () {

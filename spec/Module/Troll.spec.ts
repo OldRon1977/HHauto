@@ -1,9 +1,11 @@
 import { getSecondsLeft, setTimer, clearTimer } from '../../src/Helper/TimerHelper';
 import { Troll } from '../../src/Module/Troll';
-import { HHStoredVarPrefixKey, SK, TK } from '../../src/config/index';
+import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
+import { SK, TK } from '../../src/config/StorageKeys';
 import { EventGirl } from '../../src/model/EventGirl';
 import { LoveRaid } from '../../src/model/LoveRaid';
-import { EventModule, LoveRaidManager } from '../../src/Module/Events/index';
+import { EventModule } from '../../src/Module/Events/EventModule';
+import { LoveRaidManager } from '../../src/Module/Events/LoveRaidManager';
 import { MockHelper } from '../testHelpers/MockHelpers';
 
 describe("Troll module", function () {

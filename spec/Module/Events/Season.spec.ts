@@ -1,8 +1,10 @@
 import { setTimer } from "../../../src/Helper/TimerHelper";
-import { Booster, Season } from "../../../src/Module/index";
+import { Booster } from '../../../src/Module/Booster';
+import { Season } from '../../../src/Module/Events/Season';
 import { ParanoiaService } from "../../../src/Service/ParanoiaService";
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
-import { BDSMSimu, SeasonOpponent } from "../../../src/model/index";
+import { BDSMSimu } from '../../../src/model/BDSMSimu';
+import { SeasonOpponent } from '../../../src/model/SeasonOpponent';
 import { MockHelper } from "../../testHelpers/MockHelpers";
 
 describe("Season event", function () {

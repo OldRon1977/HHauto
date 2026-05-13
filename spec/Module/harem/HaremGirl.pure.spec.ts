@@ -1,4 +1,4 @@
-import { KKHaremGirl } from "../../../src/model/index";
+import { KKHaremGirl } from '../../../src/model/KK/KKHaremGirl';
 import {
     EquipmentItem,
     findBestItem,

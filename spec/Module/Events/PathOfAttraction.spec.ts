@@ -1,4 +1,4 @@
-import { PathOfAttraction } from "../../../src/Module/index";
+import { PathOfAttraction } from '../../../src/Module/Events/PathOfAttraction';
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 
 describe("PathOfAttraction", function () {

@@ -1,4 +1,4 @@
-import { PathOfGlory } from "../../src/Module/index";
+import { PathOfGlory } from '../../src/Module/Events/PathOfGlory';
 import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("PathOfGlory", function () {
