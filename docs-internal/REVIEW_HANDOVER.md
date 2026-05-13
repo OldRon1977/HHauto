@@ -1,175 +1,185 @@
-# HHAuto Code Review - Session-Uebergabe
+# HHAuto Code Review - Session-Uebergabe (Phase 2 Start)
 
-**Datum:** 2026-05-13
-**Branch:** `chore/dev-tooling-setup` (gepusht zu origin)
-**Letzter Commit:** `511d95f chore(tooling): add lint, dep-graph, dead-code, audit gates`
-**Naechster Workflow-Schritt:** 10 (Freigabe-Gate). Steht noch aus.
+**Datum:** 2026-05-13 (Update)
+**Branch:** ``main`` (alle Vorbereitungen sind gemerged)
+**Letzter Commit auf main:** ``2f0ee684 fix(scripts): use madge programmatic API in check-circular-deps``
+**Naechste Aufgabe:** Phase 2 starten -- Modul-Review von ``Service/PageNavigationService.ts``
 
-## Was bisher gelaufen ist
+## Was abgeschlossen ist
 
-### Aktueller Auftrag
+### Vorbereitungs-Phasen (alle gemerged in main)
 
-Code Review fuer das HHAuto-Repo. In der vorigen Session abgesteckt
-auf einen mehrphasigen Plan, weil 144 Source-Files nicht in einem
-Schwung review-bar sind.
+1. **Tooling-Setup (PR #1686)** -- ESLint, madge, knip, depcheck, jscpd, webpack-bundle-analyzer.
+2. **Phase 0 -- Inventory** -- ``docs-internal/REVIEW_PHASE0.md``. LoC, Coverage, Risiko-Heatmap, Hot-Spot-Ranking.
+3. **Phase 1 -- CI Gates (PR #1687)** -- typecheck, eslint-on-diff via reviewdog, circular-baseline gate.
+4. **CI Lockfile-Resync (PR #1688)** -- typescript-Versions-Drift im Lockfile gefixt, CI lief vorher rot.
+5. **ADR-001 + Refactor (PR #1689)** -- alle Barrel-Files gedropped, ``no-restricted-imports`` ESLint-Regel, Bundle 1.40 MiB -> 1.39 MiB.
 
-### Bereits abgeschlossen
+### Architekturentscheidung
 
-1. **Initial-Review** der letzten Release-Kette (`5ebacf8` ->
-   `818d301`, v7.35.36, Issue #1672 Loop-Fixes). Findings:
-   - Critical: toter Wrong-POP-Recovery-Block in
-     `PageHelper.getPage` nach dem if->else-if-Refactor.
-   - Important: keine Regressionstests fuer den Subtab-Konflikt.
-   - Verdict: approve mit zwei Follow-ups, Fix selbst korrekt.
-2. **Tooling-Setup** auf eigenem Branch `chore/dev-tooling-setup`:
-   - Pinned devDependencies installiert (eslint, typescript-eslint,
-     globals, madge, knip, depcheck, jscpd, webpack-bundle-analyzer).
-   - Configs angelegt: `eslint.config.mjs`, `tsconfig.strict.json`,
-     `knip.json`.
-   - `tsconfig.json` um `skipLibCheck: true` erweitert
-     (build-neutral).
-   - `.gitignore` um `stats.json` erweitert.
-   - 9 neue npm-Scripts: lint, typecheck, typecheck:strict, deps:*,
-     dup:check, bundle:*.
-   - Smoke-Tests aller Tools gruen.
-3. **Phase 0 (Inventory)** abgeschlossen, Output in
-   `docs-internal/REVIEW_PHASE0.md`. Enthaelt LoC-Tabellen,
-   Coverage-Gap, Lint-Baseline, Strict-TS-Baseline, Risiko-
-   Heatmap, Hot-Spot-Ranking fuer Phase 2, architektonische
-   Befunde.
+ADR-001 (``docs/decisions/ADR-001-drop-barrels.md``) ist akzeptiert: barrel ``index.ts``-Files sind dauerhaft verboten, durch Direktimports ersetzt.
 
-### Wichtigste Phase-0-Zahlen
+Wichtig fuer Phase 2 zu verstehen:
+
+- **227 Cycles vorher / 544 Cycles nachher** ist KEIN Rueckschritt, sondern Mess-Praezision. Vorher wurden viele File-zu-File-Edges durch die Barrels collapsiert; jetzt zeigt madge sie alle einzeln. Echter File-zu-File-Cycle-Pool ist ueberschaubar (~30 Stueck der 2-File-Cycles), die anderen ~500 sind kombinatorische Pfad-Variationen.
+- ``LanguageHelper.ts`` hat jetzt **explizite Side-Effect-Imports** der i18n-Sprach-Files (``de``, ``en``, ``es``, ``fr``). Das war vorher implizit ueber den Barrel und fragil.
+
+### Aktuelle Baselines
 
 | Metrik | Wert |
-| --- | --- |
-| Source-Files (TS) | 144 |
-| Test-Files (TS) | 56 |
-| Test-Coverage Statements / Branches | 31.31% / 20.43% |
-| ESLint Errors / Warnings | 72 / 857 |
-| Strict-TS-Errors | 2192 |
-| Circular Dependencies (madge) | 227 |
-| Knip Unused Exports | 31 |
-| jQuery `$()` Aufrufe | 969 |
-| `unsafeWindow` Stellen | 76 |
-| `as any` Casts | 45 |
-| npm-audit | 5C / 12H / 8M / 9L (alle devDeps) |
+|---|---|
+| Source-Files | 132 (war 144 -- Differenz sind die geloeschten 11 Barrels + 1 Wert) |
+| Test-Files | 56 |
+| Tests | 807, alle gruen |
+| Coverage Statements | 32.96% (war 31.31%, leicht hoch durch i18n-Side-Effect-Loads) |
+| Coverage Branches | 20.45% |
+| ESLint Errors / Warnings | 72 / 857 (Phase-0-Baseline; keine durch ADR-001-Refactor neu eingefuehrten) |
+| Strict-TS-Errors | 2192 (unveraendert, advisory) |
+| Circular Cycles | 544 (Baseline ist committed) |
+| Bundle | 1.39 MiB |
+| ``unsafeWindow`` | 76 |
+| ``$()`` jQuery | 969 |
+| ``as any`` | 45 |
+| Karma-Stack-Vulnerabilities | 5C / 12H / 8M / 9L (alle devDeps, Phase-5-Cleanup-Job) |
 
-### Top-3 architektonische Findings
+### Aktive CI-Gates (auf jedem PR)
 
-1. **227 Circular Imports** durch barrel-Files (`index.ts` in jedem
-   Modulordner re-exportiert alles, schafft transitive Zyklen).
-2. **Karma-Stack ist Dead Code** in devDependencies, Quelle der
-   meisten npm-audit-Vulnerabilities.
-3. **969 jQuery-Selektoren** ohne zentralen Layer, Site-Update-
-   Risiko hoch.
+Blocking:
+- ``npm test``
+- ``npm run build``
+- ``npm run typecheck``
+- ``npm run deps:circular:check`` (vergleicht gegen ``docs-internal/circular-baseline.json``)
+- ESLint via reviewdog auf geaenderten Zeilen, errors-only
 
-## Wo der Code gerade steht
+Advisory:
+- ``npm run deps:dead`` (knip)
 
-- Branch `chore/dev-tooling-setup` ist gepusht und steht zum PR
-  bereit.
-- `main` ist unveraendert seit `818d301` (v7.35.36).
-- **Schritt 10 des Workflow (Freigabe-Gate) wartet auf User-Test.**
-  Der User soll lokal pruefen:
-  - `npm test` -> 56/56 grun, 807/807 Tests passen
-  - `npm run build` -> 1.4 MiB Bundle, kein Diff zu vorher
-  - `HHAuto.user.js` ist nicht im Commit (bewusst, war nur
-    CRLF-Normalisierung)
-- Erst nach Freigabe: PR oeffnen, CI abwarten, Rebase-Merge,
-  Branch loeschen.
+Lokal verfuegbar, nicht in CI:
+- ``npm run typecheck:strict``, ``npm run deps:unused``, ``npm run dup:check``, ``npm audit``
 
-## Plan, wie es weitergeht
+## Was als naechstes ansteht: Phase 2 Modul-Review
 
-### Ausstehende Workflow-Schritte fuer diesen Branch
+Hot-Spot-Reihenfolge (aus ``REVIEW_PHASE0.md`` Abschnitt 4):
 
-11. PR erstellen via `gh pr create --base main --head chore/dev-tooling-setup`. Body nur kurze Beschreibung; **kein** `Refs #N` (keine Issue-Verknuepfung, weil rein internes Tooling).
-12. CI abwarten.
-13. `gh pr merge --rebase --delete-branch`.
-14. Lokal `git checkout main && git pull --rebase && git branch -d chore/dev-tooling-setup`.
+1. **``Service/PageNavigationService.ts``** -- core routing, 11.34% Coverage, 194 Statements, 3x ``location.reload``, 3x ``location.href``, Nav-Mutex
+2. ``Helper/PageHelper.ts`` -- 35-LoC-Patch in 7.35.36, sub-tab routing
+3. ``Service/AutoLoop.ts`` + ``AutoLoopActions.ts`` (990 LoC) + ``AutoLoopPageHandlers.ts`` (14 ``setTimeout``)
+4. ``Helper/StorageHelper.ts``
+5. Loop-Modul-Cluster: ``Quest.ts``, ``Contest.ts``, ``DailyGoals.ts``, ``Champion.ts``, ``PlaceOfPower.ts``
+6. ``TeamModule.ts`` + ``TeamBuilderService.ts`` + ``TeamScoringService.ts``
+7. ``HaremGirl.ts`` + ``Harem.ts``
+8. ``Module/Events/*``
+9. ``League.ts``, ``Troll.ts``, ``Shop.ts``, ``Pachinko.ts``, ``Labyrinth.ts``, ``PentaDrill.ts``
+10. ``config/HHStoredVars.ts`` (2551 LoC, zuletzt)
 
-Kein Versions-Bump (Schritt 3) noetig: rein internes Tooling, kein
-User-sichtbarer Code-Pfad. Kein Release-Notes-Eintrag (Schritt 6).
-Kein Issue-Kommentar (Schritt 7/15), weil kein Issue.
+### Vorgehen pro Modul
 
-### Nach Merge: Phase-Plan
+Pro Modul fuenf Review-Achsen:
 
-Detail in `REVIEW_PHASE0.md` Abschnitt 4 und 7. Kurzfassung:
+1. **Korrektheit** -- Logik, Edge Cases, Error Pfade
+2. **Lesbarkeit** -- Naming, Doku, Funktionsgroessen
+3. **Architektur** -- Verantwortlichkeit, Coupling, Imports (jetzt direkt sichtbar dank ADR-001)
+4. **Security** -- ``unsafeWindow`` Daten, untrusted Input
+5. **Performance** -- Hot Loops, jQuery-Selektoren, Reflows
 
-**Phase 1 - Quality-Gate-Entscheidung (1 Sitzung):**
-- Festlegen, welche neuen Gates CI-pflichtig werden:
-  - `npm test`: pflicht (ist sie schon)
-  - `npm run lint` mit `--max-warnings 0` auf Errors: pflicht?
-  - `npm run typecheck`: pflicht?
-  - `npm run typecheck:strict`: nur advisory waehrend der Migration?
-  - `npm run deps:circular`: empfehlung neue PRs blocken, die
-    neue Zyklen einfuehren.
-- Entscheidung in `.github/workflows/` umsetzen (CI existiert
-  bereits, evtl. erweitern).
+Findings mit Severity:
 
-**Phase 2 - Module-by-Module-Review (Wochen):**
-Reihenfolge gemaess Hot-Spot-Ranking aus `REVIEW_PHASE0.md`:
+- **Critical** -- Bug oder Security-Issue, Fix vor Merge eines anderen Features
+- **Important** -- Architektur- oder Korrektheits-Issue, Fix in absehbarer Zeit
+- **Nit** -- Lesbarkeit, kleine Verbesserung
+- **FYI** -- Hinweis ohne Action-Item
 
-1. `Service/PageNavigationService.ts`
-2. `Helper/PageHelper.ts`
-3. `Service/AutoLoop.ts` + AutoLoopActions + AutoLoopPageHandlers
-4. `Helper/StorageHelper.ts`
-5. `Module/Quest.ts`, `Contest.ts`, `DailyGoals.ts`, `Champion.ts`,
-   `PlaceOfPower.ts`
-6. `Module/TeamModule.ts` + TeamBuilderService + TeamScoringService
-7. `Module/harem/HaremGirl.ts` + Harem.ts
-8. `Module/Events/*`
-9. `Module/League.ts`, `Troll.ts`, `Shop.ts`, `Pachinko.ts`,
-   `Labyrinth.ts`, `PentaDrill.ts`
-10. `config/HHStoredVars.ts`
+Output je Modul: ``docs-internal/REVIEW_<modul-pfad>.md``. Beispiel: ``docs-internal/REVIEW_PageNavigationService.md``.
 
-Pro Modul: fuenf Achsen (Korrektheit, Lesbarkeit, Architektur,
-Security, Performance) durchgehen, Findings mit Severity-Labels
-(Critical / Important / Nit / FYI) sammeln, Output je Modul
-in `docs-internal/REVIEW_<modul>.md` ablegen.
+Nach jedem Review:
 
-**Phase 3 - Querschnittsthemen (1 Woche):**
-- Race Conditions
-- State Machines (autoLoop / navInFlight)
-- Storage-Schluessel-Hygiene
-- DOM-Selektor-Audit
-- Tampermonkey-Spezifika
-- Error-Pfade
-- Security: untrusted unsafeWindow-Daten
+- Findings sammeln, mit User durchsprechen
+- **Critical/Important**: eigener Fix-PR pro Befund (oder gebuendelt wenn klein und logisch zusammenhaengend)
+- **Nit/FYI**: in der REVIEW-Notiz dokumentieren, optional spaeter
 
-**Phase 4 - Test-Strategie (1-3 Tage):**
-- Coverage-Karte mappen.
-- Bug-Bash-Liste der letzten 6 Monate auf Regressions-Tests
-  pruefen.
-- Tests fuer hot-spot-Module ergaenzen.
+## Wichtige Conventions fuer Phase 2
 
-**Phase 5 - Dependencies und Build (1/2 Tag):**
-- Karma-Stack droppen (entfernt 20+ Vulnerabilities).
-- Bundle-Analyzer auswerten.
-- depcheck-False-Positives klaeren.
+### Workflow (siehe ``.kiro/steering/06_Git_Workflow_HHAuto.md``)
 
-**Phase 6 - Doku und Steering (1/2 Tag):**
-- Project-Index pflegen.
-- README/`docs-internal` mit dem Code abgleichen.
+- Branch-basiert, kein direkter Push auf ``main``
+- Englisch fuer Commits, PR, README, Issue-Kommentare
+- Versions-Bump nur wenn User-sichtbarer Code-Pfad beruehrt
+- Issue-Refs nur in Commit/PR-Body, nicht in README/CHANGELOG/Issue-Kommentaren
 
-### Architekturelle Vorab-Entscheidung empfohlen
+### Branch-Naming
 
-Vor Phase 2 sinnvoll: ADR (Architecture Decision Record) zu den
-227 Circular Imports anlegen. Kandidat-ADR-Pfad:
-`docs/decisions/ADR-001-circular-imports.md`. Optionen:
-1. Direkte Pfad-Imports einfuehren, barrels droppen.
-2. Barrel-Hierarchie strikt einseitig (Helper -> Utils,
-   Module -> Helper+Utils, Service -> alle).
-3. Status quo dulden, neue Zyklen blocken.
+- Review-Phase: ``review/<modul-pfad>`` (Doku-Aenderung im Repo)
+- Findings-Fix: ``fix/<finding-stichwort>``
 
-Skill `adr-architecture-decision-records` aktivieren, wenn diese
-Entscheidung ansteht.
+### Doku im selben Commit
 
-## Nuetzliche Befehle (Kurzreferenz)
+ADRs (``docs/decisions/ADR-NNN-...``), wenn Phase 2 weitere Architekturentscheidungen ausloest, im selben PR wie die Implementierung.
+
+### Files OHNE BOM
+
+Im Workspace alle Schreibvorgaenge ueber Python + ``pathlib.Path.write_text(content, encoding=\'utf-8\')``. Siehe ``05_File_Write_Workaround.md``.
+
+### Tool-Output-Pruning
+
+``gh pr create``, ``gh pr merge``, ``git push``: isoliert ausfuehren mit ``skipPruning: true``. Vor Re-Trigger Idempotenz-Check. Siehe ``04_Tool_Output_Pruning.md``.
+
+## Lessons aus dieser Session
+
+### CI Lockfile-Drift (PR #1688)
+
+Symptom: ``npm ci`` schlug fehl mit ``Invalid: lock file\'s typescript@5.3.3 does not satisfy typescript@5.9.3``. Root Cause: madge\'s Subtree-Pakete ``dependency-tree``, ``filing-cabinet``, ``precinct`` haben TypeScript ``^5.9.3`` als regular dep. Top-Level war ``^5.3.3``. ``npm install`` akzeptiert das, ``npm ci`` ist strikt.
+
+Fix: ``npm install --package-lock-only`` deduplizierte das, TypeScript wurde auf 5.9.3 gehoben (innerhalb ``^5.3.3`` semver-konform).
+
+Lesson: nach jedem Tooling-PR ``npm ci`` lokal verifizieren, nicht nur ``npm install``.
+
+### i18n Side-Effect-Loads via Barrel (ADR-001)
+
+Symptom: Nach Codemod-Migration brach ``ButtonHelper.spec.ts``: ``getTextForUI`` lieferte ``"en/goToClubChampions/elementText not found"`` statt ``"Go To Club Champion"``.
+
+Root Cause: ``HHAuto_ToolTips`` wird in ``i18n/empty.ts`` deklariert und in ``de.ts``, ``en.ts``, ``fr.ts``, ``es.ts`` per Side-Effect mit Texten befuellt. Frueher zog ``LanguageHelper.ts`` per ``import ... from "../i18n/index"`` den Barrel ein, der per ``export *`` ALLE Sprach-Files transitiv lud. Direkter Import auf ``empty.ts`` allein laedt die Sprach-Files nicht.
+
+Fix: explizite Side-Effect-Imports in ``LanguageHelper.ts``:
+
+```typescript
+import { HHAuto_ToolTips } from "../i18n/empty";
+import "../i18n/empty";
+import "../i18n/en";
+import "../i18n/fr";
+import "../i18n/de";
+import "../i18n/es";
+```
+
+Lesson: bei Refactor-Codemods auf Side-Effect-Imports pruefen, nicht nur Symbol-Aufloesung. Mein Codemod-Skript reportet jetzt jeden Side-Effect-Import und Default-Import als "skipped" und ist damit detektierbar.
+
+### Madge stdout buffering auf Linux CI
+
+Symptom: ``check-circular-deps.mjs`` failte auf Linux CI mit ``Failed to parse madge JSON: Unexpected end of JSON input`` -- aber nur auf CI, lokal auf Windows nie.
+
+Root Cause: ``child.on("close", ...)`` feuert manchmal vor dem letzten stdout-Chunk. Bei kleinen Outputs nicht, bei ~30 KB JSON regelmaessig.
+
+Fix: madge nicht mehr ueber ``spawn(npx)`` aufrufen, stattdessen die programmatic API ``import madge``. Kein Child-Process, kein Buffering-Risiko.
+
+Lesson: bei groesseren Tool-Outputs lieber API als Subprocess.
+
+## Pflichtlektuere fuer naechste Session
+
+In dieser Reihenfolge:
+
+1. **``docs-internal/REVIEW_HANDOVER.md``** (dieses File) -- komplett.
+2. **``docs-internal/REVIEW_PHASE0.md``** -- mind. Abschnitt 4 (Hot-Spot-Ranking) und Abschnitt 3 (Risiko-Marker-Heatmap fuer ``PageNavigationService``).
+3. **``docs/decisions/ADR-001-drop-barrels.md``** -- Architektur-Kontext fuer Imports im Code-Review.
+4. **``.kiro/steering/06_Git_Workflow_HHAuto.md``** -- Workflow-Spezifika.
+5. **``src/Service/PageNavigationService.ts``** -- das eigentliche Review-Subjekt.
+6. **``spec/Service/PageNavigationService.spec.ts``** -- bestehende Test-Coverage.
+
+## Nuetzliche Befehle
 
 ```powershell
-# Repo-Pfad
+# Repo
 cd c:\Users\StephanMesser\.kiro\Arbeitsplatz\HHAuto
 
-# Branch-Status
+# Status
 git status -sb
 git log --oneline -5
 
@@ -177,69 +187,74 @@ git log --oneline -5
 npm run build
 npm test
 
-# Quality Gates (alle in dieser Session installiert)
+# Quality Gates
 npm run lint
 npm run typecheck
 npm run typecheck:strict
-npm run deps:circular
+npm run deps:circular:check
 npm run deps:dead
-npm run deps:unused
 npm run dup:check
 
-# Bundle-Analyse (oeffnet Browser)
+# Bundle-Analyse
 npm run bundle:stats
 npm run bundle:analyze
 ```
 
-## Steering-Reminder fuer die naechste Session
+## Skills aktivieren
 
-- HHAuto ist **Branch-basiert**, kein direkter Push auf `main`.
-- Sprache: Englisch fuer Commits, PR, README, Issue-Kommentare.
-  Deutsch fuer interne Doku/Reasoning.
-- Versions-Bump im selben PR wie Code-Aenderung, sobald
-  User-Pfad beruehrt (siehe `06_Git_Workflow_HHAuto.md`).
-- Issue-Refs nur in Commit/PR-Body, nie in README/CHANGELOG/Issue-
-  Kommentaren.
-- Files OHNE BOM schreiben - im Workspace immer ueber Python
-  + `pathlib.Path.write_text(content, encoding='utf-8')` (siehe
-  `05_File_Write_Workaround.md`).
-- Bei `gh issue comment` / `gh pr create` / `git push`: isoliert
-  ausfuehren, `skipPruning: true`. Vor Re-Trigger Idempotenz-
-  Check (siehe global `04_Tool_Output_Pruning.md`).
-- Pflicht-Reaktion auf Korrekturen: Pattern erkennen, Lesson in
-  `_lessons/` ablegen (siehe `11_Self_Improvement_Loop.md`).
+Phase 2 zieht zwei Skills, die eingebunden gehoeren:
 
-## Prompt fuer die naechste Session
+- **``code-review-and-quality``** -- bei jedem Modul-Review, vor Findings-Listung.
+- **``adr-architecture-decision-records``** -- falls Phase 2 weitere Architekturentscheidungen sichtbar macht.
 
-Folgenden Block kann der User in eine neue Kiro-Session kopieren,
-wenn er den Review fortsetzen will. Anpassen: was am Ziel sein
-soll (PR aufmachen, Phase 2 starten, etc.).
+Optional bei knifflingen Stellen:
+
+- **``doubt-driven-development``** -- adversarial Fresh-Context-Review, wenn ein Finding Stakes hat (Auth, Storage, Race Conditions).
+
+## Prompt-Vorlage fuer naechste Session
+
+Folgenden Block kann der User in eine neue Kiro-Session kopieren:
 
 ```text
-Wir setzen den HHAuto-Code-Review aus der letzten Session fort.
+HHAuto-Code-Review Phase 2 starten.
 
-Stand:
-- Branch chore/dev-tooling-setup (commit 511d95f) ist gepusht.
-- Phase 0 (Inventory) abgeschlossen, dokumentiert in
-  docs-internal/REVIEW_PHASE0.md.
-- Detaillierte Uebergabe in
-  docs-internal/REVIEW_HANDOVER.md.
-- Naechster Workflow-Schritt: 10 (Freigabe-Gate fuer
-  chore/dev-tooling-setup steht aus).
+Aktueller Stand:
+- main HEAD: 2f0ee684 (Variante A des ADR-001-Refactors gemerged).
+- Phase 0 + Phase 1 + ADR-001 abgeschlossen.
+- Detaillierte Uebergabe in docs-internal/REVIEW_HANDOVER.md.
 
 Was du als erstes tun sollst:
 1. Lies docs-internal/REVIEW_HANDOVER.md komplett.
-2. Lies docs-internal/REVIEW_PHASE0.md, mindestens Abschnitte
-   4 (Hot-Spot-Ranking) und 5 (Architectural Findings).
-3. Lies .kiro/steering/06_Git_Workflow_HHAuto.md (Workflow-
-   Spezifika fuer dieses Repo).
-4. Frage mich, was als naechstes ansteht. Optionen:
-   a) PR fuer chore/dev-tooling-setup oeffnen (Workflow-
-      Schritte 11-14 nach erteilter Freigabe).
-   b) ADR-001 zu den 227 Circular Imports erstellen
-      (Skill adr-architecture-decision-records).
-   c) Phase 2 starten mit
-      Service/PageNavigationService.ts.
-   d) Phase 1 (CI-Gate-Entscheidung) zuerst.
-5. Erst nach meiner Antwort handeln.
+2. Lies docs-internal/REVIEW_PHASE0.md, mindestens Abschnitt 3
+   (Risiko-Marker fuer PageNavigationService) und Abschnitt 4
+   (Hot-Spot-Ranking).
+3. Lies docs/decisions/ADR-001-drop-barrels.md.
+4. Lies .kiro/steering/06_Git_Workflow_HHAuto.md.
+5. Aktiviere den Skill code-review-and-quality.
+6. Lies src/Service/PageNavigationService.ts und
+   spec/Service/PageNavigationService.spec.ts.
+7. Ohne Code-Aenderung: Findings entlang der fuenf Review-Achsen
+   (Korrektheit, Lesbarkeit, Architektur, Security, Performance)
+   sammeln, Severity-Labels (Critical/Important/Nit/FYI) vergeben,
+   Output in docs-internal/REVIEW_PageNavigationService.md ablegen.
+8. Mit mir die Befunde durchsprechen, bevor irgendein Fix-PR
+   entsteht.
 ```
+
+## Risiken / Offene Punkte
+
+### Karma-Stack
+
+5 Critical, 12 High Vulnerabilities aus den Karma-Pakages. Phase 5 ist der Cleanup-Job. Bis dahin: ``npm audit`` bleibt rot, ist aber nicht in CI als Gate aktiv.
+
+### ESLint-Errors auf main
+
+72 vorbestehende Errors. Reviewdog blockt auf neue Errors auf veraenderten Zeilen, lasst die alten unangetastet. Phase 6 (Doku & Steering) oder eine spezielle Lint-Cleanup-Phase kann das angehen.
+
+### Test-Coverage 32.96%
+
+Niedrig, besonders in Modules wie ``Harem.ts`` (1.83%), ``Shop.ts`` (1.66%), ``PlaceOfPower.ts`` (5.83%). Phase 2 wird das modulweise heben durch gezielte Tests fuer die hot-spots-Branches.
+
+### Strict-TS-Backlog
+
+2192 Strict-TS-Errors. ``typecheck:strict`` ist advisory. File-by-file-Migration als laufender Task neben Phase 2 moeglich, sobald ein Modul gereviewed ist.
