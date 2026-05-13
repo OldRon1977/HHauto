@@ -14,12 +14,15 @@ jest.mock('../../src/Helper/StorageHelper', () => ({
     setStoredValue: jest.fn(),
 }));
 
-jest.mock('../../src/Utils/index', () => ({
+jest.mock('../../src/Utils/LogUtils', () => ({
     logHHAuto: jest.fn(),
 }));
 
-jest.mock('../../src/config/index', () => ({
+jest.mock('../../src/config/HHStoredVars', () => ({
     HHStoredVarPrefixKey: 'HHAuto_',
+}));
+
+jest.mock('../../src/config/StorageKeys', () => ({
     TK: { Timers: 'Temp_Timers' },
 }));
 

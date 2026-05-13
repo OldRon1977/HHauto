@@ -4,7 +4,7 @@
 // handler-specific properties (atomic, priority, interruptible).
 
 // Mock all external dependencies that Pipeline.config.ts imports
-jest.mock('../../src/Module/index', () => ({
+jest.mock('../../src/Module/League', () => ({
   LeagueHelper: {
     isAutoLeagueActivated: jest.fn().mockReturnValue(true),
     isTimeToFight: jest.fn().mockReturnValue(true),
@@ -12,31 +12,37 @@ jest.mock('../../src/Module/index', () => ({
   },
 }));
 
-jest.mock('../../src/Module/Events/index', () => ({
+jest.mock('../../src/Module/Events/EventModule', () => ({
   EventModule: {
     parseEventPage: jest.fn().mockResolvedValue(false),
   },
 }));
 
-jest.mock('../../src/Helper/index', () => ({
+jest.mock('../../src/Helper/ConfigHelper', () => ({
   ConfigHelper: {
     getHHScriptVars: jest.fn().mockReturnValue(true),
   },
+}));
+
+jest.mock('../../src/Helper/StorageHelper', () => ({
   getStoredValue: jest.fn().mockReturnValue('[]'),
 }));
 
-jest.mock('../../src/config/index', () => ({
+jest.mock('../../src/config/HHStoredVars', () => ({
   HHStoredVarPrefixKey: 'HHAuto_',
+}));
+
+jest.mock('../../src/config/StorageKeys', () => ({
   SK: { master: 'master' },
   TK: { eventsList: 'Temp_eventsList' },
 }));
 
-jest.mock('../../src/Utils/index', () => ({
+jest.mock('../../src/Utils/LogUtils', () => ({
   logHHAuto: jest.fn(),
 }));
 
 import { pipeline, HandlerConfig, getStaleEventIDs } from '../../src/Service/Pipeline.config';
-import { getStoredValue } from '../../src/Helper/index';
+import { getStoredValue } from '../../src/Helper/StorageHelper';
 const getStoredValueMock = getStoredValue as jest.Mock;
 
 describe('Pipeline.config', () => {

@@ -11,9 +11,12 @@ jest.mock('../../src/Utils/LogUtils', () => ({
     logHHAuto: jest.fn(),
 }));
 
-jest.mock('../../src/config/index', () => ({
+jest.mock('../../src/config/HHStoredVars', () => ({
     HHStoredVarPrefixKey: 'HHAuto_',
     HHStoredVars: {},
+}));
+
+jest.mock('../../src/config/StorageKeys', () => ({
     SK: {},
     TK: {},
 }));

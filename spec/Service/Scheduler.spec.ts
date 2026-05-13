@@ -9,17 +9,20 @@ jest.mock('../../src/Service/MouseService', () => ({
   get mouseBusy() { return mouseServiceState.mouseBusy; },
 }));
 
-jest.mock('../../src/Helper/index', () => ({
+jest.mock('../../src/Helper/StorageHelper', () => ({
   getStoredValue: jest.fn().mockReturnValue('true'), // master = on by default
 }));
 
-jest.mock('../../src/config/index', () => ({
+jest.mock('../../src/config/HHStoredVars', () => ({
   HHStoredVarPrefixKey: 'HHAuto_',
+}));
+
+jest.mock('../../src/config/StorageKeys', () => ({
   SK: { master: 'master' },
   TK: { autoLoop: 'Temp_autoLoop' },
 }));
 
-jest.mock('../../src/Utils/index', () => ({
+jest.mock('../../src/Utils/LogUtils', () => ({
   logHHAuto: jest.fn(),
 }));
 
@@ -31,7 +34,7 @@ jest.mock('../../src/Service/Pipeline.config', () => ({
 import { Scheduler } from '../../src/Service/Scheduler';
 import { HandlerConfig, StepResult } from '../../src/Service/Pipeline.config';
 import * as MouseServiceModule from '../../src/Service/MouseService';
-import * as HelperModule from '../../src/Helper/index';
+import * as HelperModule from '../../src/Helper/StorageHelper';
 import { pipeline } from '../../src/Service/Pipeline.config';
 
 // Helper to create a minimal handler config
