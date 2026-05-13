@@ -1,8 +1,7 @@
 // General-purpose utility functions for HHAuto.
 // Provides callItOnce (ensures a function executes only once), safeJsonParse,
 // AJAX response interception helpers, and other shared convenience methods.
-
-import { getStorageItem } from '../Helper/index';
+import { getStorageItem } from "../Helper/StorageHelper";
 import { logHHAuto } from "./LogUtils";
 
 export function callItOnce(fn) {

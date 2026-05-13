@@ -8,9 +8,9 @@
 // interfering with manual gameplay.
 //
 // Used by: StartService (binds events), AutoLoop (checks flag)
-
-import { getStoredValue } from '../Helper/index';
-import { HHStoredVarPrefixKey, SK } from '../config/index';
+import { getStoredValue } from "../Helper/StorageHelper";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK } from "../config/StorageKeys";
 
 export let mouseBusy:boolean = false;
 export let mouseBusyTimeout:ReturnType<typeof setTimeout> | number = 0;

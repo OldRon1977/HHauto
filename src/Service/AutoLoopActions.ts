@@ -18,68 +18,48 @@
 import { AutoLoopContext } from './AutoLoopContext';
 import { ModuleHandlerDescriptor } from '../model/IModule';
 import { shouldRunStandardHandler } from './AutoLoop.pure';
-import {
-    checkTimer,
-    checkTimerMustExist,
-    deleteStoredValue,
-    ConfigHelper,
-    getHHVars,
-    getHero,
-    getLimitTimeBeforeEnd,
-    getSecondsLeft,
-    getStoredValue,
-    getStoredJSON,
-    getTimer,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    HeroHelper
-} from '../Helper/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHero, HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { getLimitTimeBeforeEnd, randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, checkTimerMustExist, getSecondsLeft, getTimer, setTimer } from "../Helper/TimerHelper";
 import { PentaDrill } from '../Module/PentaDrill';
-import {
-    Booster,
-    BossBang,
-    Bundles,
-    Champion,
-    ClubChampion,
-    Contest,
-    DailyGoals,
-    EventModule,
-    GenericBattle,
-    Harem,
-    HaremSalary,
-    Labyrinth,
-    LabyrinthAuto,
-    LeagueHelper,
-    Missions,
-    Pachinko,
-    Pantheon,
-    PathOfGlory,
-    PathOfValue,
-    PlaceOfPower,
-    QuestHelper,
-    LoveRaidManager,
-    Season,
-    SeasonalEvent,
-    Shop,
-    Troll
-} from '../Module/index';
-import {
-    getHHAjax,
-    logHHAuto,
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    SK,
-    TK
-} from '../config/index';
+import { Booster } from "../Module/Booster";
+import { Bundles } from "../Module/Bundles";
+import { Champion } from "../Module/Champion";
+import { ClubChampion } from "../Module/ClubChampion";
+import { Contest } from "../Module/Contest";
+import { DailyGoals } from "../Module/DailyGoals";
+import { BossBang } from "../Module/Events/BossBang";
+import { EventModule } from "../Module/Events/EventModule";
+import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { PathOfGlory } from "../Module/Events/PathOfGlory";
+import { PathOfValue } from "../Module/Events/PathOfValue";
+import { Season } from "../Module/Events/Season";
+import { SeasonalEvent } from "../Module/Events/Seasonal";
+import { GenericBattle } from "../Module/GenericBattle";
+import { Harem } from "../Module/harem/Harem";
+import { HaremSalary } from "../Module/harem/HaremSalary";
+import { Labyrinth } from "../Module/Labyrinth";
+import { LabyrinthAuto } from "../Module/LabyrinthAuto";
+import { LeagueHelper } from "../Module/League";
+import { Missions } from "../Module/Missions";
+import { Pachinko } from "../Module/Pachinko";
+import { Pantheon } from "../Module/Pantheon";
+import { PlaceOfPower } from "../Module/PlaceOfPower";
+import { QuestHelper } from "../Module/Quest";
+import { Shop } from "../Module/Shop";
+import { Troll } from "../Module/Troll";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
-import {
-    gotoPage,
-    mouseBusy,
-    ParanoiaService,
-} from "./index";
+import { mouseBusy } from "./MouseService";
+import { gotoPage } from "./PageNavigationService";
+import { ParanoiaService } from "./ParanoiaService";
 import { isAutoLoopActive } from './AutoLoop';
 
 // ---------------------------------------------------------------------------

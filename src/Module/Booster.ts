@@ -1,47 +1,18 @@
-/**
- * Booster.ts -- Manages combat booster items (normal and mythic).
- *
- * Boosters are temporary power-ups that improve fight outcomes. This module handles:
- *   - Tracking which boosters are currently equipped via AJAX interception
- *   - Scraping equipped booster slots from the market page as a fallback
- *   - Auto-equipping normal boosters from inventory based on a user-configured slot layout
- *   - Equipping Sandalwood Perfume (mythic booster) before troll fights when farming
- *     mythic event girls or love raid girls, to double shard drops
- *
- * Booster IDs are resolved exclusively from market data (shop visit). No hardcoded
- * fallback IDs are used. The script navigates to the market first to read and cache
- * the player's booster inventory before attempting to equip.
- *
- * Each game variant (HentaiHeroes, ComixHarem, PornstarHarem, etc.) runs on its own
- * hostname, so browser localStorage is already isolated per game. No special multi-game
- * handling is needed beyond ensuring market data is cached before equipping.
- *
- * Credit: AJAX-based booster tracking logic adapted from Tom208's OCD script.
- *
- * Related modules:
- *   - Market (Shop.ts) -- provides shop booster data used by getBoosterByIdentifier()
- *   - EventModule / LoveRaidManager -- supply event girl and love raid state for
- *     Sandalwood decisions
- *   - HeroHelper -- performs the actual AJAX call to equip a booster
- */
-import {
-    HeroHelper,
-    ConfigHelper,
-    checkTimer,
-    getHHVars,
-    getStoredJSON,
-    getStoredValue,
-    setStoredValue,
-    setTimer,
-    randomInterval
-} from '../Helper/index';
-import { gotoPage } from '../Service/index';
-import { isJSON, logHHAuto, onAjaxResponse } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../Helper/TimerHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON, onAjaxResponse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
-import { EventModule, LoveRaidManager } from './index';
-
+import { EventModule } from "./Events/EventModule";
+import { LoveRaidManager } from "./Events/LoveRaidManager";
 
 const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
 

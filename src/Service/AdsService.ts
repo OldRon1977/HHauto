@@ -14,7 +14,8 @@
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { HHStoredVarPrefixKey, SK } from "../config/index";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK } from "../config/StorageKeys";
 
 export class AdsService {
     static closeHomeAds() {

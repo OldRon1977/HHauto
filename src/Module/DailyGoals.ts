@@ -6,22 +6,18 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    RewardHelper,
-    checkTimer,
-    ConfigHelper,
-    getPage,
-    getStoredJSON,
-    getStoredValue,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    convertTimeToInt
-} from '../Helper/index';
-import { gotoPage } from "../Service/index";
-import { callItOnce, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { KKDailyGoal } from '../model/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../Helper/TimerHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { callItOnce, isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { KKDailyGoal } from "../model/KK/kkDailyGoal";
 
 export class DailyGoals {
     static isAutoDailyGoalsActivated(): boolean{

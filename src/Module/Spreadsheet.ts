@@ -6,12 +6,10 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    ConfigHelper,
-    getPage,
-    getTextForUI
-} from '../Helper/index';
-import { onAjaxResponse } from '../Utils/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { onAjaxResponse } from "../Utils/Utils";
 
 export class Spreadsheet {
     static LINK_CLASS = 'hhauto-spreadsheet-link';

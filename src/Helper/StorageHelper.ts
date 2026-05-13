@@ -27,10 +27,12 @@
 // for selecting which reward types to auto-collect.
 //
 // Used by: Every module and helper in the project.
-
-import { setDefaults } from '../Service/index';
-import { cleanLogsInStorage, fillHHPopUp, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
-import { HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';
+import { setDefaults } from "../Service/StartService";
+import { fillHHPopUp } from "../Utils/HHPopup";
+import { cleanLogsInStorage, logHHAuto } from "../Utils/LogUtils";
+import { isJSON, safeJsonParse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { ConfigHelper } from "./ConfigHelper";
 import { getMenuValues } from "./HHMenuHelper";
 import { getTextForUI } from "./LanguageHelper";

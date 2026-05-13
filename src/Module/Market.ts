@@ -6,19 +6,16 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    HeroHelper,
-    clearTimer,
-    getHHVars,
-    getHero,
-    getStoredValue,
-    getStoredJSON,
-    randomInterval,
-    setStoredValue
-} from '../Helper/index';
+import { HeroHelper, getHero } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { clearTimer } from "../Helper/TimerHelper";
 import { addNutakuSession } from '../Service/PageNavigationService';
-import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax, isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 
 export class Market {
     static doShopping() {

@@ -6,9 +6,11 @@
 //
 // Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
 //
-import { getStoredValue, setStoredValue, getStoredJSON } from '../Helper/index';
-import { getHHAjax, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, TK } from '../config/index';
+import { getStoredValue, setStoredValue, getStoredJSON } from "../Helper/StorageHelper";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
 
 const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
 

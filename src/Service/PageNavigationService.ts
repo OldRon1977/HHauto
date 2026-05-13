@@ -15,11 +15,16 @@
 // automatically once the page has loaded and the script restarts.
 //
 // Used by: Every module that needs to navigate to a page.
-
-import { ConfigHelper, getPage, queryStringGetParam, randomInterval, setStoredValue, setTimer, url_add_param } from '../Helper/index';
-import { QuestHelper } from '../Module/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getPage } from "../Helper/PageHelper";
+import { setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { setTimer } from "../Helper/TimerHelper";
+import { queryStringGetParam, url_add_param } from "../Helper/UrlHelper";
+import { QuestHelper } from "../Module/Quest";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from './AjaxTracker';
 
 // Module-level mutex: true while a navigation has been scheduled but the

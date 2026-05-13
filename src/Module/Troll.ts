@@ -9,31 +9,25 @@
 // Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    checkTimer,
-    clearTimer,
-    ConfigHelper,
-    deleteStoredValue,
-    getHero,
-    getHHVars,
-    getPage,
-    getSecondsLeft,
-    getStoredJSON,
-    getStoredValue,
-    getTextForUI,
-    HeroHelper,
-    queryStringGetParam,
-    RewardHelper,
-    setHHVars,
-    setStoredValue,
-} from '../Helper/index';
-import { gotoPage } from '../Service/index';
-import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHero, HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars, setHHVars } from "../Helper/HHHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { checkTimer, clearTimer, getSecondsLeft } from "../Helper/TimerHelper";
+import { queryStringGetParam } from "../Helper/UrlHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
 import { Booster } from './Booster';
-import { EventModule, LoveRaidManager } from "./Events/index";
+import { EventModule } from "./Events/EventModule";
+import { LoveRaidManager } from "./Events/LoveRaidManager";
 import { Harem } from "./harem/Harem";
 
 export class Troll {

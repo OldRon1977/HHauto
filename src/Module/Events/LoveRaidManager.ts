@@ -7,24 +7,20 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Love Raid event is active)
 //
-import {
-    checkTimer,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    getStoredJSON,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    getTextForUI,
-    getTimeLeft,
-    clearTimer} from "../../Helper/index";
-    import { gotoPage } from "../../Service/index";
-    import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { randomInterval } from "../../Helper/TimeHelper";
+import { checkTimer, setTimer, getTimeLeft, clearTimer } from "../../Helper/TimerHelper";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
 import { EventGirl } from "../../model/EventGirl";
 import { LoveRaid } from "../../model/LoveRaid";
-import { KKLoveRaid } from "../../model/index";
+import { KKLoveRaid } from "../../model/KK/KKLoveRaid";
 
 export class LoveRaidManager {
     static parse() {

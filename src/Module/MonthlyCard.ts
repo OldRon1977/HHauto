@@ -10,13 +10,11 @@
 // Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    ConfigHelper,
-    getHHVars
-} from '../Helper/index';
-import { logHHAuto } from '../Utils/index';
-import { HHAuto_inputPattern } from '../config/index';
-import { Season } from "./Events/index";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHAuto_inputPattern } from "../config/InputPattern";
+import { Season } from "./Events/Season";
 import { LeagueHelper } from "./League";
 import { Pantheon } from "./Pantheon";
 import { PentaDrill } from './PentaDrill';

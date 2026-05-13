@@ -7,28 +7,22 @@
 // Used by: Service/index.ts (main automation loop)
 //
 import { get } from 'jquery';
-import {
-    convertTimeToInt,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getSecondsLeft,
-    getStoredJSON,
-    getStoredValue,
-    getTextForUI,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    TimeHelper,
-    hhButton,
-    deleteStoredValue
-} from '../Helper/index';
-import { gotoPage, safeReload } from "../Service/index";
-import { getHHAjax, isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { ChampionModel } from "../model/index";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { hhButton } from "../Helper/HHMenuHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { getSecondsLeft, setTimer } from "../Helper/TimerHelper";
+import { gotoPage, safeReload } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax, isJSON, safeJsonParse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { ChampionModel } from "../model/Champion";
 import { decideNextChampionTime } from './Champion.pure';
-import { EventModule } from "./Events/index";
+import { EventModule } from "./Events/EventModule";
 import { QuestHelper } from "./Quest";
 
 export class Champion {

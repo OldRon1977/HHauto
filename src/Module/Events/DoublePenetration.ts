@@ -7,26 +7,22 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Double Penetration event is active)
 //
-import {
-    RewardHelper,
-    checkTimer,
-    getGoToClubChampionButton,
-    ConfigHelper,
-    getPage,
-    getLimitTimeBeforeEnd,
-    getStoredValue,
-    getStoredJSON,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    getTextForUI,
-    convertTimeToInt,
-    HeroHelper,
-} from "../../Helper/index";
-import { autoLoop, gotoPage } from "../../Service/index";
-import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { HHEvent, HHEventData, HHEventList } from "../../model/index";
+import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { HeroHelper } from "../../Helper/HeroHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getLimitTimeBeforeEnd, randomInterval, convertTimeToInt } from "../../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../../Helper/TimerHelper";
+import { autoLoop } from "../../Service/AutoLoop";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 
 export class DoublePenetration {
 

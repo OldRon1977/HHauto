@@ -3,17 +3,15 @@
 // CSS selectors, feature flags, and troll/quest data for that variant.
 
 import { getLanguageCode } from "../Helper/LanguageHelper";
-import { Harem } from '../Module/index';
-import { 
-    AmourAgent,
-    ComixHarem,
-    GayHarem,
-    GayPornstarHarem,
-    HentaiHeroes,
-    MangaRpg,
-    PornstarHarem,
-    TransPornstarHarem
-} from "./game/index";
+import { Harem } from "../Module/harem/Harem";
+import { AmourAgent } from "./game/AmourAgentVars";
+import { ComixHarem } from "./game/ComixHaremVars";
+import { GayHarem } from "./game/GayHaremVars";
+import { GayPornstarHarem } from "./game/GayPornstarHaremVars";
+import { HentaiHeroes } from "./game/HentaiHeroesVars";
+import { MangaRpg } from "./game/MangaRpgVars";
+import { PornstarHarem } from "./game/PornstarHaremVars";
+import { TransPornstarHarem } from "./game/TransPornstarHaremVars";
 
 const supportedGames = [
     HentaiHeroes,

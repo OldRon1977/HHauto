@@ -7,24 +7,21 @@
 // Depends on: TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
-import {
-    RewardHelper,
-    checkTimer,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getStoredValue,
-    getTextForUI,
-    getTimeLeft,
-    queryStringGetParam,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    HeroHelper
-} from '../Helper/index';
-import { gotoPage, ParanoiaService } from '../Service/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { queryStringGetParam } from "../Helper/UrlHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { ParanoiaService } from "../Service/ParanoiaService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { Booster } from "./Booster";
 import { DailyGoals } from './DailyGoals';
 import {

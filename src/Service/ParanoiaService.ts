@@ -9,31 +9,23 @@
 // paranoia to avoid missing time-limited waves.
 //
 // Used by: AutoLoop (checked every iteration when paranoia is on)
-
-import {
-    ConfigHelper,
-    getHHVars,
-    getHero,
-    getSecondsLeft,
-    getStoredJSON,
-    getStoredValue,
-    getTimer,
-    randomInterval,
-    setStoredValue,
-    setTimer
-} from '../Helper/index';
-import { 
-    EventModule,
-    LeagueHelper,
-    Pantheon,
-    PlaceOfPower,
-    QuestHelper,
-    Season,
-    Troll
-} from '../Module/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { EventGirl } from '../model/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHero } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { getSecondsLeft, getTimer, setTimer } from "../Helper/TimerHelper";
+import { EventModule } from "../Module/Events/EventModule";
+import { Season } from "../Module/Events/Season";
+import { LeagueHelper } from "../Module/League";
+import { Pantheon } from "../Module/Pantheon";
+import { PlaceOfPower } from "../Module/PlaceOfPower";
+import { QuestHelper } from "../Module/Quest";
+import { Troll } from "../Module/Troll";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { EventGirl } from "../model/EventGirl";
 import { getBurst } from "./AutoLoop";
 import { gotoPage } from "./PageNavigationService";
 

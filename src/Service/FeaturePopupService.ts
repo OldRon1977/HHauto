@@ -14,20 +14,11 @@
 //   - Close button (permanently dismiss for this version)
 //
 // When activated for a new version, dismiss counters reset automatically.
-
-import {
-    getStoredValue,
-    setStoredValue
-} from '../Helper/index';
-import {
-    fillHHPopUp,
-    logHHAuto,
-    maskHHPopUp
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    TK
-} from '../config/index';
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
 
 /**
  * Maximum number of "Remind me later" clicks before the popup is suppressed

@@ -8,31 +8,21 @@
 //
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
-import {
-    checkTimer,
-    ConfigHelper,
-    getHHVars,
-    getLimitTimeBeforeEnd,
-    getPage,
-    getSecondsLeft,
-    getStoredValue,
-    getStoredJSON,
-    getTextForUI,
-    getTimeLeft,
-    randomInterval,
-    RewardHelper,
-    setStoredValue,
-    setTimer,
-    TimeHelper
-} from '../Helper/index';
-import {
-    addNutakuSession,
-    gotoPage,
-    ParanoiaService
-} from "../Service/index";
-import { getHHAjax, isJSON, logHHAuto } from "../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../config/index";
-import { KKPentaDrillOpponents } from '../model/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { ParanoiaService } from "../Service/ParanoiaService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax, isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { KKPentaDrillOpponents } from "../model/KK/KKPentaDrillOpponents";
 import { Booster } from "./Booster";
 
 export class PentaDrill {

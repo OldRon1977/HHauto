@@ -7,23 +7,17 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    RewardHelper,
-    TimeHelper,
-    convertTimeToInt,
-    deleteStoredValue,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    checkTimer
-} from '../Helper/index';
-import { gotoPage } from '../Service/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { Mission, MissionRewards } from '../model/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { deleteStoredValue, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
+import { setTimer, checkTimer } from "../Helper/TimerHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { Mission, MissionRewards } from "../model/Mission";
 
 export class Missions {
     /**

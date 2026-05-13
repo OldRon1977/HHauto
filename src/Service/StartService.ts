@@ -20,65 +20,30 @@
 // against missing jQuery and "Forbidden" error pages.
 //
 // Used by: src/index.ts (entry point)
-
-import {
-    addEventsOnMenuItems,
-    ConfigHelper,
-    debugDeleteAllVars,
-    debugDeleteTempVars,
-    deleteStoredValue,
-    doStatUpgrades,
-    getHHVars,
-    getMenu,
-    getMenuValues,
-    getPage,
-    getStorageItem,
-    getStoredJSON,
-    getStoredValue,
-    getTextForUI,
-    getTimeLeft,
-    HHMenu,
-    manageTranslationPopUp,
-    maskInactiveMenus,
-    migrateHHVars,
-    randomInterval,
-    saveHHStoredVarsDefaults,
-    saveHHVarsSettingsAsJSON,
-    setHHStoredVarToDefault,
-    setMenuValues,
-    setStoredValue,
-    setTimer,
-    setTimers,
-    Timers
- } from '../Helper/index';
-import {
-    Booster,
-    Club,
-    Contest,
-    DailyGoals,
-    LeagueHelper,
-    Market,
-    Missions,
-    MonthlyCards,
-    PlaceOfPower,
-    Troll
-} from '../Module/index';
-import { 
-    callItOnce,
-    fillHHPopUp,
-    isJSON,
-    logHHAuto,
-    maskHHPopUp,
-    myfileLoad_onChange,
-    replaceCheatClick, 
-    saveHHDebugLog
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    HHStoredVars,
-    SK,
-    TK
-} from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { doStatUpgrades } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
+import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { getTimeLeft, setTimer, setTimers, Timers } from "../Helper/TimerHelper";
+import { Booster } from "../Module/Booster";
+import { Club } from "../Module/Club";
+import { Contest } from "../Module/Contest";
+import { DailyGoals } from "../Module/DailyGoals";
+import { LeagueHelper } from "../Module/League";
+import { Market } from "../Module/Market";
+import { Missions } from "../Module/Missions";
+import { MonthlyCards } from "../Module/MonthlyCard";
+import { PlaceOfPower } from "../Module/PlaceOfPower";
+import { Troll } from "../Module/Troll";
+import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto, saveHHDebugLog } from "../Utils/LogUtils";
+import { callItOnce, isJSON, myfileLoad_onChange, replaceCheatClick } from "../Utils/Utils";
+import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { AdsService } from './AdsService';
 import { autoLoop, getBurst } from "./AutoLoop";
 import { createPInfo } from "./InfoService";

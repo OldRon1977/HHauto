@@ -15,10 +15,11 @@
 //
 // Used by: AutoLoop (page routing), StartService (initial setup),
 //          PageNavigationService (navigation targets)
-
-import { PlaceOfPower } from '../Module/index';
-import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { PlaceOfPower } from "../Module/PlaceOfPower";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { ConfigHelper } from "./ConfigHelper";
 import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { queryStringGetParam } from "./UrlHelper";

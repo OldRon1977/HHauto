@@ -13,9 +13,17 @@
 // exporting them as a downloadable text file.
 //
 // Used by: Nearly every Helper and Module that renders UI text.
-
-import { fillHHPopUp, logHHAuto } from '../Utils/index';
-import { HHAuto_ToolTips } from "../i18n/index";
+import { fillHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHAuto_ToolTips } from "../i18n/empty";
+// Side-effect imports populate HHAuto_ToolTips with translations.
+// Previously implicit via the i18n barrel (export * from './de'...);
+// keep the loading order matching the former barrel.
+import "../i18n/empty";
+import "../i18n/en";
+import "../i18n/fr";
+import "../i18n/de";
+import "../i18n/es";
 
 export function getLanguageCode()
 {

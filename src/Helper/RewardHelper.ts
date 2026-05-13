@@ -17,18 +17,21 @@
 //
 // Used by: Event modules (progress tracking), PlaceOfPower, Season,
 //          Troll module (post-fight navigation)
-
-import { gotoPage } from '../Service/index';
-import { isJSON, logHHAuto } from '../Utils/index';
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON } from "../Utils/Utils";
 import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
 import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
-import { EventModule, LoveRaidManager, SeasonalEvent } from '../Module/index';
+import { EventModule } from "../Module/Events/EventModule";
+import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { SeasonalEvent } from "../Module/Events/Seasonal";
 import { queryStringGetParam } from "./UrlHelper";
-import { HHStoredVarPrefixKey, TK } from '../config/index';
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 
 export class RewardHelper {

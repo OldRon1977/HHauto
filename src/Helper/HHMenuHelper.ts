@@ -20,10 +20,13 @@
 import { LabyrinthAuto } from '../Module/LabyrinthAuto';
 import { LeagueHelper } from '../Module/League';
 import { Troll } from '../Module/Troll';
-import { LoveRaidManager } from '../Module/index';
-import { setDefaults } from '../Service/index';
-import { isDisplayedHHPopUp, logHHAuto } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, HHStoredVars, SK, TK } from '../config/index';
+import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { setDefaults } from "../Service/StartService";
+import { isDisplayedHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
+import { HHAuto_inputPattern } from "../config/InputPattern";
+import { SK, TK } from "../config/StorageKeys";
 import { LoveRaid } from '../model/LoveRaid';
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";

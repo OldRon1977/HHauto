@@ -15,9 +15,9 @@
 //     (used when absence means "not yet initialized", not "ready")
 //
 // Used by: Every module (via AutoLoop), StartService (timer restoration)
-
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, TK } from '../config/index';
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
 import { setStoredValue } from "./StorageHelper";
 import { TimeHelper } from "./TimeHelper";
 

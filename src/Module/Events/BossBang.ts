@@ -7,11 +7,16 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Boss Bang event is active)
 //
-import { ConfigHelper, convertTimeToInt, getPage, getStoredValue, randomInterval, setStoredValue, setTimer, TimeHelper } from "../../Helper/index";
-import { addNutakuSession, gotoPage, safeNavigateHref } from "../../Service/index";
-import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { HHEvent, HHEventData, HHEventList } from "../../model/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { setTimer } from "../../Helper/TimerHelper";
+import { addNutakuSession, gotoPage, safeNavigateHref } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { EventModule } from "./EventModule";
 
 export class BossBang {

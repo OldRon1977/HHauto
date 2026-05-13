@@ -14,7 +14,8 @@
  */
 
 import { deleteStoredValue, extractHHVars, getLocalStorageSize, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
-import { HHStoredVarPrefixKey, TK } from '../config/index';
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
 import { getBrowserData } from "./BrowserUtils";
 import { safeJsonParse } from './Utils';
 

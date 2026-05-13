@@ -6,9 +6,10 @@
 //
 // Used by: Service/index.ts (main automation loop), ClubChampion.ts
 //
-import { ConfigHelper, getHHVars } from '../Helper/index';
-import { logHHAuto } from '../Utils/index';
-import { HHEnvVariables } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHEnvVariables } from "../config/HHEnvVariables";
 
 export class Club {
     static run(){

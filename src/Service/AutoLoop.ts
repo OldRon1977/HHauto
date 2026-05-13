@@ -18,45 +18,30 @@
 // corresponding cooldown timer.
 //
 // Used by: StartService (initial call), self (recursive setTimeout)
-
-import {
-    TimeHelper,
-    checkTimer,
-    clearTimer,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    getStoredJSON,
-    setStoredValue,
-    switchHHMenuButton,
-    HeroHelper
-} from '../Helper/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { switchHHMenuButton } from "../Helper/HHMenuHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper } from "../Helper/TimeHelper";
+import { checkTimer, clearTimer } from "../Helper/TimerHelper";
 import { PentaDrill } from '../Module/PentaDrill';
-import {
-    Contest,
-    EventModule,
-    LeagueHelper,
-    Pantheon,
-    QuestHelper,
-    Season,
-    Troll
-} from '../Module/index';
-import {
-    callItOnce,
-    checkAndClosePopup,
-    logHHAuto,
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    SK,
-    TK
-} from '../config/index';
-import {
-    mouseBusy,
-    ParanoiaService,
-    setDefaults,
-    updateData,
-} from "./index";
+import { Contest } from "../Module/Contest";
+import { EventModule } from "../Module/Events/EventModule";
+import { Season } from "../Module/Events/Season";
+import { LeagueHelper } from "../Module/League";
+import { Pantheon } from "../Module/Pantheon";
+import { QuestHelper } from "../Module/Quest";
+import { Troll } from "../Module/Troll";
+import { checkAndClosePopup } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { callItOnce } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { updateData } from "./InfoService";
+import { mouseBusy } from "./MouseService";
+import { ParanoiaService } from "./ParanoiaService";
+import { setDefaults } from "./StartService";
 import { AutoLoopContext } from './AutoLoopContext';
 import {
     handleMythicWave,

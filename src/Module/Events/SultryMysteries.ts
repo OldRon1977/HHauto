@@ -8,9 +8,12 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Sultry Mysteries event is active)
 //
-import { checkTimer, ConfigHelper, convertTimeToInt, HeroHelper, randomInterval, setTimer } from "../../Helper/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { HeroHelper } from "../../Helper/HeroHelper";
+import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { HHEvent, HHEventData, HHEventList } from "../../model/index";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 
 export class SultryMysteries {
     static isEnabled(){

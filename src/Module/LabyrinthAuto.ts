@@ -8,17 +8,14 @@
 // Depends on: RelicManager.ts (relic selection after fights)
 // Used by: Labyrinth.ts (called during floor progression)
 //
-import { HHStoredVarPrefixKey, SK, TK } from "../config/index";
-import {
-    ConfigHelper,
-    getStoredValue,
-    queryStringGetParam,
-    randomInterval,
-    RewardHelper,
-    setStoredValue,
-    setTimer,
-    TimeHelper
-} from "../Helper/index";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { setTimer } from "../Helper/TimerHelper";
+import { queryStringGetParam } from "../Helper/UrlHelper";
 import { getPage } from "../Helper/PageHelper";
 import { gotoPage } from "../Service/PageNavigationService";
 import {

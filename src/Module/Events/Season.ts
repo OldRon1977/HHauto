@@ -10,37 +10,24 @@
 //             EventModule.ts (event detection)
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
-import {
-    BDSMHelper,
-    calculateBattleProbabilities,
-    checkTimer,
-    ConfigHelper,
-    convertTimeToInt,
-    getHero,
-    getHHVars,
-    getLimitTimeBeforeEnd,
-    getPage,
-    getSecondsLeft,
-    getStoredValue,
-    getStoredJSON,
-    getTextForUI,
-    getTimeLeft,
-    HeroHelper,
-    NumberHelper,
-    randomInterval,
-    RewardHelper,
-    setStoredValue,
-    setTimer,
-    TimeHelper
-} from '../../Helper/index';
-import {
-    addNutakuSession,
-    gotoPage,
-    ParanoiaService
-} from "../../Service/index";
-import { getHHAjax, isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { SeasonOpponent } from '../../model/index';
+import { BDSMHelper, calculateBattleProbabilities } from "../../Helper/BDSMHelper";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getHero, HeroHelper } from "../../Helper/HeroHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { NumberHelper } from "../../Helper/NumberHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
+import { addNutakuSession, gotoPage } from "../../Service/PageNavigationService";
+import { ParanoiaService } from "../../Service/ParanoiaService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { getHHAjax, isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { SeasonOpponent } from "../../model/SeasonOpponent";
 import { Booster } from "../Booster";
 import { EventModule } from "./EventModule";
 

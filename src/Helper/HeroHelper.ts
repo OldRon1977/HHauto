@@ -12,11 +12,13 @@
 //
 // Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
 //          BDSM simulator (hero stats for fight prediction)
-
-import { addNutakuSession, autoLoop } from '../Service/index';
-import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { KKHero } from '../model/index';
+import { autoLoop } from "../Service/AutoLoop";
+import { addNutakuSession } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax, isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { KKHero } from "../model/KK/KKHero";
 import { ConfigHelper } from './ConfigHelper';
 import { getHHVars } from "./HHHelper";
 import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";

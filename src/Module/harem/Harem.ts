@@ -8,26 +8,25 @@
 // Depends on: HaremGirl.ts (individual girl data)
 // Used by: Service/index.ts (main automation loop), EventModule.ts (girl tracking)
 //
-import {
-    deleteStoredValue,
-    ConfigHelper,
-    getHHVars,
-    getStoredValue,
-    getTextForUI,
-    setStoredValue,
-    getPage,
-    HeroHelper,
-    randomInterval,
-    TimeHelper,
-    setTimer,
-    getStoredJSON
-} from '../../Helper/index';
-import { addNutakuSession, gotoPage } from '../../Service/index';
-import { fillHHPopUp, getHHAjax, logHHAuto } from '../../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../../config/index';
-import { KKHaremGirl, KKHaremSalaryGirl, TeamData } from '../../model/index';
-import { HaremFilter, HaremGirl } from '../index';
-
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { HeroHelper } from "../../Helper/HeroHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { deleteStoredValue, getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
+import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { setTimer } from "../../Helper/TimerHelper";
+import { addNutakuSession, gotoPage } from "../../Service/PageNavigationService";
+import { fillHHPopUp } from "../../Utils/HHPopup";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { getHHAjax } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { KKHaremGirl } from "../../model/KK/KKHaremGirl";
+import { KKHaremSalaryGirl } from "../../model/KK/KKHaremSalaryGirl";
+import { TeamData } from "../../model/TeamData";
+import { HaremFilter } from "./HaremFilter";
+import { HaremGirl } from "./HaremGirl";
 
 export class Harem {
     static HAREM_UPGRADE_LAST_ACTION='haremGirl';

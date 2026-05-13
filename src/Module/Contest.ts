@@ -7,20 +7,15 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    ConfigHelper,
-    TimeHelper,
-    checkTimer,
-    checkTimerMustExist,
-    convertTimeToInt,
-    getPage,
-    getStoredValue,
-    getTimeLeft,
-    setTimer
-} from '../Helper/index';
-import { gotoPage } from "../Service/index";
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt } from "../Helper/TimeHelper";
+import { checkTimer, checkTimerMustExist, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK } from "../config/StorageKeys";
 
 export class Contest {
     static getPinfo() {

@@ -1,4 +1,4 @@
-import { HHAuto_ToolTips } from "./index";
+import { HHAuto_ToolTips } from "./empty";
 
 HHAuto_ToolTips.fr['saveDebug'] = { version: "5.6.24", elementText: "Sauver log", tooltip: "Sauvegarder un fichier journal de débogage."};
 HHAuto_ToolTips.fr['gitHub'] = { version: "5.6.24", elementText: "GitHub", tooltip: "Lien vers le projet GitHub."};

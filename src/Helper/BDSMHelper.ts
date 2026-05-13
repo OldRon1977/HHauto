@@ -1,27 +1,9 @@
-/**
- * BDSMHelper.ts - Battle Damage Simulation Model (BDSM)
- *
- * Provides a probabilistic battle simulator that predicts win/loss outcomes
- * for PvP and PvE fights. The simulator models the full combat loop: attack,
- * critical hits, elemental domination bonuses, tier-4/tier-5 girl skills
- * (stun, shield, reflect, execute), and heal-on-hit. It explores every
- * possible crit/non-crit branch per turn, weighting results by probability,
- * to produce an aggregate win chance and expected league-point distribution.
- *
- * Used by League, Season, Troll, and Champion modules to decide whether a
- * fight is worth taking before spending energy.
- *
- * Key concepts:
- *   - "Domination bonuses" come from elemental rock-paper-scissors matchups.
- *   - Tier-4 skills scale damage/defense per turn (compound growth).
- *   - Tier-5 skills are leader-only abilities (stun, shield, reflect, execute).
- *   - The simulation caps at 50 turns to avoid infinite recursion.
- */
-import { BDSMPlayer, BDSMSimu } from '../model/index';
+import { BDSMPlayer } from "../model/BDSMPlayer";
+import { BDSMSimu } from "../model/BDSMSimu";
 import { logHHAuto } from '../Utils/LogUtils';
 import { ConfigHelper } from "./ConfigHelper";
 import { getStoredJSON } from "./StorageHelper";
-import { HHStoredVarPrefixKey } from '../config/index';
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 
 export class BDSMHelper {
 

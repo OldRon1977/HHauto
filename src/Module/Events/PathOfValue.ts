@@ -8,25 +8,19 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Path of Value event is active)
 //
-import {
-    RewardHelper,
-    TimeHelper,
-    checkTimer,
-    convertTimeToInt,
-    ConfigHelper,
-    getHHVars,
-    getLimitTimeBeforeEnd,
-    getPage,
-    getSecondsLeft,
-    getStoredValue,
-    getStoredJSON,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    HeroHelper} from "../../Helper/index";
-    import { gotoPage } from "../../Service/index";
-    import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { HeroHelper } from "../../Helper/HeroHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } from "../../Helper/TimeHelper";
+import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
 import { EventModule } from "./EventModule";
 
 export class PathOfValue {

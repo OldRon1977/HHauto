@@ -6,17 +6,15 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    setTimer,
-    randomInterval,
-    getHHVars,
-    TimeHelper
-} from '../../Helper/index';
-import { logHHAuto } from '../../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../../config/index';
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { getStoredValue } from "../../Helper/StorageHelper";
+import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { setTimer } from "../../Helper/TimerHelper";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
 
 export class HaremSalary {
     static getSalaryButton() {

@@ -7,25 +7,21 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    clearTimer,
-    convertTimeToInt,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    getStoredJSON,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    deleteStoredValue,
-    getHHVars,
-    TimeHelper,
-    RewardHelper
-} from '../Helper/index';
-import { autoLoop, gotoPage, waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from '../Service/index';
-import { isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { Harem } from './index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { clearTimer, setTimer } from "../Helper/TimerHelper";
+import { waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from "../Service/AjaxTracker";
+import { autoLoop } from "../Service/AutoLoop";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { Harem } from "./harem/Harem";
 
 export class PlaceOfPower {
     static moduleDisplayPopID()

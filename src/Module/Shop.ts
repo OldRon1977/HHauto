@@ -7,23 +7,21 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    checkTimer,
-    convertTimeToInt,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getStoredValue,
-    getStoredJSON,
-    getTextForUI,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    HeroHelper
-} from '../Helper/index';
-import { autoLoop, gotoPage } from '../Service/index';
-import { isJSON, logHHAuto, safeJsonParse } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../Helper/TimerHelper";
+import { autoLoop } from "../Service/AutoLoop";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { isJSON, safeJsonParse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { HHAuto_inputPattern } from "../config/InputPattern";
+import { SK, TK } from "../config/StorageKeys";
 import { Booster } from "./Booster";
 
 export class Shop {

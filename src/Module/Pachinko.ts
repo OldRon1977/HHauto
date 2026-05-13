@@ -7,22 +7,22 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    RewardHelper,
-    convertTimeToInt,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    getTextForUI,
-    hhMenuSwitch,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    TimeHelper
-} from '../Helper/index';
-import { autoLoop, gotoPage } from '../Service/index';
-import { isDisplayedHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp, safeJsonParse } from '../Utils/index';
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { hhMenuSwitch } from "../Helper/HHMenuHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { setTimer } from "../Helper/TimerHelper";
+import { autoLoop } from "../Service/AutoLoop";
+import { gotoPage } from "../Service/PageNavigationService";
+import { isDisplayedHHPopUp, fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { safeJsonParse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { HHAuto_inputPattern } from "../config/InputPattern";
+import { TK } from "../config/StorageKeys";
 
 export class Pachinko {
     static ajaxBindingDone = false;

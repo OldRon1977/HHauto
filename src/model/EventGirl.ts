@@ -4,7 +4,7 @@
 
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { logHHAuto } from "../Utils/LogUtils";
-import { KKEventGirl } from "./index";
+import { KKEventGirl } from "./KK/KKEventGirl";
 
 export class EventGirl {
     girl_id: number;

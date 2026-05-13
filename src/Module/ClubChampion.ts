@@ -7,24 +7,18 @@
 // Depends on: Club.ts (membership check), TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    TimeHelper,
-    convertTimeToInt,
-    deleteStoredValue,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getSecondsLeft,
-    getStoredValue,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    HeroHelper
-} from '../Helper/index';
-import { gotoPage } from "../Service/index";
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { Champion } from './index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getPage } from "../Helper/PageHelper";
+import { deleteStoredValue, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
+import { getSecondsLeft, setTimer } from "../Helper/TimerHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { Champion } from "./Champion";
 import {
     decideAlignedClubChampionTimer,
     decideNextClubChampionTime,

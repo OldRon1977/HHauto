@@ -8,25 +8,23 @@
 //
 // Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
 //
-import {
-    deleteStoredValue,
-    ConfigHelper,
-    getHHVars,
-    getStoredValue,
-    getTextForUI,
-    parsePrice,
-    randomInterval,
-    setStoredValue,
-    HeroHelper,
-    TimeHelper,
-    NumberHelper,
-    getStoredJSON
-} from "../../Helper/index";
-import { Harem } from "../index";
-import { gotoPage } from "../../Service/index";
-import { displayHHPopUp, fillHHPopUp, logHHAuto, maskHHPopUp } from "../../Utils/index";
-import { HHAuto_inputPattern, HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { KKHaremGirl, TeamData } from "../../model/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { HeroHelper } from "../../Helper/HeroHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { NumberHelper } from "../../Helper/NumberHelper";
+import { parsePrice } from "../../Helper/PriceHelper";
+import { deleteStoredValue, getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
+import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { Harem } from "./Harem";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { displayHHPopUp, fillHHPopUp, maskHHPopUp } from "../../Utils/HHPopup";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { HHAuto_inputPattern } from "../../config/InputPattern";
+import { SK, TK } from "../../config/StorageKeys";
+import { KKHaremGirl } from "../../model/KK/KKHaremGirl";
+import { TeamData } from "../../model/TeamData";
 import { isBetter, scoreItem } from "./HaremGirl.pure";
 
 

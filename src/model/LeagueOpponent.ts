@@ -3,7 +3,7 @@
 // battle simulation result used to decide whether to fight.
 
 import { BDSMSimu } from './BDSMSimu';
-import { KKLeagueOpponent } from './KK/index';
+import { KKLeagueOpponent } from "./KK/KKLeagueOpponent";
 
 //@ts-check
 export class LeagueOpponent {

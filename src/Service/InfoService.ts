@@ -13,31 +13,25 @@
 // with current timer values and module states.
 //
 // Used by: StartService (creates the panel), AutoLoop (refreshes it)
-
-import {
-    NumberHelper,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    getTextForUI,
-    getTimeLeft ,
-    getTimer,
-    setStoredValue,
-    TimeHelper
-} from '../Helper/index';
-import { 
-    Contest, 
-    DailyGoals, 
-    Labyrinth, 
-    LeagueHelper, 
-    LoveRaidManager, 
-    Pantheon, 
-    PentaDrill,
-    Season, 
-    Troll 
-} from '../Module/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { NumberHelper } from "../Helper/NumberHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper } from "../Helper/TimeHelper";
+import { getTimeLeft, getTimer } from "../Helper/TimerHelper";
+import { Contest } from "../Module/Contest";
+import { DailyGoals } from "../Module/DailyGoals";
+import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { Season } from "../Module/Events/Season";
+import { Labyrinth } from "../Module/Labyrinth";
+import { LeagueHelper } from "../Module/League";
+import { Pantheon } from "../Module/Pantheon";
+import { PentaDrill } from "../Module/PentaDrill";
+import { Troll } from "../Module/Troll";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 
 export function createPInfo():JQuery<HTMLElement> {
     const pInfo = $('<div id="pInfo" ></div>');

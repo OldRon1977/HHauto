@@ -7,25 +7,21 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Lively Scene event is active)
 //
-import {
-    ConfigHelper,
-    randomInterval,
-    setTimer,
-    convertTimeToInt,
-    getLimitTimeBeforeEnd,
-    getStoredValue,
-    getStoredJSON,
-    checkTimer,
-    getHHVars,
-    RewardHelper,
-    setStoredValue,
-    TimeHelper,
-    getTextForUI,
-} from "../../Helper/index";
-import { autoLoop, gotoPage } from "../../Service/index";
-import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { HHEvent, HHEventData, HHEventList, KKPuzzlePieces } from "../../model/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { randomInterval, convertTimeToInt, getLimitTimeBeforeEnd, TimeHelper } from "../../Helper/TimeHelper";
+import { setTimer, checkTimer } from "../../Helper/TimerHelper";
+import { autoLoop } from "../../Service/AutoLoop";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { KKPuzzlePieces } from "../../model/KK/KKPuzzlePieces";
 import {
     PuzzlePieceLite,
     decideCollectTrigger,

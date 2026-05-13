@@ -1,52 +1,17 @@
-/**
- * EventModule.ts -- Central coordinator for all time-limited game events.
- *
- * This is the backbone of event automation. It detects which events are active on the
- * game's home or event pages, routes parsing to the correct event-specific handler
- * (PlusEvent, MythicEvent, BossBang, etc.), and manages shared event state in
- * sessionStorage (event list, event girls, champion girls).
- *
- * Key responsibilities:
- * - Parse event pages to extract event data and girl reward information.
- * - Track event lifecycle: detect active events, mark completed events, and clean up
- *   expired event data.
- * - Prioritize event girls based on the user-configured troll order.
- * - Inject UI enhancements: completion badges on the home page, priority labels on
- *   girl reward tiles, a "collect all" button for event chests.
- * - Provide countdown timers on the home page for Path of Value / Path of Glory events.
- *
- * Called by AutoLoop on each tick. Individual event handlers (in sibling files) contain
- * the event-type-specific parsing and reward collection logic.
- */
-import {
-    TimeHelper,
-    checkTimer,
-    checkTimerMustExist,
-    clearTimer,
-    convertTimeToInt,
-    ConfigHelper,
-    getLimitTimeBeforeEnd,
-    getPage,
-    getSecondsLeft,
-    getStoredJSON,
-    getStoredValue,
-    getTextForUI,
-    getTimeLeft,
-    getTimer,
-    queryStringGetParam,
-    randomInterval,
-    setStoredValue,
-    setTimer
-} from "../../Helper/index";
-import { gotoPage } from "../../Service/index";
-import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import {
-    EventGirl,
-    HHEvent,
-    HHEventData,
-    KKEventGirl
-} from "../../model/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } from "../../Helper/TimeHelper";
+import { checkTimer, checkTimerMustExist, clearTimer, getSecondsLeft, getTimeLeft, getTimer, setTimer } from "../../Helper/TimerHelper";
+import { queryStringGetParam } from "../../Helper/UrlHelper";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { EventGirl } from "../../model/EventGirl";
+import { HHEvent, HHEventData } from "../../model/HHEvent";
+import { KKEventGirl } from "../../model/KK/KKEventGirl";
 import { BossBang } from "./BossBang";
 import { CumbackContests } from "./CumbackContests";
 import { DoublePenetration } from "./DoublePenetration";

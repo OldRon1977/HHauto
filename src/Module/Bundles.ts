@@ -6,20 +6,17 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    RewardHelper,
-    TimeHelper,
-    ConfigHelper,
-    getPage,
-    getStoredValue,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    convertTimeToInt
-} from '../Helper/index';
-import { autoLoop, gotoPage } from "../Service/index";
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper, randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
+import { setTimer } from "../Helper/TimerHelper";
+import { autoLoop } from "../Service/AutoLoop";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import { decideExpiryTime } from './Bundles.pure';
 
 export class Bundles {

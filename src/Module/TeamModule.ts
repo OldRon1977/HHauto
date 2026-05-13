@@ -8,27 +8,28 @@
 //
 // Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
 //
-import {
-    ConfigHelper,
-    HeroHelper,
-    getHero,
-    getHHVars,
-    getPage,
-    getTextForUI,
-    hhButton,
-    hhMenuSwitch,
-    randomInterval,
-    setStoredValue
-} from '../Helper/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper, getHero } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { hhButton, hhMenuSwitch } from "../Helper/HHMenuHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { BlessingService } from '../Service/BlessingService';
 import { GirlData, ElementType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
-import { fillHHPopUp, getHHAjax, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, TK } from '../config/index';
-import { KKTeamGirl, TeamData } from '../model/index';
-import { Harem, HaremGirl } from './index';
+import { fillHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
+import { KKTeamGirl } from "../model/KK/KKTeamGirl";
+import { TeamData } from "../model/TeamData";
+import { Harem } from "./harem/Harem";
+import { HaremGirl } from "./harem/HaremGirl";
 
 export class TeamModule {
 

@@ -8,21 +8,19 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    checkTimer,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getStoredValue,
-    HeroHelper,
-    parsePrice,
-    randomInterval,
-    setStoredValue,
-    setTimer
-} from '../Helper/index';
-import { autoLoop, gotoPage } from '../Service/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getPage } from "../Helper/PageHelper";
+import { parsePrice } from "../Helper/PriceHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, setTimer } from "../Helper/TimerHelper";
+import { autoLoop } from "../Service/AutoLoop";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 
 export class QuestHelper {
     static SITE_QUEST_PAGE = '/side-quests.html';

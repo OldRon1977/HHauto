@@ -15,56 +15,43 @@
 // Used by: AutoLoop.autoLoop() (called after action handlers)
 
 import { AutoLoopContext } from './AutoLoopContext';
-import {
-    RewardHelper,
-    checkTimer,
-    ConfigHelper,
-    getStoredValue,
-    getTimer,
-    randomInterval
-} from '../Helper/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { checkTimer, getTimer } from "../Helper/TimerHelper";
 import { PentaDrill } from '../Module/PentaDrill';
 import { Spreadsheet } from '../Module/Spreadsheet';
 import { BlessingService } from './BlessingService';
-import {
-    Booster,
-    BossBang,
-    Champion,
-    Club,
-    ClubChampion,
-    Contest,
-    DailyGoals,
-    DailyGoalsIcon,
-    DoublePenetration,
-    EventModule,
-    Harem,
-    HaremGirl,
-    Labyrinth,
-    LeagueHelper,
-    LivelyScene,
-    LoveRaidManager,
-    Pachinko,
-    PathOfAttraction,
-    PathOfGlory,
-    PathOfValue,
-    PlaceOfPower,
-    Season,
-    SeasonalEvent,
-    Shop,
-    TeamModule
-} from '../Module/index';
-import {
-    callItOnce,
-    logHHAuto
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    SK,
-    TK
-} from '../config/index';
-import {
-    AdsService
-} from './index';
+import { Booster } from "../Module/Booster";
+import { Champion } from "../Module/Champion";
+import { Club } from "../Module/Club";
+import { ClubChampion } from "../Module/ClubChampion";
+import { Contest } from "../Module/Contest";
+import { DailyGoals, DailyGoalsIcon } from "../Module/DailyGoals";
+import { BossBang } from "../Module/Events/BossBang";
+import { DoublePenetration } from "../Module/Events/DoublePenetration";
+import { EventModule } from "../Module/Events/EventModule";
+import { LivelyScene } from "../Module/Events/LivelyScene";
+import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
+import { PathOfAttraction } from "../Module/Events/PathOfAttraction";
+import { PathOfGlory } from "../Module/Events/PathOfGlory";
+import { PathOfValue } from "../Module/Events/PathOfValue";
+import { Season } from "../Module/Events/Season";
+import { SeasonalEvent } from "../Module/Events/Seasonal";
+import { Harem } from "../Module/harem/Harem";
+import { HaremGirl } from "../Module/harem/HaremGirl";
+import { Labyrinth } from "../Module/Labyrinth";
+import { LeagueHelper } from "../Module/League";
+import { Pachinko } from "../Module/Pachinko";
+import { PlaceOfPower } from "../Module/PlaceOfPower";
+import { Shop } from "../Module/Shop";
+import { TeamModule } from "../Module/TeamModule";
+import { logHHAuto } from "../Utils/LogUtils";
+import { callItOnce } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { AdsService } from "./AdsService";
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
     switch (ctx.currentPage)

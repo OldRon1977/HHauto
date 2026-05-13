@@ -4,12 +4,13 @@
 // plus concrete handler entries for migrated handlers.
 //
 // Used by: Scheduler.ts
-
-import { LeagueHelper } from '../Module/index';
-import { EventModule } from '../Module/Events/index';
-import { ConfigHelper, getStoredValue } from '../Helper/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { logHHAuto } from '../Utils/index';
+import { LeagueHelper } from "../Module/League";
+import { EventModule } from "../Module/Events/EventModule";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getStoredValue } from "../Helper/StorageHelper";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { logHHAuto } from "../Utils/LogUtils";
 
 /**
  * How a handler responds to higher-priority interrupts.

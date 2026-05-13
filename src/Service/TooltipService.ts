@@ -13,10 +13,10 @@
 // styles.
 //
 // Used by: StartService (initial state), menu checkbox handler
-
-import { getStoredValue } from '../Helper/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK } from '../config/index';
+import { getStoredValue } from "../Helper/StorageHelper";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK } from "../config/StorageKeys";
 
 export function manageToolTipsDisplay(important=false)
 {

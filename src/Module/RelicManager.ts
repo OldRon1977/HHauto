@@ -7,19 +7,16 @@
 //
 // Used by: LabyrinthAuto.ts (called after room completion)
 //
-import { HHStoredVarPrefixKey, TK } from "../config/index";
-import {
-    ConfigHelper,
-    getStoredValue,
-    randomInterval,
-    RewardHelper,
-    TimeHelper
-} from "../Helper/index";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { TK } from "../config/StorageKeys";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue } from "../Helper/StorageHelper";
+import { randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import {
     logHHAuto
 } from "../Utils/LogUtils";
-import { safeJsonParse } from "../Utils/index";
-
+import { safeJsonParse } from "../Utils/Utils";
 
 export class LabyrinthRelic {
     index = 0;

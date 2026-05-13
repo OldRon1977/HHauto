@@ -9,41 +9,31 @@
 // Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
 // Used by: Service/index.ts (main automation loop), MonthlyCard.ts
 //
-import {
-    BDSMHelper,
-    calculateBattleProbabilities,
-    checkTimer,
-    ConfigHelper,
-    convertTimeToInt,
-    deleteStoredValue,
-    getGoToChangeTeamButton,
-    getHero,
-    getHHVars,
-    getPage,
-    getStoredValue,
-    getStoredJSON,
-    getTextForUI,
-    getTimeLeft,
-    HeroHelper,
-    NumberHelper,
-    parsePrice,
-    queryStringGetParam,
-    randomInterval,
-    RewardHelper,
-    setStoredValue,
-    setTimer,
-    TimeHelper
-} from '../Helper/index';
+import { BDSMHelper, calculateBattleProbabilities } from "../Helper/BDSMHelper";
+import { getGoToChangeTeamButton } from "../Helper/ButtonHelper";
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHero, HeroHelper } from "../Helper/HeroHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { NumberHelper } from "../Helper/NumberHelper";
+import { getPage } from "../Helper/PageHelper";
+import { parsePrice } from "../Helper/PriceHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
+import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { queryStringGetParam } from "../Helper/UrlHelper";
 import { decideShouldFight, ShouldFightState } from './League.pure';
-import {
-    addNutakuSession,
-    autoLoop,
-    gotoPage,
-    ParanoiaService
-} from '../Service/index';
-import { getHHAjax, isJSON, logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { BDSMSimu, KKLeagueOpponent, LeagueOpponent } from "../model/index";
+import { autoLoop } from "../Service/AutoLoop";
+import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { ParanoiaService } from "../Service/ParanoiaService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { getHHAjax, isJSON } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { BDSMSimu } from "../model/BDSMSimu";
+import { KKLeagueOpponent } from "../model/KK/KKLeagueOpponent";
+import { LeagueOpponent } from "../model/LeagueOpponent";
 import { Booster } from "./Booster";
 
 export class LeagueHelper {

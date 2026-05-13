@@ -8,8 +8,7 @@
 // The data shape is intentionally loose -- the game API uses untyped JSON
 // and the original methods accepted `any`. We mirror that here and document
 // the keys we read.
-
-import { KKHaremGirl } from "../../model/index";
+import { KKHaremGirl } from "../../model/KK/KKHaremGirl";
 
 /**
  * Subset of an inventory item that the score uses.

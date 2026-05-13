@@ -8,26 +8,20 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Path of Attraction event is active)
 //
-import {
-    ConfigHelper,
-    getStoredValue,
-    getStoredJSON,
-    getPage,
-    getGoToClubChampionButton,
-    RewardHelper,
-    setStoredValue,
-    TimeHelper,
-    randomInterval,
-    getSecondsLeft,
-    setTimer,
-    convertTimeToInt,
-    getTextForUI,
-    getLimitTimeBeforeEnd
-} from "../../Helper/index";
-import { autoLoop } from "../../Service/index";
-import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { HHEvent, HHEventData, HHEventList } from "../../model/index";
+import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { TimeHelper, randomInterval, convertTimeToInt, getLimitTimeBeforeEnd } from "../../Helper/TimeHelper";
+import { getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
+import { autoLoop } from "../../Service/AutoLoop";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 
 class PoaReward {
     tier=0;

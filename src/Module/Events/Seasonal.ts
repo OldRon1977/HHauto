@@ -7,25 +7,19 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Seasonal mega-event is active)
 //
-import {
-    RewardHelper,
-    checkTimer,
-    convertTimeToInt,
-    ConfigHelper,
-    getLimitTimeBeforeEnd,
-    getPage,
-    getSecondsLeft,
-    getStoredValue,
-    getStoredJSON,
-    getTextForUI,
-    randomInterval,
-    setStoredValue,
-    setTimer,
-    TimeHelper,
-    getHHVars} from "../../Helper/index";
-import { gotoPage } from "../../Service/index";
-import { isJSON, logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
+import { ConfigHelper } from "../../Helper/ConfigHelper";
+import { getHHVars } from "../../Helper/HHHelper";
+import { getTextForUI } from "../../Helper/LanguageHelper";
+import { getPage } from "../../Helper/PageHelper";
+import { RewardHelper } from "../../Helper/RewardHelper";
+import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
+import { gotoPage } from "../../Service/PageNavigationService";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { isJSON } from "../../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
 
 export class SeasonalEvent {
     static SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';

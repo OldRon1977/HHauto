@@ -7,8 +7,10 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Kinky Cumpetition event is active)
 //
-import { convertTimeToInt, randomInterval, setTimer } from "../../Helper/index";
-import { HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
+import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
+import { setTimer } from "../../Helper/TimerHelper";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { KKEventGirl } from "../../model/KK/KKEventGirl";
 
 export class KinkyCumpetition {
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {

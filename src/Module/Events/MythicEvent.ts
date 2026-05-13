@@ -9,10 +9,15 @@
 // Used by: EventModule.ts (called when Mythic event is active),
 //          Troll.ts (reads event troll priorities)
 //
-import { clearTimer, convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
-import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { EventGirl, HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
+import { getStoredValue } from "../../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
+import { clearTimer, setTimer } from "../../Helper/TimerHelper";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { EventGirl } from "../../model/EventGirl";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { KKEventGirl } from "../../model/KK/KKEventGirl";
 
 export class MythicEvent {
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {

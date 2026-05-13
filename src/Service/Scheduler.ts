@@ -10,9 +10,10 @@
 
 import { HandlerConfig, StepResult, pipeline } from './Pipeline.config';
 import { mouseBusy } from './MouseService';
-import { getStoredValue } from '../Helper/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { logHHAuto } from '../Utils/index';
+import { getStoredValue } from "../Helper/StorageHelper";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { logHHAuto } from "../Utils/LogUtils";
 
 /** Possible states for each handler in the pipeline */
 export type HandlerState = 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'INTERRUPTED';

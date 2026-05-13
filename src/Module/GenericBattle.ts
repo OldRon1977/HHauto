@@ -8,22 +8,23 @@
 // Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
 //          and other fight modules that navigate to battle pages
 //
-import {
-    RewardHelper,
-    ConfigHelper,
-    getHHVars,
-    getPage,
-    getStoredValue,
-    queryStringGetParam,
-    randomInterval,
-    setStoredValue
-} from '../Helper/index';
-import { gotoPage } from '../Service/index';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
-import { EventGirl, LoveRaid } from '../model/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { getHHVars } from "../Helper/HHHelper";
+import { getPage } from "../Helper/PageHelper";
+import { RewardHelper } from "../Helper/RewardHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { randomInterval } from "../Helper/TimeHelper";
+import { queryStringGetParam } from "../Helper/UrlHelper";
+import { gotoPage } from "../Service/PageNavigationService";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
+import { EventGirl } from "../model/EventGirl";
+import { LoveRaid } from "../model/LoveRaid";
 import { Troll } from "./Troll";
-import { DailyGoals, EventModule, LoveRaidManager } from './index';
+import { DailyGoals } from "./DailyGoals";
+import { EventModule } from "./Events/EventModule";
+import { LoveRaidManager } from "./Events/LoveRaidManager";
 
 export class GenericBattle {
     static doBattle()

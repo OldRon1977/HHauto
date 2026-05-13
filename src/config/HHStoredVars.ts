@@ -1,14 +1,10 @@
 // Registry of all stored variables (settings and temporary state) for HHAuto.
 // Defines each variable's storage type (setting vs. temp), default value,
 // validation regex, UI label, and type. Used by the settings menu and storage layer.
-
-import {
-    clearTimer,
-    deleteStoredValue,
-    getAndStoreCollectPreferences,
-    getTextForUI
-} from '../Helper/index';
-import { PlaceOfPower } from '../Module/index';
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { deleteStoredValue, getAndStoreCollectPreferences } from "../Helper/StorageHelper";
+import { clearTimer } from "../Helper/TimerHelper";
+import { PlaceOfPower } from "../Module/PlaceOfPower";
 import { SK, TK } from './StorageKeys';
 
 export const HHStoredVars = {};

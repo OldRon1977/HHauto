@@ -14,9 +14,10 @@
 //          InfoService (display remaining times)
 
 import { Contest } from '../Module/Contest';
-import { logHHAuto } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK } from '../config/index';
-import { hhTimerLocale, timerDefinitions } from "../i18n/index";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK } from "../config/StorageKeys";
+import { hhTimerLocale, timerDefinitions } from "../i18n/empty";
 import { getHHVars } from "./HHHelper";
 import { getStoredValue } from "./StorageHelper";
 import { checkTimerMustExist, getSecondsLeft } from './TimerHelper';

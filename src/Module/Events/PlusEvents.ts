@@ -8,10 +8,15 @@
 // Depends on: EventModule.ts (event detection and routing)
 // Used by: EventModule.ts (called when Plus Events are active)
 //
-import { convertTimeToInt, getStoredValue, randomInterval, setTimer } from "../../Helper/index";
-import { logHHAuto } from "../../Utils/index";
-import { HHStoredVarPrefixKey, SK, TK } from "../../config/index";
-import { EventGirl, HHEvent, HHEventData, HHEventList, KKEventGirl } from "../../model/index";
+import { getStoredValue } from "../../Helper/StorageHelper";
+import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
+import { setTimer } from "../../Helper/TimerHelper";
+import { logHHAuto } from "../../Utils/LogUtils";
+import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
+import { SK, TK } from "../../config/StorageKeys";
+import { EventGirl } from "../../model/EventGirl";
+import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
+import { KKEventGirl } from "../../model/KK/KKEventGirl";
 import { EventModule } from "./EventModule";
 
 export class PlusEvent {

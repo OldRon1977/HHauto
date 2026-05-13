@@ -19,22 +19,11 @@
 // Anti-spam: a hash of the settings data is stored after each
 // successful send. Duplicate submissions are silently skipped
 // (the "Thank you" popup still appears to avoid revealing the check).
-
-import {
-    getStoredValue,
-    setStoredValue
-} from '../Helper/index';
-import {
-    fillHHPopUp,
-    logHHAuto,
-    maskHHPopUp
-} from '../Utils/index';
-import {
-    HHStoredVarPrefixKey,
-    HHStoredVars,
-    SK,
-    TK
-} from '../config/index';
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
+import { logHHAuto } from "../Utils/LogUtils";
+import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSe1_iM197Xfq2kEKR2jBA64_r28BpOerTlMywVfMEmsvXvDMQ/formResponse';
 const GOOGLE_FORM_ENTRY = 'entry.875507092';

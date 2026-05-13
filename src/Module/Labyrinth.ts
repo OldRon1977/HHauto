@@ -10,20 +10,17 @@
 //             TeamModule.ts (team setup)
 // Used by: Service/index.ts (main automation loop)
 //
-import {
-    ConfigHelper,
-    TimeHelper,
-    convertTimeToInt,
-    getPage,
-    getStoredValue,
-    getTextForUI,
-    getTimeLeft,
-    hhMenuSelect,
-    randomInterval,
-    setStoredValue
-} from '../Helper/index';
-import { logHHAuto, safeJsonParse } from '../Utils/index';
-import { HHStoredVarPrefixKey, SK, TK } from '../config/index';
+import { ConfigHelper } from "../Helper/ConfigHelper";
+import { hhMenuSelect } from "../Helper/HHMenuHelper";
+import { getTextForUI } from "../Helper/LanguageHelper";
+import { getPage } from "../Helper/PageHelper";
+import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
+import { getTimeLeft } from "../Helper/TimerHelper";
+import { logHHAuto } from "../Utils/LogUtils";
+import { safeJsonParse } from "../Utils/Utils";
+import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
+import { SK, TK } from "../config/StorageKeys";
 import {
     buildPathsFromMatrix,
     decideBetterOption,

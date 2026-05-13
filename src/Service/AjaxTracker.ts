@@ -17,8 +17,7 @@
 //   waitForAjaxIdle(timeoutMs, settleMs) -- resolves when idle
 //
 // Used by: PageNavigationService.gotoPage(), PlaceOfPower module.
-
-import { logHHAuto } from '../Utils/index';
+import { logHHAuto } from "../Utils/LogUtils";
 
 // Shared timing budget for all callers that wait on the game's AJAX
 // before navigating. Keeping these constants here means
