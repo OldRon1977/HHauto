@@ -19,7 +19,6 @@
  * file is first, direction preserved) before comparison so that
  * cosmetic reorderings do not produce false diffs.
  */
-import { spawn } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,33 +40,16 @@ function cycleKey(cycle) {
   return canonicalizeCycle(cycle).join(" -> ");
 }
 
-function runMadge() {
-  return new Promise((resolveP, rejectP) => {
-    const isWin = process.platform === "win32";
-    const cmd = isWin ? "npx.cmd" : "npx";
-    const child = spawn(
-      cmd,
-      ["--yes", "madge", "--circular", "--extensions", "ts", "--json", "src"],
-      { cwd: repoRoot, shell: isWin },
-    );
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (d) => { stdout += d.toString(); });
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
-    child.on("error", rejectP);
-    child.on("close", () => {
-      try {
-        const parsed = JSON.parse(stdout);
-        if (!Array.isArray(parsed)) {
-          rejectP(new Error(`madge JSON output is not an array (stderr: ${stderr})`));
-          return;
-        }
-        resolveP(parsed);
-      } catch (err) {
-        rejectP(new Error(`Failed to parse madge JSON: ${err.message}\nstdout head: ${stdout.slice(0, 200)}\nstderr head: ${stderr.slice(0, 200)}`));
-      }
-    });
+async function runMadge() {
+  // Use madge\'s programmatic API instead of spawning a child process.
+  // Spawning + capturing stdout was fragile under CI on Linux: large JSON
+  // output landed in `child.on("close", ...)` truncated, intermittently
+  // breaking JSON.parse. The API avoids the IPC channel entirely.
+  const { default: madge } = await import("madge");
+  const result = await madge(resolve(repoRoot, "src"), {
+    fileExtensions: ["ts"],
   });
+  return result.circular();
 }
 
 function loadBaseline() {
