@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.36
+// @version      7.35.37
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -20104,7 +20104,8 @@ class HentaiHeroes {
             "Auga",
             "Gross",
             "Harriet",
-            "Darth Excitor"
+            "Darth Excitor",
+            "Daddy"
         ];
         switch (languageCode) {
             case "fr":
@@ -20180,7 +20181,7 @@ class HentaiHeroes {
     }
 }
 HentaiHeroes.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
-HentaiHeroes.trollIdMapping = { 21: 19 };
+HentaiHeroes.trollIdMapping = { 21: 19, 24: 22 };
 HentaiHeroes.sideTrollIdMapping = { 22: 20 };
 HentaiHeroes.lastQuestId = 2116; //  TODO update when new quest comes
 
