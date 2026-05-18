@@ -145,14 +145,16 @@ export class TeamBuilderService {
             (a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0)
         );
 
-        // Detect blessed categories (informational, surfaced in audit/UI).
-        const { blessedCategories, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
+        // Detect blessed categories AND values (issue 1679: boost the
+        // actually-blessed value, not every value in a blessed category).
+        const { blessedCategories, blessedValues, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
 
-        // Find candidate trait groups, scored mode-aware. Blessed
-        // categories get a boost so the build phase tries them first.
-        const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedCategories);
+        // Find candidate trait groups, scored mode-aware. Groups whose
+        // (category, value) pair matches an active blessing get a boost
+        // so the build phase evaluates them first.
+        const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedValues);
 
-        // Evaluate top groups + any blessed-category groups not in the top.
+        // Evaluate top groups + any blessed-value groups not in the top.
         const groupsToEvaluate: TraitGroupResult[] = [];
         const seenKeys = new Set<string>();
         for (const g of traitGroups.slice(0, 5)) {
@@ -162,7 +164,10 @@ export class TeamBuilderService {
         for (const g of traitGroups) {
             const key = g.traitCategory + '=' + g.traitValue;
             if (seenKeys.has(key)) continue;
-            if (blessedCategories.has(g.traitCategory)) { groupsToEvaluate.push(g); seenKeys.add(key); }
+            if (blessedValues[g.traitCategory] === g.traitValue) {
+                groupsToEvaluate.push(g);
+                seenKeys.add(key);
+            }
         }
         if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
             groupsToEvaluate.push(traitGroups[0]);

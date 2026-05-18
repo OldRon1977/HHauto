@@ -244,6 +244,7 @@ export class BlessingService {
             eyeColor: 'eye_color1',
             hairColor: 'hair_color1',
             position: 'position_img',
+            zodiac: 'zodiac',
         };
         const field = fieldMap[blessedCategory];
         if (!field) return undefined;
@@ -265,16 +266,63 @@ export class BlessingService {
                 }
             }
 
-            // Check if one value dominates (>90% of the group)
-            for (const [val, count] of valueCounts) {
-                if (count / group.length >= 0.9) {
-                    logHHAuto('BlessingService: resolved ' + blessedCategory + ' -> hex="' + val + '" (' + count + '/' + group.length + ' girls)');
-                    return val;
+            // Pick the dominant value when it has >= 80% of the group
+            // OR is at least 3x larger than the next contender. The
+            // raw 90% threshold rejected legitimate dominants like
+            // Frank75's eye=F00 (41/47, 87%) where a few girls happen
+            // to have a different eye color but the SAME blessing
+            // bonus (multiple blessings stacked on the same girl).
+            const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                const [topVal, topCount] = sorted[0];
+                const secondCount = sorted.length > 1 ? sorted[1][1] : 0;
+                const ratio = topCount / group.length;
+                const lead = secondCount === 0 ? Infinity : topCount / secondCount;
+                if (ratio >= 0.8 || lead >= 3) {
+                    logHHAuto('BlessingService: resolved ' + blessedCategory + ' -> hex="' + topVal + '" (' + topCount + '/' + group.length + ' girls, lead=' + (lead === Infinity ? 'inf' : lead.toFixed(1)) + ')');
+                    return topVal;
                 }
             }
         }
 
         return undefined;
+    }
+
+    /**
+     * Resolve the currently blessed trait values to the hex codes / filenames
+     * / glyph strings used in the girl-data fields. Combines the cached
+     * blessing names (parseBlessedValues) with per-girl pool statistics
+     * (resolveHexForBlessing) so the team builder can match on the actual
+     * field values stored on each girl.
+     *
+     * Returns a per-category mapping like:
+     *   { eyeColor: "F00", hairColor: "0F0" }
+     *
+     * For zodiac, the value is the full glyph+name string as it appears in
+     * girl.zodiac (e.g. "GLYPH Capricorne"); the same string is what girls
+     * carry, so direct equality matches.
+     *
+     * Categories with no resolvable value are omitted from the result. If
+     * no blessing data is cached or no girls carry blessings, returns {}.
+     */
+    static getBlessedHexValues(
+        girls: Array<{ eye_color1?: string; hair_color1?: string; position_img?: string; zodiac?: string; blessing_bonuses?: any }>
+    ): Record<string, string> {
+        const result: Record<string, string> = {};
+        const cached = BlessingService.getCached();
+        if (!cached || !cached.raw) return result;
+
+        const named = cached.blessedValues || {};
+        const categories = ['eyeColor', 'hairColor', 'zodiac', 'position'] as const;
+
+        for (const cat of categories) {
+            const namedValue = named[cat];
+            if (!namedValue) continue;
+            const pct = BlessingService.parseBlessingPercent(cached.raw, cat);
+            const hex = BlessingService.resolveHexForBlessing(girls, cat, pct);
+            if (hex) result[cat] = hex;
+        }
+        return result;
     }
 
     /**

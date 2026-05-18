@@ -334,8 +334,13 @@ export class TeamScoringService {
      * Returns the active TraitCategory set and the count of girls with at
      * least one active blessing.
      */
-    static detectBlessedTraits(girls: GirlData[]): { blessedCategories: Set<TraitCategory>; blessedGirlCount: number } {
+    static detectBlessedTraits(girls: GirlData[]): {
+        blessedCategories: Set<TraitCategory>;
+        blessedValues: Partial<Record<TraitCategory, string>>;
+        blessedGirlCount: number;
+    } {
         const blessedCategories = new Set<TraitCategory>();
+        const blessedValues: Partial<Record<TraitCategory, string>> = {};
 
         // Primary source: BlessingService cache (filled on Home page visit).
         try {
@@ -345,6 +350,16 @@ export class TeamScoringService {
                     if (t === 'eyeColor' || t === 'hairColor' || t === 'zodiac' || t === 'position') {
                         blessedCategories.add(t);
                     }
+                }
+            }
+            // Hex-resolved trait values (e.g. eyeColor=F00 for "Red"). Used
+            // by findTraitGroups so the boost lands on the actually-blessed
+            // value, not on every value that happens to share its category.
+            const resolved = BlessingService.getBlessedHexValues(girls as any);
+            for (const cat of ['eyeColor', 'hairColor', 'zodiac', 'position'] as const) {
+                const v = resolved[cat];
+                if (v && blessedCategories.has(cat)) {
+                    blessedValues[cat] = v;
                 }
             }
         } catch { /* cache not available */ }
@@ -357,7 +372,7 @@ export class TeamScoringService {
             if (mult > 1) blessedGirlCount++;
         }
 
-        return { blessedCategories, blessedGirlCount };
+        return { blessedCategories, blessedValues, blessedGirlCount };
     }
 
     /**
@@ -373,25 +388,36 @@ export class TeamScoringService {
      * Returns groups sorted by score descending.
      */
     /**
-     * Boost factor applied to the cluster score when the trait category is
-     * currently blessed. Empirical: top-10 league teams overwhelmingly
-     * optimize for trait-match (50% have all 7 girls share the blessed
-     * trait value). A higher boost surfaces blessed clusters earlier in
-     * the candidate list so the build phase can find a 7/7-match team.
+     * Boost factor applied to the cluster score when the trait VALUE is
+     * currently blessed (e.g. eyeColor=F00 with "Red eyes +25%" active).
+     *
+     * Earlier versions boosted every value in a blessed category, which
+     * surfaced unblessed values (eg eye=Purple) over the actually blessed
+     * one (eg eye=Red) when the unblessed pool happened to be larger.
+     * Issue 1679 documented this misranking. The boost now only applies
+     * when (category, value) matches a resolved blessing.
      */
-    private static readonly BLESSED_CATEGORY_BOOST = 5.0;
+    private static readonly BLESSED_VALUE_BOOST = 5.0;
 
     /**
-     * Find trait groups, scored mode-aware. When a category is currently
-     * blessed (passed as blessedCategories), groups in that category get
-     * a heuristic boost in the candidate ordering.
+     * Find trait groups, scored mode-aware. When a (category, value) pair
+     * matches a currently active blessing, that group receives a boost
+     * in the candidate ordering so the team builder evaluates it first.
+     *
+     * Accepts EITHER `blessedValues` (Record<TraitCategory, string>, the
+     * preferred form) OR a `Set<TraitCategory>` (legacy form, applies the
+     * boost to every value in the category - kept only for backwards
+     * compatibility with older callers/tests).
      */
     static findTraitGroups(
         girls: GirlData[],
         scoreFn: (g: GirlData) => number,
-        blessedCategories?: Set<TraitCategory>,
+        blessed?: Partial<Record<TraitCategory, string>> | Set<TraitCategory>,
     ): TraitGroupResult[] {
         const results: TraitGroupResult[] = [];
+        const isSet = blessed instanceof Set;
+        const blessedValues = (!blessed || isSet) ? null : (blessed as Partial<Record<TraitCategory, string>>);
+        const blessedSet = isSet ? (blessed as Set<TraitCategory>) : null;
 
         for (const pair of ELEMENT_PAIRS) {
             const pairGirls = girls.filter(g => pair.elements.includes(g.element));
@@ -410,8 +436,11 @@ export class TeamScoringService {
                 const avgScore = sumScore / groupGirls.length;
                 let score = groupGirls.length * avgScore;
 
-                if (blessedCategories && blessedCategories.has(pair.trait)) {
-                    score *= TeamScoringService.BLESSED_CATEGORY_BOOST;
+                if (blessedValues && blessedValues[pair.trait] === traitValue) {
+                    score *= TeamScoringService.BLESSED_VALUE_BOOST;
+                } else if (blessedSet && blessedSet.has(pair.trait)) {
+                    // Legacy category-only boost (kept for back-compat).
+                    score *= TeamScoringService.BLESSED_VALUE_BOOST;
                 }
 
                 results.push({
@@ -534,21 +563,25 @@ export class TeamScoringService {
     }
 
     /**
-     * Variante C: tier-5 priority absolute, then mainCarac (already blessing-applied).
+     * Tier-5 priority absolute, then trait-match within the team's chosen
+     * cluster, then mainCarac.
      *
-     * Within the same tier-5-priority group, the girl with the higher
-     * mainCarac wins -- and because caracs already include blessing
-     * multipliers, this naturally prefers blessed girls within the group.
-     * Cluster/trait are NOT tiebreakers here: an empirically-supported
-     * decision (top-50 analysis: only 27% of alphas were in the team's
-     * top element, so cluster membership is not a strong signal for
-     * the leader pick).
+     * Issue 1679: when two mythics share the same tier-5 skill (e.g. both
+     * Shield), prefer the one whose trait value matches the team's chosen
+     * cluster. This addresses Frank's reading of "P1: Mythic white or
+     * orange and if possible enhance the chosen Tier 3" -- the leader
+     * boosts the Tier-3 chain when she shares the team's trait value.
+     * It still falls back to raw mainCarac when no candidate matches.
+     *
+     * Earlier comment about "27% of alphas in top element" referred to the
+     * cluster ELEMENT, not the cluster TRAIT VALUE; trait-match is the
+     * stronger signal because it directly increases Tier-3 bonus.
      */
     private static _sortLeaderCandidates(
         girls: GirlData[],
         statScores: Map<number, number>,
-        _traitCategory?: TraitCategory,
-        _traitValue?: string,
+        traitCategory?: TraitCategory,
+        traitValue?: string,
         _clusterElements?: ElementType[]
     ): GirlData[] {
         return [...girls].sort((a, b) => {
@@ -556,13 +589,21 @@ export class TeamScoringService {
             const tier5B = ELEMENT_TO_TIER5[b.element];
 
             // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect).
-            // Applied GLOBALLY across all mythics. Frank's request (#1573):
-            // position 1 prefers Shield mythics whenever one exists.
             if (tier5A.priority !== tier5B.priority) {
                 return tier5B.priority - tier5A.priority;
             }
 
-            // Secondary: mainCarac (already includes blessing). Higher wins.
+            // Secondary: trait-match within the team cluster (issue 1679).
+            // Only applied when the cluster trait was passed in.
+            if (traitCategory && traitValue) {
+                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
+                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
+                if (aMatches !== bMatches) {
+                    return aMatches ? -1 : 1;
+                }
+            }
+
+            // Tertiary: mainCarac (already includes blessing). Higher wins.
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;

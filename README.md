@@ -44,6 +44,12 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.38 - Team builder picks blessed trait values, not just blessed categories
+
+- **Blessing boost lands on the actually blessed value.** Earlier the boost applied to every value in a blessed category, so an unblessed value with a larger pool could outrank the actually blessed one (e.g. eye=Purple winning over eye=Red when "Red eyes" was blessed). The boost now requires both category AND value to match an active blessing.
+- **Leader picked from the team trait when possible.** When two mythic candidates share the same tier-5 skill (e.g. both Shield), the one whose trait value matches the team cluster wins the slot, strengthening the Tier-3 chain.
+- **Hex-resolution for the active blessing is more robust.** Dominance threshold relaxed from 90% to 80% (or a 3x lead over the next contender), so blessings shared with a few stacked-blessing girls are still resolved correctly.
+
 ### v7.35.36 - Daily-goals/contests and side-quest loops
 
 Two distinct loops on `/activities.html` and `/side-quests.html` are fixed.
