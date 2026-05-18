@@ -44,11 +44,16 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
-### v7.35.40 - Team builder respects element strength and matching traits
+### v7.35.39 - Team builder rewritten around the spec
 
-- **Element strength as tiebreaker.** When two elements appear equally often inside a blessed pool, or when two leader candidates tie on tier-5 priority and trait match, the element with the higher empirical power coefficient wins (Dominatrice 1.20, Excentrique/Physique 1.12, Exhibitionniste 1.10, Sensuelle 1.08, Soumise 1.025, Voyeuse/Joueuse 1.00).
-- **Sub-cluster optimization inside the blessed pool.** When the blessing already constrains the cluster (e.g. element-stone pool), the builder now picks girls that share the most common secondary trait value (zodiac among stones, eye color among hair-blessed girls, etc) before filling with the highest-stat remainder. This finds Frank's expected "7 physical girls with the same astro" pattern automatically.
-- **Trait-kind tiebreaker in blessing detection.** When two blessings have the same bonus and the same pool size, the order is eyes > hair > zodiac > position > element > rarity, matching the empirical preference noted in the team-building guide.
+- **Strict pool layering.** When two blessings are active, the builder tries the bless1+bless2 carriers first. If that pool cannot fill seven slots, it falls through to bless1-only, then to unblessed, then to an emergency fallback. With one active blessing it skips straight to bless1-only. Without active blessings it picks from the eligible pool. No more silent reroutes through legacy trait-cluster heuristics.
+- **Spec-driven leader pick.** Position 1 is decided by an eight-key sort: Mythic before Legendary, Tier-5 priority Shield > Stun > Execute > Reflect, element-pair match to the team cluster, trait-value match (still ahead of own-class), blessed before unblessed, own-class before cross-class, then total carac sum, then element strength.
+- **Spec-driven Pos 2-7.** Sub-groups are formed using the trait hierarchy eyes > hair > zodiac > position > element > rarity, with a mono-element shortcut when the pool is dominated by one element (stone-bless then keys on zodiac, hair-bless on eye color, etc). Slots 2-7 are filled from the strongest sub-group first, then the next-largest within the same cluster.
+- **Fallback.** If the eligible pool drops below seven girls, the builder now ships an unshortened team (sorted by total carac sum) instead of giving up. The remaining slots stay empty.
+- **AssignTopTeam button hardened.** The button is rendered before the info panel, in its own try-block, so a render error in the panel never strips the user-facing entry point.
+- **Team info panel redesigned.** Shows which pool path was used, the active blessings the picker considered, and the fallback reason when the emergency path fired. EffectivePower, element-synergy multiplier and leader-bonus indicators are gone -- the spec does not score teams that way anymore.
+- **Tighter info panel.** Leader sentence reads in plain language ("strongest blessed Mythic with the highest Tier-5 skill available"). The redundant carac-sum sentence under the cluster block is gone.
+- **Top excluded only.** The mythic audit shows the three most relevant excluded girls inline instead of a scrollable list. The total counts stay so you can spot when the pool unexpectedly shrinks.
 
 ### v7.35.38 - Team builder rebuilt around the active blessings
 
@@ -152,7 +157,7 @@ The script no longer ping-pongs between the leagues page and the current quest p
 
 ### v7.35.25 - Mythic coverage, slot order, and richer team info box
 
-Algorithm refinements driven by feedback from Frank and Dimka.
+Algorithm refinements driven by community feedback.
 
 **Slot order:** Positions 2-7 are now filled before the leader. The leader is picked from whatever is left in the pool, so a strong cluster girl can no longer be consumed by leader selection. Leader hierarchy stays the same: mythic, tier-5 priority Shield > Stun > Execute > Reflect, cluster membership and trait match as tiebreakers.
 
@@ -203,7 +208,7 @@ Two related fixes that address the wave of "Access forbidden" reports.
 
 ### v7.35.21 - League team selection rebuilt
 
-The "Current Best" and "Best Possible" buttons now pick teams using a wider community-knowledge base (Kinkoid forum performance and elements topics, HH Wiki, Tom-208 userscript, plus Frank's input).
+The "Current Best" and "Best Possible" buttons now pick teams using a wider community-knowledge base (Kinkoid forum performance and elements topics, HH Wiki, Tom-208 userscript, plus community input).
 
 **Key changes:**
 - Selection is driven by your main class stat alone (HC=carac1, Charm=carac2, KH=carac3) instead of the raw stat sum.

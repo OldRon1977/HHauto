@@ -161,7 +161,7 @@ Alternativen landen in `result.alternatives` fuer die UI-Anzeige.
 
 ### Phase 5: Slot-Fill (ab v7.35.25 zwei-Variant)
 
-Slots 2-7 werden VOR dem Leader gefuellt (Frank-Anforderung aus Issue #1573). Damit kann ein starker Cluster-Slot nicht durch die Leader-Auswahl belegt werden, der Leader wird aus dem Rest gepickt.
+Slots 2-7 werden VOR dem Leader gefuellt (Anforderung aus Issue #1573). Damit kann ein starker Cluster-Slot nicht durch die Leader-Auswahl belegt werden, der Leader wird aus dem Rest gepickt.
 
 Pro Cluster werden zwei Slot-Varianten gebaut und nach `main_sum * (1 + tier3Bonus)` verglichen. Die hoehere Effective Power gewinnt. So gibt es Rainbow-Teams nur, wenn sie tatsaechlich besser sind.
 

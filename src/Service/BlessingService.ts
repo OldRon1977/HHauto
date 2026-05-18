@@ -269,7 +269,7 @@ export class BlessingService {
             // Pick the dominant value when it has >= 80% of the group
             // OR is at least 3x larger than the next contender. The
             // raw 90% threshold rejected legitimate dominants like
-            // Frank75's eye=F00 (41/47, 87%) where a few girls happen
+            // edge cases (e.g. 41/47, 87%) where a few girls happen
             // to have a different eye color but the SAME blessing
             // bonus (multiple blessings stacked on the same girl).
             const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
@@ -337,7 +337,7 @@ export class BlessingService {
      * hair_color1, zodiac, position_img), we identify what each blessing
      * targets WITHOUT reading any localized description.
      *
-     * Returns an array of detected blessings sorted by Frank's priority:
+     * Returns an array of detected blessings sorted by priority:
      *   1. blessings with the highest bonus percent (e.g. 40% > 25%)
      *   2. blessings with the largest blessed pool
      *
@@ -467,12 +467,11 @@ export class BlessingService {
             if (!cur || c.percent > cur.percent) dedup.set(key, c);
         }
 
-        // Sort by Frank's priority:
+        // Sort by priority:
         //   1. higher bonus percent first
         //   2. larger pool size
-        //   3. trait-kind tiebreaker (eyes > hair > zodiac), per Frank's
-        //      discord notes ('a benedictions egales: yeux > cheveux >
-        //      zodiaque'). Element/rarity rank below the trait kinds.
+        //   3. trait-kind tiebreaker (eyes > hair > zodiac > position).
+        //      Element/rarity rank below the trait kinds.
         const kindPriority: Record<string, number> = {
             eyeColor: 5,
             hairColor: 4,

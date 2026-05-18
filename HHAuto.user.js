@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.38
+// @version      7.35.39
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -17330,7 +17330,7 @@ class BlessingService {
             // Pick the dominant value when it has >= 80% of the group
             // OR is at least 3x larger than the next contender. The
             // raw 90% threshold rejected legitimate dominants like
-            // Frank75's eye=F00 (41/47, 87%) where a few girls happen
+            // edge cases (e.g. 41/47, 87%) where a few girls happen
             // to have a different eye color but the SAME blessing
             // bonus (multiple blessings stacked on the same girl).
             const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
@@ -17394,7 +17394,7 @@ class BlessingService {
      * hair_color1, zodiac, position_img), we identify what each blessing
      * targets WITHOUT reading any localized description.
      *
-     * Returns an array of detected blessings sorted by Frank's priority:
+     * Returns an array of detected blessings sorted by priority:
      *   1. blessings with the highest bonus percent (e.g. 40% > 25%)
      *   2. blessings with the largest blessed pool
      *
@@ -17513,12 +17513,11 @@ class BlessingService {
             if (!cur || c.percent > cur.percent)
                 dedup.set(key, c);
         }
-        // Sort by Frank's priority:
+        // Sort by priority:
         //   1. higher bonus percent first
         //   2. larger pool size
-        //   3. trait-kind tiebreaker (eyes > hair > zodiac), per Frank's
-        //      discord notes ('a benedictions egales: yeux > cheveux >
-        //      zodiaque'). Element/rarity rank below the trait kinds.
+        //   3. trait-kind tiebreaker (eyes > hair > zodiac > position).
+        //      Element/rarity rank below the trait kinds.
         const kindPriority = {
             eyeColor: 5,
             hairColor: 4,
@@ -18526,37 +18525,20 @@ class Club {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/TeamScoringService.ts
-// TeamScoringService.ts -- Scoring engine for team selection v5.
+// TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
 //
-// Provides Tier 3 trait matching, element synergy calculations,
-// and leader skill evaluation for team optimization.
+// Public surface (everything else is gone after the v7.35.39 refactor):
+//   - Types:    ElementType, RarityType, TraitCategory, PlayerClass, GirlData,
+//               Tier5Skill
+//   - Scoring:  caracsSum (raw), scoreCurrentBest (mode 1), scoreBestPossible
+//               (mode 2 -- projected to level 750 + max grades)
+//   - Filters:  filterEligible (Mythic + Legendary 5*)
+//   - Tier-3 :  getTier3Category, getTraitValue, calculateTier3TeamBonus
+//   - Tier-5 :  getTier5Skill
+//   - Element:  getElementPowerCoeff
 //
-// Two modes (both filter Mythic + Legendary 5*, hard-filter to player class):
-//   - "Current Best": uses current main-class stat (already includes blessings,
-//     before equipment).
-//   - "Best Possible": projects every eligible girl to the awakening cap
-//     (level 750, max grades). Pool stays the same as Current Best.
-//
-// Player class is HC=1 (carac1), Charm=2 (carac2), KH=3 (carac3).
-// Only the matching carac counts for scoring -- the game's own class
-// system does the rest (Wiki: "never build cross-class").
-
-// Synergy bonus multiplier per girl of each element in the team.
-// Values come from the game's team_synergies API; the table below
-// matches the values seen at runtime as of v7.35.x.
-const ELEMENT_SYNERGY_PER_GIRL = {
-    fire: { field: 'critDamage', bonus: 0.10 },
-    water: { field: 'healOnHit', bonus: 0.03 },
-    nature: { field: 'ego', bonus: 0.03 },
-    stone: { field: 'critChance', bonus: 0.02 },
-    sun: { field: 'defReduce', bonus: 0.02 },
-    darkness: { field: 'damage', bonus: 0.02 },
-    psychic: { field: 'defense', bonus: 0.02 },
-    light: { field: 'harmony', bonus: 0.02 },
-};
-// Tier-5 skill mapping by element, with priority ranking.
-// Priority: Shield (light/stone) > Stun (sun/darkness) > Execute (fire/water) > Reflect.
-// Used both for leader selection AND as a leader-bonus factor in EffectivePower.
+// Spec: docs-internal/REVIEW_TeamSelection.md.
+// Tier-5 mapping. Priority controls the leader pick (Shield > Stun > Execute > Reflect).
 const ELEMENT_TO_TIER5 = {
     light: { id: 12, name: 'Shield', priority: 4 },
     stone: { id: 12, name: 'Shield', priority: 4 },
@@ -18567,14 +18549,20 @@ const ELEMENT_TO_TIER5 = {
     psychic: { id: 13, name: 'Reflect', priority: 1 },
     nature: { id: 13, name: 'Reflect', priority: 1 },
 };
-// Each element's Tier 3 bonus is based on a specific trait category.
-// Girls from the same element pair share the same trait category.
-// Per-element power multiplier from Frank's empirical strength sheet
-// (issue 1679 phase 3). The girl's main carac is multiplied by this
-// coefficient when scoring -- Dominatrice and Excentrique girls hit
-// harder per stat point than Voyeuse / Joueuse girls. The values are
-// from Frank's discord notes and reflect the relative damage potential
-// observed in the game.
+// Element -> Tier-3 trait category. Pairs share a category.
+const ELEMENT_TO_TIER3_CATEGORY = {
+    darkness: 'eyeColor',
+    fire: 'eyeColor',
+    light: 'hairColor',
+    nature: 'hairColor',
+    stone: 'zodiac',
+    psychic: 'zodiac',
+    water: 'position',
+    sun: 'position',
+};
+// Per-element power coefficient (empirical strength table).
+// Used as a tiebreaker in the leader rule (step 8) and inside Pos-2-7-Regel
+// (step 3 of the rule, when the trait hierarchy resolves to 'element').
 const ELEMENT_POWER_COEFF = {
     darkness: 1.20, // Dominatrice
     fire: 1.12, // Excentrique
@@ -18585,188 +18573,78 @@ const ELEMENT_POWER_COEFF = {
     light: 1.00, // Voyeuse
     sun: 1.00, // Joueuse
 };
-const ELEMENT_TO_TRAIT_CATEGORY = {
-    darkness: 'eyeColor', // Black
-    fire: 'eyeColor', // Red
-    light: 'hairColor', // White
-    nature: 'hairColor', // Green
-    stone: 'zodiac', // Orange
-    psychic: 'zodiac', // Purple
-    water: 'position', // Blue
-    sun: 'position', // Yellow
-};
-// Element pairs that share a trait category
-const ELEMENT_PAIRS = [
-    { elements: ['darkness', 'fire'], trait: 'eyeColor' },
-    { elements: ['light', 'nature'], trait: 'hairColor' },
-    { elements: ['stone', 'psychic'], trait: 'zodiac' },
-    { elements: ['water', 'sun'], trait: 'position' },
-];
-// Tier 3 bonus per matching teammate: 1.0% for Mythic, 0.8% for Legendary
+// Tier-3 bonus per matching teammate.
 const TIER3_BONUS_MYTHIC = 0.01;
 const TIER3_BONUS_LEGENDARY = 0.008;
-// Theoretical maximum girl level (full awakening cap).
-// 'Best Possible' projects every girl to this level. Per Kinkoid patch
-// notes, every girl can be awakened to 750 from level 1.
+// Spec step 0: 'Best Possible' projects every girl to the awakening cap.
 const PROJECTION_LEVEL_CAP = 750;
-// Leader bonus on EffectivePower: multiplier scaled by Tier-5 priority.
-// Shield=4 -> +8%, Stun=3 -> +6%, Execute=2 -> +4%, Reflect=1 -> +2%.
-// Quantitative role-efficiency proxy for the leader position.
-const LEADER_BONUS_PER_PRIORITY = 0.02;
 class TeamScoringService {
     /**
-     * Get the girl's main-class stat (carac1/2/3 by player class).
-     * Uses caracs sub-object if available (already equipment-free,
-     * already blessing-applied), falls back to direct fields.
+     * Sum of all three carac fields. Game-authoritative (caracs sub-object
+     * already includes blessings; equipment is excluded). Falls back to
+     * carac1/2/3 when caracs is absent.
      */
-    /**
-     * Total power across all three carac fields (carac1 + carac2 + carac3).
-     * This is the class-agnostic strength score the game shows in the team
-     * UI ("Total Power" / "caracs_sum"). Used by every cluster ranking
-     * and team pick because:
-     *   - Mythic vs Legendary 5* differ uniformly in total power (around
-     *     31k vs 26k for fully developed girls), regardless of which carac
-     *     is the player's main one.
-     *   - Cross-class mythics keep their full power instead of being
-     *     penalised to ~1/3 by reading a single carac field. Empirical
-     *     observation matches: top players run cross-class mythics in
-     *     league as often as own-class.
-     *
-     * Reads the caracs sub-object when available (already blessing-applied
-     * by the game API), falls back to the top-level carac1/2/3 fields.
-     */
-    static getTotalPower(girl) {
-        const src = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
+    static caracsSum(girl) {
+        var _a;
+        const src = (_a = girl.caracs) !== null && _a !== void 0 ? _a : { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
         return (Number(src.carac1) || 0)
             + (Number(src.carac2) || 0)
             + (Number(src.carac3) || 0);
     }
     /**
-     * Single carac value for a player class. Kept for backwards compat
-     * (audit messages, UI labels). Scoring no longer uses it -- prefer
-     * getTotalPower for ranking decisions.
-     */
-    static getMainCarac(girl, playerClass) {
-        const src = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
-        switch (playerClass) {
-            case 1: return Number(src.carac1) || 0;
-            case 2: return Number(src.carac2) || 0;
-            case 3: return Number(src.carac3) || 0;
-        }
-    }
-    /**
-     * Get the per-element power coefficient (Frank's empirical strength
-     * table from his discord notes, issue 1679 phase 3). The value is
-     * NOT applied to mainCarac scoring -- it is used as a tiebreaker
-     * when picking between equally-ranked clusters or leaders. A higher
-     * coefficient marks an element that hits harder per stat point.
-     *
-     *   Dominatrice (darkness)  1.20
-     *   Excentrique (fire)      1.12
-     *   Physique (stone)        1.12
-     *   Exhibitionniste (nature)1.10
-     *   Sensuelle (water)       1.08
-     *   Soumise (psychic)       1.025
-     *   Voyeuse (light)         1.00
-     *   Joueuse (sun)           1.00
-     */
-    static getElementPowerCoeff(element) {
-        var _a;
-        return (_a = ELEMENT_POWER_COEFF[element]) !== null && _a !== void 0 ? _a : 1.0;
-    }
-    /**
-     * Score a girl for "Current Best" mode.
-     * Returns the current main-carac (already includes blessings).
+     * Spec step 0, mode 1. caracs_sum = carac1 + carac2 + carac3.
+     * Player class is irrelevant for ranking (Mythic/Legendary 5* differ
+     * uniformly across all three caracs).
      */
     static scoreCurrentBest(girl, _playerClass) {
-        return TeamScoringService.getTotalPower(girl);
+        return TeamScoringService.caracsSum(girl);
     }
     /**
-     * Score a girl for "Best Possible" mode.
-     * Projects main-carac to the awakening cap (PROJECTION_LEVEL_CAP=750)
-     * with all grades applied.
+     * Spec step 0, mode 2. Projects caracs_sum to level 750 + max grades.
      *
-     * Formula:
-     *   projected = currentMain * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
+     *   projected = current * (750 / level) * (1 + 0.3 * nb_grades) / (1 + 0.3 * graded)
      *
-     * For a girl already at level 750 with full grades, the projection
-     * factor is 1 (no growth potential left); projected == current.
-     * For a girl below the cap, projected > current.
-     *
-     * Pool stays the same as Current Best (Mythic + Legendary 5*).
+     * For voll-awakte girls (level 750, graded == nb_grades), projected == current.
      */
     static scoreBestPossible(girl, _playerClass) {
-        // Total power scales linearly with the projection factors, so we
-        // can apply them to the sum once (caracs_sum * factor ==
-        // c1*factor + c2*factor + c3*factor for the linear factors used
-        // here).
-        const currentTotal = TeamScoringService.getTotalPower(girl);
-        const level = girl.level;
+        const current = TeamScoringService.caracsSum(girl);
+        const level = girl.level || 1;
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
-        return currentTotal
+        return current
             * (PROJECTION_LEVEL_CAP / level)
             * (1 + 0.3 * maxGrades)
             / (1 + 0.3 * currentGrades);
     }
     /**
-     * Filter girls: only Mythic and Legendary 5-star.
+     * Spec eligible-pool filter: Mythic + Legendary 5*.
      *
-     * Cross-class girls are KEPT in the pool. Empirical analysis of the top
-     * 50 league teams shows that 67% of them use a cross-class alpha and the
-     * majority of slots 2-7 are cross-class as well. The Wiki's
-     * 'never build cross-class' advice is a simplification; in practice
-     * top players accept the lower main-carac contribution of a cross-class
-     * girl in exchange for trait-match, blessing-match, element synergy,
-     * and tier-5 skill coverage.
+     * Cross-class girls are kept; the leader rule (step 6) and the Pos-2-7
+     * filler decide later when own-class is preferred.
      *
-     * The score function still favors the player's main carac, so cross-
-     * class girls win only when their team contribution (synergy + tier-3 +
-     * blessing) outweighs the lower main carac.
-     *
-     * playerClass kept in the signature for backward compatibility; no
-     * longer used to filter the pool.
+     * playerClass is ignored; kept in the signature for backwards compat.
      */
     static filterEligible(girls, _playerClass) {
         return girls.filter(g => {
             if (g.rarity === 'mythic')
                 return true;
             if (g.rarity === 'legendary')
-                return g.nb_grades >= 5;
+                return (g.nb_grades || 0) >= 5;
             return false;
         });
     }
-    /**
-     * Backwards-compatible alias used by existing tests.
-     * @deprecated Use filterEligible(girls, playerClass) instead.
-     */
-    static filterHighRarity(girls) {
-        return girls.filter(g => {
-            if (g.rarity === 'mythic')
-                return true;
-            if (g.rarity === 'legendary')
-                return g.nb_grades >= 5;
-            return false;
-        });
-    }
-    /**
-     * Get the Tier-5 skill info for a given element.
-     */
     static getTier5Skill(element) {
         return ELEMENT_TO_TIER5[element];
     }
-    /**
-     * Get the trait category for a girl based on her element.
-     */
-    static getTraitCategory(element) {
-        return ELEMENT_TO_TRAIT_CATEGORY[element];
+    static getTier3Category(element) {
+        return ELEMENT_TO_TIER3_CATEGORY[element];
     }
     /**
-     * Get the trait value for a girl based on her element's trait category.
-     * Returns undefined if the trait data is not available.
+     * Trait value for a girl based on her element-pair Tier-3 category.
+     * Returns undefined when the field is missing.
      */
     static getTraitValue(girl) {
-        const category = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
+        const category = ELEMENT_TO_TIER3_CATEGORY[girl.element];
         switch (category) {
             case 'eyeColor': return girl.eyeColor;
             case 'hairColor': return girl.hairColor;
@@ -18775,504 +18653,575 @@ class TeamScoringService {
         }
     }
     /**
-     * Calculate the total Tier 3 bonus percentage for a team.
-     * Each girl checks how many teammates share her element pair's trait value.
-     * Mythic: 1.0% per matching teammate, Legendary: 0.8% per matching teammate.
+     * Per-element power coefficient. Mainly a tiebreaker in leader pick
+     * (step 8) and inside Pos-2-7-Regel rule 3 (when the trait hierarchy
+     * resolves to 'element').
+     */
+    static getElementPowerCoeff(element) {
+        var _a;
+        return (_a = ELEMENT_POWER_COEFF[element]) !== null && _a !== void 0 ? _a : 1.0;
+    }
+    /**
+     * Total Tier-3 bonus for a built team. Each girl scans her teammates;
+     * matches inside the same element-pair trait category yield 1.0%
+     * (Mythic) or 0.8% (Legendary).
      */
     static calculateTier3TeamBonus(team) {
         let totalBonus = 0;
         for (const girl of team) {
-            const category = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
-            const myValue = TeamScoringService.getTraitValue(girl);
-            if (!myValue)
+            const cat = ELEMENT_TO_TIER3_CATEGORY[girl.element];
+            const value = TeamScoringService.getTraitValue(girl);
+            if (!value)
                 continue;
-            let matchCount = 0;
-            for (const teammate of team) {
-                if (teammate.id_girl === girl.id_girl)
+            let matches = 0;
+            for (const other of team) {
+                if (other.id_girl === girl.id_girl)
                     continue;
-                const teammateCategory = ELEMENT_TO_TRAIT_CATEGORY[teammate.element];
-                if (teammateCategory !== category)
+                if (ELEMENT_TO_TIER3_CATEGORY[other.element] !== cat)
                     continue;
-                const teammateValue = TeamScoringService.getTraitValue(teammate);
-                if (teammateValue === myValue) {
-                    matchCount++;
-                }
+                if (TeamScoringService.getTraitValue(other) === value)
+                    matches++;
             }
-            const bonusPerMatch = girl.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
-            totalBonus += matchCount * bonusPerMatch;
+            const bonus = girl.rarity === 'mythic' ? TIER3_BONUS_MYTHIC : TIER3_BONUS_LEGENDARY;
+            totalBonus += matches * bonus;
         }
         return totalBonus;
     }
-    /**
-     * Calculate the team-wide element synergy multiplier (0..0.something).
-     *
-     * For each element present in the team, sum the per-girl bonus * count,
-     * capped at the per-element team_bonus_max_amount. Then take the average
-     * across all 8 synergy fields, weighted by typical combat impact:
-     * crit damage and ego boosters (fire, nature, water) carry more weight.
-     *
-     * Returns a single multiplier added to EffectivePower, e.g. 0.20 for a
-     * 7-girl mono-fire team.
-     *
-     * Note: this is a static heuristic that mirrors the team_synergies
-     * structure observed in the game's hero_data API. The exact runtime
-     * values can be passed via the optional perGirlOverride parameter
-     * if the caller has fresh data; absent that, the static table is used.
-     */
-    static calculateElementSynergyMultiplier(team) {
-        const counts = new Map();
-        for (const g of team) {
-            counts.set(g.element, (counts.get(g.element) || 0) + 1);
-        }
-        // Per element: count * per_girl_bonus, capped at 7 * per_girl_bonus.
-        // Sum the field-specific bonus contributions (each gets its own field
-        // in SynergyBonuses, so multiple elements add their own bonuses to
-        // different fields). The "EffectivePower" multiplier is the sum
-        // of the four most combat-relevant fields:
-        //   critDamage (fire)  -> weight 1.0
-        //   ego/healOnHit (nature/water) -> weight 0.5
-        //   damage/defense/defReduce/critChance/harmony -> weight 0.5
-        //
-        // We sum all field bonuses with equal weight 1.0 here, which gives
-        // a single "synergy multiplier" usable for ranking. If a caller
-        // wants the per-field breakdown, it can reuse calculateSynergies().
-        let multiplier = 0;
-        for (const [element, count] of counts) {
-            const mapping = ELEMENT_SYNERGY_PER_GIRL[element];
-            if (!mapping)
-                continue;
-            multiplier += Math.min(count, 7) * mapping.bonus;
-        }
-        return multiplier;
-    }
-    /**
-     * Detect blessed trait categories from the game-authoritative blessing
-     * cache (BlessingService). Falls back to scanning blessing_bonuses on
-     * the girls themselves if the cache is empty.
-     *
-     * Returns the active TraitCategory set and the count of girls with at
-     * least one active blessing.
-     */
-    static detectBlessedTraits(girls) {
-        const blessedCategories = new Set();
-        const blessedValues = {};
-        // Primary source: BlessingService cache (filled on Home page visit).
-        try {
-            const cached = BlessingService.getCached();
-            if (cached && Array.isArray(cached.blessedTraits)) {
-                for (const t of cached.blessedTraits) {
-                    if (t === 'eyeColor' || t === 'hairColor' || t === 'zodiac' || t === 'position') {
-                        blessedCategories.add(t);
-                    }
-                }
-            }
-            // Hex-resolved trait values (e.g. eyeColor=F00 for "Red"). Used
-            // by findTraitGroups so the boost lands on the actually-blessed
-            // value, not on every value that happens to share its category.
-            const resolved = BlessingService.getBlessedHexValues(girls);
-            for (const cat of ['eyeColor', 'hairColor', 'zodiac', 'position']) {
-                const v = resolved[cat];
-                if (v && blessedCategories.has(cat)) {
-                    blessedValues[cat] = v;
-                }
-            }
-        }
-        catch ( /* cache not available */_a) { /* cache not available */ }
-        // Per-girl count: how many girls have an active blessing bonus
-        // (game-authoritative via blessing_bonuses.pvp_v3 / pvp_v4).
-        let blessedGirlCount = 0;
-        for (const girl of girls) {
-            const mult = BlessingService.getEffectiveMultiplier(girl);
-            if (mult > 1)
-                blessedGirlCount++;
-        }
-        return { blessedCategories, blessedValues, blessedGirlCount };
-    }
-    /**
-     * Find trait groups, scored mode-aware. When a (category, value) pair
-     * matches a currently active blessing, that group receives a boost
-     * in the candidate ordering so the team builder evaluates it first.
-     *
-     * Accepts EITHER `blessedValues` (Record<TraitCategory, string>, the
-     * preferred form) OR a `Set<TraitCategory>` (legacy form, applies the
-     * boost to every value in the category - kept only for backwards
-     * compatibility with older callers/tests).
-     */
-    static findTraitGroups(girls, scoreFn, blessed) {
-        const results = [];
-        const isSet = blessed instanceof Set;
-        const blessedValues = (!blessed || isSet) ? null : blessed;
-        const blessedSet = isSet ? blessed : null;
-        for (const pair of ELEMENT_PAIRS) {
-            const pairGirls = girls.filter(g => pair.elements.includes(g.element));
-            if (pairGirls.length === 0)
-                continue;
-            const groups = new Map();
-            for (const girl of pairGirls) {
-                const value = TeamScoringService.getTraitValue(girl);
-                if (!value)
-                    continue;
-                if (!groups.has(value))
-                    groups.set(value, []);
-                groups.get(value).push(girl);
-            }
-            for (const [traitValue, groupGirls] of groups) {
-                const sumScore = groupGirls.reduce((sum, g) => sum + scoreFn(g), 0);
-                const avgScore = sumScore / groupGirls.length;
-                let score = groupGirls.length * avgScore;
-                if (blessedValues && blessedValues[pair.trait] === traitValue) {
-                    score *= TeamScoringService.BLESSED_VALUE_BOOST;
-                }
-                else if (blessedSet && blessedSet.has(pair.trait)) {
-                    // Legacy category-only boost (kept for back-compat).
-                    score *= TeamScoringService.BLESSED_VALUE_BOOST;
-                }
-                results.push({
-                    traitCategory: pair.trait,
-                    traitValue,
-                    girls: groupGirls,
-                    score,
-                });
-            }
-        }
-        return results.sort((a, b) => b.score - a.score);
-    }
-    // --- Synergy calculations (informational) ---------------------
-    /**
-     * Calculate per-field synergy bonuses for a set of elements.
-     * Used by the info box to show e.g. "+30% crit damage from 3 fire girls".
-     */
-    static calculateSynergies(elements) {
-        const synergies = {
-            critDamage: 0,
-            healOnHit: 0,
-            ego: 0,
-            critChance: 0,
-            defReduce: 0,
-            damage: 0,
-            defense: 0,
-            harmony: 0,
-        };
-        for (const element of elements) {
-            const mapping = ELEMENT_SYNERGY_PER_GIRL[element];
-            if (mapping) {
-                synergies[mapping.field] += mapping.bonus;
-            }
-        }
-        return synergies;
-    }
-    /**
-     * Calculate a numeric "synergy value" for a team composition.
-     * Weighs each synergy type by its combat impact. Informational only;
-     * EffectivePower uses calculateElementSynergyMultiplier().
-     */
-    static calculateSynergyValue(elements) {
-        const syn = TeamScoringService.calculateSynergies(elements);
-        return (syn.critDamage * 1.0 +
-            syn.critChance * 2.0 +
-            syn.defReduce * 2.0 +
-            syn.healOnHit * 1.5 +
-            syn.damage * 1.5 +
-            syn.ego * 1.0 +
-            syn.defense * 1.0 +
-            syn.harmony * 1.0);
-    }
-    // --- Leader selection ----------------------------------------
-    /**
-     * Rank leader candidates with an absolute Tier-5 priority order:
-     * Shield > Stun > Execute > Reflect.
-     *
-     * If at least one Mythic with Shield exists, that wins. If none, then
-     * Stun wins, etc. Within the same priority: cluster membership, then
-     * trait match, then stats.
-     *
-     * Beginner pool (no mythics anywhere): cluster membership > trait > stats.
-     * (Legendaries have no active tier-5 skill, so priority is uniform.)
-     */
-    static rankLeaderCandidates(girls, statScores, traitCategory, traitValue, clusterElements) {
-        const mythicGirls = girls.filter(g => g.rarity === 'mythic');
-        if (mythicGirls.length === 0) {
-            return TeamScoringService._sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements);
-        }
-        return TeamScoringService._sortLeaderCandidates(mythicGirls, statScores, traitCategory, traitValue, clusterElements);
-    }
-    /**
-     * Sort leader candidates when no mythics are available (beginner pool).
-     * Order: cluster membership > trait match > stats.
-     */
-    static _sortLeaderCandidatesNoMythic(girls, statScores, traitCategory, traitValue, clusterElements) {
-        return [...girls].sort((a, b) => {
-            if (clusterElements && clusterElements.length > 0) {
-                const aInCluster = clusterElements.includes(a.element);
-                const bInCluster = clusterElements.includes(b.element);
-                if (aInCluster !== bInCluster) {
-                    return aInCluster ? -1 : 1;
-                }
-            }
-            if (traitCategory && traitValue) {
-                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
-                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
-                if (aMatches !== bMatches) {
-                    return aMatches ? -1 : 1;
-                }
-            }
-            const scoreA = statScores.get(a.id_girl) || 0;
-            const scoreB = statScores.get(b.id_girl) || 0;
-            return scoreB - scoreA;
-        });
-    }
-    /**
-     * Tier-5 priority absolute, then trait-match within the team's chosen
-     * cluster, then mainCarac.
-     *
-     * Issue 1679: when two mythics share the same tier-5 skill (e.g. both
-     * Shield), prefer the one whose trait value matches the team's chosen
-     * cluster. This addresses Frank's reading of "P1: Mythic white or
-     * orange and if possible enhance the chosen Tier 3" -- the leader
-     * boosts the Tier-3 chain when she shares the team's trait value.
-     * It still falls back to raw mainCarac when no candidate matches.
-     *
-     * Earlier comment about "27% of alphas in top element" referred to the
-     * cluster ELEMENT, not the cluster TRAIT VALUE; trait-match is the
-     * stronger signal because it directly increases Tier-3 bonus.
-     */
-    static _sortLeaderCandidates(girls, statScores, traitCategory, traitValue, _clusterElements) {
-        return [...girls].sort((a, b) => {
-            const tier5A = ELEMENT_TO_TIER5[a.element];
-            const tier5B = ELEMENT_TO_TIER5[b.element];
-            // Primary: Tier-5 priority (Shield > Stun > Execute > Reflect).
-            if (tier5A.priority !== tier5B.priority) {
-                return tier5B.priority - tier5A.priority;
-            }
-            // Secondary: trait-match within the team cluster (issue 1679).
-            if (traitCategory && traitValue) {
-                const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
-                const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
-                if (aMatches !== bMatches) {
-                    return aMatches ? -1 : 1;
-                }
-            }
-            // Tertiary: Element-Power-Coeff (Frank's discord notes,
-            // 1679 phase 3). Stone-Shield beats Light-Shield because
-            // stone hits 1.12x harder per stat point than light.
-            const coeffA = TeamScoringService.getElementPowerCoeff(a.element);
-            const coeffB = TeamScoringService.getElementPowerCoeff(b.element);
-            if (coeffA !== coeffB)
-                return coeffB - coeffA;
-            // Quaternary: mainCarac (already includes blessing).
-            const scoreA = statScores.get(a.id_girl) || 0;
-            const scoreB = statScores.get(b.id_girl) || 0;
-            return scoreB - scoreA;
-        });
-    }
-    /**
-     * Check if a leader candidate matches the team's trait.
-     */
-    static _leaderMatchesTrait(girl, teamTraitCategory, teamTraitValue) {
-        const girlCategory = ELEMENT_TO_TRAIT_CATEGORY[girl.element];
-        if (girlCategory !== teamTraitCategory)
-            return false;
-        const girlValue = TeamScoringService.getTraitValue(girl);
-        return girlValue === teamTraitValue;
-    }
-    /**
-     * Get the leader bonus (multiplicative factor on EffectivePower) from
-     * a Tier-5 skill priority. Used to model role-efficiency contribution
-     * of the leader in EffectivePower = base * synergy * tier3 * (1 + leaderBonus).
-     */
-    static getLeaderBonus(tier5) {
-        if (!tier5)
-            return 0;
-        return tier5.priority * LEADER_BONUS_PER_PRIORITY;
-    }
 }
-/**
- * Find all possible trait groups from a pool of girls, scored by a
- * mode-aware score function (so Mode 2 can drive cluster choice with
- * projected stats, not raw current ones).
- *
- * For each element pair, groups girls by their shared trait value and
- * scores each group by `count * avg_score`. Groups matching a currently
- * blessed trait receive no extra boost: blessings are already in caracs
- * via the game API, and the score is the mode-aware function of caracs.
- *
- * Returns groups sorted by score descending.
- */
-/**
- * Boost factor applied to the cluster score when the trait VALUE is
- * currently blessed (e.g. eyeColor=F00 with "Red eyes +25%" active).
- *
- * Earlier versions boosted every value in a blessed category, which
- * surfaced unblessed values (eg eye=Purple) over the actually blessed
- * one (eg eye=Red) when the unblessed pool happened to be larger.
- * Issue 1679 documented this misranking. The boost now only applies
- * when (category, value) matches a resolved blessing.
- */
-TeamScoringService.BLESSED_VALUE_BOOST = 5.0;
 
 ;// CONCATENATED MODULE: ./src/Service/TeamBuilderService.ts
-// TeamBuilderService.ts -- Builds optimal 7-girl teams using Tier 3
-// trait-group optimization (v5).
+// TeamBuilderService.ts -- Spec-driven team builder.
 //
-// Algorithm:
-//   1. Hard-filter to Mythic + Legendary 5-star, player class only
-//   2. Score by mode-aware function:
-//        Mode 1 (Current Best):  current main carac
-//        Mode 2 (Best Possible): projected to awakening cap (level 750, max grades)
-//   3. Find best trait group, evaluated as full team via EffectivePower
-//   4. Fill positions 2-7, then pick Shield-priority leader (slot-swap if needed)
-//   5. EffectivePower scoring: BaseStats * (1+ElementSynergy) * (1+Tier3) * (1+LeaderBonus)
+// Implements docs-internal/REVIEW_TeamSelection.md verbatim.
 //
-// EffectivePower captures four contributors to win probability:
-//   BaseStats     -- raw main carac sum (already includes blessings via game API)
-//   ElementSynergy -- team element stack bonus (mono-theme reward)
-//   Tier3         -- trait-match bonus (eye/hair/zodiac/position chain)
-//   LeaderBonus   -- role-efficiency proxy via Tier-5 priority
-//                    (Shield > Stun > Execute > Reflect)
+// Public surface:
+//   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
+//   - getElementDistribution(team): summary helper for the UI panel
 //
-// Issue refs: #1573 (Shield-first leader, audit), #1603 (mode semantics, blessings).
+// All earlier Variants (cluster-first, mythic-first, EffectivePower
+// comparator, Tier-5 Synergie boost, blessed-value boost on findTraitGroups)
+// were removed in v7.35.39. The picker now follows the spec strictly.
 
 
 const TEAM_SIZE = 7;
 const POS_2_TO_7 = 6;
-const ELEMENT_PAIRS_MAP = {
-    'eyeColor': ['darkness', 'fire'],
-    'hairColor': ['light', 'nature'],
-    'zodiac': ['stone', 'psychic'],
-    'position': ['water', 'sun'],
+// Element pairs that share a Tier-3 category. Used to determine the
+// 'team cluster' (the element pair from which the leader/Tier-3 chain
+// is derived) and for trait-hierarchy categorisation.
+const ELEMENT_PAIRS_BY_CATEGORY = {
+    eyeColor: ['darkness', 'fire'],
+    hairColor: ['light', 'nature'],
+    zodiac: ['stone', 'psychic'],
+    position: ['water', 'sun'],
 };
+// Trait hierarchy used in Pos-2-7-Regel rule 1.
+// Volle Hierarchie auch dann, wenn der Bless eine dieser Kategorien betrifft.
+const TRAIT_HIERARCHY = ['eyeColor', 'hairColor', 'zodiac', 'position'];
 class TeamBuilderService {
     /**
-     * Build the optimal team for the given mode.
-     *
-     * @param allGirls    - All available girls (from availableGirls)
-     * @param mode        - 1 = Current Best, 2 = Best Possible
-     * @param playerLevel - kept for legacy callers; unused in scoring
-     * @param playerClass - 1=HC, 2=Charm, 3=KH
+     * Spec entry point. Returns a 7-girl team or, in the fallback path,
+     * an ungekuerzt team smaller than 7 when the eligible pool is short.
+     * Returns null only when the harem is so small that no eligible
+     * girl exists at all (filterEligible returns empty).
      */
     static buildTeam(allGirls, mode, playerLevel, playerClass) {
-        const candidates = TeamScoringService.filterEligible(allGirls, playerClass);
-        if (candidates.length < TEAM_SIZE) {
+        const eligible = TeamScoringService.filterEligible(allGirls, playerClass);
+        if (eligible.length === 0) {
             return null;
         }
-        // Mode-aware score function.
         const scoreFn = (g) => mode === 1
             ? TeamScoringService.scoreCurrentBest(g, playerClass)
             : TeamScoringService.scoreBestPossible(g, playerClass);
-        // Score map for fast lookups during build/leader-rank.
         const scoreMap = new Map();
-        for (const girl of candidates) {
-            scoreMap.set(girl.id_girl, scoreFn(girl));
+        for (const g of eligible)
+            scoreMap.set(g.id_girl, scoreFn(g));
+        // Spec step 4 short-circuit: pool < 7 -> emergency fallback.
+        if (eligible.length < TEAM_SIZE) {
+            return TeamBuilderService.buildFallback(allGirls, eligible, scoreMap, playerClass, 'Eligible pool has fewer than 7 girls.');
         }
-        // Sort pool by mode score (descending). No cap.
-        const pool = [...candidates].sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-        // Detect blessed categories AND values (issue 1679: boost the
-        // actually-blessed value, not every value in a blessed category).
-        const { blessedCategories, blessedValues, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
-        // Issue 1679 phase 2: try Blessing-Clusters FIRST (Frank's Variante a).
-        // Active blessings are detected directly from the girl pool via
-        // can_be_blessed and blessing_bonuses (locale-independent). The
-        // blessings are returned in priority order (highest percent first,
-        // then largest pool). The first blessing whose cluster forms a
-        // valid 7-girl team wins.
-        const activeBlessings = BlessingService.detectActiveBlessings(candidates);
-        let bestBuilt = null;
-        const alternatives = [];
-        for (const blessing of activeBlessings) {
-            const built = TeamBuilderService._buildBlessingClusterTeam(blessing, candidates, scoreMap, playerClass);
-            if (!built)
-                continue;
-            const power = Math.round(TeamBuilderService._effectivePower(built.team, scoreMap));
-            alternatives.push({
-                traitCategory: blessing.kind,
-                traitValue: blessing.value,
-                effectivePower: power,
-            });
-            // Frank's Variante a: strict priority -- first blessing wins.
-            if (!bestBuilt) {
-                // We still need a TraitCategory for the existing TeamResult
-                // schema. For element/rarity blessings we map onto the
-                // dominant element's natural trait category so legacy
-                // consumers keep working.
-                const traitCat = (blessing.kind === 'element' || blessing.kind === 'rarity')
-                    ? TeamScoringService.getTraitCategory(built.element)
-                    : blessing.kind;
-                bestBuilt = { team: built.team, cat: traitCat, val: blessing.value, power };
+        // Detect active blessings authoritatively from the girl pool.
+        // Returns [] when the week has no blessings the picker can act on.
+        const blessings = BlessingService.detectActiveBlessings(allGirls);
+        const summaries = blessings.map(b => ({
+            kind: b.kind, value: b.value, percent: b.percent, pool_size: b.pool_size,
+        }));
+        let result = null;
+        if (blessings.length >= 2) {
+            // Spec step 2.1: bless1 = strongest, bless2 = second-strongest.
+            // detectActiveBlessings already sorts by (percent desc, pool desc,
+            // trait-kind tiebreaker eyes > hair > zodiac > position > element > rarity).
+            const bless1 = blessings[0];
+            const bless2 = blessings[1];
+            // Spec step 2.2: girls with both bless1 AND bless2.
+            const pool22 = eligible.filter(g => TeamBuilderService.classifyByBlessings(g, bless1, bless2) === 'both');
+            result = TeamBuilderService.tryPool(pool22, eligible, scoreMap, playerClass, summaries, 'bless1+2');
+            // Spec step 2.3: only bless1.
+            if (!result) {
+                const pool23 = eligible.filter(g => TeamBuilderService.classifyByBlessings(g, bless1, bless2) === 'bless1');
+                result = TeamBuilderService.tryPool(pool23, eligible, scoreMap, playerClass, summaries, 'bless1');
+            }
+            // Spec step 2.4: girls without active blessing.
+            if (!result) {
+                const pool24 = eligible.filter(g => BlessingService.getEffectiveMultiplier(g) <= 1);
+                result = TeamBuilderService.tryPool(pool24, eligible, scoreMap, playerClass, summaries, 'unblessed');
             }
         }
-        // Fall back to existing trait-cluster logic when no blessing-cluster
-        // produced a valid team (e.g. an unblessed week or a thin pool).
-        if (!bestBuilt) {
-            const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedValues);
-            const groupsToEvaluate = [];
-            const seenKeys = new Set();
-            for (const g of traitGroups.slice(0, 5)) {
-                const key = g.traitCategory + '=' + g.traitValue;
-                if (!seenKeys.has(key)) {
-                    groupsToEvaluate.push(g);
-                    seenKeys.add(key);
-                }
-            }
-            for (const g of traitGroups) {
-                const key = g.traitCategory + '=' + g.traitValue;
-                if (seenKeys.has(key))
-                    continue;
-                if (blessedValues[g.traitCategory] === g.traitValue) {
-                    groupsToEvaluate.push(g);
-                    seenKeys.add(key);
-                }
-            }
-            if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
-                groupsToEvaluate.push(traitGroups[0]);
-            }
-            for (const group of groupsToEvaluate) {
-                const builtTeam = TeamBuilderService._buildTeamForGroup(group.traitCategory, group.traitValue, pool, scoreMap);
-                if (!builtTeam || builtTeam.length < TEAM_SIZE)
-                    continue;
-                const power = Math.round(TeamBuilderService._effectivePower(builtTeam, scoreMap));
-                alternatives.push({ traitCategory: group.traitCategory, traitValue: group.traitValue, effectivePower: power });
-                if (!bestBuilt || power > bestBuilt.power) {
-                    bestBuilt = { team: builtTeam, cat: group.traitCategory, val: group.traitValue, power };
-                }
+        else if (blessings.length === 1) {
+            // Spec step 2.1 note: 'Wenn nur 1 Bless aktiv: 2.2 ueberspringen,
+            // direkt zu 2.3'. Pool 2.3 = girls with bless1.
+            const bless1 = blessings[0];
+            const pool23 = eligible.filter(g => TeamBuilderService.classifyByBlessings(g, bless1, undefined) === 'bless1');
+            result = TeamBuilderService.tryPool(pool23, eligible, scoreMap, playerClass, summaries, 'bless1');
+            if (!result) {
+                const pool24 = eligible.filter(g => BlessingService.getEffectiveMultiplier(g) <= 1);
+                result = TeamBuilderService.tryPool(pool24, eligible, scoreMap, playerClass, summaries, 'unblessed');
             }
         }
-        if (!bestBuilt)
+        else {
+            // Spec step 1 / step 3: no blessings -> pool 3.1 = entire eligible set.
+            result = TeamBuilderService.tryPool(eligible, eligible, scoreMap, playerClass, summaries, 'no-blessings');
+        }
+        if (result)
+            return result;
+        // All blessing-related pools failed (or the pool was so small
+        // that no team-cluster could be assembled). Fall through to the
+        // emergency fallback (Spec step 4).
+        return TeamBuilderService.buildFallback(allGirls, eligible, scoreMap, playerClass, 'No bless/no-bless pool produced 7 girls; fell back to caracs_sum picks.');
+    }
+    // ---- helpers --------------------------------------------------------
+    /**
+     * Classify a girl by which of the two strongest blessings she carries.
+     *
+     * Match is determined by (kind, value): does the girl's relevant
+     * field equal the blessing's value AND does she also carry an active
+     * blessing percent (any percent on her pvp_v3.carac1 list)? Matching
+     * by percent alone is unsafe because two blessings can share the same
+     * percent and would falsely classify every blessed girl as 'both'.
+     *
+     * Returns:
+     *   'both'   when the girl matches both blessings AND is currently blessed
+     *   'bless1' when she matches bless1 only
+     *   'bless2' when she matches bless2 only (only meaningful when bless2 is provided)
+     *   'none'   otherwise
+     */
+    static classifyByBlessings(girl, bless1, bless2) {
+        // The girl must currently carry an active blessing for her to fall
+        // into pool 2.2 / 2.3 at all.
+        const isBlessed = BlessingService.getEffectiveMultiplier(girl) > 1;
+        if (!isBlessed)
+            return 'none';
+        const has1 = TeamBuilderService.matchesBlessingCondition(girl, bless1);
+        const has2 = bless2 !== undefined && TeamBuilderService.matchesBlessingCondition(girl, bless2);
+        if (has1 && has2)
+            return 'both';
+        if (has1)
+            return 'bless1';
+        if (has2)
+            return 'bless2';
+        return 'none';
+    }
+    /**
+     * Does the girl satisfy the blessing's condition (her relevant field
+     * equals the blessing's value)?
+     */
+    static matchesBlessingCondition(girl, bless) {
+        var _a;
+        const raw = girl;
+        const valueOf = (kind) => {
+            var _a, _b, _c;
+            switch (kind) {
+                case 'eyeColor': return (_a = raw.eyeColor) !== null && _a !== void 0 ? _a : raw.eye_color1;
+                case 'hairColor': return (_b = raw.hairColor) !== null && _b !== void 0 ? _b : raw.hair_color1;
+                case 'zodiac': return raw.zodiac;
+                case 'position': {
+                    const v = (_c = raw.position) !== null && _c !== void 0 ? _c : raw.position_img;
+                    if (v === undefined || v === null)
+                        return undefined;
+                    return String(v).replace(/\.png$/i, '');
+                }
+                case 'element': return raw.element;
+                case 'rarity': return raw.rarity;
+                default: return undefined;
+            }
+        };
+        return String((_a = valueOf(bless.kind)) !== null && _a !== void 0 ? _a : '') === bless.value;
+    }
+    /**
+     * Build a team from one specific pool. Returns null when the pool
+     * cannot fill 7 slots even with cross-pool fallback for the leader.
+     */
+    static tryPool(pool, eligibleAll, scoreMap, playerClass, summaries, poolUsed) {
+        if (pool.length === 0)
             return null;
-        const team = bestBuilt.team;
-        const teamElements = team.map(g => g.element);
-        const leader = team[0];
-        const traitCategory = bestBuilt.cat;
-        const traitValue = bestBuilt.val;
-        const statScores = team.map(g => scoreMap.get(g.id_girl) || 0);
-        const synergyValue = TeamScoringService.calculateSynergyValue(teamElements);
-        const elementSynergyMultiplier = TeamScoringService.calculateElementSynergyMultiplier(team);
-        const leaderTier5 = TeamScoringService.getTier5Skill(leader.element);
-        const leaderBonus = TeamScoringService.getLeaderBonus(leaderTier5);
-        const tier3Bonus = TeamScoringService.calculateTier3TeamBonus(team);
-        // leaderReason: explain the pick when it's not a Mythic Shield.
-        // Variante C precedence is: Mythic Shield (best) > Mythic Stun >
-        // Mythic Execute > Mythic Reflect > Legendary fallback. The reason
-        // text states which step was taken and why.
-        const leaderReason = TeamBuilderService._buildLeaderReason(leader, leaderTier5, candidates);
-        let traitMatchCount = 0;
-        for (const girl of team) {
-            const girlCategory = TeamScoringService.getTraitCategory(girl.element);
-            if (girlCategory === traitCategory) {
-                const girlValue = TeamScoringService.getTraitValue(girl);
-                if (girlValue === traitValue)
-                    traitMatchCount++;
+        // Pos-2-7-Regel: pick the team cluster (element pair derived from
+        // the dominant trait-hierarchy bucket inside the pool).
+        const cluster = TeamBuilderService.chooseTeamCluster(pool);
+        if (!cluster)
+            return null;
+        // Spec sequence inside a pool: Sub-Cluster -> Leader -> Pos 2-7.
+        // Pick the leader from the pool first (Spec 2.2.1 / 2.3.1 / 2.4.1
+        // / 3.1.1) using the 8-step Leaderauswahl-Regel.
+        let leader = TeamBuilderService.pickLeader(pool, cluster, scoreMap, playerClass);
+        if (!leader) {
+            // Spec fallback chain: if the local pool has no valid leader,
+            // widen to the entire eligible set (one cohesive escalation
+            // step instead of the 2.2.1.1/2.2.1.2 nested chain).
+            leader = TeamBuilderService.pickLeader(eligibleAll, cluster, scoreMap, playerClass);
+            if (!leader)
+                return null;
+        }
+        // Pos 2-7: take cluster sub-groups in hierarchy order, sort each
+        // by caracs_sum desc (Element-Coeff tiebreak), pick 6, never
+        // re-using the leader.
+        const reservedIds = new Set([leader.id_girl]);
+        const positions = TeamBuilderService.fillPositions2to7(cluster, pool, reservedIds);
+        if (positions.length < POS_2_TO_7)
+            return null;
+        const team = [leader, ...positions];
+        return TeamBuilderService.buildResult(team, scoreMap, eligibleAll, playerClass, cluster, summaries, poolUsed);
+    }
+    /**
+     * Pos-2-7-Regel rule 1+3: bilde Sub-Gruppen passend zur Trait-Hierarchie
+     * eyes > hair > zodiac > position > element > rarity, und bestimme das
+     * dominante Sub-Cluster.
+     *
+     * Returns the team's element-pair cluster (which determines the
+     * Tier-3 trait category, the leader's element-pair-match check, and
+     * the Pos-2-7 filler) plus the dominant sub-trait value when the
+     * hierarchy resolved inside the cluster.
+     *
+     * Mono-Element-Sonderfall: when the pool is dominated by a single
+     * element, the Tier-3 category for that element wins ahead of the
+     * trait hierarchy. Example: stone-bless pool -> zodiac wins before
+     * eyeColor, because eye-color does not feed Tier-3 for stones.
+     */
+    static chooseTeamCluster(pool) {
+        var _a, _b, _c;
+        if (pool.length === 0)
+            return null;
+        // Element histogram inside the pool. Used both for the mono-element
+        // detection and as a tiebreaker when the trait hierarchy resolves
+        // to 'element'.
+        const elementCounts = new Map();
+        for (const g of pool) {
+            elementCounts.set(g.element, (elementCounts.get(g.element) || 0) + 1);
+        }
+        // Mono-element detection: a pool is mono when one element holds
+        // >= 80% of the pool. Element bless typically yields 100%
+        // (every girl is the same element) but we keep some headroom
+        // for mixed sub-pools.
+        let monoElement = null;
+        for (const [el, count] of elementCounts) {
+            if (count / pool.length >= 0.8) {
+                monoElement = el;
+                break;
             }
         }
-        const clusterElements = ELEMENT_PAIRS_MAP[traitCategory] || [];
+        // Helper: given a TraitCategory, bucket the pool's eligible
+        // members (those whose element pair matches the category) by
+        // trait value, return the largest bucket above the minimum size.
+        const dominantBucketFor = (category) => {
+            const pair = ELEMENT_PAIRS_BY_CATEGORY[category];
+            const subset = pool.filter(g => pair.includes(g.element));
+            if (subset.length === 0)
+                return null;
+            const buckets = new Map();
+            for (const g of subset) {
+                const v = TeamScoringService.getTraitValue(g);
+                if (!v)
+                    continue;
+                if (!buckets.has(v))
+                    buckets.set(v, []);
+                buckets.get(v).push(g);
+            }
+            if (buckets.size === 0)
+                return null;
+            const sorted = [...buckets.entries()]
+                .sort((a, b) => b[1].length - a[1].length);
+            const [topVal, topGirls] = sorted[0];
+            return { category, value: topVal, girls: topGirls, subset };
+        };
+        // Mono-element sonderfall: prefer the Tier-3 category of the pool
+        // element. We still look at all four hierarchy categories so the
+        // result includes the actual trait value, but with the mono category
+        // bumped to the front of the list.
+        const orderedCategories = monoElement
+            ? [TeamScoringService.getTier3Category(monoElement),
+                ...TRAIT_HIERARCHY.filter(c => c !== TeamScoringService.getTier3Category(monoElement))]
+            : [...TRAIT_HIERARCHY];
+        // Walk the hierarchy and pick the first category that yields a
+        // non-trivial bucket (>= 2 girls so the Tier-3 chain has bite).
+        for (const category of orderedCategories) {
+            const dominant = dominantBucketFor(category);
+            if (dominant && dominant.girls.length >= 1) {
+                return {
+                    category,
+                    value: dominant.value,
+                    elements: ELEMENT_PAIRS_BY_CATEGORY[category],
+                };
+            }
+        }
+        // Fall through: trait hierarchy did not resolve. Use 'element' (Spec
+        // rule 3 step). Pick the element with the highest count; tiebreak
+        // by Element-Coeff. The team-cluster category becomes that
+        // element's Tier-3 category, the trait value is the most common
+        // value inside the chosen pair.
+        const sortedByCount = [...elementCounts.entries()]
+            .sort((a, b) => {
+            if (b[1] !== a[1])
+                return b[1] - a[1];
+            return TeamScoringService.getElementPowerCoeff(b[0])
+                - TeamScoringService.getElementPowerCoeff(a[0]);
+        });
+        const winnerElement = sortedByCount[0][0];
+        const winnerCategory = TeamScoringService.getTier3Category(winnerElement);
+        const winnerPair = ELEMENT_PAIRS_BY_CATEGORY[winnerCategory];
+        const subset = pool.filter(g => winnerPair.includes(g.element));
+        const buckets = new Map();
+        for (const g of subset) {
+            const v = TeamScoringService.getTraitValue(g);
+            if (!v)
+                continue;
+            buckets.set(v, (buckets.get(v) || 0) + 1);
+        }
+        const topValue = (_c = (_b = (_a = [...buckets.entries()].sort((a, b) => b[1] - a[1])[0]) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : TeamScoringService.getTraitValue(subset[0])) !== null && _c !== void 0 ? _c : '';
+        return { category: winnerCategory, value: topValue, elements: winnerPair };
+    }
+    /**
+     * Pos-2-7-Regel rule 1+2+3+4: Sub-Gruppen bilden, sortieren, picken.
+     *
+     * - Bilde Sub-Gruppen passend zur Trait-Hierarchie. Pro Trait-Wert
+     *   eine Sub-Gruppe.
+     * - Innerhalb jeder Sub-Gruppe: caracs_sum desc, Element-Coeff
+     *   tiebreak.
+     * - Sub-Gruppen-Reihenfolge: Trait-Hierarchie zuerst, Pool-Groesse
+     *   desc innerhalb. Bei 'element' Element-Coeff desc.
+     * - Waehle 6 Maedchen aus dem Cluster.
+     */
+    static fillPositions2to7(cluster, pool, reservedIds) {
+        // Working set: only girls whose element-pair matches the cluster.
+        const clusterGirls = pool.filter(g => cluster.elements.includes(g.element) && !reservedIds.has(g.id_girl));
+        if (clusterGirls.length === 0)
+            return [];
+        // Sort the cluster girls into ordered sub-groups. The primary
+        // grouping uses the cluster's trait category; secondary slots are
+        // filled from the next-largest sub-group with the same category
+        // and from any cluster girl when sub-groups run out.
+        const subGroupKeys = [];
+        const subGroups = new Map();
+        const groupKey = (g) => {
+            const v = TeamScoringService.getTraitValue(g);
+            return v !== null && v !== void 0 ? v : '__notrait__';
+        };
+        for (const g of clusterGirls) {
+            const key = groupKey(g);
+            if (!subGroups.has(key)) {
+                subGroups.set(key, []);
+                subGroupKeys.push(key);
+            }
+            subGroups.get(key).push(g);
+        }
+        // Sort sub-groups: primary group (matches cluster.value) first,
+        // then by size desc, then by Element-Coeff of the dominant element
+        // inside the sub-group.
+        const sortedKeys = [...subGroupKeys].sort((a, b) => {
+            if (a === cluster.value && b !== cluster.value)
+                return -1;
+            if (b === cluster.value && a !== cluster.value)
+                return 1;
+            const sizeDelta = subGroups.get(b).length - subGroups.get(a).length;
+            if (sizeDelta !== 0)
+                return sizeDelta;
+            const aTop = TeamBuilderService.dominantElementCoeff(subGroups.get(a));
+            const bTop = TeamBuilderService.dominantElementCoeff(subGroups.get(b));
+            return bTop - aTop;
+        });
+        // Sort each sub-group by caracs_sum desc, Element-Coeff tiebreak.
+        const compareCaracs = (a, b) => {
+            const sa = TeamScoringService.caracsSum(a);
+            const sb = TeamScoringService.caracsSum(b);
+            if (sb !== sa)
+                return sb - sa;
+            return TeamScoringService.getElementPowerCoeff(b.element)
+                - TeamScoringService.getElementPowerCoeff(a.element);
+        };
+        const picks = [];
+        const used = new Set();
+        for (const key of sortedKeys) {
+            const group = [...subGroups.get(key)].sort(compareCaracs);
+            for (const g of group) {
+                if (picks.length >= POS_2_TO_7)
+                    break;
+                if (used.has(g.id_girl))
+                    continue;
+                picks.push(g);
+                used.add(g.id_girl);
+            }
+            if (picks.length >= POS_2_TO_7)
+                break;
+        }
+        // Spec 2.2.2.1 / 2.3.2.1 / 2.4.2.1 / 3.1.2.1: when the cluster
+        // sub-groups did not yield 6 girls, fill from any cluster girl
+        // not yet used. (We do not fall back to the entire pool here --
+        // that escalation is the caller's job, Spec 2.2.2.2 / 2.3.2.2 /
+        // 2.4.2.2 / 3.1.2.2.)
+        if (picks.length < POS_2_TO_7) {
+            const remaining = clusterGirls
+                .filter(g => !used.has(g.id_girl))
+                .sort(compareCaracs);
+            for (const g of remaining) {
+                if (picks.length >= POS_2_TO_7)
+                    break;
+                picks.push(g);
+                used.add(g.id_girl);
+            }
+        }
+        return picks;
+    }
+    /** Highest Element-Coeff observed inside a sub-group. */
+    static dominantElementCoeff(girls) {
+        let max = 0;
+        for (const g of girls) {
+            const c = TeamScoringService.getElementPowerCoeff(g.element);
+            if (c > max)
+                max = c;
+        }
+        return max;
+    }
+    /**
+     * Leaderauswahl-Regel: 8 Sortier-Schluessel von oben nach unten.
+     *
+     *   1. Mythic vor Legendary
+     *   2. Tier-5: Shield > Stun > Execute > Reflect
+     *   3. Element-Pair-Match zum Team-Cluster
+     *   4. Trait-Wert-Match zum Team-Cluster
+     *   5. blessed vor unblessed
+     *   6. own-class vor cross-class
+     *   7. caracs_sum absteigend
+     *   8. Element-Coeff hoeher zuerst
+     *
+     * Punkt 4 vor Punkt 6: gemaess Spec finalisiert. Eine Mythic-Stone-
+     * Schild-Leaderin mit Bélier-Zodiac (Trait-Match) gewinnt vor einer
+     * Mythic-Stone-Schild-Leaderin mit Balance-Zodiac (kein Trait-Match),
+     * unabhaengig davon, ob letztere own-class ist.
+     */
+    static pickLeader(candidates, cluster, scoreMap, playerClass) {
+        if (candidates.length === 0)
+            return undefined;
+        const sorted = [...candidates].sort((a, b) => {
+            // 1. Mythic vor Legendary
+            const rA = a.rarity === 'mythic' ? 0 : 1;
+            const rB = b.rarity === 'mythic' ? 0 : 1;
+            if (rA !== rB)
+                return rA - rB;
+            // 2. Tier-5: Shield > Stun > Execute > Reflect
+            const tA = TeamScoringService.getTier5Skill(a.element).priority;
+            const tB = TeamScoringService.getTier5Skill(b.element).priority;
+            if (tA !== tB)
+                return tB - tA;
+            // 3. Element-Pair-Match zum Team-Cluster
+            const eA = cluster.elements.includes(a.element) ? 0 : 1;
+            const eB = cluster.elements.includes(b.element) ? 0 : 1;
+            if (eA !== eB)
+                return eA - eB;
+            // 4. Trait-Wert-Match zum Team-Cluster (only counts when the
+            //    girl's own Tier-3 category equals the cluster category;
+            //    a hairColor=0F0 light girl does NOT match an
+            //    eyeColor=0F0 cluster).
+            const matchA = TeamScoringService.getTier3Category(a.element) === cluster.category
+                && TeamScoringService.getTraitValue(a) === cluster.value;
+            const matchB = TeamScoringService.getTier3Category(b.element) === cluster.category
+                && TeamScoringService.getTraitValue(b) === cluster.value;
+            const vA = matchA ? 0 : 1;
+            const vB = matchB ? 0 : 1;
+            if (vA !== vB)
+                return vA - vB;
+            // 5. blessed vor unblessed
+            const bA = BlessingService.getEffectiveMultiplier(a) > 1 ? 0 : 1;
+            const bB = BlessingService.getEffectiveMultiplier(b) > 1 ? 0 : 1;
+            if (bA !== bB)
+                return bA - bB;
+            // 6. own-class vor cross-class (no class field => own-class neutral)
+            const ocA = (typeof a.class === 'number' && a.class !== playerClass) ? 1 : 0;
+            const ocB = (typeof b.class === 'number' && b.class !== playerClass) ? 1 : 0;
+            if (ocA !== ocB)
+                return ocA - ocB;
+            // 7. caracs_sum absteigend
+            const sA = TeamScoringService.caracsSum(a);
+            const sB = TeamScoringService.caracsSum(b);
+            if (sA !== sB)
+                return sB - sA;
+            // 8. Element-Coeff hoeher zuerst
+            const cA = TeamScoringService.getElementPowerCoeff(a.element);
+            const cB = TeamScoringService.getElementPowerCoeff(b.element);
+            if (cA !== cB)
+                return cB - cA;
+            return 0;
+        });
+        return sorted[0];
+    }
+    /**
+     * Spec step 4: Notfall-Fallback bei Pool < 7. Alle vorhandenen Girls
+     * nach caracs_sum absteigend sortieren, ungekuerzt als Team setzen.
+     * Restslots bleiben leer.
+     */
+    static buildFallback(allGirls, eligible, scoreMap, playerClass, reason) {
+        const sorted = [...eligible].sort((a, b) => {
+            const sA = TeamScoringService.caracsSum(a);
+            const sB = TeamScoringService.caracsSum(b);
+            if (sA !== sB)
+                return sB - sA;
+            return TeamScoringService.getElementPowerCoeff(b.element)
+                - TeamScoringService.getElementPowerCoeff(a.element);
+        });
+        const team = sorted.slice(0, TEAM_SIZE);
+        // Synthesize a team cluster from the team itself so the result
+        // structure is consistent with the normal path.
+        const fallbackCluster = team.length > 0
+            ? (() => {
+                var _a;
+                const elementCounts = new Map();
+                for (const g of team) {
+                    elementCounts.set(g.element, (elementCounts.get(g.element) || 0) + 1);
+                }
+                const winner = [...elementCounts.entries()]
+                    .sort((a, b) => b[1] - a[1])[0][0];
+                const cat = TeamScoringService.getTier3Category(winner);
+                const trait = (_a = TeamScoringService.getTraitValue(team[0])) !== null && _a !== void 0 ? _a : '';
+                return { category: cat, value: trait, elements: ELEMENT_PAIRS_BY_CATEGORY[cat] };
+            })()
+            : null;
+        return TeamBuilderService.buildResult(team, scoreMap, eligible, playerClass, fallbackCluster, [], 'fallback', reason);
+    }
+    /**
+     * Compose the TeamResult struct used by the UI panel and tests.
+     * `team[0]` is the leader; later entries are positions 2..7. The
+     * structure is identical for normal builds and the emergency
+     * fallback (whose team may be smaller than 7).
+     */
+    static buildResult(team, scoreMap, eligible, playerClass, cluster, summaries, poolUsed, fallbackReason) {
+        var _a, _b, _c, _d;
+        const leader = team[0];
+        const elements = team.map(g => g.element);
+        // Score map may not contain every team girl when the eligible-pool
+        // shortcut was bypassed. Fill missing entries on the fly.
+        const slotScore = (g) => {
+            var _a;
+            return (_a = scoreMap.get(g.id_girl)) !== null && _a !== void 0 ? _a : TeamScoringService.scoreCurrentBest(g, playerClass);
+        };
+        const statScores = team.map(slotScore);
+        const mainSum = team.reduce((s, g) => s + TeamScoringService.caracsSum(g), 0);
+        const projectedSum = team.reduce((s, g) => s + TeamScoringService.scoreBestPossible(g, playerClass), 0);
+        const leaderTier5 = TeamScoringService.getTier5Skill(leader.element);
+        const traitCategory = (_a = cluster === null || cluster === void 0 ? void 0 : cluster.category) !== null && _a !== void 0 ? _a : TeamScoringService.getTier3Category(leader.element);
+        const traitValue = (_c = (_b = cluster === null || cluster === void 0 ? void 0 : cluster.value) !== null && _b !== void 0 ? _b : TeamScoringService.getTraitValue(leader)) !== null && _c !== void 0 ? _c : '';
+        const clusterElements = (_d = cluster === null || cluster === void 0 ? void 0 : cluster.elements) !== null && _d !== void 0 ? _d : ELEMENT_PAIRS_BY_CATEGORY[traitCategory];
         const leaderInCluster = clusterElements.includes(leader.element);
-        const mythicAudit = TeamBuilderService._buildMythicAudit(allGirls, team, scoreMap, traitCategory, traitValue, clusterElements, playerClass);
-        // mainSum: current carac sum across the 7 picked girls (mode-independent
-        // reference number visible in the info box headline).
-        const mainSum = team.reduce((acc, g) => acc + TeamScoringService.getMainCarac(g, playerClass), 0);
-        // projectedSum: mode-2 projection sum for the same 7 girls. Useful in
-        // mode 1 too: 'these girls would be worth X if fully developed'.
-        const projectedSum = team.reduce((acc, g) => acc + TeamScoringService.scoreBestPossible(g, playerClass), 0);
-        // Per-slot diagnostic detail (for log + audit UI).
+        const tier3Bonus = TeamScoringService.calculateTier3TeamBonus(team);
+        const traitMatchCount = team.filter(g => TeamScoringService.getTier3Category(g.element) === traitCategory
+            && TeamScoringService.getTraitValue(g) === traitValue).length;
+        const leaderReason = TeamBuilderService.buildLeaderReason(leader, leaderTier5, eligible, traitCategory, traitValue);
+        const blessedGirlCount = eligible.filter(g => BlessingService.getEffectiveMultiplier(g) > 1).length;
         const slotInfo = team.map(g => ({
             id_girl: g.id_girl,
             name: g.name,
@@ -19282,450 +19231,104 @@ class TeamBuilderService {
             awakening_level: g.awakening_level,
             graded: g.graded,
             nb_grades: g.nb_grades,
-            currentMain: TeamScoringService.getMainCarac(g, playerClass),
-            score: scoreMap.get(g.id_girl) || 0,
+            currentMain: TeamScoringService.caracsSum(g),
+            score: slotScore(g),
             blessingPercents: BlessingService.getActivePercents(g),
             traitValue: TeamScoringService.getTraitValue(g),
             inCluster: clusterElements.includes(g.element),
         }));
-        // Pool stats (mythic-at-cap and blessed counts help diagnose
-        // "modes identical because every Top-7 is fully developed").
-        const poolStats = TeamBuilderService._poolStats(allGirls, playerClass);
+        const mythicAudit = TeamBuilderService.buildMythicAudit(eligible, team, traitCategory, traitValue, clusterElements, playerClass);
+        const poolStats = TeamBuilderService.buildPoolStats(eligible, playerClass);
         return {
             girls: team,
-            leaderReason,
+            elements,
             statScores,
-            synergyValue,
-            elementSynergyMultiplier,
+            mainSum,
+            projectedSum,
             leaderTier5,
-            leaderBonus,
-            elements: teamElements,
+            leaderInCluster,
+            leaderReason,
             traitCategory,
             traitValue,
             tier3Bonus,
             traitMatchCount,
-            blessedCategories: Array.from(blessedCategories),
+            activeBlessings: summaries,
+            poolUsed,
             blessedGirlCount,
-            effectivePower: bestBuilt.power,
-            alternatives,
+            fallbackReason,
             playerClass,
-            leaderInCluster,
-            mainSum,
-            projectedSum,
             mythicAudit,
             slotInfo,
             poolStats,
         };
     }
-    /**
-     * Build a team starting from an active blessing (issue 1679 phase 2).
-     *
-     * Frank's heuristic for a blessed week:
-     *   1. All blessed girls form the candidate pool.
-     *   2. Within that pool, find the most common element to maximize
-     *      Element Synergy on top of the Bless multiplier.
-     *   3. If the pool has fewer than 7 girls, fill with unblessed girls
-     *      of the SAME most-common-element (NOT random fillers).
-     *   4. Pick leader by Mythic Shield priority + blessed-bevorzugt
-     *      + own-class + mainCarac. Fallback to Legendary 5-star.
-     *   5. Pos 2-7 are the 6 highest-scoring remaining girls in the pool.
-     *
-     * Returns null when the blessing has too few candidates (after the
-     * fallback fill) to form a team. The caller then tries the next
-     * blessing in priority order, or falls back to trait-cluster logic.
-     */
-    static _buildBlessingClusterTeam(blessing, candidates, scoreMap, playerClass) {
-        const fieldOf = (g) => {
-            switch (blessing.kind) {
-                case 'eyeColor': return g.eyeColor;
-                case 'hairColor': return g.hairColor;
-                case 'zodiac': return g.zodiac;
-                case 'position': return g.position;
-                case 'element': return g.element;
-                case 'rarity': return g.rarity;
-                default: return undefined;
-            }
-        };
-        const blessedPool = candidates.filter(g => { var _a; return String((_a = fieldOf(g)) !== null && _a !== void 0 ? _a : '') === blessing.value; });
-        if (blessedPool.length === 0)
-            return null;
-        // Find the most common element inside the blessed pool. This
-        // becomes the cluster element used for filler picks AND influences
-        // EffPower via Element Synergy. When two elements have the same
-        // count, the one with the higher Element-Power-Coeff wins
-        // (Frank's discord notes: darkness > fire/stone > nature > water
-        // > psychic > light/sun). 'a benedictions egales: yeux > cheveux
-        // > zodiaque' is captured here through element strength.
-        const elementCounts = new Map();
-        for (const g of blessedPool) {
-            elementCounts.set(g.element, (elementCounts.get(g.element) || 0) + 1);
-        }
-        let bestElement = blessedPool[0].element;
-        let bestCount = 0;
-        let bestCoeff = TeamScoringService.getElementPowerCoeff(bestElement);
-        for (const [el, c] of elementCounts) {
-            const coeff = TeamScoringService.getElementPowerCoeff(el);
-            if (c > bestCount || (c === bestCount && coeff > bestCoeff)) {
-                bestCount = c;
-                bestElement = el;
-                bestCoeff = coeff;
-            }
-        }
-        // Build a working pool: all blessed girls plus -- if needed --
-        // the strongest unblessed girls of the same dominant element.
-        const usedIds = new Set(blessedPool.map(g => g.id_girl));
-        let pool = [...blessedPool];
-        if (pool.length < TEAM_SIZE) {
-            const fillers = candidates
-                .filter(g => !usedIds.has(g.id_girl) && g.element === bestElement)
-                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
-            const needed = TEAM_SIZE - pool.length;
-            pool = pool.concat(fillers.slice(0, needed));
-        }
-        if (pool.length < TEAM_SIZE)
-            return null;
-        // Sub-cluster optimization (Frank's discord notes, 1679 phase 3):
-        // within the blessed pool, find the most common SECONDARY trait
-        // value to maximize Tier-3 chain on top of the bless multiplier.
-        // For an element-stone bless this means picking the most common
-        // zodiac among the stones; for a hair-color bless it means the
-        // most common eye-color; etc.
-        //
-        // The secondary trait is the trait category that the dominant
-        // element pair produces (zodiac for stone/psychic, eyeColor for
-        // fire/darkness, hairColor for light/nature, position for water/sun).
-        // We exclude the blessing's own kind so we don't trivially match
-        // (e.g. if blessing is hairColor=green, the secondary is
-        // whatever the cluster element pair maps to: eyeColor for fire/
-        // darkness pool, position for water/sun pool, etc).
-        const secondaryCat = TeamScoringService.getTraitCategory(bestElement);
-        const secondaryOf = (g) => {
-            switch (secondaryCat) {
-                case 'eyeColor': return g.eyeColor;
-                case 'hairColor': return g.hairColor;
-                case 'zodiac': return g.zodiac;
-                case 'position': return g.position;
-            }
-        };
-        // Build a sub-cluster pool: girls in the blessed pool sharing
-        // the most common secondary value. Only meaningful when the
-        // secondary differs from the blessing's own kind.
-        const preferred = new Set();
-        if (secondaryCat !== blessing.kind && blessedPool.length > 0) {
-            const subCounts = new Map();
-            for (const g of blessedPool) {
-                const v = secondaryOf(g);
-                if (!v)
-                    continue;
-                subCounts.set(v, (subCounts.get(v) || 0) + 1);
-            }
-            if (subCounts.size > 0) {
-                const sorted = [...subCounts.entries()].sort((a, b) => b[1] - a[1]);
-                const [topVal, topCount] = sorted[0];
-                // Only apply the preference when there's a meaningful
-                // cluster (>= 2 girls), otherwise it's noise.
-                if (topCount >= 2) {
-                    for (const g of blessedPool) {
-                        if (secondaryOf(g) === topVal)
-                            preferred.add(g.id_girl);
-                    }
-                }
-            }
-        }
-        // Sort the pool: preferred girls first (sub-cluster match),
-        // then by mode-aware score within each tier.
-        pool.sort((a, b) => {
-            const aP = preferred.has(a.id_girl);
-            const bP = preferred.has(b.id_girl);
-            if (aP !== bP)
-                return aP ? -1 : 1;
-            return (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
-        });
-        // Leader pick: Mythic Shield + blessed-bevorzugt + own-class + score.
-        const isOwnClass = (g) => typeof g.class !== 'number' || g.class === playerClass;
-        const isBlessed = (g) => usedIds.has(g.id_girl);
-        const leaderRanked = [...pool].sort((a, b) => {
-            const tA = TeamScoringService.getTier5Skill(a.element);
-            const tB = TeamScoringService.getTier5Skill(b.element);
-            if (a.rarity !== b.rarity)
-                return a.rarity === 'mythic' ? -1 : 1;
-            if (tA.priority !== tB.priority)
-                return tB.priority - tA.priority;
-            if (isBlessed(a) !== isBlessed(b))
-                return isBlessed(a) ? -1 : 1;
-            if (isOwnClass(a) !== isOwnClass(b))
-                return isOwnClass(a) ? -1 : 1;
-            return (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
-        });
-        const leader = leaderRanked[0];
-        // Pos 2-7: the 6 strongest remaining girls in the pool.
-        const rest = pool
-            .filter(g => g.id_girl !== leader.id_girl)
-            .slice(0, TEAM_SIZE - 1);
-        return { team: [leader, ...rest], element: bestElement, pool };
-    }
-    /**
-     * Build a team for a specific trait group.
-     * Two strategies (cluster-first / mythic-first) are scored on Effective
-     * Power and the higher one wins.
-     */
-    static _buildTeamForGroup(cat, val, pool, scoreMap) {
-        const elems = ELEMENT_PAIRS_MAP[cat] || [];
-        const variantA = TeamBuilderService._buildVariant(elems, cat, val, pool, scoreMap, 'cluster-first');
-        const variantB = TeamBuilderService._buildVariant(elems, cat, val, pool, scoreMap, 'mythic-first');
-        if (!variantA && !variantB)
-            return null;
-        if (!variantA)
-            return variantB;
-        if (!variantB)
-            return variantA;
-        const epA = TeamBuilderService._effectivePower(variantA, scoreMap);
-        const epB = TeamBuilderService._effectivePower(variantB, scoreMap);
-        return epA >= epB ? variantA : variantB;
-    }
-    /**
-     * Build one variant: fill slots 2-7, pick Shield-priority leader,
-     * slot-swap if needed.
-     */
-    static _buildVariant(elems, cat, val, pool, scoreMap, strategy) {
-        const slots = TeamBuilderService._fillSlotsTwoToSeven(elems, val, pool, scoreMap, strategy);
-        if (slots.length < POS_2_TO_7)
-            return null;
-        const usedIds = new Set(slots.map(g => g.id_girl));
-        const remaining = pool.filter(g => !usedIds.has(g.id_girl));
-        if (remaining.length === 0)
-            return null;
-        // Leader picked from remaining mythics first; if none, slot-swap a
-        // mythic (Shield-preferred) out of slots 2-7 to free the leader pos.
-        const remainingMythic = remaining.find(g => g.rarity === 'mythic');
-        let leaderCandidates = remaining;
-        let workingSlots = slots;
-        if (!remainingMythic) {
-            const slotMythics = slots.filter(g => g.rarity === 'mythic');
-            const remainingLegendary = remaining.find(g => g.rarity === 'legendary');
-            if (slotMythics.length > 0 && remainingLegendary) {
-                // Pick the BEST Tier-5 priority mythic out of slots first
-                // (so a slot Shield mythic becomes leader, not the weakest one),
-                // matching Frank's #1573 'always Shield first' request.
-                const sortedSlotMythics = [...slotMythics].sort((a, b) => {
-                    const pa = TeamScoringService.getTier5Skill(a.element).priority;
-                    const pb = TeamScoringService.getTier5Skill(b.element).priority;
-                    if (pa !== pb)
-                        return pb - pa;
-                    return (scoreMap.get(a.id_girl) || 0) - (scoreMap.get(b.id_girl) || 0);
-                });
-                const leaderFromSlots = sortedSlotMythics[0];
-                const strongestRemainingLegendary = remaining
-                    .filter(g => g.rarity === 'legendary')
-                    .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0))[0];
-                workingSlots = slots.map(g => g.id_girl === leaderFromSlots.id_girl ? strongestRemainingLegendary : g);
-                leaderCandidates = [leaderFromSlots];
-            }
-            else {
-                leaderCandidates = remaining;
-            }
-        }
-        else {
-            leaderCandidates = remaining.filter(g => g.rarity === 'mythic');
-        }
-        const ranked = TeamScoringService.rankLeaderCandidates(leaderCandidates, scoreMap, cat, val, elems);
-        if (ranked.length === 0)
-            return null;
-        return [ranked[0], ...workingSlots];
-    }
-    /**
-     * Compute EffectivePower for a built team:
-     *   mainSum * (1 + synergy) * (1 + tier3) * (1 + leaderBonus)
-     *
-     * Uses the score map (mode-aware) for stat sum so the team-builder
-     * compares modes-at-this-level rather than mode-1-at-each-level.
-     */
-    static _effectivePower(team, scoreMap) {
-        const sum = team.reduce((s, g) => s + (scoreMap.get(g.id_girl) || 0), 0);
-        const synergy = TeamScoringService.calculateElementSynergyMultiplier(team);
-        const tier3 = TeamScoringService.calculateTier3TeamBonus(team);
-        const leaderTier5 = TeamScoringService.getTier5Skill(team[0].element);
-        const leaderBonus = TeamScoringService.getLeaderBonus(leaderTier5);
-        return sum * (1 + synergy) * (1 + tier3) * (1 + leaderBonus);
-    }
-    /**
-     * Fill positions 2-7 (6 slots) using a pass-based strategy.
-     */
-    static _fillSlotsTwoToSeven(elems, val, pool, scoreMap, strategy = 'cluster-first') {
-        const team = [];
-        const used = new Set();
-        const byScoreDesc = (a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
-        const fillPass = (predicate) => {
-            const candidates = pool
-                .filter(g => !used.has(g.id_girl) && predicate(g))
-                .sort(byScoreDesc);
-            for (const g of candidates) {
-                if (team.length >= POS_2_TO_7)
-                    break;
-                team.push(g);
-                used.add(g.id_girl);
-            }
-        };
-        // Pass 1: Mythic + cluster element + trait match (ideal case).
-        fillPass(g => g.rarity === 'mythic'
-            && elems.includes(g.element)
-            && TeamScoringService.getTraitValue(g) === val);
-        if (strategy === 'mythic-first') {
-            // Mythic-first: prioritize mythic coverage even if it costs trait match.
-            // Pass 2: Mythic + cluster element (any trait).
-            if (team.length < POS_2_TO_7)
-                fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
-            // Pass 3: Mythic outside cluster (cross-cluster mythic injection).
-            if (team.length < POS_2_TO_7)
-                fillPass(g => g.rarity === 'mythic');
-            // Pass 4: Legendary + cluster + trait match.
-            if (team.length < POS_2_TO_7)
-                fillPass(g => elems.includes(g.element)
-                    && TeamScoringService.getTraitValue(g) === val);
-            // Pass 5: Legendary + cluster (any trait).
-            if (team.length < POS_2_TO_7)
-                fillPass(g => elems.includes(g.element));
-        }
-        else {
-            // Cluster-first: prioritize trait-match chain (Tier-3 bonus) and
-            // cross-rarity matching before falling back to any-trait fillers.
-            //
-            // Pass 2 (NEW v7.35.34): Legendary 5* + cluster + trait match,
-            // BEFORE we drop the trait-match constraint to mythic-only-cluster.
-            // Empirical: in pools where Legendary 5* girls carry the right
-            // trait value but Mythics in the same pair don't, keeping the
-            // trait chain pays off more than forcing a Mythic into the slot.
-            if (team.length < POS_2_TO_7)
-                fillPass(g => g.rarity === 'legendary'
-                    && elems.includes(g.element)
-                    && TeamScoringService.getTraitValue(g) === val);
-            // Pass 3: Mythic + cluster (any trait).
-            if (team.length < POS_2_TO_7)
-                fillPass(g => g.rarity === 'mythic' && elems.includes(g.element));
-            // Pass 4: Legendary + cluster (any trait).
-            if (team.length < POS_2_TO_7)
-                fillPass(g => elems.includes(g.element));
-            // Pass 5: Mythic outside cluster.
-            if (team.length < POS_2_TO_7)
-                fillPass(g => g.rarity === 'mythic');
-        }
-        // Final pass: anything to fill remaining slots.
-        if (team.length < POS_2_TO_7)
-            fillPass(() => true);
-        return team;
-    }
-    /**
-     * Pool-Health-Snapshot for the info box.
-     */
-    static _poolStats(allGirls, playerClass) {
-        const isHighRarity = (g) => g.rarity === 'mythic' || (g.rarity === 'legendary' && (g.nb_grades || 0) >= 5);
-        const ownClass = allGirls.filter(g => isHighRarity(g) && (typeof g.class !== 'number' || g.class === playerClass));
-        const ownClassMythics = ownClass.filter(g => g.rarity === 'mythic');
-        const ownClassMythicsAtCap = ownClassMythics.filter(g => (g.level || 0) >= 750).length;
-        const ownClassMythicsBlessed = ownClassMythics.filter(g => BlessingService.getEffectiveMultiplier(g) > 1).length;
-        const otherClass = {};
-        for (const g of allGirls) {
-            if (!isHighRarity(g))
-                continue;
-            if (typeof g.class !== 'number' || g.class === playerClass)
-                continue;
-            otherClass[g.class] = (otherClass[g.class] || 0) + 1;
-        }
-        return {
-            ownClass: ownClass.length,
-            otherClass,
-            ownClassMythics: ownClassMythics.length,
-            ownClassMythicsAtCap,
-            ownClassMythicsBlessed,
-        };
-    }
-    /**
-     * Build a human-readable explanation of why this leader was picked.
-     *
-     * Variante C precedence (issue #1603):
-     *   Mythic Shield > Mythic Stun > Mythic Execute > Mythic Reflect
-     *   > Legendary 5* (any tier-5 / no tier-5).
-     *
-     * If the leader is not a Mythic Shield, the reason explains which
-     * higher-priority candidate was missing or why the selected pick
-     * still made it through the slot-swap fallback.
-     */
-    static _buildLeaderReason(leader, leaderTier5, candidates) {
-        const isMythicShield = leader.rarity === 'mythic' && leaderTier5.name === 'Shield';
-        if (isMythicShield)
-            return undefined; // ideal case, no reason needed
-        const mythics = candidates.filter(g => g.rarity === 'mythic');
-        const mythicShieldCount = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Shield').length;
-        const mythicStunCount = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Stun').length;
-        const mythicExecCount = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Execute').length;
+    static buildLeaderReason(leader, tier5, eligible, traitCategory, traitValue) {
+        if (leader.rarity === 'mythic' && tier5.name === 'Shield')
+            return undefined;
+        const mythics = eligible.filter(g => g.rarity === 'mythic');
+        const shieldMythics = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Shield').length;
+        const stunMythics = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Stun').length;
+        const executeMythics = mythics.filter(g => TeamScoringService.getTier5Skill(g.element).name === 'Execute').length;
         const parts = [];
-        if (mythicShieldCount === 0)
+        if (shieldMythics === 0)
             parts.push('no Mythic Shield in pool');
         else
-            parts.push('Mythic Shield needed for slot 2-7 cluster fill, no swap candidate');
+            parts.push('Mythic Shield available but did not pass leader rule');
         if (leader.rarity === 'mythic') {
-            if (leaderTier5.name === 'Stun')
-                parts.push('fallback to Mythic Stun (tier-5 priority 3)');
-            if (leaderTier5.name === 'Execute')
-                parts.push(`fallback to Mythic Execute (no Mythic Stun: ${mythicStunCount === 0 ? 'pool empty' : 'all swapped to slots'})`);
-            if (leaderTier5.name === 'Reflect')
-                parts.push(`fallback to Mythic Reflect (no Mythic Stun/Execute: stun=${mythicStunCount}, execute=${mythicExecCount} available)`);
+            if (tier5.name === 'Stun')
+                parts.push('picked Mythic Stun');
+            if (tier5.name === 'Execute')
+                parts.push('picked Mythic Execute (Stun mythics: ' + stunMythics + ')');
+            if (tier5.name === 'Reflect')
+                parts.push('picked Mythic Reflect (Stun: ' + stunMythics + ', Execute: ' + executeMythics + ')');
         }
         else {
-            parts.push(`fallback to Legendary 5* (${leaderTier5.name}, no Mythic available)`);
+            parts.push('fell back to Legendary 5* (' + tier5.name + ')');
         }
+        const traitMatch = TeamScoringService.getTier3Category(leader.element) === traitCategory
+            && TeamScoringService.getTraitValue(leader) === traitValue;
+        if (!traitMatch)
+            parts.push('leader does not match team trait ' + traitCategory + '=' + traitValue);
         return parts.join('; ');
     }
-    /**
-     * Build the mythic audit list shown in the UI.
-     */
-    static _buildMythicAudit(allGirls, team, scoreMap, traitCategory, traitValue, clusterElements, playerClass) {
-        const teamIds = new Map();
-        team.forEach((g, idx) => teamIds.set(g.id_girl, idx + 1));
+    static buildMythicAudit(eligible, team, traitCategory, traitValue, clusterElements, playerClass) {
+        const teamPositions = new Map();
+        team.forEach((g, idx) => teamPositions.set(g.id_girl, idx + 1));
         const entries = [];
-        for (const girl of allGirls) {
+        for (const girl of eligible) {
             if (girl.rarity !== 'mythic')
                 continue;
-            const mainCarac = TeamScoringService.getMainCarac(girl, playerClass);
+            const mainCarac = TeamScoringService.caracsSum(girl);
             const blessingPercents = BlessingService.getActivePercents(girl);
             const blessingMultiplier = BlessingService.getEffectiveMultiplier(girl);
-            const pos = teamIds.get(girl.id_girl);
+            const pos = teamPositions.get(girl.id_girl);
             if (pos === 1) {
-                entries.push({
-                    id_girl: girl.id_girl, name: girl.name, element: girl.element,
-                    mainCarac, blessingPercents, blessingMultiplier,
-                    status: 'leader', position: 1,
-                });
+                entries.push({ id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                    mainCarac, blessingPercents, blessingMultiplier, status: 'leader', position: 1 });
                 continue;
             }
             if (pos !== undefined) {
-                entries.push({
-                    id_girl: girl.id_girl, name: girl.name, element: girl.element,
-                    mainCarac, blessingPercents, blessingMultiplier,
-                    status: 'pos2to7', position: pos,
-                });
+                entries.push({ id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                    mainCarac, blessingPercents, blessingMultiplier, status: 'pos2to7', position: pos });
                 continue;
             }
             const isCrossClass = typeof girl.class === 'number' && girl.class !== playerClass;
-            const crossClassPrefix = isCrossClass ? 'cross-class, ' : '';
-            const girlCategory = TeamScoringService.getTraitCategory(girl.element);
-            const girlValue = TeamScoringService.getTraitValue(girl);
+            const prefix = isCrossClass ? 'cross-class, ' : '';
+            const myCategory = TeamScoringService.getTier3Category(girl.element);
+            const myValue = TeamScoringService.getTraitValue(girl);
             let reason;
-            if (girlCategory === traitCategory && girlValue === traitValue) {
-                reason = crossClassPrefix + 'same trait, lower stats than top picks';
+            if (myCategory === traitCategory && myValue === traitValue) {
+                reason = prefix + 'same trait, lower stats than team picks';
             }
             else if (clusterElements.includes(girl.element)) {
-                reason = crossClassPrefix + 'cluster element, different trait value: '
-                    + girlCategory + '=' + (girlValue || '?');
+                reason = prefix + 'cluster element, different trait value: '
+                    + myCategory + '=' + (myValue || '?');
             }
             else {
-                reason = crossClassPrefix + 'other cluster: ' + girlCategory + '=' + (girlValue || '?');
+                reason = prefix + 'other cluster: ' + myCategory + '=' + (myValue || '?');
             }
-            entries.push({
-                id_girl: girl.id_girl, name: girl.name, element: girl.element,
-                mainCarac, blessingPercents, blessingMultiplier,
-                status: 'excluded', reason,
-            });
+            entries.push({ id_girl: girl.id_girl, name: girl.name, element: girl.element,
+                mainCarac, blessingPercents, blessingMultiplier, status: 'excluded', reason });
         }
         entries.sort((a, b) => {
             const aIn = a.status !== 'excluded';
@@ -19738,12 +19341,31 @@ class TeamBuilderService {
         });
         return entries;
     }
+    static buildPoolStats(eligible, playerClass) {
+        const ownClassGirls = eligible.filter(g => typeof g.class !== 'number' || g.class === playerClass);
+        const ownMythics = ownClassGirls.filter(g => g.rarity === 'mythic');
+        const ownMythicsAtCap = ownMythics.filter(g => (g.level || 0) >= 750).length;
+        const ownMythicsBlessed = ownMythics.filter(g => BlessingService.getEffectiveMultiplier(g) > 1).length;
+        const otherClass = {};
+        for (const g of eligible) {
+            if (typeof g.class !== 'number' || g.class === playerClass)
+                continue;
+            otherClass[g.class] = (otherClass[g.class] || 0) + 1;
+        }
+        return {
+            eligible: eligible.length,
+            ownClass: ownClassGirls.length,
+            otherClass,
+            ownClassMythics: ownMythics.length,
+            ownClassMythicsAtCap: ownMythicsAtCap,
+            ownClassMythicsBlessed: ownMythicsBlessed,
+        };
+    }
     static getElementDistribution(team) {
         const counts = new Map();
-        for (const el of team.elements) {
+        for (const el of team.elements)
             counts.set(el, (counts.get(el) || 0) + 1);
-        }
-        return Array.from(counts.entries())
+        return [...counts.entries()]
             .map(([element, count]) => ({ element, count }))
             .sort((a, b) => b.count - a.count);
     }
@@ -19907,7 +19529,6 @@ class TeamData {
 //
 // Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
 //
-
 
 
 
@@ -20376,12 +19997,12 @@ class TeamModule {
         const identStr = modesIdentical ? ', modes identical' : '';
         const playerClassNameLog = TeamModule.PLAYER_CLASS_NAME[result.playerClass] || ('class ' + result.playerClass);
         const mainCaracLabel = result.playerClass === 1 ? 'carac1' : (result.playerClass === 2 ? 'carac2' : 'carac3');
-        const synStr = (result.elementSynergyMultiplier * 100).toFixed(1);
-        const ldrStr = (result.leaderBonus * 100).toFixed(0);
-        const epStr = result.effectivePower.toLocaleString();
         const ps = result.poolStats;
-        const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
+        const psStr = ps ? `pool: ${ps.eligible} eligible, ${ps.ownClass} own-class (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
         const leaderReasonStr = result.leaderReason ? `, LeaderReason="${result.leaderReason}"` : '';
+        const blessStr = result.activeBlessings.length > 0
+            ? result.activeBlessings.map(b => `${b.kind}=${b.value}+${b.percent}%`).join(', ')
+            : 'none';
         // Mode 2 = "Best Possible at full development": ProjectedSum is the
         // headline value because the user picks girls to develop (mainSum
         // is intentionally lower since some picks are still levelling up).
@@ -20389,7 +20010,8 @@ class TeamModule {
         const sumLabel = mode === 2
             ? `ProjSum=${result.projectedSum.toLocaleString()}, MainSum=${result.mainSum.toLocaleString()}`
             : `MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}`;
-        LogUtils_logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, ${sumLabel}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+        const fbStr = result.poolUsed === 'fallback' ? `, FALLBACK=${result.fallbackReason || 'short pool'}` : '';
+        LogUtils_logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), Pool=${result.poolUsed}, ${sumLabel}, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/${result.girls.length}), Elements: ${distStr}, ${psStr}, Blessings: ${blessStr}${fbStr}${identStr}`);
         // Per-slot detail line for diagnosis: tells the issue reporter
         // exactly which 7 girls were picked, with level/awakening/grades/score
         // and any active blessing percent. Cross-checks against the game UI
@@ -20467,14 +20089,22 @@ class TeamModule {
         TeamModule.updateTeamUI(deckID);
     }
     static updateTeamUI(deckID, teamResult) {
-        var _a, _b, _c, _d, _e;
         const arr = $('div[id_girl]');
         // Remove all existing topNumber elements to prevent stale entries
         // from a previous team calculation (e.g. Current Best) interfering
         // with the current one (e.g. Best Possible) during assignTopTeam.
         $('.topNumber').remove();
+        // Always render the AssignTopTeam button first, in its own block.
+        // The button is the user-facing entry point; we never want it to
+        // disappear due to a downstream render error in the info panel.
+        try {
+            TeamModule.ensureAssignTopTeamButton();
+        }
+        catch (err) {
+            LogUtils_logHHAuto('Failed to render AssignTopTeam button: ' + err);
+        }
         for (let i = arr.length - 1; i > -1; i--) {
-            let gID = Number($(arr[i]).attr('id_girl'));
+            const gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {
                 arr[i].style.display = "none";
             }
@@ -20482,19 +20112,20 @@ class TeamModule {
                 arr[i].style.display = "";
             }
         }
-        let mainTeamPanel = $(ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .change-team-panel .panel-body > .harem-panel-girls');
+        const mainTeamPanel = $(ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .change-team-panel .panel-body > .harem-panel-girls');
         for (let j = 0; j < deckID.length; j++) {
+            const arrSort = $('div[id_girl=' + deckID[j] + ']');
+            if (arrSort.length === 0)
+                continue;
             let newDiv;
-            let arrSort = $('div[id_girl=' + deckID[j] + ']');
-            if ($(arrSort[0]).find('.topNumber').length == 0) {
-                newDiv = document.createElement("div");
-                newDiv.className = "topNumber";
+            if ($(arrSort[0]).find('.topNumber').length === 0) {
+                newDiv = document.createElement('div');
+                newDiv.className = 'topNumber';
                 arrSort[0].prepend(newDiv);
             }
             else {
                 newDiv = $(arrSort[0]).find('.topNumber')[0];
             }
-            $(arrSort[0]).find('.topNumber')[0];
             // Show position label with element emoji and leader skill
             if (teamResult && j < teamResult.girls.length) {
                 const girl = teamResult.girls[j];
@@ -20507,183 +20138,155 @@ class TeamModule {
                 }
             }
             else {
-                newDiv.innerText = j + 1;
+                newDiv.innerText = String(j + 1);
             }
-            newDiv.setAttribute('position', j + 1);
+            newDiv.setAttribute('position', String(j + 1));
             newDiv.setAttribute("ondblclick", "window.location.href='/characters/" + deckID[j] + "'");
             mainTeamPanel.append(arrSort[0]);
         }
-        // Show team selection info panel
+        // Show team selection info panel (best-effort: errors here MUST NOT
+        // break the AssignTopTeam button which is rendered above).
         $('.hhTeamSynergyInfo').remove();
-        if (teamResult) {
-            const dist = TeamBuilderService.getElementDistribution(teamResult);
-            const distHtml = dist.map(d => {
-                const className = TeamModule.CLASS_NAME[d.element] || d.element;
-                return `${className} x${d.count}`;
-            }).join(', ');
-            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
-            const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-            const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
-            // Resolve trait value to a human label
-            const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
-            const traitDisplay = traitResolved.label;
-            const traitFromRuntime = traitResolved.fromRuntime;
-            // Use cached blessings from BlessingService (loaded on Home page)
-            let cachedBlessings = null;
-            try {
-                cachedBlessings = BlessingService.getCached();
-            }
-            catch ( /* cache not ready */_f) { /* cache not ready */ }
-            const blessedVals = (cachedBlessings === null || cachedBlessings === void 0 ? void 0 : cachedBlessings.blessedValues) || {};
-            const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
-                ? cachedBlessings.blessedTraits.map((c) => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
-                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.CLASS_NAME[cachedBlessings.blessedElement] || cachedBlessings.blessedElement) : '')
-                : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
-            const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
-            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
-            const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
-            const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
-            // Class explainer: show why only own-class girls are used,
-            // including pool size and per-class breakdown of what gets
-            // filtered out. Cross-class girls are intentionally never
-            // considered because the league/season formulas reward only
-            // the player's main class carac, so the script optimizes for
-            // that single stat (Performance Handbook, Slynia 2021;
-            // Wiki: 'never build cross-class').
-            const poolStats = teamResult.poolStats;
-            let classExplainerHtml = '';
-            if (poolStats) {
-                const otherClassParts = [];
-                for (const c of [1, 2, 3]) {
-                    if (c === teamResult.playerClass)
-                        continue;
-                    const n = poolStats.otherClass[c];
-                    if (!n)
-                        continue;
-                    otherClassParts.push(`${n} ${TeamModule.PLAYER_CLASS_NAME[c] || ('class ' + c)}`);
-                }
-                const otherTotal = otherClassParts.length > 0 ? ' (skipped: ' + otherClassParts.join(', ') + ')' : '';
-                const atCap = poolStats.ownClassMythicsAtCap;
-                const blessedM = poolStats.ownClassMythicsBlessed;
-                const mythicDetail = (typeof atCap === 'number' && typeof blessedM === 'number')
-                    ? `${poolStats.ownClassMythics} mythic (${atCap} at level cap, ${blessedM} blessed)`
-                    : `${poolStats.ownClassMythics} mythic`;
-                classExplainerHtml = `<br/><span style="color:#bbb; font-size:10px;">Eligible pool: <b>${poolStats.ownClass}</b> ${playerClassName} girls (Mythic + Legendary 5*), of which ${mythicDetail}. Cross-class girls ignored${otherTotal} -- league math rewards only your main class stat (${mainCaracLabel}), so cross-class girls cannot win on the metric that counts.</span>`;
-                if (poolStats.ownClass < 7) {
-                    classExplainerHtml += `<br/><span style="color:#fc6; font-size:10px;"><b>WARNING:</b> Fewer than 7 own-class Mythic/Legendary-5* girls available. Script falls back to legacy team selection (no Tier-3 / cluster optimization). Build up your ${playerClassName} roster to enable the full algorithm.</span>`;
-                }
-            }
-            // Read delta info that setTopTeamV2 attached to the result
-            // (previous mainSum for the same mode or the other mode, if any).
-            const fmtPct = (current, prev) => {
-                if (!prev || prev === current)
-                    return '';
-                const diff = current - prev;
-                const pct = (diff / prev) * 100;
-                const sign = diff >= 0 ? '+' : '';
-                const colour = diff >= 0 ? '#7f7' : '#f77';
-                return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
-            };
-            const prevSame = teamResult.previousMainSumSameMode;
-            const prevOther = teamResult.previousMainSumOtherMode;
-            const currentModeName = teamResult.currentModeName;
-            const otherModeName = teamResult.otherModeName;
-            let mainSumDeltaHtml = '';
-            if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
-                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
-            }
-            if (prevOther && otherModeName) {
-                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevOther) + ` vs ${otherModeName}`;
-            }
-            // Mythic audit (issue #1573, #1603): show every mythic in the
-            // player's class with its team status. Excluded mythics get a
-            // reason so the user can confirm whether the algorithm or the
-            // data is at fault.
-            const auditEntries = teamResult.mythicAudit || [];
-            const auditInTeam = auditEntries.filter((e) => e.status !== 'excluded');
-            const auditExcluded = auditEntries.filter((e) => e.status === 'excluded');
-            const auditTotalLine = `${auditEntries.length} mythics in your harem (player class): ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
-            const formatBlessingHint = (e) => {
-                if (!e.blessingPercents || e.blessingPercents.length === 0)
-                    return '';
-                return ' <span style="color:#9f9;">+' + e.blessingPercents.join('/') + '%</span>';
-            };
-            const auditExcludedHtml = auditExcluded.length > 0
-                ? '<div style="color:#aaa; font-size:10px; margin-top:2px; max-height:120px; overflow-y:auto; border:1px solid #444; padding:3px;">'
-                    + '<b>Excluded mythics:</b><br/>'
-                    + auditExcluded.slice(0, 20).map((e) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}${formatBlessingHint(e)}): ${e.reason || 'unknown'}`).join('<br/>')
-                    + (auditExcluded.length > 20 ? `<br/>... and ${auditExcluded.length - 20} more` : '')
-                    + '</div>'
-                : '';
-            const altsHtml = teamResult.alternatives && teamResult.alternatives.length > 1
-                ? '<b>Compared:</b> ' + teamResult.alternatives.map((a) => {
-                    const r = TraitMappings.resolve(a.traitCategory, a.traitValue);
-                    return a.traitCategory + '=' + r.label + ' (' + a.effectivePower.toLocaleString() + ')';
-                }).join(' | ')
-                : '';
-            const fallbackNote = traitFromRuntime ? '' : '<div style="color:#fc6; font-size:10px;">Trait label uses fallback dictionary (game runtime not yet loaded -- may be inaccurate for new color codes).</div>';
-            const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
-            const leaderClusterNote = teamResult.leaderInCluster
-                ? ''
-                : '<div style="color:#fc6; font-size:10px;">Leader is from a different element pair than positions 2-7. The cluster constraint applies to slots 2-7 only; the leader is picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>';
-            const modesIdenticalNote = teamResult.modesIdentical
-                ? '<div style="color:#fc6; font-size:10px;">Best Possible matches Current Best -- your top 7 girls are already at full development potential (max level + max grades).</div>'
-                : '';
-            const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
-                background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
-                border-radius: 4px; font-size: 11px; line-height: 1.5;
-            ">
-                <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
-                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> ${classExplainerHtml}</div>
-
-                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
-                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName}, ${teamResult.girls[0].rarity})</div>
-                <div style="color:#aaa; font-size:10px;">Picked by tier-5 priority Shield &gt; Stun &gt; Execute &gt; Reflect, then mainCarac (Variante C).</div>
-                ${teamResult.leaderReason ? `<div style="color:#fc6; font-size:10px;"><b>Leader is not Mythic Shield:</b> ${teamResult.leaderReason}.</div>` : ''}
-                ${leaderClusterNote}
-
-                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-7)</div>
-                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/7 girls match)</div>
-                <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
-                <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
-                <div><b>Elements:</b> ${distHtml}</div>
-                <div><b>Effective Power:</b> ${((_a = teamResult.effectivePower) === null || _a === void 0 ? void 0 : _a.toLocaleString()) || 'N/A'}</div>
-                ${currentModeName === 'Best Possible' ? `
-                <div><b>Projected Sum (${mainCaracLabel} at full development):</b> ${((_b = teamResult.projectedSum) === null || _b === void 0 ? void 0 : _b.toLocaleString()) || 'N/A'}</div>
-                <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
-                <div><b>Main Sum now:</b> ${((_c = teamResult.mainSum) === null || _c === void 0 ? void 0 : _c.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
-                ` : `
-                <div><b>Main Sum (${mainCaracLabel}):</b> ${((_d = teamResult.mainSum) === null || _d === void 0 ? void 0 : _d.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
-                <div style="color:#aaa; font-size:10px;">Sum of your main class stat across the 7 picked girls. League-relevant headline number.</div>
-                <div><b>Projected Sum:</b> ${((_e = teamResult.projectedSum) === null || _e === void 0 ? void 0 : _e.toLocaleString()) || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
-                `}
-
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
-                <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
-                ${auditExcludedHtml}
-
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
-                <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
-                ${altsHtml ? `<div style="color:#aaa; font-size:10px; margin-top:2px;">${altsHtml}</div>` : ''}
-                ${fallbackNote}
-                ${modesIdenticalNote}
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
-                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
-            </div>`);
-            $("#contains_all section").append(synergyInfo);
-        }
-        if (document.getElementById("AssignTopTeam") !== null) {
+        if (!teamResult)
             return;
+        try {
+            TeamModule.renderTeamInfoPanel(teamResult);
         }
-        else {
-            let AssignTopTeam = '<div style="position: absolute;top: 92px;width:100px;z-index:10;margin-left:90px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("AssignTopTeam", "tooltip") + '</span><label style="font-size:small" class="myButton" id="AssignTopTeam">' + getTextForUI("AssignTopTeam", "elementText") + '</label></div>';
-            $("#contains_all section " + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + " .harem-panel .panel-body").append(AssignTopTeam);
-            $("#AssignTopTeam").on("click", TeamModule.assignTopTeam);
+        catch (err) {
+            LogUtils_logHHAuto('Failed to render team info panel: ' + err);
         }
+    }
+    /**
+     * Render (idempotent) the AssignTopTeam button next to the team panel.
+     * Kept in its own method so updateTeamUI can call it before any other
+     * UI work; this way a downstream render error cannot strip the button.
+     */
+    static ensureAssignTopTeamButton() {
+        if (document.getElementById('AssignTopTeam') !== null)
+            return;
+        const btnHtml = '<div style="position: absolute;top: 92px;width:100px;z-index:10;margin-left:90px" class="tooltipHH">'
+            + '<span class="tooltipHHtext">' + getTextForUI('AssignTopTeam', 'tooltip') + '</span>'
+            + '<label style="font-size:small" class="myButton" id="AssignTopTeam">'
+            + getTextForUI('AssignTopTeam', 'elementText') + '</label></div>';
+        $("#contains_all section " + ConfigHelper.getHHScriptVars('IDpanelEditTeam') + ' .harem-panel .panel-body').append(btnHtml);
+        $('#AssignTopTeam').on('click', TeamModule.assignTopTeam);
+    }
+    /**
+     * Build the team-selection info panel. Pure rendering -- no
+     * side effects on the team data itself.
+     */
+    static renderTeamInfoPanel(teamResult) {
+        var _a, _b, _c, _d;
+        const dist = TeamBuilderService.getElementDistribution(teamResult);
+        const distHtml = dist.map(d => {
+            const className = TeamModule.CLASS_NAME[d.element] || d.element;
+            return `${className} x${d.count}`;
+        }).join(', ');
+        const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
+        const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+        const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
+        // Resolve trait value to a human label
+        const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
+        const traitDisplay = traitResolved.label;
+        // Active blessings the picker considered. Comes straight from
+        // detectActiveBlessings() so it reflects the same data the build
+        // decision used (no name/locale parsing).
+        const activeBlStr = teamResult.activeBlessings.length > 0
+            ? teamResult.activeBlessings.map(b => `${b.kind}=${b.value} (+${b.percent}%, pool ${b.pool_size})`).join(', ')
+            : 'none detected';
+        const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
+        // Pool-stats block: counts of eligible girls + own/cross-class
+        // breakdown. Only kept when something noteworthy needs to surface
+        // (notably: emergency fallback firing because eligible < 7).
+        const poolStats = teamResult.poolStats;
+        let poolNoticeHtml = '';
+        if (poolStats && poolStats.eligible < 7) {
+            poolNoticeHtml = `<br/><span style="color:#fc6; font-size:10px;"><b>Notice:</b> Eligible pool is below 7 girls. Emergency fallback applied -- team is shorter than 7.</span>`;
+        }
+        // Mode-vs-mode delta (mainSum vs previous mainSum).
+        const fmtPct = (current, prev) => {
+            if (!prev || prev === current)
+                return '';
+            const diff = current - prev;
+            const pct = (diff / prev) * 100;
+            const sign = diff >= 0 ? '+' : '';
+            const colour = diff >= 0 ? '#7f7' : '#f77';
+            return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
+        };
+        const prevSame = teamResult.previousMainSumSameMode;
+        const prevOther = teamResult.previousMainSumOtherMode;
+        const currentModeName = teamResult.currentModeName;
+        const otherModeName = teamResult.otherModeName;
+        let mainSumDeltaHtml = '';
+        if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
+            mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
+        }
+        if (prevOther && otherModeName) {
+            mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevOther) + ` vs ${otherModeName}`;
+        }
+        // Mythic audit: short summary plus the top three excluded
+        // mythics with the reason. No scrollbox, no per-girl wall.
+        const auditEntries = teamResult.mythicAudit || [];
+        const auditInTeam = auditEntries.filter((e) => e.status !== 'excluded');
+        const auditExcluded = auditEntries.filter((e) => e.status === 'excluded');
+        const auditTotalLine = `${auditEntries.length} mythics in pool: ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
+        const auditTopExcluded = auditExcluded.slice(0, 3).map((e) => {
+            const blStr = e.blessingPercents && e.blessingPercents.length > 0
+                ? ' <span style="color:#9f9;">+' + e.blessingPercents.join('/') + '%</span>'
+                : '';
+            return `&bull; ${e.name} (${e.element}, ${Math.round(e.mainCarac).toLocaleString()}${blStr}): ${e.reason || 'unknown'}`;
+        }).join('<br/>');
+        const auditMoreLine = auditExcluded.length > 3
+            ? `<br/>... and ${auditExcluded.length - 3} more`
+            : '';
+        const auditExcludedHtml = auditExcluded.length > 0
+            ? `<div style="color:#aaa; font-size:10px; margin-top:2px;"><b>Top excluded:</b><br/>${auditTopExcluded}${auditMoreLine}</div>`
+            : '';
+        const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
+        const fallbackPanel = teamResult.poolUsed === 'fallback' && teamResult.fallbackReason
+            ? `<div style="color:#fc6; font-size:10px; margin-top:4px;"><b>Fallback applied:</b> ${teamResult.fallbackReason}</div>`
+            : '';
+        const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
+            position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
+            background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
+            border-radius: 4px; font-size: 11px; line-height: 1.5;
+        ">
+            <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
+            <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b>${poolNoticeHtml}</div>
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Active blessings</div>
+            <div style="color:#aaa; font-size:10px;">${activeBlStr}</div>
+            ${fallbackPanel}
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
+            <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName}, ${teamResult.girls[0].rarity})</div>
+            <div style="color:#aaa; font-size:10px;">Strongest blessed Mythic with the highest Tier-5 skill available.</div>
+            ${teamResult.leaderReason ? `<div style="color:#fc6; font-size:10px;"><b>Leader rule fallback:</b> ${teamResult.leaderReason}.</div>` : ''}
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-${teamResult.girls.length})</div>
+            <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/${teamResult.girls.length} girls match)</div>
+            <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait.</div>
+            <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
+            <div><b>Elements:</b> ${distHtml}</div>
+            ${currentModeName === 'Best Possible' ? `
+            <div><b>Projected Sum (caracs at full development):</b> ${((_a = teamResult.projectedSum) === null || _a === void 0 ? void 0 : _a.toLocaleString()) || 'N/A'}</div>
+            <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
+            <div><b>Main Sum now:</b> ${((_b = teamResult.mainSum) === null || _b === void 0 ? void 0 : _b.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
+            ` : `
+            <div><b>Main Sum (${mainCaracLabel}):</b> ${((_c = teamResult.mainSum) === null || _c === void 0 ? void 0 : _c.toLocaleString()) || 'N/A'}${mainSumDeltaHtml}</div>
+            <div><b>Projected Sum:</b> ${((_d = teamResult.projectedSum) === null || _d === void 0 ? void 0 : _d.toLocaleString()) || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
+            `}
+
+            <hr style="border-color:#555; margin:4px 0"/>
+            <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
+            <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
+            ${auditExcludedHtml}
+
+            <hr style="border-color:#555; margin:4px 0"/>
+            <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
+            <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
+        </div>`);
+        $("#contains_all section").append(synergyInfo);
     }
 }
 TeamModule.ELEMENT_EMOJI = {
@@ -27392,7 +26995,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.40";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.39";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

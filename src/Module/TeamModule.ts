@@ -18,7 +18,6 @@ import { setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
-import { BlessingService } from '../Service/BlessingService';
 import { GirlData, ElementType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
@@ -555,12 +554,12 @@ export class TeamModule {
         const identStr = modesIdentical ? ', modes identical' : '';
         const playerClassNameLog = TeamModule.PLAYER_CLASS_NAME[result.playerClass] || ('class ' + result.playerClass);
         const mainCaracLabel = result.playerClass === 1 ? 'carac1' : (result.playerClass === 2 ? 'carac2' : 'carac3');
-        const synStr = (result.elementSynergyMultiplier * 100).toFixed(1);
-        const ldrStr = (result.leaderBonus * 100).toFixed(0);
-        const epStr = result.effectivePower.toLocaleString();
         const ps = result.poolStats;
-        const psStr = ps ? `pool: ${ps.ownClass}/own (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
+        const psStr = ps ? `pool: ${ps.eligible} eligible, ${ps.ownClass} own-class (${ps.ownClassMythics} M, ${ps.ownClassMythicsAtCap} cap, ${ps.ownClassMythicsBlessed} blessed)` : '';
         const leaderReasonStr = result.leaderReason ? `, LeaderReason="${result.leaderReason}"` : '';
+        const blessStr = result.activeBlessings.length > 0
+            ? result.activeBlessings.map(b => `${b.kind}=${b.value}+${b.percent}%`).join(', ')
+            : 'none';
         // Mode 2 = "Best Possible at full development": ProjectedSum is the
         // headline value because the user picks girls to develop (mainSum
         // is intentionally lower since some picks are still levelling up).
@@ -568,7 +567,8 @@ export class TeamModule {
         const sumLabel = mode === 2
             ? `ProjSum=${result.projectedSum.toLocaleString()}, MainSum=${result.mainSum.toLocaleString()}`
             : `MainSum=${result.mainSum.toLocaleString()}, ProjSum=${result.projectedSum.toLocaleString()}`;
-        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), EffPower=${epStr}, ${sumLabel}, Synergy=${synStr}%, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, LeaderBonus=${ldrStr}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/7), Elements: ${distStr}, ${psStr}${identStr}`);
+        const fbStr = result.poolUsed === 'fallback' ? `, FALLBACK=${result.fallbackReason || 'short pool'}` : '';
+        logHHAuto(`Team v2 [${modeName}]: Class=${playerClassNameLog} (${mainCaracLabel}), Pool=${result.poolUsed}, ${sumLabel}, Tier3=${(result.tier3Bonus * 100).toFixed(1)}%, Leader=${result.girls[0].name} (${result.leaderTier5.name}, ${result.girls[0].rarity}, ${inClusterStr})${leaderReasonStr}, Trait: ${result.traitCategory}=${result.traitValue} (${result.traitMatchCount}/${result.girls.length}), Elements: ${distStr}, ${psStr}, Blessings: ${blessStr}${fbStr}${identStr}`);
 
         // Per-slot detail line for diagnosis: tells the issue reporter
         // exactly which 7 girls were picked, with level/awakening/grades/score
@@ -681,26 +681,35 @@ export class TeamModule {
         // with the current one (e.g. Best Possible) during assignTopTeam.
         $('.topNumber').remove();
 
+        // Always render the AssignTopTeam button first, in its own block.
+        // The button is the user-facing entry point; we never want it to
+        // disappear due to a downstream render error in the info panel.
+        try {
+            TeamModule.ensureAssignTopTeamButton();
+        } catch (err) {
+            logHHAuto('Failed to render AssignTopTeam button: ' + (err as any));
+        }
+
         for (let i = arr.length - 1; i > -1; i--) {
-            let gID = Number($(arr[i]).attr('id_girl'));
+            const gID = Number($(arr[i]).attr('id_girl'));
             if (!deckID.includes(gID)) {
                 arr[i].style.display = "none";
             } else {
                 arr[i].style.display = "";
             }
         }
-        let mainTeamPanel = $(ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .change-team-panel .panel-body > .harem-panel-girls');
+        const mainTeamPanel = $(ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .change-team-panel .panel-body > .harem-panel-girls');
         for (let j = 0; j < deckID.length; j++) {
-            let newDiv;
-            let arrSort = $('div[id_girl=' + deckID[j] + ']');
-            if ($(arrSort[0]).find('.topNumber').length == 0) {
-                newDiv = document.createElement("div");
-                newDiv.className = "topNumber";
+            const arrSort = $('div[id_girl=' + deckID[j] + ']');
+            if (arrSort.length === 0) continue;
+            let newDiv: HTMLElement;
+            if ($(arrSort[0]).find('.topNumber').length === 0) {
+                newDiv = document.createElement('div');
+                newDiv.className = 'topNumber';
                 arrSort[0].prepend(newDiv);
             } else {
-                newDiv = $(arrSort[0]).find('.topNumber')[0];
+                newDiv = $(arrSort[0]).find('.topNumber')[0] as HTMLElement;
             }
-            $(arrSort[0]).find('.topNumber')[0];
 
             // Show position label with element emoji and leader skill
             if (teamResult && j < teamResult.girls.length) {
@@ -712,189 +721,164 @@ export class TeamModule {
                     newDiv.innerText = `${j + 1} ${emoji}`;
                 }
             } else {
-                newDiv.innerText = j + 1;
+                newDiv.innerText = String(j + 1);
             }
 
-            newDiv.setAttribute('position', j + 1);
+            newDiv.setAttribute('position', String(j + 1));
             newDiv.setAttribute("ondblclick", "window.location.href='/characters/" + deckID[j] + "'");
             mainTeamPanel.append(arrSort[0]);
         }
 
-        // Show team selection info panel
+        // Show team selection info panel (best-effort: errors here MUST NOT
+        // break the AssignTopTeam button which is rendered above).
         $('.hhTeamSynergyInfo').remove();
-        if (teamResult) {
-            const dist = TeamBuilderService.getElementDistribution(teamResult);
-            const distHtml = dist.map(d => {
-                const className = TeamModule.CLASS_NAME[d.element] || d.element;
-                return `${className} x${d.count}`;
-            }).join(', ');
-
-            const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
-            const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-            const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
-
-            // Resolve trait value to a human label
-            const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
-            const traitDisplay = traitResolved.label;
-            const traitFromRuntime = traitResolved.fromRuntime;
-
-            // Use cached blessings from BlessingService (loaded on Home page)
-            let cachedBlessings: any = null;
-            try { cachedBlessings = BlessingService.getCached(); } catch { /* cache not ready */ }
-            const blessedVals = cachedBlessings?.blessedValues || {};
-            const blessedStr = cachedBlessings && cachedBlessings.blessedTraits.length > 0
-                ? cachedBlessings.blessedTraits.map((c: string) => (TeamModule.TRAIT_EMOJI[c] || '') + ' ' + c + (blessedVals[c] ? '=' + blessedVals[c] : '')).join(', ')
-                    + (cachedBlessings.blessedElement ? ' + ' + (TeamModule.CLASS_NAME[cachedBlessings.blessedElement] || cachedBlessings.blessedElement) : '')
-                : (cachedBlessings ? 'none parsed (check logs)' : 'not loaded yet (visit Home)');
-            const blessedIsActive = cachedBlessings && cachedBlessings.blessedTraits.includes(teamResult.traitCategory);
-            const blessedValueMatch = blessedIsActive && blessedVals[teamResult.traitCategory] && traitDisplay.toLowerCase() === blessedVals[teamResult.traitCategory].toLowerCase();
-            const blessedNote = blessedValueMatch ? ' (PERFECT match!)' : (blessedIsActive ? ' (category match, value differs)' : (cachedBlessings ? ' (not matching)' : ''));
-
-            const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
-
-            // Class explainer: show why only own-class girls are used,
-            // including pool size and per-class breakdown of what gets
-            // filtered out. Cross-class girls are intentionally never
-            // considered because the league/season formulas reward only
-            // the player's main class carac, so the script optimizes for
-            // that single stat (Performance Handbook, Slynia 2021;
-            // Wiki: 'never build cross-class').
-            const poolStats = teamResult.poolStats;
-            let classExplainerHtml = '';
-            if (poolStats) {
-                const otherClassParts: string[] = [];
-                for (const c of [1, 2, 3]) {
-                    if (c === teamResult.playerClass) continue;
-                    const n = poolStats.otherClass[c];
-                    if (!n) continue;
-                    otherClassParts.push(`${n} ${TeamModule.PLAYER_CLASS_NAME[c] || ('class ' + c)}`);
-                }
-                const otherTotal = otherClassParts.length > 0 ? ' (skipped: ' + otherClassParts.join(', ') + ')' : '';
-                const atCap = (poolStats as any).ownClassMythicsAtCap;
-                const blessedM = (poolStats as any).ownClassMythicsBlessed;
-                const mythicDetail = (typeof atCap === 'number' && typeof blessedM === 'number')
-                    ? `${poolStats.ownClassMythics} mythic (${atCap} at level cap, ${blessedM} blessed)`
-                    : `${poolStats.ownClassMythics} mythic`;
-                classExplainerHtml = `<br/><span style="color:#bbb; font-size:10px;">Eligible pool: <b>${poolStats.ownClass}</b> ${playerClassName} girls (Mythic + Legendary 5*), of which ${mythicDetail}. Cross-class girls ignored${otherTotal} -- league math rewards only your main class stat (${mainCaracLabel}), so cross-class girls cannot win on the metric that counts.</span>`;
-                if (poolStats.ownClass < 7) {
-                    classExplainerHtml += `<br/><span style="color:#fc6; font-size:10px;"><b>WARNING:</b> Fewer than 7 own-class Mythic/Legendary-5* girls available. Script falls back to legacy team selection (no Tier-3 / cluster optimization). Build up your ${playerClassName} roster to enable the full algorithm.</span>`;
-                }
-            }
-
-            // Read delta info that setTopTeamV2 attached to the result
-            // (previous mainSum for the same mode or the other mode, if any).
-            const fmtPct = (current: number, prev: number): string => {
-                if (!prev || prev === current) return '';
-                const diff = current - prev;
-                const pct = (diff / prev) * 100;
-                const sign = diff >= 0 ? '+' : '';
-                const colour = diff >= 0 ? '#7f7' : '#f77';
-                return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
-            };
-            const prevSame = (teamResult as any).previousMainSumSameMode as number | undefined;
-            const prevOther = (teamResult as any).previousMainSumOtherMode as number | undefined;
-            const currentModeName = (teamResult as any).currentModeName as string | undefined;
-            const otherModeName = (teamResult as any).otherModeName as string | undefined;
-            let mainSumDeltaHtml = '';
-            if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
-                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
-            }
-            if (prevOther && otherModeName) {
-                mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevOther) + ` vs ${otherModeName}`;
-            }
-
-            // Mythic audit (issue #1573, #1603): show every mythic in the
-            // player's class with its team status. Excluded mythics get a
-            // reason so the user can confirm whether the algorithm or the
-            // data is at fault.
-            const auditEntries = teamResult.mythicAudit || [];
-            const auditInTeam = auditEntries.filter((e: any) => e.status !== 'excluded');
-            const auditExcluded = auditEntries.filter((e: any) => e.status === 'excluded');
-            const auditTotalLine = `${auditEntries.length} mythics in your harem (player class): ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
-            const formatBlessingHint = (e: any): string => {
-                if (!e.blessingPercents || e.blessingPercents.length === 0) return '';
-                return ' <span style="color:#9f9;">+' + e.blessingPercents.join('/') + '%</span>';
-            };
-            const auditExcludedHtml = auditExcluded.length > 0
-                ? '<div style="color:#aaa; font-size:10px; margin-top:2px; max-height:120px; overflow-y:auto; border:1px solid #444; padding:3px;">'
-                    + '<b>Excluded mythics:</b><br/>'
-                    + auditExcluded.slice(0, 20).map((e: any) => `&bull; ${e.name} (${e.element}, stat=${Math.round(e.mainCarac)}${formatBlessingHint(e)}): ${e.reason || 'unknown'}`).join('<br/>')
-                    + (auditExcluded.length > 20 ? `<br/>... and ${auditExcluded.length - 20} more` : '')
-                    + '</div>'
-                : '';
-
-            const altsHtml = teamResult.alternatives && teamResult.alternatives.length > 1
-                ? '<b>Compared:</b> ' + teamResult.alternatives.map((a: { traitCategory: string; traitValue: string; effectivePower: number }) => {
-                        const r = TraitMappings.resolve(a.traitCategory as any, a.traitValue);
-                        return a.traitCategory + '=' + r.label + ' (' + a.effectivePower.toLocaleString() + ')';
-                    }).join(' | ')
-                : '';
-
-            const fallbackNote = traitFromRuntime ? '' : '<div style="color:#fc6; font-size:10px;">Trait label uses fallback dictionary (game runtime not yet loaded -- may be inaccurate for new color codes).</div>';
-
-            const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
-            const leaderClusterNote = teamResult.leaderInCluster
-                ? ''
-                : '<div style="color:#fc6; font-size:10px;">Leader is from a different element pair than positions 2-7. The cluster constraint applies to slots 2-7 only; the leader is picked globally by tier-5 priority (Shield &gt; Stun &gt; Execute &gt; Reflect).</div>';
-            const modesIdenticalNote = (teamResult as any).modesIdentical
-                ? '<div style="color:#fc6; font-size:10px;">Best Possible matches Current Best -- your top 7 girls are already at full development potential (max level + max grades).</div>'
-                : '';
-
-            const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
-                position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
-                background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
-                border-radius: 4px; font-size: 11px; line-height: 1.5;
-            ">
-                <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
-                <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b> ${classExplainerHtml}</div>
-
-                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
-                <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName}, ${teamResult.girls[0].rarity})</div>
-                <div style="color:#aaa; font-size:10px;">Picked by tier-5 priority Shield &gt; Stun &gt; Execute &gt; Reflect, then mainCarac (Variante C).</div>
-                ${teamResult.leaderReason ? `<div style="color:#fc6; font-size:10px;"><b>Leader is not Mythic Shield:</b> ${teamResult.leaderReason}.</div>` : ''}
-                ${leaderClusterNote}
-
-                <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-7)</div>
-                <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/7 girls match)</div>
-                <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait</div>
-                <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
-                <div><b>Elements:</b> ${distHtml}</div>
-                <div><b>Effective Power:</b> ${teamResult.effectivePower?.toLocaleString() || 'N/A'}</div>
-                ${currentModeName === 'Best Possible' ? `
-                <div><b>Projected Sum (${mainCaracLabel} at full development):</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'}</div>
-                <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
-                <div><b>Main Sum now:</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
-                ` : `
-                <div><b>Main Sum (${mainCaracLabel}):</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
-                <div style="color:#aaa; font-size:10px;">Sum of your main class stat across the 7 picked girls. League-relevant headline number.</div>
-                <div><b>Projected Sum:</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
-                `}
-
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
-                <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
-                ${auditExcludedHtml}
-
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div><b>Active Blessings:</b> ${blessedStr}${blessedNote}</div>
-                <div style="color:#aaa; font-size:10px;">${cachedBlessings ? "Cache: " + new Date(cachedBlessings.timestamp).toLocaleString() : "No cache - go to Home page to load"}</div>
-                ${altsHtml ? `<div style="color:#aaa; font-size:10px; margin-top:2px;">${altsHtml}</div>` : ''}
-                ${fallbackNote}
-                ${modesIdenticalNote}
-                <hr style="border-color:#555; margin:4px 0"/>
-                <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
-                <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
-            </div>`);
-            $("#contains_all section").append(synergyInfo);
-        }
-
-        if (document.getElementById("AssignTopTeam") !== null) {
-            return;
-        }
-        else {
-            let AssignTopTeam = '<div style="position: absolute;top: 92px;width:100px;z-index:10;margin-left:90px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("AssignTopTeam", "tooltip") + '</span><label style="font-size:small" class="myButton" id="AssignTopTeam">' + getTextForUI("AssignTopTeam", "elementText") + '</label></div>'
-            $("#contains_all section " + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + " .harem-panel .panel-body").append(AssignTopTeam);
-            $("#AssignTopTeam").on("click", TeamModule.assignTopTeam);
+        if (!teamResult) return;
+        try {
+            TeamModule.renderTeamInfoPanel(teamResult);
+        } catch (err) {
+            logHHAuto('Failed to render team info panel: ' + (err as any));
         }
     }
+
+    /**
+     * Render (idempotent) the AssignTopTeam button next to the team panel.
+     * Kept in its own method so updateTeamUI can call it before any other
+     * UI work; this way a downstream render error cannot strip the button.
+     */
+    private static ensureAssignTopTeamButton(): void {
+        if (document.getElementById('AssignTopTeam') !== null) return;
+        const btnHtml = '<div style="position: absolute;top: 92px;width:100px;z-index:10;margin-left:90px" class="tooltipHH">'
+            + '<span class="tooltipHHtext">' + getTextForUI('AssignTopTeam', 'tooltip') + '</span>'
+            + '<label style="font-size:small" class="myButton" id="AssignTopTeam">'
+            + getTextForUI('AssignTopTeam', 'elementText') + '</label></div>';
+        $("#contains_all section " + ConfigHelper.getHHScriptVars('IDpanelEditTeam') + ' .harem-panel .panel-body').append(btnHtml);
+        $('#AssignTopTeam').on('click', TeamModule.assignTopTeam);
+    }
+
+    /**
+     * Build the team-selection info panel. Pure rendering -- no
+     * side effects on the team data itself.
+     */
+    private static renderTeamInfoPanel(teamResult: TeamResult): void {
+        const dist = TeamBuilderService.getElementDistribution(teamResult);
+        const distHtml = dist.map(d => {
+            const className = TeamModule.CLASS_NAME[d.element] || d.element;
+            return `${className} x${d.count}`;
+        }).join(', ');
+
+        const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
+        const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
+        const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
+
+        // Resolve trait value to a human label
+        const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
+        const traitDisplay = traitResolved.label;
+
+        // Active blessings the picker considered. Comes straight from
+        // detectActiveBlessings() so it reflects the same data the build
+        // decision used (no name/locale parsing).
+        const activeBlStr = teamResult.activeBlessings.length > 0
+            ? teamResult.activeBlessings.map(b => `${b.kind}=${b.value} (+${b.percent}%, pool ${b.pool_size})`).join(', ')
+            : 'none detected';
+
+        const mainCaracLabel = teamResult.playerClass === 1 ? 'carac1' : (teamResult.playerClass === 2 ? 'carac2' : 'carac3');
+
+        // Pool-stats block: counts of eligible girls + own/cross-class
+        // breakdown. Only kept when something noteworthy needs to surface
+        // (notably: emergency fallback firing because eligible < 7).
+        const poolStats = teamResult.poolStats;
+        let poolNoticeHtml = '';
+        if (poolStats && poolStats.eligible < 7) {
+            poolNoticeHtml = `<br/><span style="color:#fc6; font-size:10px;"><b>Notice:</b> Eligible pool is below 7 girls. Emergency fallback applied -- team is shorter than 7.</span>`;
+        }
+
+        // Mode-vs-mode delta (mainSum vs previous mainSum).
+        const fmtPct = (current: number, prev: number): string => {
+            if (!prev || prev === current) return '';
+            const diff = current - prev;
+            const pct = (diff / prev) * 100;
+            const sign = diff >= 0 ? '+' : '';
+            const colour = diff >= 0 ? '#7f7' : '#f77';
+            return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
+        };
+        const prevSame = (teamResult as any).previousMainSumSameMode as number | undefined;
+        const prevOther = (teamResult as any).previousMainSumOtherMode as number | undefined;
+        const currentModeName = (teamResult as any).currentModeName as string | undefined;
+        const otherModeName = (teamResult as any).otherModeName as string | undefined;
+        let mainSumDeltaHtml = '';
+        if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
+            mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
+        }
+        if (prevOther && otherModeName) {
+            mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevOther) + ` vs ${otherModeName}`;
+        }
+
+        // Mythic audit: short summary plus the top three excluded
+        // mythics with the reason. No scrollbox, no per-girl wall.
+        const auditEntries = teamResult.mythicAudit || [];
+        const auditInTeam = auditEntries.filter((e: any) => e.status !== 'excluded');
+        const auditExcluded = auditEntries.filter((e: any) => e.status === 'excluded');
+        const auditTotalLine = `${auditEntries.length} mythics in pool: ${auditInTeam.length} in team, ${auditExcluded.length} excluded`;
+        const auditTopExcluded = auditExcluded.slice(0, 3).map((e: any) => {
+            const blStr = e.blessingPercents && e.blessingPercents.length > 0
+                ? ' <span style="color:#9f9;">+' + e.blessingPercents.join('/') + '%</span>'
+                : '';
+            return `&bull; ${e.name} (${e.element}, ${Math.round(e.mainCarac).toLocaleString()}${blStr}): ${e.reason || 'unknown'}`;
+        }).join('<br/>');
+        const auditMoreLine = auditExcluded.length > 3
+            ? `<br/>... and ${auditExcluded.length - 3} more`
+            : '';
+        const auditExcludedHtml = auditExcluded.length > 0
+            ? `<div style="color:#aaa; font-size:10px; margin-top:2px;"><b>Top excluded:</b><br/>${auditTopExcluded}${auditMoreLine}</div>`
+            : '';
+
+        const leaderClassName = TeamModule.CLASS_NAME[teamResult.girls[0].element] || teamResult.girls[0].element;
+
+        const fallbackPanel = teamResult.poolUsed === 'fallback' && teamResult.fallbackReason
+            ? `<div style="color:#fc6; font-size:10px; margin-top:4px;"><b>Fallback applied:</b> ${teamResult.fallbackReason}</div>`
+            : '';
+
+        const synergyInfo = $(`<div class="hhTeamSynergyInfo" style="
+            position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 320px; z-index: 10;
+            background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
+            border-radius: 4px; font-size: 11px; line-height: 1.5;
+        ">
+            <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
+            <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b>${poolNoticeHtml}</div>
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Active blessings</div>
+            <div style="color:#aaa; font-size:10px;">${activeBlStr}</div>
+            ${fallbackPanel}
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Leader (Position 1)</div>
+            <div><b>${teamResult.girls[0].name}</b> (${teamResult.leaderTier5.name} / ${leaderClassName}, ${teamResult.girls[0].rarity})</div>
+            <div style="color:#aaa; font-size:10px;">Strongest blessed Mythic with the highest Tier-5 skill available.</div>
+            ${teamResult.leaderReason ? `<div style="color:#fc6; font-size:10px;"><b>Leader rule fallback:</b> ${teamResult.leaderReason}.</div>` : ''}
+
+            <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Cluster (Positions 2-${teamResult.girls.length})</div>
+            <div><b>Trait optimized:</b> ${traitEmoji} ${teamResult.traitCategory} = "${traitDisplay}" (${teamResult.traitMatchCount}/${teamResult.girls.length} girls match)</div>
+            <div style="color:#aaa; font-size:10px;">Tier 3 gives +stat% per teammate sharing this trait.</div>
+            <div><b>Tier 3 bonus:</b> +${tier3Pct}% total stat boost</div>
+            <div><b>Elements:</b> ${distHtml}</div>
+            ${currentModeName === 'Best Possible' ? `
+            <div><b>Projected Sum (caracs at full development):</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'}</div>
+            <div style="color:#aaa; font-size:10px;">Mode 2 headline: total stat value when every picked girl is fully awakened (level 750, max grades). Picks may currently be at lower stats; develop them to reach this potential.</div>
+            <div><b>Main Sum now:</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
+            ` : `
+            <div><b>Main Sum (${mainCaracLabel}):</b> ${teamResult.mainSum?.toLocaleString() || 'N/A'}${mainSumDeltaHtml}</div>
+            <div><b>Projected Sum:</b> ${teamResult.projectedSum?.toLocaleString() || 'N/A'} <span style="color:#aaa; font-size:10px;">(if all girls were at level 750 with max grades)</span></div>
+            `}
+
+            <hr style="border-color:#555; margin:4px 0"/>
+            <div style="color:#ffb827; font-weight:bold;">Mythic Audit</div>
+            <div style="color:#aaa; font-size:10px;">${auditTotalLine}</div>
+            ${auditExcludedHtml}
+
+            <hr style="border-color:#555; margin:4px 0"/>
+            <div style="color:#fc6; font-size:10px;"><b>Note:</b> Stats are equipment-free. Hit "Stuff Team" after applying.</div>
+            <div style="color:#aaa; font-size:10px; margin-top:2px;">Mode 1 (Current Best) uses today's stats, Mode 2 (Best Possible) projects to max level / grades.</div>
+        </div>`);
+        $("#contains_all section").append(synergyInfo);
+    }
+
 }

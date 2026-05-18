@@ -43,3 +43,4 @@ docs-internal/skripte/
 docs-internal/REVIEW_*.md
 # Webpack bundle analyzer stats
 stats.json
+docs-internal/HANDOVER_*.md
