@@ -44,6 +44,11 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.40 - Best Possible mode now actually uses projected stats
+
+- **Mode 2 sorts by projected stats again.** The Pos 2-7 fill, the leader rule's caracs_sum tiebreaker and the emergency fallback now read from the mode-aware score map (current carac sum in Mode 1, projected to level 750 + max grades in Mode 2) instead of always using raw current stats. Under-developed mythics are picked into the team in Mode 2 where Mode 1 still picks today's strongest girls.
+- **No effect when the pool is fully developed.** When all eligible girls are at level 750 with max grades, both modes still produce the same team (same input, same output). The "modes identical" hint stays accurate.
+
 ### v7.35.39 - Team builder rewritten around the spec
 
 - **Strict pool layering.** When two blessings are active, the builder tries the bless1+bless2 carriers first. If that pool cannot fill seven slots, it falls through to bless1-only, then to unblessed, then to an emergency fallback. With one active blessing it skips straight to bless1-only. Without active blessings it picks from the eligible pool. No more silent reroutes through legacy trait-cluster heuristics.

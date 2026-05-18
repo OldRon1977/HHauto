@@ -481,3 +481,42 @@ describe('TeamBuilderService -- Pos-2-7-Regel sub-cluster ordering', () => {
         expect(balancesInTeam).toBe(2);
     });
 });
+
+describe('TeamBuilderService -- mode 2 ranks under-developed mythics higher', () => {
+
+    it('places a low-level mythic above a fully-developed one in mode 2 only', () => {
+        // Two stone-Belier mythics:
+        //   strongFully: lvl 750, max grades, carac3 = 5000  -> caracs_sum = 15000
+        //   weakLowLevel: lvl 100, no grades, carac3 = 700   -> caracs_sum = 2100
+        //                                            projected = 2100 * 7.5 * 2.5 = 39375
+        // Mode 1 picks strongFully as leader (caracs_sum 15000 vs 2100).
+        // Mode 2 picks weakLowLevel (projected 39375 vs 15000).
+        const strongFully = girl({
+            id_girl: 1, rarity: 'mythic', element: 'stone',
+            class: 3, zodiac: 'Belier',
+            level: 750, graded: 6, nb_grades: 6,
+            carac1: 5000, carac2: 5000, carac3: 5000,
+        });
+        const weakLowLevel = girl({
+            id_girl: 2, rarity: 'mythic', element: 'stone',
+            class: 3, zodiac: 'Belier',
+            level: 100, graded: 0, nb_grades: 6,
+            carac1: 700, carac2: 700, carac3: 700,
+        });
+        const filler = Array.from({ length: 6 }, (_, i) => girl({
+            id_girl: 100 + i, rarity: 'mythic', element: 'stone',
+            class: 3, zodiac: 'Belier',
+            level: 750, graded: 6, nb_grades: 6,
+            carac1: 1000, carac2: 1000, carac3: 1000,
+        }));
+        const pool = [strongFully, weakLowLevel, ...filler];
+
+        const m1 = TeamBuilderService.buildTeam(pool, 1, 100, 3)!;
+        const m2 = TeamBuilderService.buildTeam(pool, 2, 100, 3)!;
+
+        // Mode 1: strongFully wins on caracs_sum (15000 > 2100 > filler).
+        expect(m1.girls[0].id_girl).toBe(1);
+        // Mode 2: weakLowLevel wins on projected score (39375 > 15000 > filler).
+        expect(m2.girls[0].id_girl).toBe(2);
+    });
+});

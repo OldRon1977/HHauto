@@ -309,7 +309,7 @@ export class TeamBuilderService {
         // by caracs_sum desc (Element-Coeff tiebreak), pick 6, never
         // re-using the leader.
         const reservedIds = new Set<number>([leader.id_girl]);
-        const positions = TeamBuilderService.fillPositions2to7(cluster, pool, reservedIds);
+        const positions = TeamBuilderService.fillPositions2to7(cluster, pool, reservedIds, scoreMap);
         if (positions.length < POS_2_TO_7) return null;
 
         const team: GirlData[] = [leader, ...positions];
@@ -441,6 +441,7 @@ export class TeamBuilderService {
         cluster: TeamCluster,
         pool: GirlData[],
         reservedIds: Set<number>,
+        scoreMap: Map<number, number>,
     ): GirlData[] {
         // Working set: only girls whose element-pair matches the cluster.
         const clusterGirls = pool.filter(g => cluster.elements.includes(g.element) && !reservedIds.has(g.id_girl));
@@ -481,10 +482,16 @@ export class TeamBuilderService {
             return bTop - aTop;
         });
 
-        // Sort each sub-group by caracs_sum desc, Element-Coeff tiebreak.
-        const compareCaracs = (a: GirlData, b: GirlData): number => {
-            const sa = TeamScoringService.caracsSum(a);
-            const sb = TeamScoringService.caracsSum(b);
+        // Sort each sub-group by the mode-aware score desc, Element-Coeff
+        // tiebreak. The map carries scoreCurrentBest in mode 1 and
+        // scoreBestPossible (projected to level 750 + max grades) in
+        // mode 2, so the same Pos-2-7-Regel runs against the right
+        // numbers in each mode.
+        const scoreOf = (g: GirlData): number =>
+            scoreMap.get(g.id_girl) ?? TeamScoringService.caracsSum(g);
+        const compareScore = (a: GirlData, b: GirlData): number => {
+            const sa = scoreOf(a);
+            const sb = scoreOf(b);
             if (sb !== sa) return sb - sa;
             return TeamScoringService.getElementPowerCoeff(b.element)
                  - TeamScoringService.getElementPowerCoeff(a.element);
@@ -493,7 +500,7 @@ export class TeamBuilderService {
         const picks: GirlData[] = [];
         const used = new Set<number>();
         for (const key of sortedKeys) {
-            const group = [...subGroups.get(key)!].sort(compareCaracs);
+            const group = [...subGroups.get(key)!].sort(compareScore);
             for (const g of group) {
                 if (picks.length >= POS_2_TO_7) break;
                 if (used.has(g.id_girl)) continue;
@@ -511,7 +518,7 @@ export class TeamBuilderService {
         if (picks.length < POS_2_TO_7) {
             const remaining = clusterGirls
                 .filter(g => !used.has(g.id_girl))
-                .sort(compareCaracs);
+                .sort(compareScore);
             for (const g of remaining) {
                 if (picks.length >= POS_2_TO_7) break;
                 picks.push(g);
@@ -594,9 +601,10 @@ export class TeamBuilderService {
             const ocB = (typeof b.class === 'number' && b.class !== playerClass) ? 1 : 0;
             if (ocA !== ocB) return ocA - ocB;
 
-            // 7. caracs_sum absteigend
-            const sA = TeamScoringService.caracsSum(a);
-            const sB = TeamScoringService.caracsSum(b);
+            // 7. caracs_sum absteigend (mode-aware: scoreCurrentBest in
+            //    mode 1, scoreBestPossible in mode 2).
+            const sA = scoreMap.get(a.id_girl) ?? TeamScoringService.caracsSum(a);
+            const sB = scoreMap.get(b.id_girl) ?? TeamScoringService.caracsSum(b);
             if (sA !== sB) return sB - sA;
 
             // 8. Element-Coeff hoeher zuerst
@@ -622,8 +630,8 @@ export class TeamBuilderService {
         reason: string,
     ): TeamResult {
         const sorted = [...eligible].sort((a, b) => {
-            const sA = TeamScoringService.caracsSum(a);
-            const sB = TeamScoringService.caracsSum(b);
+            const sA = scoreMap.get(a.id_girl) ?? TeamScoringService.caracsSum(a);
+            const sB = scoreMap.get(b.id_girl) ?? TeamScoringService.caracsSum(b);
             if (sA !== sB) return sB - sA;
             return TeamScoringService.getElementPowerCoeff(b.element)
                  - TeamScoringService.getElementPowerCoeff(a.element);

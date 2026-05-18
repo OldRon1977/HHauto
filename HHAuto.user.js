@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.39
+// @version      7.35.40
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -18874,7 +18874,7 @@ class TeamBuilderService {
         // by caracs_sum desc (Element-Coeff tiebreak), pick 6, never
         // re-using the leader.
         const reservedIds = new Set([leader.id_girl]);
-        const positions = TeamBuilderService.fillPositions2to7(cluster, pool, reservedIds);
+        const positions = TeamBuilderService.fillPositions2to7(cluster, pool, reservedIds, scoreMap);
         if (positions.length < POS_2_TO_7)
             return null;
         const team = [leader, ...positions];
@@ -18998,7 +18998,7 @@ class TeamBuilderService {
      *   desc innerhalb. Bei 'element' Element-Coeff desc.
      * - Waehle 6 Maedchen aus dem Cluster.
      */
-    static fillPositions2to7(cluster, pool, reservedIds) {
+    static fillPositions2to7(cluster, pool, reservedIds, scoreMap) {
         // Working set: only girls whose element-pair matches the cluster.
         const clusterGirls = pool.filter(g => cluster.elements.includes(g.element) && !reservedIds.has(g.id_girl));
         if (clusterGirls.length === 0)
@@ -19036,10 +19036,15 @@ class TeamBuilderService {
             const bTop = TeamBuilderService.dominantElementCoeff(subGroups.get(b));
             return bTop - aTop;
         });
-        // Sort each sub-group by caracs_sum desc, Element-Coeff tiebreak.
-        const compareCaracs = (a, b) => {
-            const sa = TeamScoringService.caracsSum(a);
-            const sb = TeamScoringService.caracsSum(b);
+        // Sort each sub-group by the mode-aware score desc, Element-Coeff
+        // tiebreak. The map carries scoreCurrentBest in mode 1 and
+        // scoreBestPossible (projected to level 750 + max grades) in
+        // mode 2, so the same Pos-2-7-Regel runs against the right
+        // numbers in each mode.
+        const scoreOf = (g) => { var _a; return (_a = scoreMap.get(g.id_girl)) !== null && _a !== void 0 ? _a : TeamScoringService.caracsSum(g); };
+        const compareScore = (a, b) => {
+            const sa = scoreOf(a);
+            const sb = scoreOf(b);
             if (sb !== sa)
                 return sb - sa;
             return TeamScoringService.getElementPowerCoeff(b.element)
@@ -19048,7 +19053,7 @@ class TeamBuilderService {
         const picks = [];
         const used = new Set();
         for (const key of sortedKeys) {
-            const group = [...subGroups.get(key)].sort(compareCaracs);
+            const group = [...subGroups.get(key)].sort(compareScore);
             for (const g of group) {
                 if (picks.length >= POS_2_TO_7)
                     break;
@@ -19068,7 +19073,7 @@ class TeamBuilderService {
         if (picks.length < POS_2_TO_7) {
             const remaining = clusterGirls
                 .filter(g => !used.has(g.id_girl))
-                .sort(compareCaracs);
+                .sort(compareScore);
             for (const g of remaining) {
                 if (picks.length >= POS_2_TO_7)
                     break;
@@ -19109,6 +19114,7 @@ class TeamBuilderService {
         if (candidates.length === 0)
             return undefined;
         const sorted = [...candidates].sort((a, b) => {
+            var _a, _b;
             // 1. Mythic vor Legendary
             const rA = a.rarity === 'mythic' ? 0 : 1;
             const rB = b.rarity === 'mythic' ? 0 : 1;
@@ -19146,9 +19152,10 @@ class TeamBuilderService {
             const ocB = (typeof b.class === 'number' && b.class !== playerClass) ? 1 : 0;
             if (ocA !== ocB)
                 return ocA - ocB;
-            // 7. caracs_sum absteigend
-            const sA = TeamScoringService.caracsSum(a);
-            const sB = TeamScoringService.caracsSum(b);
+            // 7. caracs_sum absteigend (mode-aware: scoreCurrentBest in
+            //    mode 1, scoreBestPossible in mode 2).
+            const sA = (_a = scoreMap.get(a.id_girl)) !== null && _a !== void 0 ? _a : TeamScoringService.caracsSum(a);
+            const sB = (_b = scoreMap.get(b.id_girl)) !== null && _b !== void 0 ? _b : TeamScoringService.caracsSum(b);
             if (sA !== sB)
                 return sB - sA;
             // 8. Element-Coeff hoeher zuerst
@@ -19167,8 +19174,9 @@ class TeamBuilderService {
      */
     static buildFallback(allGirls, eligible, scoreMap, playerClass, reason) {
         const sorted = [...eligible].sort((a, b) => {
-            const sA = TeamScoringService.caracsSum(a);
-            const sB = TeamScoringService.caracsSum(b);
+            var _a, _b;
+            const sA = (_a = scoreMap.get(a.id_girl)) !== null && _a !== void 0 ? _a : TeamScoringService.caracsSum(a);
+            const sB = (_b = scoreMap.get(b.id_girl)) !== null && _b !== void 0 ? _b : TeamScoringService.caracsSum(b);
             if (sA !== sB)
                 return sB - sA;
             return TeamScoringService.getElementPowerCoeff(b.element)
@@ -26995,7 +27003,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.39";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.40";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
