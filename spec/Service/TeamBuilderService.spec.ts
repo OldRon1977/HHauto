@@ -8,9 +8,9 @@ function makeGirl(overrides: Partial<GirlData> = {}): GirlData {
     return {
         id_girl: id,
         name: `Girl_${id}`,
-        carac1: 1000 + Math.random() * 1000,
-        carac2: 2000 + Math.random() * 1000,
-        carac3: 3000 + Math.random() * 1000,
+        carac1: 0,
+        carac2: 0,
+        carac3: 0,
         level: 100,
         class: 3,
         element: 'fire' as ElementType,

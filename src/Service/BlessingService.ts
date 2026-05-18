@@ -326,6 +326,171 @@ export class BlessingService {
     }
 
     /**
+     * Detect active blessings DIRECTLY from the girls in the pool, without
+     * relying on String-Parsing of the API description (which is locale-
+     * dependent: 'eye color' / 'couleur des yeux' / 'augenfarbe' ...).
+     *
+     * The game's blessing_bonuses field on each girl is the authoritative
+     * source: a girl with can_be_blessed=true has at least one active
+     * blessing applied to her caracs. By cross-referencing the can-be-
+     * blessed girls with their fields (element, rarity, eye_color1,
+     * hair_color1, zodiac, position_img), we identify what each blessing
+     * targets WITHOUT reading any localized description.
+     *
+     * Returns an array of detected blessings sorted by Frank's priority:
+     *   1. blessings with the highest bonus percent (e.g. 40% > 25%)
+     *   2. blessings with the largest blessed pool
+     *
+     * The percent comes from the pvp_v3.carac1 list on a representative
+     * blessed girl. When two blessings stack on the same girl, that girl's
+     * carac1 list has multiple entries; we extract individual percents per
+     * field (element/rarity/trait) by finding the field whose value is
+     * uniformly shared by girls carrying a particular percent.
+     */
+    static detectActiveBlessings(
+        girls: Array<any>
+    ): Array<{
+        kind: 'eyeColor' | 'hairColor' | 'zodiac' | 'position' | 'element' | 'rarity';
+        value: string;
+        percent: number;
+        pool_size: number;
+    }> {
+        // Read fields tolerantly: callers pass either raw API girls
+        // (snake_case: eye_color1, hair_color1, position_img,
+        // blessing_bonuses, can_be_blessed) or GirlData objects (camelCase:
+        // eyeColor, hairColor, position, blessingBonuses). For 'blessed'
+        // status: prefer the explicit can_be_blessed flag, otherwise
+        // derive it from blessing_bonuses / blessingBonuses being a
+        // populated dict.
+        const bbOf  = (g: any) => g.blessing_bonuses ?? g.blessingBonuses;
+        const isBlessed = (g: any): boolean => {
+            if (g.can_be_blessed === true) return true;
+            const bb = bbOf(g);
+            return !!(bb && typeof bb === 'object' && !Array.isArray(bb)
+                && (bb.pvp_v3 || bb.pvp_v4));
+        };
+
+        const blessed = girls.filter(g => isBlessed(g) && bbOf(g)
+            && typeof bbOf(g) === 'object' && !Array.isArray(bbOf(g)));
+        if (blessed.length === 0) return [];
+
+        // Collect distinct percents seen across the blessed pool.
+        const percents = new Set<number>();
+        for (const g of blessed) {
+            const bb = bbOf(g);
+            const v = bb.pvp_v3 ?? bb.pvp_v4;
+            if (!v || !Array.isArray(v.carac1)) continue;
+            for (const p of v.carac1) {
+                const n = Number(p);
+                if (Number.isFinite(n) && n > 0) percents.add(n);
+            }
+        }
+
+        type Cand = {
+            kind: 'eyeColor' | 'hairColor' | 'zodiac' | 'position' | 'element' | 'rarity';
+            value: string;
+            percent: number;
+            pool_size: number;
+        };
+
+        const candidates: Cand[] = [];
+
+        // Read a girl's value for a given trait kind, accepting both
+        // snake_case (raw API) and camelCase (GirlData) forms.
+        const fieldOf = (g: any, kind: Cand['kind']): string | undefined => {
+            switch (kind) {
+                case 'eyeColor':  return g.eye_color1 ?? g.eyeColor;
+                case 'hairColor': return g.hair_color1 ?? g.hairColor;
+                case 'zodiac':    return g.zodiac;
+                case 'position': {
+                    // Raw position_img is '5.png', GirlData.position is '5'.
+                    const raw = g.position_img ?? g.position;
+                    if (raw === undefined || raw === null) return undefined;
+                    return String(raw).replace(/\.png$/i, '');
+                }
+                case 'element':   return g.element;
+                case 'rarity':    return g.rarity;
+            }
+        };
+
+        const kinds: Cand['kind'][] = ['eyeColor', 'hairColor', 'zodiac', 'position', 'element', 'rarity'];
+
+        // For every (percent, kind), find the field+value that uniquely
+        // identifies girls receiving that blessing percent. We need both:
+        //   1. high dominance INSIDE the blessed pool (>= 80%)
+        //   2. specificity: girls outside the blessed pool with that same
+        //      value must not also receive the blessing -- otherwise we
+        //      pick up correlations (e.g. "all 40%-blessed girls happen
+        //      to be legendary" doesn't mean rarity=legendary IS the
+        //      blessing condition).
+        for (const percent of percents) {
+            const carrying = blessed.filter(g => {
+                const bb = bbOf(g);
+                const v = bb.pvp_v3 ?? bb.pvp_v4;
+                return Array.isArray(v?.carac1) && v.carac1.includes(percent);
+            });
+            if (carrying.length === 0) continue;
+
+            for (const kind of kinds) {
+                const valueCounts = new Map<string, number>();
+                for (const g of carrying) {
+                    const raw = fieldOf(g, kind);
+                    if (raw === undefined || raw === null || raw === '') continue;
+                    const key = String(raw);
+                    valueCounts.set(key, (valueCounts.get(key) || 0) + 1);
+                }
+                if (valueCounts.size === 0) continue;
+                const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
+                const [topVal, topCount] = sorted[0];
+                const second = sorted.length > 1 ? sorted[1][1] : 0;
+                const ratio = topCount / carrying.length;
+                const lead = second === 0 ? Infinity : topCount / second;
+                // Dominance check.
+                if (ratio < 0.8 && lead < 3) continue;
+
+                // Specificity check.
+                const samevalAll = girls.filter(g => String(fieldOf(g, kind) ?? '') === topVal);
+                const samevalBlessed = samevalAll.filter(g => isBlessed(g));
+                const specificity = samevalAll.length === 0 ? 0 : samevalBlessed.length / samevalAll.length;
+                if (specificity < 0.8) continue;
+
+                candidates.push({ kind, value: topVal, percent, pool_size: samevalAll.length });
+            }
+        }
+
+        // De-duplicate: a single (kind, value) might appear with two different
+        // percents from stacked blessings; keep the highest percent.
+        const dedup = new Map<string, Cand>();
+        for (const c of candidates) {
+            const key = c.kind + '=' + c.value;
+            const cur = dedup.get(key);
+            if (!cur || c.percent > cur.percent) dedup.set(key, c);
+        }
+
+        // Sort by Frank's priority:
+        //   1. higher bonus percent first
+        //   2. larger pool size
+        //   3. trait-kind tiebreaker (eyes > hair > zodiac), per Frank's
+        //      discord notes ('a benedictions egales: yeux > cheveux >
+        //      zodiaque'). Element/rarity rank below the trait kinds.
+        const kindPriority: Record<string, number> = {
+            eyeColor: 5,
+            hairColor: 4,
+            zodiac: 3,
+            position: 2,
+            element: 1,
+            rarity: 0,
+        };
+        return [...dedup.values()].sort((a, b) => {
+            if (b.percent !== a.percent) return b.percent - a.percent;
+            if (b.pool_size !== a.pool_size) return b.pool_size - a.pool_size;
+            const pa = kindPriority[a.kind] ?? 0;
+            const pb = kindPriority[b.kind] ?? 0;
+            return pb - pa;
+        });
+    }
+
+        /**
      * Parse the blessing bonus percentage for a given trait category.
      * E.g. "Eye Color Grey" with "+ 40%" -> 40
      */

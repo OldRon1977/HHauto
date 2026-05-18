@@ -44,11 +44,29 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
-### v7.35.38 - Team builder picks blessed trait values, not just blessed categories
+### v7.35.40 - Team builder respects element strength and matching traits
 
-- **Blessing boost lands on the actually blessed value.** Earlier the boost applied to every value in a blessed category, so an unblessed value with a larger pool could outrank the actually blessed one (e.g. eye=Purple winning over eye=Red when "Red eyes" was blessed). The boost now requires both category AND value to match an active blessing.
-- **Leader picked from the team trait when possible.** When two mythic candidates share the same tier-5 skill (e.g. both Shield), the one whose trait value matches the team cluster wins the slot, strengthening the Tier-3 chain.
-- **Hex-resolution for the active blessing is more robust.** Dominance threshold relaxed from 90% to 80% (or a 3x lead over the next contender), so blessings shared with a few stacked-blessing girls are still resolved correctly.
+- **Element strength as tiebreaker.** When two elements appear equally often inside a blessed pool, or when two leader candidates tie on tier-5 priority and trait match, the element with the higher empirical power coefficient wins (Dominatrice 1.20, Excentrique/Physique 1.12, Exhibitionniste 1.10, Sensuelle 1.08, Soumise 1.025, Voyeuse/Joueuse 1.00).
+- **Sub-cluster optimization inside the blessed pool.** When the blessing already constrains the cluster (e.g. element-stone pool), the builder now picks girls that share the most common secondary trait value (zodiac among stones, eye color among hair-blessed girls, etc) before filling with the highest-stat remainder. This finds Frank's expected "7 physical girls with the same astro" pattern automatically.
+- **Trait-kind tiebreaker in blessing detection.** When two blessings have the same bonus and the same pool size, the order is eyes > hair > zodiac > position > element > rarity, matching the empirical preference noted in the team-building guide.
+
+### v7.35.38 - Team builder rebuilt around the active blessings
+
+The team picker now follows the blessings of the week. Same UI, same buttons -- the picks just match what the blessings are pushing. Quick walk-through of how it decides:
+
+1. **Find this week's blessings.** Eye color, hair color, zodiac, favourite position, element, or rarity -- whatever the game has highlighted, the picker spots it from the girl data alone.
+
+2. **Pick the strongest blessing first.** Higher bonus percent wins. If two are tied, the bigger candidate pool wins, with eyes / hair / zodiac / position preferred over element / rarity.
+
+3. **Gather all blessed girls.** They form the team pool. The most common element among them is chosen so the team also stacks element synergy on top of the blessing.
+
+4. **Stack a Tier-3 chain on top.** Inside the pool, girls who also share a secondary trait (for example all stones with the same zodiac) are preferred for the seven slots.
+
+5. **Pool too small?** When fewer than seven blessed girls match, the remaining slots take unblessed girls of the same element so the team still scales with the blessing.
+
+6. **Leader.** A Mythic Shield (light or stone) is preferred. Blessed and own-class girls go first, then the stronger element, then total power. Falls back to Legendary 5-star when no Mythic fits.
+
+7. **No active blessings?** Falls back to the previous trait-based picker so unblessed weeks still produce sensible teams.
 
 ### v7.35.36 - Daily-goals/contests and side-quest loops
 

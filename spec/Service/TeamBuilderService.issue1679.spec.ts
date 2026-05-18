@@ -184,3 +184,46 @@ describe('Issue 1679: Frank75 pool blessing-value boost', () => {
         expect(blessedG!.score).toBeCloseTo(unblessedG!.score, 5);
     });
 });
+
+
+describe('Issue 1679 unmocked: Frank75 OLD pool (hair-Green +40%, eye-Red +25%)', () => {
+    let fixture: any;
+    let girls: GirlData[];
+
+    beforeEach(() => {
+        const fp = join(__dirname, '../fixtures/issue1679-frank75-pool.json');
+        fixture = JSON.parse(readFileSync(fp, 'utf-8'));
+        girls = fixture.girls.map(toGirlData);
+        for (let i = 0; i < girls.length; i++) {
+            (girls[i] as any).blessing_bonuses = fixture.girls[i].blessing_bonuses;
+            (girls[i] as any).can_be_blessed = fixture.girls[i].can_be_blessed;
+            (girls[i] as any).eye_color1 = fixture.girls[i].eye_color1;
+            (girls[i] as any).hair_color1 = fixture.girls[i].hair_color1;
+            (girls[i] as any).position_img = fixture.girls[i].position_img;
+        }
+    });
+
+    it('detects hair=0F0 as top blessing (40%, higher than eye=F00 at 25%)', () => {
+        const blessings = BlessingService.detectActiveBlessings(girls as any);
+        expect(blessings.length).toBeGreaterThanOrEqual(2);
+        const top = blessings[0];
+        expect(top.kind).toBe('hairColor');
+        expect(top.value).toBe('0F0');
+        expect(top.percent).toBe(40);
+    });
+
+    it('builds a team in the hair=0F0 cluster with Ankyo Impact (Mythic Shield) as leader', () => {
+        const hero = fixture.hero;
+        const pclass = hero.class as PlayerClass;
+        const result = TeamBuilderService.buildTeam(girls, 1, hero.level, pclass);
+        expect(result).not.toBeNull();
+        if (!result) return;
+        const leader = result.girls[0];
+        expect(leader.name).toBe('Ankyo Impact');
+        expect(leader.element).toBe('light');
+        expect(leader.rarity).toBe('mythic');
+        // All 7 girls must carry hair=0F0 (the actually blessed value).
+        const matchCount = result.girls.filter(g => g.hairColor === '0F0').length;
+        expect(matchCount).toBe(7);
+    });
+});

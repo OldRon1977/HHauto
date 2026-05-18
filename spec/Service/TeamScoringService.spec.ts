@@ -53,9 +53,11 @@ describe('TeamScoringService', () => {
     });
 
     describe('scoreCurrentBest', () => {
-        it('should return the main-class carac for player class 3', () => {
+        it('should return total power (caracs_sum) regardless of player class', () => {
+            // Class-agnostic scoring: caracs_sum = 5000 + 3000 + 7000 = 15000
             const girl = makeGirl({ carac1: 5000, carac2: 3000, carac3: 7000 });
-            expect(TeamScoringService.scoreCurrentBest(girl, 3)).toBe(7000);
+            expect(TeamScoringService.scoreCurrentBest(girl, 3)).toBe(15000);
+            expect(TeamScoringService.scoreCurrentBest(girl, 1)).toBe(15000);
         });
     });
 
@@ -64,41 +66,37 @@ describe('TeamScoringService', () => {
         // No max() guard. For voll-awakte girls (level=750, graded=nb_grades), projected == current.
         // For non-fully-developed girls, projected > current.
 
-        it('should project a non-fully-developed girl to a higher value', () => {
-            // class 3, girl carac3=3000 at level 50, 0/5 grades
-            // projected = 3000 * (750/50) * (1 + 1.5) / 1 = 3000 * 15 * 2.5 = 112500
+        it('should project a non-fully-developed girl to a higher value (total power)', () => {
+            // total = 1000 + 2000 + 3000 = 6000
+            // projected = 6000 * (750/50) * (1 + 1.5) / 1 = 6000 * 15 * 2.5 = 225000
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 0, nb_grades: 5,
             });
-            expect(TeamScoringService.scoreBestPossible(girl, 3)).toBe(112500);
+            expect(TeamScoringService.scoreBestPossible(girl, 3)).toBe(225000);
         });
 
-        it('should account for existing grades reducing projected growth', () => {
-            // class 3, carac3=3000, level 50, 3/5 grades
-            // projected = 3000 * 15 * (1 + 0.3*5) / (1 + 0.3*3) = 3000 * 15 * 2.5 / 1.9
+        it('should account for existing grades reducing projected growth (total power)', () => {
+            // total = 6000, level 50, 3/5 grades
+            // projected = 6000 * 15 * 2.5 / 1.9
             const girl = makeGirl({
                 carac1: 1000, carac2: 2000, carac3: 3000,
                 level: 50, graded: 3, nb_grades: 5,
             });
-            const expected = 3000 * 15 * 2.5 / 1.9;
+            const expected = 6000 * 15 * 2.5 / 1.9;
             expect(TeamScoringService.scoreBestPossible(girl, 3)).toBeCloseTo(expected, 2);
         });
 
-        it('should return current carac when girl is voll-awakt (level=750, graded=max)', () => {
-            // For a fully developed girl, projection factor is 1 -> projected == current.
-            // No max() guard needed.
+        it('should equal current total when girl is voll-awakt (level=750, graded=max)', () => {
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 12397,
                 level: 750, graded: 5, nb_grades: 5,
             });
             const result = TeamScoringService.scoreBestPossible(girl, 3);
-            expect(result).toBeCloseTo(12397, 5);
+            expect(result).toBeCloseTo(12397, 5); // total = 0 + 0 + 12397
         });
 
-        it('should never return less than current main-carac with normal data', () => {
-            // No max() in formula, but with level<=750 and graded<=nb_grades,
-            // projected is mathematically >= current.
+        it('should never return less than current total power with normal data', () => {
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 50000,
                 level: 750, graded: 5, nb_grades: 5,
@@ -108,13 +106,12 @@ describe('TeamScoringService', () => {
         });
 
         it('should project low-level girls aggressively', () => {
-            // New girl at level 1, no grades yet:
-            // projected = 100 * 750 / 1 * (1 + 0.3*5) / 1 = 100 * 750 * 2.5 = 187500
             const girl = makeGirl({
                 carac1: 0, carac2: 0, carac3: 100,
                 level: 1, graded: 0, nb_grades: 5,
             });
             const result = TeamScoringService.scoreBestPossible(girl, 3);
+            // total = 100, projected = 100 * 750 * 2.5 = 187500
             expect(result).toBe(187500);
         });
     });

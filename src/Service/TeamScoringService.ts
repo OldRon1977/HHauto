@@ -103,6 +103,23 @@ const ELEMENT_TO_TIER5: Record<ElementType, Tier5Skill> = {
 
 // Each element's Tier 3 bonus is based on a specific trait category.
 // Girls from the same element pair share the same trait category.
+// Per-element power multiplier from Frank's empirical strength sheet
+// (issue 1679 phase 3). The girl's main carac is multiplied by this
+// coefficient when scoring -- Dominatrice and Excentrique girls hit
+// harder per stat point than Voyeuse / Joueuse girls. The values are
+// from Frank's discord notes and reflect the relative damage potential
+// observed in the game.
+const ELEMENT_POWER_COEFF: Record<ElementType, number> = {
+    darkness: 1.20,   // Dominatrice
+    fire:     1.12,   // Excentrique
+    stone:    1.12,   // Physique
+    nature:   1.10,   // Exhibitionniste
+    water:    1.08,   // Sensuelle
+    psychic:  1.025,  // Soumise
+    light:    1.00,   // Voyeuse
+    sun:      1.00,   // Joueuse
+};
+
 const ELEMENT_TO_TRAIT_CATEGORY: Record<ElementType, TraitCategory> = {
     darkness: 'eyeColor',   // Black
     fire:     'eyeColor',   // Red
@@ -143,6 +160,34 @@ export class TeamScoringService {
      * Uses caracs sub-object if available (already equipment-free,
      * already blessing-applied), falls back to direct fields.
      */
+    /**
+     * Total power across all three carac fields (carac1 + carac2 + carac3).
+     * This is the class-agnostic strength score the game shows in the team
+     * UI ("Total Power" / "caracs_sum"). Used by every cluster ranking
+     * and team pick because:
+     *   - Mythic vs Legendary 5* differ uniformly in total power (around
+     *     31k vs 26k for fully developed girls), regardless of which carac
+     *     is the player's main one.
+     *   - Cross-class mythics keep their full power instead of being
+     *     penalised to ~1/3 by reading a single carac field. Empirical
+     *     observation matches: top players run cross-class mythics in
+     *     league as often as own-class.
+     *
+     * Reads the caracs sub-object when available (already blessing-applied
+     * by the game API), falls back to the top-level carac1/2/3 fields.
+     */
+    static getTotalPower(girl: GirlData): number {
+        const src = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
+        return (Number(src.carac1) || 0)
+             + (Number(src.carac2) || 0)
+             + (Number(src.carac3) || 0);
+    }
+
+    /**
+     * Single carac value for a player class. Kept for backwards compat
+     * (audit messages, UI labels). Scoring no longer uses it -- prefer
+     * getTotalPower for ranking decisions.
+     */
     static getMainCarac(girl: GirlData, playerClass: PlayerClass): number {
         const src = girl.caracs || { carac1: girl.carac1, carac2: girl.carac2, carac3: girl.carac3 };
         switch (playerClass) {
@@ -153,11 +198,31 @@ export class TeamScoringService {
     }
 
     /**
+     * Get the per-element power coefficient (Frank's empirical strength
+     * table from his discord notes, issue 1679 phase 3). The value is
+     * NOT applied to mainCarac scoring -- it is used as a tiebreaker
+     * when picking between equally-ranked clusters or leaders. A higher
+     * coefficient marks an element that hits harder per stat point.
+     *
+     *   Dominatrice (darkness)  1.20
+     *   Excentrique (fire)      1.12
+     *   Physique (stone)        1.12
+     *   Exhibitionniste (nature)1.10
+     *   Sensuelle (water)       1.08
+     *   Soumise (psychic)       1.025
+     *   Voyeuse (light)         1.00
+     *   Joueuse (sun)           1.00
+     */
+    static getElementPowerCoeff(element: ElementType): number {
+        return ELEMENT_POWER_COEFF[element] ?? 1.0;
+    }
+
+    /**
      * Score a girl for "Current Best" mode.
      * Returns the current main-carac (already includes blessings).
      */
-    static scoreCurrentBest(girl: GirlData, playerClass: PlayerClass): number {
-        return TeamScoringService.getMainCarac(girl, playerClass);
+    static scoreCurrentBest(girl: GirlData, _playerClass: PlayerClass): number {
+        return TeamScoringService.getTotalPower(girl);
     }
 
     /**
@@ -174,13 +239,17 @@ export class TeamScoringService {
      *
      * Pool stays the same as Current Best (Mythic + Legendary 5*).
      */
-    static scoreBestPossible(girl: GirlData, playerClass: PlayerClass): number {
-        const currentMain = TeamScoringService.getMainCarac(girl, playerClass);
+    static scoreBestPossible(girl: GirlData, _playerClass: PlayerClass): number {
+        // Total power scales linearly with the projection factors, so we
+        // can apply them to the sum once (caracs_sum * factor ==
+        // c1*factor + c2*factor + c3*factor for the linear factors used
+        // here).
+        const currentTotal = TeamScoringService.getTotalPower(girl);
         const level = girl.level;
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
 
-        return currentMain
+        return currentTotal
              * (PROJECTION_LEVEL_CAP / level)
              * (1 + 0.3 * maxGrades)
              / (1 + 0.3 * currentGrades);
@@ -594,7 +663,6 @@ export class TeamScoringService {
             }
 
             // Secondary: trait-match within the team cluster (issue 1679).
-            // Only applied when the cluster trait was passed in.
             if (traitCategory && traitValue) {
                 const aMatches = TeamScoringService._leaderMatchesTrait(a, traitCategory, traitValue);
                 const bMatches = TeamScoringService._leaderMatchesTrait(b, traitCategory, traitValue);
@@ -603,7 +671,14 @@ export class TeamScoringService {
                 }
             }
 
-            // Tertiary: mainCarac (already includes blessing). Higher wins.
+            // Tertiary: Element-Power-Coeff (Frank's discord notes,
+            // 1679 phase 3). Stone-Shield beats Light-Shield because
+            // stone hits 1.12x harder per stat point than light.
+            const coeffA = TeamScoringService.getElementPowerCoeff(a.element);
+            const coeffB = TeamScoringService.getElementPowerCoeff(b.element);
+            if (coeffA !== coeffB) return coeffB - coeffA;
+
+            // Quaternary: mainCarac (already includes blessing).
             const scoreA = statScores.get(a.id_girl) || 0;
             const scoreB = statScores.get(b.id_girl) || 0;
             return scoreB - scoreA;

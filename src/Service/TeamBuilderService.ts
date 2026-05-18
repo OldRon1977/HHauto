@@ -149,40 +149,69 @@ export class TeamBuilderService {
         // actually-blessed value, not every value in a blessed category).
         const { blessedCategories, blessedValues, blessedGirlCount } = TeamScoringService.detectBlessedTraits(candidates);
 
-        // Find candidate trait groups, scored mode-aware. Groups whose
-        // (category, value) pair matches an active blessing get a boost
-        // so the build phase evaluates them first.
-        const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedValues);
-
-        // Evaluate top groups + any blessed-value groups not in the top.
-        const groupsToEvaluate: TraitGroupResult[] = [];
-        const seenKeys = new Set<string>();
-        for (const g of traitGroups.slice(0, 5)) {
-            const key = g.traitCategory + '=' + g.traitValue;
-            if (!seenKeys.has(key)) { groupsToEvaluate.push(g); seenKeys.add(key); }
-        }
-        for (const g of traitGroups) {
-            const key = g.traitCategory + '=' + g.traitValue;
-            if (seenKeys.has(key)) continue;
-            if (blessedValues[g.traitCategory] === g.traitValue) {
-                groupsToEvaluate.push(g);
-                seenKeys.add(key);
-            }
-        }
-        if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
-            groupsToEvaluate.push(traitGroups[0]);
-        }
-
+        // Issue 1679 phase 2: try Blessing-Clusters FIRST (Frank's Variante a).
+        // Active blessings are detected directly from the girl pool via
+        // can_be_blessed and blessing_bonuses (locale-independent). The
+        // blessings are returned in priority order (highest percent first,
+        // then largest pool). The first blessing whose cluster forms a
+        // valid 7-girl team wins.
+        const activeBlessings = BlessingService.detectActiveBlessings(candidates as any);
         let bestBuilt: { team: GirlData[]; cat: TraitCategory; val: string; power: number } | null = null;
         const alternatives: Array<{ traitCategory: string; traitValue: string; effectivePower: number }> = [];
 
-        for (const group of groupsToEvaluate) {
-            const builtTeam = TeamBuilderService._buildTeamForGroup(group.traitCategory, group.traitValue, pool, scoreMap);
-            if (!builtTeam || builtTeam.length < TEAM_SIZE) continue;
-            const power = Math.round(TeamBuilderService._effectivePower(builtTeam, scoreMap));
-            alternatives.push({ traitCategory: group.traitCategory, traitValue: group.traitValue, effectivePower: power });
-            if (!bestBuilt || power > bestBuilt.power) {
-                bestBuilt = { team: builtTeam, cat: group.traitCategory, val: group.traitValue, power };
+        for (const blessing of activeBlessings) {
+            const built = TeamBuilderService._buildBlessingClusterTeam(blessing, candidates, scoreMap, playerClass);
+            if (!built) continue;
+            const power = Math.round(TeamBuilderService._effectivePower(built.team, scoreMap));
+            alternatives.push({
+                traitCategory: blessing.kind,
+                traitValue: blessing.value,
+                effectivePower: power,
+            });
+            // Frank's Variante a: strict priority -- first blessing wins.
+            if (!bestBuilt) {
+                // We still need a TraitCategory for the existing TeamResult
+                // schema. For element/rarity blessings we map onto the
+                // dominant element's natural trait category so legacy
+                // consumers keep working.
+                const traitCat = (blessing.kind === 'element' || blessing.kind === 'rarity')
+                    ? TeamScoringService.getTraitCategory(built.element)
+                    : (blessing.kind as TraitCategory);
+                bestBuilt = { team: built.team, cat: traitCat, val: blessing.value, power };
+            }
+        }
+
+        // Fall back to existing trait-cluster logic when no blessing-cluster
+        // produced a valid team (e.g. an unblessed week or a thin pool).
+        if (!bestBuilt) {
+            const traitGroups = TeamScoringService.findTraitGroups(pool, scoreFn, blessedValues);
+
+            const groupsToEvaluate: TraitGroupResult[] = [];
+            const seenKeys = new Set<string>();
+            for (const g of traitGroups.slice(0, 5)) {
+                const key = g.traitCategory + '=' + g.traitValue;
+                if (!seenKeys.has(key)) { groupsToEvaluate.push(g); seenKeys.add(key); }
+            }
+            for (const g of traitGroups) {
+                const key = g.traitCategory + '=' + g.traitValue;
+                if (seenKeys.has(key)) continue;
+                if (blessedValues[g.traitCategory] === g.traitValue) {
+                    groupsToEvaluate.push(g);
+                    seenKeys.add(key);
+                }
+            }
+            if (groupsToEvaluate.length === 0 && traitGroups.length > 0) {
+                groupsToEvaluate.push(traitGroups[0]);
+            }
+
+            for (const group of groupsToEvaluate) {
+                const builtTeam = TeamBuilderService._buildTeamForGroup(group.traitCategory, group.traitValue, pool, scoreMap);
+                if (!builtTeam || builtTeam.length < TEAM_SIZE) continue;
+                const power = Math.round(TeamBuilderService._effectivePower(builtTeam, scoreMap));
+                alternatives.push({ traitCategory: group.traitCategory, traitValue: group.traitValue, effectivePower: power });
+                if (!bestBuilt || power > bestBuilt.power) {
+                    bestBuilt = { team: builtTeam, cat: group.traitCategory, val: group.traitValue, power };
+                }
             }
         }
 
@@ -283,6 +312,159 @@ export class TeamBuilderService {
             slotInfo,
             poolStats,
         };
+    }
+
+    /**
+     * Build a team starting from an active blessing (issue 1679 phase 2).
+     *
+     * Frank's heuristic for a blessed week:
+     *   1. All blessed girls form the candidate pool.
+     *   2. Within that pool, find the most common element to maximize
+     *      Element Synergy on top of the Bless multiplier.
+     *   3. If the pool has fewer than 7 girls, fill with unblessed girls
+     *      of the SAME most-common-element (NOT random fillers).
+     *   4. Pick leader by Mythic Shield priority + blessed-bevorzugt
+     *      + own-class + mainCarac. Fallback to Legendary 5-star.
+     *   5. Pos 2-7 are the 6 highest-scoring remaining girls in the pool.
+     *
+     * Returns null when the blessing has too few candidates (after the
+     * fallback fill) to form a team. The caller then tries the next
+     * blessing in priority order, or falls back to trait-cluster logic.
+     */
+    private static _buildBlessingClusterTeam(
+        blessing: { kind: string; value: string; percent: number; pool_size: number },
+        candidates: GirlData[],
+        scoreMap: Map<number, number>,
+        playerClass: PlayerClass
+    ): { team: GirlData[]; element: ElementType; pool: GirlData[] } | null {
+        const fieldOf = (g: GirlData): string | undefined => {
+            switch (blessing.kind) {
+                case 'eyeColor':  return g.eyeColor;
+                case 'hairColor': return g.hairColor;
+                case 'zodiac':    return g.zodiac;
+                case 'position':  return g.position;
+                case 'element':   return g.element;
+                case 'rarity':    return g.rarity;
+                default:          return undefined;
+            }
+        };
+
+        const blessedPool = candidates.filter(g => String(fieldOf(g) ?? '') === blessing.value);
+        if (blessedPool.length === 0) return null;
+
+        // Find the most common element inside the blessed pool. This
+        // becomes the cluster element used for filler picks AND influences
+        // EffPower via Element Synergy. When two elements have the same
+        // count, the one with the higher Element-Power-Coeff wins
+        // (Frank's discord notes: darkness > fire/stone > nature > water
+        // > psychic > light/sun). 'a benedictions egales: yeux > cheveux
+        // > zodiaque' is captured here through element strength.
+        const elementCounts = new Map<ElementType, number>();
+        for (const g of blessedPool) {
+            elementCounts.set(g.element, (elementCounts.get(g.element) || 0) + 1);
+        }
+        let bestElement: ElementType = blessedPool[0].element;
+        let bestCount = 0;
+        let bestCoeff = TeamScoringService.getElementPowerCoeff(bestElement);
+        for (const [el, c] of elementCounts) {
+            const coeff = TeamScoringService.getElementPowerCoeff(el);
+            if (c > bestCount || (c === bestCount && coeff > bestCoeff)) {
+                bestCount = c;
+                bestElement = el;
+                bestCoeff = coeff;
+            }
+        }
+
+        // Build a working pool: all blessed girls plus -- if needed --
+        // the strongest unblessed girls of the same dominant element.
+        const usedIds = new Set(blessedPool.map(g => g.id_girl));
+        let pool: GirlData[] = [...blessedPool];
+        if (pool.length < TEAM_SIZE) {
+            const fillers = candidates
+                .filter(g => !usedIds.has(g.id_girl) && g.element === bestElement)
+                .sort((a, b) => (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0));
+            const needed = TEAM_SIZE - pool.length;
+            pool = pool.concat(fillers.slice(0, needed));
+        }
+        if (pool.length < TEAM_SIZE) return null;
+
+        // Sub-cluster optimization (Frank's discord notes, 1679 phase 3):
+        // within the blessed pool, find the most common SECONDARY trait
+        // value to maximize Tier-3 chain on top of the bless multiplier.
+        // For an element-stone bless this means picking the most common
+        // zodiac among the stones; for a hair-color bless it means the
+        // most common eye-color; etc.
+        //
+        // The secondary trait is the trait category that the dominant
+        // element pair produces (zodiac for stone/psychic, eyeColor for
+        // fire/darkness, hairColor for light/nature, position for water/sun).
+        // We exclude the blessing's own kind so we don't trivially match
+        // (e.g. if blessing is hairColor=green, the secondary is
+        // whatever the cluster element pair maps to: eyeColor for fire/
+        // darkness pool, position for water/sun pool, etc).
+        const secondaryCat = TeamScoringService.getTraitCategory(bestElement);
+        const secondaryOf = (g: GirlData): string | undefined => {
+            switch (secondaryCat) {
+                case 'eyeColor':  return g.eyeColor;
+                case 'hairColor': return g.hairColor;
+                case 'zodiac':    return g.zodiac;
+                case 'position':  return g.position;
+            }
+        };
+
+        // Build a sub-cluster pool: girls in the blessed pool sharing
+        // the most common secondary value. Only meaningful when the
+        // secondary differs from the blessing's own kind.
+        const preferred: Set<number> = new Set();
+        if (secondaryCat !== blessing.kind && blessedPool.length > 0) {
+            const subCounts = new Map<string, number>();
+            for (const g of blessedPool) {
+                const v = secondaryOf(g);
+                if (!v) continue;
+                subCounts.set(v, (subCounts.get(v) || 0) + 1);
+            }
+            if (subCounts.size > 0) {
+                const sorted = [...subCounts.entries()].sort((a, b) => b[1] - a[1]);
+                const [topVal, topCount] = sorted[0];
+                // Only apply the preference when there's a meaningful
+                // cluster (>= 2 girls), otherwise it's noise.
+                if (topCount >= 2) {
+                    for (const g of blessedPool) {
+                        if (secondaryOf(g) === topVal) preferred.add(g.id_girl);
+                    }
+                }
+            }
+        }
+
+        // Sort the pool: preferred girls first (sub-cluster match),
+        // then by mode-aware score within each tier.
+        pool.sort((a, b) => {
+            const aP = preferred.has(a.id_girl);
+            const bP = preferred.has(b.id_girl);
+            if (aP !== bP) return aP ? -1 : 1;
+            return (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
+        });
+
+        // Leader pick: Mythic Shield + blessed-bevorzugt + own-class + score.
+        const isOwnClass = (g: GirlData) =>
+            typeof g.class !== 'number' || g.class === playerClass;
+        const isBlessed = (g: GirlData) => usedIds.has(g.id_girl);
+        const leaderRanked = [...pool].sort((a, b) => {
+            const tA = TeamScoringService.getTier5Skill(a.element);
+            const tB = TeamScoringService.getTier5Skill(b.element);
+            if (a.rarity !== b.rarity) return a.rarity === 'mythic' ? -1 : 1;
+            if (tA.priority !== tB.priority) return tB.priority - tA.priority;
+            if (isBlessed(a) !== isBlessed(b)) return isBlessed(a) ? -1 : 1;
+            if (isOwnClass(a) !== isOwnClass(b)) return isOwnClass(a) ? -1 : 1;
+            return (scoreMap.get(b.id_girl) || 0) - (scoreMap.get(a.id_girl) || 0);
+        });
+        const leader = leaderRanked[0];
+
+        // Pos 2-7: the 6 strongest remaining girls in the pool.
+        const rest = pool
+            .filter(g => g.id_girl !== leader.id_girl)
+            .slice(0, TEAM_SIZE - 1);
+        return { team: [leader, ...rest], element: bestElement, pool };
     }
 
     /**

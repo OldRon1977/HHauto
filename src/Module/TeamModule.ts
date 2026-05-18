@@ -497,7 +497,13 @@ export class TeamModule {
             eyeColor: g.eye_color1 || undefined,
             position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
             blessingBonuses: g.blessing_bonuses || undefined,
-        }));
+            // Pass through can_be_blessed so detectActiveBlessings has
+            // an authoritative blessed-or-not flag (issue 1679 phase 2).
+            // The flag is added as a non-typed bonus property; the type
+            // signature stays GirlData.
+            ...(typeof g.can_be_blessed === 'boolean' ? { can_be_blessed: g.can_be_blessed } : {}),
+            ...(typeof g.can_be_blessed_pvp4 === 'boolean' ? { can_be_blessed_pvp4: g.can_be_blessed_pvp4 } : {}),
+        }) as GirlData);
 
         // Build BOTH modes so we can detect when "Best Possible" produces
         // the same team as "Current Best" — this happens when the top 7
