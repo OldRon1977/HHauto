@@ -737,20 +737,11 @@ export class EventModule {
                 setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect, "false");
                 setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll, "false");
             }
-            queryResults=$(povEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true") && queryResults.length == 0)
-            {
-                logHHAuto("No pov event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll, "false");
-            }
-            queryResults=$(pogEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true") && queryResults.length == 0)
-            {
-                logHHAuto("No pog event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll, "false");
-            }
+            // Path of Valor / Path of Glory: the home-page selectors for these events
+            // are unreliable (the banner only appears briefly between waves), so a
+            // false-negative here would silently flip the user setting back to off.
+            // The collect logic on the actual event page checks availability before
+            // acting; the toggle does not need to be in sync with the home banner.
         }
 /*
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.43
+// @version      7.35.44
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -5107,18 +5107,11 @@ class EventModule {
                 setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
                 setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
             }
-            queryResults = $(povEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true") && queryResults.length == 0) {
-                LogUtils_logHHAuto("No pov event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll, "false");
-            }
-            queryResults = $(pogEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") && queryResults.length == 0) {
-                LogUtils_logHHAuto("No pog event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll, "false");
-            }
+            // Path of Valor / Path of Glory: the home-page selectors for these events
+            // are unreliable (the banner only appears briefly between waves), so a
+            // false-negative here would silently flip the user setting back to off.
+            // The collect logic on the actual event page checks availability before
+            // acting; the toggle does not need to be in sync with the home banner.
         }
         /*
                 if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
@@ -26968,7 +26961,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.43";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.44";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

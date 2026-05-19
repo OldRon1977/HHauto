@@ -44,6 +44,10 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.44 - Path of Valor / Path of Glory toggles stay on
+
+- **PoV and PoG collect settings persist.** Enabling Auto-collect for Path of Valor or Path of Glory no longer flips back off automatically between event waves. The home-page banner check that drove the reset is gone; the collect logic on the actual event page already handles availability on its own.
+
 ### v7.35.43 - No more ping-pong loop when combativity is empty
 
 - **Auto Troll waits instead of bouncing.** When a battle path is active (Auto Troll, Plus Event, Plus Mythic, Plus Raid Stars or Plus Raid) and the only thing missing is combativity, the bot now sits on the troll path until energy refills. Before it kept bouncing between event.html and leagues.html every few seconds.
