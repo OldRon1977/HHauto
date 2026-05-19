@@ -44,6 +44,10 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.45 - Bot keeps moving while waiting for combativity
+
+- **League, Season, Quest, Champion and friends keep running.** When the troll path was waiting for an energy refill (Plus Event / Plus Mythic / Plus Raid Stars / Plus Raid pending with power=0), the bot froze on the troll loop and skipped every other handler. The wait flag now only suppresses the two pipeline navigations that originally caused the ping-pong loop (event page, leagues page) and leaves classic AutoLoop handlers alone.
+
 ### v7.35.44 - Path of Valor / Path of Glory toggles stay on
 
 - **PoV and PoG collect settings persist.** Enabling Auto-collect for Path of Valor or Path of Glory no longer flips back off automatically between event waves. The home-page banner check that drove the reset is gone; the collect logic on the actual event page already handles availability on its own.

@@ -79,6 +79,13 @@ const handleEventParsing: HandlerConfig = {
     // Events feature must be enabled
     if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true) return false;
 
+    // Suppress event-page navigation while handleTrollBattle is waiting
+    // for an energy refill on a path that needs the same event data
+    // (issue #1700, #1708). Re-evaluating the event page every tick in
+    // that state collided with handleLeague and produced the ping-pong
+    // loop between event.html and leagues.html.
+    if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true') return false;
+
     // Trigger only if at least one stale event exists. Otherwise the handler
     // would navigate to the event page on every tick even though the event
     // data is still fresh, which collided with handleLeague (and any other
@@ -154,6 +161,12 @@ const handleLeague: HandlerConfig = {
   atomic: true,
   interruptible: 'never',
   precondition: () => {
+    // Suppress league navigation while handleTrollBattle is waiting for
+    // an energy refill (issue #1700, #1708). Without this gate, the
+    // league chain navigates every minute, hits the lastAction guard in
+    // doLeagueBattle, and logs a stream of "Skip switching to leagues
+    // screen, busy with: troll" while no actual battle happens.
+    if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true') return false;
     return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
   },
   steps: [

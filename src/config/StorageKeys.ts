@@ -386,4 +386,10 @@ export const TK = {
 
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
+
+    // Troll wait-marker (issue #1708): set when handleTrollBattle is
+    // waiting for energy refill but a battle path WOULD fire if power
+    // were available. Read by handleEventParsing and handleLeague to
+    // suppress their navigations during that wait. Per-tab session.
+    trollWaitForEnergy: "Temp_trollWaitForEnergy",
 } as const;

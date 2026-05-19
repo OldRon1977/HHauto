@@ -247,6 +247,13 @@ export async function handleLoveRaid(ctx: AutoLoopContext): Promise<void> {
 
 // 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
 export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
+    // Clear the troll wait-marker (issue #1708) up-front. Only the
+    // wait-branch below sets it back to "true" when this tick decides to
+    // wait for an energy refill. Doing the clear unconditionally avoids
+    // a stale marker when the user disables auto-troll mid-wait or when
+    // the outer guard evaluates to false on a later tick.
+    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "false");
+
     // DEBUG: log preconditions for troll battle
     logHHAuto(`handleTrollBattle preconditions: busy=${ctx.busy}, isTrollFightActivated=${Troll.isTrollFightActivated()}, autoLoop=${isAutoLoopActive()}, competition=${ctx.canCollectCompetitionActive}, lastAction=${ctx.lastActionPerformed}, power=${ctx.currentPower}`);
     if(ctx.busy === false && Troll.isTrollFightActivated()
@@ -360,16 +367,20 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 setStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun, "false");
             }
             // Wait-marker: when no battle path matches but a path WOULD match
-            // if combativity were available, mark the tick as busy and persist
-            // lastAction="troll" so the next tick stays on the troll path
-            // instead of reverting to lastAction="none". Without this marker,
-            // handleEventParsing and handleLeague navigate every tick while
-            // power=0 + LoveRaid waits for refill, producing the issue #1700
-            // ping-pong loop between event.html and leagues.html.
+            // if combativity were available, set a session-scoped storage
+            // flag so the two pipeline handlers that originally caused the
+            // ping-pong loop (handleEventParsing, handleLeague) suppress
+            // their navigations until power refills (issue #1700).
+            //
+            // The marker MUST NOT touch ctx.busy or ctx.lastActionPerformed:
+            // doing so blocked every other classic AutoLoop handler that
+            // gates on lastAction === "none" (League self-skip, Season,
+            // Quest, Champion, Pantheon, PentaDrill, Pachinko, collectors,
+            // ...), freezing the bot for the duration of the wait
+            // (issue #1708).
             if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
                 logHHAuto("Troll fight pending: waiting for energy refill.");
-                ctx.busy = true;
-                ctx.lastActionPerformed = "troll";
+                setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "true");
             }
             /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
             {

@@ -2550,3 +2550,8 @@ HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};

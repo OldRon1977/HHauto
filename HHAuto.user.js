@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.44
+// @version      7.35.45
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1347,6 +1347,11 @@ const TK = {
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
+    // Troll wait-marker (issue #1708): set when handleTrollBattle is
+    // waiting for energy refill but a battle path WOULD fire if power
+    // were available. Read by handleEventParsing and handleLeague to
+    // suppress their navigations during that wait. Per-tab session.
+    trollWaitForEnergy: "Temp_trollWaitForEnergy",
 };
 
 ;// CONCATENATED MODULE: ./src/Helper/TimeHelper.ts
@@ -16374,6 +16379,12 @@ function handleLoveRaid(ctx) {
 // 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
 function handleTrollBattle(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
+        // Clear the troll wait-marker (issue #1708) up-front. Only the
+        // wait-branch below sets it back to "true" when this tick decides to
+        // wait for an energy refill. Doing the clear unconditionally avoids
+        // a stale marker when the user disables auto-troll mid-wait or when
+        // the outer guard evaluates to false on a later tick.
+        setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "false");
         // DEBUG: log preconditions for troll battle
         LogUtils_logHHAuto(`handleTrollBattle preconditions: busy=${ctx.busy}, isTrollFightActivated=${Troll.isTrollFightActivated()}, autoLoop=${isAutoLoopActive()}, competition=${ctx.canCollectCompetitionActive}, lastAction=${ctx.lastActionPerformed}, power=${ctx.currentPower}`);
         if (ctx.busy === false && Troll.isTrollFightActivated()
@@ -16465,16 +16476,20 @@ function handleTrollBattle(ctx) {
                     setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "false");
                 }
                 // Wait-marker: when no battle path matches but a path WOULD match
-                // if combativity were available, mark the tick as busy and persist
-                // lastAction="troll" so the next tick stays on the troll path
-                // instead of reverting to lastAction="none". Without this marker,
-                // handleEventParsing and handleLeague navigate every tick while
-                // power=0 + LoveRaid waits for refill, producing the issue #1700
-                // ping-pong loop between event.html and leagues.html.
+                // if combativity were available, set a session-scoped storage
+                // flag so the two pipeline handlers that originally caused the
+                // ping-pong loop (handleEventParsing, handleLeague) suppress
+                // their navigations until power refills (issue #1700).
+                //
+                // The marker MUST NOT touch ctx.busy or ctx.lastActionPerformed:
+                // doing so blocked every other classic AutoLoop handler that
+                // gates on lastAction === "none" (League self-skip, Season,
+                // Quest, Champion, Pantheon, PentaDrill, Pachinko, collectors,
+                // ...), freezing the bot for the duration of the wait
+                // (issue #1708).
                 if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
                     LogUtils_logHHAuto("Troll fight pending: waiting for energy refill.");
-                    ctx.busy = true;
-                    ctx.lastActionPerformed = "troll";
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "true");
                 }
                 /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
                 {
@@ -20629,6 +20644,13 @@ const handleEventParsing = {
         // Events feature must be enabled
         if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true)
             return false;
+        // Suppress event-page navigation while handleTrollBattle is waiting
+        // for an energy refill on a path that needs the same event data
+        // (issue #1700, #1708). Re-evaluating the event page every tick in
+        // that state collided with handleLeague and produced the ping-pong
+        // loop between event.html and leagues.html.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true')
+            return false;
         // Trigger only if at least one stale event exists. Otherwise the handler
         // would navigate to the event page on every tick even though the event
         // data is still fresh, which collided with handleLeague (and any other
@@ -20704,6 +20726,13 @@ const handleLeague = {
     atomic: true,
     interruptible: 'never',
     precondition: () => {
+        // Suppress league navigation while handleTrollBattle is waiting for
+        // an energy refill (issue #1700, #1708). Without this gate, the
+        // league chain navigates every minute, hits the lastAction guard in
+        // doLeagueBattle, and logs a stream of "Skip switching to leagues
+        // screen, busy with: troll" while no actual battle happens.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true')
+            return false;
         return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
     },
     steps: [
@@ -25681,6 +25710,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
 /**
@@ -26961,7 +26995,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.44";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.45";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

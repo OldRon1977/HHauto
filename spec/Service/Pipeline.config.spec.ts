@@ -34,7 +34,7 @@ jest.mock('../../src/config/HHStoredVars', () => ({
 
 jest.mock('../../src/config/StorageKeys', () => ({
   SK: { master: 'master' },
-  TK: { eventsList: 'Temp_eventsList' },
+  TK: { eventsList: 'Temp_eventsList', trollWaitForEnergy: 'Temp_trollWaitForEnergy' },
 }));
 
 jest.mock('../../src/Utils/LogUtils', () => ({
@@ -196,6 +196,56 @@ describe('Pipeline.config', () => {
     });
   });
 
+
+  describe('trollWaitForEnergy gate (issue #1700, #1708)', () => {
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+    });
+
+    it('handleEventParsing precondition returns false when trollWaitForEnergy=true', () => {
+      const handler = pipeline.find(h => h.name === 'handleEventParsing')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'true';
+        if (key.endsWith('Temp_eventsList')) return JSON.stringify({
+          ev1: { id: 'ev1', isCompleted: false, next_refresh: 0 },
+        });
+        return undefined;
+      });
+      expect(handler.precondition()).toBe(false);
+    });
+
+    it('handleEventParsing precondition still triggers when trollWaitForEnergy=false', () => {
+      const handler = pipeline.find(h => h.name === 'handleEventParsing')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'false';
+        if (key.endsWith('Temp_eventsList')) return JSON.stringify({
+          ev1: { id: 'ev1', isCompleted: false, next_refresh: 0 },
+        });
+        return undefined;
+      });
+      expect(handler.precondition()).toBe(true);
+    });
+
+    it('handleLeague precondition returns false when trollWaitForEnergy=true', () => {
+      const handler = pipeline.find(h => h.name === 'handleLeague')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'true';
+        return undefined;
+      });
+      expect(handler.precondition()).toBe(false);
+    });
+
+    it('handleLeague precondition still triggers when trollWaitForEnergy=false', () => {
+      const handler = pipeline.find(h => h.name === 'handleLeague')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'false';
+        return undefined;
+      });
+      // LeagueHelper.isAutoLeagueActivated and isTimeToFight default to true in
+      // the file-level mock, so the precondition must return true here.
+      expect(handler.precondition()).toBe(true);
+    });
+  });
 
   describe('getStaleEventIDs (issue #1673)', () => {
     afterEach(() => {
