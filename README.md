@@ -44,6 +44,12 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.42 - Daddy boss recognised on world 24
+
+- **Daddy is the correct opponent again.** The bot now picks Daddy on Hentai Heroes world 24 instead of falling back to Dark Lord, Arthur, or Jackson's Crew. The world-to-troll mapping was off by two and dropped into an "unknown troll" branch.
+- **First / Last troll with girls now reaches Daddy.** The girls list for Daddy was missing, so the picker stopped at Darth Excitor. Daddy's three reward girls (Viola Physique, Sergent Agatha, Ish) are recognised.
+- **Side adventure world 23 maps to Venam Kharney.** Auto Troll selecting Venam now resolves to the right side troll instead of returning the previous boss.
+
 ### v7.35.41 - Best of three team candidates
 
 - **Picker compares up to three candidate teams.** Team built from blessing 1 carriers, team built from blessing 2 carriers, and a default team from the full eligible pool are all built in parallel. The candidate with the highest mode-aware caracs_sum across its 7 slots wins. Tie-break order: blessing 1 > blessing 2 > default.

@@ -4,8 +4,8 @@
 
 export class HentaiHeroes {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
-    static trollIdMapping = { 21: 19, 24: 22 };
-    static sideTrollIdMapping = { 22: 20 };
+    static trollIdMapping = { 21: 19, 24: 20 };
+    static sideTrollIdMapping = { 22: 20, 23: 21 };
     static lastQuestId = 2116; //  TODO update when new quest comes
     static getEnv() {
         return {
@@ -103,6 +103,7 @@ export class HentaiHeroes {
             [['547099506', '572827174', '653889168'], [0], [0]],
             [['275226156', '280313988', '641009897'], [0], [0]],
             [['410383467', '931778650', '968097691'], [0], [0]],
+            [['561720989', '548844324', '749138756'], [0], [0]],
         ];
     }
 
