@@ -268,69 +268,57 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 7 keys', () => {
 
     it('4: Trait-Wert-Match in cluster category', () => {
         // Cluster is zodiac=Bélier (stones). The decisive contest is
-        // between two Shield mythics:
-        //   shieldOwnNoTrait: own-class (3), zodiac=Balance (no match)
-        //   shieldCrossTrait: cross-class (1), zodiac=Bélier (matches)
-        // Spec finalisation: key 4 (trait match) BEFORE key 6 (own-class).
-        // shieldCrossTrait must win.
-        //
-        // Fillers are ALSO cross-class so the leader contest is not
-        // muddied by own-class fillers competing on key 4 with shieldCross.
-        const shieldOwnNoTrait = girl({
+        // between two Shield mythics with identical caracs_sum:
+        //   shieldNoTrait: zodiac=Balance (no match)
+        //   shieldTrait:   zodiac=Bélier (matches the cluster)
+        // Keys 1-3 tie. Key 4 (Trait-Wert-Match) decides; shieldTrait wins.
+        const shieldNoTrait = girl({
             id_girl: 1, rarity: 'mythic', element: 'stone',
-            class: 3, zodiac: 'Balance', carac3: 5000,
+            zodiac: 'Balance', carac3: 5000,
         });
-        const shieldCrossTrait = girl({
+        const shieldTrait = girl({
             id_girl: 2, rarity: 'mythic', element: 'stone',
-            class: 1, zodiac: 'Bélier', carac3: 5000,
+            zodiac: 'Bélier', carac3: 5000,
         });
         const filler = Array.from({ length: 6 }, (_, i) => girl({
             id_girl: 100 + i, rarity: 'mythic', element: 'stone',
-            zodiac: 'Bélier', class: 1, carac3: 3000 - i,
+            zodiac: 'Bélier', carac3: 3000 - i,
         }));
-        const r = TeamBuilderService.buildTeam([shieldOwnNoTrait, shieldCrossTrait, ...filler], 1, 100, 3)!;
+        const r = TeamBuilderService.buildTeam([shieldNoTrait, shieldTrait, ...filler], 1, 100, 3)!;
         expect(r.traitValue).toBe('Bélier');
         expect(r.girls[0].id_girl).toBe(2);
     });
 
-    it('5: blessed vor unblessed (within pool 3.1, no active week-bless)', () => {
-        // Spec key 5 fires when two candidates tie on keys 1-4 but
-        // differ in BlessingService.getEffectiveMultiplier. Synthesise
-        // a no-active-week scenario (detectActiveBlessings returns [])
-        // where one candidate still carries a residual blessing_bonuses
-        // entry on her data (real game data sometimes keeps multipliers
-        // applied to caracs across week boundaries). She must lead.
+    it('5: blessed vor unblessed', () => {
+        // Two Mythic Stone Shield mythics with identical caracs_sum and
+        // identical zodiac=Bélier. blessedOne carries a residual blessing
+        // multiplier (>1), unblessedTie does not. Keys 1-4 tie, key 5
+        // decides; blessedOne wins.
+        //
+        // Filler carries the same blessing percent on a noise zodiac, so
+        // detectActiveBlessings cannot anchor a (zodiac=Bélier, +40) bless;
+        // no candidate pool produces 7 girls and the run lands on the
+        // default pool, which exposes the leader contest cleanly.
         const blessedOne = setBlessing(girl({
             id_girl: 1, rarity: 'mythic', element: 'stone',
-            zodiac: 'Bélier', class: 3, carac3: 5000,
+            zodiac: 'Bélier', carac3: 5000,
         }), [40]);
-        // Make the rest of the pool also carry the same blessing percent
-        // but with a noise zodiac so detectActiveBlessings cannot anchor
-        // on (zodiac=Bélier, +40) -- the dominant zodiac in the blessed
-        // pool is Capricorne, so no Bélier-zodiac blessing fires.
         const NOISE = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6'];
         const otherBlessed = Array.from({ length: 6 }, (_, i) => setBlessing(girl({
             id_girl: 100 + i, rarity: 'mythic', element: 'stone',
-            zodiac: NOISE[i % NOISE.length], class: 3, carac3: 5000,
+            zodiac: NOISE[i % NOISE.length], carac3: 5000,
         }), [40]));
         const unblessedTie = girl({
             id_girl: 2, rarity: 'mythic', element: 'stone',
-            zodiac: 'Bélier', class: 3, carac3: 5000,
+            zodiac: 'Bélier', carac3: 5000,
         });
         const r = TeamBuilderService.buildTeam([blessedOne, unblessedTie, ...otherBlessed], 1, 100, 3)!;
-        // The pool ends up with eligible girls but blessing detection
-        // collapses (zodiac is randomised). pool 3.1 path applies.
-        expect(['no-blessings', 'unblessed', 'fallback', 'bless1+2', 'bless1']).toContain(r.poolUsed);
-        // Cluster forms around zodiac=Bélier (only blessedOne+unblessedTie
-        // share it), but the Pos 2-7 Cluster hierarchy may pick another
-        // sub-group. The leader test focuses solely on the leader.
-        // Both Bélier candidates tie on keys 1-4 (Mythic Stone Shield
-        // Bélier). blessedOne wins on key 5.
+        expect(['default', 'bless1', 'bless2', 'fallback']).toContain(r.poolUsed);
         expect(r.girls[0].id_girl).toBe(1);
     });
 
     it('6: caracs_sum absteigend (mode-aware)', () => {
-        // Both own-class, both Bélier, both unblessed -> caracs_sum decides.
+        // Both Mythic Stone Shield, both Bélier, both unblessed -> caracs_sum decides.
         const stronger = girl({
             id_girl: 1, rarity: 'mythic', element: 'stone',
             class: 3, zodiac: 'Bélier', carac1: 8000, carac2: 8000, carac3: 8000,
@@ -347,70 +335,35 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 7 keys', () => {
         expect(r.girls[0].id_girl).toBe(1);
     });
 
-    it('7: Element-Coeff hoeher zuerst (final tie-break, stone vs light)', () => {
-        // Stone (1.12) vs Light (1.00). Cluster forms around zodiac=Bélier
-        // (stones), so light cannot match by element pair. To make the
-        // tie reach key 8 we use a hairColor cluster instead.
-        // Two Shield mythics in light cluster (one light, one nature).
-        // light has higher coeff (1.00 vs 1.10 nature). Wait: nature=1.10,
-        // light=1.00. So nature wins on key 8.
-        const lightShield = girl({
-            id_girl: 1, rarity: 'mythic', element: 'light',
-            class: 3, hairColor: '0F0', carac1: 4000, carac2: 4000, carac3: 4000,
-        });
-        const natureReflect = girl({
-            id_girl: 2, rarity: 'mythic', element: 'nature',
-            class: 3, hairColor: '0F0', carac1: 4000, carac2: 4000, carac3: 4000,
-        });
-        // light = Shield (4), nature = Reflect (1). Tier-5 already decides
-        // (key 2). To verify key 8 we need same Tier-5; use light vs light
-        // is impossible across pairs. Use stone vs light (same Shield).
-        // Stone has higher coeff, but cluster is hairColor only when stone
-        // is excluded. Build the test slightly differently.
-        const stoneShieldA = girl({
-            id_girl: 3, rarity: 'mythic', element: 'stone',
-            class: 3, zodiac: 'Bélier', carac1: 4000, carac2: 4000, carac3: 4000,
-        });
-        const stoneShieldB = stoneShieldA; // placeholder so test compiles
-        // Final test: stone vs light Shield mythic with same caracs, same
-        // class, same blessing status, neither matches the cluster trait.
-        // Cluster is hairColor=0F0 (4 nature girls). Stone is out-of-pair
-        // (key 3 fail), light is in-pair. Actually light wins on key 3.
-        // To purely isolate key 8, we keep the test minimal: stone wins
-        // against light when neither is in cluster.
+    it('7: Element-Coeff hoeher zuerst (final tie-break)', () => {
+        // Cluster forms around eyeColor=F00 (6 fire mythics). Stone and
+        // Light are both out-of-pair (key 3 fail), both Shield (key 2
+        // tie), both unblessed, same caracs. Key 7 (Element-Coeff)
+        // decides: stone=1.12 > light=1.00.
         const stoneOut = girl({
             id_girl: 4, rarity: 'mythic', element: 'stone',
-            class: 3, zodiac: 'Capricorne', carac3: 5000,
+            zodiac: 'Capricorne', carac3: 5000,
         });
         const lightOut = girl({
             id_girl: 5, rarity: 'mythic', element: 'light',
-            class: 3, hairColor: 'FFF', carac3: 5000,
+            hairColor: 'FFF', carac3: 5000,
         });
         const fillCluster = Array.from({ length: 6 }, (_, i) => girl({
             id_girl: 200 + i, rarity: 'mythic', element: 'fire',
-            class: 3, eyeColor: 'F00', carac3: 5500,
+            eyeColor: 'F00', carac3: 5500,
         }));
-        // Cluster forms around eyeColor=F00 (6 fire mythics). Stone and
-        // Light are both out-of-pair, both Shield, both unblessed, both
-        // own-class, same caracs. Key 8 (Element-Coeff) decides:
-        // stone=1.12 > light=1.00.
         const r = TeamBuilderService.buildTeam([stoneOut, lightOut, ...fillCluster], 1, 100, 3)!;
         expect(r.traitCategory).toBe('eyeColor');
         expect(r.girls[0].id_girl).toBe(4);
-        // Reference unused symbols so eslint-no-unused does not complain.
-        void lightShield;
-        void natureReflect;
-        void stoneShieldA;
-        void stoneShieldB;
     });
 });
 
 describe('TeamBuilderService -- Pos-2-7-Regel sub-cluster ordering', () => {
 
-    it('builds the cluster around the largest sub-group inside the trait hierarchy', () => {
+    it('builds the cluster around the largest sub-group in the cluster element pair', () => {
         // Pool: 5 stone-Bélier + 3 stone-Balance, all mythic.
-        // Cluster category should be zodiac (mono-element pool, stone ->
-        // zodiac Tier-3 category). Sub-group Bélier wins on size.
+        // Cluster-Wahl-Regel: stone -> zodiac Tier-3 category, sub-group
+        // Bélier wins on size.
         const beliers = Array.from({ length: 5 }, (_, i) => girl({
             id_girl: 100 + i, rarity: 'mythic', element: 'stone',
             class: 3, zodiac: 'Bélier', carac3: 5000,

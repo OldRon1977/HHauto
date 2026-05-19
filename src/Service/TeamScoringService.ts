@@ -75,8 +75,9 @@ const ELEMENT_TO_TIER3_CATEGORY: Record<ElementType, TraitCategory> = {
 };
 
 // Per-element power coefficient (empirical strength table).
-// Used as a tiebreaker in the leader rule (step 8) and inside Pos-2-7-Regel
-// (step 3 of the rule, when the trait hierarchy resolves to 'element').
+// Used as a tiebreaker in the leader rule (key 7), in Pos-2-7-Regel
+// sub-group ordering and score comparison, and in Cluster-Wahl-Regel
+// step 2 when no trait category resolves.
 const ELEMENT_POWER_COEFF: Record<ElementType, number> = {
     darkness: 1.20,   // Dominatrice
     fire:     1.12,   // Excentrique
@@ -139,8 +140,8 @@ export class TeamScoringService {
     /**
      * Spec eligible-pool filter: Mythic + Legendary 5*.
      *
-     * Cross-class girls are kept; the leader rule (step 6) and the Pos-2-7
-     * filler decide later when own-class is preferred.
+     * Cross-class girls are kept; the leader rule does not consider player
+     * class as a tiebreaker.
      *
      * playerClass is ignored; kept in the signature for backwards compat.
      */
@@ -175,9 +176,9 @@ export class TeamScoringService {
     }
 
     /**
-     * Per-element power coefficient. Mainly a tiebreaker in leader pick
-     * (step 8) and inside Pos-2-7-Regel rule 3 (when the trait hierarchy
-     * resolves to 'element').
+     * Per-element power coefficient. Tiebreaker in the leader pick (key 7),
+     * in Pos-2-7-Regel sub-group ordering and score comparison, and in
+     * Cluster-Wahl-Regel step 2 when no trait category resolves.
      */
     static getElementPowerCoeff(element: ElementType): number {
         return ELEMENT_POWER_COEFF[element] ?? 1.0;

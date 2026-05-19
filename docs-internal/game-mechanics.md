@@ -396,9 +396,9 @@ Wichtige Eigenschaften:
 
 | Thema | HHAuto-Doku |
 |-------|-------------|
-| Battle-Simulation und Crit-Berechnung | dsm-battle-simulator.md |
-| Team-Auswahl-Algorithmus (League) | team-algorithm-design.md |
-| vailableGirls-Felder, API-Zugriff | technical-reference-team-selection.md |
+| Battle-Simulation und Crit-Berechnung | bdsm-battle-simulator.md |
+| Team-Auswahl-Algorithmus (League) | REVIEW_TeamSelection.md |
+| availableGirls-Felder, Blessing-API | data-sources-team.md |
 | Storage-Keys fuer Settings (Boost-Filter, Threshold) | storage-keys.md |
 
 ---

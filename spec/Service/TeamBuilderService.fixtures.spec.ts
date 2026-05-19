@@ -10,11 +10,10 @@
 //      pool: Kira Navel or Andra Palpitante, both class=3 Bélier-Stones
 //      with caracs_sum 31777).
 //
-// Note: the spec puts Trait-Wert-Match (key 4) before own-class (key 6).
-// Because Mère de Bunny Lunaire (own-class Stone Shield, zodiac=Balance)
-// does NOT match the team trait (Bélier), she cannot lead by spec rule
-// even though she is own-class. Kira and Andra are cross-class but match
-// the trait, so one of them must lead.
+// Note: the leader rule has no own-class tiebreaker. Mère de Bunny
+// Lunaire (Stone Shield, zodiac=Balance) does NOT match the team trait
+// (Bélier), so she cannot lead. Kira and Andra match the trait, so one
+// of them must lead.
 
 /* global __dirname */
 import { readFileSync } from 'fs';
@@ -162,8 +161,9 @@ describe('Issue 1679 pool -- Element-bless week (Stone +40%)', () => {
         const r = TeamBuilderService.buildTeam(girls, 1, fixture.hero.level, fixture.hero.class as PlayerClass)!;
         expect(r.girls[0].element).toBe('stone');
         expect(r.girls[0].rarity).toBe('mythic');
-        // Both candidates carry the trait Match (zodiac=Bélier) which beats
-        // the own-class candidates that lack the trait per spec key 4.
+        // Both candidates carry the Trait-Wert-Match (zodiac=Bélier) which
+        // beats other Stone Shield candidates that lack the trait per
+        // spec key 4.
         expect(['Kira Navel', 'Andra Palpitante']).toContain(r.girls[0].name);
     });
 });

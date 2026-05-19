@@ -80,7 +80,7 @@ describe('TeamScoringService', () => {
             expect(out.map(g => g.id_girl).sort()).toEqual([1, 2]);
         });
 
-        it('keeps cross-class girls (the leader rule decides own-class later)', () => {
+        it('keeps cross-class girls (the leader rule has no own-class tiebreaker)', () => {
             const pool = [
                 girl({ id_girl: 1, rarity: 'mythic', nb_grades: 6, class: 1 }),
                 girl({ id_girl: 2, rarity: 'mythic', nb_grades: 6, class: 2 }),

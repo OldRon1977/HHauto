@@ -108,7 +108,7 @@ const ELEMENT_PAIRS_BY_CATEGORY: Record<TraitCategory, ElementType[]> = {
     position:  ['water', 'sun'],
 };
 
-// Trait hierarchy used in cluster selection and Pos-2-7 fill.
+// Trait hierarchy used in cluster selection (Cluster-Wahl-Regel).
 const TRAIT_HIERARCHY: TraitCategory[] = ['eyeColor', 'hairColor', 'zodiac', 'position'];
 
 interface TeamCluster {
@@ -317,8 +317,10 @@ export class TeamBuilderService {
             }
         }
 
-        // Trait hierarchy did not resolve. Fall back on element with the
-        // highest Element-Coeff (Pos-2-7 rule 3 last sentence).
+        // Cluster-Wahl-Regel step 2: no trait category resolved. Fall
+        // back on the element with the largest pool, then highest Element-
+        // Coeff. The cluster trait value is the most common trait in that
+        // element pair, with the first pool girl's value as last resort.
         const elementCounts = new Map<ElementType, number>();
         for (const g of pool) {
             elementCounts.set(g.element, (elementCounts.get(g.element) || 0) + 1);
