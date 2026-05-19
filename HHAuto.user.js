@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.42
+// @version      7.35.43
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1345,6 +1345,8 @@ const TK = {
     // Feature Popup (What's New)
     featurePopupShown: "Temp_featurePopupShown",
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
+    // Pipeline scheduler
+    pipelineLastRunAt: "Temp_pipelineLastRunAt",
 };
 
 ;// CONCATENATED MODULE: ./src/Helper/TimeHelper.ts
@@ -16469,6 +16471,18 @@ function handleTrollBattle(ctx) {
                     // end run
                     setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "false");
                 }
+                // Wait-marker: when no battle path matches but a path WOULD match
+                // if combativity were available, mark the tick as busy and persist
+                // lastAction="troll" so the next tick stays on the troll path
+                // instead of reverting to lastAction="none". Without this marker,
+                // handleEventParsing and handleLeague navigate every tick while
+                // power=0 + LoveRaid waits for refill, producing the issue #1700
+                // ping-pong loop between event.html and leagues.html.
+                if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
+                    LogUtils_logHHAuto("Troll fight pending: waiting for energy refill.");
+                    ctx.busy = true;
+                    ctx.lastActionPerformed = "troll";
+                }
                 /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
                 {
                     logHHAuto("Go to home after troll fight");
@@ -16481,6 +16495,30 @@ function handleTrollBattle(ctx) {
             setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
         }
     });
+}
+/**
+ * Pure helper: would handleTrollBattle have fired a fight if combativity were
+ * available? Mirrors the four activation paths in the main if-block, but
+ * without the power/buy checks. Used by the wait-marker branch in
+ * handleTrollBattle to detect "only blocker is power=0" situations.
+ *
+ * Returns true if any of the following holds:
+ * - autoTrollBattle is on (would fight last unlocked troll once power > 0)
+ * - plusEventMythic is on AND a mythic event girl is currently parsed
+ * - plusEvent is on AND a non-mythic event girl is currently parsed
+ * - a raid stars raid with id_girl exists AND plusLoveRaid is on
+ * - a user-selected LoveRaid with id_girl exists
+ */
+function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
+    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true";
+    const mythicEventReady = Boolean(eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic) === true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
+    const eventReady = Boolean(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic) !== true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
+    const raidStarsReady = Boolean(raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
+    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl);
+    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
 }
 // 9. handlePachinko - lines 465-487 (all 3 pachinko types)
 function handlePachinko(ctx) {
@@ -20740,6 +20778,43 @@ class Scheduler {
         this.states = new Map();
         this.lastRunAt = new Map();
         this.currentChain = null;
+        // Restore lastRunAt from sessionStorage so the minIntervalMs cool-down
+        // survives a page reload. Without this, every gotoPage() rebuilds the
+        // Scheduler singleton with empty lastRunAt and pipeline handlers fire
+        // immediately again (see issue #1700: handleLeague feeling its 60s
+        // cool-down only within a single page session). Persisted format is a
+        // {handlerName: epochMs} object stored under TK.pipelineLastRunAt.
+        try {
+            const persisted = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineLastRunAt, {});
+            if (persisted && typeof persisted === "object") {
+                for (const [name, ts] of Object.entries(persisted)) {
+                    const tsNum = Number(ts);
+                    if (Number.isFinite(tsNum) && tsNum > 0) {
+                        this.lastRunAt.set(name, tsNum);
+                    }
+                }
+            }
+        }
+        catch (_e) {
+            // Best-effort restore; on parse error start with empty cool-downs.
+        }
+    }
+    /**
+     * Persist lastRunAt to sessionStorage. Called after every chain completion
+     * or failure so a page reload does not reset the cool-down.
+     */
+    persistLastRunAt() {
+        try {
+            const obj = {};
+            for (const [name, ts] of this.lastRunAt.entries()) {
+                obj[name] = ts;
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify(obj));
+        }
+        catch (_e) {
+            // Best-effort persist; on storage error the in-memory state still works
+            // for the current session.
+        }
     }
     /**
      * Main entry point. Called once per AutoLoop iteration.
@@ -20894,6 +20969,7 @@ class Scheduler {
         this.states.set(name, 'IDLE');
         this.lastRunAt.set(name, Date.now());
         this.currentChain = null;
+        this.persistLastRunAt();
     }
     /**
      * Handle chain failure: call onFailure callback, reset state.
@@ -20916,6 +20992,7 @@ class Scheduler {
             // Reset to IDLE so handler can retry on next eligible tick
             this.states.set(config.name, 'IDLE');
             this.lastRunAt.set(config.name, Date.now());
+            this.persistLastRunAt();
         });
     }
     /**
@@ -20991,6 +21068,12 @@ class Scheduler {
         this.states.clear();
         this.lastRunAt.clear();
         this.currentChain = null;
+        try {
+            setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify({}));
+        }
+        catch (_e) {
+            // ignore
+        }
     }
 }
 /** Singleton instance */
@@ -25600,6 +25683,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
         storage: "localStorage",
         HHType: "Temp"
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
 /**
@@ -26880,7 +26968,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.42";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.43";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

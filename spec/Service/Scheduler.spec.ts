@@ -9,8 +9,22 @@ jest.mock('../../src/Service/MouseService', () => ({
   get mouseBusy() { return mouseServiceState.mouseBusy; },
 }));
 
+// In-memory mock store for sessionStorage-backed values used by the
+// Scheduler's lastRunAt persistence.
+const persistedStore: Record<string, string> = {};
 jest.mock('../../src/Helper/StorageHelper', () => ({
-  getStoredValue: jest.fn().mockReturnValue('true'), // master = on by default
+  getStoredValue: jest.fn().mockImplementation((key: string) => {
+    if (key in persistedStore) return persistedStore[key];
+    return 'true'; // master = on by default
+  }),
+  getStoredJSON: jest.fn().mockImplementation((key: string, defaultValue: unknown) => {
+    const raw = persistedStore[key];
+    if (raw === undefined) return defaultValue;
+    try { return JSON.parse(raw); } catch { return defaultValue; }
+  }),
+  setStoredValue: jest.fn().mockImplementation((key: string, value: unknown) => {
+    persistedStore[key] = String(value);
+  }),
 }));
 
 jest.mock('../../src/config/HHStoredVars', () => ({
@@ -19,7 +33,7 @@ jest.mock('../../src/config/HHStoredVars', () => ({
 
 jest.mock('../../src/config/StorageKeys', () => ({
   SK: { master: 'master' },
-  TK: { autoLoop: 'Temp_autoLoop' },
+  TK: { autoLoop: 'Temp_autoLoop', pipelineLastRunAt: 'Temp_pipelineLastRunAt' },
 }));
 
 jest.mock('../../src/Utils/LogUtils', () => ({
@@ -58,10 +72,15 @@ describe('Scheduler', () => {
   let scheduler: Scheduler;
 
   beforeEach(() => {
+    // Reset persistent store so tests start with empty cool-downs
+    for (const key of Object.keys(persistedStore)) delete persistedStore[key];
     scheduler = new Scheduler();
     pipeline.length = 0;
     mouseServiceState.mouseBusy = false;
-    (HelperModule.getStoredValue as jest.Mock).mockReturnValue('true');
+    (HelperModule.getStoredValue as jest.Mock).mockImplementation((key: string) => {
+      if (key in persistedStore) return persistedStore[key];
+      return 'true';
+    });
   });
 
   describe('State Machine Transitions', () => {
@@ -305,6 +324,109 @@ describe('Scheduler', () => {
       await scheduler.tick(); // badStep fails
 
       expect(onFailure).toHaveBeenCalledWith('badStep', 'network error');
+    });
+  });
+
+  describe('lastRunAt Persistence (issue #1700, ADR-002)', () => {
+    it('persists lastRunAt to sessionStorage on completeChain', async () => {
+      const handler = makeHandler({
+        name: 'persistMe',
+        minIntervalMs: 60000,
+        steps: [{ name: 's', fn: async () => ({ ok: true }) }],
+      });
+      pipeline.push(handler);
+
+      await scheduler.tick();
+
+      const persistedRaw = persistedStore['HHAuto_Temp_pipelineLastRunAt'];
+      expect(persistedRaw).toBeDefined();
+      const persisted = JSON.parse(persistedRaw);
+      expect(typeof persisted.persistMe).toBe('number');
+      expect(persisted.persistMe).toBeGreaterThan(0);
+    });
+
+    it('persists lastRunAt on chain failure', async () => {
+      const handler = makeHandler({
+        name: 'failPersist',
+        minIntervalMs: 60000,
+        steps: [{ name: 'bad', fn: async () => ({ ok: false, reason: 'x', retryable: false }) }],
+      });
+      pipeline.push(handler);
+
+      await scheduler.tick();
+
+      const persistedRaw = persistedStore['HHAuto_Temp_pipelineLastRunAt'];
+      expect(persistedRaw).toBeDefined();
+      const persisted = JSON.parse(persistedRaw);
+      expect(typeof persisted.failPersist).toBe('number');
+    });
+
+    it('a fresh Scheduler restores lastRunAt and respects minIntervalMs', async () => {
+      // Simulate a previous run by writing into the store
+      const recentTimestamp = Date.now() - 5000; // 5s ago
+      persistedStore['HHAuto_Temp_pipelineLastRunAt'] = JSON.stringify({ recovered: recentTimestamp });
+
+      const steps: string[] = [];
+      const handler = makeHandler({
+        name: 'recovered',
+        minIntervalMs: 60000,
+        steps: [{ name: 's', fn: async () => { steps.push('s'); return { ok: true }; } }],
+      });
+
+      // Build a new Scheduler instance (mimics page reload)
+      const fresh = new Scheduler();
+      pipeline.push(handler);
+      await fresh.tick();
+
+      // Should NOT have re-run because cool-down survives the reload
+      expect(steps).toEqual([]);
+    });
+
+    it('a fresh Scheduler ignores expired persisted entries', async () => {
+      // Old timestamp, beyond minIntervalMs
+      const oldTimestamp = Date.now() - 120000; // 2 min ago
+      persistedStore['HHAuto_Temp_pipelineLastRunAt'] = JSON.stringify({ stale: oldTimestamp });
+
+      const steps: string[] = [];
+      const handler = makeHandler({
+        name: 'stale',
+        minIntervalMs: 60000,
+        steps: [{ name: 's', fn: async () => { steps.push('s'); return { ok: true }; } }],
+      });
+
+      const fresh = new Scheduler();
+      pipeline.push(handler);
+      await fresh.tick();
+
+      // Should run again because cool-down has expired
+      expect(steps).toEqual(['s']);
+    });
+
+    it('reset() clears persisted lastRunAt', async () => {
+      persistedStore['HHAuto_Temp_pipelineLastRunAt'] = JSON.stringify({ x: 12345 });
+
+      scheduler.reset();
+
+      const persistedRaw = persistedStore['HHAuto_Temp_pipelineLastRunAt'];
+      expect(persistedRaw).toBe('{}');
+    });
+
+    it('tolerates malformed persisted data (parses to empty cool-downs)', async () => {
+      persistedStore['HHAuto_Temp_pipelineLastRunAt'] = 'not-json{';
+
+      const steps: string[] = [];
+      const handler = makeHandler({
+        name: 'malformed',
+        minIntervalMs: 60000,
+        steps: [{ name: 's', fn: async () => { steps.push('s'); return { ok: true }; } }],
+      });
+
+      const fresh = new Scheduler();
+      pipeline.push(handler);
+      await fresh.tick();
+
+      // Should run because malformed data is treated as no-cool-down
+      expect(steps).toEqual(['s']);
     });
   });
 });

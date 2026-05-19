@@ -44,6 +44,11 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.43 - No more ping-pong loop when combativity is empty
+
+- **Auto Troll waits instead of bouncing.** When a battle path is active (Auto Troll, Plus Event, Plus Mythic, Plus Raid Stars or Plus Raid) and the only thing missing is combativity, the bot now sits on the troll path until energy refills. Before it kept bouncing between event.html and leagues.html every few seconds.
+- **League cool-down survives a page reload.** Pipeline cool-downs (60 s for League, etc.) are now persisted; before they were per-tab-session and reset on every navigation, which let League fire repeatedly within seconds.
+
 ### v7.35.42 - Daddy boss recognised on world 24
 
 - **Daddy is the correct opponent again.** The bot now picks Daddy on Hentai Heroes world 24 instead of falling back to Dark Lord, Arthur, or Jackson's Crew. The world-to-troll mapping was off by two and dropped into an "unknown troll" branch.

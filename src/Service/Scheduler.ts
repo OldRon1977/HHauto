@@ -10,7 +10,7 @@
 
 import { HandlerConfig, StepResult, pipeline } from './Pipeline.config';
 import { mouseBusy } from './MouseService';
-import { getStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -36,6 +36,45 @@ export class Scheduler {
   private states: Map<string, HandlerState> = new Map();
   private lastRunAt: Map<string, number> = new Map();
   private currentChain: ActiveChain | null = null;
+
+  constructor() {
+    // Restore lastRunAt from sessionStorage so the minIntervalMs cool-down
+    // survives a page reload. Without this, every gotoPage() rebuilds the
+    // Scheduler singleton with empty lastRunAt and pipeline handlers fire
+    // immediately again (see issue #1700: handleLeague feeling its 60s
+    // cool-down only within a single page session). Persisted format is a
+    // {handlerName: epochMs} object stored under TK.pipelineLastRunAt.
+    try {
+      const persisted = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineLastRunAt, {});
+      if (persisted && typeof persisted === "object") {
+        for (const [name, ts] of Object.entries(persisted)) {
+          const tsNum = Number(ts);
+          if (Number.isFinite(tsNum) && tsNum > 0) {
+            this.lastRunAt.set(name, tsNum);
+          }
+        }
+      }
+    } catch (_e) {
+      // Best-effort restore; on parse error start with empty cool-downs.
+    }
+  }
+
+  /**
+   * Persist lastRunAt to sessionStorage. Called after every chain completion
+   * or failure so a page reload does not reset the cool-down.
+   */
+  private persistLastRunAt(): void {
+    try {
+      const obj: Record<string, number> = {};
+      for (const [name, ts] of this.lastRunAt.entries()) {
+        obj[name] = ts;
+      }
+      setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify(obj));
+    } catch (_e) {
+      // Best-effort persist; on storage error the in-memory state still works
+      // for the current session.
+    }
+  }
 
   /**
    * Main entry point. Called once per AutoLoop iteration.
@@ -189,6 +228,7 @@ export class Scheduler {
     this.states.set(name, 'IDLE');
     this.lastRunAt.set(name, Date.now());
     this.currentChain = null;
+    this.persistLastRunAt();
   }
 
   /**
@@ -212,6 +252,7 @@ export class Scheduler {
     // Reset to IDLE so handler can retry on next eligible tick
     this.states.set(config.name, 'IDLE');
     this.lastRunAt.set(config.name, Date.now());
+    this.persistLastRunAt();
   }
 
   /**
@@ -290,6 +331,11 @@ export class Scheduler {
     this.states.clear();
     this.lastRunAt.clear();
     this.currentChain = null;
+    try {
+      setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify({}));
+    } catch (_e) {
+      // ignore
+    }
   }
 }
 

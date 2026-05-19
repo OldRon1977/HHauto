@@ -383,4 +383,7 @@ export const TK = {
     // Feature Popup (What's New)
     featurePopupShown: "Temp_featurePopupShown",
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
+
+    // Pipeline scheduler
+    pipelineLastRunAt: "Temp_pipelineLastRunAt",
 } as const;

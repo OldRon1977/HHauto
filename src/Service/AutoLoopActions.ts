@@ -359,6 +359,18 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
                 // end run
                 setStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun, "false");
             }
+            // Wait-marker: when no battle path matches but a path WOULD match
+            // if combativity were available, mark the tick as busy and persist
+            // lastAction="troll" so the next tick stays on the troll path
+            // instead of reverting to lastAction="none". Without this marker,
+            // handleEventParsing and handleLeague navigate every tick while
+            // power=0 + LoveRaid waits for refill, producing the issue #1700
+            // ping-pong loop between event.html and leagues.html.
+            if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
+                logHHAuto("Troll fight pending: waiting for energy refill.");
+                ctx.busy = true;
+                ctx.lastActionPerformed = "troll";
+            }
             /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
             {
                 logHHAuto("Go to home after troll fight");
@@ -372,6 +384,36 @@ export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
     {
         setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
     }
+}
+
+/**
+ * Pure helper: would handleTrollBattle have fired a fight if combativity were
+ * available? Mirrors the four activation paths in the main if-block, but
+ * without the power/buy checks. Used by the wait-marker branch in
+ * handleTrollBattle to detect "only blocker is power=0" situations.
+ *
+ * Returns true if any of the following holds:
+ * - autoTrollBattle is on (would fight last unlocked troll once power > 0)
+ * - plusEventMythic is on AND a mythic event girl is currently parsed
+ * - plusEvent is on AND a non-mythic event girl is currently parsed
+ * - a raid stars raid with id_girl exists AND plusLoveRaid is on
+ * - a user-selected LoveRaid with id_girl exists
+ */
+export function wouldFightWithPower(
+    eventGirl: EventGirl,
+    eventMythicGirl: EventGirl,
+    raidStarsRaid: LoveRaid | undefined,
+    loveRaid: LoveRaid | undefined,
+): boolean {
+    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true";
+    const mythicEventReady = Boolean(eventMythicGirl?.girl_id) && eventMythicGirl?.is_mythic === true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
+    const eventReady = Boolean(eventGirl?.girl_id) && eventGirl?.is_mythic !== true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
+    const raidStarsReady = Boolean(raidStarsRaid?.id_girl)
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
+    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid?.id_girl);
+    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
 }
 
 // 9. handlePachinko - lines 465-487 (all 3 pachinko types)
