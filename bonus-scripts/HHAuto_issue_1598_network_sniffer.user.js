@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Issue 1598 Network Sniffer
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.0.0
+// @version      1.1.0
 // @description  Maximum-coverage network sniffer for diagnosing PoP "Access forbidden" on accounts with very large rosters (issue #1598). Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
 // @author       HHAuto
 // @match        http*://*.haremheroes.com/*
@@ -84,7 +84,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '1.0.0';
+    const VERSION = '1.1.0';
     const LOG_PREFIX = '[1598-NET v' + VERSION + ']';
 
     // The performance.now() origin we anchor every event to. Subtracting
@@ -603,7 +603,7 @@
             overlayEl = sandboxWin.document.createElement('div');
             overlayEl.id = 'x1598-overlay';
             overlayEl.style.cssText = [
-                'position:fixed', 'top:8px', 'right:8px', 'z-index:2147483647',
+                'position:fixed', 'bottom:8px', 'right:8px', 'z-index:2147483647',
                 'background:rgba(0,0,0,0.8)', 'color:#0f0', 'padding:6px 8px',
                 'font:12px/1.3 monospace', 'border:1px solid #0f0', 'border-radius:4px',
                 'pointer-events:auto', 'user-select:text',

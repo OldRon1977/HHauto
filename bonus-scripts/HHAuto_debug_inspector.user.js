@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.8.0
+// @version      4.8.1
 // @description  Full game data dumper. DUMP THIS PAGE / DUMP FOR SHARING / AUTO TOUR. Persistent XHR + fetch hooks. Optional PII share-mode pipeline anonymises dumps for public bug reports.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -1675,7 +1675,10 @@
         if (bar) return bar;
         bar = document.createElement('div');
         bar.id = 'hhauto_status_bar';
-        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 4px 14px rgba(0,0,0,0.7);border-bottom:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:24px;';
+        // Status bar lives at the bottom of the viewport so it does not
+        // overlap the regular DUMP / SHARE / AUTO TOUR buttons that sit
+        // at the top right.
+        bar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#0f0;font:13px monospace;padding:8px 14px;z-index:1000000;box-shadow:0 -4px 14px rgba(0,0,0,0.7);border-top:3px solid #ffb827;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:24px;';
         document.body.appendChild(bar);
         return bar;
     }
