@@ -54,7 +54,7 @@ describe('TeamBuilderService -- spec entry contract', () => {
         const r = TeamBuilderService.buildTeam(girls, 1, 100, 3)!;
         expect(r).not.toBeNull();
         expect(r.girls).toHaveLength(7);
-        expect(r.poolUsed).toBe('no-blessings');
+        expect(r.poolUsed).toBe('default');
     });
 });
 
@@ -106,26 +106,22 @@ describe('TeamBuilderService -- spec step 3.1 (no blessings)', () => {
         }));
         const r = TeamBuilderService.buildTeam([...blueEyes, ...blondes], 1, 100, 3)!;
         expect(r).not.toBeNull();
-        expect(r.poolUsed).toBe('no-blessings');
+        expect(r.poolUsed).toBe('default');
         expect(r.traitCategory).toBe('eyeColor');
         expect(r.traitValue).toBe('F00');
     });
 });
 
-describe('TeamBuilderService -- spec step 2.2 / 2.3 / 2.4 pool layering', () => {
+describe('TeamBuilderService -- best of three candidate teams', () => {
 
-    // Two distinct active blessings: eyeColor=F00 +40% (bless1) and
-    // hairColor=0F0 +25% (bless2). detectActiveBlessings returns both
-    // because they differ in (kind, value); only then does the spec's
-    // 2.2 / 2.3 distinction make sense.
-
-    // Helpers below also alternate between Mythic and Legendary 5* so
-    // detectActiveBlessings does not synthesise a rarity-as-blessing
-    // candidate (which fires when 100% of the blessed pool happens to
-    // share a rarity, an artifact of small synthetic pools).
-    const NOISE_TRAITS = ['NOISE_A', 'NOISE_B', 'NOISE_C', 'NOISE_D', 'NOISE_E', 'NOISE_F', 'NOISE_G', 'NOISE_H', 'NOISE_I', 'NOISE_J'];
+    // Helpers below mix Mythic and Legendary 5* so detectActiveBlessings
+    // does not synthesise a rarity-as-blessing candidate (which fires
+    // when 100% of the blessed pool happens to share a rarity, an
+    // artifact of small synthetic pools).
+    const NOISE_TRAITS = ['NOISE_A', 'NOISE_B', 'NOISE_C', 'NOISE_D', 'NOISE_E', 'NOISE_F', 'NOISE_G', 'NOISE_H'];
     const NOISE_ZODIAC = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6', 'z7', 'z8'];
     const NOISE_POSITION = ['1', '2', '3', '4', '5'];
+
     function asBless1(g: GirlData, idx: number): GirlData {
         if (idx % 2 === 1) {
             (g as any).rarity = 'legendary';
@@ -133,8 +129,6 @@ describe('TeamBuilderService -- spec step 2.2 / 2.3 / 2.4 pool layering', () => 
         }
         (g as any).eyeColor = 'F00';
         (g as any).eye_color1 = 'F00';
-        // Distribute hair noise so detectActiveBlessings does not pick
-        // up a single dominant hair value as a second spurious bless.
         const noiseHair = NOISE_TRAITS[idx % NOISE_TRAITS.length];
         (g as any).hairColor = noiseHair;
         (g as any).hair_color1 = noiseHair;
@@ -158,100 +152,75 @@ describe('TeamBuilderService -- spec step 2.2 / 2.3 / 2.4 pool layering', () => 
         (g as any).position_img = NOISE_POSITION[idx % NOISE_POSITION.length] + '.png';
         return setBlessing(g, [25]);
     }
-    function asBoth(g: GirlData, idx: number): GirlData {
-        if (idx % 2 === 1) {
-            (g as any).rarity = 'legendary';
-            (g as any).nb_grades = 5;
-        }
-        (g as any).eyeColor = 'F00';
-        (g as any).eye_color1 = 'F00';
-        (g as any).hairColor = '0F0';
-        (g as any).hair_color1 = '0F0';
-        (g as any).zodiac = NOISE_ZODIAC[idx % NOISE_ZODIAC.length];
-        (g as any).position = NOISE_POSITION[idx % NOISE_POSITION.length];
-        (g as any).position_img = NOISE_POSITION[idx % NOISE_POSITION.length] + '.png';
-        return setBlessing(g, [40, 25]);
-    }
 
-    it('uses pool 2.2 (both blessings) when 7 girls carry both', () => {
-        // 7 fire/darkness girls carrying both blessings -- they share
-        // eye=F00 AND hair=0F0. Bless1 detection keys on eyeColor=F00.
-        const both = Array.from({ length: 7 }, (_, i) => asBoth(girl({
-            id_girl: 400 + i,
+    it('picks the bless1 team when bless1 carriers have the strongest sum', () => {
+        // 7 strong bless1 girls (eye=F00, +40%) vs 7 weaker bless2 girls.
+        const bless1 = Array.from({ length: 7 }, (_, i) => asBless1(girl({
+            id_girl: 100 + i,
             element: i % 2 === 0 ? 'fire' : 'darkness',
-            carac3: 5000,
+            carac3: 6000,
         }), i));
-        // Decoys: bless1-only carriers (eye=F00 but hair=XXX) -- they
-        // belong to pool 2.3, not 2.2.
-        const onlyB1 = Array.from({ length: 6 }, (_, i) => asBless1(girl({
-            id_girl: 500 + i,
-            element: 'fire',
-            carac3: 4000,
-        }), i));
-        // Decoys: bless2-only carriers (hair=0F0, eye=YYY) -- they belong
-        // to pool 2.3-alt; should not appear in the team.
-        const onlyB2 = Array.from({ length: 6 }, (_, i) => asBless2(girl({
-            id_girl: 600 + i,
+        const bless2 = Array.from({ length: 7 }, (_, i) => asBless2(girl({
+            id_girl: 200 + i,
             element: 'light',
             carac3: 4000,
         }), i));
-        const r = TeamBuilderService.buildTeam([...both, ...onlyB1, ...onlyB2], 1, 100, 3)!;
-        expect(r.poolUsed).toBe('bless1+2');
-        const ids = new Set(r.girls.map(g => g.id_girl));
-        for (const g of both) expect(ids.has(g.id_girl)).toBe(true);
-    });
-
-    it('falls through to pool 2.3 (bless1 only) when pool 2.2 is empty', () => {
-        // No girl carries both blessings. Pool 2.3 = girls with bless1
-        // only. Pool 2.4 = unblessed (and bless2-only is its own bucket
-        // that we ignore here for the bless1-only test).
-        const only1 = Array.from({ length: 8 }, (_, i) => asBless1(girl({
-            id_girl: 400 + i,
-            element: i % 2 === 0 ? 'fire' : 'darkness',
-            carac3: 5000,
-        }), i));
-        const only2 = Array.from({ length: 5 }, (_, i) => asBless2(girl({
-            id_girl: 500 + i,
-            element: 'light',
-            carac3: 4000,
-        }), i));
-        const r = TeamBuilderService.buildTeam([...only1, ...only2], 1, 100, 3)!;
+        const r = TeamBuilderService.buildTeam([...bless1, ...bless2], 1, 100, 3)!;
         expect(r.poolUsed).toBe('bless1');
-        for (const g of r.girls) {
-            const pcts = ((g as any).blessing_bonuses?.pvp_v3?.carac1) || [];
-            expect(pcts).toContain(40);
-            expect(pcts).not.toContain(25);
-        }
     });
 
-    it('falls through to pool 2.4 (unblessed) when no blessing pool reaches 7', () => {
-        // 3 + 2 + 0 carriers in the blessing pools, plus 8 unblessed.
-        const only1 = Array.from({ length: 3 }, (_, i) => asBless1(girl({
-            id_girl: 400 + i,
-            element: 'fire',
+    it('picks the bless2 team when bless2 carriers outscore bless1 and the default pool', () => {
+        // 7 weaker bless1 girls vs 7 strong bless2 girls.
+        const bless1 = Array.from({ length: 7 }, (_, i) => asBless1(girl({
+            id_girl: 100 + i,
+            element: i % 2 === 0 ? 'fire' : 'darkness',
             carac3: 4000,
         }), i));
-        const both = Array.from({ length: 2 }, (_, i) => asBoth(girl({
-            id_girl: 500 + i,
+        const bless2 = Array.from({ length: 7 }, (_, i) => asBless2(girl({
+            id_girl: 200 + i,
+            element: i % 2 === 0 ? 'light' : 'nature',
+            carac3: 7000,
+        }), i));
+        const r = TeamBuilderService.buildTeam([...bless1, ...bless2], 1, 100, 3)!;
+        expect(r.poolUsed).toBe('bless2');
+    });
+
+    it('picks the default team when no blessing pool can build 7 girls', () => {
+        // Only 3 bless1 girls (cannot fill 7), no bless2 girls. Default
+        // pool has 8 unblessed girls.
+        const tooFew = Array.from({ length: 3 }, (_, i) => asBless1(girl({
+            id_girl: 100 + i,
             element: 'fire',
             carac3: 4000,
         }), i));
         const unblessed = Array.from({ length: 8 }, (_, i) => girl({
-            id_girl: 600 + i,
+            id_girl: 200 + i,
             element: i % 2 === 0 ? 'fire' : 'darkness',
             eyeColor: 'F00',
             carac3: 4000,
         }));
-        const r = TeamBuilderService.buildTeam([...only1, ...both, ...unblessed], 1, 100, 3)!;
-        expect(r.poolUsed).toBe('unblessed');
-        for (const g of r.girls) {
-            const pcts = ((g as any).blessing_bonuses?.pvp_v3?.carac1) || [];
-            expect(pcts.length).toBe(0);
-        }
+        const r = TeamBuilderService.buildTeam([...tooFew, ...unblessed], 1, 100, 3)!;
+        expect(r.poolUsed).toBe('default');
+    });
+
+    it('prefers bless1 when bless1 and bless2 teams tie on sum', () => {
+        // Identical strengths -> stable tiebreak: bless1 wins.
+        const bless1 = Array.from({ length: 7 }, (_, i) => asBless1(girl({
+            id_girl: 100 + i,
+            element: i % 2 === 0 ? 'fire' : 'darkness',
+            carac3: 5000,
+        }), i));
+        const bless2 = Array.from({ length: 7 }, (_, i) => asBless2(girl({
+            id_girl: 200 + i,
+            element: i % 2 === 0 ? 'light' : 'nature',
+            carac3: 5000,
+        }), i));
+        const r = TeamBuilderService.buildTeam([...bless1, ...bless2], 1, 100, 3)!;
+        expect(r.poolUsed).toBe('bless1');
     });
 });
 
-describe('TeamBuilderService -- Leaderauswahl-Regel 8 keys', () => {
+describe('TeamBuilderService -- Leaderauswahl-Regel 7 keys', () => {
 
     function leaderOf(candidates: GirlData[]): GirlData {
         const r = TeamBuilderService.buildTeam(candidates, 1, 100, 3)!;
@@ -297,7 +266,7 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 8 keys', () => {
         expect(r.girls[0].id_girl).toBe(1); // shieldA
     });
 
-    it('4: Trait-Wert-Match BEFORE own-class', () => {
+    it('4: Trait-Wert-Match in cluster category', () => {
         // Cluster is zodiac=Bélier (stones). The decisive contest is
         // between two Shield mythics:
         //   shieldOwnNoTrait: own-class (3), zodiac=Balance (no match)
@@ -360,26 +329,7 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 8 keys', () => {
         expect(r.girls[0].id_girl).toBe(1);
     });
 
-    it('6: own-class vor cross-class (after keys 4 and 5 tie)', () => {
-        // Two stone Shield mythics, both Bélier, both unblessed.
-        // ownClass = own-class win.
-        const own = girl({
-            id_girl: 1, rarity: 'mythic', element: 'stone',
-            class: 3, zodiac: 'Bélier', carac3: 5000,
-        });
-        const cross = girl({
-            id_girl: 2, rarity: 'mythic', element: 'stone',
-            class: 1, zodiac: 'Bélier', carac3: 5000,
-        });
-        const filler = Array.from({ length: 6 }, (_, i) => girl({
-            id_girl: 100 + i, rarity: 'mythic', element: 'stone',
-            zodiac: 'Bélier', class: 3, carac3: 4000,
-        }));
-        const r = TeamBuilderService.buildTeam([own, cross, ...filler], 1, 100, 3)!;
-        expect(r.girls[0].id_girl).toBe(1);
-    });
-
-    it('7: caracs_sum absteigend (after own-class tie)', () => {
+    it('6: caracs_sum absteigend (mode-aware)', () => {
         // Both own-class, both Bélier, both unblessed -> caracs_sum decides.
         const stronger = girl({
             id_girl: 1, rarity: 'mythic', element: 'stone',
@@ -397,7 +347,7 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 8 keys', () => {
         expect(r.girls[0].id_girl).toBe(1);
     });
 
-    it('8: Element-Coeff hoeher zuerst (final tie-break, stone vs light)', () => {
+    it('7: Element-Coeff hoeher zuerst (final tie-break, stone vs light)', () => {
         // Stone (1.12) vs Light (1.00). Cluster forms around zodiac=Bélier
         // (stones), so light cannot match by element pair. To make the
         // tie reach key 8 we use a hairColor cluster instead.
@@ -518,5 +468,103 @@ describe('TeamBuilderService -- mode 2 ranks under-developed mythics higher', ()
         expect(m1.girls[0].id_girl).toBe(1);
         // Mode 2: weakLowLevel wins on projected score (39375 > 15000 > filler).
         expect(m2.girls[0].id_girl).toBe(2);
+    });
+});
+
+describe('TeamBuilderService -- leader from eligible pool', () => {
+
+    it('picks a Mythic Shield from outside the bless pool when the bless pool has none', () => {
+        // Bless 2 (element nature +20%, hair=FF0 cluster) -- 6 strong
+        // nature legendaries with hair=FF0, no Mythic Shield among them.
+        const blessPool = [
+            // Pos 2-7 candidates
+            ...Array.from({ length: 6 }, (_, i) => setBlessing(girl({
+                id_girl: 200 + i,
+                element: 'nature',
+                rarity: 'legendary',
+                nb_grades: 5,
+                hairColor: 'FF0',
+                eyeColor: 'XYZ',
+                zodiac: 'BalanceX',
+                carac3: 5000 - i,
+                class: 1,
+            }), [20])),
+            // One nature Mythic Reflect inside the bless pool. Without
+            // the fix she'd win as leader (Mythic, blessed, +20%).
+            setBlessing(girl({
+                id_girl: 300,
+                element: 'nature',
+                rarity: 'mythic',
+                hairColor: 'FF0',
+                eyeColor: 'F90',
+                zodiac: 'NatureX',
+                carac3: 5500,
+                class: 3,
+            }), [20]),
+        ];
+        // Mythic Light Shield in the eligible pool but NOT in the bless
+        // pool (no [20] bless). She has hair=FF0 -> matches the cluster.
+        const lightShield = girl({
+            id_girl: 1,
+            element: 'light',
+            rarity: 'mythic',
+            hairColor: 'FF0',
+            eyeColor: 'A55',
+            zodiac: 'CancerX',
+            carac3: 4000,
+            class: 3,
+        });
+
+        const r = TeamBuilderService.buildTeam([lightShield, ...blessPool], 1, 100, 3)!;
+        expect(r).not.toBeNull();
+        // Leader must be the light Mythic Shield from outside the bless pool.
+        expect(r.girls[0].id_girl).toBe(1);
+        expect(r.girls[0].element).toBe('light');
+        expect(r.leaderTier5.name).toBe('Shield');
+    });
+
+    it('falls back to a Mythic Shield without trait match when no matching Shield exists', () => {
+        // Bless pool of 6 nature legendaries with hair=FF0 + 1 nature
+        // Mythic Reflect. Eligible pool also has a stone Mythic Shield
+        // but with zodiac=Belier (no hairColor at all -- her trait is
+        // zodiac, which does not match the hairColor cluster).
+        const blessPool = [
+            ...Array.from({ length: 6 }, (_, i) => setBlessing(girl({
+                id_girl: 200 + i,
+                element: 'nature',
+                rarity: 'legendary',
+                nb_grades: 5,
+                hairColor: 'FF0',
+                eyeColor: 'XYZ',
+                zodiac: 'BalanceX',
+                carac3: 5000 - i,
+                class: 1,
+            }), [20])),
+            setBlessing(girl({
+                id_girl: 300,
+                element: 'nature',
+                rarity: 'mythic',
+                hairColor: 'FF0',
+                carac3: 5500,
+                class: 3,
+            }), [20]),
+        ];
+        const stoneShield = girl({
+            id_girl: 1,
+            element: 'stone',
+            rarity: 'mythic',
+            zodiac: 'Belier',
+            hairColor: 'XXX',
+            carac3: 4000,
+            class: 3,
+        });
+
+        const r = TeamBuilderService.buildTeam([stoneShield, ...blessPool], 1, 100, 3)!;
+        expect(r).not.toBeNull();
+        // No Mythic Shield with trait-match exists. The leader is the
+        // stone Mythic Shield even though her trait does not match.
+        // Tier-5 priority (Shield) trumps trait match.
+        expect(r.girls[0].id_girl).toBe(1);
+        expect(r.leaderTier5.name).toBe('Shield');
     });
 });

@@ -768,8 +768,6 @@ export class TeamModule {
 
         const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
         const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-        const playerClassName = TeamModule.PLAYER_CLASS_NAME[teamResult.playerClass] || ('class ' + teamResult.playerClass);
-
         // Resolve trait value to a human label
         const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
         const traitDisplay = traitResolved.label;
@@ -789,7 +787,7 @@ export class TeamModule {
         const poolStats = teamResult.poolStats;
         let poolNoticeHtml = '';
         if (poolStats && poolStats.eligible < 7) {
-            poolNoticeHtml = `<br/><span style="color:#fc6; font-size:10px;"><b>Notice:</b> Eligible pool is below 7 girls. Emergency fallback applied -- team is shorter than 7.</span>`;
+            poolNoticeHtml = `<div style="color:#fc6; font-size:10px;"><b>Notice:</b> Eligible pool is below 7 girls. Fallback applied -- team is shorter than 7.</div>`;
         }
 
         // Mode-vs-mode delta (mainSum vs previous mainSum).
@@ -843,8 +841,7 @@ export class TeamModule {
             background: rgba(0,0,0,0.85); color: #fff; padding: 6px 10px;
             border-radius: 4px; font-size: 11px; line-height: 1.5;
         ">
-            <div style="font-weight:bold; margin-bottom: 3px; color: #ffb827;">Team Selection Info</div>
-            <div style="color:#aaa; font-size:10px; margin-bottom:3px;">Class: <b>${playerClassName}</b>${poolNoticeHtml}</div>
+            ${poolNoticeHtml}
 
             <div style="color:#ffb827; font-weight:bold; margin-top:4px;">Active blessings</div>
             <div style="color:#aaa; font-size:10px;">${activeBlStr}</div>

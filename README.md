@@ -44,6 +44,14 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.41 - Best of three team candidates
+
+- **Picker compares up to three candidate teams.** Team built from blessing 1 carriers, team built from blessing 2 carriers, and a default team from the full eligible pool are all built in parallel. The candidate with the highest mode-aware caracs_sum across its 7 slots wins. Tie-break order: blessing 1 > blessing 2 > default.
+- **Player class no longer biases the leader pick.** The own-class vs cross-class tiebreaker is gone. Leader uses 7 sort keys (Mythic, Tier-5, element-pair match, trait match, blessed, caracs_sum, Element-Coeff).
+- **Leader is chosen from the full eligible pool.** A Mythic Shield outside the active blessing pool now wins over a weaker non-Shield Mythic inside it. When no Shield Mythic matches the team trait, a Shield Mythic without trait match still leads ahead of Stun, Execute or Reflect Mythics.
+- **Mono-element shortcut removed.** Cluster selection follows the trait hierarchy eyes > hair > zodiac > position uniformly across all pools.
+- **Info panel cleaner.** Class line and the redundant "Team Selection Info" header are gone. Pool labels read in plain language ("Best team built from girls carrying blessing 1", "Best team from the full eligible pool", etc).
+
 ### v7.35.40 - Best Possible mode now actually uses projected stats
 
 - **Mode 2 sorts by projected stats again.** The Pos 2-7 fill, the leader rule's caracs_sum tiebreaker and the emergency fallback now read from the mode-aware score map (current carac sum in Mode 1, projected to level 750 + max grades in Mode 2) instead of always using raw current stats. Under-developed mythics are picked into the team in Mode 2 where Mode 1 still picks today's strongest girls.
