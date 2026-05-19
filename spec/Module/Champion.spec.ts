@@ -29,7 +29,12 @@ describe("Champion module", function () {
             Champion.findNextChamptionTime();
             nextChampionTime = getSecondsLeft('nextChampionTime');
             expect(nextChampionTime).toBeDefined();
-            expect(nextChampionTime).toBeGreaterThan(3600);
+            // findNextChamptionTime calls randomInterval(3600, 4000) when no
+            // championMap is given. randomInterval is inclusive on both ends,
+            // so a roll of exactly 3600 is legal. Use >= to keep the test
+            // deterministic.
+            expect(nextChampionTime).toBeGreaterThanOrEqual(3600);
+            expect(nextChampionTime).toBeLessThanOrEqual(4000);
         });
     });
 
