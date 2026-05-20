@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Issue 1598 Network Sniffer
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.2.0
+// @version      1.3.0
 // @description  Maximum-coverage network sniffer for diagnosing PoP "Access forbidden" on accounts with very large rosters (issue #1598). Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
 // @author       HHAuto
 // @match        http*://*.haremheroes.com/*
@@ -17,7 +17,6 @@
 // @grant        unsafeWindow
 // @grant        GM_setClipboard
 // @run-at       document-start
-// @noframes
 // ==/UserScript==
 
 // HHAuto Network Sniffer for Issue #1598
@@ -84,7 +83,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '1.2.0';
+    const VERSION = '1.3.0';
     const LOG_PREFIX = '[1598-NET v' + VERSION + ']';
 
     // The performance.now() origin we anchor every event to. Subtracting
@@ -123,9 +122,16 @@
     const STORAGE_EVENTS_KEY = 'x1598_events_v1';
     const STORAGE_NEXTID_KEY = 'x1598_nextid_v1';
 
+    function readStorage() {
+        try {
+            return (window.top && window.top.sessionStorage) || sandboxWin.sessionStorage;
+        } catch (e) {
+            return sandboxWin.sessionStorage;
+        }
+    }
     function loadEvents() {
         try {
-            const raw = sandboxWin.sessionStorage.getItem(STORAGE_EVENTS_KEY);
+            const raw = readStorage().getItem(STORAGE_EVENTS_KEY);
             if (!raw) return [];
             const arr = JSON.parse(raw);
             return Array.isArray(arr) ? arr : [];
@@ -135,33 +141,99 @@
     }
     function loadNextId() {
         try {
-            const raw = sandboxWin.sessionStorage.getItem(STORAGE_NEXTID_KEY);
+            const raw = readStorage().getItem(STORAGE_NEXTID_KEY);
             const n = raw ? parseInt(raw, 10) : 0;
             return Number.isFinite(n) && n >= 0 ? n : 0;
         } catch (e) {
             return 0;
         }
     }
-    function saveEvents(arr) {
+    function targetStorage() {
+        // Always write to the top window's sessionStorage so all frames
+        // converge on the same persistent buffer. Falls back to local
+        // sessionStorage if cross-origin top access fails.
         try {
-            sandboxWin.sessionStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
+            return (window.top && window.top.sessionStorage) || sandboxWin.sessionStorage;
+        } catch (e) {
+            return sandboxWin.sessionStorage;
+        }
+    }
+    function saveEvents(arr) {
+        const ss = targetStorage();
+        try {
+            ss.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
         } catch (e) {
             // QuotaExceededError: shed oldest 50% and retry once.
             try {
                 const half = Math.floor(arr.length / 2);
                 arr.splice(0, half);
-                sandboxWin.sessionStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
+                ss.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
             } catch (_e) { /* give up silently */ }
         }
     }
     function saveNextId(n) {
         try {
-            sandboxWin.sessionStorage.setItem(STORAGE_NEXTID_KEY, String(n));
+            targetStorage().setItem(STORAGE_NEXTID_KEY, String(n));
         } catch (e) { /* ignore */ }
     }
 
-    const events = loadEvents();
-    let nextId = loadNextId();
+    // ---- Cross-frame aggregation -------------------------------------
+    // The HentaiHeroes game runs inside an <iframe id="hh_hentai">. The
+    // sniffer runs in every frame (no @noframes). To get a single
+    // unified capture, all frames push events into a global array that
+    // lives on the top-most window. Same-origin same-tab so direct
+    // property access works; cross-origin would need postMessage.
+    const FRAME_INDEX = (function () {
+        try {
+            // Walk up so we get a stable index even in deeper nesting.
+            let depth = 0;
+            let w = window;
+            while (w !== w.parent) { depth++; w = w.parent; if (depth > 5) break; }
+            return depth;
+        } catch (e) { return -1; }
+    })();
+    const FRAME_LABEL = (function () {
+        if (FRAME_INDEX === 0) return 'top';
+        try {
+            const id = window.frameElement && window.frameElement.id;
+            if (id) return 'frame#' + FRAME_INDEX + '(' + id + ')';
+        } catch (e) { /* cross-origin */ }
+        return 'frame#' + FRAME_INDEX;
+    })();
+    const TOP_PAGE = (function () {
+        try {
+            // Same-origin window.top access. If this throws we are
+            // cross-origin and should not try to share state.
+            const t = window.top;
+            void t.location.href;
+            return (typeof t.unsafeWindow !== 'undefined') ? t.unsafeWindow : t;
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    let events;
+    if (TOP_PAGE) {
+        // Shared array on the top-most page. Initialised once by the
+        // first frame that reaches it, then reused by every later frame.
+        if (!Array.isArray(TOP_PAGE.__x1598_events)) {
+            TOP_PAGE.__x1598_events = loadEvents();
+        }
+        events = TOP_PAGE.__x1598_events;
+    } else {
+        // Cross-origin fallback: per-frame events. Will not unify with
+        // the top frame's UI but at least captures something.
+        events = loadEvents();
+    }
+
+    let nextId = (function () {
+        if (TOP_PAGE && typeof TOP_PAGE.__x1598_nextId === 'number') {
+            return TOP_PAGE.__x1598_nextId;
+        }
+        const restored = loadNextId();
+        if (TOP_PAGE) TOP_PAGE.__x1598_nextId = restored;
+        return restored;
+    })();
 
     // Caps. Capturing without limits would eventually OOM the tab and
     // explode sessionStorage (5MB origin quota).
@@ -178,15 +250,23 @@
     const STORAGE_RELOAD_KEY = 'x1598_reload_v1';
     function bumpReloadCounter() {
         try {
-            const prev = parseInt(sandboxWin.sessionStorage.getItem(STORAGE_RELOAD_KEY) || '0', 10);
+            const ss = readStorage();
+            const prev = parseInt(ss.getItem(STORAGE_RELOAD_KEY) || '0', 10);
             const next = (Number.isFinite(prev) ? prev : 0) + 1;
-            sandboxWin.sessionStorage.setItem(STORAGE_RELOAD_KEY, String(next));
+            ss.setItem(STORAGE_RELOAD_KEY, String(next));
             return next;
         } catch (e) {
             return 1;
         }
     }
-    const RELOAD_INDEX = bumpReloadCounter();
+    // Only the top frame bumps the reload counter; iframes inherit it.
+    // Otherwise an iframe load between two top reloads would inflate it.
+    const RELOAD_INDEX = (function () {
+        if (FRAME_INDEX === 0) return bumpReloadCounter();
+        try {
+            return parseInt(readStorage().getItem(STORAGE_RELOAD_KEY) || '1', 10) || 1;
+        } catch (e) { return 1; }
+    })();
 
     // Default relevance filter. Game endpoints all hit /ajax.php or
     // include a small number of well-known segments; static assets
@@ -203,9 +283,12 @@
             // sees the latest events when they hit Forbidden.
             events.shift();
         }
+        nextId++;
+        if (TOP_PAGE) TOP_PAGE.__x1598_nextId = nextId;
         const ev = {
-            id: ++nextId,
+            id: nextId,
             reload: RELOAD_INDEX,
+            frame: FRAME_LABEL,
             tRel: Math.round(nowRel()),
             kind: kind,
             phase: phase,
@@ -218,7 +301,8 @@
         };
         events.push(ev);
         // Persist after every record so a Forbidden mid-burst cannot
-        // lose the request that just produced it.
+        // lose the request that just produced it. Storage lives on the
+        // top window so all frames share the same buffer.
         saveEvents(events);
         saveNextId(nextId);
 
@@ -583,6 +667,7 @@
                 return {
                     id: e.id,
                     reload: e.reload || 1,
+                    frame: e.frame || '?',
                     tRel_ms: e.tRel,
                     kind: e.kind,
                     phase: e.phase,
@@ -597,10 +682,10 @@
     }
 
     function csvFromRows(rows) {
-        const head = 'id;reload;tRel_ms;kind;phase;method;status;dur_ms;bodyLen;url;note';
+        const head = 'id;reload;frame;tRel_ms;kind;phase;method;status;dur_ms;bodyLen;url;note';
         const lines = rows.map(function (r) {
             return [
-                r.id, r.reload, r.tRel_ms, r.kind, r.phase, r.method, r.status,
+                r.id, r.reload, r.frame, r.tRel_ms, r.kind, r.phase, r.method, r.status,
                 r.dur_ms, r.bodyLen,
                 String(r.url || '').replace(/[;\n\r]/g, ' '),
                 String(r.note || '').replace(/[;\n\r]/g, ' '),
@@ -656,10 +741,17 @@
         clear: function () {
             events.length = 0;
             nextId = 0;
+            if (TOP_PAGE) {
+                TOP_PAGE.__x1598_nextId = 0;
+                if (Array.isArray(TOP_PAGE.__x1598_events)) {
+                    TOP_PAGE.__x1598_events.length = 0;
+                }
+            }
             try {
-                sandboxWin.sessionStorage.removeItem(STORAGE_EVENTS_KEY);
-                sandboxWin.sessionStorage.removeItem(STORAGE_NEXTID_KEY);
-                sandboxWin.sessionStorage.removeItem(STORAGE_RELOAD_KEY);
+                const ss = readStorage();
+                ss.removeItem(STORAGE_EVENTS_KEY);
+                ss.removeItem(STORAGE_NEXTID_KEY);
+                ss.removeItem(STORAGE_RELOAD_KEY);
             } catch (_e) { /* ignore */ }
             updateOverlay();
             console.log(LOG_PREFIX + ' cleared (events + sessionStorage)');
@@ -671,6 +763,13 @@
     // default in modern browsers, but Tampermonkey console may differ).
     try { pageWin.__x1598 = api; } catch (e) { /* ignore */ }
     try { sandboxWin.__x1598 = api; } catch (e) { /* ignore */ }
+    if (TOP_PAGE) {
+        // Make __x1598 reachable from the top frame even if DevTools is
+        // attached to the iframe context, and vice versa. Multi-frame
+        // installs all converge on the same TOP_PAGE.__x1598 instance
+        // (last one wins, but the API is structurally identical).
+        try { TOP_PAGE.__x1598 = api; } catch (e) { /* ignore */ }
+    }
 
     // ---- Mini overlay -------------------------------------------------
     let overlayEl = null;
@@ -731,6 +830,17 @@
     function updateOverlay() {
         if (!countersEl) return;
         const s = statsObj();
+        // Frame counters: how many events did each frame contribute.
+        // Helps the user notice if only the top frame is collecting and
+        // the iframe (where the game actually runs) is mute.
+        const frameCounts = {};
+        for (let i = 0; i < events.length; i++) {
+            const f = events[i].frame || '?';
+            frameCounts[f] = (frameCounts[f] || 0) + 1;
+        }
+        const frameLines = Object.keys(frameCounts).sort().map(function (k) {
+            return '  ' + k.slice(0, 16).padEnd(16) + ' ' + frameCounts[k];
+        }).join('\n');
         countersEl.textContent =
               'XHR    : ' + s.xhrCount + '\n'
             + 'FETCH  : ' + s.fetchCount + '\n'
@@ -739,7 +849,8 @@
             + 'RES    : ' + s.resourceCount + '\n'
             + '403    : ' + s.forbiddenCount + '\n'
             + 'TOTAL  : ' + s.totalEvents + '\n'
-            + 'RELOAD#: ' + RELOAD_INDEX;
+            + 'RELOAD#: ' + RELOAD_INDEX + '\n'
+            + 'FRAMES :\n' + (frameLines || '  (none yet)');
         if (s.forbiddenCount > 0) {
             overlayEl.style.borderColor = '#f33';
             overlayEl.style.color = '#fdd';
@@ -764,11 +875,16 @@
     });
     installForbiddenDetector(pageWin);
 
-    if (sandboxWin.document && sandboxWin.document.readyState === 'loading') {
-        sandboxWin.document.addEventListener('DOMContentLoaded', buildOverlay, { once: true });
-    } else {
-        buildOverlay();
+    // Only the top frame paints the overlay so we do not stack one per
+    // iframe. The events array is shared via TOP_PAGE.__x1598_events
+    // anyway, so the top-frame overlay shows totals across all frames.
+    if (FRAME_INDEX === 0) {
+        if (sandboxWin.document && sandboxWin.document.readyState === 'loading') {
+            sandboxWin.document.addEventListener('DOMContentLoaded', buildOverlay, { once: true });
+        } else {
+            buildOverlay();
+        }
     }
 
-    console.log(LOG_PREFIX + ' installed at document-start (reload #' + RELOAD_INDEX + ', ' + events.length + ' events restored from sessionStorage). API: __x1598.stats() / .dump() / .dumpAll() / .csv() / .copy("csv"|"json") / .clear() / .setFilter(/regex/). Hooks:', installed);
+    console.log(LOG_PREFIX + ' installed in ' + FRAME_LABEL + ' (reload #' + RELOAD_INDEX + ', ' + events.length + ' events shared via top frame). API on top window only: __x1598.stats() / .dump() / .dumpAll() / .csv() / .copy("csv"|"json") / .clear() / .setFilter(/regex/). Hooks:', installed);
 })();
