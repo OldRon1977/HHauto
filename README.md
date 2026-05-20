@@ -65,11 +65,13 @@ shows a small live counter overlay in the top-right corner.
 
 ## Latest Updates
 
-### v7.35.48 - PoP claim race fix when game POSTs are slow
+### v7.35.48 - PoP "Access forbidden" fix during auto-collect
 
-- **PoP "Access forbidden" during the first auto-collect phase is fixed.** When the game's `/ajax.php` POSTs run slow (typically on accounts with very large rosters, or on slow connections / Firefox Private Browsing), several auto-collect handlers used to fire their own POSTs in parallel within the same AutoLoop tick. The server's anti-burst protection then answered all of them with 403 Forbidden. Claim POSTs are now serialised through a single mutex, AutoLoop skips its action handlers for the next tick whenever a state-changing POST is still in flight, and the script waits for the server to actually commit the claim before navigating onward. The HHAuto menu and page-specific UI keep updating during the wait, so the script stays controllable.
-- **Forbidden detection on AJAX responses.** A 403 on an `/ajax.php` request now updates the persistent backoff counter directly, instead of waiting for the script to land on the dedicated Forbidden page. The next automatic reload picks a longer delay one step earlier.
-- First iteration applies to Place of Power. Boss Bang, Champion and Troll claim paths follow in a separate update once the Place of Power path is confirmed live on the largest known account.
+- **Place of Power auto-collect no longer trips into "Access forbidden".** When the script collected several PoP rewards in quick succession, the game's anti-burst protection sometimes blocked the rest of the phase with a Forbidden page. The script now waits for the game to fully finish each claim before moving on, so the auto-collect run completes cleanly.
+- **Most visible on large accounts** (2000+ girls), where each game request takes longer and parallel bursts have more time to overlap. Large rosters amplify the problem, but they are not the cause -- the same race could trigger on smaller accounts under unfavourable timing (slow connection, Firefox Private Browsing). Both cases are now covered.
+- **Faster reaction on Forbidden.** When the game replies to a request with Forbidden, the script now picks a longer cool-down on the next reload, instead of waiting for an actual Forbidden page to appear.
+- The HHAuto menu and the page UI keep updating during the new short waits between claims, so the script stays controllable.
+- First applied to Place of Power. Boss Bang, Champion and Troll claim paths follow in a separate update.
 
 ### v7.35.47 - League fights continue while troll waits for combativity
 
