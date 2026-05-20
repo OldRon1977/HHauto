@@ -192,18 +192,6 @@ export async function autoLoop()
         setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
     }
 
-    // Issue #1598 / ADR-003: skip this tick when a state-changing
-    // /ajax.php POST is still in flight (or another caller holds the
-    // explicit mutex). Stacking handlers on top of an in-flight POST
-    // is what produces HTTP Forbidden on large-roster accounts. The
-    // next tick re-checks via setTimeout below.
-    if (isPostInFlight()) {
-        if (isAutoLoopActive()) {
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
-        }
-        return;
-    }
-
     //var busy = false;
     busy = false;
     var page = window.location.href;
@@ -254,6 +242,16 @@ export async function autoLoop()
         ctx.eventIDs = eventIDs;
         ctx.bossBangEventIDs = bossBangEventIDs;
 
+        // Issue #1598 / ADR-003: skip the action handlers (state-changing
+        // POST sources such as PoP claim, BossBang fight, Champion reorder
+        // etc.) while a /ajax.php POST is still in flight or another
+        // caller holds the explicit mutex. UI updates and page-specific
+        // handlers below keep running so the script stays responsive
+        // (issue #1598 follow-up: an earlier patch gated the whole
+        // autoLoop tick and starved the menu UI).
+        if (isPostInFlight()) {
+            logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
+        } else {
         // --- Action Handlers (executed in order, each checks ctx.busy) ---
         await handleMythicWave(ctx);
         await handleShop(ctx);
@@ -290,6 +288,7 @@ export async function autoLoop()
 
         // --- Scheduler Pipeline (migrated handlers run here) ---
         await scheduler.tick();
+        }
     }
 
     // --- Page-specific UI handlers ---

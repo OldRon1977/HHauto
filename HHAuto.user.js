@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.48
+// @version      7.35.49
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -21690,17 +21690,6 @@ function autoLoop() {
         if (getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired) === undefined) {
             setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
         }
-        // Issue #1598 / ADR-003: skip this tick when a state-changing
-        // /ajax.php POST is still in flight (or another caller holds the
-        // explicit mutex). Stacking handlers on top of an in-flight POST
-        // is what produces HTTP Forbidden on large-roster accounts. The
-        // next tick re-checks via setTimeout below.
-        if (isPostInFlight()) {
-            if (isAutoLoopActive()) {
-                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-            }
-            return;
-        }
         //var busy = false;
         busy = false;
         var page = window.location.href;
@@ -21742,41 +21731,53 @@ function autoLoop() {
             const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
             ctx.eventIDs = eventIDs;
             ctx.bossBangEventIDs = bossBangEventIDs;
-            // --- Action Handlers (executed in order, each checks ctx.busy) ---
-            yield handleMythicWave(ctx);
-            yield handleShop(ctx);
-            yield handleAutoEquipBoosters(ctx);
-            yield handleHaremSize(ctx);
-            yield handlePlaceOfPower(ctx);
-            yield handleGenericBattle(ctx);
-            yield handleLoveRaid(ctx);
-            yield handleTrollBattle(ctx);
-            yield handlePachinko(ctx);
-            yield handleContest(ctx);
-            yield handleMissions(ctx);
-            yield handleQuest(ctx);
-            yield handleSeason(ctx);
-            yield handlePentaDrill(ctx);
-            yield handlePantheon(ctx);
-            yield handleChampionTicket(ctx);
-            yield handleChampion(ctx);
-            yield handleClubChampion(ctx);
-            yield handleSeasonCollect(ctx);
-            yield handlePentaDrillCollect(ctx);
-            yield handleSeasonalFreeCard(ctx);
-            yield handleSeasonalEventCollect(ctx);
-            yield handleSeasonalRankCollect(ctx);
-            yield handlePoVCollect(ctx);
-            yield handlePoGCollect(ctx);
-            yield handleFreeBundles(ctx);
-            yield handleDailyGoals(ctx);
-            yield handleLabyrinth(ctx);
-            yield handleSalary(ctx);
-            yield handleBossBangParse(ctx);
-            yield handleBossBangFight(ctx);
-            yield handleGoHome(ctx);
-            // --- Scheduler Pipeline (migrated handlers run here) ---
-            yield scheduler.tick();
+            // Issue #1598 / ADR-003: skip the action handlers (state-changing
+            // POST sources such as PoP claim, BossBang fight, Champion reorder
+            // etc.) while a /ajax.php POST is still in flight or another
+            // caller holds the explicit mutex. UI updates and page-specific
+            // handlers below keep running so the script stays responsive
+            // (issue #1598 follow-up: an earlier patch gated the whole
+            // autoLoop tick and starved the menu UI).
+            if (isPostInFlight()) {
+                LogUtils_logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
+            }
+            else {
+                // --- Action Handlers (executed in order, each checks ctx.busy) ---
+                yield handleMythicWave(ctx);
+                yield handleShop(ctx);
+                yield handleAutoEquipBoosters(ctx);
+                yield handleHaremSize(ctx);
+                yield handlePlaceOfPower(ctx);
+                yield handleGenericBattle(ctx);
+                yield handleLoveRaid(ctx);
+                yield handleTrollBattle(ctx);
+                yield handlePachinko(ctx);
+                yield handleContest(ctx);
+                yield handleMissions(ctx);
+                yield handleQuest(ctx);
+                yield handleSeason(ctx);
+                yield handlePentaDrill(ctx);
+                yield handlePantheon(ctx);
+                yield handleChampionTicket(ctx);
+                yield handleChampion(ctx);
+                yield handleClubChampion(ctx);
+                yield handleSeasonCollect(ctx);
+                yield handlePentaDrillCollect(ctx);
+                yield handleSeasonalFreeCard(ctx);
+                yield handleSeasonalEventCollect(ctx);
+                yield handleSeasonalRankCollect(ctx);
+                yield handlePoVCollect(ctx);
+                yield handlePoGCollect(ctx);
+                yield handleFreeBundles(ctx);
+                yield handleDailyGoals(ctx);
+                yield handleLabyrinth(ctx);
+                yield handleSalary(ctx);
+                yield handleBossBangParse(ctx);
+                yield handleBossBangFight(ctx);
+                yield handleGoHome(ctx);
+                // --- Scheduler Pipeline (migrated handlers run here) ---
+                yield scheduler.tick();
+            }
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
@@ -27349,7 +27350,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.48";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.49";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
