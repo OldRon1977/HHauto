@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.48
+// @version      7.35.49
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -18178,6 +18178,8 @@ class HentaiHeroes {
             "Gross",
             "Harriet",
             "Darth Excitor",
+            "", // slot 20: side troll Arthur (see sideTrollzList)
+            "", // slot 21: side troll Venam Kharney (see sideTrollzList)
             "Daddy"
         ];
         switch (languageCode) {
@@ -18242,12 +18244,14 @@ class HentaiHeroes {
             [['547099506', '572827174', '653889168'], [0], [0]],
             [['275226156', '280313988', '641009897'], [0], [0]],
             [['410383467', '931778650', '968097691'], [0], [0]],
+            [[0], [0], [0]], // slot 19: side troll Arthur (see sideTrollGirlsID)
+            [[0], [0], [0]], // slot 20: side troll Venam Kharney (see sideTrollGirlsID)
             [['561720989', '548844324', '749138756'], [0], [0]],
         ];
     }
     static getSideTrollGirlsId() {
         return {
-            20: [['666677364', '831625343', '851831359'], [0], [0]],
+            20: [['666677364', '831625343', '848780132', '851831359'], [0], [0]],
             21: [['124967437', '755350195', '855205805'], [0], [0]]
         };
     }
@@ -18257,7 +18261,7 @@ class HentaiHeroes {
 HentaiHeroes.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
 HentaiHeroes.trollIdMapping = { 21: 19, 24: 22 };
 HentaiHeroes.sideTrollIdMapping = { 22: 20, 23: 21 };
-HentaiHeroes.lastQuestId = 2116; //  TODO update when new quest comes
+HentaiHeroes.lastQuestId = 2404; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/MangaRpgVars.ts
 // Game-variant configuration for Manga RPG.
@@ -27235,7 +27239,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.48";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.49";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

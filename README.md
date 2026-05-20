@@ -65,6 +65,10 @@ shows a small live counter overlay in the top-right corner.
 
 ## Latest Updates
 
+### v7.35.49 - Troll mapping rechecked and fixed
+
+- **Auto Troll mapping rechecked and fixed.** The world-to-troll mapping has been reviewed end to end and aligned with the current in-game adventure layout for world 22 (Arthur, side), world 23 (Venam Kharney, side) and world 24 (Daddy, main). Last quest id raised to the end of world 24.
+
 ### v7.35.48 - PoP "Access forbidden" fix during auto-collect
 
 - **Place of Power auto-collect no longer trips into "Access forbidden".** When the script collected several PoP rewards in quick succession, the game's anti-burst protection sometimes blocked the rest of the phase with a Forbidden page. The script now waits for the game to fully finish each claim before moving on, so the auto-collect run completes cleanly.

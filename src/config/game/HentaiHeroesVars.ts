@@ -6,7 +6,7 @@ export class HentaiHeroes {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
     static trollIdMapping = { 21: 19, 24: 22 };
     static sideTrollIdMapping = { 22: 20, 23: 21 };
-    static lastQuestId = 2116; //  TODO update when new quest comes
+    static lastQuestId = 2404; //  TODO update when new quest comes
     static getEnv() {
         return {
             "www.hentaiheroes.com": { name: "HH_prod", id: "hh_hentai" },
@@ -38,6 +38,8 @@ export class HentaiHeroes {
             "Gross",
             "Harriet",
             "Darth Excitor",
+            "", // slot 20: side troll Arthur (see sideTrollzList)
+            "", // slot 21: side troll Venam Kharney (see sideTrollzList)
             "Daddy"
         ];
         switch (languageCode) {
@@ -103,13 +105,15 @@ export class HentaiHeroes {
             [['547099506', '572827174', '653889168'], [0], [0]],
             [['275226156', '280313988', '641009897'], [0], [0]],
             [['410383467', '931778650', '968097691'], [0], [0]],
+            [[0], [0], [0]], // slot 19: side troll Arthur (see sideTrollGirlsID)
+            [[0], [0], [0]], // slot 20: side troll Venam Kharney (see sideTrollGirlsID)
             [['561720989', '548844324', '749138756'], [0], [0]],
         ];
     }
 
     static getSideTrollGirlsId(): { [key: number]: any } {
         return {
-            20: [['666677364', '831625343', '851831359'], [0], [0]],
+            20: [['666677364', '831625343', '848780132', '851831359'], [0], [0]],
             21: [['124967437', '755350195', '855205805'], [0], [0]]
         };
     }
