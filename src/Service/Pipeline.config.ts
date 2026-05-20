@@ -161,12 +161,15 @@ const handleLeague: HandlerConfig = {
   atomic: true,
   interruptible: 'never',
   precondition: () => {
-    // Suppress league navigation while handleTrollBattle is waiting for
-    // an energy refill (issue #1700, #1708). Without this gate, the
-    // league chain navigates every minute, hits the lastAction guard in
-    // doLeagueBattle, and logs a stream of "Skip switching to leagues
-    // screen, busy with: troll" while no actual battle happens.
-    if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true') return false;
+    // Note (issue #1708 follow-up): handleLeague is intentionally NOT
+    // gated on trollWaitForEnergy. League uses a separate energy pool
+    // (challenge tokens) that is unrelated to troll combativity (fight
+    // tokens). LeagueHelper.isTimeToFight() already checks challenge
+    // energy, and the 60_000 ms minIntervalMs caps re-entry. Blocking
+    // league while troll waits for combativity (as v7.35.45 did) keeps
+    // league fights from happening even though the user has the energy
+    // to do them. handleEventParsing is gated separately because it
+    // ran every 2 s and was the actual ping-pong driver in #1700.
     return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
   },
   steps: [

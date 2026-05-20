@@ -44,6 +44,10 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.47 - League fights continue while troll waits for combativity
+
+- **League runs even when troll energy is empty.** The v7.35.45 fix made everything but two pipeline handlers run during a troll wait, but it kept blocking league as well. League uses a separate energy pool (challenge tokens) that has nothing to do with troll combativity, so blocking it produced the same "league not working" symptom users reported. The wait flag now suppresses only the event-page navigation, which is the actual ping-pong driver.
+
 ### v7.35.46 - World 24 Daddy fight typo fix
 
 - **Daddy boss now resolves to the correct troll on world 24.** A typo in the world-to-troll mapping table sent the bot to Arthur (id 20) instead of Daddy (id 22) when fighting on world 24. The mapping is corrected so Auto Troll, the "first/last troll with girl" picker and the troll dropdown resolve world 24 to Daddy again.

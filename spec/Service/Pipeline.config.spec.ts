@@ -226,23 +226,18 @@ describe('Pipeline.config', () => {
       expect(handler.precondition()).toBe(true);
     });
 
-    it('handleLeague precondition returns false when trollWaitForEnergy=true', () => {
+    it('handleLeague precondition is NOT blocked by trollWaitForEnergy=true', () => {
+      // Issue #1708 follow-up: League uses challenge tokens, not troll
+      // combativity. Gating it on trollWaitForEnergy kept league fights
+      // from happening even though the user had challenge energy to spend.
       const handler = pipeline.find(h => h.name === 'handleLeague')!;
       getStoredValueMock.mockImplementation((key: string) => {
         if (key.endsWith('Temp_trollWaitForEnergy')) return 'true';
         return undefined;
       });
-      expect(handler.precondition()).toBe(false);
-    });
-
-    it('handleLeague precondition still triggers when trollWaitForEnergy=false', () => {
-      const handler = pipeline.find(h => h.name === 'handleLeague')!;
-      getStoredValueMock.mockImplementation((key: string) => {
-        if (key.endsWith('Temp_trollWaitForEnergy')) return 'false';
-        return undefined;
-      });
       // LeagueHelper.isAutoLeagueActivated and isTimeToFight default to true in
-      // the file-level mock, so the precondition must return true here.
+      // the file-level mock, so the precondition must return true even with
+      // the troll wait flag set.
       expect(handler.precondition()).toBe(true);
     });
   });
