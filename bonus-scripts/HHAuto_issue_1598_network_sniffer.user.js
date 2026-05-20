@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Issue 1598 Network Sniffer
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.3.0
+// @version      1.3.1
 // @description  Maximum-coverage network sniffer for diagnosing PoP "Access forbidden" on accounts with very large rosters (issue #1598). Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
 // @author       HHAuto
 // @match        http*://*.haremheroes.com/*
@@ -83,7 +83,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '1.3.0';
+    const VERSION = '1.3.1';
     const LOG_PREFIX = '[1598-NET v' + VERSION + ']';
 
     // The performance.now() origin we anchor every event to. Subtracting
@@ -283,10 +283,23 @@
             // sees the latest events when they hit Forbidden.
             events.shift();
         }
-        nextId++;
-        if (TOP_PAGE) TOP_PAGE.__x1598_nextId = nextId;
+        // Atomic id allocation: read-modify-write the canonical counter
+        // on the top window. Same-origin same-tab so this is a synchronous
+        // property access, no race possible inside a single tick. Without
+        // this, two frames each had a local nextId that drifted from the
+        // shared sessionStorage value and produced duplicate ids.
+        let allocatedId;
+        if (TOP_PAGE) {
+            const cur = (typeof TOP_PAGE.__x1598_nextId === 'number') ? TOP_PAGE.__x1598_nextId : nextId;
+            allocatedId = cur + 1;
+            TOP_PAGE.__x1598_nextId = allocatedId;
+            nextId = allocatedId;
+        } else {
+            nextId++;
+            allocatedId = nextId;
+        }
         const ev = {
-            id: nextId,
+            id: allocatedId,
             reload: RELOAD_INDEX,
             frame: FRAME_LABEL,
             tRel: Math.round(nowRel()),
