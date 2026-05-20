@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Issue 1598 Network Sniffer
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.1.0
+// @version      1.2.0
 // @description  Maximum-coverage network sniffer for diagnosing PoP "Access forbidden" on accounts with very large rosters (issue #1598). Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
 // @author       HHAuto
 // @match        http*://*.haremheroes.com/*
@@ -84,7 +84,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     const LOG_PREFIX = '[1598-NET v' + VERSION + ']';
 
     // The performance.now() origin we anchor every event to. Subtracting
@@ -110,15 +110,83 @@
     const pageWin = (typeof unsafeWindow !== 'undefined') ? unsafeWindow : window;
     const sandboxWin = window;
 
-    const events = [];
-    let nextId = 0;
+    // ---- Persistent storage (sessionStorage) -------------------------
+    // Events live in sessionStorage so they survive page reloads inside
+    // the same tab. This is critical for issue #1598 because the moment
+    // a 403 lands, the game replaces the whole page with the literal
+    // string "Forbidden" and triggers a navigation. Without
+    // sessionStorage, all in-flight events from the racing requests are
+    // lost when the sandbox-scoped events[] array re-initialises.
+    //
+    // sessionStorage scope: per-tab per-origin. Cleared when the tab
+    // closes. Survives reload, survives navigation, survives Forbidden.
+    const STORAGE_EVENTS_KEY = 'x1598_events_v1';
+    const STORAGE_NEXTID_KEY = 'x1598_nextid_v1';
 
-    // Caps. Capturing without limits would eventually OOM the tab.
+    function loadEvents() {
+        try {
+            const raw = sandboxWin.sessionStorage.getItem(STORAGE_EVENTS_KEY);
+            if (!raw) return [];
+            const arr = JSON.parse(raw);
+            return Array.isArray(arr) ? arr : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    function loadNextId() {
+        try {
+            const raw = sandboxWin.sessionStorage.getItem(STORAGE_NEXTID_KEY);
+            const n = raw ? parseInt(raw, 10) : 0;
+            return Number.isFinite(n) && n >= 0 ? n : 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+    function saveEvents(arr) {
+        try {
+            sandboxWin.sessionStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
+        } catch (e) {
+            // QuotaExceededError: shed oldest 50% and retry once.
+            try {
+                const half = Math.floor(arr.length / 2);
+                arr.splice(0, half);
+                sandboxWin.sessionStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(arr));
+            } catch (_e) { /* give up silently */ }
+        }
+    }
+    function saveNextId(n) {
+        try {
+            sandboxWin.sessionStorage.setItem(STORAGE_NEXTID_KEY, String(n));
+        } catch (e) { /* ignore */ }
+    }
+
+    const events = loadEvents();
+    let nextId = loadNextId();
+
+    // Caps. Capturing without limits would eventually OOM the tab and
+    // explode sessionStorage (5MB origin quota).
     // 5000 events is enough for several minutes of game activity at
     // typical request rates and stays well under any reasonable
     // memory budget.
     const MAX_EVENTS = 5000;
     const MAX_BODY_LEN = 1024;
+
+    // ---- Cross-reload counters ---------------------------------------
+    // A single tab may go through multiple reloads (login -> activities
+    // -> Forbidden -> autoreload). Stamp each reload with a unique
+    // session-relative id so the user can see boundaries in the dump.
+    const STORAGE_RELOAD_KEY = 'x1598_reload_v1';
+    function bumpReloadCounter() {
+        try {
+            const prev = parseInt(sandboxWin.sessionStorage.getItem(STORAGE_RELOAD_KEY) || '0', 10);
+            const next = (Number.isFinite(prev) ? prev : 0) + 1;
+            sandboxWin.sessionStorage.setItem(STORAGE_RELOAD_KEY, String(next));
+            return next;
+        } catch (e) {
+            return 1;
+        }
+    }
+    const RELOAD_INDEX = bumpReloadCounter();
 
     // Default relevance filter. Game endpoints all hit /ajax.php or
     // include a small number of well-known segments; static assets
@@ -137,6 +205,7 @@
         }
         const ev = {
             id: ++nextId,
+            reload: RELOAD_INDEX,
             tRel: Math.round(nowRel()),
             kind: kind,
             phase: phase,
@@ -148,6 +217,10 @@
             note: fields && fields.note ? String(fields.note) : '',
         };
         events.push(ev);
+        // Persist after every record so a Forbidden mid-burst cannot
+        // lose the request that just produced it.
+        saveEvents(events);
+        saveNextId(nextId);
 
         // Console output uses CSS coloring so the user can spot
         // important events (403, fetch, WS) at a glance without
@@ -509,6 +582,7 @@
             .map(function (e) {
                 return {
                     id: e.id,
+                    reload: e.reload || 1,
                     tRel_ms: e.tRel,
                     kind: e.kind,
                     phase: e.phase,
@@ -523,10 +597,10 @@
     }
 
     function csvFromRows(rows) {
-        const head = 'id;tRel_ms;kind;phase;method;status;dur_ms;bodyLen;url;note';
+        const head = 'id;reload;tRel_ms;kind;phase;method;status;dur_ms;bodyLen;url;note';
         const lines = rows.map(function (r) {
             return [
-                r.id, r.tRel_ms, r.kind, r.phase, r.method, r.status,
+                r.id, r.reload, r.tRel_ms, r.kind, r.phase, r.method, r.status,
                 r.dur_ms, r.bodyLen,
                 String(r.url || '').replace(/[;\n\r]/g, ' '),
                 String(r.note || '').replace(/[;\n\r]/g, ' '),
@@ -581,8 +655,14 @@
         },
         clear: function () {
             events.length = 0;
+            nextId = 0;
+            try {
+                sandboxWin.sessionStorage.removeItem(STORAGE_EVENTS_KEY);
+                sandboxWin.sessionStorage.removeItem(STORAGE_NEXTID_KEY);
+                sandboxWin.sessionStorage.removeItem(STORAGE_RELOAD_KEY);
+            } catch (_e) { /* ignore */ }
             updateOverlay();
-            console.log(LOG_PREFIX + ' cleared');
+            console.log(LOG_PREFIX + ' cleared (events + sessionStorage)');
         },
     };
 
@@ -658,7 +738,8 @@
             + 'WS     : ' + s.wsEventCount + '\n'
             + 'RES    : ' + s.resourceCount + '\n'
             + '403    : ' + s.forbiddenCount + '\n'
-            + 'TOTAL  : ' + s.totalEvents;
+            + 'TOTAL  : ' + s.totalEvents + '\n'
+            + 'RELOAD#: ' + RELOAD_INDEX;
         if (s.forbiddenCount > 0) {
             overlayEl.style.borderColor = '#f33';
             overlayEl.style.color = '#fdd';
@@ -678,7 +759,7 @@
         resourceObserver: installResourceObserver(pageWin) || installResourceObserver(sandboxWin),
     };
     record('NET', 'install', {
-        url: 'hooks-installed',
+        url: 'hooks-installed reload=' + RELOAD_INDEX,
         note: JSON.stringify(installed),
     });
     installForbiddenDetector(pageWin);
@@ -689,5 +770,5 @@
         buildOverlay();
     }
 
-    console.log(LOG_PREFIX + ' installed at document-start. API: __x1598.stats() / .dump() / .dumpAll() / .csv() / .copy("csv"|"json") / .clear() / .setFilter(/regex/). Hooks:', installed);
+    console.log(LOG_PREFIX + ' installed at document-start (reload #' + RELOAD_INDEX + ', ' + events.length + ' events restored from sessionStorage). API: __x1598.stats() / .dump() / .dumpAll() / .csv() / .copy("csv"|"json") / .clear() / .setFilter(/regex/). Hooks:', installed);
 })();
