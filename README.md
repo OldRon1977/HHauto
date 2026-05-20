@@ -65,10 +65,10 @@ shows a small live counter overlay in the top-right corner.
 
 ## Latest Updates
 
-### v7.35.49 - PoP claim race fix on large-roster accounts
+### v7.35.50 - PoP claim race fix on large-roster accounts
 
 - **PoP "Access forbidden" on large-roster accounts is fixed.** On accounts with thousands of girls, each game POST takes 5-7 seconds while AutoLoop ticks every second. Multiple handlers used to fire their own POST per tick, the server bot-detection flagged the resulting burst, and the rest of the phase came back as 403 Forbidden. PoP claims are now serialised through a global mutex, AutoLoop defers the action handlers while a state-changing POST is still in flight, and the script waits for the server to commit the claim before navigating onward. The HHAuto menu and page-specific UI keep updating during the wait so the script stays controllable.
-- **Forbidden detection on AJAX responses.** A 403 on an /ajax.php request now updates the persistent backoff counter directly, instead of waiting for the script to land on a Forbidden page. The next reload picks a longer delay one step earlier.
+- **Forbidden detection on AJAX responses.** A 403 on an /ajax.php request now updates the persistent backoff counter through a listener wired in StartService, instead of waiting for the script to land on a Forbidden page. The next reload picks a longer delay one step earlier.
 - First iteration applies to Place of Power. Boss Bang, Champion and Troll claim paths follow in a separate update once Place of Power is verified on a real large-roster account.
 
 ### v7.35.47 - League fights continue while troll waits for combativity

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.49
+// @version      7.35.50
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12818,142 +12818,6 @@ function bindMouseEvents() {
     document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
 }
 
-;// CONCATENATED MODULE: ./src/Service/ForbiddenBackoff.ts
-// ForbiddenBackoff.ts
-//
-// Persistent Forbidden counter and exponential backoff calculator
-// for issue #1598. Two layers:
-//
-// 1. Pure helpers (nextForbiddenDelaySeconds, nextStreakCount):
-//    deterministic math, unit-tested in isolation. Used by the
-//    StartService reload path that also needs to read the current
-//    counter and pick a delay before reloading.
-//
-// 2. recordForbidden(): the side-effecting "I just saw a 403"
-//    notifier. Called by AjaxTracker when a /ajax.php XHR ends with
-//    HTTP 403. It bumps the streak counter in sessionStorage so the
-//    next StartService reload picks a longer delay. It does NOT
-//    schedule a reload itself -- the actual reload still happens in
-//    StartService when the next page renders the "Forbidden" body.
-
-
-const FORBIDDEN_BASE_SECONDS = 60;
-const FORBIDDEN_CAP_SECONDS = 30 * 60;
-const FORBIDDEN_MIN_DELAY_SECONDS = 30;
-const FORBIDDEN_JITTER_RANGE = 0.4; // +/- 20%
-// Storage keys for the persistent counter. Shared between
-// AjaxTracker.recordForbidden() (writer on XHR-403) and StartService
-// (reader on Forbidden-page reload). Same prefix as the rest of the
-// script's sessionStorage so the dump-tool sees them.
-const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
-const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
-/**
- * Compute the next reload delay in seconds for a given consecutive
- * Forbidden count.
- *
- * count is 1-based: the 1st Forbidden produces FORBIDDEN_BASE_SECONDS,
- * the 2nd doubles it, and so on, up to FORBIDDEN_CAP_SECONDS.
- *
- * @param count    number of consecutive Forbidden responses (>= 1)
- * @param random   RNG returning a value in [0, 1). Defaults to Math.random.
- *                 Injected so unit tests can produce deterministic results.
- */
-function nextForbiddenDelaySeconds(count, random = Math.random) {
-    const safeCount = Math.max(1, Math.floor(count));
-    const factor = Math.pow(2, safeCount - 1);
-    const target = Math.min(FORBIDDEN_BASE_SECONDS * factor, FORBIDDEN_CAP_SECONDS);
-    const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
-    return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
-}
-/**
- * Window during which consecutive Forbidden responses are treated as the
- * same streak (and therefore keep escalating the backoff). If the gap
- * between two Forbiddens is larger than this window, the counter resets
- * to 1 because the script clearly recovered for a while in between.
- */
-const FORBIDDEN_STREAK_WINDOW_MS = 5 * 60 * 1000;
-/**
- * Decide the next streak count given the previous count and the time
- * since the previous Forbidden.
- *
- * - If there was no previous Forbidden, the new count is 1.
- * - If the previous Forbidden is older than FORBIDDEN_STREAK_WINDOW_MS,
- *   the streak counts as broken and the new count is 1.
- * - Otherwise, the new count is the previous count + 1.
- *
- * Pure function so it can be unit-tested without sessionStorage.
- *
- * @param prevCount      previous stored count (>= 0)
- * @param prevTimestamp  ms epoch of previous Forbidden, or 0 if none
- * @param now            current ms epoch
- */
-function nextStreakCount(prevCount, prevTimestamp, now) {
-    if (!prevTimestamp || prevCount < 1)
-        return 1;
-    if (now - prevTimestamp > FORBIDDEN_STREAK_WINDOW_MS)
-        return 1;
-    return prevCount + 1;
-}
-/**
- * Record one Forbidden observation. Updates the persistent streak
- * counter and timestamp so the next StartService reload picks a delay
- * derived from the new count.
- *
- * Does NOT schedule a reload. The reload itself is handled by the
- * existing path in StartService when the next page actually renders
- * the "Forbidden" body. Calling recordForbidden() on an XHR-level 403
- * lets that delay be picked up by the very next reload, instead of
- * waiting for the script to bump the counter from a Forbidden-page
- * encounter.
- *
- * Storage and now() are injected so unit tests can drive the function
- * without needing real sessionStorage or wall-clock time.
- *
- * Returns the new streak count (or -1 if storage was unavailable and
- * the counter could not be updated).
- */
-function recordForbidden(storage = defaultStorage(), now = Date.now) {
-    if (!storage) {
-        LogUtils_logHHAuto('[ForbiddenBackoff] storage unavailable, Forbidden not recorded');
-        return -1;
-    }
-    let prevCount = 0;
-    let prevAt = 0;
-    try {
-        const rawCount = storage.getItem(FORBIDDEN_COUNT_KEY);
-        prevCount = rawCount ? parseInt(rawCount, 10) : 0;
-        if (!Number.isFinite(prevCount) || prevCount < 0)
-            prevCount = 0;
-        const rawAt = storage.getItem(FORBIDDEN_LAST_AT_KEY);
-        prevAt = rawAt ? parseInt(rawAt, 10) : 0;
-        if (!Number.isFinite(prevAt) || prevAt < 0)
-            prevAt = 0;
-    }
-    catch (e) {
-        // proceed with zeros; we still want to record this Forbidden
-    }
-    const t = now();
-    const count = nextStreakCount(prevCount, prevAt, t);
-    try {
-        storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
-        storage.setItem(FORBIDDEN_LAST_AT_KEY, String(t));
-    }
-    catch (e) {
-        LogUtils_logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
-        return -1;
-    }
-    LogUtils_logHHAuto('[ForbiddenBackoff] XHR 403 recorded (streak #' + count + ')');
-    return count;
-}
-function defaultStorage() {
-    try {
-        if (typeof sessionStorage !== 'undefined')
-            return sessionStorage;
-    }
-    catch (e) { /* sessionStorage may throw in restricted contexts */ }
-    return null;
-}
-
 ;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
 var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -13005,7 +12869,6 @@ var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 //   PageNavigationService (idle wait), PlaceOfPower (claim path),
 //   AutoLoop (tick-gate).
 
-
 // Shared timing budget for all callers that wait on the game's AJAX
 // before navigating. Keeping these constants here means
 // PageNavigationService and individual modules cannot drift apart
@@ -13032,6 +12895,13 @@ const POST_MUTEX_STALE_MS = 30000;
 // pause, large accounts get the longer wait).
 const POST_SETTLE_MIN_MS = 2000;
 const POST_SETTLE_FACTOR = 4;
+// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
+// via setter to avoid a circular import between AjaxTracker and
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
+// -> AjaxTracker). StartService wires recordForbidden in here right
+// after installAjaxTracker() so the dependency edge runs in the right
+// direction.
+let onAjaxForbidden = null;
 let pending = 0;
 let installed = false;
 let restoreSend = null;
@@ -13109,8 +12979,8 @@ function installAjaxTracker() {
         // loadend fires once for both success and failure paths
         this.addEventListener('loadend', () => {
             try {
-                if (isAjaxPost && this.status === 403) {
-                    recordForbidden();
+                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
+                    onAjaxForbidden();
                 }
             }
             catch (e) { /* ignore */ }
@@ -13133,6 +13003,20 @@ function installAjaxTracker() {
     installed = true;
     LogUtils_logHHAuto('[AjaxTracker] installed');
     return true;
+}
+/**
+ * Register a callback invoked when an /ajax.php POST returns HTTP 403.
+ * Pass null to clear. The callback receives no arguments.
+ *
+ * Decoupled via setter (instead of importing recordForbidden from
+ * ForbiddenBackoff directly) because ForbiddenBackoff transitively
+ * imports HHStoredVars, which imports PlaceOfPower, which imports
+ * this module. A direct import would create a TDZ cycle that crashes
+ * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
+ * initialization").
+ */
+function setOnAjaxForbidden(cb) {
+    onAjaxForbidden = cb;
 }
 /** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
 function pendingAjaxCount() {
@@ -13265,6 +13149,7 @@ function _resetAjaxTrackerForTests() {
     postMutexHeld = false;
     postMutexHolder = "";
     postMutexAcquiredAt = 0;
+    onAjaxForbidden = null;
     installed = false;
 }
 
@@ -27350,7 +27235,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.49";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.50";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27776,6 +27661,142 @@ function disableToolTipsDisplay(important = false) {
     GM_addStyle('.tooltipHH:hover span.tooltipHHtext { display: none' + importantAddendum + '}');
 }
 
+;// CONCATENATED MODULE: ./src/Service/ForbiddenBackoff.ts
+// ForbiddenBackoff.ts
+//
+// Persistent Forbidden counter and exponential backoff calculator
+// for issue #1598. Two layers:
+//
+// 1. Pure helpers (nextForbiddenDelaySeconds, nextStreakCount):
+//    deterministic math, unit-tested in isolation. Used by the
+//    StartService reload path that also needs to read the current
+//    counter and pick a delay before reloading.
+//
+// 2. recordForbidden(): the side-effecting "I just saw a 403"
+//    notifier. Called by AjaxTracker when a /ajax.php XHR ends with
+//    HTTP 403. It bumps the streak counter in sessionStorage so the
+//    next StartService reload picks a longer delay. It does NOT
+//    schedule a reload itself -- the actual reload still happens in
+//    StartService when the next page renders the "Forbidden" body.
+
+
+const FORBIDDEN_BASE_SECONDS = 60;
+const FORBIDDEN_CAP_SECONDS = 30 * 60;
+const FORBIDDEN_MIN_DELAY_SECONDS = 30;
+const FORBIDDEN_JITTER_RANGE = 0.4; // +/- 20%
+// Storage keys for the persistent counter. Shared between
+// AjaxTracker.recordForbidden() (writer on XHR-403) and StartService
+// (reader on Forbidden-page reload). Same prefix as the rest of the
+// script's sessionStorage so the dump-tool sees them.
+const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
+/**
+ * Compute the next reload delay in seconds for a given consecutive
+ * Forbidden count.
+ *
+ * count is 1-based: the 1st Forbidden produces FORBIDDEN_BASE_SECONDS,
+ * the 2nd doubles it, and so on, up to FORBIDDEN_CAP_SECONDS.
+ *
+ * @param count    number of consecutive Forbidden responses (>= 1)
+ * @param random   RNG returning a value in [0, 1). Defaults to Math.random.
+ *                 Injected so unit tests can produce deterministic results.
+ */
+function nextForbiddenDelaySeconds(count, random = Math.random) {
+    const safeCount = Math.max(1, Math.floor(count));
+    const factor = Math.pow(2, safeCount - 1);
+    const target = Math.min(FORBIDDEN_BASE_SECONDS * factor, FORBIDDEN_CAP_SECONDS);
+    const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
+    return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
+}
+/**
+ * Window during which consecutive Forbidden responses are treated as the
+ * same streak (and therefore keep escalating the backoff). If the gap
+ * between two Forbiddens is larger than this window, the counter resets
+ * to 1 because the script clearly recovered for a while in between.
+ */
+const FORBIDDEN_STREAK_WINDOW_MS = 5 * 60 * 1000;
+/**
+ * Decide the next streak count given the previous count and the time
+ * since the previous Forbidden.
+ *
+ * - If there was no previous Forbidden, the new count is 1.
+ * - If the previous Forbidden is older than FORBIDDEN_STREAK_WINDOW_MS,
+ *   the streak counts as broken and the new count is 1.
+ * - Otherwise, the new count is the previous count + 1.
+ *
+ * Pure function so it can be unit-tested without sessionStorage.
+ *
+ * @param prevCount      previous stored count (>= 0)
+ * @param prevTimestamp  ms epoch of previous Forbidden, or 0 if none
+ * @param now            current ms epoch
+ */
+function nextStreakCount(prevCount, prevTimestamp, now) {
+    if (!prevTimestamp || prevCount < 1)
+        return 1;
+    if (now - prevTimestamp > FORBIDDEN_STREAK_WINDOW_MS)
+        return 1;
+    return prevCount + 1;
+}
+/**
+ * Record one Forbidden observation. Updates the persistent streak
+ * counter and timestamp so the next StartService reload picks a delay
+ * derived from the new count.
+ *
+ * Does NOT schedule a reload. The reload itself is handled by the
+ * existing path in StartService when the next page actually renders
+ * the "Forbidden" body. Calling recordForbidden() on an XHR-level 403
+ * lets that delay be picked up by the very next reload, instead of
+ * waiting for the script to bump the counter from a Forbidden-page
+ * encounter.
+ *
+ * Storage and now() are injected so unit tests can drive the function
+ * without needing real sessionStorage or wall-clock time.
+ *
+ * Returns the new streak count (or -1 if storage was unavailable and
+ * the counter could not be updated).
+ */
+function recordForbidden(storage = defaultStorage(), now = Date.now) {
+    if (!storage) {
+        LogUtils_logHHAuto('[ForbiddenBackoff] storage unavailable, Forbidden not recorded');
+        return -1;
+    }
+    let prevCount = 0;
+    let prevAt = 0;
+    try {
+        const rawCount = storage.getItem(FORBIDDEN_COUNT_KEY);
+        prevCount = rawCount ? parseInt(rawCount, 10) : 0;
+        if (!Number.isFinite(prevCount) || prevCount < 0)
+            prevCount = 0;
+        const rawAt = storage.getItem(FORBIDDEN_LAST_AT_KEY);
+        prevAt = rawAt ? parseInt(rawAt, 10) : 0;
+        if (!Number.isFinite(prevAt) || prevAt < 0)
+            prevAt = 0;
+    }
+    catch (e) {
+        // proceed with zeros; we still want to record this Forbidden
+    }
+    const t = now();
+    const count = nextStreakCount(prevCount, prevAt, t);
+    try {
+        storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
+        storage.setItem(FORBIDDEN_LAST_AT_KEY, String(t));
+    }
+    catch (e) {
+        LogUtils_logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
+        return -1;
+    }
+    LogUtils_logHHAuto('[ForbiddenBackoff] XHR 403 recorded (streak #' + count + ')');
+    return count;
+}
+function defaultStorage() {
+    try {
+        if (typeof sessionStorage !== 'undefined')
+            return sessionStorage;
+    }
+    catch (e) { /* sessionStorage may throw in restricted contexts */ }
+    return null;
+}
+
 ;// CONCATENATED MODULE: ./src/Service/StartService.ts
 // StartService.ts
 //
@@ -27923,6 +27944,15 @@ function hardened_start() {
     // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
     try {
         installAjaxTracker();
+        // Wire AjaxTracker's 403 hook to the persistent backoff counter.
+        // Done here (not via a direct import inside AjaxTracker) to keep
+        // AjaxTracker free of any HHStoredVars dependency: HHStoredVars
+        // imports PlaceOfPower, which imports AjaxTracker, so a direct
+        // import would form a TDZ cycle (issue #1598 follow-up).
+        setOnAjaxForbidden(() => { try {
+            recordForbidden();
+        }
+        catch (e) { } });
     }
     catch (e) { /* tracker is best-effort */ }
     if (unsafeWindow.jQuery == undefined) {

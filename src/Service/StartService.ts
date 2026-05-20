@@ -53,10 +53,11 @@ import {
     bindMouseEvents
 } from "./MouseService";
 import { disableToolTipsDisplay, enableToolTipsDisplay, manageToolTipsDisplay } from "./TooltipService";
-import { installAjaxTracker } from './AjaxTracker';
+import { installAjaxTracker, setOnAjaxForbidden } from './AjaxTracker';
 import {
     nextForbiddenDelaySeconds,
     nextStreakCount,
+    recordForbidden,
     FORBIDDEN_COUNT_KEY,
     FORBIDDEN_LAST_AT_KEY,
 } from './ForbiddenBackoff';
@@ -167,7 +168,15 @@ export function hardened_start()
     // Install the AJAX request counter as early as possible so any later
     // page-changing module call can wait for in-flight game POSTs to
     // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
-    try { installAjaxTracker(); } catch (e) { /* tracker is best-effort */ }
+    try {
+        installAjaxTracker();
+        // Wire AjaxTracker's 403 hook to the persistent backoff counter.
+        // Done here (not via a direct import inside AjaxTracker) to keep
+        // AjaxTracker free of any HHStoredVars dependency: HHStoredVars
+        // imports PlaceOfPower, which imports AjaxTracker, so a direct
+        // import would form a TDZ cycle (issue #1598 follow-up).
+        setOnAjaxForbidden(() => { try { recordForbidden(); } catch (e) {} });
+    } catch (e) { /* tracker is best-effort */ }
 
     if ((unsafeWindow as any).jQuery == undefined) {
         console.log("HHAUTO WARNING: No jQuery found.");

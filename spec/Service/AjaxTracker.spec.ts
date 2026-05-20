@@ -6,12 +6,14 @@ import {
     releasePostMutex,
     isPostInFlight,
     awaitServerSettleAfterPost,
+    setOnAjaxForbidden,
     POST_MUTEX_STALE_MS,
     POST_SETTLE_MIN_MS,
     POST_SETTLE_FACTOR,
     _resetAjaxTrackerForTests,
 } from "../../src/Service/AjaxTracker";
 import {
+    recordForbidden,
     FORBIDDEN_COUNT_KEY,
     FORBIDDEN_LAST_AT_KEY,
 } from "../../src/Service/ForbiddenBackoff";
@@ -61,6 +63,9 @@ describe("AjaxTracker", () => {
         // Patch the global XMLHttpRequest with our fake before installing the tracker.
         (global as any).XMLHttpRequest = FakeXhr as any;
         try { sessionStorage.clear(); } catch (e) { /* ignore */ }
+        // Wire the production-equivalent forbidden listener (StartService
+        // does this at boot time; tests need to do it explicitly).
+        setOnAjaxForbidden(() => { recordForbidden(); });
     });
 
     afterEach(() => {

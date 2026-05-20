@@ -39,7 +39,6 @@
 //   PageNavigationService (idle wait), PlaceOfPower (claim path),
 //   AutoLoop (tick-gate).
 import { logHHAuto } from "../Utils/LogUtils";
-import { recordForbidden } from "./ForbiddenBackoff";
 
 // Shared timing budget for all callers that wait on the game's AJAX
 // before navigating. Keeping these constants here means
@@ -69,6 +68,14 @@ export const POST_MUTEX_STALE_MS = 30_000;
 // pause, large accounts get the longer wait).
 export const POST_SETTLE_MIN_MS = 2000;
 export const POST_SETTLE_FACTOR = 4;
+
+// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
+// via setter to avoid a circular import between AjaxTracker and
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
+// -> AjaxTracker). StartService wires recordForbidden in here right
+// after installAjaxTracker() so the dependency edge runs in the right
+// direction.
+let onAjaxForbidden: (() => void) | null = null;
 
 let pending = 0;
 let installed = false;
@@ -156,8 +163,8 @@ export function installAjaxTracker(): boolean {
         // loadend fires once for both success and failure paths
         this.addEventListener('loadend', () => {
             try {
-                if (isAjaxPost && this.status === 403) {
-                    recordForbidden();
+                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
+                    onAjaxForbidden();
                 }
             } catch (e) { /* ignore */ }
             decrement();
@@ -175,6 +182,21 @@ export function installAjaxTracker(): boolean {
     installed = true;
     logHHAuto('[AjaxTracker] installed');
     return true;
+}
+
+/**
+ * Register a callback invoked when an /ajax.php POST returns HTTP 403.
+ * Pass null to clear. The callback receives no arguments.
+ *
+ * Decoupled via setter (instead of importing recordForbidden from
+ * ForbiddenBackoff directly) because ForbiddenBackoff transitively
+ * imports HHStoredVars, which imports PlaceOfPower, which imports
+ * this module. A direct import would create a TDZ cycle that crashes
+ * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
+ * initialization").
+ */
+export function setOnAjaxForbidden(cb: (() => void) | null): void {
+    onAjaxForbidden = cb;
 }
 
 /** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
@@ -313,5 +335,6 @@ export function _resetAjaxTrackerForTests(): void {
     postMutexHeld = false;
     postMutexHolder = "";
     postMutexAcquiredAt = 0;
+    onAjaxForbidden = null;
     installed = false;
 }
