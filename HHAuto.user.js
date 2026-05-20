@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.47
+// @version      7.35.48
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12818,6 +12818,456 @@ function bindMouseEvents() {
     document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
 }
 
+;// CONCATENATED MODULE: ./src/Service/ForbiddenBackoff.ts
+// ForbiddenBackoff.ts
+//
+// Persistent Forbidden counter and exponential backoff calculator
+// for issue #1598. Two layers:
+//
+// 1. Pure helpers (nextForbiddenDelaySeconds, nextStreakCount):
+//    deterministic math, unit-tested in isolation. Used by the
+//    StartService reload path that also needs to read the current
+//    counter and pick a delay before reloading.
+//
+// 2. recordForbidden(): the side-effecting "I just saw a 403"
+//    notifier. Called by AjaxTracker when a /ajax.php XHR ends with
+//    HTTP 403. It bumps the streak counter in sessionStorage so the
+//    next StartService reload picks a longer delay. It does NOT
+//    schedule a reload itself -- the actual reload still happens in
+//    StartService when the next page renders the "Forbidden" body.
+
+
+const FORBIDDEN_BASE_SECONDS = 60;
+const FORBIDDEN_CAP_SECONDS = 30 * 60;
+const FORBIDDEN_MIN_DELAY_SECONDS = 30;
+const FORBIDDEN_JITTER_RANGE = 0.4; // +/- 20%
+// Storage keys for the persistent counter. Shared between
+// AjaxTracker.recordForbidden() (writer on XHR-403) and StartService
+// (reader on Forbidden-page reload). Same prefix as the rest of the
+// script's sessionStorage so the dump-tool sees them.
+const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
+const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
+/**
+ * Compute the next reload delay in seconds for a given consecutive
+ * Forbidden count.
+ *
+ * count is 1-based: the 1st Forbidden produces FORBIDDEN_BASE_SECONDS,
+ * the 2nd doubles it, and so on, up to FORBIDDEN_CAP_SECONDS.
+ *
+ * @param count    number of consecutive Forbidden responses (>= 1)
+ * @param random   RNG returning a value in [0, 1). Defaults to Math.random.
+ *                 Injected so unit tests can produce deterministic results.
+ */
+function nextForbiddenDelaySeconds(count, random = Math.random) {
+    const safeCount = Math.max(1, Math.floor(count));
+    const factor = Math.pow(2, safeCount - 1);
+    const target = Math.min(FORBIDDEN_BASE_SECONDS * factor, FORBIDDEN_CAP_SECONDS);
+    const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
+    return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
+}
+/**
+ * Window during which consecutive Forbidden responses are treated as the
+ * same streak (and therefore keep escalating the backoff). If the gap
+ * between two Forbiddens is larger than this window, the counter resets
+ * to 1 because the script clearly recovered for a while in between.
+ */
+const FORBIDDEN_STREAK_WINDOW_MS = 5 * 60 * 1000;
+/**
+ * Decide the next streak count given the previous count and the time
+ * since the previous Forbidden.
+ *
+ * - If there was no previous Forbidden, the new count is 1.
+ * - If the previous Forbidden is older than FORBIDDEN_STREAK_WINDOW_MS,
+ *   the streak counts as broken and the new count is 1.
+ * - Otherwise, the new count is the previous count + 1.
+ *
+ * Pure function so it can be unit-tested without sessionStorage.
+ *
+ * @param prevCount      previous stored count (>= 0)
+ * @param prevTimestamp  ms epoch of previous Forbidden, or 0 if none
+ * @param now            current ms epoch
+ */
+function nextStreakCount(prevCount, prevTimestamp, now) {
+    if (!prevTimestamp || prevCount < 1)
+        return 1;
+    if (now - prevTimestamp > FORBIDDEN_STREAK_WINDOW_MS)
+        return 1;
+    return prevCount + 1;
+}
+/**
+ * Record one Forbidden observation. Updates the persistent streak
+ * counter and timestamp so the next StartService reload picks a delay
+ * derived from the new count.
+ *
+ * Does NOT schedule a reload. The reload itself is handled by the
+ * existing path in StartService when the next page actually renders
+ * the "Forbidden" body. Calling recordForbidden() on an XHR-level 403
+ * lets that delay be picked up by the very next reload, instead of
+ * waiting for the script to bump the counter from a Forbidden-page
+ * encounter.
+ *
+ * Storage and now() are injected so unit tests can drive the function
+ * without needing real sessionStorage or wall-clock time.
+ *
+ * Returns the new streak count (or -1 if storage was unavailable and
+ * the counter could not be updated).
+ */
+function recordForbidden(storage = defaultStorage(), now = Date.now) {
+    if (!storage) {
+        LogUtils_logHHAuto('[ForbiddenBackoff] storage unavailable, Forbidden not recorded');
+        return -1;
+    }
+    let prevCount = 0;
+    let prevAt = 0;
+    try {
+        const rawCount = storage.getItem(FORBIDDEN_COUNT_KEY);
+        prevCount = rawCount ? parseInt(rawCount, 10) : 0;
+        if (!Number.isFinite(prevCount) || prevCount < 0)
+            prevCount = 0;
+        const rawAt = storage.getItem(FORBIDDEN_LAST_AT_KEY);
+        prevAt = rawAt ? parseInt(rawAt, 10) : 0;
+        if (!Number.isFinite(prevAt) || prevAt < 0)
+            prevAt = 0;
+    }
+    catch (e) {
+        // proceed with zeros; we still want to record this Forbidden
+    }
+    const t = now();
+    const count = nextStreakCount(prevCount, prevAt, t);
+    try {
+        storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
+        storage.setItem(FORBIDDEN_LAST_AT_KEY, String(t));
+    }
+    catch (e) {
+        LogUtils_logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
+        return -1;
+    }
+    LogUtils_logHHAuto('[ForbiddenBackoff] XHR 403 recorded (streak #' + count + ')');
+    return count;
+}
+function defaultStorage() {
+    try {
+        if (typeof sessionStorage !== 'undefined')
+            return sessionStorage;
+    }
+    catch (e) { /* sessionStorage may throw in restricted contexts */ }
+    return null;
+}
+
+;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
+var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// AjaxTracker.ts
+//
+// XHR tracker plus a global mutex for state-changing /ajax.php POSTs.
+// Installed once at script start.
+//
+// Why the counter exists:
+//   window.location.href = ... cancels any in-flight XHR with
+//   NS_BINDING_ABORTED. When the cancelled request is a state-changing
+//   POST (e.g. PoP claim), the server can answer the next request with
+//   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
+//   for the queue to drain before changing pages.
+//
+// Why the mutex exists (issue 1598, ADR-003):
+//   On accounts with very large rosters the server takes 5-7s per POST,
+//   while AutoLoop ticks every ~1s. Multiple handlers each fire their
+//   own POST per tick, and the server bot-detection rate-limits the
+//   resulting burst with HTTP Forbidden. The mutex serialises script-
+//   triggered POSTs and gives the server time to settle before the
+//   next action.
+//
+// Why awaitServerSettleAfterPost lives here:
+//   The HTTP loadend marks "response received", but the server-side
+//   write (DB, world state) keeps running for some time after that.
+//   Acting on the next request before the write completes also
+//   triggers Forbidden. The settle helper pauses long enough for the
+//   write to finish, sized off the actual XHR duration so it stays
+//   short on small accounts and long on large ones.
+//
+// Public API:
+//   installAjaxTracker()              -- call once at script start
+//   pendingAjaxCount()                -- in-flight XHR count
+//   waitForAjaxIdle(timeoutMs, settleMs)
+//   acquirePostMutex(holderName?)     -- explicit caller mutex
+//   releasePostMutex()
+//   isPostInFlight()                  -- any tracked POST or held mutex
+//   awaitServerSettleAfterPost(durMs) -- post-claim pause
+//
+// Used by:
+//   PageNavigationService (idle wait), PlaceOfPower (claim path),
+//   AutoLoop (tick-gate).
+
+
+// Shared timing budget for all callers that wait on the game's AJAX
+// before navigating. Keeping these constants here means
+// PageNavigationService and individual modules cannot drift apart
+// (issue 1598: the PoP path used a tighter cap than gotoPage and
+// ignored timeouts, which re-introduced the cancel-mid-POST race).
+//
+// 15s is a conservative cap that covers the worst case observed in
+// Firefox Private Browsing (10-12s claim responses). The wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
+// Extra delay after AJAX idle before navigating, to let synchronous
+// follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
+// Stale-lock timeout for the explicit POST mutex. If a holder forgets
+// to call releasePostMutex(), the mutex is force-released after this
+// many milliseconds so the script does not deadlock. 30s covers the
+// worst observed claim XHR + settle pause on the 2400-girls account.
+const POST_MUTEX_STALE_MS = 30000;
+// Server-settle minimum pause and amplification factor for
+// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
+// observed safe gap before next request ~25-30s -> factor 4.
+// Math.max keeps small accounts fast (a 200ms claim still gets a 2s
+// pause, large accounts get the longer wait).
+const POST_SETTLE_MIN_MS = 2000;
+const POST_SETTLE_FACTOR = 4;
+let pending = 0;
+let installed = false;
+let restoreSend = null;
+let restoreOpen = null;
+// Explicit POST mutex state. Acquired by callers (e.g. PoP claim) to
+// serialise their state-changing POSTs. The auto-tracking path below
+// never sets postMutexHeld -- it only feeds isPostInFlight() via the
+// pending counter.
+let postMutexHeld = false;
+let postMutexHolder = "";
+let postMutexAcquiredAt = 0;
+// Track POSTs to /ajax.php separately from the general pending counter.
+// AutoLoop uses isPostInFlight() to skip its tick when a state-changing
+// POST is still being processed. GET-only XHRs (asset preloads, etc.)
+// must not gate the tick.
+let pendingAjaxPosts = 0;
+const AJAX_POST_PATH = "/ajax.php";
+/** Returns true if `url` looks like an /ajax.php request. */
+function isAjaxPostUrl(url) {
+    if (typeof url !== "string")
+        return false;
+    // Match relative ("/ajax.php"), query ("/ajax.php?..."), and
+    // absolute ("https://.../ajax.php") forms. Case-sensitive: the
+    // game always uses lowercase.
+    return url.indexOf(AJAX_POST_PATH) !== -1;
+}
+/**
+ * Install the XHR counter hook. Idempotent.
+ * Hooks XMLHttpRequest.prototype.open and send to:
+ *   - count in-flight requests for waitForAjaxIdle()
+ *   - track /ajax.php POSTs separately for isPostInFlight()
+ *   - detect HTTP 403 responses on /ajax.php for ForbiddenBackoff
+ *
+ * Returns true if the hook was installed (or was already installed),
+ * false if no XMLHttpRequest constructor is available in this scope.
+ */
+function installAjaxTracker() {
+    if (installed)
+        return true;
+    // Resolve the constructor lazily so tests can swap the global
+    // XMLHttpRequest before calling install().
+    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
+        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
+        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
+    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
+        return false;
+    }
+    const origOpen = xhrCtor.prototype.open;
+    const origSend = xhrCtor.prototype.send;
+    xhrCtor.prototype.open = function (method, url, ...rest) {
+        try {
+            this.__hhMethod = typeof method === 'string' ? method.toUpperCase() : '';
+            this.__hhUrl = url;
+            this.__hhIsAjaxPost =
+                this.__hhMethod === 'POST' && isAjaxPostUrl(url);
+        }
+        catch (e) { /* ignore */ }
+        return origOpen.apply(this, [method, url, ...rest]);
+    };
+    xhrCtor.prototype.send = function (...args) {
+        pending++;
+        const isAjaxPost = !!this.__hhIsAjaxPost;
+        if (isAjaxPost)
+            pendingAjaxPosts++;
+        let decremented = false;
+        const decrement = () => {
+            if (decremented)
+                return;
+            decremented = true;
+            if (pending > 0)
+                pending--;
+            if (isAjaxPost && pendingAjaxPosts > 0)
+                pendingAjaxPosts--;
+        };
+        // loadend fires once for both success and failure paths
+        this.addEventListener('loadend', () => {
+            try {
+                if (isAjaxPost && this.status === 403) {
+                    recordForbidden();
+                }
+            }
+            catch (e) { /* ignore */ }
+            decrement();
+        }, { once: true });
+        return origSend.apply(this, args);
+    };
+    restoreOpen = () => {
+        try {
+            xhrCtor.prototype.open = origOpen;
+        }
+        catch (e) { /* ignore */ }
+    };
+    restoreSend = () => {
+        try {
+            xhrCtor.prototype.send = origSend;
+        }
+        catch (e) { /* ignore */ }
+    };
+    installed = true;
+    LogUtils_logHHAuto('[AjaxTracker] installed');
+    return true;
+}
+/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
+function pendingAjaxCount() {
+    return pending;
+}
+/**
+ * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
+ * After idle is detected, wait an extra settleMs to let synchronous
+ * follow-up code (e.g. DOM updates triggered by the response) finish.
+ *
+ * Polls every 50ms. Returns true if idle was reached, false on timeout.
+ */
+function waitForAjaxIdle() {
+    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
+        if (!installed) {
+            // Tracker not installed -> behave like immediate idle, just settle.
+            yield sleep(settleMs);
+            return true;
+        }
+        const deadline = Date.now() + timeoutMs;
+        while (pending > 0 && Date.now() < deadline) {
+            yield sleep(50);
+        }
+        const reachedIdle = pending === 0;
+        if (!reachedIdle) {
+            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
+        }
+        if (settleMs > 0) {
+            yield sleep(settleMs);
+        }
+        return reachedIdle;
+    });
+}
+// --- POST mutex ----------------------------------------------------
+/**
+ * Acquire the explicit POST mutex. Returns true when the caller now
+ * holds the lock, false if another caller still holds it. Stale locks
+ * (older than POST_MUTEX_STALE_MS) are force-released so a forgotten
+ * release does not freeze the script.
+ *
+ * Holder name is purely for logs; pass a short identifier such as
+ * "pop:claim" so the log line tells you who is blocking.
+ */
+function acquirePostMutex(holderName = "anonymous") {
+    if (postMutexHeld) {
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            postMutexHeld = false;
+        }
+        else {
+            return false;
+        }
+    }
+    postMutexHeld = true;
+    postMutexHolder = holderName;
+    postMutexAcquiredAt = Date.now();
+    return true;
+}
+/** Release the explicit POST mutex. Idempotent: safe to call when not held. */
+function releasePostMutex() {
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+}
+/**
+ * True when either the explicit mutex is held OR a /ajax.php POST is
+ * currently in-flight (auto-tracked). AutoLoop uses this to skip its
+ * tick so handlers do not stack new POSTs on top of one already in
+ * progress.
+ */
+function isPostInFlight() {
+    if (postMutexHeld) {
+        // Stale-lock release path also runs here so AutoLoop is not
+        // pinned by a forgotten holder.
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            releasePostMutex();
+        }
+        else {
+            return true;
+        }
+    }
+    return pendingAjaxPosts > 0;
+}
+/**
+ * Pause after a state-changing POST so the server can finish its
+ * write before the next request hits. Empirically sized off the
+ * just-completed XHR duration: claim XHR 6.7s -> settle ~27s on the
+ * 2400-girls account, claim XHR 200ms -> settle 2s (floor) on small
+ * accounts.
+ *
+ * Caller measures the XHR duration and passes it in. If the caller
+ * does not have one, pass 0 to get the minimum pause.
+ */
+function awaitServerSettleAfterPost(claimXhrDurationMs) {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+        const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
+            ? claimXhrDurationMs
+            : 0;
+        const settle = Math.max(POST_SETTLE_MIN_MS, Math.round(durationMs * POST_SETTLE_FACTOR));
+        LogUtils_logHHAuto('[AjaxTracker] server-settle pause ' + settle + 'ms (claim ' + Math.round(durationMs) + 'ms)');
+        yield sleep(settle);
+    });
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+/** Reset internal state and remove the prototype hook. Test-only. */
+function _resetAjaxTrackerForTests() {
+    if (restoreSend) {
+        try {
+            restoreSend();
+        }
+        catch (e) { /* ignore */ }
+    }
+    if (restoreOpen) {
+        try {
+            restoreOpen();
+        }
+        catch (e) { /* ignore */ }
+    }
+    restoreSend = null;
+    restoreOpen = null;
+    pending = 0;
+    pendingAjaxPosts = 0;
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+    installed = false;
+}
+
 ;// CONCATENATED MODULE: ./src/Service/AutoLoop.pure.ts
 // AutoLoop.pure.ts -- Pure decision logic for the auto-loop scheduler.
 //
@@ -21160,6 +21610,7 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+
 let busy = false;
 function getBurst() {
     const sMenu = document.getElementById('sMenu');
@@ -21238,6 +21689,17 @@ function autoLoop() {
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired) === undefined) {
             setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
+        }
+        // Issue #1598 / ADR-003: skip this tick when a state-changing
+        // /ajax.php POST is still in flight (or another caller holds the
+        // explicit mutex). Stacking handlers on top of an in-flight POST
+        // is what produces HTTP Forbidden on large-roster accounts. The
+        // next tick re-checks via setTimeout below.
+        if (isPostInFlight()) {
+            if (isAutoLoopActive()) {
+                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+            }
+            return;
         }
         //var busy = false;
         busy = false;
@@ -21754,141 +22216,6 @@ class QuestHelper {
     }
 }
 QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
-
-;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
-var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// AjaxTracker.ts
-//
-// Lightweight pending-XHR counter. Installed once at script start.
-// Wraps XMLHttpRequest.send to count in-flight requests so the
-// navigation layer can wait for the game to finish its current
-// AJAX work before changing pages.
-//
-// Why: window.location.href = ... cancels any in-flight XHR with
-// NS_BINDING_ABORTED. When the cancelled request is a state-changing
-// POST (e.g. PoP claim), the server can answer the next request with
-// HTTP Forbidden. Waiting for AJAX idle before navigating prevents
-// that race.
-//
-// Public API:
-//   installAjaxTracker()  -- call once at script start
-//   pendingAjaxCount()    -- current number of in-flight XHRs
-//   waitForAjaxIdle(timeoutMs, settleMs) -- resolves when idle
-//
-// Used by: PageNavigationService.gotoPage(), PlaceOfPower module.
-
-// Shared timing budget for all callers that wait on the game's AJAX
-// before navigating. Keeping these constants here means
-// PageNavigationService and individual modules cannot drift apart
-// (issue #1598: the PoP path used a tighter cap than gotoPage and
-// ignored timeouts, which re-introduced the cancel-mid-POST race).
-//
-// 15s is a conservative cap that covers the worst case observed in
-// Firefox Private Browsing (10-12s claim responses). The wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 15000;
-// Extra delay after AJAX idle before navigating, to let synchronous
-// follow-up code (DOM updates, popup handling) finish.
-const AJAX_IDLE_SETTLE_MS = 250;
-let pending = 0;
-let installed = false;
-let restoreSend = null;
-/**
- * Install the XHR counter hook. Idempotent.
- * Hooks XMLHttpRequest.prototype.send to count in-flight requests
- * via a single loadend listener (covers success, error, abort, timeout).
- *
- * Returns true if the hook was installed (or was already installed),
- * false if no XMLHttpRequest constructor is available in this scope.
- */
-function installAjaxTracker() {
-    if (installed)
-        return true;
-    // Resolve the constructor lazily so tests can swap the global
-    // XMLHttpRequest before calling install().
-    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
-        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
-        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
-    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
-        return false;
-    }
-    const origSend = xhrCtor.prototype.send;
-    xhrCtor.prototype.send = function (...args) {
-        pending++;
-        const decrement = () => {
-            if (pending > 0)
-                pending--;
-        };
-        // loadend fires once for both success and failure paths
-        this.addEventListener('loadend', decrement, { once: true });
-        return origSend.apply(this, args);
-    };
-    restoreSend = () => {
-        try {
-            xhrCtor.prototype.send = origSend;
-        }
-        catch (e) { /* ignore */ }
-    };
-    installed = true;
-    LogUtils_logHHAuto('[AjaxTracker] installed');
-    return true;
-}
-/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
-function pendingAjaxCount() {
-    return pending;
-}
-/**
- * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
- * After idle is detected, wait an extra settleMs to let synchronous
- * follow-up code (e.g. DOM updates triggered by the response) finish.
- *
- * Polls every 50ms. Returns true if idle was reached, false on timeout.
- */
-function waitForAjaxIdle() {
-    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
-        if (!installed) {
-            // Tracker not installed -> behave like immediate idle, just settle.
-            yield sleep(settleMs);
-            return true;
-        }
-        const deadline = Date.now() + timeoutMs;
-        while (pending > 0 && Date.now() < deadline) {
-            yield sleep(50);
-        }
-        const reachedIdle = pending === 0;
-        if (!reachedIdle) {
-            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
-        }
-        if (settleMs > 0) {
-            yield sleep(settleMs);
-        }
-        return reachedIdle;
-    });
-}
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-/** Reset internal state and remove the prototype hook. Test-only. */
-function _resetAjaxTrackerForTests() {
-    if (restoreSend) {
-        try {
-            restoreSend();
-        }
-        catch (e) { /* ignore */ }
-    }
-    restoreSend = null;
-    pending = 0;
-    installed = false;
-}
 
 ;// CONCATENATED MODULE: ./src/Service/PageNavigationService.ts
 // PageNavigationService.ts
@@ -22852,8 +23179,21 @@ class PlaceOfPower {
                 //collect all
                 let buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
                 if ($(buttonClaimQuery).length > 0) {
+                    // Issue #1598 / ADR-003: serialise the claim POST through
+                    // the global mutex so AutoLoop and other handlers cannot
+                    // stack a second POST on top while the server is still
+                    // processing this one (which produces HTTP Forbidden on
+                    // accounts with very large rosters). If another caller
+                    // already holds the mutex we yield this tick.
+                    if (!acquirePostMutex('pop:claim')) {
+                        LogUtils_logHHAuto('PoP: another POST in flight, deferring claim');
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        return true;
+                    }
+                    const claimedPopId = $(buttonClaimQuery).first().parent().attr('pop_id');
+                    const claimStart = Date.now();
                     $(buttonClaimQuery).first().trigger('click');
-                    LogUtils_logHHAuto("Claimed reward for PoP : " + $(buttonClaimQuery).first().parent().attr('pop_id'));
+                    LogUtils_logHHAuto("Claimed reward for PoP : " + claimedPopId);
                     // The claim click fires an ajax.php POST. We must wait for
                     // that POST to complete before changing the page, otherwise
                     // window.location.href cancels the request (NS_BINDING_ABORTED)
@@ -22868,17 +23208,29 @@ class PlaceOfPower {
                     const claimIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     if (!claimIdle) {
                         LogUtils_logHHAuto('PoP: claim AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring popup/navigation');
+                        releasePostMutex();
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                         return true;
                     }
+                    const claimDuration = Date.now() - claimStart;
                     RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
                     // Wait again in case closing the popup itself fires a request.
                     const popupIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                     if (!popupIdle) {
                         LogUtils_logHHAuto('PoP: popup-close AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation');
+                        releasePostMutex();
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                         return true;
                     }
+                    // Release the mutex before the server-settle pause so any
+                    // other caller can take over once the wait is done. The
+                    // settle pause itself is the actual race protection.
+                    releasePostMutex();
+                    // The HTTP response is back, but the server still needs
+                    // time to commit the claim. Acting on the next request
+                    // before that commit produces Forbidden on the 2400-girls
+                    // account (Frank-Capture: claim 6.7s, safe gap ~27s).
+                    yield awaitServerSettleAfterPost(claimDuration);
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                     return true;
                 }
@@ -26997,7 +27349,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.47";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.48";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27423,67 +27775,6 @@ function disableToolTipsDisplay(important = false) {
     GM_addStyle('.tooltipHH:hover span.tooltipHHtext { display: none' + importantAddendum + '}');
 }
 
-;// CONCATENATED MODULE: ./src/Service/ForbiddenBackoff.ts
-// ForbiddenBackoff.ts
-//
-// Exponential backoff calculator for the persistent Forbidden counter
-// used by StartService.hardened_start() (issue #1598).
-//
-// Each consecutive Forbidden response doubles the random reload window,
-// capped at FORBIDDEN_CAP_SECONDS. A jitter of +/- 20% is applied so
-// multiple tabs hitting the same rate-limit do not all retry in lockstep.
-const FORBIDDEN_BASE_SECONDS = 60;
-const FORBIDDEN_CAP_SECONDS = 30 * 60;
-const FORBIDDEN_MIN_DELAY_SECONDS = 30;
-const FORBIDDEN_JITTER_RANGE = 0.4; // +/- 20%
-/**
- * Compute the next reload delay in seconds for a given consecutive
- * Forbidden count.
- *
- * count is 1-based: the 1st Forbidden produces FORBIDDEN_BASE_SECONDS,
- * the 2nd doubles it, and so on, up to FORBIDDEN_CAP_SECONDS.
- *
- * @param count    number of consecutive Forbidden responses (>= 1)
- * @param random   RNG returning a value in [0, 1). Defaults to Math.random.
- *                 Injected so unit tests can produce deterministic results.
- */
-function nextForbiddenDelaySeconds(count, random = Math.random) {
-    const safeCount = Math.max(1, Math.floor(count));
-    const factor = Math.pow(2, safeCount - 1);
-    const target = Math.min(FORBIDDEN_BASE_SECONDS * factor, FORBIDDEN_CAP_SECONDS);
-    const jitter = (1 - FORBIDDEN_JITTER_RANGE / 2) + random() * FORBIDDEN_JITTER_RANGE;
-    return Math.max(FORBIDDEN_MIN_DELAY_SECONDS, Math.round(target * jitter));
-}
-/**
- * Window during which consecutive Forbidden responses are treated as the
- * same streak (and therefore keep escalating the backoff). If the gap
- * between two Forbiddens is larger than this window, the counter resets
- * to 1 because the script clearly recovered for a while in between.
- */
-const FORBIDDEN_STREAK_WINDOW_MS = 5 * 60 * 1000;
-/**
- * Decide the next streak count given the previous count and the time
- * since the previous Forbidden.
- *
- * - If there was no previous Forbidden, the new count is 1.
- * - If the previous Forbidden is older than FORBIDDEN_STREAK_WINDOW_MS,
- *   the streak counts as broken and the new count is 1.
- * - Otherwise, the new count is the previous count + 1.
- *
- * Pure function so it can be unit-tested without sessionStorage.
- *
- * @param prevCount      previous stored count (>= 0)
- * @param prevTimestamp  ms epoch of previous Forbidden, or 0 if none
- * @param now            current ms epoch
- */
-function nextStreakCount(prevCount, prevTimestamp, now) {
-    if (!prevTimestamp || prevCount < 1)
-        return 1;
-    if (now - prevTimestamp > FORBIDDEN_STREAK_WINDOW_MS)
-        return 1;
-    return prevCount + 1;
-}
-
 ;// CONCATENATED MODULE: ./src/Service/StartService.ts
 // StartService.ts
 //
@@ -27551,8 +27842,6 @@ const HERO_MAX_RETRIES = 15;
 // so it survives location.reload() but resets when the user closes the
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
-const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
-const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
 // Cold-start delay (issue #1598).
 //
 // After a long inactivity (PC hibernation, tab in background, slow page

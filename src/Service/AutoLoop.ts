@@ -40,6 +40,7 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { updateData } from "./InfoService";
 import { mouseBusy } from "./MouseService";
+import { isPostInFlight } from './AjaxTracker';
 import { ParanoiaService } from "./ParanoiaService";
 import { setDefaults } from "./StartService";
 import { AutoLoopContext } from './AutoLoopContext';
@@ -189,6 +190,18 @@ export async function autoLoop()
     if (getStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired) === undefined)
     {
         setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
+    }
+
+    // Issue #1598 / ADR-003: skip this tick when a state-changing
+    // /ajax.php POST is still in flight (or another caller holds the
+    // explicit mutex). Stacking handlers on top of an in-flight POST
+    // is what produces HTTP Forbidden on large-roster accounts. The
+    // next tick re-checks via setTimeout below.
+    if (isPostInFlight()) {
+        if (isAutoLoopActive()) {
+            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+        }
+        return;
     }
 
     //var busy = false;

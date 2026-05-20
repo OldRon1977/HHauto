@@ -14,7 +14,14 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { clearTimer, setTimer } from "../Helper/TimerHelper";
-import { waitForAjaxIdle, AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS } from "../Service/AjaxTracker";
+import {
+    waitForAjaxIdle,
+    acquirePostMutex,
+    releasePostMutex,
+    awaitServerSettleAfterPost,
+    AJAX_IDLE_TIMEOUT_MS,
+    AJAX_IDLE_SETTLE_MS,
+} from "../Service/AjaxTracker";
 import { autoLoop } from "../Service/AutoLoop";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -191,8 +198,21 @@ export class PlaceOfPower {
             let buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
             if ($(buttonClaimQuery).length >0)
             {
+                // Issue #1598 / ADR-003: serialise the claim POST through
+                // the global mutex so AutoLoop and other handlers cannot
+                // stack a second POST on top while the server is still
+                // processing this one (which produces HTTP Forbidden on
+                // accounts with very large rosters). If another caller
+                // already holds the mutex we yield this tick.
+                if (!acquirePostMutex('pop:claim')) {
+                    logHHAuto('PoP: another POST in flight, deferring claim');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    return true;
+                }
+                const claimedPopId = $(buttonClaimQuery).first().parent().attr('pop_id');
+                const claimStart = Date.now();
                 $(buttonClaimQuery).first().trigger('click');
-                logHHAuto("Claimed reward for PoP : " + $(buttonClaimQuery).first().parent().attr('pop_id'));
+                logHHAuto("Claimed reward for PoP : " + claimedPopId);
                 // The claim click fires an ajax.php POST. We must wait for
                 // that POST to complete before changing the page, otherwise
                 // window.location.href cancels the request (NS_BINDING_ABORTED)
@@ -207,17 +227,29 @@ export class PlaceOfPower {
                 const claimIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                 if (!claimIdle) {
                     logHHAuto('PoP: claim AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring popup/navigation');
+                    releasePostMutex();
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     return true;
                 }
+                const claimDuration = Date.now() - claimStart;
                 RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
                 // Wait again in case closing the popup itself fires a request.
                 const popupIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                 if (!popupIdle) {
                     logHHAuto('PoP: popup-close AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation');
+                    releasePostMutex();
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     return true;
                 }
+                // Release the mutex before the server-settle pause so any
+                // other caller can take over once the wait is done. The
+                // settle pause itself is the actual race protection.
+                releasePostMutex();
+                // The HTTP response is back, but the server still needs
+                // time to commit the claim. Acting on the next request
+                // before that commit produces Forbidden on the 2400-girls
+                // account (Frank-Capture: claim 6.7s, safe gap ~27s).
+                await awaitServerSettleAfterPost(claimDuration);
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"), {}, randomInterval(1500, 2500));
                 return true;
             }

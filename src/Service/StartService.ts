@@ -54,7 +54,12 @@ import {
 } from "./MouseService";
 import { disableToolTipsDisplay, enableToolTipsDisplay, manageToolTipsDisplay } from "./TooltipService";
 import { installAjaxTracker } from './AjaxTracker';
-import { nextForbiddenDelaySeconds, nextStreakCount } from './ForbiddenBackoff';
+import {
+    nextForbiddenDelaySeconds,
+    nextStreakCount,
+    FORBIDDEN_COUNT_KEY,
+    FORBIDDEN_LAST_AT_KEY,
+} from './ForbiddenBackoff';
 
 var started=false;
 var debugMenuID;
@@ -69,8 +74,6 @@ const HERO_MAX_RETRIES = 15;
 // so it survives location.reload() but resets when the user closes the
 // tab. On a successful start() (Hero object available), the counter is
 // cleared, so a single transient Forbidden does not penalise later runs.
-const FORBIDDEN_COUNT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenCount';
-const FORBIDDEN_LAST_AT_KEY = HHStoredVarPrefixKey + 'Temp_forbiddenLastAt';
 
 // Cold-start delay (issue #1598).
 //
