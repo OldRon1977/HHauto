@@ -4,7 +4,7 @@
 
 export class HentaiHeroes {
     static spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
-    static trollIdMapping = { 21: 19, 24: 20 };
+    static trollIdMapping = { 21: 19, 24: 22 };
     static sideTrollIdMapping = { 22: 20, 23: 21 };
     static lastQuestId = 2116; //  TODO update when new quest comes
     static getEnv() {

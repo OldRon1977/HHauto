@@ -44,6 +44,10 @@ list of fields kept, dropped, and pseudonymised.
 
 ## Latest Updates
 
+### v7.35.46 - World 24 Daddy fight typo fix
+
+- **Daddy boss now resolves to the correct troll on world 24.** A typo in the world-to-troll mapping table sent the bot to Arthur (id 20) instead of Daddy (id 22) when fighting on world 24. The mapping is corrected so Auto Troll, the "first/last troll with girl" picker and the troll dropdown resolve world 24 to Daddy again.
+
 ### v7.35.45 - Bot keeps moving while waiting for combativity
 
 - **League, Season, Quest, Champion and friends keep running.** When the troll path was waiting for an energy refill (Plus Event / Plus Mythic / Plus Raid Stars / Plus Raid pending with power=0), the bot froze on the troll loop and skipped every other handler. The wait flag now only suppresses the two pipeline navigations that originally caused the ping-pong loop (event page, leagues page) and leaves classic AutoLoop handlers alone.
