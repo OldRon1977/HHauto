@@ -58,7 +58,7 @@ import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
 import { mouseBusy } from "./MouseService";
-import { gotoPage } from "./PageNavigationService";
+import { gotoPage, safeReload } from "./PageNavigationService";
 import { ParanoiaService } from "./ParanoiaService";
 import { isAutoLoopActive } from './AutoLoop';
 
@@ -752,7 +752,10 @@ export async function handleChampionTicket(ctx: AutoLoopContext): Promise<void> 
             getHHAjax()(params, function(data) {
                 //anim_number($('.tickets_number_amount'), data.tokens - amount, amount);
                 Hero.updates(data.hero_changes);
-                location.reload();
+                // C1: route the post-purchase reload through safeReload so
+                // any in-flight game AJAX (parallel handler) gets to finish
+                // before the URL change cancels open XHRs.
+                safeReload();
             });
         }
         setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");

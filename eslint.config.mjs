@@ -82,6 +82,24 @@ export default [
       // module resolution; those are caught by `no-restricted-imports`
       // patterns that target the exact folder names used as barrels in
       // the past.
+      // Forbid direct `location.reload()` and `location.href = ...`
+      // assignments outside the page navigation service.
+      // ADR-001-style guard: the navigation service exposes
+      // safeReload() / safeNavigateHref() / gotoPage() which honor a
+      // navigation mutex and a waitForAjaxIdle barrier (issue #1598
+      // race protection). Direct location mutations bypass both and
+      // re-introduce the race we already eliminated. The override
+      // below re-allows the calls inside the service itself.
+      'no-restricted-syntax': ['error',
+        {
+          selector: "CallExpression[callee.object.name='location'][callee.property.name='reload']",
+          message: 'Direct location.reload() outside PageNavigationService is forbidden. Use safeReload() from "../Service/PageNavigationService" instead (issue #1598 race protection).',
+        },
+        {
+          selector: "AssignmentExpression[left.object.name='location'][left.property.name='href']",
+          message: 'Direct location.href = ... outside PageNavigationService is forbidden. Use safeNavigateHref() from "../Service/PageNavigationService" instead (issue #1598 race protection).',
+        },
+      ],
       'no-restricted-imports': ['error', {
         patterns: [
           {
@@ -116,6 +134,15 @@ export default [
           { name: './game', message: 'Barrel imports are forbidden (ADR-001). Import the declaring file directly.' },
         ],
       }],
+    },
+  },
+  {
+    // Override: PageNavigationService is the canonical place that
+    // calls location.reload() and assigns location.href. The
+    // no-restricted-syntax guard above must not apply here.
+    files: ['src/Service/PageNavigationService.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {

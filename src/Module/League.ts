@@ -25,7 +25,7 @@ import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { decideShouldFight, ShouldFightState } from './League.pure';
 import { autoLoop } from "../Service/AutoLoop";
-import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { getHHAjax, isJSON } from "../Utils/Utils";
@@ -850,7 +850,10 @@ export class LeagueHelper {
                         RewardHelper.closeRewardPopupIfAny();
 
                         // gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
-                        location.reload();
+                        // C1: route through safeReload so any in-flight
+                        // game AJAX gets to settle before the URL change
+                        // cancels open XHRs (issue #1598).
+                        safeReload();
                         Hero.updates(data.hero_changes);
                     });
                 }
@@ -889,7 +892,7 @@ export class LeagueHelper {
     static LeagueDisplayGetOpponentPopup(numberDone,remainingTime)
     {
         $("#leagues #leagues_middle").prepend('<div id="popup_message_league" class="HHpopup_message" name="popup_message_league" ><a id="popup_message_league_close" class="close">&times;</a>'+getTextForUI("OpponentListBuilding","elementText")+' : <br>'+numberDone+' '+getTextForUI("OpponentParsed","elementText")+' ('+remainingTime+')</div>');
-        $("#popup_message_league_close").on("click", () => {location.reload();});
+        $("#popup_message_league_close").on("click", () => { safeReload(); });
     }
 
     static LeagueClearDisplayGetOpponentPopup()

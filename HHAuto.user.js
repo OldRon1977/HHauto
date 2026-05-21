@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.52
+// @version      7.35.53
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1780,6 +1780,989 @@ function getPage(checkUnknown = false, checkPop = false) {
     return page;
 }
 
+;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
+var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// AjaxTracker.ts
+//
+// XHR tracker plus a global mutex for state-changing /ajax.php POSTs.
+// Installed once at script start.
+//
+// Why the counter exists:
+//   window.location.href = ... cancels any in-flight XHR with
+//   NS_BINDING_ABORTED. When the cancelled request is a state-changing
+//   POST (e.g. PoP claim), the server can answer the next request with
+//   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
+//   for the queue to drain before changing pages.
+//
+// Why the mutex exists (issue 1598, ADR-003):
+//   On accounts with very large rosters the server takes 5-7s per POST,
+//   while AutoLoop ticks every ~1s. Multiple handlers each fire their
+//   own POST per tick, and the server bot-detection rate-limits the
+//   resulting burst with HTTP Forbidden. The mutex serialises script-
+//   triggered POSTs and gives the server time to settle before the
+//   next action.
+//
+// Why awaitServerSettleAfterPost lives here:
+//   The HTTP loadend marks "response received", but the server-side
+//   write (DB, world state) keeps running for some time after that.
+//   Acting on the next request before the write completes also
+//   triggers Forbidden. The settle helper pauses long enough for the
+//   write to finish, sized off the actual XHR duration so it stays
+//   short on small accounts and long on large ones.
+//
+// Public API:
+//   installAjaxTracker()              -- call once at script start
+//   pendingAjaxCount()                -- in-flight XHR count
+//   waitForAjaxIdle(timeoutMs, settleMs)
+//   acquirePostMutex(holderName?)     -- explicit caller mutex
+//   releasePostMutex()
+//   isPostInFlight()                  -- any tracked POST or held mutex
+//   awaitServerSettleAfterPost(durMs) -- post-claim pause
+//
+// Used by:
+//   PageNavigationService (idle wait), PlaceOfPower (claim path),
+//   AutoLoop (tick-gate).
+
+// Shared timing budget for all callers that wait on the game's AJAX
+// before navigating. Keeping these constants here means
+// PageNavigationService and individual modules cannot drift apart
+// (issue 1598: the PoP path used a tighter cap than gotoPage and
+// ignored timeouts, which re-introduced the cancel-mid-POST race).
+//
+// 15s is a conservative cap that covers the worst case observed in
+// Firefox Private Browsing (10-12s claim responses). The wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
+// Extra delay after AJAX idle before navigating, to let synchronous
+// follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
+// Stale-lock timeout for the explicit POST mutex. If a holder forgets
+// to call releasePostMutex(), the mutex is force-released after this
+// many milliseconds so the script does not deadlock. 30s covers the
+// worst observed claim XHR + settle pause on the 2400-girls account.
+const POST_MUTEX_STALE_MS = 30000;
+// Server-settle minimum pause and amplification factor for
+// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
+// observed safe gap before next request ~25-30s -> factor 4.
+// Math.max keeps small accounts fast (a 200ms claim still gets a 2s
+// pause, large accounts get the longer wait).
+const POST_SETTLE_MIN_MS = 2000;
+const POST_SETTLE_FACTOR = 4;
+// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
+// via setter to avoid a circular import between AjaxTracker and
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
+// -> AjaxTracker). StartService wires recordForbidden in here right
+// after installAjaxTracker() so the dependency edge runs in the right
+// direction.
+let onAjaxForbidden = null;
+let pending = 0;
+let installed = false;
+let restoreSend = null;
+let restoreOpen = null;
+// Explicit POST mutex state. Acquired by callers (e.g. PoP claim) to
+// serialise their state-changing POSTs. The auto-tracking path below
+// never sets postMutexHeld -- it only feeds isPostInFlight() via the
+// pending counter.
+let postMutexHeld = false;
+let postMutexHolder = "";
+let postMutexAcquiredAt = 0;
+// Track POSTs to /ajax.php separately from the general pending counter.
+// AutoLoop uses isPostInFlight() to skip its tick when a state-changing
+// POST is still being processed. GET-only XHRs (asset preloads, etc.)
+// must not gate the tick.
+let pendingAjaxPosts = 0;
+const AJAX_POST_PATH = "/ajax.php";
+/** Returns true if `url` looks like an /ajax.php request. */
+function isAjaxPostUrl(url) {
+    if (typeof url !== "string")
+        return false;
+    // Match relative ("/ajax.php"), query ("/ajax.php?..."), and
+    // absolute ("https://.../ajax.php") forms. Case-sensitive: the
+    // game always uses lowercase.
+    return url.indexOf(AJAX_POST_PATH) !== -1;
+}
+/**
+ * Install the XHR counter hook. Idempotent.
+ * Hooks XMLHttpRequest.prototype.open and send to:
+ *   - count in-flight requests for waitForAjaxIdle()
+ *   - track /ajax.php POSTs separately for isPostInFlight()
+ *   - detect HTTP 403 responses on /ajax.php for ForbiddenBackoff
+ *
+ * Returns true if the hook was installed (or was already installed),
+ * false if no XMLHttpRequest constructor is available in this scope.
+ */
+function installAjaxTracker() {
+    if (installed)
+        return true;
+    // Resolve the constructor lazily so tests can swap the global
+    // XMLHttpRequest before calling install().
+    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
+        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
+        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
+    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
+        return false;
+    }
+    const origOpen = xhrCtor.prototype.open;
+    const origSend = xhrCtor.prototype.send;
+    xhrCtor.prototype.open = function (method, url, ...rest) {
+        try {
+            this.__hhMethod = typeof method === 'string' ? method.toUpperCase() : '';
+            this.__hhUrl = url;
+            this.__hhIsAjaxPost =
+                this.__hhMethod === 'POST' && isAjaxPostUrl(url);
+        }
+        catch (e) { /* ignore */ }
+        return origOpen.apply(this, [method, url, ...rest]);
+    };
+    xhrCtor.prototype.send = function (...args) {
+        pending++;
+        const isAjaxPost = !!this.__hhIsAjaxPost;
+        if (isAjaxPost)
+            pendingAjaxPosts++;
+        let decremented = false;
+        const decrement = () => {
+            if (decremented)
+                return;
+            decremented = true;
+            if (pending > 0)
+                pending--;
+            if (isAjaxPost && pendingAjaxPosts > 0)
+                pendingAjaxPosts--;
+        };
+        // loadend fires once for both success and failure paths
+        this.addEventListener('loadend', () => {
+            try {
+                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
+                    onAjaxForbidden();
+                }
+            }
+            catch (e) { /* ignore */ }
+            decrement();
+        }, { once: true });
+        return origSend.apply(this, args);
+    };
+    restoreOpen = () => {
+        try {
+            xhrCtor.prototype.open = origOpen;
+        }
+        catch (e) { /* ignore */ }
+    };
+    restoreSend = () => {
+        try {
+            xhrCtor.prototype.send = origSend;
+        }
+        catch (e) { /* ignore */ }
+    };
+    installed = true;
+    LogUtils_logHHAuto('[AjaxTracker] installed');
+    return true;
+}
+/**
+ * Register a callback invoked when an /ajax.php POST returns HTTP 403.
+ * Pass null to clear. The callback receives no arguments.
+ *
+ * Decoupled via setter (instead of importing recordForbidden from
+ * ForbiddenBackoff directly) because ForbiddenBackoff transitively
+ * imports HHStoredVars, which imports PlaceOfPower, which imports
+ * this module. A direct import would create a TDZ cycle that crashes
+ * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
+ * initialization").
+ */
+function setOnAjaxForbidden(cb) {
+    onAjaxForbidden = cb;
+}
+/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
+function pendingAjaxCount() {
+    return pending;
+}
+/**
+ * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
+ * After idle is detected, wait an extra settleMs to let synchronous
+ * follow-up code (e.g. DOM updates triggered by the response) finish.
+ *
+ * Polls every 50ms. Returns true if idle was reached, false on timeout.
+ */
+function waitForAjaxIdle() {
+    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
+        if (!installed) {
+            // Tracker not installed -> behave like immediate idle, just settle.
+            yield sleep(settleMs);
+            return true;
+        }
+        const deadline = Date.now() + timeoutMs;
+        while (pending > 0 && Date.now() < deadline) {
+            yield sleep(50);
+        }
+        const reachedIdle = pending === 0;
+        if (!reachedIdle) {
+            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
+        }
+        if (settleMs > 0) {
+            yield sleep(settleMs);
+        }
+        return reachedIdle;
+    });
+}
+// --- POST mutex ----------------------------------------------------
+/**
+ * Acquire the explicit POST mutex. Returns true when the caller now
+ * holds the lock, false if another caller still holds it. Stale locks
+ * (older than POST_MUTEX_STALE_MS) are force-released so a forgotten
+ * release does not freeze the script.
+ *
+ * Holder name is purely for logs; pass a short identifier such as
+ * "pop:claim" so the log line tells you who is blocking.
+ */
+function acquirePostMutex(holderName = "anonymous") {
+    if (postMutexHeld) {
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            postMutexHeld = false;
+        }
+        else {
+            return false;
+        }
+    }
+    postMutexHeld = true;
+    postMutexHolder = holderName;
+    postMutexAcquiredAt = Date.now();
+    return true;
+}
+/** Release the explicit POST mutex. Idempotent: safe to call when not held. */
+function releasePostMutex() {
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+}
+/**
+ * True when either the explicit mutex is held OR a /ajax.php POST is
+ * currently in-flight (auto-tracked). AutoLoop uses this to skip its
+ * tick so handlers do not stack new POSTs on top of one already in
+ * progress.
+ */
+function isPostInFlight() {
+    if (postMutexHeld) {
+        // Stale-lock release path also runs here so AutoLoop is not
+        // pinned by a forgotten holder.
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            releasePostMutex();
+        }
+        else {
+            return true;
+        }
+    }
+    return pendingAjaxPosts > 0;
+}
+/**
+ * Pause after a state-changing POST so the server can finish its
+ * write before the next request hits. Empirically sized off the
+ * just-completed XHR duration: claim XHR 6.7s -> settle ~27s on the
+ * 2400-girls account, claim XHR 200ms -> settle 2s (floor) on small
+ * accounts.
+ *
+ * Caller measures the XHR duration and passes it in. If the caller
+ * does not have one, pass 0 to get the minimum pause.
+ */
+function awaitServerSettleAfterPost(claimXhrDurationMs) {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+        const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
+            ? claimXhrDurationMs
+            : 0;
+        const settle = Math.max(POST_SETTLE_MIN_MS, Math.round(durationMs * POST_SETTLE_FACTOR));
+        LogUtils_logHHAuto('[AjaxTracker] server-settle pause ' + settle + 'ms (claim ' + Math.round(durationMs) + 'ms)');
+        yield sleep(settle);
+    });
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+/** Reset internal state and remove the prototype hook. Test-only. */
+function _resetAjaxTrackerForTests() {
+    if (restoreSend) {
+        try {
+            restoreSend();
+        }
+        catch (e) { /* ignore */ }
+    }
+    if (restoreOpen) {
+        try {
+            restoreOpen();
+        }
+        catch (e) { /* ignore */ }
+    }
+    restoreSend = null;
+    restoreOpen = null;
+    pending = 0;
+    pendingAjaxPosts = 0;
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+    onAjaxForbidden = null;
+    installed = false;
+}
+
+;// CONCATENATED MODULE: ./src/Service/PageNavigationService.ts
+// PageNavigationService.ts
+//
+// Centralized page navigation. Translates abstract page IDs into
+// actual URL paths using ConfigHelper, then navigates via
+// window.location after a randomized delay (300-500ms) to look
+// more human-like. Handles Nutaku session token injection.
+//
+// Before navigating, AutoLoop is disabled to prevent firing during
+// the page transition. It re-enables after the new page loads, or
+// after waitForAjaxIdle times out (in which case the navigation is
+// deferred and the next AutoLoop tick can retry).
+//
+// Navigation mutex: only one navigation can be scheduled at a time.
+// Subsequent calls within the same tick are dropped to prevent the
+// browser from firing two window.location changes a few ms apart
+// (which the game rejects with HTTP Forbidden). The flag resets
+// automatically once the page has loaded and the script restarts,
+// or when waitForAjaxIdle times out and the navigation is aborted.
+//
+// Used by: Every module that needs to navigate to a page.
+
+
+
+
+
+
+
+
+
+// Module-level mutex: true while a navigation has been scheduled but the
+// browser hasn't fully transitioned yet. Reset implicitly on page reload
+// and explicitly on waitForAjaxIdle timeout.
+let navInFlight = false;
+// Throttle the "navigation already in flight" log line so a slow AJAX
+// wait does not flood the log with one entry per AutoLoop tick (issue
+// #1598 follow-up). Only emit once per NAV_BLOCKED_LOG_INTERVAL_MS.
+const NAV_BLOCKED_LOG_INTERVAL_MS = 5000;
+let lastNavBlockedLogAt = 0;
+// Pre-resolved regex passes for paths that gotoPage forwards verbatim
+// (champion battle screens, character/girl detail pages, quest pages).
+// Replaces the (page.match(...) || {}).input switch trick.
+const REGEX_PASSTHROUGH = [
+    /^\/champions\/[1-6]$/,
+    /^\/characters\/\d+$/,
+    /^\/girl\/\d+$/,
+    /^\/quest\/\d+(\?.*)?$/,
+];
+function buildResolverMap() {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8;
+    const cfg = (id) => ConfigHelper.getHHScriptVars(id);
+    const tabbed = (urlId, tabId) => {
+        const url = cfg(urlId);
+        const tab = cfg(tabId);
+        return url ? url_add_param(url, "tab", tab) : undefined;
+    };
+    const entries = [
+        [(_a = cfg("pagesIDHome")) !== null && _a !== void 0 ? _a : "", () => cfg("pagesURLHome")],
+        [(_b = cfg("pagesIDActivities")) !== null && _b !== void 0 ? _b : "", () => cfg("pagesURLActivities")],
+        [(_c = cfg("pagesIDMissions")) !== null && _c !== void 0 ? _c : "", () => tabbed("pagesURLActivities", "pagesIDMissions")],
+        [(_d = cfg("pagesIDPowerplacemain")) !== null && _d !== void 0 ? _d : "", () => {
+                const url = cfg("pagesURLActivities");
+                return url ? url_add_param(url, "tab", "pop") : undefined;
+            }],
+        [(_e = cfg("pagesIDContests")) !== null && _e !== void 0 ? _e : "", () => tabbed("pagesURLActivities", "pagesIDContests")],
+        [(_f = cfg("pagesIDDailyGoals")) !== null && _f !== void 0 ? _f : "", () => tabbed("pagesURLActivities", "pagesIDDailyGoals")],
+        [(_g = cfg("pagesIDHarem")) !== null && _g !== void 0 ? _g : "", () => cfg("pagesURLHarem")],
+        [(_h = cfg("pagesIDMap")) !== null && _h !== void 0 ? _h : "", () => cfg("pagesURLMap")],
+        [(_j = cfg("pagesIDPachinko")) !== null && _j !== void 0 ? _j : "", () => cfg("pagesURLPachinko")],
+        [(_k = cfg("pagesIDLeaderboard")) !== null && _k !== void 0 ? _k : "", () => cfg("pagesURLLeaderboard")],
+        [(_l = cfg("pagesIDShop")) !== null && _l !== void 0 ? _l : "", () => cfg("pagesURLShop")],
+        [(_m = cfg("pagesIDPantheon")) !== null && _m !== void 0 ? _m : "", () => cfg("pagesURLPantheon")],
+        [(_o = cfg("pagesIDPantheonPreBattle")) !== null && _o !== void 0 ? _o : "", () => cfg("pagesURLPantheonPreBattle")],
+        [(_p = cfg("pagesIDLabyrinth")) !== null && _p !== void 0 ? _p : "", () => cfg("pagesURLLabyrinth")],
+        [(_q = cfg("pagesIDEditLabyrinthTeam")) !== null && _q !== void 0 ? _q : "", () => cfg("pagesURLEditLabyrinthTeam")],
+        [(_r = cfg("pagesIDChampionsMap")) !== null && _r !== void 0 ? _r : "", () => cfg("pagesURLChampionsMap")],
+        [(_s = cfg("pagesIDSeason")) !== null && _s !== void 0 ? _s : "", () => cfg("pagesURLSeason")],
+        [(_t = cfg("pagesIDSeasonArena")) !== null && _t !== void 0 ? _t : "", () => cfg("pagesURLSeasonArena")],
+        [(_u = cfg("pagesIDPentaDrill")) !== null && _u !== void 0 ? _u : "", () => cfg("pagesURLPentaDrill")],
+        [(_v = cfg("pagesIDPentaDrillArena")) !== null && _v !== void 0 ? _v : "", () => cfg("pagesURLPentaDrillArena")],
+        [(_w = cfg("pagesIDPentaDrillPreBattle")) !== null && _w !== void 0 ? _w : "", () => cfg("pagesURLPentaDrillPreBattle")],
+        [(_x = cfg("pagesIDPentaDrillBattle")) !== null && _x !== void 0 ? _x : "", () => cfg("pagesURLPentaDrillBattle")],
+        [(_y = cfg("pagesIDClubChampion")) !== null && _y !== void 0 ? _y : "", () => cfg("pagesURLClubChampion")],
+        [(_z = cfg("pagesIDLeagueBattle")) !== null && _z !== void 0 ? _z : "", () => cfg("pagesURLLeagueBattle")],
+        [(_0 = cfg("pagesIDTrollPreBattle")) !== null && _0 !== void 0 ? _0 : "", () => cfg("pagesURLTrollPreBattle")],
+        [(_1 = cfg("pagesIDEvent")) !== null && _1 !== void 0 ? _1 : "", () => cfg("pagesURLEvent")],
+        [(_2 = cfg("pagesIDClub")) !== null && _2 !== void 0 ? _2 : "", () => cfg("pagesURLClub")],
+        [(_3 = cfg("pagesIDPoV")) !== null && _3 !== void 0 ? _3 : "", () => cfg("pagesURLPoV")],
+        [(_4 = cfg("pagesIDPoG")) !== null && _4 !== void 0 ? _4 : "", () => cfg("pagesURLPoG")],
+        [(_5 = cfg("pagesIDSeasonalEvent")) !== null && _5 !== void 0 ? _5 : "", () => cfg("pagesURLSeasonalEvent")],
+        [(_6 = cfg("pagesIDEditTeam")) !== null && _6 !== void 0 ? _6 : "", () => cfg("pagesURLEditTeam")],
+        [(_7 = cfg("pagesIDWaifu")) !== null && _7 !== void 0 ? _7 : "", () => cfg("pagesURLWaifu")],
+        [(_8 = cfg("pagesIDLoveRaid")) !== null && _8 !== void 0 ? _8 : "", () => cfg("pagesURLLoveRaid")],
+    ];
+    const map = new Map();
+    for (const [key, resolver] of entries) {
+        if (key) {
+            map.set(key, resolver);
+        }
+    }
+    return map;
+}
+function resolveByRegexPassthrough(page) {
+    return REGEX_PASSTHROUGH.some((r) => r.test(page)) ? page : undefined;
+}
+// Schedule a navigation action after waitForAjaxIdle reports the channel
+// is quiet. Centralises the navInFlight + waitForAjaxIdle + setTimeout
+// boilerplate that gotoPage / safeReload / safeNavigateHref share.
+//
+// On AJAX-idle timeout the action is dropped and AutoLoop is re-enabled
+// so the next tick can retry. navInFlight is reset in both branches.
+function scheduleAfterIdle(delay, logContext, action) {
+    navInFlight = true;
+    setTimeout(() => {
+        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then((idle) => {
+            if (!idle) {
+                LogUtils_logHHAuto(`${logContext}: AJAX still busy after ${AJAX_IDLE_TIMEOUT_MS}ms, deferring`);
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                navInFlight = false;
+                return;
+            }
+            action();
+        });
+    }, delay);
+}
+function logBlockedNavigation(prefix, detail) {
+    const now = Date.now();
+    if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
+        lastNavBlockedLogAt = now;
+        LogUtils_logHHAuto(`${prefix}: navigation already in flight, ignoring ${detail}`);
+    }
+}
+function resolveDelay(delay) {
+    return typeof delay === 'number' && delay !== -1 ? delay : randomInterval(300, 500);
+}
+// Schedule navigation to `page`. Returns true when a navigation has
+// been scheduled, false when blocked by the navigation mutex or when
+// `page` does not resolve to a known URL (unknown page-id, no regex
+// passthrough match). Callers that need an explicit reload fallback
+// should call safeReload() themselves; this function never reloads
+// the current page on its own.
+function gotoPage(page, inArgs = {}, delay = -1) {
+    if (navInFlight) {
+        logBlockedNavigation('gotoPage', page);
+        return false;
+    }
+    const cp = getPage();
+    LogUtils_logHHAuto(`going ${cp}->${page}`);
+    delay = resolveDelay(delay);
+    const resolverMap = buildResolverMap();
+    let togoto;
+    const resolver = resolverMap.get(page);
+    if (resolver) {
+        togoto = resolver();
+    }
+    else {
+        togoto = resolveByRegexPassthrough(page);
+        if (togoto === undefined) {
+            LogUtils_logHHAuto(`Unknown goto page request. No page '${page}' defined.`);
+            return false;
+        }
+    }
+    if (togoto === undefined) {
+        // resolveByRegexPassthrough already logged and returned false.
+        // This branch is defensive for resolver functions that yield
+        // undefined despite the page-id being in the resolver map.
+        LogUtils_logHHAuto(`Couldn't resolve URL for page '${page}', skipping.`);
+        return false;
+    }
+    setLastPageCalled(togoto);
+    if (typeof inArgs === 'object' && Object.keys(inArgs).length > 0) {
+        for (const arg of Object.keys(inArgs)) {
+            togoto = url_add_param(togoto, arg, inArgs[arg]);
+        }
+    }
+    togoto = addNutakuSession(togoto);
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto("setting autoloop to false");
+    LogUtils_logHHAuto(`GotoPage : ${togoto} in ${delay}ms.`);
+    const targetUrl = togoto;
+    scheduleAfterIdle(delay, 'gotoPage', () => {
+        // Wait for any in-flight game AJAX (e.g. PoP claim POSTs) to
+        // finish before changing the URL. Setting window.location.href
+        // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
+        // state-changing request can make the server answer Forbidden
+        // on the next call (issue #1598).
+        window.location.href = window.location.origin + targetUrl;
+    });
+    return true;
+}
+/**
+ * Reload the current page after waiting for any in-flight game AJAX
+ * to finish. Equivalent to `location.reload()` but with the same
+ * NS_BINDING_ABORTED guard as gotoPage (see issue #1598).
+ *
+ * Honors the navInFlight mutex so concurrent callers cannot fire two
+ * reloads within the same tick. On AJAX-idle timeout, the reload is
+ * deferred and AutoLoop is re-enabled so the next tick can retry.
+ */
+function safeReload(delay = -1) {
+    if (navInFlight) {
+        logBlockedNavigation('safeReload', 'reload');
+        return false;
+    }
+    delay = resolveDelay(delay);
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto(`safeReload: scheduled in ${delay}ms`);
+    scheduleAfterIdle(delay, 'safeReload', () => {
+        location.reload();
+    });
+    return true;
+}
+/**
+ * Navigate to an arbitrary URL after waiting for any in-flight game
+ * AJAX to finish. Use when gotoPage's page-ID switch cannot be used
+ * (e.g. event links provided as raw href). Same NS_BINDING_ABORTED
+ * guard as gotoPage (see issue #1598).
+ */
+function safeNavigateHref(url, delay = -1) {
+    if (navInFlight) {
+        logBlockedNavigation('safeNavigateHref', url);
+        return false;
+    }
+    delay = resolveDelay(delay);
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto(`safeNavigateHref: ${url} in ${delay}ms`);
+    scheduleAfterIdle(delay, 'safeNavigateHref', () => {
+        location.href = url;
+    });
+    return true;
+}
+// eslint-disable-next-line no-redeclare
+function addNutakuSession(togoto) {
+    if (!unsafeWindow.hh_nutaku) {
+        return togoto;
+    }
+    const hhSession = queryStringGetParam(window.location.search, 'sess');
+    if (!hhSession) {
+        LogUtils_logHHAuto('ERROR Nutaku detected and no session found');
+        return togoto;
+    }
+    if (typeof togoto === 'string') {
+        return togoto.includes("sess=") ? togoto : url_add_param(togoto, 'sess', hhSession);
+    }
+    if (typeof togoto === 'object' && togoto !== null && !Object.prototype.hasOwnProperty.call(togoto, 'sess')) {
+        togoto['sess'] = hhSession;
+    }
+    return togoto;
+}
+function setLastPageCalled(inPage) {
+    setStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled, JSON.stringify({ page: inPage, dateTime: new Date().getTime() }));
+}
+/**
+ * Test-only hook. Resets the module-level mutex and throttle state so
+ * each spec can exercise `gotoPage` / `safeReload` / `safeNavigateHref`
+ * in isolation without `jest.resetModules()` overhead. Naming follows
+ * the convention of `_resetAjaxTrackerForTests` in `AjaxTracker.ts`.
+ */
+function _resetPageNavigationServiceForTests() {
+    navInFlight = false;
+    lastNavBlockedLogAt = 0;
+}
+
+;// CONCATENATED MODULE: ./src/Helper/NumberHelper.ts
+// NumberHelper.ts
+//
+// Utility functions for formatting and parsing numbers across the UI.
+// Handles thousands separators (locale-aware via toLocaleString) and
+// compact notation (K, M, B, T suffixes) for displaying large values
+// like gold, XP, or damage in a readable way.
+//
+// The rounding modes (ceil/round/floor via `updown`) matter because
+// the game rounds differently by context: reward previews round down
+// to avoid overpromising, cost displays round up to avoid underpaying.
+//
+// Used by: HHMenuHelper (input formatting), RewardHelper (reward
+//          display), InfoService (player info panel)
+/** Event handler for menu inputs that auto-formats with thousands separators. */
+function add1000sSeparator1() {
+    var nToFormat = this.value;
+    this.value = NumberHelper.add1000sSeparator(nToFormat);
+}
+class NumberHelper {
+    static add1000sSeparator(nToFormat) {
+        return NumberHelper.nThousand(NumberHelper.remove1000sSeparator(nToFormat));
+    }
+    static remove1000sSeparator(nToFormat) {
+        return Number(nToFormat.replace(/\D/g, ''));
+    }
+    static nThousand(x) {
+        if (typeof x != 'number') {
+            x = 0;
+        }
+        return x.toLocaleString();
+    }
+    // Numbers: rounding to K, M, G and T
+    static nRounding(num, digits, updown) {
+        var power = [
+            { value: 1, symbol: '' },
+            { value: 1E3, symbol: 'K' },
+            { value: 1E6, symbol: 'M' },
+            { value: 1E9, symbol: 'B' },
+            { value: 1E12, symbol: 'T' },
+        ];
+        var i;
+        for (i = power.length - 1; i > 0; i--) {
+            if (num >= power[i].value) {
+                break;
+            }
+        }
+        if (updown == 1) {
+            return (Math.ceil(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
+        }
+        else if (updown == 0) {
+            return (Math.round(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
+        }
+        else if (updown == -1) {
+            return (Math.floor(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Helper/PriceHelper.ts
+// PriceHelper.ts
+//
+// Parses human-readable price strings from the game UI back into raw
+// numbers. The game displays large values with suffixes (e.g. "105K",
+// "6.38M", "2.1B"), and this helper reverses that formatting so the
+// script can do arithmetic on actual values.
+//
+// Handles locale differences by treating commas as decimal separators
+// (common in European localizations).
+//
+// Used by: RewardHelper (reward value calculation), Market module
+
+/** Converts a compact price string like "105K" or "6.38M" back to a number. */
+function parsePrice(princeStr) {
+    // Parse price to number 105K to 105000, 6.38M to 6380000
+    // Replace comma by dots for local supports
+    let ret = Number.NaN;
+    if (princeStr && princeStr.indexOf('B') > 0) {
+        ret = Number(princeStr.replace(/B/g, '').replace(',', '.')) * 1000000000;
+    }
+    else if (princeStr && princeStr.indexOf('M') > 0) {
+        ret = Number(princeStr.replace(/M/g, '').replace(',', '.')) * 1000000;
+    }
+    else if (princeStr && princeStr.indexOf('K') > 0) {
+        ret = Number(princeStr.replace(/K/g, '').replace(',', '.')) * 1000;
+    }
+    else {
+        ret = NumberHelper.remove1000sSeparator(princeStr);
+    }
+    return ret;
+}
+/*
+export function manageUnits(inText)
+{
+    let units = ["firstUnit", "K", "M", "B"];
+    let textUnit= "";
+    for (let currUnit of units)
+    {
+        if (inText.includes(currUnit))
+        {
+            textUnit= currUnit;
+        }
+    }
+    if (textUnit !== "")
+    {
+        let integerPart;
+        let decimalPart;
+        if (inText.includes('.') )
+        {
+            inText = inText.replace(/[^0-9\.]/gi, '');
+            integerPart = inText.split('.')[0];
+            decimalPart = inText.split('.')[1];
+
+        }
+        else if (inText.includes(','))
+        {
+            inText = inText.replace(/[^0-9,]/gi, '');
+            integerPart = inText.split(',')[0];
+            decimalPart = inText.split(',')[1];
+        }
+        else
+        {
+            integerPart = inText.replace(/[^0-9]/gi, '');
+            decimalPart = "0";
+        }
+        //console.log(integerPart,decimalPart);
+        let decimalNumber = Number(integerPart)
+        if (Number(decimalPart) !== 0)
+        {
+            decimalNumber+= Number(decimalPart)/(10**decimalPart.length)
+        }
+        return decimalNumber*(1000**units.indexOf(textUnit));
+    }
+    else
+    {
+        return parseInt(inText.replace(/[^0-9]/gi, ''));
+    }
+}
+*/ 
+
+;// CONCATENATED MODULE: ./src/Module/Events/BossBang.ts
+var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
+//
+// Boss Bang is a club-wide cooperative event where members contribute damage
+// to shared bosses. This module parses event page data, tracks boss HP and
+// timers, and automates participation in boss fights when energy is available.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Boss Bang event is active)
+//
+
+
+
+
+
+
+// >>> ADR-003 / issue #1598 - bossbang:imports begin
+// CLEANUP-MODE (when stable): remove only the two marker comment lines.
+// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
+// remove this import statement entirely.
+
+// <<< ADR-003 / issue #1598 - bossbang:imports end
+
+
+
+
+class BossBang {
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventBossBangGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventBossBangGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
+        let teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
+        let teamFound = false;
+        const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
+        if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
+            // Do not trigger event if not all teams are set
+            for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
+                // start with last team first
+                let teamz = $(teamEventz[currIndex]);
+                const teamIndex = teamz.data('slot-index');
+                const teamEgo = $('.boss-bang-team-ego', teamz);
+                if (teamEgo.length > 0 && parseInt(teamEgo.text()) > 0) {
+                    if (!teamFound) {
+                        if (!teamz.hasClass('.selected-hero-team'))
+                            teamz.click();
+                        teamFound = true;
+                        LogUtils_logHHAuto("Select team " + (teamIndex + 1) + ", Ego: " + parseInt(teamEgo.text()));
+                        setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, teamIndex);
+                        return true;
+                    }
+                }
+                else {
+                    LogUtils_logHHAuto("Team " + teamIndex + " not eligible");
+                }
+            }
+            // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
+        }
+        else if (eventList[eventID]["isCompleted"]) {
+            LogUtils_logHHAuto("Boss bang completed, disabled boss bang event setting");
+            setStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent, false);
+        }
+        else {
+            LogUtils_logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
+        }
+        if (!teamFound) {
+            setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, -1);
+        }
+    }
+    static skipFightPage() {
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
+            const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
+            if (rewardsButton.length > 0) {
+                // >>> ADR-003 / issue #1598 - bossbang:rewards begin
+                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                // with the pre-fix code:
+                //     logHHAuto("Click get rewards bang fight");
+                //     rewardsButton.trigger('click');
+                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                // and (if no other ADR-003 block remains) drop the imports/markers above.
+                if (!acquirePostMutex('bossbang:rewards')) {
+                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring rewards click');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    return;
+                }
+                LogUtils_logHHAuto("Click get rewards bang fight");
+                const claimStart = Date.now();
+                rewardsButton.trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                const claimDuration = Date.now() - claimStart;
+                releasePostMutex();
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                if (idle)
+                    yield awaitServerSettleAfterPost(claimDuration);
+                else
+                    LogUtils_logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                // <<< ADR-003 / issue #1598 - bossbang:rewards end
+            }
+            else if (skipFightButton.length > 0) {
+                // >>> ADR-003 / issue #1598 - bossbang:skipFight begin
+                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                // with the pre-fix code:
+                //     logHHAuto("Click skip boss bang fight");
+                //     skipFightButton.trigger('click');
+                //     setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                // and (if no other ADR-003 block remains) drop the imports/markers above.
+                if (!acquirePostMutex('bossbang:skipFight')) {
+                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring skip click');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    return;
+                }
+                LogUtils_logHHAuto("Click skip boss bang fight");
+                const claimStart = Date.now();
+                skipFightButton.trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                const claimDuration = Date.now() - claimStart;
+                releasePostMutex();
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                if (idle)
+                    yield awaitServerSettleAfterPost(claimDuration);
+                else
+                    LogUtils_logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+                // <<< ADR-003 / issue #1598 - bossbang:skipFight end
+            }
+        });
+    }
+    static goToFightPage(bossbangEventID) {
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+                const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam));
+                let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
+                if (teamIndexFound >= 0 && bangButton.length > 0) {
+                    LogUtils_logHHAuto("Go to boss bang fight page");
+                    // Use safeNavigateHref so any in-flight game AJAX completes
+                    // before the URL change. Direct location.href = ... cancels
+                    // open XHRs with NS_BINDING_ABORTED, which can trigger the
+                    // server-side Forbidden race (issue #1598).
+                    const href = addNutakuSession(bangButton.attr('href'));
+                    safeNavigateHref(href);
+                    yield TimeHelper.sleep(randomInterval(3000, 5000));
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto(`Cannot go to boss bang fight page, no team selected ${teamIndexFound} or no bang button found`);
+                    setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
+                }
+            }
+            else {
+                if (bossbangEventID)
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventID });
+                else {
+                    const bossbangEventIDs = EventModule.getEventIDsByType('boss_bang');
+                    if (bossbangEventIDs.length > 0)
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventIDs[0] });
+                    else {
+                        LogUtils_logHHAuto("Cannot go to boss bang fight page, no boss bang event found");
+                        setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
+                    }
+                }
+            }
+            return false;
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/CumbackContests.ts
+// CumbackContests.ts -- Cumback Contest event handling and auto-collection.
+//
+// Cumback Contests are periodic events that reward returning players. This
+// module parses event page data, tracks timer countdowns, and collects
+// available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Cumback Contest event is active)
+//
+
+
+class CumbackContests {
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventCumbackGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventCumbackGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            let girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100) {
+                eventList[eventID]["isCompleted"] = false;
+            }
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Helper/ButtonHelper.ts
+/**
+ * ButtonHelper.ts - Reusable HTML button generators for the game UI
+ *
+ * Produces HTML strings for common action buttons injected into the game
+ * page. These are used by automation modules that need to add navigation
+ * shortcuts (e.g., "Change team" or "Go to Club Champion") to the DOM.
+ */
+
+
+function getGoToChangeTeamButton() {
+    // TODO change href and translate
+    return '<div class="change_team_container"><a id="change_team" href="/teams.html" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
+}
+function getGoToClubChampionButton() {
+    return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Labyrinth.pure.ts
 // Labyrinth.pure.ts -- Pure decision logic for the labyrinth path pipeline
 // and the "find better option" selector.
@@ -3165,83 +4148,6 @@ function getSkillPercentage(team, id) {
     return 1 + (team.girls.map(e => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
 }
 
-;// CONCATENATED MODULE: ./src/Helper/ButtonHelper.ts
-/**
- * ButtonHelper.ts - Reusable HTML button generators for the game UI
- *
- * Produces HTML strings for common action buttons injected into the game
- * page. These are used by automation modules that need to add navigation
- * shortcuts (e.g., "Change team" or "Go to Club Champion") to the DOM.
- */
-
-
-function getGoToChangeTeamButton() {
-    // TODO change href and translate
-    return '<div class="change_team_container"><a id="change_team" href="/teams.html" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
-}
-function getGoToClubChampionButton() {
-    return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
-}
-
-;// CONCATENATED MODULE: ./src/Helper/NumberHelper.ts
-// NumberHelper.ts
-//
-// Utility functions for formatting and parsing numbers across the UI.
-// Handles thousands separators (locale-aware via toLocaleString) and
-// compact notation (K, M, B, T suffixes) for displaying large values
-// like gold, XP, or damage in a readable way.
-//
-// The rounding modes (ceil/round/floor via `updown`) matter because
-// the game rounds differently by context: reward previews round down
-// to avoid overpromising, cost displays round up to avoid underpaying.
-//
-// Used by: HHMenuHelper (input formatting), RewardHelper (reward
-//          display), InfoService (player info panel)
-/** Event handler for menu inputs that auto-formats with thousands separators. */
-function add1000sSeparator1() {
-    var nToFormat = this.value;
-    this.value = NumberHelper.add1000sSeparator(nToFormat);
-}
-class NumberHelper {
-    static add1000sSeparator(nToFormat) {
-        return NumberHelper.nThousand(NumberHelper.remove1000sSeparator(nToFormat));
-    }
-    static remove1000sSeparator(nToFormat) {
-        return Number(nToFormat.replace(/\D/g, ''));
-    }
-    static nThousand(x) {
-        if (typeof x != 'number') {
-            x = 0;
-        }
-        return x.toLocaleString();
-    }
-    // Numbers: rounding to K, M, G and T
-    static nRounding(num, digits, updown) {
-        var power = [
-            { value: 1, symbol: '' },
-            { value: 1E3, symbol: 'K' },
-            { value: 1E6, symbol: 'M' },
-            { value: 1E9, symbol: 'B' },
-            { value: 1E12, symbol: 'T' },
-        ];
-        var i;
-        for (i = power.length - 1; i > 0; i--) {
-            if (num >= power[i].value) {
-                break;
-            }
-        }
-        if (updown == 1) {
-            return (Math.ceil(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
-        }
-        else if (updown == 0) {
-            return (Math.round(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
-        }
-        else if (updown == -1) {
-            return (Math.floor(num / power[i].value * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits) + power[i].symbol;
-        }
-    }
-}
-
 ;// CONCATENATED MODULE: ./src/Module/League.pure.ts
 // League.pure.ts -- Pure decision logic for league automation.
 //
@@ -3275,2262 +4181,6 @@ function decideShouldFight(state) {
     const paranoiaOverride = energy > 0 && paranoiaSpending > 0;
     const boosterCheck = (boosterRequired && boosterEquipped) || !boosterRequired;
     return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
-}
-
-;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
-var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// AjaxTracker.ts
-//
-// XHR tracker plus a global mutex for state-changing /ajax.php POSTs.
-// Installed once at script start.
-//
-// Why the counter exists:
-//   window.location.href = ... cancels any in-flight XHR with
-//   NS_BINDING_ABORTED. When the cancelled request is a state-changing
-//   POST (e.g. PoP claim), the server can answer the next request with
-//   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
-//   for the queue to drain before changing pages.
-//
-// Why the mutex exists (issue 1598, ADR-003):
-//   On accounts with very large rosters the server takes 5-7s per POST,
-//   while AutoLoop ticks every ~1s. Multiple handlers each fire their
-//   own POST per tick, and the server bot-detection rate-limits the
-//   resulting burst with HTTP Forbidden. The mutex serialises script-
-//   triggered POSTs and gives the server time to settle before the
-//   next action.
-//
-// Why awaitServerSettleAfterPost lives here:
-//   The HTTP loadend marks "response received", but the server-side
-//   write (DB, world state) keeps running for some time after that.
-//   Acting on the next request before the write completes also
-//   triggers Forbidden. The settle helper pauses long enough for the
-//   write to finish, sized off the actual XHR duration so it stays
-//   short on small accounts and long on large ones.
-//
-// Public API:
-//   installAjaxTracker()              -- call once at script start
-//   pendingAjaxCount()                -- in-flight XHR count
-//   waitForAjaxIdle(timeoutMs, settleMs)
-//   acquirePostMutex(holderName?)     -- explicit caller mutex
-//   releasePostMutex()
-//   isPostInFlight()                  -- any tracked POST or held mutex
-//   awaitServerSettleAfterPost(durMs) -- post-claim pause
-//
-// Used by:
-//   PageNavigationService (idle wait), PlaceOfPower (claim path),
-//   AutoLoop (tick-gate).
-
-// Shared timing budget for all callers that wait on the game's AJAX
-// before navigating. Keeping these constants here means
-// PageNavigationService and individual modules cannot drift apart
-// (issue 1598: the PoP path used a tighter cap than gotoPage and
-// ignored timeouts, which re-introduced the cancel-mid-POST race).
-//
-// 15s is a conservative cap that covers the worst case observed in
-// Firefox Private Browsing (10-12s claim responses). The wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 15000;
-// Extra delay after AJAX idle before navigating, to let synchronous
-// follow-up code (DOM updates, popup handling) finish.
-const AJAX_IDLE_SETTLE_MS = 250;
-// Stale-lock timeout for the explicit POST mutex. If a holder forgets
-// to call releasePostMutex(), the mutex is force-released after this
-// many milliseconds so the script does not deadlock. 30s covers the
-// worst observed claim XHR + settle pause on the 2400-girls account.
-const POST_MUTEX_STALE_MS = 30000;
-// Server-settle minimum pause and amplification factor for
-// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
-// observed safe gap before next request ~25-30s -> factor 4.
-// Math.max keeps small accounts fast (a 200ms claim still gets a 2s
-// pause, large accounts get the longer wait).
-const POST_SETTLE_MIN_MS = 2000;
-const POST_SETTLE_FACTOR = 4;
-// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
-// via setter to avoid a circular import between AjaxTracker and
-// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
-// -> AjaxTracker). StartService wires recordForbidden in here right
-// after installAjaxTracker() so the dependency edge runs in the right
-// direction.
-let onAjaxForbidden = null;
-let pending = 0;
-let installed = false;
-let restoreSend = null;
-let restoreOpen = null;
-// Explicit POST mutex state. Acquired by callers (e.g. PoP claim) to
-// serialise their state-changing POSTs. The auto-tracking path below
-// never sets postMutexHeld -- it only feeds isPostInFlight() via the
-// pending counter.
-let postMutexHeld = false;
-let postMutexHolder = "";
-let postMutexAcquiredAt = 0;
-// Track POSTs to /ajax.php separately from the general pending counter.
-// AutoLoop uses isPostInFlight() to skip its tick when a state-changing
-// POST is still being processed. GET-only XHRs (asset preloads, etc.)
-// must not gate the tick.
-let pendingAjaxPosts = 0;
-const AJAX_POST_PATH = "/ajax.php";
-/** Returns true if `url` looks like an /ajax.php request. */
-function isAjaxPostUrl(url) {
-    if (typeof url !== "string")
-        return false;
-    // Match relative ("/ajax.php"), query ("/ajax.php?..."), and
-    // absolute ("https://.../ajax.php") forms. Case-sensitive: the
-    // game always uses lowercase.
-    return url.indexOf(AJAX_POST_PATH) !== -1;
-}
-/**
- * Install the XHR counter hook. Idempotent.
- * Hooks XMLHttpRequest.prototype.open and send to:
- *   - count in-flight requests for waitForAjaxIdle()
- *   - track /ajax.php POSTs separately for isPostInFlight()
- *   - detect HTTP 403 responses on /ajax.php for ForbiddenBackoff
- *
- * Returns true if the hook was installed (or was already installed),
- * false if no XMLHttpRequest constructor is available in this scope.
- */
-function installAjaxTracker() {
-    if (installed)
-        return true;
-    // Resolve the constructor lazily so tests can swap the global
-    // XMLHttpRequest before calling install().
-    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
-        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
-        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
-    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
-        return false;
-    }
-    const origOpen = xhrCtor.prototype.open;
-    const origSend = xhrCtor.prototype.send;
-    xhrCtor.prototype.open = function (method, url, ...rest) {
-        try {
-            this.__hhMethod = typeof method === 'string' ? method.toUpperCase() : '';
-            this.__hhUrl = url;
-            this.__hhIsAjaxPost =
-                this.__hhMethod === 'POST' && isAjaxPostUrl(url);
-        }
-        catch (e) { /* ignore */ }
-        return origOpen.apply(this, [method, url, ...rest]);
-    };
-    xhrCtor.prototype.send = function (...args) {
-        pending++;
-        const isAjaxPost = !!this.__hhIsAjaxPost;
-        if (isAjaxPost)
-            pendingAjaxPosts++;
-        let decremented = false;
-        const decrement = () => {
-            if (decremented)
-                return;
-            decremented = true;
-            if (pending > 0)
-                pending--;
-            if (isAjaxPost && pendingAjaxPosts > 0)
-                pendingAjaxPosts--;
-        };
-        // loadend fires once for both success and failure paths
-        this.addEventListener('loadend', () => {
-            try {
-                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
-                    onAjaxForbidden();
-                }
-            }
-            catch (e) { /* ignore */ }
-            decrement();
-        }, { once: true });
-        return origSend.apply(this, args);
-    };
-    restoreOpen = () => {
-        try {
-            xhrCtor.prototype.open = origOpen;
-        }
-        catch (e) { /* ignore */ }
-    };
-    restoreSend = () => {
-        try {
-            xhrCtor.prototype.send = origSend;
-        }
-        catch (e) { /* ignore */ }
-    };
-    installed = true;
-    LogUtils_logHHAuto('[AjaxTracker] installed');
-    return true;
-}
-/**
- * Register a callback invoked when an /ajax.php POST returns HTTP 403.
- * Pass null to clear. The callback receives no arguments.
- *
- * Decoupled via setter (instead of importing recordForbidden from
- * ForbiddenBackoff directly) because ForbiddenBackoff transitively
- * imports HHStoredVars, which imports PlaceOfPower, which imports
- * this module. A direct import would create a TDZ cycle that crashes
- * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
- * initialization").
- */
-function setOnAjaxForbidden(cb) {
-    onAjaxForbidden = cb;
-}
-/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
-function pendingAjaxCount() {
-    return pending;
-}
-/**
- * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
- * After idle is detected, wait an extra settleMs to let synchronous
- * follow-up code (e.g. DOM updates triggered by the response) finish.
- *
- * Polls every 50ms. Returns true if idle was reached, false on timeout.
- */
-function waitForAjaxIdle() {
-    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
-        if (!installed) {
-            // Tracker not installed -> behave like immediate idle, just settle.
-            yield sleep(settleMs);
-            return true;
-        }
-        const deadline = Date.now() + timeoutMs;
-        while (pending > 0 && Date.now() < deadline) {
-            yield sleep(50);
-        }
-        const reachedIdle = pending === 0;
-        if (!reachedIdle) {
-            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
-        }
-        if (settleMs > 0) {
-            yield sleep(settleMs);
-        }
-        return reachedIdle;
-    });
-}
-// --- POST mutex ----------------------------------------------------
-/**
- * Acquire the explicit POST mutex. Returns true when the caller now
- * holds the lock, false if another caller still holds it. Stale locks
- * (older than POST_MUTEX_STALE_MS) are force-released so a forgotten
- * release does not freeze the script.
- *
- * Holder name is purely for logs; pass a short identifier such as
- * "pop:claim" so the log line tells you who is blocking.
- */
-function acquirePostMutex(holderName = "anonymous") {
-    if (postMutexHeld) {
-        const heldFor = Date.now() - postMutexAcquiredAt;
-        if (heldFor > POST_MUTEX_STALE_MS) {
-            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
-                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
-            postMutexHeld = false;
-        }
-        else {
-            return false;
-        }
-    }
-    postMutexHeld = true;
-    postMutexHolder = holderName;
-    postMutexAcquiredAt = Date.now();
-    return true;
-}
-/** Release the explicit POST mutex. Idempotent: safe to call when not held. */
-function releasePostMutex() {
-    postMutexHeld = false;
-    postMutexHolder = "";
-    postMutexAcquiredAt = 0;
-}
-/**
- * True when either the explicit mutex is held OR a /ajax.php POST is
- * currently in-flight (auto-tracked). AutoLoop uses this to skip its
- * tick so handlers do not stack new POSTs on top of one already in
- * progress.
- */
-function isPostInFlight() {
-    if (postMutexHeld) {
-        // Stale-lock release path also runs here so AutoLoop is not
-        // pinned by a forgotten holder.
-        const heldFor = Date.now() - postMutexAcquiredAt;
-        if (heldFor > POST_MUTEX_STALE_MS) {
-            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
-                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
-            releasePostMutex();
-        }
-        else {
-            return true;
-        }
-    }
-    return pendingAjaxPosts > 0;
-}
-/**
- * Pause after a state-changing POST so the server can finish its
- * write before the next request hits. Empirically sized off the
- * just-completed XHR duration: claim XHR 6.7s -> settle ~27s on the
- * 2400-girls account, claim XHR 200ms -> settle 2s (floor) on small
- * accounts.
- *
- * Caller measures the XHR duration and passes it in. If the caller
- * does not have one, pass 0 to get the minimum pause.
- */
-function awaitServerSettleAfterPost(claimXhrDurationMs) {
-    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
-        const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
-            ? claimXhrDurationMs
-            : 0;
-        const settle = Math.max(POST_SETTLE_MIN_MS, Math.round(durationMs * POST_SETTLE_FACTOR));
-        LogUtils_logHHAuto('[AjaxTracker] server-settle pause ' + settle + 'ms (claim ' + Math.round(durationMs) + 'ms)');
-        yield sleep(settle);
-    });
-}
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-/** Reset internal state and remove the prototype hook. Test-only. */
-function _resetAjaxTrackerForTests() {
-    if (restoreSend) {
-        try {
-            restoreSend();
-        }
-        catch (e) { /* ignore */ }
-    }
-    if (restoreOpen) {
-        try {
-            restoreOpen();
-        }
-        catch (e) { /* ignore */ }
-    }
-    restoreSend = null;
-    restoreOpen = null;
-    pending = 0;
-    pendingAjaxPosts = 0;
-    postMutexHeld = false;
-    postMutexHolder = "";
-    postMutexAcquiredAt = 0;
-    onAjaxForbidden = null;
-    installed = false;
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/BossBang.ts
-var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// BossBang.ts -- Boss Bang event: cooperative boss fights with club members.
-//
-// Boss Bang is a club-wide cooperative event where members contribute damage
-// to shared bosses. This module parses event page data, tracks boss HP and
-// timers, and automates participation in boss fights when energy is available.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Boss Bang event is active)
-//
-
-
-
-
-
-
-// >>> ADR-003 / issue #1598 - bossbang:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
-
-// <<< ADR-003 / issue #1598 - bossbang:imports end
-
-
-
-
-class BossBang {
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventBossBangGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventBossBangGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
-        let teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
-        let teamFound = false;
-        const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
-        if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
-            // Do not trigger event if not all teams are set
-            for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
-                // start with last team first
-                let teamz = $(teamEventz[currIndex]);
-                const teamIndex = teamz.data('slot-index');
-                const teamEgo = $('.boss-bang-team-ego', teamz);
-                if (teamEgo.length > 0 && parseInt(teamEgo.text()) > 0) {
-                    if (!teamFound) {
-                        if (!teamz.hasClass('.selected-hero-team'))
-                            teamz.click();
-                        teamFound = true;
-                        LogUtils_logHHAuto("Select team " + (teamIndex + 1) + ", Ego: " + parseInt(teamEgo.text()));
-                        setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, teamIndex);
-                        return true;
-                    }
-                }
-                else {
-                    LogUtils_logHHAuto("Team " + teamIndex + " not eligible");
-                }
-            }
-            // setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
-        }
-        else if (eventList[eventID]["isCompleted"]) {
-            LogUtils_logHHAuto("Boss bang completed, disabled boss bang event setting");
-            setStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent, false);
-        }
-        else {
-            LogUtils_logHHAuto(`No eligible team found for boss bang event, need team ${firstTeamToStartWith} or higher`);
-        }
-        if (!teamFound) {
-            setStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam, -1);
-        }
-    }
-    static skipFightPage() {
-        return BossBang_awaiter(this, void 0, void 0, function* () {
-            const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
-            const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
-            if (rewardsButton.length > 0) {
-                // >>> ADR-003 / issue #1598 - bossbang:rewards begin
-                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                // with the pre-fix code:
-                //     logHHAuto("Click get rewards bang fight");
-                //     rewardsButton.trigger('click');
-                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                // and (if no other ADR-003 block remains) drop the imports/markers above.
-                if (!acquirePostMutex('bossbang:rewards')) {
-                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring rewards click');
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    return;
-                }
-                LogUtils_logHHAuto("Click get rewards bang fight");
-                const claimStart = Date.now();
-                rewardsButton.trigger('click');
-                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
-                const claimDuration = Date.now() - claimStart;
-                releasePostMutex();
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                if (idle)
-                    yield awaitServerSettleAfterPost(claimDuration);
-                else
-                    LogUtils_logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                // <<< ADR-003 / issue #1598 - bossbang:rewards end
-            }
-            else if (skipFightButton.length > 0) {
-                // >>> ADR-003 / issue #1598 - bossbang:skipFight begin
-                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                // with the pre-fix code:
-                //     logHHAuto("Click skip boss bang fight");
-                //     skipFightButton.trigger('click');
-                //     setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
-                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                // and (if no other ADR-003 block remains) drop the imports/markers above.
-                if (!acquirePostMutex('bossbang:skipFight')) {
-                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring skip click');
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    return;
-                }
-                LogUtils_logHHAuto("Click skip boss bang fight");
-                const claimStart = Date.now();
-                skipFightButton.trigger('click');
-                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
-                const claimDuration = Date.now() - claimStart;
-                releasePostMutex();
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                if (idle)
-                    yield awaitServerSettleAfterPost(claimDuration);
-                else
-                    LogUtils_logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
-                // <<< ADR-003 / issue #1598 - bossbang:skipFight end
-            }
-        });
-    }
-    static goToFightPage(bossbangEventID) {
-        return BossBang_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-                const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam));
-                let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
-                if (teamIndexFound >= 0 && bangButton.length > 0) {
-                    LogUtils_logHHAuto("Go to boss bang fight page");
-                    // Use safeNavigateHref so any in-flight game AJAX completes
-                    // before the URL change. Direct location.href = ... cancels
-                    // open XHRs with NS_BINDING_ABORTED, which can trigger the
-                    // server-side Forbidden race (issue #1598).
-                    const href = addNutakuSession(bangButton.attr('href'));
-                    safeNavigateHref(href);
-                    yield TimeHelper.sleep(randomInterval(3000, 5000));
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto(`Cannot go to boss bang fight page, no team selected ${teamIndexFound} or no bang button found`);
-                    setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
-                }
-            }
-            else {
-                if (bossbangEventID)
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventID });
-                else {
-                    const bossbangEventIDs = EventModule.getEventIDsByType('boss_bang');
-                    if (bossbangEventIDs.length > 0)
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: bossbangEventIDs[0] });
-                    else {
-                        LogUtils_logHHAuto("Cannot go to boss bang fight page, no boss bang event found");
-                        setTimer('nextBossBangTime', randomInterval(30, 60) * 60); // 30 to 60 minutes
-                    }
-                }
-            }
-            return false;
-        });
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/CumbackContests.ts
-// CumbackContests.ts -- Cumback Contest event handling and auto-collection.
-//
-// Cumback Contests are periodic events that reward returning players. This
-// module parses event page data, tracks timer countdowns, and collects
-// available rewards automatically.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Cumback Contest event is active)
-//
-
-
-class CumbackContests {
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventCumbackGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventCumbackGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
-                eventList[eventID]["isCompleted"] = false;
-            }
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/DoublePenetration.ts
-// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
-//
-// Double Penetration is a time-limited competitive event with its own fight
-// mechanics. This module tracks event progress, manages fight energy, collects
-// milestone rewards, and handles the event-specific UI interactions.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Double Penetration event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DoublePenetration {
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledDPEvent", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_DP"); // And 10 gilrs
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        let dpRemainingTime = 3600;
-        if (timeLeft !== undefined && timeLeft.length) {
-            dpRemainingTime = Number(convertTimeToInt(timeLeft));
-        }
-        setTimer('eventDPGoing', dpRemainingTime);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + dpRemainingTime * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true") {
-            DoublePenetration.goAndCollect(dpRemainingTime);
-        }
-    }
-    static goAndCollect(dpRemainingTime, manualCollectAll = false) {
-        try {
-            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autodpEventCollectablesList, []);
-            const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
-            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
-            const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
-            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
-            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
-            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
-            if (needToCollect || needToCollectAll || manualCollectAll) {
-                LogUtils_logHHAuto("Checking double penetration event for collectable rewards.");
-                LogUtils_logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = [];
-                const listDpEventTiersToClaim = $(dPTierQuery);
-                for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
-                    const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
-                    const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
-                    if (needToCollectAll) {
-                        LogUtils_logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    }
-                    else if (manualCollectAll) {
-                        LogUtils_logHHAuto("Adding for collection tier from manual collect all: " + currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    }
-                    else {
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType)) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType)) {
-                                    buttonsToCollect.push(currentButton);
-                                    LogUtils_logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    LogUtils_logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                LogUtils_logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
-                        }
-                    }
-                }
-                if (buttonsToCollect.length > 0) {
-                    function collectDpEventRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
-                            setTimeout(collectDpEventRewards, randomInterval(500, 800));
-                        }
-                        else {
-                            LogUtils_logHHAuto("Double penetration collection finished.");
-                            setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                        }
-                    }
-                    collectDpEventRewards();
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto("No double penetration reward to collect.");
-                    setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                    return false;
-                }
-            }
-            return true;
-        }
-        catch ({ errName, message }) {
-            LogUtils_logHHAuto(`ERROR during collect DP rewards: ${message}`);
-        }
-        return false;
-    }
-    static run() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'))) {
-            LogUtils_logHHAuto("On Double penetration event.");
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
-                GM_addStyle('#dp-content .left-container .objectives-container .hard-objective .nc-sub-panel div.buttons .redirect-buttons {flex-direction: column;}');
-                if ($(".hard-objective .hh-club-poa").length <= 0) {
-                    const championsGoal = $('.hard-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
-                    championsGoal.append(getGoToClubChampionButton());
-                }
-                if ($(".easy-objective .hh-club-poa").length <= 0) {
-                    const championsGoal = $('.easy-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
-                    championsGoal.append(getGoToClubChampionButton());
-                }
-            }
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-                DoublePenetration.displayRewardsDiv();
-                DoublePenetration.displayCollectAllButton();
-            }
-        }
-    }
-    static hasUnclaimedRewards() {
-        return $(".tier-container button.purple_button_L:visible").length > 0;
-    }
-    static displayRewardsDiv() {
-        try {
-            const target = $('#dp-content .right-container');
-            const hhRewardId = 'HHDpRewards';
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = DoublePenetration.getNotClaimedRewards();
-                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
-            }
-        }
-        catch ({ errName, message }) {
-            LogUtils_logHHAuto(`ERROR in display DP rewards: ${message}`);
-        }
-    }
-    static getNotClaimedRewards() {
-        const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
-        const freeSlotSelectors = ".free-slot .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
-            paidSlotSelectors = ".paid-slot  .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static displayCollectAllButton() {
-        if (DoublePenetration.hasUnclaimedRewards() && $('#dpCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="dpCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 135px;width: 80px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#dp-content .tiers-container .player-potions').append(divTooltip);
-            button.one('click', () => {
-                DoublePenetration.goAndCollect(Infinity, true);
-            });
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/KinkyCumpetition.ts
-// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
-//
-// Kinky Cumpetition is a periodic competitive event. This module parses event
-// page data, tracks timer countdowns and girl reward progress, and manages
-// the event refresh schedule.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
-//
-
-
-class KinkyCumpetition {
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventKinkyCumpetitionGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventKinkyCumpetitionGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
-                eventList[eventID]["isCompleted"] = false;
-            }
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.pure.ts
-// LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
-//
-// Extracted from LivelyScene.parse and LivelyScene.parseClaimableRewards
-// so the collect-trigger cascade and the puzzle-piece filter can be
-// unit-tested without DOM access, jQuery, storage, or game globals.
-//
-// Two decisions live here:
-//
-// 1. decideCollectTrigger -- the three-branch OR cascade in
-//    LivelyScene.parse that decides whether to invoke goAndCollect at
-//    all. Triggered by any of:
-//      - autoCollect setting on (continuous polling)
-//      - manualCollectAll flag on (user-initiated full sweep)
-//      - autoCollectAll setting on AND remainingTime is below the
-//        end-of-event threshold
-//
-// 2. selectClaimablePieces -- the loop in parseClaimableRewards that
-//    walks the puzzle-piece list and keeps only the entries that are
-//    unlocked-but-not-claimed AND match the per-piece eligibility
-//    rule: matching rewardType under needToCollect, OR needToCollectAll
-//    (any rewardType), OR manualCollectAll (any rewardType).
-/**
- * Reproduce the OR cascade in LivelyScene.parse bit by bit:
- *
- *   autoCollect
- *   || manualCollectAll
- *   || (remainingTime < limitBeforeEnd && autoCollectAll)
- *
- * Operator precedence preserved: && binds tighter than ||, so the
- * end-of-event branch parses as one parenthesised conjunction.
- */
-function decideCollectTrigger(state) {
-    return (state.autoCollect
-        || state.manualCollectAll
-        || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
-}
-/**
- * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
- * Walks the input list and keeps every piece for which:
- *
- *   reward_unlocked AND NOT reward_claimed
- *   AND (
- *     (rewardsToCollect.includes(rewardType) AND needToCollect)
- *     OR needToCollectAll
- *     OR manualCollectAll
- *   )
- *
- * Operator precedence preserved (&& binds tighter than ||): the per-
- * type allowlist only gates the per-poll branch; the two sweep modes
- * accept any rewardType.
- */
-function selectClaimablePieces(pieces, state) {
-    const claimable = [];
-    for (const piece of pieces) {
-        if (piece.reward_unlocked && !piece.reward_claimed) {
-            const allowedByType = state.rewardsToCollect.includes(piece.rewardType)
-                && state.needToCollect;
-            if (allowedByType || state.needToCollectAll || state.manualCollectAll) {
-                claimable.push(piece);
-            }
-        }
-    }
-    return claimable;
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.ts
-var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
-//
-// Lively Scene is a time-limited event where the player progresses through
-// scenes to earn rewards. This module tracks scene progression, manages
-// event energy, and collects available rewards automatically.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Lively Scene event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-class LivelyScene {
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        let remainingTime = 3600;
-        if (timeLeft !== undefined && timeLeft.length) {
-            remainingTime = Number(convertTimeToInt(timeLeft));
-        }
-        setTimer('eventLivelySceneGoing', remainingTime);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + remainingTime * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
-        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
-        const shouldTrigger = decideCollectTrigger({
-            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
-            manualCollectAll,
-            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
-            remainingTime,
-            limitBeforeEnd: getLimitTimeBeforeEnd(),
-        });
-        if (shouldTrigger) {
-            LivelyScene.goAndCollect(remainingTime, manualCollectAll);
-        }
-    }
-    static parseClaimableRewards(remainingTime, manualCollectAll = false) {
-        const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
-        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
-        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
-        const projected = puzzlePieces.map((piece) => {
-            var _a, _b;
-            return ({
-                reward_unlocked: piece.reward_unlocked,
-                reward_claimed: piece.reward_claimed,
-                rewardType: ((_a = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type,
-                __orig: piece,
-            });
-        });
-        const claimablePieces = selectClaimablePieces(projected, {
-            rewardsToCollect,
-            needToCollect,
-            needToCollectAll,
-            manualCollectAll,
-        }).map((p) => p.__orig);
-        LogUtils_logHHAuto('claimablePieces', claimablePieces);
-        return claimablePieces;
-    }
-    static goAndCollect(remainingTime_1) {
-        return LivelyScene_awaiter(this, arguments, void 0, function* (remainingTime, manualCollectAll = false) {
-            try {
-                const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
-                if (manualCollectAll)
-                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
-                if (rewards.length > 0) {
-                    LogUtils_logHHAuto("Going to collect rewards.");
-                    LogUtils_logHHAuto("setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    for (let currentReward = 0; currentReward < rewards.length; currentReward++) {
-                        const reward = rewards[currentReward];
-                        const puzzlePiece = $(`#puzzle_template #puzzle_piece_${reward.id_piece}.claimable`);
-                        if (puzzlePiece.length > 0) {
-                            puzzlePiece.trigger('click');
-                            yield TimeHelper.sleep(randomInterval(200, 400));
-                            const currentCollectButton = $('.lse_side_panel button.purple_button_L.claimable');
-                            if (currentCollectButton.length > 0) {
-                                currentCollectButton.trigger('click');
-                                yield TimeHelper.sleep(randomInterval(400, 700));
-                                RewardHelper.closeRewardPopupIfAny(); // refresh;
-                                yield TimeHelper.sleep(randomInterval(400, 700));
-                                return true;
-                            }
-                        }
-                    }
-                }
-                else {
-                    LogUtils_logHHAuto("No (more) LivelyScene reward to collect .");
-                    setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
-                    //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    // setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                    return false;
-                }
-            }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
-                setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
-            }
-            return false;
-        });
-    }
-    static _makeSVG(tag, attrs) {
-        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        for (var k in attrs)
-            el.setAttribute(k, attrs[k]);
-        return el;
-    }
-    static _makeSVGImage($puzzlePiece, iconHref) {
-        const tresorImage = $('image', $puzzlePiece);
-        return LivelyScene._makeSVG('image', {
-            height: 18,
-            width: 18,
-            visibility: 'visible',
-            href: iconHref,
-            x: Number(tresorImage.attr('x')) + 45,
-            y: tresorImage.attr('y')
-        });
-    }
-    static run() {
-        var _a, _b;
-        LivelyScene.displayCollectAllButton();
-        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-            const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
-            if (puzzlePieces.length > 0) {
-                for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
-                    const puzzlePiece = puzzlePieces[currentReward];
-                    if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                        let rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
-                        const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
-                        const iconHref = RewardHelper.getRewardsIconHref(rewardType);
-                        if ($puzzlePiece.length > 0 && iconHref) {
-                            const image = LivelyScene._makeSVGImage($puzzlePiece, iconHref);
-                            document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`).appendChild(image);
-                            LogUtils_logHHAuto(`Add icon for ${rewardType} to #puzzle_piece_${puzzlePiece.id_piece}`);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    static hasUnclaimedRewards() {
-        return $(".puzzle_piece.claimable:visible").length > 0;
-    }
-    static displayCollectAllButton() {
-        if (LivelyScene.hasUnclaimedRewards() && $('#LivelySceneCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="LivelySceneCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 0px;right: 45px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#lse_content').append(divTooltip);
-            button.one('click', () => {
-                LivelyScene.goAndCollect(Infinity, true);
-            });
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/model/EventGirl.ts
-// Model representing a girl obtainable during an in-game event.
-// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
-// association, shard count, event timing, and mythic status.
-
-
-class EventGirl {
-    constructor(girlData, eventId, seconds_before_end, is_mythic = false, parseSource = true) {
-        this.name = '';
-        this.event_id = '';
-        this.girl_id = girlData.id_girl;
-        this.shards = girlData.shards;
-        this.seconds_before_end = seconds_before_end;
-        this.is_mythic = is_mythic;
-        this.name = girlData.name;
-        this.event_id = eventId;
-        if (parseSource) {
-            this.parseSource(girlData);
-        }
-    }
-    /*
-    constructor(girl_id: number, troll_id: number, champ_id: number, girl_shards: number, girl_name: string, event_id: string, is_mythic: boolean = false) {
-        this.girl_id = girl_id;
-        this.troll_id = troll_id;
-        this.champ_id = champ_id;
-        this.girl_shards = girl_shards;
-        this.is_mythic = is_mythic;
-        this.girl_name = girl_name;
-        this.event_id = event_id;
-    }*/
-    isOnTroll() {
-        return this.troll_id > 0;
-    }
-    isOnChampion() {
-        return this.champ_id > 0;
-    }
-    toString() {
-        if (this.isOnTroll()) {
-            return `Event girl : ${this.name} (${this.shards}/100) at troll ${this.troll_id} on event : ${this.event_id}`;
-        }
-        else if (this.isOnChampion()) {
-            return `Event girl : ${this.name} (${this.shards}/100) at champ ${this.champ_id} on event : ${this.event_id}`;
-        }
-        return `Event girl : ${this.name} (${this.shards}/100) on event : ${this.event_id}`;
-    }
-    parseSource(girlData) {
-        if (girlData.source) {
-            if (girlData.source.name === 'event_troll') {
-                try {
-                    let parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
-                    this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
-                    if (girlData.source.anchor_source.disabled) {
-                        LogUtils_logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                        this.troll_id = undefined;
-                    }
-                }
-                catch (error) {
-                    try {
-                        let parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
-                        this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
-                        if (girlData.source.anchor_win_from.disabled) {
-                            LogUtils_logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                            this.troll_id = undefined;
-                        }
-                    }
-                    catch (error) {
-                        LogUtils_logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
-                    }
-                }
-            }
-            else if (girlData.source.name === 'event_champion_girl') {
-                try {
-                    this.champ_id = Number(girlData.source.anchor_source.url.split('/champions/')[1]);
-                    if (girlData.source.anchor_source.disabled) {
-                        LogUtils_logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                        this.champ_id = undefined;
-                    }
-                }
-                catch (error) {
-                    try {
-                        this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
-                        if (girlData.source.anchor_win_from.disabled) {
-                            LogUtils_logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                            this.champ_id = undefined;
-                        }
-                    }
-                    catch (error) {
-                        LogUtils_logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
-                    }
-                }
-            }
-            else if (girlData.source.name === 'event_dm') {
-                // Daily missions girl
-            }
-            else if (girlData.source.name === 'pachinko_event') {
-                // pachinko event girl
-            }
-            else {
-                LogUtils_logHHAuto(`Other source found ${girlData.source.name}`);
-            }
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/MythicEvent.ts
-// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
-//
-// Mythic events feature special troll bosses with wave-based progression and
-// unique girl shard rewards. This module tracks wave progress, coordinates
-// with Troll.ts for fight prioritization, and manages event-specific timers
-// and girl shard tracking.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Mythic event is active),
-//          Troll.ts (reads event troll priorities)
-//
-
-
-
-
-
-
-
-class MythicEvent {
-    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
-        const eventID = hhEvent.eventId;
-        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventMythicGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["isMythic"] = true;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            let ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
-            let timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
-            if ($(ShardsQuery).length > 0) {
-                let remShards = Number($(ShardsQuery)[0].innerText);
-                let nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
-                if (girlData.shards < 100) {
-                    eventList[eventID]["isCompleted"] = false;
-                    if (nextWave === -1) {
-                        clearTimer('eventMythicNextWave');
-                    }
-                    else {
-                        setTimer('eventMythicNextWave', nextWave);
-                    }
-                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"], true);
-                    if (remShards !== 0) {
-                        if (eventGirl.isOnTroll()) {
-                            LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
-                            eventsGirlz.push(eventGirl);
-                        }
-                    }
-                    else {
-                        if (nextWave === -1) {
-                            eventList[eventID]["isCompleted"] = true;
-                            clearTimer('eventMythicNextWave');
-                        }
-                    }
-                }
-                else {
-                    // No more needed if girl is owned
-                    clearTimer('eventMythicNextWave');
-                }
-            }
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/PathOfAttraction.ts
-var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
-// reward tracking.
-//
-// Path of Attraction is a tiered event where the player collects points to
-// unlock reward tiers. This module tracks tier progress, collects available
-// rewards, and manages the event page navigation and timer scheduling.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Attraction event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class PoaReward {
-    constructor(tier, type, slot) {
-        this.tier = 0;
-        this.type = '';
-        this.slot = $();
-        this.tier = tier;
-        this.type = type;
-        this.slot = slot;
-    }
-}
-class PathOfAttraction {
-    static getRemainingTime() {
-        const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
-        if ($(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate) === undefined)) {
-            const poATimer = Number(convertTimeToInt($(poATimerRequest).text()));
-            setTimer("PoARemainingTime", poATimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate, Math.ceil(new Date().getTime() / 1000) + poATimer);
-        }
-    }
-    static runOld() {
-        //https://nutaku.haremheroes.com/path-of-attraction.html"
-        let array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
-        if (array.length == 0) {
-            return;
-        }
-        let lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
-        for (let i = array.length - 1; i >= 0; i--) {
-            if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
-                array[i].style.display = "none";
-            }
-        }
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        PathOfAttraction.getRemainingTime();
-        const poAEnd = getSecondsLeft("PoARemainingTime");
-        LogUtils_logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
-        let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
-        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
-            refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
-        }
-        LogUtils_logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + poAEnd * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimerPoa * 1000;
-        eventList[eventID]["isCompleted"] = PathOfAttraction.isCompleted();
-    }
-    static run() {
-        return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg'))) {
-                LogUtils_logHHAuto("On path of attraction event.");
-                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
-                    if ($(".hh-club-poa").length <= 0) {
-                        const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
-                        championsGoal.append(getGoToClubChampionButton());
-                    }
-                }
-                const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
-                const poAEnd = getSecondsLeft("PoARemainingTime");
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
-                    yield PathOfAttraction.goAndCollect(manualCollectAll);
-                }
-            }
-        });
-    }
-    static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            setTimeout(PathOfAttraction.Hide, 500);
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-            PathOfAttraction.displayRewardsDiv();
-        }
-        PathOfAttraction.displayCollectAllButton();
-    }
-    static displayCollectAllButton() {
-        if (PathOfAttraction.hasUnclaimedRewards() && $('#PoaCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="PoaCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: -30px;left: 730px;width: 110px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#poa-content').append(divTooltip);
-            button.one('click', () => {
-                PathOfAttraction.goAndCollect(true);
-            });
-        }
-    }
-    static displayRewardsDiv() {
-        try {
-            const target = $('#poa-content .girls');
-            const hhRewardId = 'HHPoaRewards';
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = PathOfAttraction.getNotClaimedRewards();
-                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
-            }
-        }
-        catch ({ errName, message }) {
-            LogUtils_logHHAuto(`ERROR in display POA rewards: ${message}`);
-        }
-    }
-    static getNotClaimedRewards() {
-        const arrayz = $('.nc-poa-reward-pair');
-        const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
-            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static _getClaimableRewards(path) {
-        const rewards = [];
-        const listPoATiersToClaim = $(path);
-        for (let currentTier = 0; currentTier < listPoATiersToClaim.length; currentTier++) {
-            const currentRewardTierNb = listPoATiersToClaim[currentTier].getAttribute("data-nc-reward-id");
-            const slotElement = $('.slot', listPoATiersToClaim[currentTier]);
-            const slotType = RewardHelper.getRewardTypeBySlot(slotElement[0]);
-            rewards[currentRewardTierNb] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
-        }
-        return rewards;
-    }
-    static hasUnclaimedRewards() {
-        return $(PathOfAttraction.freeSlotPath + ".claimable" + ', ' + PathOfAttraction.paidSlotPath + ".claimable").length > 0;
-    }
-    static getFreeClaimableRewards() {
-        return PathOfAttraction._getClaimableRewards(PathOfAttraction.freeSlotPath + ".claimable");
-    }
-    static getPaidClaimableRewards() {
-        if ($("#nc-poa-tape-blocker").length) {
-            return [];
-        }
-        else {
-            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
-        }
-    }
-    static isCompleted() {
-        const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
-        const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
-        const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
-        if ($("#nc-poa-tape-blocker").length) {
-            return numberClaimedFree >= numberTiers;
-        }
-        else {
-            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
-        }
-    }
-    static goAndCollect() {
-        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false) {
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
-            const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true";
-            if (manualCollectAll)
-                setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
-            if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
-                const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoACollectablesList, []);
-                LogUtils_logHHAuto("Checking Path of Attraction for collectable rewards.");
-                const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
-                const freeClaimableRewards = PathOfAttraction.getFreeClaimableRewards();
-                const paidClaimableRewards = PathOfAttraction.getPaidClaimableRewards();
-                function getReward(reward) {
-                    return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
-                        LogUtils_logHHAuto("Going to get " + JSON.stringify(reward));
-                        reward.slot.trigger('click');
-                        yield TimeHelper.sleep(randomInterval(300, 800));
-                        $(PathOfAttraction.getRewardButtonPath).trigger('click');
-                        yield TimeHelper.sleep(randomInterval(300, 800));
-                        RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                        yield TimeHelper.sleep(randomInterval(1000, 1500)); // Do not collect before page refresh
-                        RewardHelper.closeRewardPopupIfAny(); // Close reward popup
-                        yield TimeHelper.sleep(randomInterval(1000, 1500));
-                    });
-                }
-                LogUtils_logHHAuto("numberTiers: " + numberTiers);
-                if (debugEnabled) {
-                    LogUtils_logHHAuto("freeClaimableRewards", freeClaimableRewards);
-                    LogUtils_logHHAuto("paidClaimableRewards", paidClaimableRewards);
-                }
-                const freeClaimableTiers = Object.keys(freeClaimableRewards);
-                const paidClaimableTiers = Object.keys(paidClaimableRewards);
-                if (numberTiers > 0 && (freeClaimableTiers.length > 0 || paidClaimableTiers.length > 0)) {
-                    LogUtils_logHHAuto(`Collecting rewards, ${freeClaimableTiers.length + paidClaimableTiers.length} rewards to collect , setting autoloop to false`);
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    $(".scroll-area.poa").animate({ scrollLeft: 0 });
-                    yield TimeHelper.sleep(randomInterval(300, 800));
-                    for (let currentTier = 1; currentTier <= numberTiers; currentTier++) {
-                        if (freeClaimableTiers.includes('' + currentTier)) {
-                            if (rewardsToCollect.includes(freeClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
-                                yield getReward(freeClaimableRewards[currentTier]);
-                                return true;
-                            }
-                        }
-                        if (paidClaimableTiers.includes('' + currentTier)) {
-                            if (rewardsToCollect.includes(paidClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
-                                yield getReward(paidClaimableRewards[currentTier]);
-                                return true;
-                            }
-                        }
-                    }
-                    LogUtils_logHHAuto("Path of Attraction collection finished.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto("No Path of Attraction reward to collect.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'false');
-                }
-            }
-            return false;
-        });
-    }
-    static Hide() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            let arrayz;
-            let nbReward;
-            let modified = false;
-            arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
-            if ($("#nc-poa-tape-blocker").length) {
-                nbReward = 1;
-            }
-            else {
-                nbReward = 2;
-            }
-            var obj;
-            if (arrayz.length > 0) {
-                for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                    obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
-                    if (obj.length >= nbReward) {
-                        //console.log("scroll before : "+document.getElementById('rewards_cont_scroll').scrollLeft);
-                        //console.log("width : "+arrayz[i2].offsetWidth);
-                        $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
-                        //console.log("scroll after : "+document.getElementById('rewards_cont_scroll').scrollLeft);arrayz[i2].style.display = "none";
-                        arrayz[i2].style.display = "none";
-                        modified = true;
-                    }
-                }
-            }
-        }
-    }
-}
-PathOfAttraction.rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";
-PathOfAttraction.freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
-PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
-PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
-
-;// CONCATENATED MODULE: ./src/Module/Events/PlusEvents.ts
-// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
-//
-// Plus Events are a category of events that overlay additional information
-// and rewards on top of normal gameplay. This module parses event data,
-// extracts girl shard progress and troll fight priorities, and displays
-// event overlay information in the UI.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Plus Events are active)
-//
-
-
-
-
-
-
-
-
-class PlusEvent {
-    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
-        const eventID = hhEvent.eventId;
-        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
-                eventList[eventID]["isCompleted"] = false;
-                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
-                if (eventGirl.isOnTroll()) {
-                    LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
-                    eventsGirlz.push(eventGirl);
-                }
-                if (eventGirl.isOnChampion()) {
-                    LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()}`, eventGirl);
-                    eventChamps.push(eventGirl);
-                }
-            }
-        }
-        if (eventList[eventID]["isCompleted"]) {
-            EventModule.collectEventChestIfPossible();
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/SultryMysteries.ts
-// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and auto-buying.
-//
-// Sultry Mysteries is a time-limited event featuring a special event shop.
-// This module monitors the event shop for refresh timers, detects available
-// items, and automates purchasing when configured. Requires a minimum player
-// level to participate.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Sultry Mysteries event is active)
-//
-
-
-
-
-
-class SultryMysteries {
-    static isEnabled() {
-        return HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_SM");
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventSultryMysteryGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventSultryMysteryGoing', 3600);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = false;
-        if (checkTimer("eventSultryMysteryShopRefresh")) {
-            LogUtils_logHHAuto("Refresh sultry mysteries shop content.");
-            const shopButton = $('#shop_tab');
-            const gridButton = $('#grid_tab');
-            shopButton.trigger('click');
-            setTimeout(function () {
-                let shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
-                setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
-                eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
-                setTimeout(function () { gridButton.trigger('click'); }, randomInterval(800, 1200));
-            }, randomInterval(300, 500));
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/EventModule.ts
-var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class EventModule {
-    /**
-     * Remove stale event data from sessionStorage for the given event ID.
-     * Also prunes expired events, disables timers when no mythic/regular events remain,
-     * and cleans up associated girl and champion lists.
-     */
-    static clearEventData(inEventID) {
-        //clearTimer('eventMythicNextWave');
-        //clearTimer('eventRefreshExpiration');
-        //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        let eventGirl = EventModule.getEventGirl();
-        let eventMythicGirl = EventModule.getEventMythicGirl();
-        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-        let hasMythic = false;
-        let hasEvent = false;
-        for (let prop of Object.keys(eventList)) {
-            if (eventList[prop]["seconds_before_end"] < new Date()
-                ||
-                    (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) !== "true")) {
-                delete eventList[prop];
-            }
-            else {
-                if (!eventList[prop]["isCompleted"]) {
-                    if (eventList[prop]["isMythic"]) {
-                        hasMythic = true;
-                    }
-                    else {
-                        hasEvent = true;
-                    }
-                }
-            }
-        }
-        if (hasMythic === false) {
-            clearTimer('eventMythicNextWave');
-            clearTimer('eventMythicGoing');
-        }
-        if (hasEvent === false) {
-            clearTimer('eventGoing');
-        }
-        if (Object.keys(eventList).length === 0) {
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
-        }
-        else {
-            //console.log(JSON.stringify(eventChamps));
-            eventChamps = eventChamps.filter(function (a) {
-                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
-                    return false;
-                }
-                else {
-                    return true;
-                }
-            });
-            if (Object.keys(eventChamps).length === 0) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
-            }
-            else {
-                setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
-            }
-            eventsGirlz = eventsGirlz.filter(function (a) {
-                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
-                    return false;
-                }
-                else {
-                    return true;
-                }
-            });
-            if (Object.keys(eventsGirlz).length === 0) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
-            }
-            else {
-                setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
-            }
-            if (!eventList.hasOwnProperty(eventGirl.event_id) || eventGirl.event_id === inEventID) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
-            }
-            if (!eventList.hasOwnProperty(eventMythicGirl.event_id) || eventMythicGirl.event_id === inEventID) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
-            }
-            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
-        }
-    }
-    static getDisplayedIdEventPage(logging = true) {
-        let eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
-        if (!eventHref && logging) {
-            LogUtils_logHHAuto('Error href not found for current event');
-        }
-        if (eventHref) {
-            let parsedURL = new URL(eventHref, window.location.origin);
-            return queryStringGetParam(parsedURL.search, 'tab') || '';
-        }
-        return '';
-    }
-    static showCompletedEvent() {
-        try {
-            if ($('img.eventCompleted').length <= 0) {
-                let oneEventCompleted = false;
-                if ($(`#contains_all #homepage .event-widget a:not([href="#"])`).length > 0) {
-                    const img = $(`<div class="tooltipHH" style="display: inline-block;">`
-                        + `<span class="tooltipHHtext">${getTextForUI('eventCompleted', "tooltip")}</span>`
-                        + `<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted', "tooltip")}" />`
-                        + `</div>`);
-                    const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                    for (let eventID of Object.keys(eventList)) {
-                        if (eventList[eventID]["isCompleted"]) {
-                            const eventTimer = $(`#contains_all #homepage .event-widget a[href*="${eventID}"] .timer p`);
-                            eventTimer.append(img.clone());
-                            oneEventCompleted = true;
-                        }
-                    }
-                }
-                if (!oneEventCompleted) {
-                    const eventTimer = $(`#contains_all #homepage`);
-                    eventTimer.append($(`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['minus']} class="eventCompleted" style="display:none" />`));
-                }
-            }
-        }
-        catch (error) { /* ignore errors */ }
-    }
-    static parseEventPage() {
-        return EventModule_awaiter(this, arguments, void 0, function* (inTab = "global") {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-                let queryEventTabCheck = $("#contains_all #events");
-                const eventID = EventModule.getDisplayedIdEventPage();
-                if (inTab !== "global" && inTab !== eventID) {
-                    if (eventID == '') {
-                        LogUtils_logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
-                        EventModule.clearEventData(inTab);
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    }
-                    else {
-                        LogUtils_logHHAuto("Wrong event opened, need to change event page");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
-                    }
-                    return true;
-                }
-                const hhEvent = EventModule.getEvent(eventID);
-                if (!hhEvent.eventTypeKnown) {
-                    if (queryEventTabCheck.attr('parsed') === undefined) {
-                        LogUtils_logHHAuto("Not parsable event");
-                        queryEventTabCheck[0].setAttribute('parsed', 'true');
-                    }
-                    return false;
-                }
-                if (queryEventTabCheck.attr('parsed') !== undefined) {
-                    if (!EventModule.checkEvent(eventID)) {
-                        //logHHAuto("Events already parsed.");
-                        return false;
-                    }
-                }
-                queryEventTabCheck[0].setAttribute('parsed', 'true');
-                const hhEventData = unsafeWindow.event_data || unsafeWindow.current_event;
-                LogUtils_logHHAuto(`On event page : ${eventID} (${(hhEventData === null || hhEventData === void 0 ? void 0 : hhEventData.event_name) || ''})`);
-                EventModule.clearEventData(eventID);
-                //let eventsGirlz=[];
-                let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-                let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-                let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-                if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
-                    LogUtils_logHHAuto("Error getting current event Data from HH.");
-                }
-                if (hhEvent.isPlusEvent) {
-                    LogUtils_logHHAuto("On going event, parsing...");
-                    PlusEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
-                }
-                if (hhEvent.isPlusEventMythic) {
-                    LogUtils_logHHAuto("On going mythic event, parsing...");
-                    MythicEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
-                }
-                if (hhEvent.isBossBangEvent) {
-                    LogUtils_logHHAuto("On going bossBang event, parsing...");
-                    BossBang.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isSultryMysteriesEvent) {
-                    LogUtils_logHHAuto("On going sultry mysteries event.");
-                    SultryMysteries.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isLivelyScene) {
-                    LogUtils_logHHAuto("On going lively scene event.");
-                    LivelyScene.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isDPEvent) {
-                    LogUtils_logHHAuto("On going double penetration event.");
-                    DoublePenetration.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isPoa) {
-                    LogUtils_logHHAuto("On going path of Attraction event.");
-                    PathOfAttraction.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isCumback) {
-                    LogUtils_logHHAuto("On going cumback contest event.");
-                    CumbackContests.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isKinky) {
-                    LogUtils_logHHAuto("On going kinky cumpetition event.");
-                    KinkyCumpetition.parse(hhEvent, eventList, hhEventData);
-                }
-                if (Object.keys(eventList).length > 0) {
-                    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
-                }
-                else {
-                    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
-                }
-                eventsGirlz = eventsGirlz.filter(function (a) {
-                    var a_weighted = Number(Priority.indexOf('' + a.troll_id));
-                    if (a.is_mythic) {
-                        return true;
-                    }
-                    else {
-                        return a_weighted !== -1;
-                    }
-                });
-                if (eventsGirlz.length > 0 || eventChamps.length > 0) {
-                    if (eventsGirlz.length > 0) {
-                        if (Priority[0] !== '') {
-                            eventsGirlz.sort(function (a, b) {
-                                var a_weighted = Number(Priority.indexOf('' + a.troll_id));
-                                if (a.is_mythic) {
-                                    a_weighted = a_weighted - Priority.length;
-                                }
-                                var b_weighted = Number(Priority.indexOf('' + b.troll_id));
-                                if (b.is_mythic) {
-                                    b_weighted = b_weighted - Priority.length;
-                                }
-                                return a_weighted - b_weighted;
-                            });
-                            //logHHAuto({log:"Sorted EventGirls",eventGirlz:eventsGirlz});
-                        }
-                        setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
-                        EventModule.saveEventGirl(eventsGirlz[0]);
-                    }
-                    if (eventChamps.length > 0) {
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
-                    }
-                    queryEventTabCheck[0].setAttribute('parsed', 'true');
-                    //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", "20000");
-                    //setTimer('eventRefreshExpiration', 3600);
-                }
-                else {
-                    queryEventTabCheck[0].setAttribute('parsed', 'true');
-                    EventModule.clearEventData(eventID);
-                }
-                return false;
-            }
-            else {
-                if (inTab !== "global") {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
-                }
-                else {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"));
-                }
-                return true;
-            }
-        });
-    }
-    static saveEventGirl(eventGirlz) {
-        var chosenTroll = Number(eventGirlz.troll_id);
-        LogUtils_logHHAuto("ET: " + chosenTroll);
-        if (!eventGirlz.is_mythic) {
-            setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
-        }
-        else {
-            // setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz)); // TODO remove when migration is done
-            setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
-        }
-    }
-    static getEventGirl() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.eventGirl, {});
-    }
-    static getEventMythicGirl() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.eventMythicGirl, {});
-    }
-    static getEventType(inEventID) {
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')))
-            return "mythic";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')))
-            return "event";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')))
-            return "bossBang";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')))
-            return "sultryMysteries";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg')))
-            return "doublePenetration";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')))
-            return "poa";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg')))
-            return "livelyscene";
-        if (inEventID.startsWith('cumback_contest_'))
-            return "cumback";
-        if (inEventID.startsWith('kinky_event_'))
-            return "kinky";
-        //    if(inEventID.startsWith('lively_scene_event_')) return "";
-        //    if(inEventID.startsWith('legendary_contest_')) return "";
-        //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
-        return "";
-    }
-    static getEvent(inEventID) {
-        const eventType = EventModule.getEventType(inEventID);
-        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
-        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
-        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true";
-        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" && SultryMysteries.isEnabled();
-        const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
-        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg'));
-        const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
-        const isCumback = "cumback" === eventType;
-        const isKinky = "kinky" === eventType;
-        return {
-            eventTypeKnown: eventType !== '',
-            eventId: inEventID,
-            eventType: eventType,
-            isPlusEvent: isPlusEvent, // and activated
-            isPlusEventMythic: isPlusEventMythic, // and activated
-            isBossBangEvent: isBossBangEvent, // and activated
-            isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
-            isDPEvent: isDPEvent, // and activated
-            isLivelyScene: isLivelyScene, // and activated
-            isPoa: isPoa, // and activated
-            isCumback: isCumback,
-            isKinky: isKinky,
-            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
-        };
-    }
-    static getEventIDsByType(inType) {
-        let eventIDs = [];
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        for (let eventID of Object.keys(eventList)) {
-            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
-                eventIDs.push(eventID);
-            }
-        }
-        return eventIDs;
-    }
-    static isEventActive(inEventID) {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
-            return eventList[inEventID]["seconds_before_end"] > new Date();
-        }
-        return false;
-    }
-    static checkEvent(inEventID) {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        const hhEvent = EventModule.getEvent(inEventID);
-        if (!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled) {
-            return false;
-        }
-        if (!eventList.hasOwnProperty(inEventID)) {
-            return true;
-        }
-        else {
-            if (eventList[inEventID]["isCompleted"]) {
-                return false;
-            }
-            else {
-                return (eventList[inEventID]["next_refresh"] < new Date()
-                    ||
-                        (hhEvent.isPlusEventMythic && checkTimerMustExist('eventMythicNextWave'))
-                    ||
-                        (hhEvent.isSultryMysteriesEvent && checkTimerMustExist('eventSultryMysteryShopRefresh'))
-                    ||
-                        (hhEvent.isDPEvent && checkTimerMustExist('nextDpEventCollectTime'))
-                    ||
-                        (hhEvent.isLivelyScene && checkTimerMustExist('nextLivelySceneEventCollectTime')));
-            }
-        }
-    }
-    static displayPrioInDailyMissionGirl(baseQuery) {
-        let allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
-        if (!allEventGirlz)
-            return;
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
-                let query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
-                if ($(query).length > 0) {
-                    let currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority" title="' + getTextForUI('dailyMissionGirlTitle', 'elementText') + '">DM</div>');
-                    $(query).css('position', 'relative');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                }
-            }
-        }
-    }
-    static hideOwnedGilrs() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.hideOwnedGirls) === "true") {
-            if ($('.nc-event-list-reward.already-owned').length > 10 && $('.nc-event-list-reward.girl_ico').length > 30) {
-                $('.nc-event-list-reward.already-owned').parent().hide();
-            }
-        }
-    }
-    static moduleDisplayEventPriority() {
-        if ($('.HHEventPriority').length > 0) {
-            return;
-        }
-        const baseQuery = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
-        EventModule.displayPrioInDailyMissionGirl(baseQuery);
-        let eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-        //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
-        if (eventGirlz.length > 0 || eventChamps.length > 0) {
-            var girl;
-            var prio;
-            var idArray;
-            var currentGirl;
-            for (var ec = eventChamps.length; ec > 0; ec--) {
-                idArray = Number(ec) - 1;
-                girl = Number(eventChamps[idArray].girl_id);
-                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
-                if ($(query).length > 0) {
-                    currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority">C' + eventChamps[idArray].champ_id + '</div>');
-                    $(query).css('position', 'relative');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                }
-            }
-            for (var e = eventGirlz.length; e > 0; e--) {
-                idArray = Number(e) - 1;
-                girl = Number(eventGirlz[idArray].girl_id);
-                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
-                if ($(query).length > 0) {
-                    currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority">' + e + '</div>');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                    $(query).css('position', 'relative');
-                    $(query).trigger('click');
-                }
-            }
-        }
-    }
-    static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName) {
-        const displayTimer = $(scriptId).length === 0;
-        if (getTimer(timerName) !== -1) {
-            const domSelector = '#homepage a[rel="' + aRel + '"] .notif-position > span';
-            if ($("#" + hhtimerId).length === 0) {
-                if (displayTimer) {
-                    $(domSelector).prepend('<span id="' + hhtimerId + '"></span>');
-                    GM_addStyle('#' + hhtimerId + '{position: absolute;top: 26px;left: 30px;width: 100px;font-size: .6rem ;z-index: 1;}');
-                }
-            }
-            else {
-                if (!displayTimer) {
-                    const timerEl = $("#" + hhtimerId)[0];
-                    if (timerEl) {
-                        timerEl.remove();
-                    }
-                }
-            }
-            if (displayTimer) {
-                const timerEl = $("#" + hhtimerId)[0];
-                // Defensive: when the homepage banner element identified by aRel
-                // is not in the DOM (e.g. because Kinkoid removed the tile or the
-                // current event is inactive), the prepend above is a no-op and
-                // [0] is undefined here. Skip silently in that case instead of
-                // throwing a TypeError on every AutoLoop tick.
-                if (timerEl) {
-                    timerEl.innerText = getTimeLeft(timerName);
-                }
-            }
-        }
-        else {
-            if (getStoredValue(timerEndDateName) !== undefined) {
-                setTimer(timerName, getStoredValue(timerEndDateName) - (Math.ceil(new Date().getTime()) / 1000));
-            }
-        }
-    }
-    static moduleSimPoVPogMaskReward(containerId) {
-        var arrayz;
-        var nbReward;
-        let modified = false;
-        arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        //doesn sure about  " .purchase-pov-pass"-button visibility
-        if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
-            nbReward = 1;
-        }
-        else {
-            nbReward = 2;
-        }
-        var obj;
-        if (arrayz.length > 0) {
-            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
-                if (obj.length >= nbReward) {
-                    //console.log("width : "+arrayz[i2].offsetWidth);
-                    //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
-                    arrayz[i2].style.display = "none";
-                    modified = true;
-                }
-            }
-        }
-        if (modified) {
-            let divToModify = $('.potions-paths-progress-bar-section');
-            if (divToModify.length > 0) {
-                $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
-            }
-        }
-    }
-    static collectEventChestIfPossible() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.collectEventChest) === "true") {
-            const eventChestId = "#extra-rewards-claim-btn:not([disabled])";
-            if ($(eventChestId).length > 0) {
-                LogUtils_logHHAuto("Collect event chest");
-                $(eventChestId).click();
-            }
-        }
-    }
-    static parsePageForEventId() {
-        function getEventQuery(event) {
-            return `#contains_all #homepage .event-widget a[rel="${event}"]:not([href="#"])`;
-        }
-        const eventQuery = getEventQuery("event");
-        const mythicEventQuery = getEventQuery("mythic_event");
-        const bossBangEventQuery = getEventQuery("boss_bang_event");
-        const sultryMysteriesEventQuery = getEventQuery("sm_event");
-        const dpEventQuery = getEventQuery("dp_event");
-        const livelySceneEventQuery = getEventQuery("lively_scene_event");
-        const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
-        const povEventQuery = '#contains_all #homepage .event-container a[rel="path-of-valor"]';
-        const pogEventQuery = '#contains_all #homepage .event-container a[rel="path-of-glory"]';
-        const poaEventQuery = getEventQuery("path_event");
-        let eventIDs = [];
-        let ongoingEventIDs = [];
-        let bossBangEventIDs = [];
-        const currentPage = getPage();
-        function parseForEventId(query, eventList) {
-            let parsedURL;
-            let eventId;
-            let queryResults = $(query);
-            for (let index = 0; index < queryResults.length; index++) {
-                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
-                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
-                const eventName = $(queryResults[index]).children().first().text();
-                if (!eventName || eventName == '') {
-                    LogUtils_logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
-                    continue;
-                }
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
-                    eventList.push(eventId);
-                }
-                if (eventId !== '') {
-                    ongoingEventIDs.push(eventId);
-                }
-            }
-        }
-        if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-            const currentPageEventId = EventModule.getDisplayedIdEventPage();
-            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId)) {
-                eventIDs.push(currentPageEventId);
-            }
-            let parsedURL;
-            let eventId;
-            let eventsQuery = '.events-list a.event-title:not(.active)';
-            let queryResults = $(eventsQuery);
-            for (let index = 0; index < queryResults.length; index++) {
-                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
-                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
-                    eventIDs.push(eventId);
-                }
-            }
-        }
-        else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            let queryResults;
-            parseForEventId(eventQuery, eventIDs);
-            parseForEventId(mythicEventQuery, eventIDs);
-            parseForEventId(poaEventQuery, eventIDs);
-            parseForEventId(bossBangEventQuery, bossBangEventIDs);
-            parseForEventId(sultryMysteriesEventQuery, eventIDs);
-            parseForEventId(getEventQuery("cumback_contest"), eventIDs);
-            parseForEventId(getEventQuery("kinky_event"), eventIDs);
-            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryShopRefresh") !== -1) {
-                // event is over
-                clearTimer("eventSultryMysteryShopRefresh");
-            }
-            parseForEventId(dpEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length == 0) {
-                LogUtils_logHHAuto("No double penetration event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
-            }
-            // LivelyScene
-            parseForEventId(livelySceneEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length == 0) {
-                LogUtils_logHHAuto("No Lively Scene event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
-            }
-            queryResults = $(seasonalEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length == 0) {
-                LogUtils_logHHAuto("No seasonal event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
-            }
-            // Path of Valor / Path of Glory: the home-page selectors for these events
-            // are unreliable (the banner only appears briefly between waves), so a
-            // false-negative here would silently flip the user setting back to off.
-            // The collect logic on the actual event page checks availability before
-            // acting; the toggle does not need to be in sync with the home banner.
-        }
-        /*
-                if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-                    const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) : {};
-                    for (const eventIDStored of Object.keys(eventList)) {
-                        //console.log(eventID);
-                        if (!ongoingEventIDs.includes(eventIDStored)) {
-                            logHHAuto(`Event ${eventIDStored} seems not available anymore, removing from store`);
-                            EventModule.clearEventData(eventIDStored);
-                        }
-                    }
-                }
-        */
-        return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
-    }
 }
 
 ;// CONCATENATED MODULE: ./src/model/SeasonOpponent.ts
@@ -6932,7 +5582,9 @@ class Season {
                         LogUtils_logHHAuto("Three red opponents, paying for refresh.");
                         getHHAjax()(params, function (data) {
                             Hero.update("hard_currency", data.hard_currency, false);
-                            location.reload();
+                            // C1: route through safeReload so any in-flight
+                            // AJAX gets to settle before the URL change.
+                            safeReload();
                         });
                     }
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
@@ -6971,9 +5623,10 @@ class Season {
                         setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
                         return false;
                     }
-                    location.href = addNutakuSession(toGoTo);
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    LogUtils_logHHAuto("setting autoloop to false");
+                    // C1: safeNavigateHref ensures any in-flight game AJAX
+                    // (e.g. a parallel autoLoop tick) gets to finish before
+                    // the URL change cancels open XHRs (issue #1598).
+                    safeNavigateHref(addNutakuSession(toGoTo));
                     LogUtils_logHHAuto(`Going to crush : ${$(".personal_info div.player-name", opponentBlock).text()} (${chosenID})`);
                     setTimer('nextSeasonTime', 5);
                     return true;
@@ -7666,6 +6319,228 @@ class Pantheon {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/Quest.ts
+// Quest.ts -- Automates questing: accepts quests, handles quest steps, and buys
+// energy if configured.
+//
+// Quests are the main PvE progression system. This module accepts available
+// quests, advances through multi-step quest chains, and optionally purchases
+// quest energy when configured to do so. Tracks quest completion and manages
+// the quest page navigation.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+class QuestHelper {
+    static getEnergy() {
+        return Number(getHHVars('Hero.energies.quest.amount'));
+    }
+    static getEnergyMax() {
+        return Number(getHHVars('Hero.energies.quest.max_regen_amount'));
+    }
+    static getNextQuestLink() {
+        const mainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true";
+        const sideQuest = ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true";
+        let nextQuestUrl = QuestHelper.getMainQuestUrl();
+        if ((mainQuest && sideQuest && (nextQuestUrl.includes("world"))) || (!mainQuest && sideQuest)) {
+            nextQuestUrl = QuestHelper.SITE_QUEST_PAGE;
+        }
+        else if (nextQuestUrl.includes("world")) {
+            return undefined;
+        }
+        return nextQuestUrl;
+    }
+    static getMainQuestUrl() {
+        let mainQuestUrl = getHHVars('Hero.infos.questing.current_url');
+        const id_world = Number(getHHVars('Hero.infos.questing.id_world'));
+        const id_quest = Number(getHHVars('Hero.infos.questing.id_quest'));
+        const lastQuestId = ConfigHelper.getHHScriptVars("lastQuestId", false);
+        const trollz = ConfigHelper.getHHScriptVars("trollzList");
+        if (id_world < (trollz.length) || lastQuestId > 0 && id_quest != lastQuestId) {
+            // Fix when KK quest url is world url
+            mainQuestUrl = "/quest/" + id_quest;
+        }
+        return mainQuestUrl;
+    }
+    static run() {
+        //logHHAuto("Starting auto quest.");
+        // Check if at correct page.
+        let page = getPage();
+        let mainQuestUrl = QuestHelper.getMainQuestUrl();
+        let doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
+        if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
+            var quests = $('.side-quest:has(.slot) .side-quest-button');
+            if (quests.length > 0) {
+                LogUtils_logHHAuto("Navigating to side quest.");
+                gotoPage(quests.attr('href'));
+            }
+            else {
+                LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
+                if (checkTimer('nextMainQuestAttempt')) {
+                    setTimer('nextMainQuestAttempt', 604800);
+                } // 1 week delay
+                setTimer('nextSideQuestAttempt', 604800); // 1 week delay
+                // Navigate away from /side-quests.html instead of reloading the
+                // same URL: the page id `side-quests` is not in the script's
+                // pagesKnownList, so subsequent autoLoop iterations would keep
+                // running handlers (e.g. handleChampionTicket) on the
+                // unrecognized page and cause issue #1672's energy-burn loop.
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            }
+            return;
+        }
+        if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
+            // Resolve the next quest URL ourselves; the navigation service
+            // does not know about the Quest module any more (Cluster C of
+            // the page-nav refactor). When all quests are done, fall back
+            // to the home page and arm the back-off timer.
+            const nextQuestUrl = QuestHelper.getNextQuestLink();
+            if (nextQuestUrl !== undefined) {
+                gotoPage(nextQuestUrl);
+            }
+            else {
+                LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
+                if (checkTimer('nextMainQuestAttempt')) {
+                    setTimer('nextMainQuestAttempt', 604800); // 1 week delay
+                }
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            }
+            return;
+        }
+        $("#popup_message close").trigger('click');
+        $("#level_up close").trigger('click');
+        // Get the proceed button type
+        var proceedButtonMatch = $("#controls button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])");
+        if (proceedButtonMatch.length === 0) {
+            // Choice button 
+            LogUtils_logHHAuto("Search for choice buttons");
+            proceedButtonMatch = $(".buttons-container button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])").first();
+        }
+        if (proceedButtonMatch.length === 0) {
+            proceedButtonMatch = $("#controls button#free");
+        }
+        var proceedType = proceedButtonMatch.attr("id");
+        //console.log("DebugQuest proceedType : "+proceedType);
+        if (proceedButtonMatch.length === 0) {
+            LogUtils_logHHAuto("Could not find resume button.");
+            return;
+        }
+        else if (proceedButtonMatch.attr('disabled') && proceedType != "end_play") {
+            LogUtils_logHHAuto("Button is disabled for animation wait a bit.");
+            return;
+        }
+        if (proceedType === "free") {
+            LogUtils_logHHAuto("Proceeding for free.");
+            //setStoredValue"HHAuto_Temp_autoLoop", "false");
+            //logHHAuto("setting autoloop to false");
+            //proceedButtonMatch.click();
+        }
+        else if (proceedType === "pay") {
+            var proceedButtonCost = $(".action-cost .price", proceedButtonMatch);
+            var proceedCost = parsePrice(proceedButtonCost[0].innerText);
+            var payTypeNRJ = $(".action-cost .energy_quest_icn", proceedButtonMatch).length > 0;
+            var energyCurrent = QuestHelper.getEnergy();
+            var moneyCurrent = HeroHelper.getMoney();
+            //let payType = $("#controls .cost span[cur]:not([style*='display:none']):not([style*='display: none'])").attr('cur');
+            //console.log("DebugQuest payType : "+payType);
+            if (payTypeNRJ) {
+                // console.log("DebugQuest ENERGY for : "+proceedCost + " / " + energyCurrent);
+                if (proceedCost <= energyCurrent) {
+                    // We have energy.
+                    LogUtils_logHHAuto("Spending " + proceedCost + " Energy to proceed.");
+                }
+                else {
+                    LogUtils_logHHAuto("Quest requires " + proceedCost + " Energy to proceed.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "*" + proceedCost);
+                    return;
+                }
+            }
+            else {
+                console.log("DebugQuest MONEY for : " + proceedCost);
+                if (proceedCost <= moneyCurrent) {
+                    // We have money.
+                    LogUtils_logHHAuto("Spending " + proceedCost + " Money to proceed.");
+                }
+                else {
+                    LogUtils_logHHAuto("Need " + proceedCost + " Money to proceed.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "$" + proceedCost);
+                    return;
+                }
+            }
+            //proceedButtonMatch.click();
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
+            //logHHAuto("setting autoloop to false");
+        }
+        else if (proceedType === "use_item") {
+            LogUtils_logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
+            //proceedButtonMatch.click();
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
+            //logHHAuto("setting autoloop to false");
+        }
+        else if (proceedType === "battle") {
+            LogUtils_logHHAuto("Quest need battle...");
+            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "battle");
+            // Proceed to battle troll.
+            //proceedButtonMatch.click();
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
+            //logHHAuto("setting autoloop to false");
+        }
+        else if (proceedType === "finish") {
+            LogUtils_logHHAuto("Reached end of current side quest. Proceeding to next.");
+        }
+        else if (proceedType === "end_archive") {
+            LogUtils_logHHAuto("Reached end of current archive. Proceeding to next archive.");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
+            //logHHAuto("setting autoloop to false");
+            //proceedButtonMatch.click();
+        }
+        else if (proceedType === "end_play") {
+            let rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
+            if (proceedButtonMatch.attr('disabled') && rewards.length > 0) {
+                LogUtils_logHHAuto("Reached end of current archive. Claim reward.");
+                rewards.click();
+                return;
+            }
+            LogUtils_logHHAuto("Reached end of current play. Proceeding to next play.");
+            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
+            //logHHAuto("setting autoloop to false");
+            //proceedButtonMatch.click();
+        }
+        else if (proceedType === "outfit") {
+            LogUtils_logHHAuto("Change outfit needed.");
+            // TODO manage ?
+            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "outfit");
+        }
+        else {
+            LogUtils_logHHAuto("Could not identify given resume button.");
+            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "unknownQuestButton");
+            return;
+        }
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        LogUtils_logHHAuto("setting autoloop to false");
+        setTimeout(function () {
+            proceedButtonMatch.click();
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+            LogUtils_logHHAuto("setting autoloop to true");
+            setTimeout(autoLoop, randomInterval(800, 1200));
+        }, randomInterval(500, 800));
+        //setTimeout(function () {location.reload();},randomInterval(800,1500));
+    }
+}
+QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
+
 ;// CONCATENATED MODULE: ./src/Module/harem/HaremFilter.ts
 var HaremFilter_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -7775,87 +6650,6 @@ class HaremFilter {
         });
     }
 }
-
-;// CONCATENATED MODULE: ./src/Helper/PriceHelper.ts
-// PriceHelper.ts
-//
-// Parses human-readable price strings from the game UI back into raw
-// numbers. The game displays large values with suffixes (e.g. "105K",
-// "6.38M", "2.1B"), and this helper reverses that formatting so the
-// script can do arithmetic on actual values.
-//
-// Handles locale differences by treating commas as decimal separators
-// (common in European localizations).
-//
-// Used by: RewardHelper (reward value calculation), Market module
-
-/** Converts a compact price string like "105K" or "6.38M" back to a number. */
-function parsePrice(princeStr) {
-    // Parse price to number 105K to 105000, 6.38M to 6380000
-    // Replace comma by dots for local supports
-    let ret = Number.NaN;
-    if (princeStr && princeStr.indexOf('B') > 0) {
-        ret = Number(princeStr.replace(/B/g, '').replace(',', '.')) * 1000000000;
-    }
-    else if (princeStr && princeStr.indexOf('M') > 0) {
-        ret = Number(princeStr.replace(/M/g, '').replace(',', '.')) * 1000000;
-    }
-    else if (princeStr && princeStr.indexOf('K') > 0) {
-        ret = Number(princeStr.replace(/K/g, '').replace(',', '.')) * 1000;
-    }
-    else {
-        ret = NumberHelper.remove1000sSeparator(princeStr);
-    }
-    return ret;
-}
-/*
-export function manageUnits(inText)
-{
-    let units = ["firstUnit", "K", "M", "B"];
-    let textUnit= "";
-    for (let currUnit of units)
-    {
-        if (inText.includes(currUnit))
-        {
-            textUnit= currUnit;
-        }
-    }
-    if (textUnit !== "")
-    {
-        let integerPart;
-        let decimalPart;
-        if (inText.includes('.') )
-        {
-            inText = inText.replace(/[^0-9\.]/gi, '');
-            integerPart = inText.split('.')[0];
-            decimalPart = inText.split('.')[1];
-
-        }
-        else if (inText.includes(','))
-        {
-            inText = inText.replace(/[^0-9,]/gi, '');
-            integerPart = inText.split(',')[0];
-            decimalPart = inText.split(',')[1];
-        }
-        else
-        {
-            integerPart = inText.replace(/[^0-9]/gi, '');
-            decimalPart = "0";
-        }
-        //console.log(integerPart,decimalPart);
-        let decimalNumber = Number(integerPart)
-        if (Number(decimalPart) !== 0)
-        {
-            decimalNumber+= Number(decimalPart)/(10**decimalPart.length)
-        }
-        return decimalNumber*(1000**units.indexOf(textUnit));
-    }
-    else
-    {
-        return parseInt(inText.replace(/[^0-9]/gi, ''));
-    }
-}
-*/ 
 
 ;// CONCATENATED MODULE: ./src/config/InputPattern.ts
 // Regex patterns used for input validation in the HHAuto settings menu.
@@ -8721,7 +7515,9 @@ class HaremGirl {
         setTimeout(() => {
             $("#popup_message_harem_close").one("click", function () {
                 Harem.clearHaremToolVariables();
-                location.reload();
+                // C1: safeReload waits for any in-flight game AJAX before
+                // reloading, instead of cancelling open XHRs.
+                safeReload();
             });
         }, 200);
     }
@@ -11598,7 +10394,10 @@ class LeagueHelper {
                             window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaderboard")));
                             RewardHelper.closeRewardPopupIfAny();
                             // gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
-                            location.reload();
+                            // C1: route through safeReload so any in-flight
+                            // game AJAX gets to settle before the URL change
+                            // cancels open XHRs (issue #1598).
+                            safeReload();
                             Hero.updates(data.hero_changes);
                         });
                     }
@@ -11633,7 +10432,7 @@ class LeagueHelper {
     }
     static LeagueDisplayGetOpponentPopup(numberDone, remainingTime) {
         $("#leagues #leagues_middle").prepend('<div id="popup_message_league" class="HHpopup_message" name="popup_message_league" ><a id="popup_message_league_close" class="close">&times;</a>' + getTextForUI("OpponentListBuilding", "elementText") + ' : <br>' + numberDone + ' ' + getTextForUI("OpponentParsed", "elementText") + ' (' + remainingTime + ')</div>');
-        $("#popup_message_league_close").on("click", () => { location.reload(); });
+        $("#popup_message_league_close").on("click", () => { safeReload(); });
     }
     static LeagueClearDisplayGetOpponentPopup() {
         $("#popup_message_league").each(function () { this.remove(); });
@@ -12721,10 +11520,12 @@ class PentaDrill {
                         setTimer('nextPentaDrillTime', randomInterval(30 * 60, 35 * 60));
                         return false;
                     }
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    LogUtils_logHHAuto("setting autoloop to false");
                     LogUtils_logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
-                    location.href = addNutakuSession(toGoTo);
+                    // C1: safeNavigateHref handles autoLoop disable + AJAX-idle
+                    // wait + URL change atomically. The duplicate setStoredValue
+                    // and log line is removed because safeNavigateHref does that
+                    // internally. Issue #1598 race-protection.
+                    safeNavigateHref(addNutakuSession(toGoTo));
                     yield TimeHelper.sleep(randomInterval(5000, 8000));
                     return true;
                 }
@@ -15418,7 +14219,10 @@ class Missions {
                         }
                         else {
                             LogUtils_logHHAuto("Refreshing to collect gift...");
-                            location.reload();
+                            // C1: safeReload waits for any in-flight game
+                            // AJAX before the reload, so an open POST is
+                            // not cancelled (issue #1598).
+                            safeReload();
                             return true;
                         }
                     }
@@ -17320,7 +16124,10 @@ function handleChampionTicket(ctx) {
                 getHHAjax()(params, function (data) {
                     //anim_number($('.tickets_number_amount'), data.tokens - amount, amount);
                     Hero.updates(data.hero_changes);
-                    location.reload();
+                    // C1: route the post-purchase reload through safeReload so
+                    // any in-flight game AJAX (parallel handler) gets to finish
+                    // before the URL change cancels open XHRs.
+                    safeReload();
                 });
             }
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
@@ -19078,6 +17885,532 @@ class Club {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.pure.ts
+// LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
+//
+// Extracted from LivelyScene.parse and LivelyScene.parseClaimableRewards
+// so the collect-trigger cascade and the puzzle-piece filter can be
+// unit-tested without DOM access, jQuery, storage, or game globals.
+//
+// Two decisions live here:
+//
+// 1. decideCollectTrigger -- the three-branch OR cascade in
+//    LivelyScene.parse that decides whether to invoke goAndCollect at
+//    all. Triggered by any of:
+//      - autoCollect setting on (continuous polling)
+//      - manualCollectAll flag on (user-initiated full sweep)
+//      - autoCollectAll setting on AND remainingTime is below the
+//        end-of-event threshold
+//
+// 2. selectClaimablePieces -- the loop in parseClaimableRewards that
+//    walks the puzzle-piece list and keeps only the entries that are
+//    unlocked-but-not-claimed AND match the per-piece eligibility
+//    rule: matching rewardType under needToCollect, OR needToCollectAll
+//    (any rewardType), OR manualCollectAll (any rewardType).
+/**
+ * Reproduce the OR cascade in LivelyScene.parse bit by bit:
+ *
+ *   autoCollect
+ *   || manualCollectAll
+ *   || (remainingTime < limitBeforeEnd && autoCollectAll)
+ *
+ * Operator precedence preserved: && binds tighter than ||, so the
+ * end-of-event branch parses as one parenthesised conjunction.
+ */
+function decideCollectTrigger(state) {
+    return (state.autoCollect
+        || state.manualCollectAll
+        || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
+}
+/**
+ * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
+ * Walks the input list and keeps every piece for which:
+ *
+ *   reward_unlocked AND NOT reward_claimed
+ *   AND (
+ *     (rewardsToCollect.includes(rewardType) AND needToCollect)
+ *     OR needToCollectAll
+ *     OR manualCollectAll
+ *   )
+ *
+ * Operator precedence preserved (&& binds tighter than ||): the per-
+ * type allowlist only gates the per-poll branch; the two sweep modes
+ * accept any rewardType.
+ */
+function selectClaimablePieces(pieces, state) {
+    const claimable = [];
+    for (const piece of pieces) {
+        if (piece.reward_unlocked && !piece.reward_claimed) {
+            const allowedByType = state.rewardsToCollect.includes(piece.rewardType)
+                && state.needToCollect;
+            if (allowedByType || state.needToCollectAll || state.manualCollectAll) {
+                claimable.push(piece);
+            }
+        }
+    }
+    return claimable;
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.ts
+var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
+//
+// Lively Scene is a time-limited event where the player progresses through
+// scenes to earn rewards. This module tracks scene progression, manages
+// event energy, and collects available rewards automatically.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Lively Scene event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+class LivelyScene {
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        let remainingTime = 3600;
+        if (timeLeft !== undefined && timeLeft.length) {
+            remainingTime = Number(convertTimeToInt(timeLeft));
+        }
+        setTimer('eventLivelySceneGoing', remainingTime);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + remainingTime * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
+        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
+        const shouldTrigger = decideCollectTrigger({
+            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+            manualCollectAll,
+            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+            remainingTime,
+            limitBeforeEnd: getLimitTimeBeforeEnd(),
+        });
+        if (shouldTrigger) {
+            LivelyScene.goAndCollect(remainingTime, manualCollectAll);
+        }
+    }
+    static parseClaimableRewards(remainingTime, manualCollectAll = false) {
+        const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
+        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
+        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
+        const projected = puzzlePieces.map((piece) => {
+            var _a, _b;
+            return ({
+                reward_unlocked: piece.reward_unlocked,
+                reward_claimed: piece.reward_claimed,
+                rewardType: ((_a = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type,
+                __orig: piece,
+            });
+        });
+        const claimablePieces = selectClaimablePieces(projected, {
+            rewardsToCollect,
+            needToCollect,
+            needToCollectAll,
+            manualCollectAll,
+        }).map((p) => p.__orig);
+        LogUtils_logHHAuto('claimablePieces', claimablePieces);
+        return claimablePieces;
+    }
+    static goAndCollect(remainingTime_1) {
+        return LivelyScene_awaiter(this, arguments, void 0, function* (remainingTime, manualCollectAll = false) {
+            try {
+                const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
+                if (manualCollectAll)
+                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
+                if (rewards.length > 0) {
+                    LogUtils_logHHAuto("Going to collect rewards.");
+                    LogUtils_logHHAuto("setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    for (let currentReward = 0; currentReward < rewards.length; currentReward++) {
+                        const reward = rewards[currentReward];
+                        const puzzlePiece = $(`#puzzle_template #puzzle_piece_${reward.id_piece}.claimable`);
+                        if (puzzlePiece.length > 0) {
+                            puzzlePiece.trigger('click');
+                            yield TimeHelper.sleep(randomInterval(200, 400));
+                            const currentCollectButton = $('.lse_side_panel button.purple_button_L.claimable');
+                            if (currentCollectButton.length > 0) {
+                                currentCollectButton.trigger('click');
+                                yield TimeHelper.sleep(randomInterval(400, 700));
+                                RewardHelper.closeRewardPopupIfAny(); // refresh;
+                                yield TimeHelper.sleep(randomInterval(400, 700));
+                                return true;
+                            }
+                        }
+                    }
+                }
+                else {
+                    LogUtils_logHHAuto("No (more) LivelyScene reward to collect .");
+                    setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
+                    //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    // setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    return false;
+                }
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
+                setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
+            }
+            return false;
+        });
+    }
+    static _makeSVG(tag, attrs) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs)
+            el.setAttribute(k, attrs[k]);
+        return el;
+    }
+    static _makeSVGImage($puzzlePiece, iconHref) {
+        const tresorImage = $('image', $puzzlePiece);
+        return LivelyScene._makeSVG('image', {
+            height: 18,
+            width: 18,
+            visibility: 'visible',
+            href: iconHref,
+            x: Number(tresorImage.attr('x')) + 45,
+            y: tresorImage.attr('y')
+        });
+    }
+    static run() {
+        var _a, _b;
+        LivelyScene.displayCollectAllButton();
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+            const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
+            if (puzzlePieces.length > 0) {
+                for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
+                    const puzzlePiece = puzzlePieces[currentReward];
+                    if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
+                        let rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
+                        const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
+                        const iconHref = RewardHelper.getRewardsIconHref(rewardType);
+                        if ($puzzlePiece.length > 0 && iconHref) {
+                            const image = LivelyScene._makeSVGImage($puzzlePiece, iconHref);
+                            document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`).appendChild(image);
+                            LogUtils_logHHAuto(`Add icon for ${rewardType} to #puzzle_piece_${puzzlePiece.id_piece}`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    static hasUnclaimedRewards() {
+        return $(".puzzle_piece.claimable:visible").length > 0;
+    }
+    static displayCollectAllButton() {
+        if (LivelyScene.hasUnclaimedRewards() && $('#LivelySceneCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="LivelySceneCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 0px;right: 45px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#lse_content').append(divTooltip);
+            button.one('click', () => {
+                LivelyScene.goAndCollect(Infinity, true);
+            });
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/PathOfAttraction.ts
+var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
+// reward tracking.
+//
+// Path of Attraction is a tiered event where the player collects points to
+// unlock reward tiers. This module tracks tier progress, collects available
+// rewards, and manages the event page navigation and timer scheduling.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Attraction event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class PoaReward {
+    constructor(tier, type, slot) {
+        this.tier = 0;
+        this.type = '';
+        this.slot = $();
+        this.tier = tier;
+        this.type = type;
+        this.slot = slot;
+    }
+}
+class PathOfAttraction {
+    static getRemainingTime() {
+        const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
+        if ($(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate) === undefined)) {
+            const poATimer = Number(convertTimeToInt($(poATimerRequest).text()));
+            setTimer("PoARemainingTime", poATimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate, Math.ceil(new Date().getTime() / 1000) + poATimer);
+        }
+    }
+    static runOld() {
+        //https://nutaku.haremheroes.com/path-of-attraction.html"
+        let array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
+        if (array.length == 0) {
+            return;
+        }
+        let lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
+        for (let i = array.length - 1; i >= 0; i--) {
+            if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
+                array[i].style.display = "none";
+            }
+        }
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        PathOfAttraction.getRemainingTime();
+        const poAEnd = getSecondsLeft("PoARemainingTime");
+        LogUtils_logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
+        let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
+        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
+            refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
+        }
+        LogUtils_logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + poAEnd * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimerPoa * 1000;
+        eventList[eventID]["isCompleted"] = PathOfAttraction.isCompleted();
+    }
+    static run() {
+        return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg'))) {
+                LogUtils_logHHAuto("On path of attraction event.");
+                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
+                    if ($(".hh-club-poa").length <= 0) {
+                        const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
+                        championsGoal.append(getGoToClubChampionButton());
+                    }
+                }
+                const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
+                const poAEnd = getSecondsLeft("PoARemainingTime");
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
+                    yield PathOfAttraction.goAndCollect(manualCollectAll);
+                }
+            }
+        });
+    }
+    static styles() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            setTimeout(PathOfAttraction.Hide, 500);
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+            PathOfAttraction.displayRewardsDiv();
+        }
+        PathOfAttraction.displayCollectAllButton();
+    }
+    static displayCollectAllButton() {
+        if (PathOfAttraction.hasUnclaimedRewards() && $('#PoaCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="PoaCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: -30px;left: 730px;width: 110px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#poa-content').append(divTooltip);
+            button.one('click', () => {
+                PathOfAttraction.goAndCollect(true);
+            });
+        }
+    }
+    static displayRewardsDiv() {
+        try {
+            const target = $('#poa-content .girls');
+            const hhRewardId = 'HHPoaRewards';
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = PathOfAttraction.getNotClaimedRewards();
+                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+            }
+        }
+        catch ({ errName, message }) {
+            LogUtils_logHHAuto(`ERROR in display POA rewards: ${message}`);
+        }
+    }
+    static getNotClaimedRewards() {
+        const arrayz = $('.nc-poa-reward-pair');
+        const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
+        let paidSlotSelectors = "";
+        if ($("div#nc-poa-tape-blocker").length == 0) {
+            // Season pass paid
+            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
+        }
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static _getClaimableRewards(path) {
+        const rewards = [];
+        const listPoATiersToClaim = $(path);
+        for (let currentTier = 0; currentTier < listPoATiersToClaim.length; currentTier++) {
+            const currentRewardTierNb = listPoATiersToClaim[currentTier].getAttribute("data-nc-reward-id");
+            const slotElement = $('.slot', listPoATiersToClaim[currentTier]);
+            const slotType = RewardHelper.getRewardTypeBySlot(slotElement[0]);
+            rewards[currentRewardTierNb] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
+        }
+        return rewards;
+    }
+    static hasUnclaimedRewards() {
+        return $(PathOfAttraction.freeSlotPath + ".claimable" + ', ' + PathOfAttraction.paidSlotPath + ".claimable").length > 0;
+    }
+    static getFreeClaimableRewards() {
+        return PathOfAttraction._getClaimableRewards(PathOfAttraction.freeSlotPath + ".claimable");
+    }
+    static getPaidClaimableRewards() {
+        if ($("#nc-poa-tape-blocker").length) {
+            return [];
+        }
+        else {
+            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
+        }
+    }
+    static isCompleted() {
+        const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
+        const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
+        const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
+        if ($("#nc-poa-tape-blocker").length) {
+            return numberClaimedFree >= numberTiers;
+        }
+        else {
+            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
+        }
+    }
+    static goAndCollect() {
+        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false) {
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+            const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
+            const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true";
+            if (manualCollectAll)
+                setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
+            if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
+                const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoACollectablesList, []);
+                LogUtils_logHHAuto("Checking Path of Attraction for collectable rewards.");
+                const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
+                const freeClaimableRewards = PathOfAttraction.getFreeClaimableRewards();
+                const paidClaimableRewards = PathOfAttraction.getPaidClaimableRewards();
+                function getReward(reward) {
+                    return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
+                        LogUtils_logHHAuto("Going to get " + JSON.stringify(reward));
+                        reward.slot.trigger('click');
+                        yield TimeHelper.sleep(randomInterval(300, 800));
+                        $(PathOfAttraction.getRewardButtonPath).trigger('click');
+                        yield TimeHelper.sleep(randomInterval(300, 800));
+                        RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
+                        yield TimeHelper.sleep(randomInterval(1000, 1500)); // Do not collect before page refresh
+                        RewardHelper.closeRewardPopupIfAny(); // Close reward popup
+                        yield TimeHelper.sleep(randomInterval(1000, 1500));
+                    });
+                }
+                LogUtils_logHHAuto("numberTiers: " + numberTiers);
+                if (debugEnabled) {
+                    LogUtils_logHHAuto("freeClaimableRewards", freeClaimableRewards);
+                    LogUtils_logHHAuto("paidClaimableRewards", paidClaimableRewards);
+                }
+                const freeClaimableTiers = Object.keys(freeClaimableRewards);
+                const paidClaimableTiers = Object.keys(paidClaimableRewards);
+                if (numberTiers > 0 && (freeClaimableTiers.length > 0 || paidClaimableTiers.length > 0)) {
+                    LogUtils_logHHAuto(`Collecting rewards, ${freeClaimableTiers.length + paidClaimableTiers.length} rewards to collect , setting autoloop to false`);
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    $(".scroll-area.poa").animate({ scrollLeft: 0 });
+                    yield TimeHelper.sleep(randomInterval(300, 800));
+                    for (let currentTier = 1; currentTier <= numberTiers; currentTier++) {
+                        if (freeClaimableTiers.includes('' + currentTier)) {
+                            if (rewardsToCollect.includes(freeClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
+                                yield getReward(freeClaimableRewards[currentTier]);
+                                return true;
+                            }
+                        }
+                        if (paidClaimableTiers.includes('' + currentTier)) {
+                            if (rewardsToCollect.includes(paidClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
+                                yield getReward(paidClaimableRewards[currentTier]);
+                                return true;
+                            }
+                        }
+                    }
+                    LogUtils_logHHAuto("Path of Attraction collection finished.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto("No Path of Attraction reward to collect.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'false');
+                }
+            }
+            return false;
+        });
+    }
+    static Hide() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            let arrayz;
+            let nbReward;
+            let modified = false;
+            arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
+            if ($("#nc-poa-tape-blocker").length) {
+                nbReward = 1;
+            }
+            else {
+                nbReward = 2;
+            }
+            var obj;
+            if (arrayz.length > 0) {
+                for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                    obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
+                    if (obj.length >= nbReward) {
+                        //console.log("scroll before : "+document.getElementById('rewards_cont_scroll').scrollLeft);
+                        //console.log("width : "+arrayz[i2].offsetWidth);
+                        $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
+                        //console.log("scroll after : "+document.getElementById('rewards_cont_scroll').scrollLeft);arrayz[i2].style.display = "none";
+                        arrayz[i2].style.display = "none";
+                        modified = true;
+                    }
+                }
+            }
+        }
+    }
+}
+PathOfAttraction.rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";
+PathOfAttraction.freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
+PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
+PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
+
 ;// CONCATENATED MODULE: ./src/Service/TeamScoringService.ts
 // TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
 //
@@ -20054,7 +19387,9 @@ class TeamModule {
                     callback();
                 }
                 else {
-                    setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                    // C1: safeReload(delay) does setTimeout + waitForAjaxIdle
+                    // + reload, with mutex protection (issue #1598).
+                    safeReload(randomInterval(200, 500));
                 }
             });
         }
@@ -20290,7 +19625,9 @@ class TeamModule {
                         // change referer
                         //logHHAuto('change referer back to ' + currentPage);
                         window.history.replaceState(null, '', addNutakuSession(currentPage));
-                        setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                        // C1: safeReload(delay) replaces setTimeout + reload
+                        // with mutex + waitForAjaxIdle protection.
+                        safeReload(randomInterval(200, 500));
                     }
                 });
             };
@@ -22065,16 +21402,15 @@ class HeroHelper {
     }
 }
 
-;// CONCATENATED MODULE: ./src/Module/Quest.ts
-// Quest.ts -- Automates questing: accepts quests, handles quest steps, and buys
-// energy if configured.
+;// CONCATENATED MODULE: ./src/Module/Events/DoublePenetration.ts
+// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
 //
-// Quests are the main PvE progression system. This module accepts available
-// quests, advances through multi-step quest chains, and optionally purchases
-// quest energy when configured to do so. Tracks quest completion and manages
-// the quest page navigation.
+// Double Penetration is a time-limited competitive event with its own fight
+// mechanics. This module tracks event progress, manages fight energy, collects
+// milestone rewards, and handles the event-specific UI interactions.
 //
-// Used by: Service/index.ts (main automation loop)
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Double Penetration event is active)
 //
 
 
@@ -22089,521 +21425,1149 @@ class HeroHelper {
 
 
 
-class QuestHelper {
-    static getEnergy() {
-        return Number(getHHVars('Hero.energies.quest.amount'));
+class DoublePenetration {
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledDPEvent", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_DP"); // And 10 gilrs
     }
-    static getEnergyMax() {
-        return Number(getHHVars('Hero.energies.quest.max_regen_amount'));
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        let dpRemainingTime = 3600;
+        if (timeLeft !== undefined && timeLeft.length) {
+            dpRemainingTime = Number(convertTimeToInt(timeLeft));
+        }
+        setTimer('eventDPGoing', dpRemainingTime);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + dpRemainingTime * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true") {
+            DoublePenetration.goAndCollect(dpRemainingTime);
+        }
     }
-    static getNextQuestLink() {
-        const mainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true";
-        const sideQuest = ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true";
-        let nextQuestUrl = QuestHelper.getMainQuestUrl();
-        if ((mainQuest && sideQuest && (nextQuestUrl.includes("world"))) || (!mainQuest && sideQuest)) {
-            nextQuestUrl = QuestHelper.SITE_QUEST_PAGE;
+    static goAndCollect(dpRemainingTime, manualCollectAll = false) {
+        try {
+            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autodpEventCollectablesList, []);
+            const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
+            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
+            const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
+            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
+            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
+            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
+            if (needToCollect || needToCollectAll || manualCollectAll) {
+                LogUtils_logHHAuto("Checking double penetration event for collectable rewards.");
+                LogUtils_logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                let buttonsToCollect = [];
+                const listDpEventTiersToClaim = $(dPTierQuery);
+                for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
+                    const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
+                    const currentTierNb = currentButton.getAttribute("tier");
+                    //console.log("checking tier : "+currentTierNb);
+                    if (needToCollectAll) {
+                        LogUtils_logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
+                        buttonsToCollect.push(currentButton);
+                    }
+                    else if (manualCollectAll) {
+                        LogUtils_logHHAuto("Adding for collection tier from manual collect all: " + currentTierNb);
+                        buttonsToCollect.push(currentButton);
+                    }
+                    else {
+                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
+                        if (rewardsToCollect.includes(freeSlotType)) {
+                            if (isPassPaid) {
+                                // One button for both
+                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
+                                if (rewardsToCollect.includes(paidSlotType)) {
+                                    buttonsToCollect.push(currentButton);
+                                    LogUtils_logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
+                                }
+                                else {
+                                    LogUtils_logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
+                                }
+                            }
+                            else {
+                                buttonsToCollect.push(currentButton);
+                                LogUtils_logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
+                            }
+                        }
+                    }
+                }
+                if (buttonsToCollect.length > 0) {
+                    function collectDpEventRewards() {
+                        if (buttonsToCollect.length > 0) {
+                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                            buttonsToCollect[0].click();
+                            buttonsToCollect.shift();
+                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
+                            setTimeout(collectDpEventRewards, randomInterval(500, 800));
+                        }
+                        else {
+                            LogUtils_logHHAuto("Double penetration collection finished.");
+                            setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                            //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                        }
+                    }
+                    collectDpEventRewards();
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto("No double penetration reward to collect.");
+                    setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    return false;
+                }
+            }
+            return true;
         }
-        else if (nextQuestUrl.includes("world")) {
-            return undefined;
+        catch ({ errName, message }) {
+            LogUtils_logHHAuto(`ERROR during collect DP rewards: ${message}`);
         }
-        return nextQuestUrl;
-    }
-    static getMainQuestUrl() {
-        let mainQuestUrl = getHHVars('Hero.infos.questing.current_url');
-        const id_world = Number(getHHVars('Hero.infos.questing.id_world'));
-        const id_quest = Number(getHHVars('Hero.infos.questing.id_quest'));
-        const lastQuestId = ConfigHelper.getHHScriptVars("lastQuestId", false);
-        const trollz = ConfigHelper.getHHScriptVars("trollzList");
-        if (id_world < (trollz.length) || lastQuestId > 0 && id_quest != lastQuestId) {
-            // Fix when KK quest url is world url
-            mainQuestUrl = "/quest/" + id_quest;
-        }
-        return mainQuestUrl;
+        return false;
     }
     static run() {
-        //logHHAuto("Starting auto quest.");
-        // Check if at correct page.
-        let page = getPage();
-        let mainQuestUrl = QuestHelper.getMainQuestUrl();
-        let doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
-        if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
-            var quests = $('.side-quest:has(.slot) .side-quest-button');
-            if (quests.length > 0) {
-                LogUtils_logHHAuto("Navigating to side quest.");
-                gotoPage(quests.attr('href'));
-            }
-            else {
-                LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
-                if (checkTimer('nextMainQuestAttempt')) {
-                    setTimer('nextMainQuestAttempt', 604800);
-                } // 1 week delay
-                setTimer('nextSideQuestAttempt', 604800); // 1 week delay
-                // Navigate away from /side-quests.html instead of reloading the
-                // same URL: the page id `side-quests` is not in the script's
-                // pagesKnownList, so subsequent autoLoop iterations would keep
-                // running handlers (e.g. handleChampionTicket) on the
-                // unrecognized page and cause issue #1672's energy-burn loop.
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
-            return;
-        }
-        if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
-            // Click on current quest to naviagte to it.
-            // logHHAuto(`Navigating to current quest. Current page: ${page}, quest url: ${mainQuestUrl}, location: ${window.location.pathname}`);
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDQuest"));
-            return;
-        }
-        $("#popup_message close").trigger('click');
-        $("#level_up close").trigger('click');
-        // Get the proceed button type
-        var proceedButtonMatch = $("#controls button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])");
-        if (proceedButtonMatch.length === 0) {
-            // Choice button 
-            LogUtils_logHHAuto("Search for choice buttons");
-            proceedButtonMatch = $(".buttons-container button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])").first();
-        }
-        if (proceedButtonMatch.length === 0) {
-            proceedButtonMatch = $("#controls button#free");
-        }
-        var proceedType = proceedButtonMatch.attr("id");
-        //console.log("DebugQuest proceedType : "+proceedType);
-        if (proceedButtonMatch.length === 0) {
-            LogUtils_logHHAuto("Could not find resume button.");
-            return;
-        }
-        else if (proceedButtonMatch.attr('disabled') && proceedType != "end_play") {
-            LogUtils_logHHAuto("Button is disabled for animation wait a bit.");
-            return;
-        }
-        if (proceedType === "free") {
-            LogUtils_logHHAuto("Proceeding for free.");
-            //setStoredValue"HHAuto_Temp_autoLoop", "false");
-            //logHHAuto("setting autoloop to false");
-            //proceedButtonMatch.click();
-        }
-        else if (proceedType === "pay") {
-            var proceedButtonCost = $(".action-cost .price", proceedButtonMatch);
-            var proceedCost = parsePrice(proceedButtonCost[0].innerText);
-            var payTypeNRJ = $(".action-cost .energy_quest_icn", proceedButtonMatch).length > 0;
-            var energyCurrent = QuestHelper.getEnergy();
-            var moneyCurrent = HeroHelper.getMoney();
-            //let payType = $("#controls .cost span[cur]:not([style*='display:none']):not([style*='display: none'])").attr('cur');
-            //console.log("DebugQuest payType : "+payType);
-            if (payTypeNRJ) {
-                // console.log("DebugQuest ENERGY for : "+proceedCost + " / " + energyCurrent);
-                if (proceedCost <= energyCurrent) {
-                    // We have energy.
-                    LogUtils_logHHAuto("Spending " + proceedCost + " Energy to proceed.");
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'))) {
+            LogUtils_logHHAuto("On Double penetration event.");
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
+                GM_addStyle('#dp-content .left-container .objectives-container .hard-objective .nc-sub-panel div.buttons .redirect-buttons {flex-direction: column;}');
+                if ($(".hard-objective .hh-club-poa").length <= 0) {
+                    const championsGoal = $('.hard-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
+                    championsGoal.append(getGoToClubChampionButton());
                 }
-                else {
-                    LogUtils_logHHAuto("Quest requires " + proceedCost + " Energy to proceed.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "*" + proceedCost);
-                    return;
+                if ($(".easy-objective .hh-club-poa").length <= 0) {
+                    const championsGoal = $('.easy-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
+                    championsGoal.append(getGoToClubChampionButton());
                 }
             }
-            else {
-                console.log("DebugQuest MONEY for : " + proceedCost);
-                if (proceedCost <= moneyCurrent) {
-                    // We have money.
-                    LogUtils_logHHAuto("Spending " + proceedCost + " Money to proceed.");
-                }
-                else {
-                    LogUtils_logHHAuto("Need " + proceedCost + " Money to proceed.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "$" + proceedCost);
-                    return;
-                }
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+                DoublePenetration.displayRewardsDiv();
+                DoublePenetration.displayCollectAllButton();
             }
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
-        else if (proceedType === "use_item") {
-            LogUtils_logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
-        }
-        else if (proceedType === "battle") {
-            LogUtils_logHHAuto("Quest need battle...");
-            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "battle");
-            // Proceed to battle troll.
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
-        }
-        else if (proceedType === "finish") {
-            LogUtils_logHHAuto("Reached end of current side quest. Proceeding to next.");
-        }
-        else if (proceedType === "end_archive") {
-            LogUtils_logHHAuto("Reached end of current archive. Proceeding to next archive.");
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
-            //proceedButtonMatch.click();
-        }
-        else if (proceedType === "end_play") {
-            let rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
-            if (proceedButtonMatch.attr('disabled') && rewards.length > 0) {
-                LogUtils_logHHAuto("Reached end of current archive. Claim reward.");
-                rewards.click();
-                return;
+    }
+    static hasUnclaimedRewards() {
+        return $(".tier-container button.purple_button_L:visible").length > 0;
+    }
+    static displayRewardsDiv() {
+        try {
+            const target = $('#dp-content .right-container');
+            const hhRewardId = 'HHDpRewards';
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = DoublePenetration.getNotClaimedRewards();
+                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
-            LogUtils_logHHAuto("Reached end of current play. Proceeding to next play.");
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
-            //proceedButtonMatch.click();
         }
-        else if (proceedType === "outfit") {
-            LogUtils_logHHAuto("Change outfit needed.");
-            // TODO manage ?
-            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "outfit");
+        catch ({ errName, message }) {
+            LogUtils_logHHAuto(`ERROR in display DP rewards: ${message}`);
         }
-        else {
-            LogUtils_logHHAuto("Could not identify given resume button.");
-            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "unknownQuestButton");
-            return;
+    }
+    static getNotClaimedRewards() {
+        const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
+        const freeSlotSelectors = ".free-slot .slot";
+        let paidSlotSelectors = "";
+        if ($("div#nc-poa-tape-blocker").length == 0) {
+            // Season pass paid
+            paidSlotSelectors = ".paid-slot  .slot";
         }
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        LogUtils_logHHAuto("setting autoloop to false");
-        setTimeout(function () {
-            proceedButtonMatch.click();
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-            LogUtils_logHHAuto("setting autoloop to true");
-            setTimeout(autoLoop, randomInterval(800, 1200));
-        }, randomInterval(500, 800));
-        //setTimeout(function () {location.reload();},randomInterval(800,1500));
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static displayCollectAllButton() {
+        if (DoublePenetration.hasUnclaimedRewards() && $('#dpCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="dpCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 135px;width: 80px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#dp-content .tiers-container .player-potions').append(divTooltip);
+            button.one('click', () => {
+                DoublePenetration.goAndCollect(Infinity, true);
+            });
+        }
     }
 }
-QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
 
-;// CONCATENATED MODULE: ./src/Service/PageNavigationService.ts
-// PageNavigationService.ts
+;// CONCATENATED MODULE: ./src/Module/Events/KinkyCumpetition.ts
+// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
 //
-// Centralized page navigation. Translates abstract page IDs into
-// actual URL paths using ConfigHelper, then navigates via
-// window.location after a randomized delay (300-500ms) to look
-// more human-like. Handles Nutaku session token injection.
+// Kinky Cumpetition is a periodic competitive event. This module parses event
+// page data, tracks timer countdowns and girl reward progress, and manages
+// the event refresh schedule.
 //
-// Before navigating, AutoLoop is disabled to prevent firing during
-// the page transition. It re-enables after the new page loads.
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
 //
-// Navigation mutex: only one navigation can be scheduled at a time.
-// Subsequent calls within the same tick are dropped to prevent the
-// browser from firing two window.location changes a few ms apart
-// (which the game rejects with HTTP Forbidden). The flag resets
-// automatically once the page has loaded and the script restarts.
-//
-// Used by: Every module that needs to navigate to a page.
 
 
-
-
-
-
-
-
-
-
-
-// Module-level mutex: true while a navigation has been scheduled but the
-// browser hasn't fully transitioned yet. Reset implicitly on page reload.
-let navInFlight = false;
-// Throttle the "navigation already in flight" log line so a slow AJAX
-// wait does not flood the log with one entry per AutoLoop tick (issue
-// #1598 follow-up). Only emit once per NAV_BLOCKED_LOG_INTERVAL_MS.
-const NAV_BLOCKED_LOG_INTERVAL_MS = 5000;
-let lastNavBlockedLogAt = 0;
-// Returns true if on correct page.
-function gotoPage(page, inArgs = {}, delay = -1) {
-    if (navInFlight) {
-        const now = Date.now();
-        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
-            lastNavBlockedLogAt = now;
-            LogUtils_logHHAuto('gotoPage: navigation already in flight, ignoring ' + page);
+class KinkyCumpetition {
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventKinkyCumpetitionGoing', Number(convertTimeToInt(timeLeft)));
         }
-        return false;
+        else
+            setTimer('eventKinkyCumpetitionGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            let girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100) {
+                eventList[eventID]["isCompleted"] = false;
+            }
+        }
     }
-    var cp = getPage();
-    LogUtils_logHHAuto('going ' + cp + '->' + page);
-    if (typeof delay != 'number' || delay === -1) {
-        delay = randomInterval(300, 500);
+}
+
+;// CONCATENATED MODULE: ./src/model/EventGirl.ts
+// Model representing a girl obtainable during an in-game event.
+// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
+// association, shard count, event timing, and mythic status.
+
+
+class EventGirl {
+    constructor(girlData, eventId, seconds_before_end, is_mythic = false, parseSource = true) {
+        this.name = '';
+        this.event_id = '';
+        this.girl_id = girlData.id_girl;
+        this.shards = girlData.shards;
+        this.seconds_before_end = seconds_before_end;
+        this.is_mythic = is_mythic;
+        this.name = girlData.name;
+        this.event_id = eventId;
+        if (parseSource) {
+            this.parseSource(girlData);
+        }
     }
-    var togoto = undefined;
-    // get page path
-    switch (page) {
-        case ConfigHelper.getHHScriptVars("pagesIDHome"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLHome");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDActivities"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLActivities");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDMissions"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLActivities");
-            togoto = url_add_param(togoto, "tab", ConfigHelper.getHHScriptVars("pagesIDMissions"));
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLActivities");
-            togoto = url_add_param(togoto, "tab", "pop");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDContests"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLActivities");
-            togoto = url_add_param(togoto, "tab", ConfigHelper.getHHScriptVars("pagesIDContests"));
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDDailyGoals"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLActivities");
-            togoto = url_add_param(togoto, "tab", ConfigHelper.getHHScriptVars("pagesIDDailyGoals"));
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDHarem"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLHarem");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDMap"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLMap");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPachinko"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPachinko");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLLeaderboard");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDShop"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLShop");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDQuest"):
-            togoto = QuestHelper.getNextQuestLink();
-            if (togoto === undefined) {
-                LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
-                setTimer('nextMainQuestAttempt', 604800); // 1 week delay
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+    /*
+    constructor(girl_id: number, troll_id: number, champ_id: number, girl_shards: number, girl_name: string, event_id: string, is_mythic: boolean = false) {
+        this.girl_id = girl_id;
+        this.troll_id = troll_id;
+        this.champ_id = champ_id;
+        this.girl_shards = girl_shards;
+        this.is_mythic = is_mythic;
+        this.girl_name = girl_name;
+        this.event_id = event_id;
+    }*/
+    isOnTroll() {
+        return this.troll_id > 0;
+    }
+    isOnChampion() {
+        return this.champ_id > 0;
+    }
+    toString() {
+        if (this.isOnTroll()) {
+            return `Event girl : ${this.name} (${this.shards}/100) at troll ${this.troll_id} on event : ${this.event_id}`;
+        }
+        else if (this.isOnChampion()) {
+            return `Event girl : ${this.name} (${this.shards}/100) at champ ${this.champ_id} on event : ${this.event_id}`;
+        }
+        return `Event girl : ${this.name} (${this.shards}/100) on event : ${this.event_id}`;
+    }
+    parseSource(girlData) {
+        if (girlData.source) {
+            if (girlData.source.name === 'event_troll') {
+                try {
+                    let parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
+                    this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
+                    if (girlData.source.anchor_source.disabled) {
+                        LogUtils_logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                        this.troll_id = undefined;
+                    }
+                }
+                catch (error) {
+                    try {
+                        let parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
+                        this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
+                        if (girlData.source.anchor_win_from.disabled) {
+                            LogUtils_logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                            this.troll_id = undefined;
+                        }
+                    }
+                    catch (error) {
+                        LogUtils_logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
+                    }
+                }
+            }
+            else if (girlData.source.name === 'event_champion_girl') {
+                try {
+                    this.champ_id = Number(girlData.source.anchor_source.url.split('/champions/')[1]);
+                    if (girlData.source.anchor_source.disabled) {
+                        LogUtils_logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                        this.champ_id = undefined;
+                    }
+                }
+                catch (error) {
+                    try {
+                        this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
+                        if (girlData.source.anchor_win_from.disabled) {
+                            LogUtils_logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                            this.champ_id = undefined;
+                        }
+                    }
+                    catch (error) {
+                        LogUtils_logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
+                    }
+                }
+            }
+            else if (girlData.source.name === 'event_dm') {
+                // Daily missions girl
+            }
+            else if (girlData.source.name === 'pachinko_event') {
+                // pachinko event girl
+            }
+            else {
+                LogUtils_logHHAuto(`Other source found ${girlData.source.name}`);
+            }
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/MythicEvent.ts
+// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
+//
+// Mythic events feature special troll bosses with wave-based progression and
+// unique girl shard rewards. This module tracks wave progress, coordinates
+// with Troll.ts for fight prioritization, and manages event-specific timers
+// and girl shard tracking.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Mythic event is active),
+//          Troll.ts (reads event troll priorities)
+//
+
+
+
+
+
+
+
+class MythicEvent {
+    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
+        const eventID = hhEvent.eventId;
+        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventMythicGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["isMythic"] = true;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            let girlData = allEventGirlz[currIndex];
+            let ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
+            let timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
+            if ($(ShardsQuery).length > 0) {
+                let remShards = Number($(ShardsQuery)[0].innerText);
+                let nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
+                if (girlData.shards < 100) {
+                    eventList[eventID]["isCompleted"] = false;
+                    if (nextWave === -1) {
+                        clearTimer('eventMythicNextWave');
+                    }
+                    else {
+                        setTimer('eventMythicNextWave', nextWave);
+                    }
+                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"], true);
+                    if (remShards !== 0) {
+                        if (eventGirl.isOnTroll()) {
+                            LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
+                            eventsGirlz.push(eventGirl);
+                        }
+                    }
+                    else {
+                        if (nextWave === -1) {
+                            eventList[eventID]["isCompleted"] = true;
+                            clearTimer('eventMythicNextWave');
+                        }
+                    }
+                }
+                else {
+                    // No more needed if girl is owned
+                    clearTimer('eventMythicNextWave');
+                }
+            }
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/PlusEvents.ts
+// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
+//
+// Plus Events are a category of events that overlay additional information
+// and rewards on top of normal gameplay. This module parses event data,
+// extracts girl shard progress and troll fight priorities, and displays
+// event overlay information in the UI.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Plus Events are active)
+//
+
+
+
+
+
+
+
+
+class PlusEvent {
+    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
+        const eventID = hhEvent.eventId;
+        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            let girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100) {
+                eventList[eventID]["isCompleted"] = false;
+                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
+                if (eventGirl.isOnTroll()) {
+                    LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
+                    eventsGirlz.push(eventGirl);
+                }
+                if (eventGirl.isOnChampion()) {
+                    LogUtils_logHHAuto(`Event girl : ${eventGirl.toString()}`, eventGirl);
+                    eventChamps.push(eventGirl);
+                }
+            }
+        }
+        if (eventList[eventID]["isCompleted"]) {
+            EventModule.collectEventChestIfPossible();
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/SultryMysteries.ts
+// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and auto-buying.
+//
+// Sultry Mysteries is a time-limited event featuring a special event shop.
+// This module monitors the event shop for refresh timers, detects available
+// items, and automates purchasing when configured. Requires a minimum player
+// level to participate.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Sultry Mysteries event is active)
+//
+
+
+
+
+
+class SultryMysteries {
+    static isEnabled() {
+        return HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_SM");
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        let refreshTimer = randomInterval(3600, 4000);
+        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventSultryMysteryGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventSultryMysteryGoing', 3600);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = false;
+        if (checkTimer("eventSultryMysteryShopRefresh")) {
+            LogUtils_logHHAuto("Refresh sultry mysteries shop content.");
+            const shopButton = $('#shop_tab');
+            const gridButton = $('#grid_tab');
+            shopButton.trigger('click');
+            setTimeout(function () {
+                let shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
+                setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
+                eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
+                setTimeout(function () { gridButton.trigger('click'); }, randomInterval(800, 1200));
+            }, randomInterval(300, 500));
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/EventModule.ts
+var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class EventModule {
+    /**
+     * Remove stale event data from sessionStorage for the given event ID.
+     * Also prunes expired events, disables timers when no mythic/regular events remain,
+     * and cleans up associated girl and champion lists.
+     */
+    static clearEventData(inEventID) {
+        //clearTimer('eventMythicNextWave');
+        //clearTimer('eventRefreshExpiration');
+        //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+        let eventGirl = EventModule.getEventGirl();
+        let eventMythicGirl = EventModule.getEventMythicGirl();
+        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        let hasMythic = false;
+        let hasEvent = false;
+        for (let prop of Object.keys(eventList)) {
+            if (eventList[prop]["seconds_before_end"] < new Date()
+                ||
+                    (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) !== "true")) {
+                delete eventList[prop];
+            }
+            else {
+                if (!eventList[prop]["isCompleted"]) {
+                    if (eventList[prop]["isMythic"]) {
+                        hasMythic = true;
+                    }
+                    else {
+                        hasEvent = true;
+                    }
+                }
+            }
+        }
+        if (hasMythic === false) {
+            clearTimer('eventMythicNextWave');
+            clearTimer('eventMythicGoing');
+        }
+        if (hasEvent === false) {
+            clearTimer('eventGoing');
+        }
+        if (Object.keys(eventList).length === 0) {
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
+        }
+        else {
+            //console.log(JSON.stringify(eventChamps));
+            eventChamps = eventChamps.filter(function (a) {
+                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            });
+            if (Object.keys(eventChamps).length === 0) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
+            }
+            else {
+                setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
+            }
+            eventsGirlz = eventsGirlz.filter(function (a) {
+                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            });
+            if (Object.keys(eventsGirlz).length === 0) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
+            }
+            else {
+                setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
+            }
+            if (!eventList.hasOwnProperty(eventGirl.event_id) || eventGirl.event_id === inEventID) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
+            }
+            if (!eventList.hasOwnProperty(eventMythicGirl.event_id) || eventMythicGirl.event_id === inEventID) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+        }
+    }
+    static getDisplayedIdEventPage(logging = true) {
+        let eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
+        if (!eventHref && logging) {
+            LogUtils_logHHAuto('Error href not found for current event');
+        }
+        if (eventHref) {
+            let parsedURL = new URL(eventHref, window.location.origin);
+            return queryStringGetParam(parsedURL.search, 'tab') || '';
+        }
+        return '';
+    }
+    static showCompletedEvent() {
+        try {
+            if ($('img.eventCompleted').length <= 0) {
+                let oneEventCompleted = false;
+                if ($(`#contains_all #homepage .event-widget a:not([href="#"])`).length > 0) {
+                    const img = $(`<div class="tooltipHH" style="display: inline-block;">`
+                        + `<span class="tooltipHHtext">${getTextForUI('eventCompleted', "tooltip")}</span>`
+                        + `<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted', "tooltip")}" />`
+                        + `</div>`);
+                    const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                    for (let eventID of Object.keys(eventList)) {
+                        if (eventList[eventID]["isCompleted"]) {
+                            const eventTimer = $(`#contains_all #homepage .event-widget a[href*="${eventID}"] .timer p`);
+                            eventTimer.append(img.clone());
+                            oneEventCompleted = true;
+                        }
+                    }
+                }
+                if (!oneEventCompleted) {
+                    const eventTimer = $(`#contains_all #homepage`);
+                    eventTimer.append($(`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['minus']} class="eventCompleted" style="display:none" />`));
+                }
+            }
+        }
+        catch (error) { /* ignore errors */ }
+    }
+    static parseEventPage() {
+        return EventModule_awaiter(this, arguments, void 0, function* (inTab = "global") {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+                let queryEventTabCheck = $("#contains_all #events");
+                const eventID = EventModule.getDisplayedIdEventPage();
+                if (inTab !== "global" && inTab !== eventID) {
+                    if (eventID == '') {
+                        LogUtils_logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
+                        EventModule.clearEventData(inTab);
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    }
+                    else {
+                        LogUtils_logHHAuto("Wrong event opened, need to change event page");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
+                    }
+                    return true;
+                }
+                const hhEvent = EventModule.getEvent(eventID);
+                if (!hhEvent.eventTypeKnown) {
+                    if (queryEventTabCheck.attr('parsed') === undefined) {
+                        LogUtils_logHHAuto("Not parsable event");
+                        queryEventTabCheck[0].setAttribute('parsed', 'true');
+                    }
+                    return false;
+                }
+                if (queryEventTabCheck.attr('parsed') !== undefined) {
+                    if (!EventModule.checkEvent(eventID)) {
+                        //logHHAuto("Events already parsed.");
+                        return false;
+                    }
+                }
+                queryEventTabCheck[0].setAttribute('parsed', 'true');
+                const hhEventData = unsafeWindow.event_data || unsafeWindow.current_event;
+                LogUtils_logHHAuto(`On event page : ${eventID} (${(hhEventData === null || hhEventData === void 0 ? void 0 : hhEventData.event_name) || ''})`);
+                EventModule.clearEventData(eventID);
+                //let eventsGirlz=[];
+                let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+                let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+                let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+                if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
+                    LogUtils_logHHAuto("Error getting current event Data from HH.");
+                }
+                if (hhEvent.isPlusEvent) {
+                    LogUtils_logHHAuto("On going event, parsing...");
+                    PlusEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
+                }
+                if (hhEvent.isPlusEventMythic) {
+                    LogUtils_logHHAuto("On going mythic event, parsing...");
+                    MythicEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
+                }
+                if (hhEvent.isBossBangEvent) {
+                    LogUtils_logHHAuto("On going bossBang event, parsing...");
+                    BossBang.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isSultryMysteriesEvent) {
+                    LogUtils_logHHAuto("On going sultry mysteries event.");
+                    SultryMysteries.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isLivelyScene) {
+                    LogUtils_logHHAuto("On going lively scene event.");
+                    LivelyScene.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isDPEvent) {
+                    LogUtils_logHHAuto("On going double penetration event.");
+                    DoublePenetration.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isPoa) {
+                    LogUtils_logHHAuto("On going path of Attraction event.");
+                    PathOfAttraction.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isCumback) {
+                    LogUtils_logHHAuto("On going cumback contest event.");
+                    CumbackContests.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isKinky) {
+                    LogUtils_logHHAuto("On going kinky cumpetition event.");
+                    KinkyCumpetition.parse(hhEvent, eventList, hhEventData);
+                }
+                if (Object.keys(eventList).length > 0) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+                }
+                else {
+                    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
+                }
+                eventsGirlz = eventsGirlz.filter(function (a) {
+                    var a_weighted = Number(Priority.indexOf('' + a.troll_id));
+                    if (a.is_mythic) {
+                        return true;
+                    }
+                    else {
+                        return a_weighted !== -1;
+                    }
+                });
+                if (eventsGirlz.length > 0 || eventChamps.length > 0) {
+                    if (eventsGirlz.length > 0) {
+                        if (Priority[0] !== '') {
+                            eventsGirlz.sort(function (a, b) {
+                                var a_weighted = Number(Priority.indexOf('' + a.troll_id));
+                                if (a.is_mythic) {
+                                    a_weighted = a_weighted - Priority.length;
+                                }
+                                var b_weighted = Number(Priority.indexOf('' + b.troll_id));
+                                if (b.is_mythic) {
+                                    b_weighted = b_weighted - Priority.length;
+                                }
+                                return a_weighted - b_weighted;
+                            });
+                            //logHHAuto({log:"Sorted EventGirls",eventGirlz:eventsGirlz});
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
+                        EventModule.saveEventGirl(eventsGirlz[0]);
+                    }
+                    if (eventChamps.length > 0) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
+                    }
+                    queryEventTabCheck[0].setAttribute('parsed', 'true');
+                    //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", "20000");
+                    //setTimer('eventRefreshExpiration', 3600);
+                }
+                else {
+                    queryEventTabCheck[0].setAttribute('parsed', 'true');
+                    EventModule.clearEventData(eventID);
+                }
                 return false;
             }
-            LogUtils_logHHAuto("Current quest page: " + togoto);
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPantheon"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPantheon");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPantheonPreBattle"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPantheonPreBattle");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDLabyrinth"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLLabyrinth");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDEditLabyrinthTeam"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLEditLabyrinthTeam");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDChampionsMap"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLChampionsMap");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDSeason"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLSeason");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDSeasonArena"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLSeasonArena");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPentaDrill"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPentaDrill");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPentaDrillArena");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPentaDrillPreBattle"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPentaDrillPreBattle");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPentaDrillBattle");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDClubChampion"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLClubChampion");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLLeagueBattle");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLTrollPreBattle");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDEvent"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLEvent");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDClub"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLClub");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPoV"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPoV");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDPoG"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLPoG");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLSeasonalEvent");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDEditTeam"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLEditTeam");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDWaifu"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLWaifu");
-            break;
-        case ConfigHelper.getHHScriptVars("pagesIDLoveRaid"):
-            togoto = ConfigHelper.getHHScriptVars("pagesURLLoveRaid");
-            break;
-        case (page.match(/^\/champions\/[123456]$/) || {}).input:
-            togoto = page;
-            break;
-        case (page.match(/^\/characters\/\d+$/) || {}).input:
-            togoto = page;
-            break;
-        case (page.match(/^\/girl\/\d+$/) || {}).input:
-            togoto = page;
-            break;
-        case (page.match(/^\/quest\/\d+$/) || {}).input:
-            togoto = page;
-            break;
-        case (page.match(/^\/quest\/\d+.*$/) || {}).input:
-            togoto = page;
-            break;
-        default:
-            LogUtils_logHHAuto("Unknown goto page request. No page \'" + page + "\' defined.");
+            else {
+                if (inTab !== "global") {
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
+                }
+                else {
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"));
+                }
+                return true;
+            }
+        });
     }
-    if (togoto != undefined) {
-        setLastPageCalled(togoto);
-        if (typeof inArgs === 'object' && Object.keys(inArgs).length > 0) {
-            for (let arg of Object.keys(inArgs)) {
-                togoto = url_add_param(togoto, arg, inArgs[arg]);
+    static saveEventGirl(eventGirlz) {
+        var chosenTroll = Number(eventGirlz.troll_id);
+        LogUtils_logHHAuto("ET: " + chosenTroll);
+        if (!eventGirlz.is_mythic) {
+            setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
+        }
+        else {
+            // setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz)); // TODO remove when migration is done
+            setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
+        }
+    }
+    static getEventGirl() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.eventGirl, {});
+    }
+    static getEventMythicGirl() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.eventMythicGirl, {});
+    }
+    static getEventType(inEventID) {
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')))
+            return "mythic";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')))
+            return "event";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')))
+            return "bossBang";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')))
+            return "sultryMysteries";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg')))
+            return "doublePenetration";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')))
+            return "poa";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg')))
+            return "livelyscene";
+        if (inEventID.startsWith('cumback_contest_'))
+            return "cumback";
+        if (inEventID.startsWith('kinky_event_'))
+            return "kinky";
+        //    if(inEventID.startsWith('lively_scene_event_')) return "";
+        //    if(inEventID.startsWith('legendary_contest_')) return "";
+        //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
+        return "";
+    }
+    static getEvent(inEventID) {
+        const eventType = EventModule.getEventType(inEventID);
+        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
+        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
+        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true";
+        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" && SultryMysteries.isEnabled();
+        const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
+        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg'));
+        const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
+        const isCumback = "cumback" === eventType;
+        const isKinky = "kinky" === eventType;
+        return {
+            eventTypeKnown: eventType !== '',
+            eventId: inEventID,
+            eventType: eventType,
+            isPlusEvent: isPlusEvent, // and activated
+            isPlusEventMythic: isPlusEventMythic, // and activated
+            isBossBangEvent: isBossBangEvent, // and activated
+            isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
+            isDPEvent: isDPEvent, // and activated
+            isLivelyScene: isLivelyScene, // and activated
+            isPoa: isPoa, // and activated
+            isCumback: isCumback,
+            isKinky: isKinky,
+            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
+        };
+    }
+    static getEventIDsByType(inType) {
+        let eventIDs = [];
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        for (let eventID of Object.keys(eventList)) {
+            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
+                eventIDs.push(eventID);
             }
         }
-        togoto = addNutakuSession(togoto);
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        LogUtils_logHHAuto("setting autoloop to false");
-        LogUtils_logHHAuto('GotoPage : ' + togoto + ' in ' + delay + 'ms.');
-        navInFlight = true;
-        const targetUrl = togoto;
-        setTimeout(function () {
-            // Wait for any in-flight game AJAX (e.g. PoP claim POSTs) to
-            // finish before changing the URL. Setting window.location.href
-            // cancels open XHRs with NS_BINDING_ABORTED, and an aborted
-            // state-changing request can make the server answer Forbidden
-            // on the next call (issue #1598). If the wait times out (the
-            // server is genuinely slow), abort the navigation and let
-            // AutoLoop retry on the next tick instead of cancelling the
-            // open request.
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
-                if (!idle) {
-                    LogUtils_logHHAuto('gotoPage: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation to ' + targetUrl);
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    navInFlight = false;
-                    return;
-                }
-                window.location.href = window.location.origin + targetUrl;
-            });
-        }, delay);
+        return eventIDs;
     }
-    else {
-        LogUtils_logHHAuto("Couldn't find page path. Page was undefined...");
-        navInFlight = true;
-        setTimeout(function () {
-            waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
-                if (!idle) {
-                    LogUtils_logHHAuto('gotoPage: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring reload');
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    navInFlight = false;
-                    return;
-                }
-                location.reload();
-            });
-        }, delay);
-    }
-}
-/**
- * Reload the current page after waiting for any in-flight game AJAX
- * to finish. Equivalent to `location.reload()` but with the same
- * NS_BINDING_ABORTED guard as gotoPage (see issue #1598).
- *
- * Honors the navInFlight mutex so concurrent callers cannot fire two
- * reloads within the same tick. On AJAX-idle timeout, the reload is
- * deferred and AutoLoop is re-enabled so the next tick can retry.
- */
-function safeReload(delay = -1) {
-    if (navInFlight) {
-        const now = Date.now();
-        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
-            lastNavBlockedLogAt = now;
-            LogUtils_logHHAuto('safeReload: navigation already in flight, ignoring reload');
+    static isEventActive(inEventID) {
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
+            return eventList[inEventID]["seconds_before_end"] > new Date();
         }
         return false;
     }
-    if (typeof delay !== 'number' || delay === -1) {
-        delay = randomInterval(300, 500);
-    }
-    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-    LogUtils_logHHAuto('safeReload: scheduled in ' + delay + 'ms');
-    navInFlight = true;
-    setTimeout(function () {
-        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
-            if (!idle) {
-                LogUtils_logHHAuto('safeReload: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring reload');
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                navInFlight = false;
-                return;
-            }
-            location.reload();
-        });
-    }, delay);
-    return true;
-}
-/**
- * Navigate to an arbitrary URL after waiting for any in-flight game
- * AJAX to finish. Use when gotoPage's page-ID switch cannot be used
- * (e.g. event links provided as raw href). Same NS_BINDING_ABORTED
- * guard as gotoPage (see issue #1598).
- */
-function safeNavigateHref(url, delay = -1) {
-    if (navInFlight) {
-        const now = Date.now();
-        if (now - lastNavBlockedLogAt > NAV_BLOCKED_LOG_INTERVAL_MS) {
-            lastNavBlockedLogAt = now;
-            LogUtils_logHHAuto('safeNavigateHref: navigation already in flight, ignoring ' + url);
+    static checkEvent(inEventID) {
+        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const hhEvent = EventModule.getEvent(inEventID);
+        if (!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled) {
+            return false;
         }
-        return false;
+        if (!eventList.hasOwnProperty(inEventID)) {
+            return true;
+        }
+        else {
+            if (eventList[inEventID]["isCompleted"]) {
+                return false;
+            }
+            else {
+                return (eventList[inEventID]["next_refresh"] < new Date()
+                    ||
+                        (hhEvent.isPlusEventMythic && checkTimerMustExist('eventMythicNextWave'))
+                    ||
+                        (hhEvent.isSultryMysteriesEvent && checkTimerMustExist('eventSultryMysteryShopRefresh'))
+                    ||
+                        (hhEvent.isDPEvent && checkTimerMustExist('nextDpEventCollectTime'))
+                    ||
+                        (hhEvent.isLivelyScene && checkTimerMustExist('nextLivelySceneEventCollectTime')));
+            }
+        }
     }
-    if (typeof delay !== 'number' || delay === -1) {
-        delay = randomInterval(300, 500);
+    static displayPrioInDailyMissionGirl(baseQuery) {
+        let allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
+        if (!allEventGirlz)
+            return;
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            let girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
+                let query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
+                if ($(query).length > 0) {
+                    let currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority" title="' + getTextForUI('dailyMissionGirlTitle', 'elementText') + '">DM</div>');
+                    $(query).css('position', 'relative');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                }
+            }
+        }
     }
-    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-    LogUtils_logHHAuto('safeNavigateHref: ' + url + ' in ' + delay + 'ms');
-    navInFlight = true;
-    setTimeout(function () {
-        waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS).then(function (idle) {
-            if (!idle) {
-                LogUtils_logHHAuto('safeNavigateHref: AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, deferring navigation to ' + url);
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                navInFlight = false;
-                return;
+    static hideOwnedGilrs() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.hideOwnedGirls) === "true") {
+            if ($('.nc-event-list-reward.already-owned').length > 10 && $('.nc-event-list-reward.girl_ico').length > 30) {
+                $('.nc-event-list-reward.already-owned').parent().hide();
             }
-            location.href = url;
-        });
-    }, delay);
-    return true;
-}
-function addNutakuSession(togoto) {
-    if (unsafeWindow.hh_nutaku) {
-        const hhSession = queryStringGetParam(window.location.search, 'sess');
-        if (hhSession) {
-            if (typeof togoto === 'string' && !togoto.includes("sess=")) {
-                togoto = url_add_param(togoto, 'sess', hhSession);
+        }
+    }
+    static moduleDisplayEventPriority() {
+        if ($('.HHEventPriority').length > 0) {
+            return;
+        }
+        const baseQuery = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
+        EventModule.displayPrioInDailyMissionGirl(baseQuery);
+        let eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
+        if (eventGirlz.length > 0 || eventChamps.length > 0) {
+            var girl;
+            var prio;
+            var idArray;
+            var currentGirl;
+            for (var ec = eventChamps.length; ec > 0; ec--) {
+                idArray = Number(ec) - 1;
+                girl = Number(eventChamps[idArray].girl_id);
+                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                if ($(query).length > 0) {
+                    currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority">C' + eventChamps[idArray].champ_id + '</div>');
+                    $(query).css('position', 'relative');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                }
             }
-            else if (Array.isArray(togoto) && !(togoto['sess'])) {
-                togoto['sess'] = hhSession;
+            for (var e = eventGirlz.length; e > 0; e--) {
+                idArray = Number(e) - 1;
+                girl = Number(eventGirlz[idArray].girl_id);
+                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                if ($(query).length > 0) {
+                    currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority">' + e + '</div>');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                    $(query).css('position', 'relative');
+                    $(query).trigger('click');
+                }
             }
-            else if (typeof togoto === 'object' && togoto.hasOwnProperty('sess') === false) {
-                togoto['sess'] = hhSession;
+        }
+    }
+    static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName) {
+        const displayTimer = $(scriptId).length === 0;
+        if (getTimer(timerName) !== -1) {
+            const domSelector = '#homepage a[rel="' + aRel + '"] .notif-position > span';
+            if ($("#" + hhtimerId).length === 0) {
+                if (displayTimer) {
+                    $(domSelector).prepend('<span id="' + hhtimerId + '"></span>');
+                    GM_addStyle('#' + hhtimerId + '{position: absolute;top: 26px;left: 30px;width: 100px;font-size: .6rem ;z-index: 1;}');
+                }
+            }
+            else {
+                if (!displayTimer) {
+                    const timerEl = $("#" + hhtimerId)[0];
+                    if (timerEl) {
+                        timerEl.remove();
+                    }
+                }
+            }
+            if (displayTimer) {
+                const timerEl = $("#" + hhtimerId)[0];
+                // Defensive: when the homepage banner element identified by aRel
+                // is not in the DOM (e.g. because Kinkoid removed the tile or the
+                // current event is inactive), the prepend above is a no-op and
+                // [0] is undefined here. Skip silently in that case instead of
+                // throwing a TypeError on every AutoLoop tick.
+                if (timerEl) {
+                    timerEl.innerText = getTimeLeft(timerName);
+                }
             }
         }
         else {
-            LogUtils_logHHAuto('ERROR Nutaku detected and no session found');
+            if (getStoredValue(timerEndDateName) !== undefined) {
+                setTimer(timerName, getStoredValue(timerEndDateName) - (Math.ceil(new Date().getTime()) / 1000));
+            }
         }
     }
-    return togoto;
-}
-function setLastPageCalled(inPage) {
-    //console.log("testingHome : setting to : "+JSON.stringify({page:inPage, dateTime:new Date().getTime()}));
-    setStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled, JSON.stringify({ page: inPage, dateTime: new Date().getTime() }));
+    static moduleSimPoVPogMaskReward(containerId) {
+        var arrayz;
+        var nbReward;
+        let modified = false;
+        arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
+        //doesn sure about  " .purchase-pov-pass"-button visibility
+        if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
+            nbReward = 1;
+        }
+        else {
+            nbReward = 2;
+        }
+        var obj;
+        if (arrayz.length > 0) {
+            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
+                if (obj.length >= nbReward) {
+                    //console.log("width : "+arrayz[i2].offsetWidth);
+                    //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
+                    arrayz[i2].style.display = "none";
+                    modified = true;
+                }
+            }
+        }
+        if (modified) {
+            let divToModify = $('.potions-paths-progress-bar-section');
+            if (divToModify.length > 0) {
+                $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
+            }
+        }
+    }
+    static collectEventChestIfPossible() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.collectEventChest) === "true") {
+            const eventChestId = "#extra-rewards-claim-btn:not([disabled])";
+            if ($(eventChestId).length > 0) {
+                LogUtils_logHHAuto("Collect event chest");
+                $(eventChestId).click();
+            }
+        }
+    }
+    static parsePageForEventId() {
+        function getEventQuery(event) {
+            return `#contains_all #homepage .event-widget a[rel="${event}"]:not([href="#"])`;
+        }
+        const eventQuery = getEventQuery("event");
+        const mythicEventQuery = getEventQuery("mythic_event");
+        const bossBangEventQuery = getEventQuery("boss_bang_event");
+        const sultryMysteriesEventQuery = getEventQuery("sm_event");
+        const dpEventQuery = getEventQuery("dp_event");
+        const livelySceneEventQuery = getEventQuery("lively_scene_event");
+        const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
+        const povEventQuery = '#contains_all #homepage .event-container a[rel="path-of-valor"]';
+        const pogEventQuery = '#contains_all #homepage .event-container a[rel="path-of-glory"]';
+        const poaEventQuery = getEventQuery("path_event");
+        let eventIDs = [];
+        let ongoingEventIDs = [];
+        let bossBangEventIDs = [];
+        const currentPage = getPage();
+        function parseForEventId(query, eventList) {
+            let parsedURL;
+            let eventId;
+            let queryResults = $(query);
+            for (let index = 0; index < queryResults.length; index++) {
+                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
+                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
+                const eventName = $(queryResults[index]).children().first().text();
+                if (!eventName || eventName == '') {
+                    LogUtils_logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
+                    continue;
+                }
+                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                    eventList.push(eventId);
+                }
+                if (eventId !== '') {
+                    ongoingEventIDs.push(eventId);
+                }
+            }
+        }
+        if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+            const currentPageEventId = EventModule.getDisplayedIdEventPage();
+            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId)) {
+                eventIDs.push(currentPageEventId);
+            }
+            let parsedURL;
+            let eventId;
+            let eventsQuery = '.events-list a.event-title:not(.active)';
+            let queryResults = $(eventsQuery);
+            for (let index = 0; index < queryResults.length; index++) {
+                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
+                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
+                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                    eventIDs.push(eventId);
+                }
+            }
+        }
+        else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            let queryResults;
+            parseForEventId(eventQuery, eventIDs);
+            parseForEventId(mythicEventQuery, eventIDs);
+            parseForEventId(poaEventQuery, eventIDs);
+            parseForEventId(bossBangEventQuery, bossBangEventIDs);
+            parseForEventId(sultryMysteriesEventQuery, eventIDs);
+            parseForEventId(getEventQuery("cumback_contest"), eventIDs);
+            parseForEventId(getEventQuery("kinky_event"), eventIDs);
+            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryShopRefresh") !== -1) {
+                // event is over
+                clearTimer("eventSultryMysteryShopRefresh");
+            }
+            parseForEventId(dpEventQuery, eventIDs);
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length == 0) {
+                LogUtils_logHHAuto("No double penetration event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
+            }
+            // LivelyScene
+            parseForEventId(livelySceneEventQuery, eventIDs);
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length == 0) {
+                LogUtils_logHHAuto("No Lively Scene event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
+            }
+            queryResults = $(seasonalEventQuery);
+            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length == 0) {
+                LogUtils_logHHAuto("No seasonal event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
+            }
+            // Path of Valor / Path of Glory: the home-page selectors for these events
+            // are unreliable (the banner only appears briefly between waves), so a
+            // false-negative here would silently flip the user setting back to off.
+            // The collect logic on the actual event page checks availability before
+            // acting; the toggle does not need to be in sync with the home banner.
+        }
+        /*
+                if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+                    const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) : {};
+                    for (const eventIDStored of Object.keys(eventList)) {
+                        //console.log(eventID);
+                        if (!ongoingEventIDs.includes(eventIDStored)) {
+                            logHHAuto(`Event ${eventIDStored} seems not available anymore, removing from store`);
+                            EventModule.clearEventData(eventIDStored);
+                        }
+                    }
+                }
+        */
+        return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/Helper/RewardHelper.ts
@@ -26670,6 +26634,7 @@ function getLocalStorageSize() {
 // AJAX response interception helpers, and other shared convenience methods.
 
 
+
 function callItOnce(fn) {
     var called = false;
     return function () {
@@ -26813,7 +26778,10 @@ function myfileLoad_onReaderLoad(event) {
             LogUtils_logHHAuto(key + ':' + value);
             storageItem[variableName] = value;
         }
-        location.reload();
+        // C1: safeReload waits for any in-flight game AJAX before the
+        // reload, so user-imported settings cannot cancel an open POST
+        // (issue #1598).
+        safeReload();
     }
     else {
         $('#LoadConfError')[0].innerText = 'Selected file broken!';
@@ -27407,7 +27375,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.52";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.53";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -28024,6 +27992,7 @@ function defaultStorage() {
 
 
 
+
 var started = false;
 var debugMenuID;
 var heroRetryTimer = null;
@@ -28159,7 +28128,10 @@ function hardened_start() {
                 catch (e) { }
                 const time = nextForbiddenDelaySeconds(count);
                 LogUtils_logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
-                setTimeout(() => { location.reload(); }, time * 1000);
+                // C1: safeReload combines setTimeout + waitForAjaxIdle + location.reload
+                // and honors the navigation mutex, so concurrent forbidden
+                // pages cannot fire two reloads back-to-back.
+                safeReload(time * 1000);
             }
         }
         catch (error) { }
@@ -28312,11 +28284,15 @@ function start() {
         fillHHPopUp("DebugMenu", getTextForUI("DebugMenu", "elementText"), debugDialog);
         $("#DeleteTempVars").on("click", function () {
             debugDeleteTempVars();
-            location.reload();
+            // C1: safeReload waits for any in-flight game AJAX (e.g. an
+            // ongoing autoLoop tick) to settle before reloading; otherwise
+            // the user-triggered reload could cancel an open POST and
+            // leave the server with a half-applied state.
+            safeReload();
         });
         $("#ResetAllVars").on("click", function () {
             debugDeleteAllVars();
-            location.reload();
+            safeReload();
         });
         $("#saveDebug").on("click", saveHHDebugLog);
         $("#timerResetButton").on("click", function () {

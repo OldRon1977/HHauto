@@ -87,9 +87,20 @@ export class QuestHelper {
             return;
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
-            // Click on current quest to naviagte to it.
-            // logHHAuto(`Navigating to current quest. Current page: ${page}, quest url: ${mainQuestUrl}, location: ${window.location.pathname}`);
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDQuest"));
+            // Resolve the next quest URL ourselves; the navigation service
+            // does not know about the Quest module any more (Cluster C of
+            // the page-nav refactor). When all quests are done, fall back
+            // to the home page and arm the back-off timer.
+            const nextQuestUrl = QuestHelper.getNextQuestLink();
+            if (nextQuestUrl !== undefined) {
+                gotoPage(nextQuestUrl);
+            } else {
+                logHHAuto("All quests finished, setting timer to check back later!");
+                if (checkTimer('nextMainQuestAttempt')) {
+                    setTimer('nextMainQuestAttempt', 604800); // 1 week delay
+                }
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            }
             return;
         }
         $("#popup_message close").trigger('click');

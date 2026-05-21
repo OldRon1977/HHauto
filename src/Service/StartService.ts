@@ -21,6 +21,7 @@
 //
 // Used by: src/index.ts (entry point)
 import { ConfigHelper } from "../Helper/ConfigHelper";
+import { safeReload } from "./PageNavigationService";
 import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
@@ -209,7 +210,10 @@ export function hardened_start()
 
                 const time = nextForbiddenDelaySeconds(count);
                 logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
-                setTimeout(() => { location.reload(); }, time * 1000);
+                // C1: safeReload combines setTimeout + waitForAjaxIdle + location.reload
+                // and honors the navigation mutex, so concurrent forbidden
+                // pages cannot fire two reloads back-to-back.
+                safeReload(time * 1000);
             }
         } catch (error) {}
         return;
@@ -392,11 +396,15 @@ export function start() {
         fillHHPopUp("DebugMenu",getTextForUI("DebugMenu","elementText"), debugDialog);
         $("#DeleteTempVars").on("click", function(){
             debugDeleteTempVars();
-            location.reload();
+            // C1: safeReload waits for any in-flight game AJAX (e.g. an
+            // ongoing autoLoop tick) to settle before reloading; otherwise
+            // the user-triggered reload could cancel an open POST and
+            // leave the server with a half-applied state.
+            safeReload();
         });
         $("#ResetAllVars").on("click", function(){
             debugDeleteAllVars();
-            location.reload();
+            safeReload();
         });
         $("#saveDebug").on("click", saveHHDebugLog);
 

@@ -17,7 +17,7 @@ import { parsePrice } from "../../Helper/PriceHelper";
 import { deleteStoredValue, getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
 import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { Harem } from "./Harem";
-import { gotoPage } from "../../Service/PageNavigationService";
+import { gotoPage, safeReload } from "../../Service/PageNavigationService";
 import { displayHHPopUp, fillHHPopUp, maskHHPopUp } from "../../Utils/HHPopup";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
@@ -806,7 +806,9 @@ export class HaremGirl {
         setTimeout(() => {
             $("#popup_message_harem_close").one("click", function() {
                 Harem.clearHaremToolVariables();
-                location.reload();
+                // C1: safeReload waits for any in-flight game AJAX before
+                // reloading, instead of cancelling open XHRs.
+                safeReload();
             });
         }, 200);
         

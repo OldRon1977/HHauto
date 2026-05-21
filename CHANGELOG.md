@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.53 - More robust page navigation and reload handling
+
+- **Same race protection as the v7.35.48 PoP fix, now applied across the script.** Direct `location.reload()` and direct URL changes scattered across League battles, Penta Drill battles, Champion ticket purchase, Season opponent refresh + fight, Missions gift refresh, Harem girl popup, Team module equip / unequip, the debug-menu reload buttons, the settings-import path, and the Forbidden-detection backoff now all wait for in-flight game requests to finish before changing the page.
+- **Practical effect.** Large accounts and slow connections should hit the rare "Access forbidden" page noticeably less often during automated runs, because the same anti-burst protection that already shields PoP and the post-mutex modules now shields the rest of the navigation flow too.
+- Internal: the page-navigation service was rewritten to a smaller, more predictable shape (centralised reload/href helpers, no recursive special-cases, decoupled from the quest module). No user-facing behaviour change there beyond the protection above.
+
 ### v7.35.52 - Compatibility fixes for game API changes
 
 - **Background.** Kinkoid recently changed the shape of two game API values that the script reads from the page (the homepage event banners and the girl roster object). Without the script update the script logged TypeError exceptions on every AutoLoop tick.

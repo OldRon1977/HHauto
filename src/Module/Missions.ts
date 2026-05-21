@@ -13,7 +13,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { deleteStoredValue, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
 import { setTimer, checkTimer } from "../Helper/TimerHelper";
-import { gotoPage } from "../Service/PageNavigationService";
+import { gotoPage, safeReload } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -128,7 +128,10 @@ export class Missions {
                         }
                         else{
                             logHHAuto("Refreshing to collect gift...");
-                            location.reload();
+                            // C1: safeReload waits for any in-flight game
+                            // AJAX before the reload, so an open POST is
+                            // not cancelled (issue #1598).
+                            safeReload();
                             return true;
                         }
                     }

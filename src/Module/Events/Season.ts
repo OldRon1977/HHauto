@@ -21,7 +21,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
-import { addNutakuSession, gotoPage } from "../../Service/PageNavigationService";
+import { addNutakuSession, gotoPage, safeNavigateHref, safeReload } from "../../Service/PageNavigationService";
 import { ParanoiaService } from "../../Service/ParanoiaService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { getHHAjax, isJSON } from "../../Utils/Utils";
@@ -357,7 +357,9 @@ export class Season {
                     logHHAuto("Three red opponents, paying for refresh.");
                     getHHAjax()(params, function(data){
                         Hero.update("hard_currency", data.hard_currency, false);
-                        location.reload();
+                        // C1: route through safeReload so any in-flight
+                        // AJAX gets to settle before the URL change.
+                        safeReload();
                     })
                 }
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
@@ -398,9 +400,10 @@ export class Season {
                     setTimer('nextSeasonTime',randomInterval(30*60, 35*60));
                     return false;
                 }
-                location.href = addNutakuSession(toGoTo) as string;
-                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-                logHHAuto("setting autoloop to false");
+                // C1: safeNavigateHref ensures any in-flight game AJAX
+                // (e.g. a parallel autoLoop tick) gets to finish before
+                // the URL change cancels open XHRs (issue #1598).
+                safeNavigateHref(addNutakuSession(toGoTo) as string);
                 logHHAuto(`Going to crush : ${$(".personal_info div.player-name", opponentBlock).text()} (${chosenID})`);
                 setTimer('nextSeasonTime',5);
                 return true;

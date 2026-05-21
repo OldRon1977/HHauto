@@ -16,7 +16,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../Helper/TimerHelper";
-import { addNutakuSession, gotoPage } from "../Service/PageNavigationService";
+import { addNutakuSession, gotoPage, safeNavigateHref } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { getHHAjax, isJSON } from "../Utils/Utils";
@@ -145,10 +145,12 @@ export class PentaDrill {
                     setTimer('nextPentaDrillTime',randomInterval(30*60, 35*60));
                     return false;
                 }
-                setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-                logHHAuto("setting autoloop to false");
                 logHHAuto(`Going to crush : ${chosenOpponent.player.nickname} (${chosenID})`);
-                location.href = addNutakuSession(toGoTo) as string;
+                // C1: safeNavigateHref handles autoLoop disable + AJAX-idle
+                // wait + URL change atomically. The duplicate setStoredValue
+                // and log line is removed because safeNavigateHref does that
+                // internally. Issue #1598 race-protection.
+                safeNavigateHref(addNutakuSession(toGoTo) as string);
                 await TimeHelper.sleep(randomInterval(5000, 8000));
                 return true;
             }

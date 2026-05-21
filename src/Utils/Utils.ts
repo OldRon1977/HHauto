@@ -2,6 +2,7 @@
 // Provides callItOnce (ensures a function executes only once), safeJsonParse,
 // AJAX response interception helpers, and other shared convenience methods.
 import { getStorageItem } from "../Helper/StorageHelper";
+import { safeReload } from "../Service/PageNavigationService";
 import { logHHAuto } from "./LogUtils";
 
 export function callItOnce(fn) {
@@ -164,7 +165,10 @@ export function myfileLoad_onReaderLoad(event){
             logHHAuto(key+':'+ value);
             storageItem[variableName] = value;
         }
-        location.reload();
+        // C1: safeReload waits for any in-flight game AJAX before the
+        // reload, so user-imported settings cannot cancel an open POST
+        // (issue #1598).
+        safeReload();
     }else{
         $('#LoadConfError')[0].innerText ='Selected file broken!';
         logHHAuto('the json is Not ok');

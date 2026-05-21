@@ -16,7 +16,7 @@ import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
-import { addNutakuSession, gotoPage } from '../Service/PageNavigationService';
+import { addNutakuSession, gotoPage, safeReload } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
 import { GirlData, ElementType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
@@ -111,7 +111,9 @@ export class TeamModule {
                 if(callback && typeof callback === 'function') {
                     callback();
                 } else {
-                    setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                    // C1: safeReload(delay) does setTimeout + waitForAjaxIdle
+                    // + reload, with mutex protection (issue #1598).
+                    safeReload(randomInterval(200, 500));
                 }
             });
         } 
@@ -368,7 +370,9 @@ export class TeamModule {
                         // change referer
                         //logHHAuto('change referer back to ' + currentPage);
                         window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
-                        setTimeout(function () { location.reload(); }, randomInterval(200, 500));
+                        // C1: safeReload(delay) replaces setTimeout + reload
+                        // with mutex + waitForAjaxIdle protection.
+                        safeReload(randomInterval(200, 500));
                     }
                 });
             }
