@@ -13,6 +13,19 @@ import { getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer } from "../../Helper/TimerHelper";
 import { addNutakuSession, gotoPage, safeNavigateHref } from "../../Service/PageNavigationService";
+// >>> ADR-003 / issue #1598 - bossbang:imports begin
+// CLEANUP-MODE (when stable): remove only the two marker comment lines.
+// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
+// remove this import statement entirely.
+import {
+    waitForAjaxIdle,
+    acquirePostMutex,
+    releasePostMutex,
+    awaitServerSettleAfterPost,
+    AJAX_IDLE_TIMEOUT_MS,
+    AJAX_IDLE_SETTLE_MS,
+} from "../../Service/AjaxTracker";
+// <<< ADR-003 / issue #1598 - bossbang:imports end
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
@@ -70,22 +83,63 @@ export class BossBang {
         }
     }
 
-    static skipFightPage()
+    static async skipFightPage()
     {
         const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
         const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
         if(rewardsButton.length > 0)
         {
+            // >>> ADR-003 / issue #1598 - bossbang:rewards begin
+            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+            // REVERT-MODE (if unstable): replace this whole block, including the markers,
+            // with the pre-fix code:
+            //     logHHAuto("Click get rewards bang fight");
+            //     rewardsButton.trigger('click');
+            //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            // and (if no other ADR-003 block remains) drop the imports/markers above.
+            if (!acquirePostMutex('bossbang:rewards')) {
+                logHHAuto('BossBang: another POST in flight, deferring rewards click');
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                return;
+            }
             logHHAuto("Click get rewards bang fight");
+            const claimStart = Date.now();
             rewardsButton.trigger('click');
+            const idle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+            const claimDuration = Date.now() - claimStart;
+            releasePostMutex();
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            if (idle) await awaitServerSettleAfterPost(claimDuration);
+            else logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+            // <<< ADR-003 / issue #1598 - bossbang:rewards end
         }
         else if(skipFightButton.length > 0)
         {
+            // >>> ADR-003 / issue #1598 - bossbang:skipFight begin
+            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+            // REVERT-MODE (if unstable): replace this whole block, including the markers,
+            // with the pre-fix code:
+            //     logHHAuto("Click skip boss bang fight");
+            //     skipFightButton.trigger('click');
+            //     setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+            //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            // and (if no other ADR-003 block remains) drop the imports/markers above.
+            if (!acquirePostMutex('bossbang:skipFight')) {
+                logHHAuto('BossBang: another POST in flight, deferring skip click');
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                return;
+            }
             logHHAuto("Click skip boss bang fight");
+            const claimStart = Date.now();
             skipFightButton.trigger('click');
-            setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+            const idle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+            const claimDuration = Date.now() - claimStart;
+            releasePostMutex();
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            if (idle) await awaitServerSettleAfterPost(claimDuration);
+            else logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+            setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+            // <<< ADR-003 / issue #1598 - bossbang:skipFight end
         }
     }
 
