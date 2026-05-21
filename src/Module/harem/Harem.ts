@@ -105,8 +105,16 @@ export class Harem {
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
             let girlNameDictionary = new Map();
-            girlsDataList.forEach((data: any) => {
-                girlNameDictionary.set(data.id_girl +"", data);
+            // The game returns girlsDataList as either an Array (legacy)
+            // or a plain Object keyed by girl id (current). forEach only
+            // exists on the Array form -- normalise via Object.values().
+            const entries = Array.isArray(girlsDataList)
+                ? girlsDataList
+                : (typeof girlsDataList === 'object' ? Object.values(girlsDataList) : []);
+            entries.forEach((data: any) => {
+                if (data != null && data.id_girl !== undefined) {
+                    girlNameDictionary.set(data.id_girl + "", data);
+                }
             });
             girlsDataList = girlNameDictionary;
         }

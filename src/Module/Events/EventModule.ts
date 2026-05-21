@@ -570,12 +570,23 @@ export class EventModule {
             {
                 if (!displayTimer)
                 {
-                    $("#"+hhtimerId)[0].remove();
+                    const timerEl = $("#"+hhtimerId)[0];
+                    if (timerEl) {
+                        timerEl.remove();
+                    }
                 }
             }
             if (displayTimer)
             {
-                $("#"+hhtimerId)[0].innerText = getTimeLeft(timerName);
+                const timerEl = $("#"+hhtimerId)[0];
+                // Defensive: when the homepage banner element identified by aRel
+                // is not in the DOM (e.g. because Kinkoid removed the tile or the
+                // current event is inactive), the prepend above is a no-op and
+                // [0] is undefined here. Skip silently in that case instead of
+                // throwing a TypeError on every AutoLoop tick.
+                if (timerEl) {
+                    timerEl.innerText = getTimeLeft(timerName);
+                }
             }
         }
         else

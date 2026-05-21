@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.51
+// @version      7.35.52
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -5362,11 +5362,22 @@ class EventModule {
             }
             else {
                 if (!displayTimer) {
-                    $("#" + hhtimerId)[0].remove();
+                    const timerEl = $("#" + hhtimerId)[0];
+                    if (timerEl) {
+                        timerEl.remove();
+                    }
                 }
             }
             if (displayTimer) {
-                $("#" + hhtimerId)[0].innerText = getTimeLeft(timerName);
+                const timerEl = $("#" + hhtimerId)[0];
+                // Defensive: when the homepage banner element identified by aRel
+                // is not in the DOM (e.g. because Kinkoid removed the tile or the
+                // current event is inactive), the prepend above is a no-op and
+                // [0] is undefined here. Skip silently in that case instead of
+                // throwing a TypeError on every AutoLoop tick.
+                if (timerEl) {
+                    timerEl.innerText = getTimeLeft(timerName);
+                }
             }
         }
         else {
@@ -9101,8 +9112,16 @@ class Harem {
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
             let girlNameDictionary = new Map();
-            girlsDataList.forEach((data) => {
-                girlNameDictionary.set(data.id_girl + "", data);
+            // The game returns girlsDataList as either an Array (legacy)
+            // or a plain Object keyed by girl id (current). forEach only
+            // exists on the Array form -- normalise via Object.values().
+            const entries = Array.isArray(girlsDataList)
+                ? girlsDataList
+                : (typeof girlsDataList === 'object' ? Object.values(girlsDataList) : []);
+            entries.forEach((data) => {
+                if (data != null && data.id_girl !== undefined) {
+                    girlNameDictionary.set(data.id_girl + "", data);
+                }
             });
             girlsDataList = girlNameDictionary;
         }
@@ -27388,7 +27407,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.51";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.52";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

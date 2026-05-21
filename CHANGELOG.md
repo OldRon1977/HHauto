@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.52 - Compatibility fixes for game API changes
+
+- **Background.** Kinkoid recently changed the shape of two game API values that the script reads from the page (the homepage event banners and the girl roster object). Without the script update the script logged TypeError exceptions on every AutoLoop tick.
+- **Auto Troll girl priority restored.** The "fight the troll that drops a missing girl" priority quietly fell back to a default troll picker because the new girl roster shape made the lookup throw. The lookup is back, troll-with-girls priority works again on the new API.
+- **Quieter console.** The event-banner timer redraw on the home page now skips silently when the banner element is not in the DOM, instead of throwing on every tick. The timer was cosmetic only; no functionality changes.
+
 ### v7.35.51 - Internal cleanup, no behaviour change
 
 - Removed the v7.35.50 marker scaffolding around the Champion and Troll race-protection changes now that those modules have been confirmed stable in the wild. Boss Bang keeps its scaffolding for the next time the event is active.
