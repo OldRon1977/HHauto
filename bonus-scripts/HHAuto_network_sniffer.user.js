@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         HHAuto Issue 1598 Network Sniffer
+// @name         HHAuto Network Sniffer
 // @namespace    https://github.com/OldRon1977/HHauto
 // @version      1.3.1
-// @description  Maximum-coverage network sniffer for diagnosing PoP "Access forbidden" on accounts with very large rosters (issue #1598). Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
+// @description  Maximum-coverage network sniffer for diagnosing race-condition and "Access forbidden" issues. Captures XHR, fetch, sendBeacon, WebSocket, EventSource, and PerformanceObserver resource entries. Live overlay + console API.
 // @author       HHAuto
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -19,24 +19,28 @@
 // @run-at       document-start
 // ==/UserScript==
 
-// HHAuto Network Sniffer for Issue #1598
-// =======================================
+// HHAuto Network Sniffer
+// ======================
 //
 // Purpose
 // -------
-// Diagnose "Access forbidden" on accounts with 2400+ girls when the
-// HHAuto script opens the Place of Power tab. The hypothesis is that
-// the game performs a roster-hydration burst (XHR or fetch) that the
-// HHAuto AjaxTracker (XHR-only) does not see, so the script sends the
-// next request before the server has finished serving the roster.
+// Diagnose race-condition and "Access forbidden" issues by recording
+// every network request a userscript can practically reach. Useful
+// when the HHAuto AjaxTracker (XHR-only) misses something and the
+// script ends up firing a follow-up POST while the previous one is
+// still being processed by the server.
 //
-// This bonus script answers two questions with data:
+// Typical questions this script can answer with data:
 //
-//   1. Does the game use fetch() for any of the roster-load requests?
-//   2. How long does the longest pre-Forbidden request take?
+//   1. Does the game use fetch() (or sendBeacon, WebSocket, ...) for
+//      a given action, instead of plain XHR?
+//   2. How long does a given request actually take, including
+//      browser-internal redirects and resource fetches?
+//   3. Are there overlapping POSTs to /ajax.php during a sequence the
+//      main script thinks is serialised?
 //
-// To do that without relying on a single transport, this script hooks
-// every web-platform request channel a userscript can practically
+// To answer those without relying on a single transport, this script
+// hooks every web-platform request channel a userscript can practically
 // reach: XHR, fetch, sendBeacon, WebSocket, EventSource. On top of
 // that, a PerformanceObserver of type "resource" runs as a catch-all
 // for anything that bypasses the prototype hooks (e.g. dynamic <img>
@@ -51,13 +55,15 @@
 // Usage
 // -----
 //   1. Install this userscript in Tampermonkey.
-//   2. Disable the main HHAuto userscript (master switch off or the
-//      whole script disabled in Tampermonkey).
+//   2. Decide whether to keep the main HHAuto userscript active. For
+//      pure observation, run both. For "is this race the script s fault
+//      or the game s fault" questions, disable HHAuto first.
 //   3. Open the game in a fresh tab. Wait until the home page is
 //      rendered and idle.
 //   4. In DevTools console, run __x1598.clear() to drop the boot noise.
-//   5. Click the Place of Power tab manually. Observe whether the page
-//      lands on the activities/?tab=pop view or shows "Access forbidden".
+//   5. Reproduce the scenario you want to capture (open a tab, click
+//      a button, let the script run a sequence). Then __x1598.csv()
+//      or __x1598.copy("csv") to export.
 //   6. In the console, run __x1598.stats() to read the verdict.
 //
 // Public API on unsafeWindow.__x1598:
@@ -76,8 +82,6 @@
 // roster, harem, PoP, etc.) so dump() and csv() stay small. Use
 // __x1598.dumpAll() / csvAll() for the full picture.
 //
-// Reference: docs-internal/REVIEW_issue_1598_pop_forbidden.md
-//            docs-internal/VERIFY_issue_1598_pop_network_capture.md
 //
 
 (function () {
@@ -111,7 +115,7 @@
 
     // ---- Persistent storage (sessionStorage) -------------------------
     // Events live in sessionStorage so they survive page reloads inside
-    // the same tab. This is critical for issue #1598 because the moment
+    // the same tab. This is critical for the diagnosed issue because the moment
     // a 403 lands, the game replaces the whole page with the literal
     // string "Forbidden" and triggers a navigation. Without
     // sessionStorage, all in-flight events from the racing requests are
@@ -271,7 +275,7 @@
     // Default relevance filter. Game endpoints all hit /ajax.php or
     // include a small number of well-known segments; static assets
     // (CSS, JS, images, fonts) are filtered out so the default dump
-    // stays focused on what matters for issue #1598. The user can
+    // stays focused on what matters for the diagnosed issue. The user can
     // override via __x1598.setFilter(/.*/) to see everything.
     const DEFAULT_FILTER = /(\/ajax\.php|hh_ajax|girls|harem|salary|pop|battle|hero|league|champion|reward|event|season|pantheon|labyrinth|penta|raid|troll|bossbang|club)/i;
     let relevanceFilter = DEFAULT_FILTER;

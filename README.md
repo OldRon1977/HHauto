@@ -42,15 +42,16 @@ list of fields kept, dropped, and pseudonymised.
 
 ### Network sniffer for "Access forbidden" reports
 
-For the specific case of "Access forbidden" pages (e.g. on accounts with
-very large rosters), a dedicated network-capture userscript is shipped
-at `bonus-scripts/HHAuto_issue_1598_network_sniffer.user.js`. It hooks
+For network-level diagnostics ("Access forbidden" pages, suspected
+race conditions, or any case where the regular HHAuto AjaxTracker is
+not enough), a dedicated network-capture userscript is shipped at
+`bonus-scripts/HHAuto_network_sniffer.user.js`. It hooks
 every request channel a userscript can reach (XHR, fetch, sendBeacon,
 WebSocket, EventSource, plus PerformanceObserver as a catch-all) and
 shows a small live counter overlay in the top-right corner.
 
 1. Install the sniffer userscript:
-   <https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto_issue_1598_network_sniffer.user.js>
+   <https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto_network_sniffer.user.js>
 2. Disable the main HHAuto userscript so it does not interfere with the
    capture (Tampermonkey dashboard or master switch off).
 3. Reload the page where the Forbidden happens. Reproduce the click

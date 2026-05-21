@@ -162,7 +162,7 @@ Keine. Erweitert bestehenden TypeScript / JavaScript / Jest-Skill-Set des Repos.
 
 - Issue: https://github.com/OldRon1977/HHauto/issues/1598
 - Diagnose-Doku: `docs-internal/REVIEW_issue_1598_pop_forbidden.md`
-- Sniffer-Tool: `bonus-scripts/HHAuto_issue_1598_network_sniffer.user.js` (PR #1712, gemerged in main)
+- Sniffer-Tool: `bonus-scripts/HHAuto_network_sniffer.user.js` (urspruenglich PR #1712 fuer Issue #1598, generalisiert in PR #1721)
 - Bestehende verwandte Files:
   - `src/Service/AjaxTracker.ts`
   - `src/Service/PageNavigationService.ts`
