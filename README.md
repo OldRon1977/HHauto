@@ -65,6 +65,10 @@ shows a small live counter overlay in the top-right corner.
 
 ## Latest Updates
 
+### v7.35.51 - Internal cleanup, no behaviour change
+
+- Removed the v7.35.50 marker scaffolding around the Champion and Troll race-protection changes now that those modules have been confirmed stable in the wild. Boss Bang keeps its scaffolding for the next time the event is active.
+
 ### v7.35.50 - PoP claim race protection extended to Boss Bang, Troll, Champion
 
 - **Same race protection as v7.35.48 PoP fix, now applied to Boss Bang, Troll, and Champion.** Each state-changing action in these modules now serialises through a single mutex and waits for the server to commit before triggering the next request. No behaviour change on small accounts; on large accounts these modules should now also avoid the rare "Access forbidden" page during long auto-collect or auto-fight runs. Applied pro-actively along the lines of the same architectural decision behind v7.35.48.

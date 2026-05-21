@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.50
+// @version      7.35.51
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -9662,12 +9662,7 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 
 
 
-// >>> ADR-003 / issue #1598 - troll:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 
-// <<< ADR-003 / issue #1598 - troll:imports end
 
 
 
@@ -10190,22 +10185,6 @@ class Troll {
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
-                            // >>> ADR-003 / issue #1598 - troll:battleX50 begin
-                            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                            // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                            // with the pre-fix code:
-                            //     setHHVars('Hero.infos.hc_confirm',true);
-                            //     Booster.resetBattleResponseFlag();
-                            //     battleButtonX50[0].click();
-                            //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                            //     logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
-                            //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
-                            //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                            //     }
-                            //     RewardHelper.ObserveAndGetGirlRewards();
-                            //     await Booster.waitForBattleResponse();
-                            //     return;
-                            // and (if no other ADR-003 block remains in this file) drop the imports above.
                             if (!acquirePostMutex('troll:battleX50')) {
                                 LogUtils_logHHAuto('Troll: another POST in flight, deferring x50 battle');
                                 return;
@@ -10231,7 +10210,6 @@ class Troll {
                                 yield awaitServerSettleAfterPost(x50Duration);
                             else
                                 LogUtils_logHHAuto('Troll: x50 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                            // <<< ADR-003 / issue #1598 - troll:battleX50 end
                             return;
                         }
                         else {
@@ -10248,22 +10226,6 @@ class Troll {
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                            // >>> ADR-003 / issue #1598 - troll:battleX10 begin
-                            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                            // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                            // with the pre-fix code:
-                            //     setHHVars('Hero.infos.hc_confirm',true);
-                            //     Booster.resetBattleResponseFlag();
-                            //     battleButtonX10[0].click();
-                            //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                            //     logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                            //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
-                            //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                            //     }
-                            //     RewardHelper.ObserveAndGetGirlRewards();
-                            //     await Booster.waitForBattleResponse();
-                            //     return;
-                            // and (if no other ADR-003 block remains in this file) drop the imports above.
                             if (!acquirePostMutex('troll:battleX10')) {
                                 LogUtils_logHHAuto('Troll: another POST in flight, deferring x10 battle');
                                 return;
@@ -10289,7 +10251,6 @@ class Troll {
                                 yield awaitServerSettleAfterPost(x10Duration);
                             else
                                 LogUtils_logHHAuto('Troll: x10 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                            // <<< ADR-003 / issue #1598 - troll:battleX10 end
                             return;
                         }
                         else {
@@ -10322,12 +10283,6 @@ class Troll {
                         //replaceCheatClick();
                         checkPreviousFightDone();
                         setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
-                        // >>> ADR-003 / issue #1598 - troll:battle begin
-                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                        // with the pre-fix code:
-                        //     battleButton[0].click();
-                        // and (if no other ADR-003 block remains in this file) drop the imports above.
                         if (!acquirePostMutex('troll:battle')) {
                             LogUtils_logHHAuto('Troll: another POST in flight, deferring single battle');
                             return;
@@ -10341,7 +10296,6 @@ class Troll {
                             yield awaitServerSettleAfterPost(battleDuration);
                         else
                             LogUtils_logHHAuto('Troll: battle AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                        // <<< ADR-003 / issue #1598 - troll:battle end
                     }
                     else {
                         // We need more power.
@@ -10359,12 +10313,6 @@ class Troll {
                     checkPreviousFightDone();
                     setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
                     //replaceCheatClick();
-                    // >>> ADR-003 / issue #1598 - troll:battleNoEvent begin
-                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                    // with the pre-fix code:
-                    //     battleButton[0].click();
-                    // and (if no other ADR-003 block remains in this file) drop the imports above.
                     if (!acquirePostMutex('troll:battleNoEvent')) {
                         LogUtils_logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
                         return;
@@ -10378,7 +10326,6 @@ class Troll {
                         yield awaitServerSettleAfterPost(battleNoEventDuration);
                     else
                         LogUtils_logHHAuto('Troll: battle (no event) AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                    // <<< ADR-003 / issue #1598 - troll:battleNoEvent end
                 }
             }
             else {
@@ -13602,12 +13549,7 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-// >>> ADR-003 / issue #1598 - champion:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 
-// <<< ADR-003 / issue #1598 - champion:imports end
 
 
 
@@ -13797,14 +13739,6 @@ class Champion {
                     }
                 }
                 var newDraftInterval = girlsClicked ? randomInterval(1800, 2500) : randomInterval(800, 1500);
-                // >>> ADR-003 / issue #1598 - champion:newDraft begin
-                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                // with the pre-fix code:
-                //     setTimeout(function() {
-                //         if ($(newDraftButtonQuery).length > 0) $(newDraftButtonQuery).trigger('click');
-                //     }, newDraftInterval);
-                // and (if no other ADR-003 block remains in this file) drop the imports above.
                 setTimeout(function () {
                     return Champion_awaiter(this, void 0, void 0, function* () {
                         if ($(newDraftButtonQuery).length === 0)
@@ -13824,7 +13758,6 @@ class Champion {
                             LogUtils_logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                     });
                 }, newDraftInterval);
-                // <<< ADR-003 / issue #1598 - champion:newDraft end
                 LogUtils_logHHAuto("Free drafts remanings :" + freeDrafts);
                 counterLoop++;
                 if (freeDrafts > 0 && counterLoop <= maxLoops) {
@@ -13833,12 +13766,6 @@ class Champion {
                 else {
                     Champion.ChampClearAutoTeamPopup();
                     $('#updateChampTeamButton').removeAttr('disabled').text(getTextForUI("updateChampTeamButton", "elementText") + ' x' + maxLoops);
-                    // >>> ADR-003 / issue #1598 - champion:confirmDraft begin
-                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                    // with the pre-fix code:
-                    //     if ($(confirmDraftButtonQuery).length > 0) $(confirmDraftButtonQuery).trigger('click');
-                    // and (if no other ADR-003 block remains in this file) drop the imports above.
                     if ($(confirmDraftButtonQuery).length > 0) {
                         if (acquirePostMutex('champion:confirmDraft')) {
                             const confirmStart = Date.now();
@@ -13856,7 +13783,6 @@ class Champion {
                             $(confirmDraftButtonQuery).trigger('click');
                         }
                     }
-                    // <<< ADR-003 / issue #1598 - champion:confirmDraft end
                     if (getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
                         LogUtils_logHHAuto('Auto team ended, sort girls after build');
                         yield TimeHelper.sleep(randomInterval(800, 1200));
@@ -13926,30 +13852,6 @@ class Champion {
             const champTeamId = Number(getHHVars('championData.champion.id'));
             $("#orderTeam").attr('disabled', 'disabled');
             const isClub = getPage() == ConfigHelper.getHHScriptVars("pagesIDClubChampion");
-            // >>> ADR-003 / issue #1598 - champion:reorder begin
-            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-            // REVERT-MODE (if unstable): replace this whole block, including the markers,
-            // with the pre-fix code:
-            //     var switchGirls = function (targettedTeam: number[]) {
-            //         return new Promise((resolve) => {
-            //             const params = {
-            //                 action: "champion_team_reorder",
-            //                 team_order: targettedTeam,
-            //                 id_champion: champTeamId,
-            //                 champion_type: isClub ? "club_champion" : "champion"
-            //             };
-            //             getHHAjax()(params, function (data: any) {
-            //                 if(data.success == false) {
-            //                     logHHAuto('Error occured during champion team reorder', data);
-            //                 }
-            //                 resolve(data.success || true);
-            //             }, function (err) {
-            //                 logHHAuto('Error occured during champion team reorder', err);
-            //                 resolve(false);
-            //             });
-            //         });
-            //     };
-            // and (if no other ADR-003 block remains in this file) drop the imports above.
             var switchGirls = function (targettedTeam) {
                 return Champion_awaiter(this, void 0, void 0, function* () {
                     if (!acquirePostMutex('champion:reorder')) {
@@ -13980,7 +13882,6 @@ class Champion {
                     return result;
                 });
             };
-            // <<< ADR-003 / issue #1598 - champion:reorder end
             let currentGirlOrder = [...champTeam.map(g => g.id_girl)]; // To be stored as string
             LogUtils_logHHAuto('Ordering champion team', currentGirlOrder);
             let oneGirlSwitched = false;
@@ -14091,16 +13992,6 @@ class Champion {
                                 }
                             }
                         }
-                        // >>> ADR-003 / issue #1598 - champion:useTicket begin
-                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                        // with the pre-fix code:
-                        //     logHHAuto("Using ticket");
-                        //     $('button[rel=perform].blue_button_L').trigger('click');
-                        //     await TimeHelper.sleep(randomInterval(200, 500));
-                        //     gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
-                        //     return true;
-                        // and (if no other ADR-003 block remains in this file) drop the imports above.
                         if (!acquirePostMutex('champion:useTicket')) {
                             LogUtils_logHHAuto('Champion: another POST in flight, deferring ticket use');
                             return true;
@@ -14117,7 +14008,6 @@ class Champion {
                             LogUtils_logHHAuto('Champion: ticket AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
                         return true;
-                        // <<< ADR-003 / issue #1598 - champion:useTicket end
                     }
                 }
             }
@@ -27498,7 +27388,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.50";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.51";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

@@ -16,10 +16,6 @@ import { getStoredJSON, getStoredValue, setStoredValue, deleteStoredValue } from
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { getSecondsLeft, setTimer } from "../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
-// >>> ADR-003 / issue #1598 - champion:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 import {
     waitForAjaxIdle,
     acquirePostMutex,
@@ -28,7 +24,6 @@ import {
     AJAX_IDLE_TIMEOUT_MS,
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
-// <<< ADR-003 / issue #1598 - champion:imports end
 import { logHHAuto } from "../Utils/LogUtils";
 import { getHHAjax, isJSON, safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -239,14 +234,6 @@ export class Champion {
             }
 
             var newDraftInterval = girlsClicked ? randomInterval(1800,2500) : randomInterval(800,1500);
-            // >>> ADR-003 / issue #1598 - champion:newDraft begin
-            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-            // REVERT-MODE (if unstable): replace this whole block, including the markers,
-            // with the pre-fix code:
-            //     setTimeout(function() {
-            //         if ($(newDraftButtonQuery).length > 0) $(newDraftButtonQuery).trigger('click');
-            //     }, newDraftInterval);
-            // and (if no other ADR-003 block remains in this file) drop the imports above.
             setTimeout(async function() {
                 if ($(newDraftButtonQuery).length === 0) return;
                 if (!acquirePostMutex('champion:newDraft')) {
@@ -261,7 +248,6 @@ export class Champion {
                 if (newDraftIdle) await awaitServerSettleAfterPost(newDraftDuration);
                 else logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
             }, newDraftInterval);
-            // <<< ADR-003 / issue #1598 - champion:newDraft end
 
             logHHAuto("Free drafts remanings :" + freeDrafts);
             counterLoop++;
@@ -270,12 +256,6 @@ export class Champion {
             } else {
                 Champion.ChampClearAutoTeamPopup();
                 $('#updateChampTeamButton').removeAttr('disabled').text( getTextForUI("updateChampTeamButton","elementText") +' x'+maxLoops);
-                // >>> ADR-003 / issue #1598 - champion:confirmDraft begin
-                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                // with the pre-fix code:
-                //     if ($(confirmDraftButtonQuery).length > 0) $(confirmDraftButtonQuery).trigger('click');
-                // and (if no other ADR-003 block remains in this file) drop the imports above.
                 if ($(confirmDraftButtonQuery).length > 0) {
                     if (acquirePostMutex('champion:confirmDraft')) {
                         const confirmStart = Date.now();
@@ -290,7 +270,6 @@ export class Champion {
                         $(confirmDraftButtonQuery).trigger('click');
                     }
                 }
-                // <<< ADR-003 / issue #1598 - champion:confirmDraft end
 
                 if (getStoredValue(HHStoredVarPrefixKey+SK.autoBuildChampsTeam) === "true") {
                     logHHAuto('Auto team ended, sort girls after build');
@@ -365,30 +344,6 @@ export class Champion {
         $("#orderTeam").attr('disabled', 'disabled');
         const isClub = getPage() == ConfigHelper.getHHScriptVars("pagesIDClubChampion");
 
-        // >>> ADR-003 / issue #1598 - champion:reorder begin
-        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-        // REVERT-MODE (if unstable): replace this whole block, including the markers,
-        // with the pre-fix code:
-        //     var switchGirls = function (targettedTeam: number[]) {
-        //         return new Promise((resolve) => {
-        //             const params = {
-        //                 action: "champion_team_reorder",
-        //                 team_order: targettedTeam,
-        //                 id_champion: champTeamId,
-        //                 champion_type: isClub ? "club_champion" : "champion"
-        //             };
-        //             getHHAjax()(params, function (data: any) {
-        //                 if(data.success == false) {
-        //                     logHHAuto('Error occured during champion team reorder', data);
-        //                 }
-        //                 resolve(data.success || true);
-        //             }, function (err) {
-        //                 logHHAuto('Error occured during champion team reorder', err);
-        //                 resolve(false);
-        //             });
-        //         });
-        //     };
-        // and (if no other ADR-003 block remains in this file) drop the imports above.
         var switchGirls = async function (targettedTeam: number[]) {
             if (!acquirePostMutex('champion:reorder')) {
                 logHHAuto('Champion: another POST in flight, deferring reorder request');
@@ -417,7 +372,6 @@ export class Champion {
             await awaitServerSettleAfterPost(reorderDuration);
             return result;
         };
-        // <<< ADR-003 / issue #1598 - champion:reorder end
 
         let currentGirlOrder = [...champTeam.map(g => g.id_girl)]; // To be stored as string
         logHHAuto('Ordering champion team', currentGirlOrder);
@@ -532,16 +486,6 @@ export class Champion {
                             }
                         }
                     }
-                    // >>> ADR-003 / issue #1598 - champion:useTicket begin
-                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                    // with the pre-fix code:
-                    //     logHHAuto("Using ticket");
-                    //     $('button[rel=perform].blue_button_L').trigger('click');
-                    //     await TimeHelper.sleep(randomInterval(200, 500));
-                    //     gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
-                    //     return true;
-                    // and (if no other ADR-003 block remains in this file) drop the imports above.
                     if (!acquirePostMutex('champion:useTicket')) {
                         logHHAuto('Champion: another POST in flight, deferring ticket use');
                         return true;
@@ -556,7 +500,6 @@ export class Champion {
                     else logHHAuto('Champion: ticket AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
                     return true;
-                    // <<< ADR-003 / issue #1598 - champion:useTicket end
                 }
             }
         }

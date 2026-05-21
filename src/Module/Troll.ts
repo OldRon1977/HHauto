@@ -19,10 +19,6 @@ import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from
 import { checkTimer, clearTimer, getSecondsLeft } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { gotoPage } from "../Service/PageNavigationService";
-// >>> ADR-003 / issue #1598 - troll:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 import {
     waitForAjaxIdle,
     acquirePostMutex,
@@ -31,7 +27,6 @@ import {
     AJAX_IDLE_TIMEOUT_MS,
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
-// <<< ADR-003 / issue #1598 - troll:imports end
 import { logHHAuto } from "../Utils/LogUtils";
 import { isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -602,22 +597,6 @@ export class Troll {
                     {
                         logHHAuto("Going to crush 50 times: "+trollz[Number(TTF)]+' for '+battleButtonX50Price+' kobans.');
 
-                        // >>> ADR-003 / issue #1598 - troll:battleX50 begin
-                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                        // with the pre-fix code:
-                        //     setHHVars('Hero.infos.hc_confirm',true);
-                        //     Booster.resetBattleResponseFlag();
-                        //     battleButtonX50[0].click();
-                        //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                        //     logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
-                        //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
-                        //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                        //     }
-                        //     RewardHelper.ObserveAndGetGirlRewards();
-                        //     await Booster.waitForBattleResponse();
-                        //     return;
-                        // and (if no other ADR-003 block remains in this file) drop the imports above.
                         if (!acquirePostMutex('troll:battleX50')) {
                             logHHAuto('Troll: another POST in flight, deferring x50 battle');
                             return;
@@ -641,7 +620,6 @@ export class Troll {
                         releasePostMutex();
                         if (x50Idle) await awaitServerSettleAfterPost(x50Duration);
                         else logHHAuto('Troll: x50 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                        // <<< ADR-003 / issue #1598 - troll:battleX50 end
                         return;
                     }
                     else
@@ -665,22 +643,6 @@ export class Troll {
                     {
                         logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
 
-                        // >>> ADR-003 / issue #1598 - troll:battleX10 begin
-                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                        // with the pre-fix code:
-                        //     setHHVars('Hero.infos.hc_confirm',true);
-                        //     Booster.resetBattleResponseFlag();
-                        //     battleButtonX10[0].click();
-                        //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
-                        //     logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                        //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
-                        //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                        //     }
-                        //     RewardHelper.ObserveAndGetGirlRewards();
-                        //     await Booster.waitForBattleResponse();
-                        //     return;
-                        // and (if no other ADR-003 block remains in this file) drop the imports above.
                         if (!acquirePostMutex('troll:battleX10')) {
                             logHHAuto('Troll: another POST in flight, deferring x10 battle');
                             return;
@@ -704,7 +666,6 @@ export class Troll {
                         releasePostMutex();
                         if (x10Idle) await awaitServerSettleAfterPost(x10Duration);
                         else logHHAuto('Troll: x10 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                        // <<< ADR-003 / issue #1598 - troll:battleX10 end
                         return;
                     }
                     else
@@ -748,12 +709,6 @@ export class Troll {
                     //replaceCheatClick();
                     checkPreviousFightDone();
                     setStoredValue(HHStoredVarPrefixKey+TK.trollPoints, currentPower);
-                    // >>> ADR-003 / issue #1598 - troll:battle begin
-                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                    // with the pre-fix code:
-                    //     battleButton[0].click();
-                    // and (if no other ADR-003 block remains in this file) drop the imports above.
                     if (!acquirePostMutex('troll:battle')) {
                         logHHAuto('Troll: another POST in flight, deferring single battle');
                         return;
@@ -765,7 +720,6 @@ export class Troll {
                     releasePostMutex();
                     if (battleIdle) await awaitServerSettleAfterPost(battleDuration);
                     else logHHAuto('Troll: battle AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                    // <<< ADR-003 / issue #1598 - troll:battle end
                 }
                 else
                 {
@@ -786,12 +740,6 @@ export class Troll {
                 checkPreviousFightDone();
                 setStoredValue(HHStoredVarPrefixKey+TK.trollPoints, currentPower);
                 //replaceCheatClick();
-                // >>> ADR-003 / issue #1598 - troll:battleNoEvent begin
-                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
-                // REVERT-MODE (if unstable): replace this whole block, including the markers,
-                // with the pre-fix code:
-                //     battleButton[0].click();
-                // and (if no other ADR-003 block remains in this file) drop the imports above.
                 if (!acquirePostMutex('troll:battleNoEvent')) {
                     logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
                     return;
@@ -803,7 +751,6 @@ export class Troll {
                 releasePostMutex();
                 if (battleNoEventIdle) await awaitServerSettleAfterPost(battleNoEventDuration);
                 else logHHAuto('Troll: battle (no event) AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
-                // <<< ADR-003 / issue #1598 - troll:battleNoEvent end
             }
         }
         else
