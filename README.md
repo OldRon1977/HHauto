@@ -14,6 +14,10 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ---
 
+## Disclaimer
+
+⚠ **Use at your own risk.** As with all automation features, there is always a risk of being banned by Kinkoid. The script uses randomized timing to reduce the risk of detection, but no automation can guarantee safety. By installing and using this script you accept that responsibility.
+
 ## How to file a bug with a dump
 
 Bug reports are easier to investigate with a dump of the actual game state.
