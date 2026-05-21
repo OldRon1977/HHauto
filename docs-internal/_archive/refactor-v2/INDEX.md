@@ -1,12 +1,19 @@
 ---
 last-verified: 2026-04-29
-status: in-progress (Phase 1 — Prototyp Scheduler, Session 5 complete)
+archived: 2026-05-21
+status: HISTORICAL — superseded by docs-internal/REVIEW_HANDOVER.md
 target-version: 7.36.0
 ---
 
-# HHauto Refactor v7.36.0 — Steuerungsdatei
+> **STATUS: HISTORICAL (archived 2026-05-21).**
+>
+> Dieser Refactor-Plan war der erste Anlauf (Phase 0 Inventory + Phase 1 Scheduler-Prototyp). Phase 1 ist erfolgreich abgeschlossen und in `main` gelandet (Commits `74f68d11`, `989eb306`, ADR-001 bis ADR-003). Der Ansatz ist anschliessend auf Phase 2 (Modul-Review per Branch-pro-Modul) umgestellt worden. Aktuelle Steuerungsdatei: `docs-internal/REVIEW_HANDOVER.md` und `docs-internal/REVIEW_ROADMAP.md`.
+>
+> Diese Datei und alle Files in `docs-internal/_archive/refactor-v2/` werden nur noch als Referenz erhalten, nicht mehr aktualisiert.
 
-**Diese Datei ist immer der Einstiegspunkt.** Bei jeder neuen Session zuerst diese Datei lesen, dann den Session-Start-Workflow ausführen.
+# HHauto Refactor v7.36.0 — Steuerungsdatei (HISTORICAL)
+
+**Diese Datei ist NICHT mehr Einstiegspunkt.** Aktuelle Steuerung: `docs-internal/REVIEW_HANDOVER.md`.
 
 ---
 
