@@ -65,6 +65,10 @@ shows a small live counter overlay in the top-right corner.
 
 ## Latest Updates
 
+### v7.35.50 - PoP claim race protection extended to Boss Bang, Troll, Champion
+
+- **Same race protection as v7.35.48 PoP fix, now applied to Boss Bang, Troll, and Champion.** Each state-changing action in these modules now serialises through a single mutex and waits for the server to commit before triggering the next request. No behaviour change on small accounts; on large accounts these modules should now also avoid the rare "Access forbidden" page during long auto-collect or auto-fight runs. Applied pro-actively along the lines of the same architectural decision behind v7.35.48.
+
 ### v7.35.49 - Troll mapping rechecked and fixed
 
 - **Auto Troll mapping rechecked and fixed.** The world-to-troll mapping has been reviewed end to end and aligned with the current in-game adventure layout for world 22 (Arthur, side), world 23 (Venam Kharney, side) and world 24 (Daddy, main). Last quest id raised to the end of world 24.

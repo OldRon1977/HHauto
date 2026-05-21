@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.49
+// @version      7.35.50
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3277,6 +3277,341 @@ function decideShouldFight(state) {
     return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
 }
 
+;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
+var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// AjaxTracker.ts
+//
+// XHR tracker plus a global mutex for state-changing /ajax.php POSTs.
+// Installed once at script start.
+//
+// Why the counter exists:
+//   window.location.href = ... cancels any in-flight XHR with
+//   NS_BINDING_ABORTED. When the cancelled request is a state-changing
+//   POST (e.g. PoP claim), the server can answer the next request with
+//   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
+//   for the queue to drain before changing pages.
+//
+// Why the mutex exists (issue 1598, ADR-003):
+//   On accounts with very large rosters the server takes 5-7s per POST,
+//   while AutoLoop ticks every ~1s. Multiple handlers each fire their
+//   own POST per tick, and the server bot-detection rate-limits the
+//   resulting burst with HTTP Forbidden. The mutex serialises script-
+//   triggered POSTs and gives the server time to settle before the
+//   next action.
+//
+// Why awaitServerSettleAfterPost lives here:
+//   The HTTP loadend marks "response received", but the server-side
+//   write (DB, world state) keeps running for some time after that.
+//   Acting on the next request before the write completes also
+//   triggers Forbidden. The settle helper pauses long enough for the
+//   write to finish, sized off the actual XHR duration so it stays
+//   short on small accounts and long on large ones.
+//
+// Public API:
+//   installAjaxTracker()              -- call once at script start
+//   pendingAjaxCount()                -- in-flight XHR count
+//   waitForAjaxIdle(timeoutMs, settleMs)
+//   acquirePostMutex(holderName?)     -- explicit caller mutex
+//   releasePostMutex()
+//   isPostInFlight()                  -- any tracked POST or held mutex
+//   awaitServerSettleAfterPost(durMs) -- post-claim pause
+//
+// Used by:
+//   PageNavigationService (idle wait), PlaceOfPower (claim path),
+//   AutoLoop (tick-gate).
+
+// Shared timing budget for all callers that wait on the game's AJAX
+// before navigating. Keeping these constants here means
+// PageNavigationService and individual modules cannot drift apart
+// (issue 1598: the PoP path used a tighter cap than gotoPage and
+// ignored timeouts, which re-introduced the cancel-mid-POST race).
+//
+// 15s is a conservative cap that covers the worst case observed in
+// Firefox Private Browsing (10-12s claim responses). The wait
+// short-circuits as soon as the queue is empty, so the typical path
+// stays fast.
+const AJAX_IDLE_TIMEOUT_MS = 15000;
+// Extra delay after AJAX idle before navigating, to let synchronous
+// follow-up code (DOM updates, popup handling) finish.
+const AJAX_IDLE_SETTLE_MS = 250;
+// Stale-lock timeout for the explicit POST mutex. If a holder forgets
+// to call releasePostMutex(), the mutex is force-released after this
+// many milliseconds so the script does not deadlock. 30s covers the
+// worst observed claim XHR + settle pause on the 2400-girls account.
+const POST_MUTEX_STALE_MS = 30000;
+// Server-settle minimum pause and amplification factor for
+// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
+// observed safe gap before next request ~25-30s -> factor 4.
+// Math.max keeps small accounts fast (a 200ms claim still gets a 2s
+// pause, large accounts get the longer wait).
+const POST_SETTLE_MIN_MS = 2000;
+const POST_SETTLE_FACTOR = 4;
+// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
+// via setter to avoid a circular import between AjaxTracker and
+// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
+// -> AjaxTracker). StartService wires recordForbidden in here right
+// after installAjaxTracker() so the dependency edge runs in the right
+// direction.
+let onAjaxForbidden = null;
+let pending = 0;
+let installed = false;
+let restoreSend = null;
+let restoreOpen = null;
+// Explicit POST mutex state. Acquired by callers (e.g. PoP claim) to
+// serialise their state-changing POSTs. The auto-tracking path below
+// never sets postMutexHeld -- it only feeds isPostInFlight() via the
+// pending counter.
+let postMutexHeld = false;
+let postMutexHolder = "";
+let postMutexAcquiredAt = 0;
+// Track POSTs to /ajax.php separately from the general pending counter.
+// AutoLoop uses isPostInFlight() to skip its tick when a state-changing
+// POST is still being processed. GET-only XHRs (asset preloads, etc.)
+// must not gate the tick.
+let pendingAjaxPosts = 0;
+const AJAX_POST_PATH = "/ajax.php";
+/** Returns true if `url` looks like an /ajax.php request. */
+function isAjaxPostUrl(url) {
+    if (typeof url !== "string")
+        return false;
+    // Match relative ("/ajax.php"), query ("/ajax.php?..."), and
+    // absolute ("https://.../ajax.php") forms. Case-sensitive: the
+    // game always uses lowercase.
+    return url.indexOf(AJAX_POST_PATH) !== -1;
+}
+/**
+ * Install the XHR counter hook. Idempotent.
+ * Hooks XMLHttpRequest.prototype.open and send to:
+ *   - count in-flight requests for waitForAjaxIdle()
+ *   - track /ajax.php POSTs separately for isPostInFlight()
+ *   - detect HTTP 403 responses on /ajax.php for ForbiddenBackoff
+ *
+ * Returns true if the hook was installed (or was already installed),
+ * false if no XMLHttpRequest constructor is available in this scope.
+ */
+function installAjaxTracker() {
+    if (installed)
+        return true;
+    // Resolve the constructor lazily so tests can swap the global
+    // XMLHttpRequest before calling install().
+    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
+        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
+        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
+    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
+        return false;
+    }
+    const origOpen = xhrCtor.prototype.open;
+    const origSend = xhrCtor.prototype.send;
+    xhrCtor.prototype.open = function (method, url, ...rest) {
+        try {
+            this.__hhMethod = typeof method === 'string' ? method.toUpperCase() : '';
+            this.__hhUrl = url;
+            this.__hhIsAjaxPost =
+                this.__hhMethod === 'POST' && isAjaxPostUrl(url);
+        }
+        catch (e) { /* ignore */ }
+        return origOpen.apply(this, [method, url, ...rest]);
+    };
+    xhrCtor.prototype.send = function (...args) {
+        pending++;
+        const isAjaxPost = !!this.__hhIsAjaxPost;
+        if (isAjaxPost)
+            pendingAjaxPosts++;
+        let decremented = false;
+        const decrement = () => {
+            if (decremented)
+                return;
+            decremented = true;
+            if (pending > 0)
+                pending--;
+            if (isAjaxPost && pendingAjaxPosts > 0)
+                pendingAjaxPosts--;
+        };
+        // loadend fires once for both success and failure paths
+        this.addEventListener('loadend', () => {
+            try {
+                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
+                    onAjaxForbidden();
+                }
+            }
+            catch (e) { /* ignore */ }
+            decrement();
+        }, { once: true });
+        return origSend.apply(this, args);
+    };
+    restoreOpen = () => {
+        try {
+            xhrCtor.prototype.open = origOpen;
+        }
+        catch (e) { /* ignore */ }
+    };
+    restoreSend = () => {
+        try {
+            xhrCtor.prototype.send = origSend;
+        }
+        catch (e) { /* ignore */ }
+    };
+    installed = true;
+    LogUtils_logHHAuto('[AjaxTracker] installed');
+    return true;
+}
+/**
+ * Register a callback invoked when an /ajax.php POST returns HTTP 403.
+ * Pass null to clear. The callback receives no arguments.
+ *
+ * Decoupled via setter (instead of importing recordForbidden from
+ * ForbiddenBackoff directly) because ForbiddenBackoff transitively
+ * imports HHStoredVars, which imports PlaceOfPower, which imports
+ * this module. A direct import would create a TDZ cycle that crashes
+ * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
+ * initialization").
+ */
+function setOnAjaxForbidden(cb) {
+    onAjaxForbidden = cb;
+}
+/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
+function pendingAjaxCount() {
+    return pending;
+}
+/**
+ * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
+ * After idle is detected, wait an extra settleMs to let synchronous
+ * follow-up code (e.g. DOM updates triggered by the response) finish.
+ *
+ * Polls every 50ms. Returns true if idle was reached, false on timeout.
+ */
+function waitForAjaxIdle() {
+    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
+        if (!installed) {
+            // Tracker not installed -> behave like immediate idle, just settle.
+            yield sleep(settleMs);
+            return true;
+        }
+        const deadline = Date.now() + timeoutMs;
+        while (pending > 0 && Date.now() < deadline) {
+            yield sleep(50);
+        }
+        const reachedIdle = pending === 0;
+        if (!reachedIdle) {
+            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
+        }
+        if (settleMs > 0) {
+            yield sleep(settleMs);
+        }
+        return reachedIdle;
+    });
+}
+// --- POST mutex ----------------------------------------------------
+/**
+ * Acquire the explicit POST mutex. Returns true when the caller now
+ * holds the lock, false if another caller still holds it. Stale locks
+ * (older than POST_MUTEX_STALE_MS) are force-released so a forgotten
+ * release does not freeze the script.
+ *
+ * Holder name is purely for logs; pass a short identifier such as
+ * "pop:claim" so the log line tells you who is blocking.
+ */
+function acquirePostMutex(holderName = "anonymous") {
+    if (postMutexHeld) {
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            postMutexHeld = false;
+        }
+        else {
+            return false;
+        }
+    }
+    postMutexHeld = true;
+    postMutexHolder = holderName;
+    postMutexAcquiredAt = Date.now();
+    return true;
+}
+/** Release the explicit POST mutex. Idempotent: safe to call when not held. */
+function releasePostMutex() {
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+}
+/**
+ * True when either the explicit mutex is held OR a /ajax.php POST is
+ * currently in-flight (auto-tracked). AutoLoop uses this to skip its
+ * tick so handlers do not stack new POSTs on top of one already in
+ * progress.
+ */
+function isPostInFlight() {
+    if (postMutexHeld) {
+        // Stale-lock release path also runs here so AutoLoop is not
+        // pinned by a forgotten holder.
+        const heldFor = Date.now() - postMutexAcquiredAt;
+        if (heldFor > POST_MUTEX_STALE_MS) {
+            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
+                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
+            releasePostMutex();
+        }
+        else {
+            return true;
+        }
+    }
+    return pendingAjaxPosts > 0;
+}
+/**
+ * Pause after a state-changing POST so the server can finish its
+ * write before the next request hits. Empirically sized off the
+ * just-completed XHR duration: claim XHR 6.7s -> settle ~27s on the
+ * 2400-girls account, claim XHR 200ms -> settle 2s (floor) on small
+ * accounts.
+ *
+ * Caller measures the XHR duration and passes it in. If the caller
+ * does not have one, pass 0 to get the minimum pause.
+ */
+function awaitServerSettleAfterPost(claimXhrDurationMs) {
+    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+        const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
+            ? claimXhrDurationMs
+            : 0;
+        const settle = Math.max(POST_SETTLE_MIN_MS, Math.round(durationMs * POST_SETTLE_FACTOR));
+        LogUtils_logHHAuto('[AjaxTracker] server-settle pause ' + settle + 'ms (claim ' + Math.round(durationMs) + 'ms)');
+        yield sleep(settle);
+    });
+}
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+/** Reset internal state and remove the prototype hook. Test-only. */
+function _resetAjaxTrackerForTests() {
+    if (restoreSend) {
+        try {
+            restoreSend();
+        }
+        catch (e) { /* ignore */ }
+    }
+    if (restoreOpen) {
+        try {
+            restoreOpen();
+        }
+        catch (e) { /* ignore */ }
+    }
+    restoreSend = null;
+    restoreOpen = null;
+    pending = 0;
+    pendingAjaxPosts = 0;
+    postMutexHeld = false;
+    postMutexHolder = "";
+    postMutexAcquiredAt = 0;
+    onAjaxForbidden = null;
+    installed = false;
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Events/BossBang.ts
 var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -3302,6 +3637,12 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+// >>> ADR-003 / issue #1598 - bossbang:imports begin
+// CLEANUP-MODE (when stable): remove only the two marker comment lines.
+// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
+// remove this import statement entirely.
+
+// <<< ADR-003 / issue #1598 - bossbang:imports end
 
 
 
@@ -3360,19 +3701,66 @@ class BossBang {
         }
     }
     static skipFightPage() {
-        const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
-        const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
-        if (rewardsButton.length > 0) {
-            LogUtils_logHHAuto("Click get rewards bang fight");
-            rewardsButton.trigger('click');
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        }
-        else if (skipFightButton.length > 0) {
-            LogUtils_logHHAuto("Click skip boss bang fight");
-            skipFightButton.trigger('click');
-            setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        }
+        return BossBang_awaiter(this, void 0, void 0, function* () {
+            const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
+            const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
+            if (rewardsButton.length > 0) {
+                // >>> ADR-003 / issue #1598 - bossbang:rewards begin
+                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                // with the pre-fix code:
+                //     logHHAuto("Click get rewards bang fight");
+                //     rewardsButton.trigger('click');
+                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                // and (if no other ADR-003 block remains) drop the imports/markers above.
+                if (!acquirePostMutex('bossbang:rewards')) {
+                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring rewards click');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    return;
+                }
+                LogUtils_logHHAuto("Click get rewards bang fight");
+                const claimStart = Date.now();
+                rewardsButton.trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                const claimDuration = Date.now() - claimStart;
+                releasePostMutex();
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                if (idle)
+                    yield awaitServerSettleAfterPost(claimDuration);
+                else
+                    LogUtils_logHHAuto('BossBang: rewards AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                // <<< ADR-003 / issue #1598 - bossbang:rewards end
+            }
+            else if (skipFightButton.length > 0) {
+                // >>> ADR-003 / issue #1598 - bossbang:skipFight begin
+                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                // with the pre-fix code:
+                //     logHHAuto("Click skip boss bang fight");
+                //     skipFightButton.trigger('click');
+                //     setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+                //     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                // and (if no other ADR-003 block remains) drop the imports/markers above.
+                if (!acquirePostMutex('bossbang:skipFight')) {
+                    LogUtils_logHHAuto('BossBang: another POST in flight, deferring skip click');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    return;
+                }
+                LogUtils_logHHAuto("Click skip boss bang fight");
+                const claimStart = Date.now();
+                skipFightButton.trigger('click');
+                const idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                const claimDuration = Date.now() - claimStart;
+                releasePostMutex();
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                if (idle)
+                    yield awaitServerSettleAfterPost(claimDuration);
+                else
+                    LogUtils_logHHAuto('BossBang: skip AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                setTimeout(BossBang.skipFightPage, randomInterval(1300, 1900));
+                // <<< ADR-003 / issue #1598 - bossbang:skipFight end
+            }
+        });
     }
     static goToFightPage(bossbangEventID) {
         return BossBang_awaiter(this, void 0, void 0, function* () {
@@ -9274,6 +9662,12 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 
 
 
+// >>> ADR-003 / issue #1598 - troll:imports begin
+// CLEANUP-MODE (when stable): remove only the two marker comment lines.
+// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
+// remove this import statement entirely.
+
+// <<< ADR-003 / issue #1598 - troll:imports end
 
 
 
@@ -9796,13 +10190,31 @@ class Troll {
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
+                            // >>> ADR-003 / issue #1598 - troll:battleX50 begin
+                            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                            // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                            // with the pre-fix code:
+                            //     setHHVars('Hero.infos.hc_confirm',true);
+                            //     Booster.resetBattleResponseFlag();
+                            //     battleButtonX50[0].click();
+                            //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
+                            //     logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
+                            //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
+                            //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
+                            //     }
+                            //     RewardHelper.ObserveAndGetGirlRewards();
+                            //     await Booster.waitForBattleResponse();
+                            //     return;
+                            // and (if no other ADR-003 block remains in this file) drop the imports above.
+                            if (!acquirePostMutex('troll:battleX50')) {
+                                LogUtils_logHHAuto('Troll: another POST in flight, deferring x50 battle');
+                                return;
+                            }
+                            const x50Start = Date.now();
                             setHHVars('Hero.infos.hc_confirm', true);
-                            // We have the power.
-                            //replaceCheatClick();
                             Booster.resetBattleResponseFlag();
                             battleButtonX50[0].click();
                             setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 50);
                             LogUtils_logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
                             if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                                 // Battle Done.
@@ -9812,6 +10224,14 @@ class Troll {
                             LogUtils_logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
                             LogUtils_logHHAuto('[SW-DEBUG] x50: battle response received, done');
+                            const x50Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                            const x50Duration = Date.now() - x50Start;
+                            releasePostMutex();
+                            if (x50Idle)
+                                yield awaitServerSettleAfterPost(x50Duration);
+                            else
+                                LogUtils_logHHAuto('Troll: x50 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                            // <<< ADR-003 / issue #1598 - troll:battleX50 end
                             return;
                         }
                         else {
@@ -9828,13 +10248,31 @@ class Troll {
                                 || bypassThreshold)
                             && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
                             LogUtils_logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            // >>> ADR-003 / issue #1598 - troll:battleX10 begin
+                            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                            // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                            // with the pre-fix code:
+                            //     setHHVars('Hero.infos.hc_confirm',true);
+                            //     Booster.resetBattleResponseFlag();
+                            //     battleButtonX10[0].click();
+                            //     setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
+                            //     logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            //     if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle") {
+                            //         setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
+                            //     }
+                            //     RewardHelper.ObserveAndGetGirlRewards();
+                            //     await Booster.waitForBattleResponse();
+                            //     return;
+                            // and (if no other ADR-003 block remains in this file) drop the imports above.
+                            if (!acquirePostMutex('troll:battleX10')) {
+                                LogUtils_logHHAuto('Troll: another POST in flight, deferring x10 battle');
+                                return;
+                            }
+                            const x10Start = Date.now();
                             setHHVars('Hero.infos.hc_confirm', true);
-                            // We have the power.
-                            //replaceCheatClick();
                             Booster.resetBattleResponseFlag();
                             battleButtonX10[0].click();
                             setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            //setStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh", Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) - 10);
                             LogUtils_logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
                             if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                                 // Battle Done.
@@ -9844,6 +10282,14 @@ class Troll {
                             LogUtils_logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
                             LogUtils_logHHAuto('[SW-DEBUG] x10: battle response received, done');
+                            const x10Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                            const x10Duration = Date.now() - x10Start;
+                            releasePostMutex();
+                            if (x10Idle)
+                                yield awaitServerSettleAfterPost(x10Duration);
+                            else
+                                LogUtils_logHHAuto('Troll: x10 AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                            // <<< ADR-003 / issue #1598 - troll:battleX10 end
                             return;
                         }
                         else {
@@ -9876,7 +10322,26 @@ class Troll {
                         //replaceCheatClick();
                         checkPreviousFightDone();
                         setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
+                        // >>> ADR-003 / issue #1598 - troll:battle begin
+                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                        // with the pre-fix code:
+                        //     battleButton[0].click();
+                        // and (if no other ADR-003 block remains in this file) drop the imports above.
+                        if (!acquirePostMutex('troll:battle')) {
+                            LogUtils_logHHAuto('Troll: another POST in flight, deferring single battle');
+                            return;
+                        }
+                        const battleStart = Date.now();
                         battleButton[0].click();
+                        const battleIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                        const battleDuration = Date.now() - battleStart;
+                        releasePostMutex();
+                        if (battleIdle)
+                            yield awaitServerSettleAfterPost(battleDuration);
+                        else
+                            LogUtils_logHHAuto('Troll: battle AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                        // <<< ADR-003 / issue #1598 - troll:battle end
                     }
                     else {
                         // We need more power.
@@ -9894,7 +10359,26 @@ class Troll {
                     checkPreviousFightDone();
                     setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
                     //replaceCheatClick();
+                    // >>> ADR-003 / issue #1598 - troll:battleNoEvent begin
+                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                    // with the pre-fix code:
+                    //     battleButton[0].click();
+                    // and (if no other ADR-003 block remains in this file) drop the imports above.
+                    if (!acquirePostMutex('troll:battleNoEvent')) {
+                        LogUtils_logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
+                        return;
+                    }
+                    const battleNoEventStart = Date.now();
                     battleButton[0].click();
+                    const battleNoEventIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                    const battleNoEventDuration = Date.now() - battleNoEventStart;
+                    releasePostMutex();
+                    if (battleNoEventIdle)
+                        yield awaitServerSettleAfterPost(battleNoEventDuration);
+                    else
+                        LogUtils_logHHAuto('Troll: battle (no event) AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                    // <<< ADR-003 / issue #1598 - troll:battleNoEvent end
                 }
             }
             else {
@@ -12818,341 +13302,6 @@ function bindMouseEvents() {
     document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
 }
 
-;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
-var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// AjaxTracker.ts
-//
-// XHR tracker plus a global mutex for state-changing /ajax.php POSTs.
-// Installed once at script start.
-//
-// Why the counter exists:
-//   window.location.href = ... cancels any in-flight XHR with
-//   NS_BINDING_ABORTED. When the cancelled request is a state-changing
-//   POST (e.g. PoP claim), the server can answer the next request with
-//   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
-//   for the queue to drain before changing pages.
-//
-// Why the mutex exists (issue 1598, ADR-003):
-//   On accounts with very large rosters the server takes 5-7s per POST,
-//   while AutoLoop ticks every ~1s. Multiple handlers each fire their
-//   own POST per tick, and the server bot-detection rate-limits the
-//   resulting burst with HTTP Forbidden. The mutex serialises script-
-//   triggered POSTs and gives the server time to settle before the
-//   next action.
-//
-// Why awaitServerSettleAfterPost lives here:
-//   The HTTP loadend marks "response received", but the server-side
-//   write (DB, world state) keeps running for some time after that.
-//   Acting on the next request before the write completes also
-//   triggers Forbidden. The settle helper pauses long enough for the
-//   write to finish, sized off the actual XHR duration so it stays
-//   short on small accounts and long on large ones.
-//
-// Public API:
-//   installAjaxTracker()              -- call once at script start
-//   pendingAjaxCount()                -- in-flight XHR count
-//   waitForAjaxIdle(timeoutMs, settleMs)
-//   acquirePostMutex(holderName?)     -- explicit caller mutex
-//   releasePostMutex()
-//   isPostInFlight()                  -- any tracked POST or held mutex
-//   awaitServerSettleAfterPost(durMs) -- post-claim pause
-//
-// Used by:
-//   PageNavigationService (idle wait), PlaceOfPower (claim path),
-//   AutoLoop (tick-gate).
-
-// Shared timing budget for all callers that wait on the game's AJAX
-// before navigating. Keeping these constants here means
-// PageNavigationService and individual modules cannot drift apart
-// (issue 1598: the PoP path used a tighter cap than gotoPage and
-// ignored timeouts, which re-introduced the cancel-mid-POST race).
-//
-// 15s is a conservative cap that covers the worst case observed in
-// Firefox Private Browsing (10-12s claim responses). The wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
-const AJAX_IDLE_TIMEOUT_MS = 15000;
-// Extra delay after AJAX idle before navigating, to let synchronous
-// follow-up code (DOM updates, popup handling) finish.
-const AJAX_IDLE_SETTLE_MS = 250;
-// Stale-lock timeout for the explicit POST mutex. If a holder forgets
-// to call releasePostMutex(), the mutex is force-released after this
-// many milliseconds so the script does not deadlock. 30s covers the
-// worst observed claim XHR + settle pause on the 2400-girls account.
-const POST_MUTEX_STALE_MS = 30000;
-// Server-settle minimum pause and amplification factor for
-// awaitServerSettleAfterPost(). Frank-Capture: claim XHR 6.7s,
-// observed safe gap before next request ~25-30s -> factor 4.
-// Math.max keeps small accounts fast (a 200ms claim still gets a 2s
-// pause, large accounts get the longer wait).
-const POST_SETTLE_MIN_MS = 2000;
-const POST_SETTLE_FACTOR = 4;
-// Optional callback invoked when /ajax.php returns HTTP 403. Decoupled
-// via setter to avoid a circular import between AjaxTracker and
-// ForbiddenBackoff (ForbiddenBackoff -> HHStoredVars -> PlaceOfPower
-// -> AjaxTracker). StartService wires recordForbidden in here right
-// after installAjaxTracker() so the dependency edge runs in the right
-// direction.
-let onAjaxForbidden = null;
-let pending = 0;
-let installed = false;
-let restoreSend = null;
-let restoreOpen = null;
-// Explicit POST mutex state. Acquired by callers (e.g. PoP claim) to
-// serialise their state-changing POSTs. The auto-tracking path below
-// never sets postMutexHeld -- it only feeds isPostInFlight() via the
-// pending counter.
-let postMutexHeld = false;
-let postMutexHolder = "";
-let postMutexAcquiredAt = 0;
-// Track POSTs to /ajax.php separately from the general pending counter.
-// AutoLoop uses isPostInFlight() to skip its tick when a state-changing
-// POST is still being processed. GET-only XHRs (asset preloads, etc.)
-// must not gate the tick.
-let pendingAjaxPosts = 0;
-const AJAX_POST_PATH = "/ajax.php";
-/** Returns true if `url` looks like an /ajax.php request. */
-function isAjaxPostUrl(url) {
-    if (typeof url !== "string")
-        return false;
-    // Match relative ("/ajax.php"), query ("/ajax.php?..."), and
-    // absolute ("https://.../ajax.php") forms. Case-sensitive: the
-    // game always uses lowercase.
-    return url.indexOf(AJAX_POST_PATH) !== -1;
-}
-/**
- * Install the XHR counter hook. Idempotent.
- * Hooks XMLHttpRequest.prototype.open and send to:
- *   - count in-flight requests for waitForAjaxIdle()
- *   - track /ajax.php POSTs separately for isPostInFlight()
- *   - detect HTTP 403 responses on /ajax.php for ForbiddenBackoff
- *
- * Returns true if the hook was installed (or was already installed),
- * false if no XMLHttpRequest constructor is available in this scope.
- */
-function installAjaxTracker() {
-    if (installed)
-        return true;
-    // Resolve the constructor lazily so tests can swap the global
-    // XMLHttpRequest before calling install().
-    const xhrCtor = (typeof window !== 'undefined' && window.XMLHttpRequest)
-        || (typeof globalThis !== 'undefined' && globalThis.XMLHttpRequest)
-        || (typeof XMLHttpRequest !== 'undefined' ? XMLHttpRequest : undefined);
-    if (!xhrCtor || !xhrCtor.prototype || typeof xhrCtor.prototype.send !== 'function') {
-        return false;
-    }
-    const origOpen = xhrCtor.prototype.open;
-    const origSend = xhrCtor.prototype.send;
-    xhrCtor.prototype.open = function (method, url, ...rest) {
-        try {
-            this.__hhMethod = typeof method === 'string' ? method.toUpperCase() : '';
-            this.__hhUrl = url;
-            this.__hhIsAjaxPost =
-                this.__hhMethod === 'POST' && isAjaxPostUrl(url);
-        }
-        catch (e) { /* ignore */ }
-        return origOpen.apply(this, [method, url, ...rest]);
-    };
-    xhrCtor.prototype.send = function (...args) {
-        pending++;
-        const isAjaxPost = !!this.__hhIsAjaxPost;
-        if (isAjaxPost)
-            pendingAjaxPosts++;
-        let decremented = false;
-        const decrement = () => {
-            if (decremented)
-                return;
-            decremented = true;
-            if (pending > 0)
-                pending--;
-            if (isAjaxPost && pendingAjaxPosts > 0)
-                pendingAjaxPosts--;
-        };
-        // loadend fires once for both success and failure paths
-        this.addEventListener('loadend', () => {
-            try {
-                if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
-                    onAjaxForbidden();
-                }
-            }
-            catch (e) { /* ignore */ }
-            decrement();
-        }, { once: true });
-        return origSend.apply(this, args);
-    };
-    restoreOpen = () => {
-        try {
-            xhrCtor.prototype.open = origOpen;
-        }
-        catch (e) { /* ignore */ }
-    };
-    restoreSend = () => {
-        try {
-            xhrCtor.prototype.send = origSend;
-        }
-        catch (e) { /* ignore */ }
-    };
-    installed = true;
-    LogUtils_logHHAuto('[AjaxTracker] installed');
-    return true;
-}
-/**
- * Register a callback invoked when an /ajax.php POST returns HTTP 403.
- * Pass null to clear. The callback receives no arguments.
- *
- * Decoupled via setter (instead of importing recordForbidden from
- * ForbiddenBackoff directly) because ForbiddenBackoff transitively
- * imports HHStoredVars, which imports PlaceOfPower, which imports
- * this module. A direct import would create a TDZ cycle that crashes
- * the bundle at boot ("Cannot access 'HHStoredVarPrefixKey' before
- * initialization").
- */
-function setOnAjaxForbidden(cb) {
-    onAjaxForbidden = cb;
-}
-/** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
-function pendingAjaxCount() {
-    return pending;
-}
-/**
- * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
- * After idle is detected, wait an extra settleMs to let synchronous
- * follow-up code (e.g. DOM updates triggered by the response) finish.
- *
- * Polls every 50ms. Returns true if idle was reached, false on timeout.
- */
-function waitForAjaxIdle() {
-    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
-        if (!installed) {
-            // Tracker not installed -> behave like immediate idle, just settle.
-            yield sleep(settleMs);
-            return true;
-        }
-        const deadline = Date.now() + timeoutMs;
-        while (pending > 0 && Date.now() < deadline) {
-            yield sleep(50);
-        }
-        const reachedIdle = pending === 0;
-        if (!reachedIdle) {
-            LogUtils_logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
-        }
-        if (settleMs > 0) {
-            yield sleep(settleMs);
-        }
-        return reachedIdle;
-    });
-}
-// --- POST mutex ----------------------------------------------------
-/**
- * Acquire the explicit POST mutex. Returns true when the caller now
- * holds the lock, false if another caller still holds it. Stale locks
- * (older than POST_MUTEX_STALE_MS) are force-released so a forgotten
- * release does not freeze the script.
- *
- * Holder name is purely for logs; pass a short identifier such as
- * "pop:claim" so the log line tells you who is blocking.
- */
-function acquirePostMutex(holderName = "anonymous") {
-    if (postMutexHeld) {
-        const heldFor = Date.now() - postMutexAcquiredAt;
-        if (heldFor > POST_MUTEX_STALE_MS) {
-            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
-                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
-            postMutexHeld = false;
-        }
-        else {
-            return false;
-        }
-    }
-    postMutexHeld = true;
-    postMutexHolder = holderName;
-    postMutexAcquiredAt = Date.now();
-    return true;
-}
-/** Release the explicit POST mutex. Idempotent: safe to call when not held. */
-function releasePostMutex() {
-    postMutexHeld = false;
-    postMutexHolder = "";
-    postMutexAcquiredAt = 0;
-}
-/**
- * True when either the explicit mutex is held OR a /ajax.php POST is
- * currently in-flight (auto-tracked). AutoLoop uses this to skip its
- * tick so handlers do not stack new POSTs on top of one already in
- * progress.
- */
-function isPostInFlight() {
-    if (postMutexHeld) {
-        // Stale-lock release path also runs here so AutoLoop is not
-        // pinned by a forgotten holder.
-        const heldFor = Date.now() - postMutexAcquiredAt;
-        if (heldFor > POST_MUTEX_STALE_MS) {
-            LogUtils_logHHAuto('[AjaxTracker] POST mutex stale-released after ' + heldFor +
-                'ms (was held by ' + (postMutexHolder || 'unknown') + ')');
-            releasePostMutex();
-        }
-        else {
-            return true;
-        }
-    }
-    return pendingAjaxPosts > 0;
-}
-/**
- * Pause after a state-changing POST so the server can finish its
- * write before the next request hits. Empirically sized off the
- * just-completed XHR duration: claim XHR 6.7s -> settle ~27s on the
- * 2400-girls account, claim XHR 200ms -> settle 2s (floor) on small
- * accounts.
- *
- * Caller measures the XHR duration and passes it in. If the caller
- * does not have one, pass 0 to get the minimum pause.
- */
-function awaitServerSettleAfterPost(claimXhrDurationMs) {
-    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
-        const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
-            ? claimXhrDurationMs
-            : 0;
-        const settle = Math.max(POST_SETTLE_MIN_MS, Math.round(durationMs * POST_SETTLE_FACTOR));
-        LogUtils_logHHAuto('[AjaxTracker] server-settle pause ' + settle + 'ms (claim ' + Math.round(durationMs) + 'ms)');
-        yield sleep(settle);
-    });
-}
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-/** Reset internal state and remove the prototype hook. Test-only. */
-function _resetAjaxTrackerForTests() {
-    if (restoreSend) {
-        try {
-            restoreSend();
-        }
-        catch (e) { /* ignore */ }
-    }
-    if (restoreOpen) {
-        try {
-            restoreOpen();
-        }
-        catch (e) { /* ignore */ }
-    }
-    restoreSend = null;
-    restoreOpen = null;
-    pending = 0;
-    pendingAjaxPosts = 0;
-    postMutexHeld = false;
-    postMutexHolder = "";
-    postMutexAcquiredAt = 0;
-    onAjaxForbidden = null;
-    installed = false;
-}
-
 ;// CONCATENATED MODULE: ./src/Service/AutoLoop.pure.ts
 // AutoLoop.pure.ts -- Pure decision logic for the auto-loop scheduler.
 //
@@ -13453,6 +13602,12 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
+// >>> ADR-003 / issue #1598 - champion:imports begin
+// CLEANUP-MODE (when stable): remove only the two marker comment lines.
+// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
+// remove this import statement entirely.
+
+// <<< ADR-003 / issue #1598 - champion:imports end
 
 
 
@@ -13642,10 +13797,34 @@ class Champion {
                     }
                 }
                 var newDraftInterval = girlsClicked ? randomInterval(1800, 2500) : randomInterval(800, 1500);
+                // >>> ADR-003 / issue #1598 - champion:newDraft begin
+                // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                // with the pre-fix code:
+                //     setTimeout(function() {
+                //         if ($(newDraftButtonQuery).length > 0) $(newDraftButtonQuery).trigger('click');
+                //     }, newDraftInterval);
+                // and (if no other ADR-003 block remains in this file) drop the imports above.
                 setTimeout(function () {
-                    if ($(newDraftButtonQuery).length > 0)
+                    return Champion_awaiter(this, void 0, void 0, function* () {
+                        if ($(newDraftButtonQuery).length === 0)
+                            return;
+                        if (!acquirePostMutex('champion:newDraft')) {
+                            LogUtils_logHHAuto('Champion: another POST in flight, skipping new-draft click this iteration');
+                            return;
+                        }
+                        const newDraftStart = Date.now();
                         $(newDraftButtonQuery).trigger('click');
+                        const newDraftIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                        const newDraftDuration = Date.now() - newDraftStart;
+                        releasePostMutex();
+                        if (newDraftIdle)
+                            yield awaitServerSettleAfterPost(newDraftDuration);
+                        else
+                            LogUtils_logHHAuto('Champion: new-draft AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                    });
                 }, newDraftInterval);
+                // <<< ADR-003 / issue #1598 - champion:newDraft end
                 LogUtils_logHHAuto("Free drafts remanings :" + freeDrafts);
                 counterLoop++;
                 if (freeDrafts > 0 && counterLoop <= maxLoops) {
@@ -13654,8 +13833,30 @@ class Champion {
                 else {
                     Champion.ChampClearAutoTeamPopup();
                     $('#updateChampTeamButton').removeAttr('disabled').text(getTextForUI("updateChampTeamButton", "elementText") + ' x' + maxLoops);
-                    if ($(confirmDraftButtonQuery).length > 0)
-                        $(confirmDraftButtonQuery).trigger('click');
+                    // >>> ADR-003 / issue #1598 - champion:confirmDraft begin
+                    // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                    // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                    // with the pre-fix code:
+                    //     if ($(confirmDraftButtonQuery).length > 0) $(confirmDraftButtonQuery).trigger('click');
+                    // and (if no other ADR-003 block remains in this file) drop the imports above.
+                    if ($(confirmDraftButtonQuery).length > 0) {
+                        if (acquirePostMutex('champion:confirmDraft')) {
+                            const confirmStart = Date.now();
+                            $(confirmDraftButtonQuery).trigger('click');
+                            const confirmIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                            const confirmDuration = Date.now() - confirmStart;
+                            releasePostMutex();
+                            if (confirmIdle)
+                                yield awaitServerSettleAfterPost(confirmDuration);
+                            else
+                                LogUtils_logHHAuto('Champion: confirm AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
+                        }
+                        else {
+                            LogUtils_logHHAuto('Champion: another POST in flight, falling back to direct confirm click');
+                            $(confirmDraftButtonQuery).trigger('click');
+                        }
+                    }
+                    // <<< ADR-003 / issue #1598 - champion:confirmDraft end
                     if (getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
                         LogUtils_logHHAuto('Auto team ended, sort girls after build');
                         yield TimeHelper.sleep(randomInterval(800, 1200));
@@ -13725,25 +13926,61 @@ class Champion {
             const champTeamId = Number(getHHVars('championData.champion.id'));
             $("#orderTeam").attr('disabled', 'disabled');
             const isClub = getPage() == ConfigHelper.getHHScriptVars("pagesIDClubChampion");
+            // >>> ADR-003 / issue #1598 - champion:reorder begin
+            // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+            // REVERT-MODE (if unstable): replace this whole block, including the markers,
+            // with the pre-fix code:
+            //     var switchGirls = function (targettedTeam: number[]) {
+            //         return new Promise((resolve) => {
+            //             const params = {
+            //                 action: "champion_team_reorder",
+            //                 team_order: targettedTeam,
+            //                 id_champion: champTeamId,
+            //                 champion_type: isClub ? "club_champion" : "champion"
+            //             };
+            //             getHHAjax()(params, function (data: any) {
+            //                 if(data.success == false) {
+            //                     logHHAuto('Error occured during champion team reorder', data);
+            //                 }
+            //                 resolve(data.success || true);
+            //             }, function (err) {
+            //                 logHHAuto('Error occured during champion team reorder', err);
+            //                 resolve(false);
+            //             });
+            //         });
+            //     };
+            // and (if no other ADR-003 block remains in this file) drop the imports above.
             var switchGirls = function (targettedTeam) {
-                return new Promise((resolve) => {
-                    const params = {
-                        action: "champion_team_reorder",
-                        team_order: targettedTeam,
-                        id_champion: champTeamId,
-                        champion_type: isClub ? "club_champion" : "champion"
-                    };
-                    getHHAjax()(params, function (data) {
-                        if (data.success == false) {
-                            LogUtils_logHHAuto('Error occured during champion team reorder', data);
-                        }
-                        resolve(data.success || true);
-                    }, function (err) {
-                        LogUtils_logHHAuto('Error occured during champion team reorder', err);
-                        resolve(false);
+                return Champion_awaiter(this, void 0, void 0, function* () {
+                    if (!acquirePostMutex('champion:reorder')) {
+                        LogUtils_logHHAuto('Champion: another POST in flight, deferring reorder request');
+                        return false;
+                    }
+                    const reorderStart = Date.now();
+                    const result = yield new Promise((resolve) => {
+                        const params = {
+                            action: "champion_team_reorder",
+                            team_order: targettedTeam,
+                            id_champion: champTeamId,
+                            champion_type: isClub ? "club_champion" : "champion"
+                        };
+                        getHHAjax()(params, function (data) {
+                            if (data.success == false) {
+                                LogUtils_logHHAuto('Error occured during champion team reorder', data);
+                            }
+                            resolve(data.success || true);
+                        }, function (err) {
+                            LogUtils_logHHAuto('Error occured during champion team reorder', err);
+                            resolve(false);
+                        });
                     });
+                    const reorderDuration = Date.now() - reorderStart;
+                    releasePostMutex();
+                    yield awaitServerSettleAfterPost(reorderDuration);
+                    return result;
                 });
             };
+            // <<< ADR-003 / issue #1598 - champion:reorder end
             let currentGirlOrder = [...champTeam.map(g => g.id_girl)]; // To be stored as string
             LogUtils_logHHAuto('Ordering champion team', currentGirlOrder);
             let oneGirlSwitched = false;
@@ -13854,11 +14091,33 @@ class Champion {
                                 }
                             }
                         }
+                        // >>> ADR-003 / issue #1598 - champion:useTicket begin
+                        // CLEANUP-MODE (when stable): remove only the two marker comment lines.
+                        // REVERT-MODE (if unstable): replace this whole block, including the markers,
+                        // with the pre-fix code:
+                        //     logHHAuto("Using ticket");
+                        //     $('button[rel=perform].blue_button_L').trigger('click');
+                        //     await TimeHelper.sleep(randomInterval(200, 500));
+                        //     gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
+                        //     return true;
+                        // and (if no other ADR-003 block remains in this file) drop the imports above.
+                        if (!acquirePostMutex('champion:useTicket')) {
+                            LogUtils_logHHAuto('Champion: another POST in flight, deferring ticket use');
+                            return true;
+                        }
                         LogUtils_logHHAuto("Using ticket");
+                        const ticketStart = Date.now();
                         $('button[rel=perform].blue_button_L').trigger('click');
-                        yield TimeHelper.sleep(randomInterval(200, 500));
+                        const ticketIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                        const ticketDuration = Date.now() - ticketStart;
+                        releasePostMutex();
+                        if (ticketIdle)
+                            yield awaitServerSettleAfterPost(ticketDuration);
+                        else
+                            LogUtils_logHHAuto('Champion: ticket AJAX still busy after ' + AJAX_IDLE_TIMEOUT_MS + 'ms, skipping settle');
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDChampionsMap"));
                         return true;
+                        // <<< ADR-003 / issue #1598 - champion:useTicket end
                     }
                 }
             }
@@ -27239,7 +27498,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.49";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.50";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
