@@ -43,13 +43,25 @@ describe("Champion module", function () {
         const TIME_1 = 123;
         const TIME_2 = 456;
         const TIME_COOLDOWN = 3600;
+
+        // getSecondsLeft uses Math.ceil on both the stored deadline and
+        // the current time. A sub-second delay between Champion._setTimer(X)
+        // and the subsequent read can therefore return X-1 when the wall
+        // clock crosses a second boundary mid-roundtrip. CI runners are
+        // slow enough to hit this; locally it does not reproduce. Allow a
+        // 1-second downward slack on every assertion that expects a
+        // positive timer value.
+        const expectSecondsLeftAround = (actual: number, expected: number) => {
+            expect(actual).toBeGreaterThanOrEqual(expected - 1);
+            expect(actual).toBeLessThanOrEqual(expected);
+        };
         it("default", function () {
             let nextChampionTime = getSecondsLeft('nextChampionTime');
             expect(nextChampionTime).toBe(0);
             Champion._setTimer(TIME_1);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
+            expectSecondsLeftAround(nextChampionTime, TIME_1);
         });
 
         it("autoChamps not aligned", function () {
@@ -62,7 +74,7 @@ describe("Champion module", function () {
             Champion._setTimer(TIME_1);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
+            expectSecondsLeftAround(nextChampionTime, TIME_1);
         });
 
         it("autoChampAlignTimer", function () {
@@ -75,7 +87,7 @@ describe("Champion module", function () {
             Champion._setTimer(TIME_1);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
+            expectSecondsLeftAround(nextChampionTime, TIME_1);
         });
 
         it("autoChampAlignTimer and autoClubChamp", function () {
@@ -102,7 +114,7 @@ describe("Champion module", function () {
             Champion._setTimer(TIME_1);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
+            expectSecondsLeftAround(nextChampionTime, TIME_1);
         });
 
         it("autoChampAlignTimer and autoClubChamp cooldown", function () {
@@ -115,7 +127,7 @@ describe("Champion module", function () {
             Champion._setTimer(TIME_1);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
+            expectSecondsLeftAround(nextChampionTime, TIME_1);
         });
 
         it("autoChampAlignTimer and autoClubChamp with champ cooldown", function () {
@@ -128,7 +140,7 @@ describe("Champion module", function () {
             Champion._setTimer(TIME_COOLDOWN);
 
             nextChampionTime = getSecondsLeft('nextChampionTime');
-            expect(nextChampionTime).toBe(TIME_COOLDOWN);
+            expectSecondsLeftAround(nextChampionTime, TIME_COOLDOWN);
         });
     });
 });
