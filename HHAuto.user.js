@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.53
+// @version      7.35.54
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1689,92 +1689,183 @@ function url_add_param(url, param, value) {
 // distinct IDs for each to route actions correctly.
 //
 // Used by: AutoLoop (page routing), StartService (initial setup),
-//          PageNavigationService (navigation targets)
+//          PageNavigationService (navigation targets),
+//          PlaceOfPower (uses getPopFallbackIndex to detect locked POPs)
 
 
 
 
 
 
-
-function getPage(checkUnknown = false, checkPop = false) {
-    var ob = document.getElementById(ConfigHelper.getHHScriptVars("gameID"));
-    if (ob === undefined || ob === null) {
-        LogUtils_logHHAuto("Unable to find page attribute, stopping script");
-        setStoredValue(HHStoredVarPrefixKey + SK.master, "false");
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        LogUtils_logHHAuto("setting autoloop to false");
-        throw new Error("Unable to find page attribute, stopping script.");
+/**
+ * Halts the script by clearing master and autoLoop in storage.
+ *
+ * Previously, getPage() did this implicitly (and threw) when the game
+ * root element was missing. That coupled a read with a hard-stop
+ * side effect: any caller that hit a transient DOM state could disable
+ * the entire script without realizing it. The kill switch lives here
+ * now so callers opt into halting explicitly.
+ *
+ * Used by StartService when it bootstraps and finds no game root.
+ */
+function haltScript(reason) {
+    LogUtils_logHHAuto(`haltScript: ${reason}`);
+    setStoredValue(HHStoredVarPrefixKey + SK.master, "false");
+    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+    LogUtils_logHHAuto("setting autoloop to false");
+}
+function resolvePopState() {
+    var _a;
+    // unsafeWindow.pop_list is the game-injected array of POP definitions
+    // when the main pop menu is visible. An empty array `[]` is truthy in
+    // JS but means no POPs unlocked, so we require an actual entry.
+    const popListDom = $("div.pop_list").not('[style*="display:none"]').not('[style*="display: none"]');
+    const popListGlobal = unsafeWindow.pop_list;
+    const hasPopListGlobal = Array.isArray(popListGlobal) && popListGlobal.length > 0;
+    if (popListDom.length >= 1 || hasPopListGlobal) {
+        return { kind: 'main' };
+    }
+    const popThumb = $(".pop_thumb_selected[pop_id]");
+    // `??` instead of `||`: pop_index = 0 would be a valid index in a
+    // 0-based numbering scheme, the previous `||` would have routed it
+    // to the popThumb fallback. Nullish-coalescing keeps 0 in place.
+    const resolved = (_a = unsafeWindow.pop_index) !== null && _a !== void 0 ? _a : (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
+    if (resolved !== undefined) {
+        return { kind: 'specific', popId: resolved };
+    }
+    return { kind: 'unresolved' };
+}
+/**
+ * If the player is on /activities.html?tab=pop&index=N but the page
+ * could not resolve a specific POP (game silently redirects to daily
+ * goals when the targeted POP is locked), returns the requested index
+ * so callers can mark the POP as locked. Returns null in every other
+ * state (happy path, different tab, no index in URL).
+ *
+ * Replaces the legacy `checkPop` parameter on getPage(): the caller
+ * (Module/PlaceOfPower) now drives the lock-marking pathway instead
+ * of PageHelper reaching into a Module from the Helper layer.
+ */
+function getPopFallbackIndex() {
+    const tab = queryStringGetParam(window.location.search, 'tab');
+    if (tab !== 'pop')
+        return null;
+    const index = queryStringGetParam(window.location.search, 'index');
+    if (index === null)
+        return null;
+    if (resolvePopState().kind !== 'unresolved')
+        return null;
+    return index;
+}
+/**
+ * Maps each Activities sub-tab to its canonical page-id storage key.
+ * The four entries cover every sub-tab the game multiplexes onto
+ * /activities.html. The `pop` entry is special-cased in
+ * resolveActivitiesSubTab because the page id depends on which POP
+ * (if any) is currently selected -- see resolvePopState.
+ *
+ * Pre-7.36.0 the sub-tab branch was four hand-rolled `else if`
+ * blocks repeating the same selector geometry; the resolver below
+ * uses this table instead so adding a sub-tab in the future is one
+ * line, not four.
+ */
+const ACTIVITIES_SUB_TABS = [
+    { tabId: 'contests', pageVarKey: 'pagesIDContests' },
+    { tabId: 'missions', pageVarKey: 'pagesIDMissions' },
+    { tabId: 'daily_goals', pageVarKey: 'pagesIDDailyGoals' },
+];
+function activitiesSubTabSelector(tabId) {
+    return `#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='${tabId}']`;
+}
+/**
+ * Resolves which Activities sub-tab is currently active and returns
+ * the canonical page id for it.
+ *
+ * The URL `tab` query param is the authoritative source; we only fall
+ * back to DOM `data-tab` matches when it is missing. Using sequential
+ * `if`s without `else` caused a daily_goals/contests loop on issue
+ * #1672: stale or transitional tab markers in the DOM made later
+ * branches override the correct value derived from the URL. The
+ * table-driven walk preserves that contract: the URL match short-
+ * circuits before the DOM scan starts.
+ *
+ * Returns null when the page is on /activities.html but no sub-tab
+ * could be identified (caller falls back to the page attribute).
+ */
+function resolveActivitiesSubTab(tab) {
+    // 1. URL-driven match. Settles every case where the user navigated
+    //    via gotoPage() and we put the tab into the query string.
+    for (const entry of ACTIVITIES_SUB_TABS) {
+        if (tab === entry.tabId) {
+            return ConfigHelper.getHHScriptVars(entry.pageVarKey);
+        }
+    }
+    if (tab === 'pop') {
+        return resolvePopPageId();
+    }
+    // 2. DOM fallback only when the URL has no tab param. Same lookup
+    //    pattern as before, just driven by the table.
+    if (tab == null) {
+        for (const entry of ACTIVITIES_SUB_TABS) {
+            if ($(activitiesSubTabSelector(entry.tabId)).length > 0) {
+                return ConfigHelper.getHHScriptVars(entry.pageVarKey);
+            }
+        }
+        if ($(activitiesSubTabSelector('pop')).length > 0) {
+            return resolvePopPageId();
+        }
+    }
+    return null;
+}
+function resolvePopPageId() {
+    // unsafeWindow.pop_index can be a number from the game globals
+    // while popThumb.attr('pop_id') returns a string -- the existing
+    // concat 'powerplace'+t handles both, so we don't normalize here.
+    const state = resolvePopState();
+    if (state.kind === 'specific') {
+        return "powerplace" + state.popId;
+    }
+    // 'main' and 'unresolved' both render the main page id. The
+    // unresolved-with-index path is detected by callers via
+    // getPopFallbackIndex(); see PlaceOfPower.collectAndUpdate.
+    return "powerplacemain";
+}
+function getPage(checkUnknown = false) {
+    var _a;
+    const ob = document.getElementById(ConfigHelper.getHHScriptVars("gameID"));
+    if (ob === null) {
+        // Pure read: report the page id as empty and let the caller decide
+        // what to do. Bootstraps that need a hard halt call haltScript()
+        // themselves; transient missing-root states (tab redraw, slow first
+        // paint) are tolerated by callers that compare against pagesIDFoo.
+        LogUtils_logHHAuto("PageHelper.getPage: game root element missing, returning empty page id");
         return "";
     }
-    //var p=ob.className.match(/.*page-(.*) .*/i)[1];
-    let activitiesMainPage = ConfigHelper.getHHScriptVars("pagesIDActivities");
-    var tab = queryStringGetParam(window.location.search, 'tab');
-    var p = ob.getAttribute('page');
+    const activitiesMainPage = ConfigHelper.getHHScriptVars("pagesIDActivities");
+    const tab = queryStringGetParam(window.location.search, 'tab');
+    const p = ob.getAttribute('page');
     let page = p;
-    if (p == activitiesMainPage) {
-        // Resolve Activities sub-tabs. The URL `tab` query param is the
-        // authoritative source; we only fall back to DOM `data-tab` matches
-        // when it is missing. Using sequential `if`s without `else` caused
-        // a daily_goals/contests loop on issue #1672: stale or transitional
-        // tab markers in the DOM made later branches override the correct
-        // value derived from the URL.
-        if (tab === 'contests' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='contests']").length > 0)) {
-            page = ConfigHelper.getHHScriptVars("pagesIDContests");
-        }
-        else if (tab === 'missions' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='missions']").length > 0)) {
-            page = ConfigHelper.getHHScriptVars("pagesIDMissions");
-        }
-        else if (tab === 'daily_goals' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='daily_goals']").length > 0)) {
-            page = ConfigHelper.getHHScriptVars("pagesIDDailyGoals");
-            if (checkPop && tab === 'pop') {
-                // Wrong POP targetted
-                var index = queryStringGetParam(window.location.search, 'index');
-                if (index !== null) {
-                    PlaceOfPower.addPopToUnableToStart(index, "Unable to go to Pop " + index + " as it is locked.");
-                    PlaceOfPower.removePopFromPopToStart(index);
-                }
-            }
-        }
-        else if (tab === 'pop' || (tab == null && $("#activities-tabs > div.switch-tab.underline-tab.tab-switcher-fade-in[data-tab='pop']").length > 0)) {
-            // if on Pop menu
-            var t;
-            var popList = $("div.pop_list").not('[style*="display:none"]').not('[style*="display: none"]');
-            if (popList.length >= 1 || unsafeWindow.pop_list) {
-                t = 'main';
-            }
-            else {
-                var popThumb = $(".pop_thumb_selected[pop_id]");
-                t = unsafeWindow.pop_index || (popThumb.length > 0 ? popThumb.attr('pop_id') : undefined);
-                checkUnknown = false;
-                if (t === undefined) {
-                    // Keep this but not triggered anymore. When Wrong POP is targetted, daily goals is highlighted
-                    t = 'main';
-                    var index = queryStringGetParam(window.location.search, 'index');
-                    if (checkPop && index !== null) {
-                        PlaceOfPower.addPopToUnableToStart(index, "Unable to go to Pop " + index + " as it is locked.");
-                        PlaceOfPower.removePopFromPopToStart(index);
-                    }
-                }
-            }
-            page = "powerplace" + t;
-        }
+    if (p === activitiesMainPage) {
+        page = (_a = resolveActivitiesSubTab(tab)) !== null && _a !== void 0 ? _a : p;
     }
     if (checkUnknown) {
         const knownPages = ConfigHelper.getHHScriptVars("pagesKnownList");
         let isKnown = false;
-        for (let knownPage of knownPages) {
-            //console.log(knownPage)
+        for (const knownPage of knownPages) {
             if (page === ConfigHelper.getHHScriptVars("pagesID" + knownPage)) {
                 isKnown = true;
             }
         }
         if (!isKnown && page) {
-            let unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unkownPagesList, {});
-            LogUtils_logHHAuto("Page unkown for script : " + page + " / " + window.location.pathname);
-            unknownPageList[page] = window.location.pathname;
-            //console.log(unknownPageList);
-            setStoredValue(HHStoredVarPrefixKey + TK.unkownPagesList, JSON.stringify(unknownPageList));
+            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unkownPagesList, {});
+            // Idempotent write: skip the JSON.stringify+setStoredValue round-trip
+            // when this page was already recorded with the same pathname (avoids
+            // a write per AutoLoop tick on long-running unknown pages).
+            if (unknownPageList[page] !== window.location.pathname) {
+                LogUtils_logHHAuto(`Page unkown for script : ${page} / ${window.location.pathname}`);
+                unknownPageList[page] = window.location.pathname;
+                setStoredValue(HHStoredVarPrefixKey + TK.unkownPagesList, JSON.stringify(unknownPageList));
+            }
         }
     }
     return page;
@@ -10379,6 +10470,31 @@ class LeagueHelper {
                             numberOfBattle = numberOfFightAvailable;
                     }
                     LogUtils_logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
+                    // Schedule the next league fight *before* triggering the
+                    // battle. The other battle modules (Season, Pantheon,
+                    // PentaDrill) all set a timer on their happy path; League
+                    // historically did not, which left the popup info stuck on
+                    // "No timer" and prevented manual debug resets. The
+                    // timer follows the next_refresh_ts pattern (Pantheon /
+                    // Season / PentaDrill use the same idiom): wait for the
+                    // server-reported refresh + a small jitter, otherwise
+                    // fall back to ~15-17 minutes when next_refresh_ts is
+                    // 0 (no pending refresh, e.g. energy still capped).
+                    // Setting before the battle trigger has two benefits:
+                    //   1) survives the safeReload() in the multi-battle
+                    //      AJAX callback, because storage is read again on
+                    //      bundle boot;
+                    //   2) prevents back-to-back triggers if the user has
+                    //      enough remaining energy for another fight, which
+                    //      previously slipped through whenever energy was
+                    //      still above the threshold.
+                    const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
+                    if (nextRefreshTs === 0) {
+                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+                    }
+                    else {
+                        setTimer('nextLeaguesTime', randomInterval(nextRefreshTs + 10, nextRefreshTs + 180));
+                    }
                     if (numberOfBattle <= 1) {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"), { number_of_battles: 1, id_opponent: nextOpponent.opponent_id });
                     }
@@ -23174,7 +23290,19 @@ class PlaceOfPower {
     }
     static collectAndUpdate() {
         return PlaceOfPower_awaiter(this, void 0, void 0, function* () {
-            if (getPage(false, true) !== ConfigHelper.getHHScriptVars("pagesIDPowerplacemain")) {
+            // Detect the "URL targets a POP, but the game silently redirected
+            // to daily_goals because the POP is locked" state. The legacy code
+            // did this inside PageHelper via the checkPop parameter; the
+            // detection has moved to a small read (getPopFallbackIndex) that
+            // returns the index from the URL when the pop tab is loaded but
+            // no specific POP could be resolved. Same lock-list mutation as
+            // before, just owned by the module that knows what to do with it.
+            const lockedPopIndex = getPopFallbackIndex();
+            if (lockedPopIndex !== null) {
+                PlaceOfPower.addPopToUnableToStart(lockedPopIndex, `Unable to go to Pop ${lockedPopIndex} as it is locked.`);
+                PlaceOfPower.removePopFromPopToStart(lockedPopIndex);
+            }
+            if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDPowerplacemain")) {
                 LogUtils_logHHAuto("Navigating to powerplaces main page.");
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"));
                 // return busy
@@ -27375,7 +27503,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.53";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.54";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -28386,7 +28514,14 @@ function start() {
         //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
     }
-    getPage(true);
+    // The legacy bootstrap raised inside getPage() when the game root was
+    // missing, and that throw doubled as both a script halt and a guard
+    // against running the rest of startup. With getPage() now a pure read,
+    // bootstraps need to opt into halting on missing root explicitly.
+    if (getPage(true) === "") {
+        haltScript("game root element missing on startup");
+        return;
+    }
     // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {
         FeaturePopupService.showPopup();

@@ -9,7 +9,7 @@
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";
-import { getPage } from "../Helper/PageHelper";
+import { getPage, getPopFallbackIndex } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
@@ -164,7 +164,20 @@ export class PlaceOfPower {
 
     static async collectAndUpdate()
     {
-        if(getPage(false, true) !== ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"))
+        // Detect the "URL targets a POP, but the game silently redirected
+        // to daily_goals because the POP is locked" state. The legacy code
+        // did this inside PageHelper via the checkPop parameter; the
+        // detection has moved to a small read (getPopFallbackIndex) that
+        // returns the index from the URL when the pop tab is loaded but
+        // no specific POP could be resolved. Same lock-list mutation as
+        // before, just owned by the module that knows what to do with it.
+        const lockedPopIndex = getPopFallbackIndex();
+        if (lockedPopIndex !== null)
+        {
+            PlaceOfPower.addPopToUnableToStart(lockedPopIndex, `Unable to go to Pop ${lockedPopIndex} as it is locked.`);
+            PlaceOfPower.removePopFromPopToStart(lockedPopIndex);
+        }
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"))
         {
             logHHAuto("Navigating to powerplaces main page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"));

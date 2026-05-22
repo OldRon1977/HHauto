@@ -10,7 +10,11 @@ export class MockHelper{
         if (page != '' && page.indexOf('/') < 0) {
             page = '/' + page;
         } 
+        // configurable: true allows the same test (or a follow-up beforeEach)
+        // to redefine window.location without TypeError, and lets restoreLocation
+        // put the original descriptor back in place.
         Object.defineProperty(window, 'location', {
+            configurable: true,
             get() {
                 return { 
                     hostname: domain,
@@ -21,6 +25,30 @@ export class MockHelper{
                 };
             },
         });
+    }
+
+    /**
+     * Snapshot the current window.location descriptor so a test can restore it
+     * after a mockDomain() call. Use in pairs:
+     *
+     *   const restore = MockHelper.snapshotLocation();
+     *   MockHelper.mockDomain(...);
+     *   // ... test body ...
+     *   restore();
+     *
+     * Returns a thunk that puts the original descriptor back. If no descriptor
+     * was present (jsdom default), the thunk deletes the override so the next
+     * test starts from a clean slate.
+     */
+    static snapshotLocation(): () => void {
+        const original = Object.getOwnPropertyDescriptor(window, 'location');
+        return () => {
+            if (original) {
+                Object.defineProperty(window, 'location', original);
+            } else {
+                delete (window as any).location;
+            }
+        };
     }
 
     static mockPage(pageName: string, body:string = '') {

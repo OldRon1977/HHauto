@@ -834,6 +834,31 @@ export class LeagueHelper {
                 }
                 logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
 
+                // Schedule the next league fight *before* triggering the
+                // battle. The other battle modules (Season, Pantheon,
+                // PentaDrill) all set a timer on their happy path; League
+                // historically did not, which left the popup info stuck on
+                // "No timer" and prevented manual debug resets. The
+                // timer follows the next_refresh_ts pattern (Pantheon /
+                // Season / PentaDrill use the same idiom): wait for the
+                // server-reported refresh + a small jitter, otherwise
+                // fall back to ~15-17 minutes when next_refresh_ts is
+                // 0 (no pending refresh, e.g. energy still capped).
+                // Setting before the battle trigger has two benefits:
+                //   1) survives the safeReload() in the multi-battle
+                //      AJAX callback, because storage is read again on
+                //      bundle boot;
+                //   2) prevents back-to-back triggers if the user has
+                //      enough remaining energy for another fight, which
+                //      previously slipped through whenever energy was
+                //      still above the threshold.
+                const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
+                if (nextRefreshTs === 0) {
+                    setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+                } else {
+                    setTimer('nextLeaguesTime', randomInterval(nextRefreshTs + 10, nextRefreshTs + 180));
+                }
+
                 if(numberOfBattle <= 1) {
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"),{number_of_battles:1,id_opponent:nextOpponent.opponent_id});
                 } else {

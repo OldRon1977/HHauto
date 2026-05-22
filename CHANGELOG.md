@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.54 - PageHelper review and league timer fix
+
+- **The league info popup shows the timer again.** After a league fight, the popup info row reads the actual remaining time instead of "No timer", the debug panel can reset it, and the AutoLoop no longer re-fires every tick when challenge energy is just above the threshold.
+- **Transient missing-DOM states no longer disable the script.** A tab redraw or a slow first paint that briefly drops the game root element used to silently set master and autoLoop to false; the script now tolerates the gap and retries on the next tick.
+- **Pop-tab detection is hardened against future game updates** that might ship an empty pop list array or 0-based pop indices, both of which would have produced wrong page IDs.
+- Internal: PageHelper was refactored across the five review axes -- pure-read semantics, decoupled from the Place-of-Power module, Activities sub-tab resolution moved to a small data table, ~125 circular dependencies removed. No user-facing behaviour change beyond the items above.
+
 ### v7.35.53 - More robust page navigation and reload handling
 
 - **Same race protection as the v7.35.48 PoP fix, now applied across the script.** Direct `location.reload()` and direct URL changes scattered across League battles, Penta Drill battles, Champion ticket purchase, Season opponent refresh + fight, Missions gift refresh, Harem girl popup, Team module equip / unequip, the debug-menu reload buttons, the settings-import path, and the Forbidden-detection backoff now all wait for in-flight game requests to finish before changing the page.

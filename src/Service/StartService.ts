@@ -26,7 +26,7 @@ import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
-import { getPage } from "../Helper/PageHelper";
+import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { getTimeLeft, setTimer, setTimers, Timers } from "../Helper/TimerHelper";
@@ -518,7 +518,15 @@ export function start() {
         //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
     }
-    getPage(true);
+    // The legacy bootstrap raised inside getPage() when the game root was
+    // missing, and that throw doubled as both a script halt and a guard
+    // against running the rest of startup. With getPage() now a pure read,
+    // bootstraps need to opt into halting on missing root explicitly.
+    if (getPage(true) === "")
+    {
+        haltScript("game root element missing on startup");
+        return;
+    }
 
     // Version-gated popups: show but don't block autoLoop
     if (FeaturePopupService.shouldShowPopup()) {
