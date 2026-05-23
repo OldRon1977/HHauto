@@ -19,7 +19,6 @@
 //
 // Used by: StartService (initial call), self (recursive setTimeout)
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { HeroHelper } from "../Helper/HeroHelper";
 import { switchHHMenuButton } from "../Helper/HHMenuHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
@@ -82,9 +81,6 @@ import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
 import { scheduler } from './Scheduler';
 
-export let busy = false;
-
-
 export function getBurst()
 {
     const sMenu = document.getElementById('sMenu');
@@ -105,8 +101,8 @@ export function getBurst()
 
 export function CheckSpentPoints()
 {
-    let oldValues=getStoredJSON(HHStoredVarPrefixKey+TK.CheckSpentPoints, -1);
-    let newValues={};
+    const oldValues=getStoredJSON(HHStoredVarPrefixKey+TK.CheckSpentPoints, -1);
+    const newValues={};
     if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle',false))
     {
         newValues['fight']=Troll.getEnergy();
@@ -134,10 +130,9 @@ export function CheckSpentPoints()
 
     if ( oldValues !== -1)
     {
-        let spent= {};
-        let hasSpend = false;
+        const spent = {};
 
-        for (let i of Object.keys(newValues))
+        for (const i of Object.keys(newValues))
         {
             //console.log(i);
             if (oldValues[i]-newValues[i] >0)
@@ -192,22 +187,18 @@ export async function autoLoop()
         setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
     }
 
-    //var busy = false;
-    busy = false;
-    var page = window.location.href;
-    var currentPower = Troll.getEnergy();
+    const currentPower = Troll.getEnergy();
 
     var burst=getBurst();
     switchHHMenuButton(burst);
     //console.log("burst : "+burst);
     checkAndClosePopup(burst);
-    let lastActionPerformed = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
+    const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
 
     // Create shared context for action handlers
     const ctx: AutoLoopContext = {
         busy: false,
         lastActionPerformed: lastActionPerformed,
-        eventParsed: null,
         currentPower: currentPower,
         canCollectCompetitionActive: false,
         eventIDs: [],
@@ -228,14 +219,6 @@ export async function autoLoop()
             ctx.busy = Contest.setTimers();
         }
         ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
-
-        //check what happen to timer if no more wave before uncommenting
-        /*if (getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave'))
-        {
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-        }
-        */
-        //logHHAuto("lastActionPerformed " + lastActionPerformed);
 
         //if a new event is detected
         const {eventIDs, bossBangEventIDs} = EventModule.parsePageForEventId();
@@ -287,27 +270,33 @@ export async function autoLoop()
         await handleGoHome(ctx);
 
         // --- Scheduler Pipeline (migrated handlers run here) ---
-        await scheduler.tick();
+        // Only trigger the scheduler when no classic action handler has
+        // already started an action this tick. Without this gate the
+        // pipeline runs preconditions and step.fn even when the
+        // navigation mutex in PageNavigationService will swallow the
+        // resulting gotoPage / safeReload call. The gate also prevents
+        // lastRunAt from being bumped on a tick where no real work was
+        // possible, which kept the cool-down counting from a wasted run.
+        if (!ctx.busy) {
+            await scheduler.tick();
+        }
         }
     }
 
     // --- Page-specific UI handlers ---
     await handlePageSpecific(ctx);
 
-    // Sync context back to module-level busy
-    busy = ctx.busy;
-
-    if (busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+    if (ctx.busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
         if (checkTimer("paranoiaSwitch")) {
             ParanoiaService.flipParanoia();
         }
     }
 
-    if (busy === false && burst && !mouseBusy && ctx.lastActionPerformed != "none") {
+    if (ctx.busy === false && burst && !mouseBusy && ctx.lastActionPerformed !== "none") {
         ctx.lastActionPerformed = "none";
         // logHHAuto("no action performed in this loop, rest lastActionPerformed");
     }
-    if (ctx.lastActionPerformed != getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
+    if (ctx.lastActionPerformed !== getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
         logHHAuto("lastActionPerformed changed to " + ctx.lastActionPerformed);
     }
     setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, ctx.lastActionPerformed);

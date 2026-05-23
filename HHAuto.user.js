@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.54
+// @version      7.35.55
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -4712,6 +4712,14 @@ class Booster {
                                 boosterStatus.normal.push(Object.assign(Object.assign({}, clonedData), { endAt: clonedData.lifetime }));
                             }
                             setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+                            // Mirror the freshness stamp that collectBoostersFromMarket
+                            // sets on a market-page DOM scrape. Without this the next
+                            // autoEquipBoosters tick sees boosterStatusLastUpdate as
+                            // missing/stale and forces a redundant market visit just
+                            // to discover the slots are already filled. The AJAX
+                            // payload contains the same equipped_booster data the
+                            // market scrape would have read, so the stamp is honest.
+                            setStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate, String(Date.now()));
                             //$(document).trigger('boosters:equipped', {id_item, isMythic, new_id: clonedData.id_member_booster_equipped})
                         }
                         return;
@@ -5185,6 +5193,11 @@ class Booster {
                     usages_remaining: 99 // Unknown, will be refreshed on next market visit
                 });
                 setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+                // Restore the freshness stamp that equipBooster cleared on
+                // success:false. Without this the next autoEquipBoosters
+                // tick still treats the status as stale and navigates to
+                // the shop just to confirm what we already wrote here.
+                setStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate, String(Date.now()));
                 LogUtils_logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         }
@@ -5197,6 +5210,7 @@ class Booster {
                     endAt: serverNow + 8 * 3600 // Assume 8 hours remaining, refreshed on next market visit
                 });
                 setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+                setStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate, String(Date.now()));
                 LogUtils_logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         }
@@ -10470,26 +10484,44 @@ class LeagueHelper {
                             numberOfBattle = numberOfFightAvailable;
                     }
                     LogUtils_logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
-                    // Schedule the next league fight *before* triggering the
-                    // battle. The other battle modules (Season, Pantheon,
-                    // PentaDrill) all set a timer on their happy path; League
-                    // historically did not, which left the popup info stuck on
-                    // "No timer" and prevented manual debug resets. The
-                    // timer follows the next_refresh_ts pattern (Pantheon /
-                    // Season / PentaDrill use the same idiom): wait for the
-                    // server-reported refresh + a small jitter, otherwise
-                    // fall back to ~15-17 minutes when next_refresh_ts is
-                    // 0 (no pending refresh, e.g. energy still capped).
-                    // Setting before the battle trigger has two benefits:
-                    //   1) survives the safeReload() in the multi-battle
-                    //      AJAX callback, because storage is read again on
-                    //      bundle boot;
-                    //   2) prevents back-to-back triggers if the user has
-                    //      enough remaining energy for another fight, which
-                    //      previously slipped through whenever energy was
-                    //      still above the threshold.
+                    // Schedule the next league fight *before* triggering
+                    // the battle. Three cases:
+                    //
+                    //   a) Energy left after this batch (currentPower minus
+                    //      numberOfBattle > 0): set a short cool-down (60-120s)
+                    //      so the pipeline picks the next opponent on the
+                    //      following tick. Without this branch the user-visible
+                    //      bug returns: e.g. 4 challenge tokens against a
+                    //      2-fight opponent burned 2 tokens, then the timer
+                    //      jumped to next_refresh_ts (~36 min) and the 2
+                    //      remaining tokens sat unused for half an hour.
+                    //
+                    //   b) Energy fully spent and the server reported a refresh
+                    //      timestamp: wait for next_refresh_ts plus a small
+                    //      jitter window. This is the same idiom Pantheon /
+                    //      Season / PentaDrill use.
+                    //
+                    //   c) Energy fully spent but next_refresh_ts is 0 (energy
+                    //      capped, no pending refresh): fall back to a 15-17 min
+                    //      timer.
+                    //
+                    // Setting *before* the battle trigger keeps two properties
+                    // from the original 7.35.54 hotfix: the timer survives the
+                    // safeReload() in the multi-battle AJAX callback because
+                    // storage is re-read on bundle boot, and the popup info
+                    // never reads "No timer" again.
                     const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
-                    if (nextRefreshTs === 0) {
+                    const remainingPower = currentPower - numberOfBattle;
+                    if (remainingPower > 0) {
+                        // Short cool-down so the next AutoLoop tick can pick
+                        // the next opponent. The user expectation is "open
+                        // league, fight all 15 battles in a row" which is
+                        // how a human would do it. The Pipeline minIntervalMs
+                        // for handleLeague is aligned to this value so the
+                        // Scheduler does not silently extend the gap.
+                        setTimer('nextLeaguesTime', randomInterval(2, 5));
+                    }
+                    else if (nextRefreshTs === 0) {
                         setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
                     }
                     else {
@@ -15716,8 +15748,11 @@ function handleHaremSize(ctx) {
             && (ctx.lastActionPerformed === "none")) {
             //console.log(! isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)),JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)).count_date,new Date().getTime() + ConfigHelper.getHHScriptVars("HaremSizeExpirationSecs") * 1000);
             // Update girl count
-            ctx.busy = true;
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
+            // Trust the gotoPage return value: when the navigation mutex is
+            // already held (concurrent caller), gotoPage returns false and
+            // does not navigate. Setting ctx.busy = true unconditionally in
+            // that case would falsely block other handlers for one tick.
+            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
         }
     });
 }
@@ -15727,14 +15762,13 @@ function handlePlaceOfPower(ctx) {
         if (ctx.busy === false && PlaceOfPower.isActivated()
             && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pop")) {
             var popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-            if (popToStart.length != 0 || checkTimer('minPowerPlacesTime')) {
+            if (popToStart.length !== 0 || checkTimer('minPowerPlacesTime')) {
                 //if PopToStart exist bypass function
                 var popToStartExist = getStoredValue(HHStoredVarPrefixKey + TK.PopToStart) ? true : false;
                 //logHHAuto("startcollect : "+popToStartExist);
                 if (!popToStartExist) {
                     //logHHAuto("pop1:"+popToStart);
                     LogUtils_logHHAuto("Go and collect pop");
-                    ctx.busy = true;
                     ctx.busy = yield PlaceOfPower.collectAndUpdate();
                 }
                 var indexes = (getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter)).split(";");
@@ -15751,7 +15785,6 @@ function handlePlaceOfPower(ctx) {
                 for (var index of indexes) {
                     if (ctx.busy === false && popToStart.includes(Number(index))) {
                         LogUtils_logHHAuto("Time to do PowerPlace" + index + ".");
-                        ctx.busy = true;
                         ctx.busy = yield PlaceOfPower.doPowerPlacesStuff(index);
                         ctx.lastActionPerformed = "pop";
                     }
@@ -15763,7 +15796,10 @@ function handlePlaceOfPower(ctx) {
                     if (popToStart.length === 0) {
                         //logHHAuto("removing popToStart");
                         sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        // Reflect navigation success in ctx.busy so blocked
+                        // navigations (mutex held) do not falsely consume the
+                        // tick for the next handler.
+                        ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     }
                 }
             }
@@ -15808,8 +15844,6 @@ function handleTrollBattle(ctx) {
         // a stale marker when the user disables auto-troll mid-wait or when
         // the outer guard evaluates to false on a later tick.
         setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "false");
-        // DEBUG: log preconditions for troll battle
-        LogUtils_logHHAuto(`handleTrollBattle preconditions: busy=${ctx.busy}, isTrollFightActivated=${Troll.isTrollFightActivated()}, autoLoop=${isAutoLoopActive()}, competition=${ctx.canCollectCompetitionActive}, lastAction=${ctx.lastActionPerformed}, power=${ctx.currentPower}`);
         if (ctx.busy === false && Troll.isTrollFightActivated()
             && isAutoLoopActive() && ctx.canCollectCompetitionActive
             && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "troll" || ctx.lastActionPerformed === "quest")) {
@@ -15914,12 +15948,6 @@ function handleTrollBattle(ctx) {
                     LogUtils_logHHAuto("Troll fight pending: waiting for energy refill.");
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "true");
                 }
-                /*if (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"))
-                {
-                    logHHAuto("Go to home after troll fight");
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-    
-                }*/
             }
         }
         else {
@@ -15929,9 +15957,9 @@ function handleTrollBattle(ctx) {
 }
 /**
  * Pure helper: would handleTrollBattle have fired a fight if combativity were
- * available? Mirrors the four activation paths in the main if-block, but
- * without the power/buy checks. Used by the wait-marker branch in
- * handleTrollBattle to detect "only blocker is power=0" situations.
+ * available? Mirrors the activation paths in the main if-block, but without
+ * the power/buy checks. Used by the wait-marker branch in handleTrollBattle
+ * to detect "only blocker is power=0" situations.
  *
  * Returns true if any of the following holds:
  * - autoTrollBattle is on (would fight last unlocked troll once power > 0)
@@ -15939,6 +15967,25 @@ function handleTrollBattle(ctx) {
  * - plusEvent is on AND a non-mythic event girl is currently parsed
  * - a raid stars raid with id_girl exists AND plusLoveRaid is on
  * - a user-selected LoveRaid with id_girl exists
+ *
+ * MAINTENANCE -- KEEP IN SYNC WITH handleTrollBattle:
+ *
+ * Whenever the OR-disjunction in handleTrollBattle gains, drops or refines
+ * an activation path, this helper MUST mirror the change. If they drift,
+ * the wait-marker either fires too often (blocking event-parsing without
+ * cause) or too rarely (the issue #1700 ping-pong returns).
+ *
+ * Before editing handleTrollBattle's activation block:
+ *
+ *   git grep -n "wouldFightWithPower\|isTrollFightActivated" src/
+ *
+ * The activation paths are guarded by a Pure-spec
+ * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 13 cases) and
+ * a wait-marker spec (spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts,
+ * 5 cases). New paths must be added to both specs. The lessons file
+ * c:\Users\StephanMesser\.kiro\Arbeitsplatz\.kiro\steering\_lessons\
+ * mapping-fix-vollstaendig-pruefen.md captures the cost of skipping this
+ * pruning step.
  */
 function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
     const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true";
@@ -16013,15 +16060,19 @@ function handleQuest(ctx) {
             if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === undefined) {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
             }
-            let questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+            const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
             if (questRequirement === "battle") {
                 if (ConfigHelper.getHHScriptVars("isEnabledTrollBattle", false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "false") {
                     LogUtils_logHHAuto("Quest requires battle.");
                     LogUtils_logHHAuto("prepare to save one battle for quest");
                     setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "true");
                     if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== "true") {
-                        Troll.doBossBattle();
-                        ctx.busy = true;
+                        // Mirrors the await pattern used in handleTrollBattle.
+                        // Without await the AJAX-driven battle could race with
+                        // the next tick / gotoPage and leave the loop with a
+                        // stale ctx.busy state until the navigation mutex
+                        // catches it.
+                        ctx.busy = yield Troll.doBossBattle();
                     }
                 }
             }
@@ -16225,7 +16276,7 @@ function handlePantheon(ctx) {
 // 17. handleChampionTicket - lines 786-810 (includes the nested buyTicket function)
 function handleChampionTicket(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && ConfigHelper.getHHScriptVars("isEnabledChamps", false)
+        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledChamps", false)
             && QuestHelper.getEnergy() >= ConfigHelper.getHHScriptVars("CHAMP_TICKET_PRICE") && QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
             && getStoredValue(HHStoredVarPrefixKey + SK.autoChampsUseEne) === "true" && isAutoLoopActive()
             && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "champion")) {
@@ -16246,6 +16297,15 @@ function handleChampionTicket(ctx) {
                     safeReload();
                 });
             }
+            // Set autoLoop=false BEFORE the setTimeout window so concurrent
+            // AutoLoop ticks during the 800-1600ms wait cannot start a second
+            // champion_buy_ticket AJAX. lastActionPerformed='champion' alone
+            // would not be enough: a fresh tick has ctx.busy=false and would
+            // re-enter handleChampionTicket because its lastAction guard
+            // accepts 'none' OR 'champion'. The safeReload() inside the AJAX
+            // callback later sets autoLoop=false a second time, but that
+            // second write is idempotent (already false) and serves the
+            // separate purpose of suppressing ticks during the reload itself.
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             LogUtils_logHHAuto("setting autoloop to false");
             ctx.busy = true;
@@ -16283,12 +16343,11 @@ function handleClubChampion(ctx) {
 // 20. handleSeasonCollect - lines 828-841
 function handleSeasonCollect(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && ConfigHelper.getHHScriptVars("isEnabledSeason", false) && isAutoLoopActive() &&
+        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeason", false) && isAutoLoopActive() &&
             (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === "true" && ctx.canCollectCompetitionActive
                 ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true" && checkTimer('nextSeasonCollectAllTime') && (getTimer('SeasonRemainingTime') == -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season")) {
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true" && checkTimer('nextSeasonCollectAllTime') && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season")) {
             LogUtils_logHHAuto("Time to go and check Season for collecting reward.");
-            ctx.busy = true;
             ctx.busy = Season.goAndCollect();
             ctx.lastActionPerformed = "season";
         }
@@ -16297,10 +16356,10 @@ function handleSeasonCollect(ctx) {
 // 21. handlePentaDrillCollect - lines 843-855
 function handlePentaDrillCollect(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill", false) && isAutoLoopActive() &&
+        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill", false) && isAutoLoopActive() &&
             (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === "true" && ctx.canCollectCompetitionActive
                 ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true" && checkTimer('nextPentaDrillCollectAllTime') && (getTimer('pentaDrillRemainingTime') == -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill")) {
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true" && checkTimer('nextPentaDrillCollectAllTime') && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill")) {
             LogUtils_logHHAuto("Time to go and check PentaDrill for collecting reward.");
             ctx.busy = PentaDrill.goAndCollect();
             ctx.lastActionPerformed = "pentaDrill";
@@ -16324,10 +16383,10 @@ function handleSeasonalFreeCard(ctx) {
 // 23. handleSeasonalEventCollect - lines 867-879
 function handleSeasonalEventCollect(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && isAutoLoopActive() &&
+        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && isAutoLoopActive() &&
             (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" && ctx.canCollectCompetitionActive
                 ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && checkTimer('nextSeasonalEventCollectAllTime') && (getTimer('SeasonalEventRemainingTime') == -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "seasonal")) {
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && checkTimer('nextSeasonalEventCollectAllTime') && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "seasonal")) {
             LogUtils_logHHAuto("Time to go and check SeasonalEvent for collecting reward.");
             ctx.busy = SeasonalEvent.goAndCollect();
             ctx.lastActionPerformed = "seasonal";
@@ -16351,12 +16410,11 @@ function handleSeasonalRankCollect(ctx) {
 // 25. handlePoVCollect - lines 892-905
 function handlePoVCollect(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && isAutoLoopActive() && PathOfValue.isEnabled() &&
+        if (ctx.busy === false && isAutoLoopActive() && PathOfValue.isEnabled() &&
             (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true" && ctx.canCollectCompetitionActive
                 ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && checkTimer('nextPoVCollectAllTime') && (getTimer('PoVRemainingTime') == -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pov")) {
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && checkTimer('nextPoVCollectAllTime') && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pov")) {
             LogUtils_logHHAuto("Time to go and check Path of Valor for collecting reward.");
-            ctx.busy = true;
             ctx.busy = PathOfValue.goAndCollect();
             ctx.lastActionPerformed = "pov";
         }
@@ -16365,12 +16423,11 @@ function handlePoVCollect(ctx) {
 // 26. handlePoGCollect - lines 907-920
 function handlePoGCollect(ctx) {
     return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy == false && isAutoLoopActive() && PathOfGlory.isEnabled() &&
+        if (ctx.busy === false && isAutoLoopActive() && PathOfGlory.isEnabled() &&
             (checkTimer('nextPoGCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === "true" && ctx.canCollectCompetitionActive
                 ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && checkTimer('nextPoGCollectAllTime') && (getTimer('PoGRemainingTime') == -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pog")) {
+                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && checkTimer('nextPoGCollectAllTime') && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pog")) {
             LogUtils_logHHAuto("Time to go and check Path of Glory for collecting reward.");
-            ctx.busy = true;
             ctx.busy = PathOfGlory.goAndCollect();
             ctx.lastActionPerformed = "pog";
         }
@@ -16478,7 +16535,11 @@ function handleGoHome(ctx) {
             //console.log("testingHome : GotoHome : "+getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled));
             LogUtils_logHHAuto("Back to home page at the end of actions");
             deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            // Track navigation outcome on ctx.busy: when the navigation
+            // mutex is already held, gotoPage returns false. Without
+            // updating ctx.busy the tick would still claim a navigation
+            // happened, which is wrong (the next tick will retry).
+            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
     });
 }
@@ -20335,7 +20396,7 @@ function handlePageSpecific(ctx) {
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDSeasonArena"):
                 if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("div.matchRatingNew img#powerLevelScouter").length < 3) {
-                    if (ctx.lastActionPerformed != "season") {
+                    if (ctx.lastActionPerformed !== "season") {
                         // Avoid double call when coming from Season.run()
                         Season.stylesBattle = callItOnce(Season.stylesBattle);
                         Season.stylesBattle();
@@ -20354,7 +20415,7 @@ function handlePageSpecific(ctx) {
                 }
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"):
-                if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("img#powerLevelScouterChosen").length == 0) {
+                if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("img#powerLevelScouterChosen").length === 0) {
                     PentaDrill.stylesBattle = callItOnce(PentaDrill.stylesBattle);
                     PentaDrill.stylesBattle();
                     PentaDrill.moduleSimPentaDrillBattle();
@@ -20371,18 +20432,20 @@ function handlePageSpecific(ctx) {
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDEvent"):
                 const eventID = EventModule.getDisplayedIdEventPage(false);
-                if (eventID != '') {
+                if (eventID !== '') {
                     if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
-                        if (ctx.eventParsed == null) {
-                            EventModule.parseEventPage(eventID);
-                        }
+                        // parseEventPage is idempotent within a page-load via the
+                        // 'parsed' attribute on #contains_all #events, so calling it
+                        // unconditionally here is safe. The previous ctx.eventParsed
+                        // wrapper was never written to (Cluster A2: dead code) and
+                        // the second-call path inside parseEventPage already short-
+                        // circuits when checkEvent(eventID) returns false.
+                        EventModule.parseEventPage(eventID);
                         EventModule.moduleDisplayEventPriority();
                         EventModule.hideOwnedGilrs();
                     }
                     if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true" && EventModule.getEvent(eventID).isBossBangEvent) {
-                        if (ctx.eventParsed == null) {
-                            EventModule.parseEventPage(eventID);
-                        }
+                        EventModule.parseEventPage(eventID);
                         setTimeout(BossBang.goToFightPage, randomInterval(500, 1500));
                     }
                     if (EventModule.getEvent(eventID).isPoa) {
@@ -20448,12 +20511,6 @@ function handlePageSpecific(ctx) {
                 Harem.clearHaremToolVariables = callItOnce(Harem.clearHaremToolVariables); // Avoid wired loop, if user reach home page, ensure temp var from harem are cleared
                 Harem.clearHaremToolVariables();
                 AdsService.closeHomeAds();
-                /*
-                            if ($('#no_HC close:visible').length) {
-                                setTimeout(() => {
-                                    $('#no_HC close:visible').trigger('click')
-                                }, randomInterval(3000, 5000));
-                            }*/
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDHarem"):
                 Harem.moduleHarem();
@@ -20682,7 +20739,13 @@ function getStaleEventIDs(now = Date.now()) {
 const handleLeague = {
     name: 'handleLeague',
     priority: 13,
-    minIntervalMs: 60000,
+    // Aligned with the short setTimer('nextLeaguesTime') value used in
+    // LeagueHelper.doLeagueBattle when energy remains after a batch.
+    // A larger Scheduler cool-down would silently extend the gap and
+    // defeat the purpose of the short setTimer (the user wants the bot
+    // to chain through all 15 battles, like a human emptying the league
+    // tab in one sitting).
+    minIntervalMs: 2000,
     atomic: true,
     interruptible: 'never',
     precondition: () => {
@@ -21121,7 +21184,6 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-let busy = false;
 function getBurst() {
     const sMenu = document.getElementById('sMenu');
     const sMenuVisible = sMenu != null && sMenu.style.display !== 'none';
@@ -21136,8 +21198,8 @@ function getBurst() {
     });
 }
 function CheckSpentPoints() {
-    let oldValues = getStoredJSON(HHStoredVarPrefixKey + TK.CheckSpentPoints, -1);
-    let newValues = {};
+    const oldValues = getStoredJSON(HHStoredVarPrefixKey + TK.CheckSpentPoints, -1);
+    const newValues = {};
     if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false)) {
         newValues['fight'] = Troll.getEnergy();
     }
@@ -21157,9 +21219,8 @@ function CheckSpentPoints() {
         newValues['drill'] = PentaDrill.getEnergy();
     }
     if (oldValues !== -1) {
-        let spent = {};
-        let hasSpend = false;
-        for (let i of Object.keys(newValues)) {
+        const spent = {};
+        for (const i of Object.keys(newValues)) {
             //console.log(i);
             if (oldValues[i] - newValues[i] > 0) {
                 spent[i] = oldValues[i] - newValues[i];
@@ -21200,20 +21261,16 @@ function autoLoop() {
         if (getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired) === undefined) {
             setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
         }
-        //var busy = false;
-        busy = false;
-        var page = window.location.href;
-        var currentPower = Troll.getEnergy();
+        const currentPower = Troll.getEnergy();
         var burst = getBurst();
         switchHHMenuButton(burst);
         //console.log("burst : "+burst);
         checkAndClosePopup(burst);
-        let lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
+        const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
         // Create shared context for action handlers
         const ctx = {
             busy: false,
             lastActionPerformed: lastActionPerformed,
-            eventParsed: null,
             currentPower: currentPower,
             canCollectCompetitionActive: false,
             eventIDs: [],
@@ -21230,13 +21287,6 @@ function autoLoop() {
                 ctx.busy = Contest.setTimers();
             }
             ctx.canCollectCompetitionActive = TimeHelper.canCollectCompetitionActive();
-            //check what happen to timer if no more wave before uncommenting
-            /*if (getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave'))
-            {
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
-            */
-            //logHHAuto("lastActionPerformed " + lastActionPerformed);
             //if a new event is detected
             const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
             ctx.eventIDs = eventIDs;
@@ -21286,23 +21336,30 @@ function autoLoop() {
                 yield handleBossBangFight(ctx);
                 yield handleGoHome(ctx);
                 // --- Scheduler Pipeline (migrated handlers run here) ---
-                yield scheduler.tick();
+                // Only trigger the scheduler when no classic action handler has
+                // already started an action this tick. Without this gate the
+                // pipeline runs preconditions and step.fn even when the
+                // navigation mutex in PageNavigationService will swallow the
+                // resulting gotoPage / safeReload call. The gate also prevents
+                // lastRunAt from being bumped on a tick where no real work was
+                // possible, which kept the cool-down counting from a wasted run.
+                if (!ctx.busy) {
+                    yield scheduler.tick();
+                }
             }
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
-        // Sync context back to module-level busy
-        busy = ctx.busy;
-        if (busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+        if (ctx.busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
             if (checkTimer("paranoiaSwitch")) {
                 ParanoiaService.flipParanoia();
             }
         }
-        if (busy === false && burst && !mouseBusy && ctx.lastActionPerformed != "none") {
+        if (ctx.busy === false && burst && !mouseBusy && ctx.lastActionPerformed !== "none") {
             ctx.lastActionPerformed = "none";
             // logHHAuto("no action performed in this loop, rest lastActionPerformed");
         }
-        if (ctx.lastActionPerformed != getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
+        if (ctx.lastActionPerformed !== getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
             LogUtils_logHHAuto("lastActionPerformed changed to " + ctx.lastActionPerformed);
         }
         setStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed, ctx.lastActionPerformed);
@@ -27503,7 +27560,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.54";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.55";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

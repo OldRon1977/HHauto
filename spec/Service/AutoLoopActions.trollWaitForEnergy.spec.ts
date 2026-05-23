@@ -119,7 +119,6 @@ function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
     return {
         busy: false,
         lastActionPerformed: "none",
-        eventParsed: null,
         currentPower: 0,
         canCollectCompetitionActive: true,
         eventIDs: [],

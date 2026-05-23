@@ -169,8 +169,8 @@ describe('Pipeline.config', () => {
       expect(handler.priority).toBe(13);
     });
 
-    it('has minIntervalMs of 60 seconds', () => {
-      expect(handler.minIntervalMs).toBe(60_000);
+    it('has minIntervalMs of 2 seconds', () => {
+      expect(handler.minIntervalMs).toBe(2_000);
     });
 
     it('has onFailure callback', () => {

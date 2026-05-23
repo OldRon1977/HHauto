@@ -157,7 +157,13 @@ export function getStaleEventIDs(now: number = Date.now()): string[] {
 const handleLeague: HandlerConfig = {
   name: 'handleLeague',
   priority: 13,
-  minIntervalMs: 60_000,
+  // Aligned with the short setTimer('nextLeaguesTime') value used in
+  // LeagueHelper.doLeagueBattle when energy remains after a batch.
+  // A larger Scheduler cool-down would silently extend the gap and
+  // defeat the purpose of the short setTimer (the user wants the bot
+  // to chain through all 15 battles, like a human emptying the league
+  // tab in one sitting).
+  minIntervalMs: 2_000,
   atomic: true,
   interruptible: 'never',
   precondition: () => {

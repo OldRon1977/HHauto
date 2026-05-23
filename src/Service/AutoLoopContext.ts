@@ -7,8 +7,6 @@ export interface AutoLoopContext {
     busy: boolean;
     /** The last action that was performed in this loop iteration */
     lastActionPerformed: string;
-    /** The event ID that was parsed in this iteration (if any) */
-    eventParsed: string | null;
     /** Current troll fight energy */
     currentPower: number;
     /** Whether competition collection is currently allowed */

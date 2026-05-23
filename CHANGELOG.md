@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.55 - AutoLoop refactor and league/booster hotfixes
+
+#### Fixed
+
+- League auto-fight chains through all available tokens again. A recent game change had caused the bot to idle for the full token-refresh window after spending only part of the available tokens.
+- Auto-equip boosters no longer waits on a redundant market visit after a successful equip; the freshness stamp on the booster status is updated as soon as the equip AJAX completes.
+- Quest battles triggered from handleQuest are now properly awaited, removing a small race window between the battle AJAX and the next loop tick.
+
+#### Changed
+
+- AutoLoop internal cleanups: dead module-level busy state and unused ctx.eventParsed field removed, scheduler pipeline only runs on truly idle ticks, ESLint baseline on the AutoLoop core files cleared.
+
 ### v7.35.54 - PageHelper review and league timer fix
 
 - **The league info popup shows the timer again.** After a league fight, the popup info row reads the actual remaining time instead of "No timer", the debug panel can reset it, and the AutoLoop no longer re-fires every tick when challenge energy is just above the threshold.

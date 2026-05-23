@@ -116,6 +116,14 @@ export class Booster {
                             }
 
                             setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+                            // Mirror the freshness stamp that collectBoostersFromMarket
+                            // sets on a market-page DOM scrape. Without this the next
+                            // autoEquipBoosters tick sees boosterStatusLastUpdate as
+                            // missing/stale and forces a redundant market visit just
+                            // to discover the slots are already filled. The AJAX
+                            // payload contains the same equipped_booster data the
+                            // market scrape would have read, so the stamp is honest.
+                            setStoredValue(HHStoredVarPrefixKey+TK.boosterStatusLastUpdate, String(Date.now()));
                             //$(document).trigger('boosters:equipped', {id_item, isMythic, new_id: clonedData.id_member_booster_equipped})
                         }
                         return
@@ -635,6 +643,11 @@ export class Booster {
                     usages_remaining: 99 // Unknown, will be refreshed on next market visit
                 });
                 setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+                // Restore the freshness stamp that equipBooster cleared on
+                // success:false. Without this the next autoEquipBoosters
+                // tick still treats the status as stale and navigates to
+                // the shop just to confirm what we already wrote here.
+                setStoredValue(HHStoredVarPrefixKey+TK.boosterStatusLastUpdate, String(Date.now()));
                 logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         } else {
@@ -646,6 +659,7 @@ export class Booster {
                     endAt: serverNow + 8 * 3600 // Assume 8 hours remaining, refreshed on next market visit
                 });
                 setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
+                setStoredValue(HHStoredVarPrefixKey+TK.boosterStatusLastUpdate, String(Date.now()));
                 logHHAuto('Marked ' + booster.name + ' as equipped in storage (server says already equipped)');
             }
         }

@@ -834,26 +834,43 @@ export class LeagueHelper {
                 }
                 logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
 
-                // Schedule the next league fight *before* triggering the
-                // battle. The other battle modules (Season, Pantheon,
-                // PentaDrill) all set a timer on their happy path; League
-                // historically did not, which left the popup info stuck on
-                // "No timer" and prevented manual debug resets. The
-                // timer follows the next_refresh_ts pattern (Pantheon /
-                // Season / PentaDrill use the same idiom): wait for the
-                // server-reported refresh + a small jitter, otherwise
-                // fall back to ~15-17 minutes when next_refresh_ts is
-                // 0 (no pending refresh, e.g. energy still capped).
-                // Setting before the battle trigger has two benefits:
-                //   1) survives the safeReload() in the multi-battle
-                //      AJAX callback, because storage is read again on
-                //      bundle boot;
-                //   2) prevents back-to-back triggers if the user has
-                //      enough remaining energy for another fight, which
-                //      previously slipped through whenever energy was
-                //      still above the threshold.
+                // Schedule the next league fight *before* triggering
+                // the battle. Three cases:
+                //
+                //   a) Energy left after this batch (currentPower minus
+                //      numberOfBattle > 0): set a short cool-down (60-120s)
+                //      so the pipeline picks the next opponent on the
+                //      following tick. Without this branch the user-visible
+                //      bug returns: e.g. 4 challenge tokens against a
+                //      2-fight opponent burned 2 tokens, then the timer
+                //      jumped to next_refresh_ts (~36 min) and the 2
+                //      remaining tokens sat unused for half an hour.
+                //
+                //   b) Energy fully spent and the server reported a refresh
+                //      timestamp: wait for next_refresh_ts plus a small
+                //      jitter window. This is the same idiom Pantheon /
+                //      Season / PentaDrill use.
+                //
+                //   c) Energy fully spent but next_refresh_ts is 0 (energy
+                //      capped, no pending refresh): fall back to a 15-17 min
+                //      timer.
+                //
+                // Setting *before* the battle trigger keeps two properties
+                // from the original 7.35.54 hotfix: the timer survives the
+                // safeReload() in the multi-battle AJAX callback because
+                // storage is re-read on bundle boot, and the popup info
+                // never reads "No timer" again.
                 const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
-                if (nextRefreshTs === 0) {
+                const remainingPower = currentPower - numberOfBattle;
+                if (remainingPower > 0) {
+                    // Short cool-down so the next AutoLoop tick can pick
+                    // the next opponent. The user expectation is "open
+                    // league, fight all 15 battles in a row" which is
+                    // how a human would do it. The Pipeline minIntervalMs
+                    // for handleLeague is aligned to this value so the
+                    // Scheduler does not silently extend the gap.
+                    setTimer('nextLeaguesTime', randomInterval(2, 5));
+                } else if (nextRefreshTs === 0) {
                     setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
                 } else {
                     setTimer('nextLeaguesTime', randomInterval(nextRefreshTs + 10, nextRefreshTs + 180));

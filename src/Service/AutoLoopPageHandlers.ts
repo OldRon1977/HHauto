@@ -47,7 +47,6 @@ import { Pachinko } from "../Module/Pachinko";
 import { PlaceOfPower } from "../Module/PlaceOfPower";
 import { Shop } from "../Module/Shop";
 import { TeamModule } from "../Module/TeamModule";
-import { logHHAuto } from "../Utils/LogUtils";
 import { callItOnce } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -68,7 +67,7 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
         case ConfigHelper.getHHScriptVars("pagesIDSeasonArena"):
             if (getStoredValue(HHStoredVarPrefixKey+SK.showCalculatePower) === "true" && $("div.matchRatingNew img#powerLevelScouter").length < 3)
             {
-                if (ctx.lastActionPerformed != "season") {
+                if (ctx.lastActionPerformed !== "season") {
                     // Avoid double call when coming from Season.run()
                     Season.stylesBattle = callItOnce(Season.stylesBattle);
                     Season.stylesBattle();
@@ -88,7 +87,7 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             }
             break;
         case ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"):
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("img#powerLevelScouterChosen").length == 0)
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("img#powerLevelScouterChosen").length === 0)
             {
                 PentaDrill.stylesBattle = callItOnce(PentaDrill.stylesBattle);
                 PentaDrill.stylesBattle();
@@ -107,21 +106,23 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             break;
         case ConfigHelper.getHHScriptVars("pagesIDEvent"):
             const eventID = EventModule.getDisplayedIdEventPage(false);
-            if (eventID != '') {
+            if (eventID !== '') {
                 if (getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true")
                 {
-                    if(ctx.eventParsed == null) {
-                        EventModule.parseEventPage(eventID);
-                    }
+                    // parseEventPage is idempotent within a page-load via the
+                    // 'parsed' attribute on #contains_all #events, so calling it
+                    // unconditionally here is safe. The previous ctx.eventParsed
+                    // wrapper was never written to (Cluster A2: dead code) and
+                    // the second-call path inside parseEventPage already short-
+                    // circuits when checkEvent(eventID) returns false.
+                    EventModule.parseEventPage(eventID);
                     EventModule.moduleDisplayEventPriority();
                     EventModule.hideOwnedGilrs();
                 }
 
                 if (getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) === "true" && EventModule.getEvent(eventID).isBossBangEvent)
                 {
-                    if(ctx.eventParsed == null) {
-                        EventModule.parseEventPage(eventID);
-                    }
+                    EventModule.parseEventPage(eventID);
                     setTimeout(BossBang.goToFightPage, randomInterval(500,1500));
                 }
 
@@ -199,13 +200,6 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             Harem.clearHaremToolVariables();
 
             AdsService.closeHomeAds();
-
-/*
-            if ($('#no_HC close:visible').length) {
-                setTimeout(() => {
-                    $('#no_HC close:visible').trigger('click')
-                }, randomInterval(3000, 5000));
-            }*/
             break;
         case ConfigHelper.getHHScriptVars("pagesIDHarem"):
             Harem.moduleHarem();
