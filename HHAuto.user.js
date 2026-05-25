@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.55
+// @version      7.35.56
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12259,43 +12259,21 @@ function shouldRunStandardHandler(g) {
     return true;
 }
 
-;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
-// Bundles.pure.ts -- Pure decision logic for the free-bundle collector.
+;// CONCATENATED MODULE: ./src/Module/Spreadsheet.ts
+var Spreadsheet_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
 //
-// Extracted from Bundles.getExpiryTime so the 24-hour threshold check
-// can be unit-tested without DOM access, jQuery, or randomInterval.
-//
-// The impure adapter Bundles.getExpiryTime scrapes the popup timer
-// from the DOM and falls back to maxCollectionDelay + jitter when the
-// timer is missing or claims to be more than a day in the future
-// (which happens with stale or malformed DOM state). This pure
-// function captures only the threshold decision; the fallback value
-// itself is computed by the adapter and passed in.
-/**
- * Reproduce Bundles.getExpiryTime bit by bit:
- *
- *   if scrapedSeconds === null            -> fallbackSeconds
- *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
- *   otherwise                              -> scrapedSeconds
- *
- * The 24-hour boundary is strict (<): the original code reads
- * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
- * exactly 24 * 3600 falls through to the fallback branch.
- */
-function decideExpiryTime(state) {
-    if (state.scrapedSeconds === null)
-        return state.fallbackSeconds;
-    if (state.scrapedSeconds >= 24 * 3600)
-        return state.fallbackSeconds;
-    return state.scrapedSeconds;
-}
-
-;// CONCATENATED MODULE: ./src/Module/Bundles.ts
-// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
-//
-// The game periodically offers free bundle rewards in a popup. This module
-// detects available bundles, navigates to the shop page, and claims them
-// automatically on a timer-based schedule.
+// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
+// spreadsheets) directly into the game interface. Listens for AJAX responses
+// to inject links at the right time when relevant pages load.
 //
 // Used by: Service/index.ts (main automation loop)
 //
@@ -12303,126 +12281,538 @@ function decideExpiryTime(state) {
 
 
 
-
-
-
-
-
-
-
-
-class Bundles {
-    static getExpiryTime() {
-        const timerRequest = `#popup-payment-container .period_deal .shop-timer span[rel=expires]`;
-        let scrapedSeconds = null;
-        if ($(timerRequest).length > 0) {
-            scrapedSeconds = Number(convertTimeToInt($(timerRequest).text()));
-            LogUtils_logHHAuto('freeBundleTimer', scrapedSeconds);
-        }
-        const fallbackSeconds = ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
-        const decision = decideExpiryTime({ scrapedSeconds, fallbackSeconds });
-        if (scrapedSeconds === null || scrapedSeconds >= 24 * 3600) {
-            LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
-        }
-        return decision;
+class Spreadsheet {
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledSpreadsheets", false);
     }
-    static goAndCollectFreeBundles() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            try {
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) !== "true") {
-                    LogUtils_logHHAuto("Error autoFreeBundlesCollect not activated.");
-                    return;
-                }
-                const plusButton = $("header .currency .reversed_tooltip");
-                if (plusButton.length > 0) {
-                    LogUtils_logHHAuto("click button for popup.");
-                    plusButton.trigger('click');
-                }
-                else {
-                    LogUtils_logHHAuto("No button for popup. Try again in 5h.");
-                    setTimer('nextFreeBundlesCollectTime', randomInterval(4 * 60 * 60, 6 * 60 * 60));
-                    return false;
-                }
-                LogUtils_logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
-                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
-                const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
-                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
-                function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
-                    LogUtils_logHHAuto(message);
-                    setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
-                    $("#common-popups .close_cross").trigger('click'); // Close popup
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    LogUtils_logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                }
-                function parseAndCollectFreeBundles() {
-                    const freeBundlesNumber = $(freeButtonBundleQuery).length;
-                    if (freeBundlesNumber > 0) {
-                        LogUtils_logHHAuto("Free Bundles found: " + freeBundlesNumber);
-                        let buttonsToCollect = [];
-                        for (let currentBundle = 0; currentBundle < freeBundlesNumber; currentBundle++) {
-                            buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);
-                        }
-                        function collectFreeBundle() {
-                            if (buttonsToCollect.length > 0) {
-                                LogUtils_logHHAuto("Collecting bundle n°" + buttonsToCollect[0].getAttribute('product'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(500, 800));
-                                setTimeout(switchToBundleTabs, randomInterval(1500, 2500));
-                            }
-                        }
-                        collectFreeBundle();
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                }
-                function switchToBundleTabs() {
-                    const bundleTabs = $(bundleTabsListQuery, $(bundleTabsContainerQuery));
-                    if (bundleTabs.length > 0) {
-                        let freeBundleFound = false;
-                        for (let bundleIndex = 0; bundleIndex < bundleTabs.length && !freeBundleFound; bundleIndex++) {
-                            bundleTabs[bundleIndex].click();
-                            LogUtils_logHHAuto("Looking in tabs '" + $(bundleTabs[bundleIndex]).attr('type') + "'.");
-                            freeBundleFound = parseAndCollectFreeBundles();
-                            if (!freeBundleFound && $(subTabsQuery).length > 0) {
-                                const subTabs = $(subTabsQuery);
-                                LogUtils_logHHAuto("Sub tabs found, switching to next one");
-                                for (let subTabIndex = 1; subTabIndex < subTabs.length && !freeBundleFound; subTabIndex++) {
-                                    subTabs[subTabIndex].click();
-                                    LogUtils_logHHAuto("Looking in sub tabs '" + $(subTabs[subTabIndex]).attr('period_deal') + "'.");
-                                    freeBundleFound = parseAndCollectFreeBundles();
-                                }
-                            }
-                        }
-                        if (!freeBundleFound)
-                            collectFreeBundlesFinished("Free bundle collection finished.", Bundles.getExpiryTime() + randomInterval(3600, 4000));
-                    }
-                    else {
-                        collectFreeBundlesFinished("No bundle tabs in popup, wait one hour.", 60 * 60);
-                        return false;
-                    }
-                }
-                // Wait popup is opened
-                setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
-                return true;
+    static canRun() {
+        return Spreadsheet.isEnabled() && $('.' + Spreadsheet.BDSMPP_CLASS).length === 0 && $('.' + Spreadsheet.LINK_CLASS).length === 0;
+    }
+    static run() {
+        if (!Spreadsheet.canRun())
+            return;
+        const page = getPage();
+        if (page === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            onAjaxResponse(/action=get_girls_blessings/i, (response, opt, xhr, evt) => {
+                setTimeout(function () {
+                    return Spreadsheet_awaiter(this, void 0, void 0, function* () {
+                        if (!Spreadsheet.canRun())
+                            return;
+                        const href = ConfigHelper.getHHScriptVars("spreadsheet");
+                        if (!href)
+                            return;
+                        const $sheet_link = $(`<a class="${Spreadsheet.LINK_CLASS}" target="_blank" href="${href}"><span class="nav_grid_icn"></span><span>${getTextForUI("spreadsheet", "elementText")}</span></a>`);
+                        $(Spreadsheet.POPUP_SELECTOR).append($sheet_link);
+                    });
+                }, 200);
+            });
+            GM_addStyle('.' + Spreadsheet.LINK_CLASS + ' {position: absolute; top: 5px; right: 60px;}');
+            GM_addStyle('.' + Spreadsheet.LINK_CLASS + ' .nav_grid_icn {display: inline-block;}');
+        }
+    }
+}
+Spreadsheet.LINK_CLASS = 'hhauto-spreadsheet-link';
+Spreadsheet.BDSMPP_CLASS = 'script-blessing-spreadsheet-link';
+Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
+
+;// CONCATENATED MODULE: ./src/Service/BlessingService.ts
+// BlessingService.ts -- Loads and caches weekly blessing data.
+//
+// Blessings change weekly and affect girl stats. This service loads
+// them via AJAX on the Home page and caches the result in localStorage.
+// The team builder reads from cache to make blessing-aware decisions.
+//
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
+//
+
+
+
+
+
+const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
+class BlessingService {
+    static loadIfExpired() {
+        const cached = BlessingService.getCached();
+        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
+            return;
+        }
+        BlessingService.fetchAndCache();
+    }
+    static fetchAndCache() {
+        const ajax = getHHAjax();
+        if (!ajax) {
+            LogUtils_logHHAuto('BlessingService: hh_ajax not available');
+            return;
+        }
+        LogUtils_logHHAuto('BlessingService: fetching blessings...');
+        ajax({ action: 'get_girls_blessings' }, (response) => {
+            if (!response || !response.success) {
+                LogUtils_logHHAuto('BlessingService: fetch failed: ' + JSON.stringify(response));
+                return;
             }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
-                setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
+            LogUtils_logHHAuto('BlessingService: response keys: ' + Object.keys(response).join(', '));
+            LogUtils_logHHAuto('BlessingService: raw (500 chars): ' + JSON.stringify(response).substring(0, 500));
+            const blessingData = {
+                timestamp: Date.now(),
+                raw: response,
+                blessedTraits: BlessingService.parseTraits(response),
+                blessedValues: BlessingService.parseBlessedValues(response),
+                blessedElement: BlessingService.parseElement(response),
+            };
+            setStoredValue(HHStoredVarPrefixKey + TK.blessingsCache, JSON.stringify(blessingData));
+            LogUtils_logHHAuto('BlessingService: cached. Traits: ' + blessingData.blessedTraits.join(', ') + ', Element: ' + (blessingData.blessedElement || 'unknown'));
+        });
+    }
+    static getCached() {
+        try {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
+        }
+        catch (_a) {
+            return null;
+        }
+    }
+    static isCacheValid() {
+        const cached = BlessingService.getCached();
+        return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
+    }
+    /**
+     * Authoritative per-girl blessing multiplier from the game's
+     * blessing_bonuses field. This is the single source of truth for
+     * 'is this girl currently blessed and by how much'.
+     *
+     * The game writes the active per-class blessing percentages into
+     * blessing_bonuses.pvp_v3 (current league) and pvp_v4 (next league
+     * version). Each is shaped { caracN: number[] }; the list contains
+     * one entry per active blessing affecting the girl, applied
+     * multiplicatively. Examples:
+     *   pvp_v3.carac1 = []         -> no blessing -> multiplier 1.0
+     *   pvp_v3.carac1 = [25]       -> +25%        -> multiplier 1.25
+     *   pvp_v3.carac1 = [40, 25]   -> +40% AND +25% -> multiplier 1.75
+     *
+     * The girl's caracs sub-object already contains the multiplied stat,
+     * so the team builder does not need to multiply again. This helper
+     * is for diagnostics: 'is girl X blessed?' and 'how much'.
+     *
+     * Falls back from pvp_v4 to pvp_v3 (forwards-compatible with a future
+     * league version cutover).
+     */
+    static getEffectiveMultiplier(girl) {
+        var _a, _b;
+        const bb = (_a = girl.blessing_bonuses) !== null && _a !== void 0 ? _a : girl.blessingBonuses;
+        if (!bb || typeof bb !== 'object' || Array.isArray(bb))
+            return 1;
+        const v = (_b = bb.pvp_v4) !== null && _b !== void 0 ? _b : bb.pvp_v3;
+        if (!v || typeof v !== 'object')
+            return 1;
+        const pcs = v.carac1;
+        if (!Array.isArray(pcs) || pcs.length === 0)
+            return 1;
+        let mult = 1;
+        for (const p of pcs) {
+            const n = Number(p);
+            if (Number.isFinite(n) && n > 0) {
+                mult *= 1 + n / 100;
+            }
+        }
+        return mult;
+    }
+    /**
+     * List the blessing percentages currently active on this girl, in
+     * the order the game returned them. Useful for UI annotations like
+     * '(+25% blessing)' or '(+40%, +25% blessing)'.
+     */
+    static getActivePercents(girl) {
+        var _a, _b;
+        const bb = (_a = girl.blessing_bonuses) !== null && _a !== void 0 ? _a : girl.blessingBonuses;
+        if (!bb || typeof bb !== 'object' || Array.isArray(bb))
+            return [];
+        const v = (_b = bb.pvp_v4) !== null && _b !== void 0 ? _b : bb.pvp_v3;
+        if (!v || typeof v !== 'object')
+            return [];
+        const pcs = v.carac1;
+        if (!Array.isArray(pcs))
+            return [];
+        return pcs.filter((p) => Number.isFinite(Number(p)) && Number(p) > 0).map((p) => Number(p));
+    }
+    static parseTraits(response) {
+        const traits = [];
+        const active = response.active;
+        if (!Array.isArray(active))
+            return traits;
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            // Only count blessings that apply globally (not Love Labyrinth only)
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
+                continue;
+            if (desc.includes('eye color'))
+                traits.push('eyeColor');
+            if (desc.includes('hair color') || desc.includes('hair colour'))
+                traits.push('hairColor');
+            if (desc.includes('zodiac') || desc.includes('astrological') || (desc.includes('sign ') && !desc.includes('element')))
+                traits.push('zodiac');
+            if (desc.includes('favourite position') || desc.includes('favorite position'))
+                traits.push('position');
+        }
+        return traits;
+    }
+    /**
+     * Parse the specific blessed trait values from the API response.
+     * E.g. "Eye Color Golden" -> { eyeColor: "golden" }
+     */
+    static parseBlessedValues(response) {
+        const values = {};
+        const active = (response === null || response === void 0 ? void 0 : response.active) || [];
+        if (!Array.isArray(active))
+            return values;
+        for (const blessing of active) {
+            const desc = (blessing.description || '');
+            if (!desc.toLowerCase().includes('bonus on all attributes') || desc.toLowerCase().includes('labyrinth'))
+                continue;
+            // Extract from: <span class="blessing-condition">Eye Color Golden</span>
+            const match = desc.match(/blessing-condition[^>]*>([^<]+)/i);
+            if (!match)
+                continue;
+            const condition = match[1].trim();
+            if (condition.toLowerCase().startsWith('eye color')) {
+                values['eyeColor'] = condition.replace(/eye color\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('hair color') || condition.toLowerCase().startsWith('hair colour')) {
+                values['hairColor'] = condition.replace(/hair colou?r\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological') || condition.toLowerCase().startsWith('sign')) {
+                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*(?:sign)?\s*/i, '').replace(/^sign\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
+                values['position'] = condition.replace(/favou?rite? position\s*/i, '').trim().toLowerCase();
+            }
+            else if (condition.toLowerCase().startsWith('element')) {
+                // Element blessing handled by parseElement
+            }
+        }
+        return values;
+    }
+    static parseElement(response) {
+        const active = response.active;
+        if (!Array.isArray(active))
+            return undefined;
+        const elementMap = {
+            'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
+            'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
+            'submissive': 'psychic', 'voyeur': 'light',
+        };
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
+                continue;
+            if (!desc.includes('element'))
+                continue;
+            for (const [className, element] of Object.entries(elementMap)) {
+                if (desc.includes(className))
+                    return element;
+            }
+        }
+        return undefined;
+    }
+    /**
+     * Resolve the hex code for a blessed trait by analyzing blessing_bonuses on girls.
+     *
+     * Strategy: The Blessing API gives us names (e.g. "grey", "dolphin") but girl data
+     * uses hex codes (e.g. "888") or filenames (e.g. "2.png"). This method finds the
+     * mapping by looking at which girls have the blessing bonus and what trait value
+     * they share uniformly.
+     *
+     * @param girls - All available girls with their raw data
+     * @param blessedCategory - The trait category (eyeColor, hairColor, position)
+     * @param blessingPercent - The bonus percentage from the blessing (e.g. 30, 40)
+     * @returns The hex code / filename that corresponds to the blessed value, or undefined
+     */
+    static resolveHexForBlessing(girls, blessedCategory, blessingPercent) {
+        var _a;
+        // Find girls that have pvp_v3 blessing bonuses
+        const blessedGirls = girls.filter(g => {
+            if (!g.blessing_bonuses || typeof g.blessing_bonuses !== 'object')
                 return false;
+            if (Array.isArray(g.blessing_bonuses) && g.blessing_bonuses.length === 0)
+                return false;
+            return g.blessing_bonuses.pvp_v3 !== undefined;
+        });
+        if (blessedGirls.length === 0)
+            return undefined;
+        // Group blessed girls by their bonus percentage
+        const byPercent = new Map();
+        for (const g of blessedGirls) {
+            const pcts = (_a = g.blessing_bonuses.pvp_v3) === null || _a === void 0 ? void 0 : _a.carac1;
+            if (!Array.isArray(pcts))
+                continue;
+            for (const pct of pcts) {
+                if (!byPercent.has(pct))
+                    byPercent.set(pct, []);
+                byPercent.get(pct).push(g);
             }
         }
-        else {
-            LogUtils_logHHAuto("Navigating to home page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            // return busy
-            return true;
+        // For each percentage group, check if the target trait has a uniform value
+        const fieldMap = {
+            eyeColor: 'eye_color1',
+            hairColor: 'hair_color1',
+            position: 'position_img',
+            zodiac: 'zodiac',
+        };
+        const field = fieldMap[blessedCategory];
+        if (!field)
+            return undefined;
+        // If we know the exact percentage, check that group first
+        const groupsToCheck = blessingPercent
+            ? [byPercent.get(blessingPercent), ...Array.from(byPercent.values())]
+            : Array.from(byPercent.values());
+        for (const group of groupsToCheck) {
+            if (!group || group.length < 1)
+                continue;
+            // Count trait values in this group
+            const valueCounts = new Map();
+            for (const g of group) {
+                const val = g[field];
+                if (val && val !== '') {
+                    valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
+                }
+            }
+            // Pick the dominant value when it has >= 80% of the group
+            // OR is at least 3x larger than the next contender. The
+            // raw 90% threshold rejected legitimate dominants like
+            // edge cases (e.g. 41/47, 87%) where a few girls happen
+            // to have a different eye color but the SAME blessing
+            // bonus (multiple blessings stacked on the same girl).
+            const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
+            if (sorted.length > 0) {
+                const [topVal, topCount] = sorted[0];
+                const secondCount = sorted.length > 1 ? sorted[1][1] : 0;
+                const ratio = topCount / group.length;
+                const lead = secondCount === 0 ? Infinity : topCount / secondCount;
+                if (ratio >= 0.8 || lead >= 3) {
+                    LogUtils_logHHAuto('BlessingService: resolved ' + blessedCategory + ' -> hex="' + topVal + '" (' + topCount + '/' + group.length + ' girls, lead=' + (lead === Infinity ? 'inf' : lead.toFixed(1)) + ')');
+                    return topVal;
+                }
+            }
         }
+        return undefined;
+    }
+    /**
+     * Resolve the currently blessed trait values to the hex codes / filenames
+     * / glyph strings used in the girl-data fields. Combines the cached
+     * blessing names (parseBlessedValues) with per-girl pool statistics
+     * (resolveHexForBlessing) so the team builder can match on the actual
+     * field values stored on each girl.
+     *
+     * Returns a per-category mapping like:
+     *   { eyeColor: "F00", hairColor: "0F0" }
+     *
+     * For zodiac, the value is the full glyph+name string as it appears in
+     * girl.zodiac (e.g. "GLYPH Capricorne"); the same string is what girls
+     * carry, so direct equality matches.
+     *
+     * Categories with no resolvable value are omitted from the result. If
+     * no blessing data is cached or no girls carry blessings, returns {}.
+     */
+    static getBlessedHexValues(girls) {
+        const result = {};
+        const cached = BlessingService.getCached();
+        if (!cached || !cached.raw)
+            return result;
+        const named = cached.blessedValues || {};
+        const categories = ['eyeColor', 'hairColor', 'zodiac', 'position'];
+        for (const cat of categories) {
+            const namedValue = named[cat];
+            if (!namedValue)
+                continue;
+            const pct = BlessingService.parseBlessingPercent(cached.raw, cat);
+            const hex = BlessingService.resolveHexForBlessing(girls, cat, pct);
+            if (hex)
+                result[cat] = hex;
+        }
+        return result;
+    }
+    /**
+     * Detect active blessings DIRECTLY from the girls in the pool, without
+     * relying on String-Parsing of the API description (which is locale-
+     * dependent: 'eye color' / 'couleur des yeux' / 'augenfarbe' ...).
+     *
+     * The game's blessing_bonuses field on each girl is the authoritative
+     * source: a girl with can_be_blessed=true has at least one active
+     * blessing applied to her caracs. By cross-referencing the can-be-
+     * blessed girls with their fields (element, rarity, eye_color1,
+     * hair_color1, zodiac, position_img), we identify what each blessing
+     * targets WITHOUT reading any localized description.
+     *
+     * Returns an array of detected blessings sorted by priority:
+     *   1. blessings with the highest bonus percent (e.g. 40% > 25%)
+     *   2. blessings with the largest blessed pool
+     *
+     * The percent comes from the pvp_v3.carac1 list on a representative
+     * blessed girl. When two blessings stack on the same girl, that girl's
+     * carac1 list has multiple entries; we extract individual percents per
+     * field (element/rarity/trait) by finding the field whose value is
+     * uniformly shared by girls carrying a particular percent.
+     */
+    static detectActiveBlessings(girls) {
+        var _a;
+        // Read fields tolerantly: callers pass either raw API girls
+        // (snake_case: eye_color1, hair_color1, position_img,
+        // blessing_bonuses, can_be_blessed) or GirlData objects (camelCase:
+        // eyeColor, hairColor, position, blessingBonuses). For 'blessed'
+        // status: prefer the explicit can_be_blessed flag, otherwise
+        // derive it from blessing_bonuses / blessingBonuses being a
+        // populated dict.
+        const bbOf = (g) => { var _a; return (_a = g.blessing_bonuses) !== null && _a !== void 0 ? _a : g.blessingBonuses; };
+        const isBlessed = (g) => {
+            if (g.can_be_blessed === true)
+                return true;
+            const bb = bbOf(g);
+            return !!(bb && typeof bb === 'object' && !Array.isArray(bb)
+                && (bb.pvp_v3 || bb.pvp_v4));
+        };
+        const blessed = girls.filter(g => isBlessed(g) && bbOf(g)
+            && typeof bbOf(g) === 'object' && !Array.isArray(bbOf(g)));
+        if (blessed.length === 0)
+            return [];
+        // Collect distinct percents seen across the blessed pool.
+        const percents = new Set();
+        for (const g of blessed) {
+            const bb = bbOf(g);
+            const v = (_a = bb.pvp_v3) !== null && _a !== void 0 ? _a : bb.pvp_v4;
+            if (!v || !Array.isArray(v.carac1))
+                continue;
+            for (const p of v.carac1) {
+                const n = Number(p);
+                if (Number.isFinite(n) && n > 0)
+                    percents.add(n);
+            }
+        }
+        const candidates = [];
+        // Read a girl's value for a given trait kind, accepting both
+        // snake_case (raw API) and camelCase (GirlData) forms.
+        const fieldOf = (g, kind) => {
+            var _a, _b, _c;
+            switch (kind) {
+                case 'eyeColor': return (_a = g.eye_color1) !== null && _a !== void 0 ? _a : g.eyeColor;
+                case 'hairColor': return (_b = g.hair_color1) !== null && _b !== void 0 ? _b : g.hairColor;
+                case 'zodiac': return g.zodiac;
+                case 'position': {
+                    // Raw position_img is '5.png', GirlData.position is '5'.
+                    const raw = (_c = g.position_img) !== null && _c !== void 0 ? _c : g.position;
+                    if (raw === undefined || raw === null)
+                        return undefined;
+                    return String(raw).replace(/\.png$/i, '');
+                }
+                case 'element': return g.element;
+                case 'rarity': return g.rarity;
+            }
+        };
+        const kinds = ['eyeColor', 'hairColor', 'zodiac', 'position', 'element', 'rarity'];
+        // For every (percent, kind), find the field+value that uniquely
+        // identifies girls receiving that blessing percent. We need both:
+        //   1. high dominance INSIDE the blessed pool (>= 80%)
+        //   2. specificity: girls outside the blessed pool with that same
+        //      value must not also receive the blessing -- otherwise we
+        //      pick up correlations (e.g. "all 40%-blessed girls happen
+        //      to be legendary" doesn't mean rarity=legendary IS the
+        //      blessing condition).
+        for (const percent of percents) {
+            const carrying = blessed.filter(g => {
+                var _a;
+                const bb = bbOf(g);
+                const v = (_a = bb.pvp_v3) !== null && _a !== void 0 ? _a : bb.pvp_v4;
+                return Array.isArray(v === null || v === void 0 ? void 0 : v.carac1) && v.carac1.includes(percent);
+            });
+            if (carrying.length === 0)
+                continue;
+            for (const kind of kinds) {
+                const valueCounts = new Map();
+                for (const g of carrying) {
+                    const raw = fieldOf(g, kind);
+                    if (raw === undefined || raw === null || raw === '')
+                        continue;
+                    const key = String(raw);
+                    valueCounts.set(key, (valueCounts.get(key) || 0) + 1);
+                }
+                if (valueCounts.size === 0)
+                    continue;
+                const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
+                const [topVal, topCount] = sorted[0];
+                const second = sorted.length > 1 ? sorted[1][1] : 0;
+                const ratio = topCount / carrying.length;
+                const lead = second === 0 ? Infinity : topCount / second;
+                // Dominance check.
+                if (ratio < 0.8 && lead < 3)
+                    continue;
+                // Specificity check.
+                const samevalAll = girls.filter(g => { var _a; return String((_a = fieldOf(g, kind)) !== null && _a !== void 0 ? _a : '') === topVal; });
+                const samevalBlessed = samevalAll.filter(g => isBlessed(g));
+                const specificity = samevalAll.length === 0 ? 0 : samevalBlessed.length / samevalAll.length;
+                if (specificity < 0.8)
+                    continue;
+                candidates.push({ kind, value: topVal, percent, pool_size: samevalAll.length });
+            }
+        }
+        // De-duplicate: a single (kind, value) might appear with two different
+        // percents from stacked blessings; keep the highest percent.
+        const dedup = new Map();
+        for (const c of candidates) {
+            const key = c.kind + '=' + c.value;
+            const cur = dedup.get(key);
+            if (!cur || c.percent > cur.percent)
+                dedup.set(key, c);
+        }
+        // Sort by priority:
+        //   1. higher bonus percent first
+        //   2. larger pool size
+        //   3. trait-kind tiebreaker (eyes > hair > zodiac > position).
+        //      Element/rarity rank below the trait kinds.
+        const kindPriority = {
+            eyeColor: 5,
+            hairColor: 4,
+            zodiac: 3,
+            position: 2,
+            element: 1,
+            rarity: 0,
+        };
+        return [...dedup.values()].sort((a, b) => {
+            var _a, _b;
+            if (b.percent !== a.percent)
+                return b.percent - a.percent;
+            if (b.pool_size !== a.pool_size)
+                return b.pool_size - a.pool_size;
+            const pa = (_a = kindPriority[a.kind]) !== null && _a !== void 0 ? _a : 0;
+            const pb = (_b = kindPriority[b.kind]) !== null && _b !== void 0 ? _b : 0;
+            return pb - pa;
+        });
+    }
+    /**
+ * Parse the blessing bonus percentage for a given trait category.
+ * E.g. "Eye Color Grey" with "+ 40%" -> 40
+ */
+    static parseBlessingPercent(response, category) {
+        const active = (response === null || response === void 0 ? void 0 : response.active) || [];
+        if (!Array.isArray(active))
+            return undefined;
+        const categoryKeywords = {
+            eyeColor: ['eye color'],
+            hairColor: ['hair color', 'hair colour'],
+            position: ['favourite position', 'favorite position'],
+            zodiac: ['zodiac', 'astrological', 'sign'],
+        };
+        const keywords = categoryKeywords[category];
+        if (!keywords)
+            return undefined;
+        for (const blessing of active) {
+            const desc = (blessing.description || '').toLowerCase();
+            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
+                continue;
+            if (keywords.some(kw => desc.includes(kw))) {
+                const pctMatch = desc.match(/\+\s*(\d+)\s*%/);
+                if (pctMatch)
+                    return Number(pctMatch[1]);
+            }
+        }
+        return undefined;
     }
 }
 
@@ -13086,4018 +13476,6 @@ class Champion {
             }
         }
         setTimer('nextChampionTime', nextChampionTime);
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/ClubChampion.pure.ts
-// ClubChampion.pure.ts -- Pure decision logic for the club-champion auto module.
-//
-// Extracted from ClubChampion.updateClubChampionTimer and
-// ClubChampion._setTimer so the range selection and timer alignment can be
-// unit-tested without DOM access, jQuery, randomInterval, or the timer
-// helper.
-//
-// Two decisions live here:
-//
-// 1. decideNextClubChampionTime maps the scraped "seconds to next timer"
-//    plus the autoClubForceStart setting onto the [min, max] window the
-//    impure adapter then feeds into randomInterval. The girl-reward
-//    substitution is deliberately NOT modelled here -- it happens at the
-//    DOM-scrape boundary (getNextClubChampionTimer) and feeds a
-//    pre-substituted secsToNextTimer into this function. That keeps the
-//    pure layer uniform: input is one number, output is one window.
-//
-// 2. decideAlignedClubChampionTimer reproduces the small alignment branch
-//    in _setTimer: if both autoChamps and autoChampAlignTimer are on AND
-//    both timers fall into the alignment window, return max(proposed,
-//    champTimeLeft); otherwise return the proposed value untouched.
-//
-// Bit-for-bit equivalence is the explicit goal -- thresholds (>7200, >10,
-// <1200) keep their strict comparisons.
-/**
- * Map the scraped timer plus force-start flag to a [min, max] window for
- * randomInterval. Reproduces the three-branch cascade in
- * updateClubChampionTimer line by line:
- *
- *   secsToNextTimer === -1                     -> [15*60, 17*60]   no-timer
- *   secsToNextTimer >  7200 && force-start     -> [115*60, 125*60] force-start
- *   else                                       -> [secs, secs+180] normal
- *
- * The 7200s threshold is strict (>): a timer of exactly 7200 falls
- * through to the normal branch.
- */
-function decideNextClubChampionTime(state) {
-    if (state.secsToNextTimer === -1) {
-        return { minTime: 15 * 60, maxTime: 17 * 60, reason: 'no-timer' };
-    }
-    if (state.secsToNextTimer > 7200 && state.autoClubForceStart) {
-        return { minTime: 115 * 60, maxTime: 125 * 60, reason: 'force-start' };
-    }
-    return {
-        minTime: state.secsToNextTimer,
-        maxTime: 180 + state.secsToNextTimer,
-        reason: 'normal',
-    };
-}
-/**
- * Reproduce the alignment branch in _setTimer:
- *
- *   if (autoChamps && autoChampAlignTimer
- *       && proposedTime > 10 && champTimeLeft < 1200 && proposedTime < 1200)
- *       proposedTime = max(proposedTime, champTimeLeft);
- *
- * All three threshold comparisons are strict on purpose:
- *   proposedTime > 10  -- skip near-immediate retries
- *   champTimeLeft < 1200, proposedTime < 1200 -- only align when both are
- *   below 20 minutes
- *
- * The intent of the alignment is to bundle club-champion and
- * single-champion runs onto the same wake-up: when both fire within the
- * next 20 minutes, the later one wins so the script does not page-cycle
- * twice in quick succession.
- */
-function decideAlignedClubChampionTimer(state) {
-    if (state.autoChamps
-        && state.autoChampAlignTimer
-        && state.proposedTime > 10
-        && state.champTimeLeft < 1200
-        && state.proposedTime < 1200) {
-        return Math.max(state.proposedTime, state.champTimeLeft);
-    }
-    return state.proposedTime;
-}
-
-;// CONCATENATED MODULE: ./src/Module/ClubChampion.ts
-var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// ClubChampion.ts -- Automates Club Champion cooperative fights.
-//
-// Club Champions are cooperative boss battles shared among club members. This
-// module manages fight scheduling, energy tracking, and automatic participation
-// in club champion rounds. Requires active club membership (see Club.ts).
-//
-// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ClubChampion {
-    static getNextClubChampionTimer() {
-        var page = getPage();
-        if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
-            let SecsToNextTimer = -1;
-            let restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
-            let restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
-            if ($(restTeamFilter).length > 0) {
-                SecsToNextTimer = Number(convertTimeToInt($(restTeamFilter).text()));
-                LogUtils_logHHAuto("Team is resting for : " + TimeHelper.toHHMMSS(SecsToNextTimer));
-            }
-            else if ($(restChampionFilter).length > 0) {
-                SecsToNextTimer = Number(convertTimeToInt($(restChampionFilter).text()));
-                LogUtils_logHHAuto("Champion is resting for : " + TimeHelper.toHHMMSS(SecsToNextTimer));
-                if (ClubChampion.hasGirlReward()) {
-                    SecsToNextTimer = randomInterval(30 * 60, 35 * 60);
-                    LogUtils_logHHAuto("Champion has girl reward");
-                }
-            }
-            else {
-                LogUtils_logHHAuto('No timer found');
-            }
-            LogUtils_logHHAuto('on clubs, next timer:' + SecsToNextTimer);
-            return SecsToNextTimer;
-        }
-        return 0; // -1 is only when no timer on club page
-    }
-    static updateClubChampionTimer() {
-        var page = getPage();
-        if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
-            LogUtils_logHHAuto('on clubs');
-            const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-            const noTimer = (secsToNextTimer === -1);
-            const decision = decideNextClubChampionTime({
-                secsToNextTimer,
-                autoClubForceStart: getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true",
-            });
-            const nextClubChampionTime = randomInterval(decision.minTime, decision.maxTime);
-            ClubChampion._setTimer(nextClubChampionTime);
-            return noTimer;
-        }
-        return true;
-    }
-    /** From club champion page */
-    static getRemainingRestTime() {
-        let remainingRestTime = 0;
-        let timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
-        if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
-            remainingRestTime = Number(convertTimeToInt(timerElm));
-        }
-        return remainingRestTime;
-    }
-    static hasGirlReward() {
-        return $('#club_champions .club_champions_rewards_container .slot.slot_girl_shards').length > 0;
-    }
-    static resetTimerIfNeeded() {
-        if ($('button[rel=perform].blue_button_L').length > 0 && $('.champions-bottom__rest').length == 0
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true") {
-            const champTimeLeft = getSecondsLeft('nextClubChampionTime');
-            if (champTimeLeft > 60) {
-                LogUtils_logHHAuto("Club champion seems available, reduce next timer to 30-60s.");
-                ClubChampion._setTimer(randomInterval(30, 60));
-            }
-        }
-    }
-    static doClubChampionStuff() {
-        return ClubChampion_awaiter(this, void 0, void 0, function* () {
-            var page = getPage();
-            if (page == ConfigHelper.getHHScriptVars("pagesIDClubChampion")) {
-                LogUtils_logHHAuto('on club_champion page');
-                if ($('button[rel=perform].blue_button_L').length == 0) {
-                    if ($('.champions-bottom__rest').length > 0) {
-                        LogUtils_logHHAuto('Girls are resting');
-                        const restTime = ClubChampion.getRemainingRestTime();
-                        ClubChampion._setTimer(randomInterval(restTime + 10, restTime + 2 * 60));
-                    }
-                    else {
-                        LogUtils_logHHAuto('Something is wrong!');
-                        ClubChampion._setTimer(randomInterval(15 * 60, 17 * 60));
-                    }
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    return true;
-                }
-                else {
-                    const clubChamptionFightActive = getHHVars('championData.fight.active') || false;
-                    const clubChamptionParticipants = getHHVars('championData.fight.participants') || {};
-                    const playerId = HeroHelper.getPlayerId();
-                    const userStarted = clubChamptionParticipants.find(participant => participant.id_member == playerId);
-                    const playerStarted = clubChamptionFightActive && userStarted && userStarted.challenge_count > 0;
-                    var TCount = Number($('div.input-field > span')[1].innerText.split(' / ')[1]);
-                    var ECount = QuestHelper.getEnergy();
-                    LogUtils_logHHAuto(`T:${TCount} E:${ECount} Player challenge :${(userStarted === null || userStarted === void 0 ? void 0 : userStarted.challenge_count) || 0}`);
-                    if (TCount == 0) {
-                        LogUtils_logHHAuto("No tickets!");
-                        const nextTime = randomInterval(3600, 4000);
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true") {
-                            // No ticket for boths
-                            setTimer('nextChampionTime', nextTime);
-                        }
-                        setTimer('nextClubChampionTime', nextTime);
-                        return false;
-                    }
-                    else {
-                        if ((!clubChamptionFightActive || !playerStarted) && getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
-                            const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
-                            if (tempChampBuildTeam == "club") {
-                                deleteStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
-                            }
-                            else {
-                                LogUtils_logHHAuto("Build team before start");
-                                if ($("#updateChampTeamButton").length == 0) {
-                                    Champion.moduleSimChampions();
-                                    yield TimeHelper.sleep(randomInterval(200, 500));
-                                }
-                                if ($("#updateChampTeamButton").attr("disabled") === "disabled") {
-                                    LogUtils_logHHAuto('Cannot build team, no free draft available. Starting champion without building team');
-                                }
-                                else {
-                                    $("#updateChampTeamButton").trigger("click"); // Auto loop false
-                                    setStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam, "club");
-                                    yield TimeHelper.sleep(randomInterval(2000, 5000));
-                                    return true; // In next loop started after team build, start champ without building team again
-                                }
-                            }
-                        }
-                        if (TCount != 0) {
-                            LogUtils_logHHAuto("Using ticket");
-                            $('button[rel=perform].blue_button_L').trigger('click');
-                            ClubChampion._setTimer(randomInterval(15 * 60, 17 * 60));
-                        }
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDClub"));
-                        return true;
-                    }
-                }
-            }
-            else if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
-                deleteStoredValue(HHStoredVarPrefixKey + TK.clubChampLimitReached);
-                LogUtils_logHHAuto('on clubs');
-                const onChampTab = $("div.club-champion-members-challenges:visible").length === 1;
-                if (!onChampTab) {
-                    LogUtils_logHHAuto('Click champions tab');
-                    $("#club_champions_tab").trigger('click');
-                }
-                let Started = $("div.club-champion-members-challenges .player-row").length === 1;
-                let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-                let noTimer = secsToNextTimer === -1;
-                if ((Started || getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true") && noTimer) {
-                    let ticketUsed = 0;
-                    let ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
-                    if ($(ticketsUsedRequest).length > 0) {
-                        ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
-                    }
-                    let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoClubChampMax));
-                    //console.log(maxTickets, ticketUsed);
-                    if (maxTickets > ticketUsed) {
-                        LogUtils_logHHAuto("Let's do him!");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDClubChampion"));
-                        return true;
-                    }
-                    else {
-                        LogUtils_logHHAuto("Max tickets to use on Club Champ reached.");
-                        setStoredValue(HHStoredVarPrefixKey + TK.clubChampLimitReached, "true");
-                        setTimer('nextClubChampionTime', randomInterval(4 * 60 * 60, 5 * 60 * 60));
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        return false;
-                    }
-                }
-                ClubChampion.updateClubChampionTimer();
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                return false;
-            }
-            else {
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDClub"));
-                return true;
-            }
-        });
-    }
-    /**
-     *
-     * @param {number} nextClubChampionTime
-     * @private
-     */
-    static _setTimer(nextClubChampionTime) {
-        const aligned = decideAlignedClubChampionTimer({
-            proposedTime: nextClubChampionTime,
-            champTimeLeft: getSecondsLeft('nextChampionTime'),
-            autoChamps: getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true",
-            autoChampAlignTimer: getStoredValue(HHStoredVarPrefixKey + SK.autoChampAlignTimer) === "true",
-        });
-        setTimer('nextClubChampionTime', aligned);
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/PathOfGlory.ts
-// PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
-//
-// Path of Glory is a tiered event where the player earns points through
-// battles to unlock progressive reward tiers. This module tracks tier
-// progress, checks for claimable rewards, and manages fight energy and
-// timer scheduling for the event.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Glory event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class PathOfGlory {
-    static getRemainingTime() {
-        const poGTimerRequest = '#pog_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
-        if ($(poGTimerRequest).length > 0 && (getSecondsLeft("PoGRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoGEndDate) === undefined)) {
-            const poGTimer = Number(convertTimeToInt($(poGTimerRequest).text()));
-            setTimer("PoGRemainingTime", poGTimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.PoGEndDate, Math.ceil(new Date().getTime() / 1000) + poGTimer);
-        }
-    }
-    static displayRemainingTime() {
-        EventModule.displayGenericRemainingTime("#scriptPogTime", "path-of-glory", "HHAutoPoGTimer", "PoGRemainingTime", HHStoredVarPrefixKey + TK.PoGEndDate);
-    }
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
-    }
-    static getRewardButtonToCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
-        let buttonsToCollect = [];
-        const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
-        for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
-            const currentButton = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
-            const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
-            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoGTiersToClaim[currentTier])[0]);
-            if (rewardsToCollect.includes(freeSlotType)) {
-                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoGTiersToClaim[currentTier]);
-                if (paidSlots.length > 0) {
-                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
-                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
-                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
-                        buttonsToCollect.push(currentButton);
-                        LogUtils_logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
-                    }
-                }
-                else {
-                    buttonsToCollect.push(currentButton);
-                    LogUtils_logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
-                }
-            }
-        }
-        return buttonsToCollect;
-    }
-    static goAndCollect() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPoG")) {
-            PathOfGlory.getRemainingTime();
-            const pogEnd = getSecondsLeft("PoGRemainingTime");
-            LogUtils_logHHAuto("PoG end in " + TimeHelper.debugDate(pogEnd));
-            if (checkTimer('nextPoGCollectAllTime') && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") {
-                if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
-                    LogUtils_logHHAuto("Going to collect all POG item at once.");
-                    setTimeout(function () {
-                        $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
-                        setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
-                    }, 500);
-                    return true;
-                }
-                else {
-                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                }
-            }
-            if (checkTimer('nextPoGCollectTime') && (getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true")) {
-                LogUtils_logHHAuto("Checking Path of Glory for collectable rewards.");
-                LogUtils_logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
-                if (buttonsToCollect.length > 0) {
-                    function collectPoGRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(collectPoGRewards, randomInterval(300, 500));
-                        }
-                        else {
-                            LogUtils_logHHAuto("Path of Glory collection finished.");
-                            setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                    }
-                    collectPoGRewards();
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto("No Path of Glory reward to collect.");
-                    setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    return false;
-                }
-            }
-            return false;
-        }
-        else {
-            LogUtils_logHHAuto("Switching to Path of Glory screen.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDPoG"));
-            return true;
-        }
-    }
-    static maskReward() {
-        EventModule.moduleSimPoVPogMaskReward('pog_tab_container');
-    }
-    static styles() {
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/PathOfValue.ts
-// PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
-//
-// Path of Value is a tiered event similar to Path of Glory and Path of
-// Attraction, with its own point-based tier progression. This module tracks
-// progress through reward tiers, collects available rewards, and manages
-// event-specific timers and energy.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Value event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class PathOfValue {
-    static getRemainingTime() {
-        const poVTimerRequest = '#pov_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
-        if ($(poVTimerRequest).length > 0 && (getSecondsLeft("PoVRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoVEndDate) === undefined)) {
-            const poVTimer = Number(convertTimeToInt($(poVTimerRequest).text()));
-            setTimer("PoVRemainingTime", poVTimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.PoVEndDate, Math.ceil(new Date().getTime() / 1000) + poVTimer);
-        }
-    }
-    static displayRemainingTime() {
-        EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey + TK.PoVEndDate);
-    }
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
-    }
-    static getRewardButtonToCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
-        let buttonsToCollect = [];
-        const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
-        for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
-            const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
-            const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
-            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
-            if (rewardsToCollect.includes(freeSlotType)) {
-                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);
-                if (paidSlots.length > 0) {
-                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
-                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
-                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
-                        buttonsToCollect.push(currentButton);
-                        LogUtils_logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
-                    }
-                }
-                else {
-                    buttonsToCollect.push(currentButton);
-                    LogUtils_logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
-                }
-            }
-        }
-        return buttonsToCollect;
-    }
-    static goAndCollect() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPoV")) {
-            PathOfValue.getRemainingTime();
-            const povEnd = getSecondsLeft("PoVRemainingTime");
-            LogUtils_logHHAuto("PoV end in " + TimeHelper.debugDate(povEnd));
-            if (checkTimer('nextPoVCollectAllTime') && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true") {
-                if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
-                    LogUtils_logHHAuto("Going to collect all POV item at once.");
-                    setTimeout(function () {
-                        $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
-                        setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
-                        setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
-                    }, 500);
-                    return true;
-                }
-                else {
-                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                }
-            }
-            if (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true") {
-                LogUtils_logHHAuto("Checking Path of Valor for collectable rewards.");
-                LogUtils_logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = PathOfValue.getRewardButtonToCollect();
-                if (buttonsToCollect.length > 0) {
-                    function collectPoVRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(collectPoVRewards, randomInterval(300, 500));
-                        }
-                        else {
-                            LogUtils_logHHAuto("Path of Valor collection finished.");
-                            setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                    }
-                    collectPoVRewards();
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto("No Path of Valor reward to collect.");
-                    setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    return false;
-                }
-            }
-            return false;
-        }
-        else {
-            LogUtils_logHHAuto("Switching to Path of Valor screen.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDPoV"));
-            return true;
-        }
-    }
-    static styles() {
-    }
-    static maskReward() {
-        EventModule.moduleSimPoVPogMaskReward('pov_tab_container');
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Events/Seasonal.ts
-var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
-//
-// Seasonal events are large-scale, time-limited events that span multiple
-// days. This module tracks seasonal event progress, collects available
-// rewards at each milestone, and manages event timers and page navigation.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Seasonal mega-event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class SeasonalEvent {
-    static isMegaSeasonalEvent() {
-        return $('#get_mega_pass_kobans_btn').length > 0;
-    }
-    static isMegaPassPaid() {
-        return $('#get_mega_pass_kobans_btn:visible').length <= 0;
-    }
-    static isActiveEvent() {
-        return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0;
-    }
-    static getRemainingTime() {
-        const seasonalEventTimerRequest = `.mega-event-panel .mega-event-container .mega-timer span[rel=expires]`;
-        if ($(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate) === undefined)) {
-            const seasonalEventTimer = Number(convertTimeToInt($(seasonalEventTimerRequest).text()));
-            setTimer("SeasonalEventRemainingTime", seasonalEventTimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate, Math.ceil(new Date().getTime() / 1000) + seasonalEventTimer);
-        }
-    }
-    static getGlobalRankRemainingTime() {
-        const rankTimerRequest = `#top_ranking_tab_container .ranking-timer-reset .ranking-timer span[rel=expires]`;
-        if ($(rankTimerRequest).length > 0) {
-            const rankTimer = Number(convertTimeToInt($(rankTimerRequest).text()));
-            return rankTimer;
-        }
-        LogUtils_logHHAuto('ERROR: can\'t get seasonal rank timer, default to maxCollectionDelay');
-        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
-    }
-    static displayRemainingTime() {
-        LogUtils_logHHAuto('Not implemented');
-    }
-    static getSeasonalNotClaimedRewards() {
-        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_PATH);
-        const freeSlotSelectors = ".slot";
-        const paidSlotSelectors = ""; // Not available
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static getMegaSeasonalNotClaimedRewards() {
-        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
-        const freeSlotSelectors = ".free-slot .slot";
-        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static goAndCollect(manualCollectAll = false) {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList, []);
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-            try {
-                SeasonalEvent.getRemainingTime();
-                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-                const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
-                // logHHAuto("Seasonal end in " + seasonalEventEnd);
-                const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
-                const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
-                const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
-                const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
-                const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
-                const seasonalPaidSlotQuery = ""; // N/A
-                const megaSeasonalFreeSlotQuery = ".free-slot .slot";
-                const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
-                if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
-                    if (needToCollect)
-                        LogUtils_logHHAuto("Checking SeasonalEvent for collectable rewards.");
-                    if (needToCollectAllBeforeEnd)
-                        LogUtils_logHHAuto("Going to collect all SeasonalEvent rewards.");
-                    if (manualCollectAll)
-                        LogUtils_logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
-                    LogUtils_logHHAuto("setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    let buttonsToCollect = [];
-                    const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
-                    const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
-                    const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
-                    const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
-                    for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
-                        const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
-                        const currentTierNb = currentButton.getAttribute("tier");
-                        //console.log("checking tier : "+currentTierNb);
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
-                                    buttonsToCollect.push(currentButton);
-                                    LogUtils_logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    LogUtils_logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                LogUtils_logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
-                        }
-                    }
-                    if (buttonsToCollect.length > 0) {
-                        function closeRewardAndCollectagain() {
-                            RewardHelper.closeRewardPopupIfAny(false);
-                            setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
-                        }
-                        function collectSeasonalEventRewards() {
-                            if (buttonsToCollect.length > 0) {
-                                LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
-                            }
-                            else {
-                                LogUtils_logHHAuto("SeasonalEvent collection finished.");
-                                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                                if (!manualCollectAll) {
-                                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                                }
-                                SeasonalEvent.removeCollectAllButtonIfNeeded();
-                            }
-                        }
-                        collectSeasonalEventRewards();
-                        return true;
-                    }
-                    else {
-                        LogUtils_logHHAuto("No SeasonalEvent reward to collect.");
-                        setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                        if (!manualCollectAll) {
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        }
-                        SeasonalEvent.removeCollectAllButtonIfNeeded();
-                        return false;
-                    }
-                }
-            }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
-                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-            }
-            return false;
-        }
-        else if (SeasonalEvent.isActiveEvent()) {
-            LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-            return true;
-        }
-        else {
-            LogUtils_logHHAuto("No SeasonalEvent active.");
-            setTimer('nextSeasonalEventCollectTime', 604800); // 1 week delay
-            setTimer('nextSeasonalEventCollectAllTime', 604800); // 1 week delay
-            return false;
-        }
-    }
-    static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            SeasonalEvent.maskReward();
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-            SeasonalEvent.displayRewardsSeasonalDiv();
-            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
-            SeasonalEvent.displayCollectAllButton();
-        }
-        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
-                width: 77px;}`);
-        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers .double-tier .mega-tier {
-                margin: 1rem 0 0;}`);
-    }
-    static hasUnclaimedRewards() {
-        return $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH + ', ' + SeasonalEvent.SEASONAL_REWARD_PATH).length > 0;
-    }
-    static maskReward() {
-        var arrayz;
-        let modified = false;
-        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-        const seasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        const megaSeasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        arrayz = $((isMegaSeasonalEvent ? megaSeasonalTierQuery : seasonalTierQuery) + ':not([style*="display:none"]):not([style*="display: none"])');
-        var obj;
-        if (arrayz.length > 0) {
-            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                obj = $(arrayz[i2]).find('.claimed:not([style*="display:none"]):not([style*="display: none"])'); // TODO ".paid-claimed .slot"
-                if (obj.length >= 1) {
-                    arrayz[i2].style.display = "none";
-                    modified = true;
-                }
-            }
-        }
-        if (modified) {
-            let divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
-            if (divToModify.length > 0) {
-                //(divToModify as any).getNiceScroll().resize();
-                const width_px = 152.1;
-                const start_px = 101;
-                const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
-                const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
-                $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
-                // try {
-                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
-                // } catch(err) {}
-            }
-        }
-    }
-    static displayCollectAllButton() {
-        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#home_tab_container .bottom-container').append(divTooltip);
-            button.one('click', () => {
-                SeasonalEvent.goAndCollect(true);
-            });
-            $('button[rel="claim"]').on('click', () => {
-                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
-                setTimeout(() => {
-                    if (!SeasonalEvent.hasUnclaimedRewards()) {
-                        $('#SeasonalCollectAll').remove();
-                        divTooltip.remove();
-                    }
-                }, 1000);
-            });
-        }
-    }
-    static removeCollectAllButtonIfNeeded() {
-        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
-            $('#SeasonalCollectAll').remove();
-        }
-    }
-    static displayGirlsMileStones() {
-        if ($('.HHGirlMilestone').length > 0)
-            return;
-        const $playerPoints = $('.player-shards .mega-event-currency');
-        if ($playerPoints.length == 0) {
-            LogUtils_logHHAuto("ERROR: Can't find player points");
-        }
-        const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
-        const girlContainer = $('.girls-reward-container');
-        const girlSlotRewards = $('#home_tab_container .bottom-container .slot.slot_girl_shards');
-        girlSlotRewards.each(function (index, girlSlot) {
-            const milestone = Number($('.tier-level p', $(girlSlot).parents('.mega-tier-container')).text());
-            if (milestone > 0) {
-                girlContainer.append(SeasonalEvent.getGirlMileStonesDiv(playerPoints, milestone, index + 1));
-            }
-        });
-    }
-    static getGirlMileStonesDiv(playerPoints, girlPointsTarget, girlIndex) {
-        const greeNitckHtml = '<img class="nc-claimed-reward-check" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/clubs/ic_Tick.png">';
-        const girlDiv = $('<div class="HHGirlMilestone girl-img-' + girlIndex + '"><div>Girl ' + girlIndex + ':' + playerPoints + '/' + girlPointsTarget + '</div></div>');
-        if (playerPoints >= girlPointsTarget) {
-            girlDiv.addClass('green');
-            girlDiv.append($(greeNitckHtml));
-        }
-        return girlDiv;
-    }
-    static displayRewardsSeasonalDiv() {
-        const target = $('.girls-reward-container'); // $('.event-resource-location');
-        const hhRewardId = 'HHSeasonalRewards';
-        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-        try {
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
-                LogUtils_logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
-                if (rewardCountByType['all'] > 0) {
-                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container { height: 5rem; margin-top: 0;}'); 
-                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container a { height: 2rem;}'); 
-                    for (var i = 0; i < 4; i++) {
-                        // move video down
-                        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .middle-container .lse-container-${i} { z-index:3;}`);
-                    }
-                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
-                    target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
-                }
-                else {
-                    target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
-                }
-            }
-        }
-        catch (err) {
-            LogUtils_logHHAuto("ERROR:", err.message);
-            target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
-        }
-    }
-    static goAndCollectMegaEventRankRewards() {
-        return Seasonal_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-                const topRank = $('#mega-event-tabs #top_ranking_tab');
-                const eventRank = $('#mega-event-tabs #event_ranking_tab');
-                if (!isMegaSeasonalEvent && topRank.length === 0 && eventRank.length === 0) {
-                    LogUtils_logHHAuto('Not Mega Event');
-                    setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
-                    return Promise.resolve(false);
-                }
-                else if (topRank.length > 0 || eventRank.length > 0) {
-                    LogUtils_logHHAuto('Not Mega Event but rank tab exist');
-                }
-                LogUtils_logHHAuto('Collect Mega Event Rank Rewards');
-                // switch tabs
-                if (topRank.length > 0)
-                    topRank.trigger("click");
-                yield TimeHelper.sleep(randomInterval(400, 600));
-                RewardHelper.closeRewardPopupIfAny();
-                if (eventRank.length > 0)
-                    eventRank.trigger("click");
-                yield TimeHelper.sleep(randomInterval(400, 600));
-                RewardHelper.closeRewardPopupIfAny();
-                setTimer('nextMegaEventRankCollectTime', SeasonalEvent.getGlobalRankRemainingTime() + randomInterval(3600, 4000));
-            }
-            else if (SeasonalEvent.isActiveEvent()) {
-                LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-                return Promise.resolve(true);
-            }
-            else {
-                LogUtils_logHHAuto("No SeasonalEvent active.");
-                setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
-            }
-            return Promise.resolve(false);
-        });
-    }
-    static goAndCollectFreeCard() {
-        return Seasonal_awaiter(this, void 0, void 0, function* () {
-            var cardsOwned = getHHVars('mega_event_data.cards');
-            if (cardsOwned && cardsOwned.indexOf('1') >= 0) {
-                LogUtils_logHHAuto(`Free cards already collected (${cardsOwned}), wait for next seasonal event`);
-                setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
-            }
-            else {
-                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-                    const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-                    const cardTabs = $('#mega-event-tabs #cards_tab');
-                    if (cardTabs.length > 0) {
-                        LogUtils_logHHAuto('Collect free cards from Seasonal Event');
-                        // switch tabs
-                        cardTabs.trigger("click");
-                        yield TimeHelper.sleep(randomInterval(400, 600));
-                        const freeCardClaimButton = $('#cards_tab_container .free-card:not([disabled])');
-                        if (freeCardClaimButton.length > 0)
-                            freeCardClaimButton.trigger("click");
-                        yield TimeHelper.sleep(randomInterval(400, 600));
-                        RewardHelper.closeRewardPopupIfAny(); // Close card popup
-                        yield TimeHelper.sleep(randomInterval(400, 600));
-                        RewardHelper.closeRewardPopupIfAny(); // Close card reward popup
-                        if (freeCardClaimButton.length > 1) {
-                            LogUtils_logHHAuto('There is still free cards to collect, try again');
-                            freeCardClaimButton.trigger("click");
-                            yield TimeHelper.sleep(randomInterval(400, 600));
-                            RewardHelper.closeRewardPopupIfAny();
-                        }
-                    }
-                    setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
-                }
-                else if (SeasonalEvent.isActiveEvent()) {
-                    LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
-                    return Promise.resolve(true);
-                }
-                else {
-                    LogUtils_logHHAuto("No SeasonalEvent active.");
-                    setTimer('nextSeasonalCardCollectTime', 604800); // 1 week delay
-                }
-            }
-            return Promise.resolve(false);
-        });
-    }
-}
-SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
-SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
-
-;// CONCATENATED MODULE: ./src/Module/GenericBattle.ts
-// GenericBattle.ts -- Handles the battle result page UI across all fight types.
-//
-// When a battle completes (troll, event, league, etc.), this module manages
-// the result page: adds skip buttons, auto-skips fight animations, and parses
-// reward drops. It acts as a shared handler for all battle outcomes rather
-// than being specific to one game mode.
-//
-// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
-//          and other fight modules that navigate to battle pages
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class GenericBattle {
-    static doBattle() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
-            LogUtils_logHHAuto("On battle page.");
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true") {
-                LogUtils_logHHAuto("Reloading after league fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"), {}, randomInterval(4000, 5000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
-                const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
-                let troll_id = queryStringGetParam(window.location.search, 'id_opponent');
-                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
-                if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
-                }
-                const eventGirl = EventModule.getEventGirl();
-                const eventMythicGirl = EventModule.getEventMythicGirl();
-                if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic)
-                    ||
-                        getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic)) {
-                    LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
-                    RewardHelper.ObserveAndGetGirlRewards();
-                }
-                else {
-                    LoveRaidManager.getTrollRaids().forEach(raid => {
-                        if (raid.trollId === Number(troll_id)) {
-                            LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
-                            RewardHelper.ObserveAndGetGirlRewards();
-                            return true;
-                        }
-                    });
-                    if (troll_id !== null) {
-                        LogUtils_logHHAuto("Go back to Troll after Troll fight.");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: troll_id }, randomInterval(2000, 4000));
-                    }
-                    else {
-                        LogUtils_logHHAuto("Go to home after unknown troll fight.");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"), {}, randomInterval(2000, 4000));
-                    }
-                }
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
-                LogUtils_logHHAuto("Go back to Season arena after Season fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonArena"), {}, randomInterval(2000, 4000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true") {
-                LogUtils_logHHAuto("Go back to Penta drill arena after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(5000, 8000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())) {
-                LogUtils_logHHAuto("Go back to Pantheon arena after Pantheon temple.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPantheon"), {}, randomInterval(2000, 4000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true") {
-                LogUtils_logHHAuto("Go back to Labyrinth after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
-            }
-            return true;
-        }
-        else {
-            LogUtils_logHHAuto('Unable to identify page.');
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            return;
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
-var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
-//
-// Harem girls generate soft currency (salary) over time. This module
-// periodically navigates to the harem page and collects accumulated salary
-// earnings, tracking collection timers to avoid unnecessary page loads.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-class HaremSalary {
-    static getSalaryButton() {
-        return $("#collect_all_container button[id='collect_all']");
-    }
-    static getSalarySumTag() {
-        const salaryButton = HaremSalary.getSalaryButton();
-        let salarySumTag = NaN;
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
-            salarySumTag = Number($('[rel="next_salary"]', salaryButton)[0].innerText.replace(/[^0-9]/gi, ''));
-        }
-        else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            salarySumTag = Number(getHHVars("salary_collect"));
-        }
-        return salarySumTag;
-    }
-    static getSalary() {
-        return HaremSalary_awaiter(this, void 0, void 0, function* () {
-            try {
-                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-                    const salaryButton = HaremSalary.getSalaryButton();
-                    const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style") === "display: none;");
-                    if (!salaryToCollect) {
-                        //logHHAuto("No salary to collect");
-                        setTimer('nextSalaryTime', randomInterval(60, 180));
-                    }
-                    else {
-                        const salarySumTag = HaremSalary.getSalarySumTag();
-                        const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSalaryMinSalary) || 20000);
-                        if (enoughSalaryToCollect) {
-                            const getButtonClass = salaryButton.attr("class") || '';
-                            if (getButtonClass.indexOf("blue_button_L") !== -1 || getButtonClass.indexOf("round_blue_button") !== -1) {
-                                LogUtils_logHHAuto('Collected all salary');
-                                salaryButton.trigger('click');
-                                yield TimeHelper.sleep(randomInterval(200, 400));
-                                setTimer('nextSalaryTime', randomInterval(60, 180));
-                                return false;
-                            }
-                            else {
-                                LogUtils_logHHAuto("Unknown salary button color : " + getButtonClass);
-                                setTimer('nextSalaryTime', randomInterval(60, 180));
-                            }
-                        }
-                        else {
-                            LogUtils_logHHAuto("Not enough salary to collect, wait");
-                            setTimer('nextSalaryTime', randomInterval(60, 180));
-                        }
-                    }
-                }
-            }
-            catch (ex) {
-                LogUtils_logHHAuto("Catched error : Could not collect salary... " + ex);
-                setTimer('nextSalaryTime', randomInterval(60, 180));
-                // return not busy
-                return false;
-            }
-            return false;
-        });
-    }
-}
-
-;// CONCATENATED MODULE: ./src/model/Mission.ts
-// Models for in-game missions and their rewards.
-// Mission holds the cost, duration, remaining time, completion state,
-// and a reference to the DOM element. MissionRewards describes each reward entry.
-class Mission {
-    constructor() {
-        this.finished = false;
-    }
-}
-class MissionRewards {
-    constructor() {
-        this.type = '';
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Missions.ts
-// Missions.ts -- Automates missions: collects completed missions and starts new ones.
-//
-// Missions are time-based tasks that yield rewards. This module checks for
-// completed missions, collects their rewards, and starts the next available
-// mission automatically. Tracks mission durations and schedules collection
-// at the right time.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-class Missions {
-    /**
-    * Recieves a list of mission objects and returns the mission object to use.
-    * A mission object looks similar to this :-
-    * Eg 1:   {"id_member_mission":"256160093","id_mission":"23","duration":"53","cost":"1","remaining_time":"-83057","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"slot_SC"},"type":"money","data":277}]}
-    * Eg 2:   {"id_member_mission":"256160095","id_mission":"10","duration":"53","cost":"1","remaining_time":"-81330","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"rare"},"type":"item","data":{"id_item":"23","type":"gift","subtype":"0","identifier":"K3","rarity":"rare","value":"80","carac1":0,"carac2":0,"carac3":0,"endurance":0,"chance":0,"ego":0,"damage":0,"duration":0,"level_mini":"1","name":"Bracelet","Name":"Bracelet","ico":"https://content.haremheroes.com/pictures/items/K3.png","price_sell":5561,"count":1,"id_m_i":[]}}]}
-    * Eg 3:   {"id_member_mission":"256822795","id_mission":"337","duration":"17172","cost":"144","remaining_time":null,"remaining_cost":"144","rewards":[{"classList":{"0":"slot","1":"slot_HC"},"type":"koban","data":11}]}
-    * Eg 1 has mission rewards of xp and money.
-    * Eg 2 has mission rewards of xp and item.
-    * Eg 3 has mission rewards of koban/hard_currency.
-    * cost is the koban price for instant complete.
-    */
-    static getSuitableMission(missionsList) {
-        var msn = missionsList[0];
-        const kFirst = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionKFirst) === "true";
-        const invertOrder = getStoredValue(HHStoredVarPrefixKey + SK.invertMissions) === "true";
-        try {
-            for (var m in missionsList) {
-                if (JSON.stringify(missionsList[m].rewards).includes("koban") && kFirst) {
-                    return missionsList[m];
-                }
-                if (Number(msn.duration) > Number(missionsList[m].duration) && !invertOrder) {
-                    msn = missionsList[m];
-                }
-                else if (Number(msn.duration) < Number(missionsList[m].duration) && invertOrder) {
-                    msn = missionsList[m];
-                }
-            }
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Something went wrong, starting first mission in the list ", error);
-            msn = missionsList[0];
-        }
-        return msn;
-    }
-    static run() {
-        // returns boolean to set busy
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDMissions")) {
-            LogUtils_logHHAuto("Navigating to missions page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"));
-            // return busy
-            return true;
-        }
-        else {
-            try {
-                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-                LogUtils_logHHAuto("On missions page.");
-                if (RewardHelper.closeRewardPopupIfAny()) {
-                    return true;
-                }
-                let canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
-                var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
-                if (debugEnabled)
-                    LogUtils_logHHAuto("Missions parsed, mission list is:", missions);
-                if (debugEnabled && missionOngoing != null)
-                    LogUtils_logHHAuto("Mission missionOngoing:", missionOngoing);
-                if (!allGood && checkTimer('nextMissionTime')) {
-                    LogUtils_logHHAuto("Something went wrong, need to retry in 15secs.");
-                    setTimer('nextMissionTime', randomInterval(15, 30));
-                    return true;
-                }
-                if (missions.length > 0 && missionOngoing == null) {
-                    var mission = Missions.getSuitableMission(missions);
-                    LogUtils_logHHAuto(`Selected mission to be started (duration: ${mission.duration}sec):`);
-                    if (debugEnabled)
-                        LogUtils_logHHAuto(mission);
-                    var missionButton = $(mission.missionObject).find("button:visible[rel='mission_start']").first();
-                    if (missionButton.length > 0) {
-                        missionButton.trigger('click');
-                        missionOngoing = mission;
-                        missionOngoing.remaining_time = Number(mission.duration);
-                    }
-                    else {
-                        LogUtils_logHHAuto("Something went wrong, no start button");
-                        setTimer('nextMissionTime', randomInterval(15, 30));
-                        return true;
-                    }
-                }
-                if (canCollect) {
-                    LogUtils_logHHAuto("Collecting finished mission's reward.");
-                    $(".mission_button button:visible[rel='claim']").first().trigger('click');
-                    return true;
-                }
-                if (missionOngoing != null) {
-                    LogUtils_logHHAuto("Mission ongoing waiting it ends.");
-                    if (checkTimer('nextMissionTime'))
-                        setTimer('nextMissionTime', missionOngoing.remaining_time + randomInterval(10, 20));
-                    return true;
-                }
-                if (missions.length == 0 && missionOngoing == null) {
-                    LogUtils_logHHAuto("No missions detected...!");
-                    // get gift
-                    const isAfterGift = $("#missions .end_gift:visible").length > 0;
-                    if (isAfterGift) {
-                        const buttonAfterGift = $("#missions .end_gift button:visible");
-                        if (buttonAfterGift.length > 0) {
-                            LogUtils_logHHAuto("Collecting gift.");
-                            buttonAfterGift.trigger('click');
-                        }
-                        else {
-                            LogUtils_logHHAuto("Refreshing to collect gift...");
-                            // C1: safeReload waits for any in-flight game
-                            // AJAX before the reload, so an open POST is
-                            // not cancelled (issue #1598).
-                            safeReload();
-                            return true;
-                        }
-                    }
-                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
-                    if (time === undefined || time === null || time.length === 0) {
-                        LogUtils_logHHAuto("New mission time was undefined... Setting it manually to 10min.");
-                        setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
-                    }
-                    else
-                        setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1, 5));
-                }
-            }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
-                setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
-            }
-            // not busy
-            return false;
-        }
-    }
-    static parseMissions(canCollect) {
-        var missionOngoing = null;
-        var missions = [];
-        var lastMissionData = {};
-        var allGood = true;
-        // parse missions
-        const allMissions = $(".mission_object");
-        LogUtils_logHHAuto("Found " + allMissions.length + " missions to be parsed.");
-        try {
-            allMissions.each((idx, missionObject) => {
-                var data = $.data(missionObject).d;
-                lastMissionData = data;
-                // Do not list completed missions
-                var toAdd = true;
-                if (data.remaining_time !== null) {
-                    // This is not a fresh mission (ongoing)
-                    if (data.remaining_time > 0) {
-                        // allGood = false;
-                        if ($('.finish_in_bar[style*="display:none;"], .finish_in_bar[style*="display: none;"]', missionObject).length === 0) {
-                            LogUtils_logHHAuto("Unfinished mission detected...(" + data.remaining_time + "sec. remaining)");
-                            missionOngoing = data;
-                            data.finished = false;
-                        }
-                        else {
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"), {}, randomInterval(300, 800));
-                            allGood = false; // Need refresh
-                        }
-                    }
-                    else {
-                        data.finished = true;
-                        toAdd = false;
-                    }
-                    return;
-                }
-                else if (data.remaining_cost === null) {
-                    // Finished missioned
-                    data.finished = true;
-                    data.remaining_time = 0;
-                    toAdd = false;
-                }
-                data.missionObject = missionObject;
-                var rewards = Missions.getMissionRewards(missionObject);
-                data.rewards = rewards;
-                if (toAdd)
-                    missions.push(data);
-            });
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Catched error : Couldn't parse missions (try again in 15min) : " + error);
-            LogUtils_logHHAuto("Last mission parsed : " + JSON.stringify(lastMissionData));
-            setTimer('nextMissionTime', randomInterval(15 * 60, 20 * 60));
-            allGood = false;
-        }
-        return { allGood, missions, missionOngoing };
-    }
-    static getMissionRewards(missionObject) {
-        var rewards = [];
-        // set rewards
-        try {
-            // get Reward slots
-            var slots = missionObject.querySelectorAll(".slot");
-            // traverse slots
-            $.each(slots, function (idx, slotDiv) {
-                var reward = new MissionRewards();
-                // get slot class list
-                reward.classList = slotDiv.classList;
-                // set reward type
-                if (reward.classList.contains("slot_xp"))
-                    reward.type = "xp";
-                else if (reward.classList.contains("slot_soft_currency"))
-                    reward.type = "money";
-                else if (reward.classList.contains("slot_hard_currency"))
-                    reward.type = "koban";
-                else
-                    reward.type = "item";
-                // set value if xp
-                if (reward.type === "xp" || reward.type === "money" || reward.type === "koban") {
-                    // remove all non numbers and HTML tags
-                    try {
-                        reward.data = Number(slotDiv.innerHTML.replace(/<.*?>/g, '').replace(/\D/g, ''));
-                    }
-                    catch (e) {
-                        LogUtils_logHHAuto("Catched error : Couldn't parse xp/money data : " + e);
-                        LogUtils_logHHAuto(slotDiv);
-                    }
-                }
-                // set item details if item
-                else if (reward.type === "item") {
-                    try {
-                        reward.data = $.data(slotDiv).d;
-                    }
-                    catch (e) {
-                        LogUtils_logHHAuto("Catched error : Couldn't parse item reward slot details : " + e);
-                        LogUtils_logHHAuto(slotDiv);
-                        reward.type = "unknown";
-                    }
-                }
-                rewards.push(reward);
-            });
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Catched error : Couldn't parse rewards for missions : " + error);
-        }
-        return rewards;
-    }
-    static styles() {
-        if ($("#missions #ad_activities").length) {
-            $("#missions .missions_wrap").removeClass('height-for-ad').removeClass('height-with-ad');
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.compactMissions) === "true") {
-            GM_addStyle('#missions .missions_wrap  {'
-                + 'display:flex;'
-                + 'flex-wrap: wrap;'
-                + 'align-content: baseline;'
-                + '}');
-            const missionsContainerPath = '#missions .missions_wrap .mission_object.mission_entry';
-            GM_addStyle(missionsContainerPath + ' {'
-                + 'height: 56px;'
-                + 'margin-right:3px;'
-                + 'width: 49%;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_reward {'
-                + 'width: 110px;'
-                + 'padding-left: 5px;'
-                + 'padding-top: 5px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_image {'
-                + 'height: 50px;'
-                + 'width: 50px;'
-                + 'margin-top: 0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_details {'
-                + 'display:none;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button {'
-                + 'display:flex;'
-                + 'flex-direction:inherit;'
-                + 'width:245px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button .duration {'
-                + 'top:5px;'
-                + 'left:5px;'
-                + 'width: auto;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button {'
-                + 'margin:0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="finish"] {'
-                + 'height: 50px;'
-                + 'top:0;'
-                + 'left: 2rem;'
-                + 'padding: 4px 4px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="claim"] {'
-                + 'left:0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button .hh_bar {'
-                + 'left:5px;'
-                + '}');
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Pachinko.ts
-var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Pachinko.ts -- Automates free pachinko (gacha) pulls: regular, mythic, and equipment.
-//
-// Pachinko is the game's gacha system with free pulls on a timer. This module
-// tracks cooldowns for each pachinko type (regular, mythic, equipment), navigates
-// to the correct tab, and executes free pulls when available. Does not spend
-// premium currency -- only claims free pulls.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Pachinko {
-    static getGreatPachinko() {
-        return Pachinko.getFreePachinko('great', 'nextPachinkoTime', 'great-timer');
-    }
-    static getMythicPachinko() {
-        return Pachinko.getFreePachinko('mythic', 'nextPachinko2Time', 'mythic-timer');
-    }
-    static getEquipmentPachinko() {
-        return Pachinko.getFreePachinko('equipment', 'nextPachinkoEquipTime', 'equipment-timer');
-    }
-    static getFreePachinko(pachinkoType, pachinkoTimer, timerClass) {
-        return Pachinko_awaiter(this, void 0, void 0, function* () {
-            if (!pachinkoType || !pachinkoTimer) {
-                return false;
-            }
-            try {
-                if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDPachinko")) {
-                    LogUtils_logHHAuto("Navigating to Pachinko window.");
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDPachinko"));
-                    return true;
-                }
-                else {
-                    LogUtils_logHHAuto("Detected Pachinko Screen. Fetching Pachinko, setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    LogUtils_logHHAuto('switch to ' + pachinkoType);
-                    const equipementSection = '#pachinko_whole .playing-zone';
-                    const freeButtonQuery = '#playzone-replace-info button[data-free="true"].blue_button_L';
-                    function selectPachinko(pachinkoType) {
-                        return Pachinko_awaiter(this, void 0, void 0, function* () {
-                            $('.game-simple-block[type-pachinko=' + pachinkoType + ']').trigger('click');
-                            yield TimeHelper.sleep(randomInterval(400, 600));
-                        });
-                    }
-                    yield selectPachinko(pachinkoType);
-                    if ($(equipementSection).attr('type-panel') != pachinkoType) {
-                        LogUtils_logHHAuto(`Error pachinko ${pachinkoType} not loaded after click, retry`);
-                        yield selectPachinko(pachinkoType);
-                    }
-                    if ($(freeButtonQuery).length === 0) {
-                        LogUtils_logHHAuto('Not ready yet');
-                    }
-                    else {
-                        $(freeButtonQuery).trigger('click');
-                    }
-                    yield TimeHelper.sleep(randomInterval(100, 200));
-                    var npach = $('.' + timerClass + ' span[rel="expires"]').text();
-                    if (npach !== undefined && npach !== null && npach.length > 0) {
-                        setTimer(pachinkoTimer, Number(convertTimeToInt(npach)) + randomInterval(1, 5));
-                    }
-                    else {
-                        LogUtils_logHHAuto("Unable to find " + pachinkoType + " Pachinko time, wait 4h.");
-                        setTimer(pachinkoTimer, ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(1, 10));
-                    }
-                    setTimeout(function () {
-                        RewardHelper.closeRewardPopupIfAny();
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                        LogUtils_logHHAuto("setting autoloop to true");
-                        setTimeout(autoLoop, randomInterval(500, 800));
-                    }, randomInterval(300, 600));
-                }
-                return true;
-            }
-            catch (ex) {
-                LogUtils_logHHAuto("Catched error : Could not collect " + pachinkoType + " Pachinko... " + ex);
-                setTimer(pachinkoTimer, ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(1, 10));
-                return false;
-            }
-        });
-    }
-    static getNumberOfGirlToWinPatchinko() {
-        const girlsRewards = $("div.playing-zone .game-rewards .list-prizes .girl_shards");
-        let numberOfGirlsToWin = 0;
-        if (girlsRewards.length > 0) {
-            try {
-                numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
-            }
-            catch (exp) { }
-        }
-        return numberOfGirlsToWin;
-    }
-    static getNumberOfOrbsLeft(buttonSelector) {
-        let orbsLeft = 0;
-        if ($(buttonSelector + " span[total_orbs]").length > 0) {
-            orbsLeft = Number($(buttonSelector + " span[total_orbs]").first().text());
-        }
-        if (isNaN(orbsLeft)) {
-            orbsLeft = 0;
-            LogUtils_logHHAuto("ERROR getting orbs left");
-        }
-        return orbsLeft;
-    }
-    static buildPachinkoSelectPopUp(orbsPlayed = -1) {
-        Pachinko.autoPachinkoRunning = false;
-        if (Pachinko.failureTimeoutId)
-            clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        let PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
-            + '<div style="display:flex;flex-direction:row">'
-            + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoSelector", "tooltip") + '</span><select id="PachinkoSelector"></select></div>'
-            + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoLeft", "tooltip") + '</span><span id="PachinkoLeft"></span></div>'
-            + '</div>'
-            + '<div class="rowLine">'
-            + '<p id="girls_to_win"></p>'
-            + '</div>'
-            + '<div class="rowLine">'
-            + hhMenuSwitch('PachinkoFillOrbs')
-            + hhMenuSwitch('PachinkoByPassNoGirls')
-            + hhMenuSwitch('PachinkoStopFirstGirl')
-            + '</div>'
-            + '<div class="rowLine">'
-            + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoXTimes", "tooltip") + '</span><input id="PachinkoXTimes" style="width:50px;height:20px" required pattern="' + HHAuto_inputPattern.menuExpLevel + '" type="text" value="1"></div>'
-            + '</div>'
-            + '<div class="rowLine">'
-            + '<div style="padding:10px;width:50%" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("Launch", "tooltip") + '</span><label class="myButton" id="PachinkoPlayX" style="font-size:15px; width:100%;text-align:center">' + getTextForUI("Launch", "elementText") + '</label></div>'
-            + '</div>'
-            + '<p style="color: red;" id="PachinkoError"></p>'
-            + `<p id="PachinkoOrbsSpent">${orbsPlayed >= 0 ? getTextForUI("PachinkoOrbsSpent", "elementText") + ' ' + orbsPlayed : ''}</p>`
-            + '</div>';
-        fillHHPopUp("PachinkoMenu", getTextForUI("PachinkoButton", "elementText"), PachinkoMenu);
-        function updateOrbsNumber(orbsLeft) {
-            let fillAllOrbs = document.getElementById("PachinkoFillOrbs").checked;
-            if (fillAllOrbs && orbsLeft.length > 0) {
-                document.getElementById("PachinkoXTimes").value = orbsLeft[0].innerText;
-            }
-            else {
-                document.getElementById("PachinkoXTimes").value = '1';
-            }
-        }
-        $("#PachinkoPlayX").on("click", Pachinko.pachinkoPlayXTimes);
-        $(document).on('change', "#PachinkoSelector", function () {
-            let pachinkoSelector = document.getElementById("PachinkoSelector");
-            let selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
-            if (selectorText === getTextForUI("PachinkoSelectorNoButtons", "elementText")) {
-                $("#PachinkoLeft").text("");
-                return;
-            }
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
-            if (orbsLeft.length > 0) {
-                $("#PachinkoLeft").text(orbsLeft[0].innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
-            }
-            else {
-                $("#PachinkoLeft").text('0');
-            }
-            updateOrbsNumber(orbsLeft);
-        });
-        $(document).on('change', "#PachinkoFillOrbs", function () {
-            let timerSelector = document.getElementById("PachinkoSelector");
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
-            updateOrbsNumber(orbsLeft);
-        });
-        // Add options //changed
-        let pachinkoOptions = document.getElementById("PachinkoSelector");
-        let countTimers = 0;
-        let PachinkoType = $("div.playing-zone #playzone-replace-info div.cover h2")[0].innerText;
-        $("div.playing-zone div.btns-section button.blue_button_L").each(function () {
-            let optionElement = document.createElement("option");
-            let orbName = $(this).attr('orb_name') || '';
-            optionElement.value = orbName;
-            countTimers++;
-            optionElement.text = `${PachinkoType} x${Pachinko.getHumanPachinkoFromOrbName(orbName)}`;
-            pachinkoOptions.add(optionElement);
-            if (countTimers === 1) {
-                let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
-                $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
-            }
-        });
-        let numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
-        $("#girls_to_win").text(numberOfGirlsToWin + " girls to win"); // TODO translate
-        $('#PachinkoStopFirstGirl').parent().parent().parent().toggle(numberOfGirlsToWin > 0);
-        if (countTimers === 0) {
-            let optionElement = document.createElement("option");
-            optionElement.value = countTimers + '';
-            optionElement.text = getTextForUI("PachinkoSelectorNoButtons", "elementText");
-            pachinkoOptions.add(optionElement);
-        }
-    }
-    static modulePachinko() {
-        Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        const menuID = "PachinkoButton";
-        let PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoButton", "tooltip") + '</span><label style="font-size:small" class="myButton" id="PachinkoButton">' + getTextForUI("PachinkoButton", "elementText") + '</label></div>';
-        if (document.getElementById(menuID) === null) {
-            $("#contains_all section").prepend(PachinkoButton);
-            $("#PachinkoButton").on("click", () => { Pachinko.buildPachinkoSelectPopUp(-1); });
-            GM_registerMenuCommand(getTextForUI(menuID, "elementText"), () => { Pachinko.buildPachinkoSelectPopUp(-1); });
-        }
-        else {
-            return;
-        }
-    }
-    static getSelectedOptionButtonSelector() {
-        const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
-        return "div.playing-zone div.btns-section button.blue_button_L[orb_name=" + selectedOption.value + "]";
-    }
-    static pachinkoPlayXTimes() {
-        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-        LogUtils_logHHAuto("setting autoloop to false");
-        Pachinko.pachinkoSelector = document.getElementById("PachinkoSelector");
-        Pachinko.ByPassNoGirlChecked = document.getElementById("PachinkoByPassNoGirls").checked;
-        Pachinko.stopFirstGirlChecked = document.getElementById("PachinkoStopFirstGirl").checked;
-        const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
-        let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
-        Pachinko.orbsToGo = Number(document.getElementById("PachinkoXTimes").value);
-        Pachinko.orbLeftOnAutoStart = Pachinko.getNumberOfOrbsLeft(buttonSelector);
-        if (Pachinko.orbLeftOnAutoStart <= 0) {
-            LogUtils_logHHAuto('No Orbs left for : ' + selectedOption.text);
-            $("#PachinkoError").text(getTextForUI("PachinkoSelectorNoButtons", "elementText"));
-            return;
-        }
-        if (Number.isNaN(Number(Pachinko.orbsToGo)) || Pachinko.orbsToGo < 1 || Pachinko.orbsToGo > Pachinko.orbLeftOnAutoStart) {
-            LogUtils_logHHAuto('Invalid orbs number ' + Pachinko.orbsToGo);
-            $("#PachinkoError").text(getTextForUI("PachinkoInvalidOrbsNb", "elementText") + " : " + Pachinko.orbsToGo);
-            return;
-        }
-        let PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
-            + '<p>' + selectedOption.text + ' : </p>'
-            + '<p id="PachinkoPlayedTimes" style="padding:0 10px">0/' + Pachinko.orbsToGo + '</p>'
-            + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
-            + '</div>';
-        fillHHPopUp("PachinkoPlay", getTextForUI("PachinkoButton", "elementText"), PachinkoPlay);
-        $("#PachinkoPlayCancel").on("click", () => {
-            maskHHPopUp();
-            LogUtils_logHHAuto("Cancel clicked, closing popUp.");
-            Pachinko.autoPachinkoRunning = false;
-            if (Pachinko.failureTimeoutId)
-                clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        });
-        if (!Pachinko.ajaxBindingDone) {
-            Pachinko.bindPachinkoAjaxReturn();
-        }
-        Pachinko.autoPachinkoRunning = true;
-        setTimeout(Pachinko.playXPachinko_func, randomInterval(500, 1500));
-    }
-    static stopXPachinkoNoGirl() {
-        LogUtils_logHHAuto("No more girl on Pachinko, cancelling.");
-        maskHHPopUp();
-        Pachinko.buildPachinkoSelectPopUp();
-        $("#PachinkoError").text(getTextForUI("PachinkoNoGirls", "elementText"));
-    }
-    static stopXPachinkoFailure() {
-        if (Pachinko.retry <= 2) {
-            LogUtils_logHHAuto("Pachinko failure, retry once.");
-            Pachinko.retry++;
-            setTimeout(Pachinko.playXPachinko_func, randomInterval(100, 300));
-        }
-        else {
-            LogUtils_logHHAuto("Pachinko failure, cancelling.");
-            maskHHPopUp();
-            Pachinko.buildPachinkoSelectPopUp();
-            $("#PachinkoError").text(getTextForUI("PachinkoFailure", "elementText"));
-        }
-    }
-    static playXPachinko_func() {
-        return Pachinko_awaiter(this, void 0, void 0, function* () {
-            let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
-            const buttonContinueSelector = '.popup_buttons #play_again:visible';
-            if (!isDisplayedHHPopUp()) {
-                Pachinko.autoPachinkoRunning = false;
-                LogUtils_logHHAuto("PopUp closed, cancelling interval, restart autoloop.");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                return;
-            }
-            const confirmPachinko = document.getElementById("confirm_pachinko");
-            if (confirmPachinko !== null) {
-                if (Pachinko.ByPassNoGirlChecked && confirmPachinko.querySelector("#popup_confirm.blue_button_L") !== null) {
-                    confirmPachinko.querySelector("#popup_confirm.blue_button_L").click();
-                    LogUtils_logHHAuto('By pass no girl popup closed');
-                }
-                else {
-                    Pachinko.stopXPachinkoNoGirl();
-                    return;
-                }
-            }
-            const currentOrbsLeft = Pachinko.getNumberOfOrbsLeft(buttonSelector);
-            const spendedOrbs = Number(Pachinko.orbLeftOnAutoStart - currentOrbsLeft);
-            //if (debugEnabled) logHHAuto('orbsLeft: ' + Pachinko.orbLeftOnAutoStart + ", currentOrbsLeft: " + currentOrbsLeft + ', spendedOrbs: ' + spendedOrbs + '/orbsToGo: ' + orbsToGo);
-            if (Pachinko.stopFirstGirlChecked && $('#rewards_popup #reward_holder .shards_wrapper:visible').length > 0) {
-                LogUtils_logHHAuto("Girl in reward, stopping...");
-                maskHHPopUp();
-                Pachinko.buildPachinkoSelectPopUp(spendedOrbs);
-                return;
-            }
-            const pachinkoSelectedButton = $(buttonSelector)[0];
-            const continuePachinkoSelectedButton = $(buttonContinueSelector);
-            $("#PachinkoPlayedTimes").text(spendedOrbs + "/" + Pachinko.orbsToGo);
-            if (spendedOrbs < Pachinko.orbsToGo && currentOrbsLeft > 0) {
-                if (continuePachinkoSelectedButton.length > 0) {
-                    continuePachinkoSelectedButton.trigger('click');
-                }
-                else {
-                    if (RewardHelper.closeRewardPopupIfAny(false)) {
-                        yield TimeHelper.sleep(randomInterval(500, 1000));
-                        RewardHelper.closeGirlRewardPopupIfAny(true);
-                    }
-                    pachinkoSelectedButton.click();
-                    Pachinko.failureTimeoutId = setTimeout(() => {
-                        // Safe mode
-                        LogUtils_logHHAuto("ERROR: No reply from server after more than 5s.");
-                        Pachinko.stopXPachinkoFailure();
-                    }, randomInterval(5000, 8000));
-                    // Nothing to do here, will be done by ajaxComplete handler above.
-                }
-            }
-            else {
-                RewardHelper.closeRewardPopupIfAny(false);
-                LogUtils_logHHAuto("All spent, going back to Selector.");
-                maskHHPopUp();
-                Pachinko.buildPachinkoSelectPopUp(spendedOrbs);
-                return;
-            }
-        });
-    }
-    static bindPachinkoAjaxReturn() {
-        Pachinko.ajaxBindingDone = true;
-        $(document).ajaxComplete(function (evt, xhr, opt) {
-            var _a, _b;
-            if (!opt.data)
-                return;
-            if (!xhr.responseText.length)
-                return;
-            const searchParams = new URLSearchParams(opt.data);
-            if (searchParams.get('action') == 'play' && searchParams.get('class') == 'Pachinko') {
-                const response = safeJsonParse(xhr.responseText, null);
-                if (!response || !response.success) {
-                    if (Pachinko.debugEnabled)
-                        LogUtils_logHHAuto("Not response success");
-                    Pachinko.stopXPachinkoFailure();
-                    return;
-                }
-                if ((_b = (_a = response.rewards) === null || _a === void 0 ? void 0 : _a.heroChangesUpdate) === null || _b === void 0 ? void 0 : _b.orbs) {
-                    //const orbs = response.rewards?.heroChangesUpdate?.orbs;
-                    // o_g10 / o_g1 / o_eq2
-                    //const orbLeftFromResponse = orbs.o_g10;
-                    if (Pachinko.failureTimeoutId)
-                        clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-                    if (Pachinko.autoPachinkoRunning) {
-                        setTimeout(Pachinko.playXPachinko_func, randomInterval(200, 500));
-                    }
-                    else if (Pachinko.debugEnabled) {
-                        LogUtils_logHHAuto('Ajax catched, do nothing');
-                    }
-                }
-                else
-                    Pachinko.stopXPachinkoFailure();
-            }
-        });
-    }
-    static getHumanPachinkoFromOrbName(orb_name) {
-        switch (orb_name) {
-            case 'o_v4': return '4';
-            case 'o_e1':
-            case 'o_eq1':
-            case 'o_g1':
-            case 'o_m1': return '1';
-            case 'o_eq2': return '2';
-            case 'o_m3': return '3';
-            case 'o_m6': return '6';
-            case 'o_eq10':
-            case 'o_g10':
-            case 'o_e10': return '10';
-            case 'o_ed': return 'Draft';
-            default: return 'Unknown';
-        }
-    }
-}
-Pachinko.ajaxBindingDone = false;
-Pachinko.orbLeftOnAutoStart = 0;
-Pachinko.orbsToGo = 0;
-Pachinko.autoPachinkoRunning = false;
-Pachinko.failureTimeoutId = undefined;
-Pachinko.pachinkoSelector = undefined;
-Pachinko.retry = 0;
-
-;// CONCATENATED MODULE: ./src/Module/Shop.ts
-// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
-// inventory.
-//
-// Handles automated interactions with the in-game equipment shop. Buys
-// desired equipment, sells unwanted items, and manages inventory slots.
-// Tracks shop refresh timers and available currency.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Shop {
-    static isTimeToCheckShop() {
-        const updateMarket = getStoredValue(HHStoredVarPrefixKey + SK.updateMarket) === "true";
-        const needBoosterStatus = Booster.needBoosterStatusFromStore();
-        return (updateMarket || needBoosterStatus) && (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch"));
-    }
-    static updateShop() {
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-            LogUtils_logHHAuto("Navigating to Market window.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
-            return true;
-        }
-        else {
-            LogUtils_logHHAuto("Detected Market Screen. Fetching Assortment");
-            var assA = [];
-            var assB = [];
-            var assG = [];
-            var assP = [];
-            $('#shops div.armor.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assA.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.booster.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assB.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.gift.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assG.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.potion.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assP.push(JSON.parse(this.dataset.d)); });
-            var HaveAff = 0;
-            var HaveExp = 0;
-            var HaveBooster = {};
-            $('#shops div.gift.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveAff += d.quantity * d.item.value;
-            } });
-            $('#shops div.potion.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveExp += d.quantity * d.item.value;
-            } });
-            var BoosterIdMap = {};
-            $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveBooster[d.item.identifier] = d.quantity;
-                if (d.item.id_item)
-                    BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };
-            } });
-            setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
-            setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
-            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
-            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
-            LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
-            // Debug: log each booster found in player inventory with id_item and quantity
-            for (const [identifier, data] of Object.entries(BoosterIdMap)) {
-                const qty = HaveBooster[identifier] || 0;
-                const entry = data;
-                LogUtils_logHHAuto(`  Booster inventory: ${entry.name} [${identifier}] id_item=${entry.id_item} rarity=${entry.rarity} qty=${qty}`);
-            }
-            setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
-            setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
-            var nshop;
-            let shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
-            if (nshop === undefined && shopFrozenTimer.length > 0) {
-                nshop = convertTimeToInt(shopFrozenTimer);
-            }
-            let shopTimer = 60;
-            if (nshop !== undefined && nshop !== 0) {
-                // if (Number(nshop)+1 > 2*60*60)
-                // {
-                //     shopTimer=2*60*60;
-                // }
-                // else
-                // {
-                shopTimer = Number(nshop) + 1;
-                // }
-            }
-            setTimer('nextShopTime', shopTimer + randomInterval(60, 180));
-            if (isJSON(getStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled))
-                && getPage() === getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '' }).page) {
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                LogUtils_logHHAuto("Go to Home after Shopping");
-            }
-        }
-        return false;
-    }
-    static moduleShopActions() {
-        var _a, _b, _c, _d, _e, _f;
-        const itemsQuery = '#player-inventory.armor .slot:not(.empty):not([menuSellLocked]):not(.mythic)';
-        appendMenuSell();
-        /**
-         * @return "potion" / "gift" / player-stats / armor / booster / null
-         */
-        function getShopType() {
-            const shopSelected = $('section #shops #tabs-switcher .market-menu-switch-tab.active');
-            if (shopSelected.length > 0) {
-                return shopSelected.attr("type");
-            }
-            else {
-                return null;
-            }
-        }
-        function menuSellListItems() {
-            if ($('#menuSellList>.tItems').length === 0) {
-                GM_addStyle('.tItems {border-collapse: collapse;} '
-                    + '.tItems td,th {border: 1px solid #1B4F72;} '
-                    + '.tItemsColGroup {border: 3px solid #1B4F72;} '
-                    + '.tItemsTh1 {background-color: #2874A6;color: #fff;} '
-                    + '.tItemsTh2 {background-color: #3498DB;color: #fff;} '
-                    + '.tItemsTBody tr:nth-child(odd) {background-color: #85C1E9;} '
-                    + '.tItemsTBody tr:nth-child(even) {background-color: #D6EAF8;} '
-                    + '.tItemsTdItems[itemsLockStatus="allLocked"] {color: #FF0000} '
-                    + '.tItemsTdItems[itemsLockStatus="noneLocked"] {color: #1B4F72}'
-                    + '.tItemsTdItems[itemsLockStatus="someLocked"] {color: #FFA500}');
-            }
-            let itemsCaracsNb = 16;
-            let itemsCaracs = [];
-            for (let i = 1; i < itemsCaracsNb + 1; i++) {
-                itemsCaracs.push(i);
-            }
-            itemsCaracs.push('mythic'); // Needed for mythic equipement, can't use generic method for them
-            let itemsRarity = ["common", "rare", "epic", "legendary", "mythic"];
-            let itemsLockedStatus = ["not_locked", "locked"];
-            let itemsTypeNb = 6;
-            let itemsType = [];
-            for (let i = 1; i < itemsTypeNb + 1; i++) {
-                itemsType.push(i);
-            }
-            let itemsList = {};
-            for (let c of itemsCaracs) {
-                let filteredCarac;
-                if (c === 'mythic') {
-                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"rarity":"mythic"\']');
-                }
-                else {
-                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":' + c + '\']');
-                }
-                itemsList[c] = {};
-                for (let t of itemsType) {
-                    let filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + '\']');
-                    itemsList[c][t] = {};
-                    for (let r of itemsRarity) {
-                        let filteredRarity = filteredType.filter('[data-d*=\'"rarity":"' + r + '"\']');
-                        itemsList[c][t][r] = {};
-                        for (let l of itemsLockedStatus) {
-                            let filteredStatus = filteredRarity.filter(l === "locked" ? '[menuSellLocked]' : ':not([menuSellLocked])');
-                            itemsList[c][t][r][l] = filteredStatus.length;
-                        }
-                    }
-                }
-            }
-            let itemsListMenu = '<table class="tItems">'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity">'
-                + ' </colgroup>'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity" span="6">'
-                + ' </colgroup>'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity" span="6">'
-                + ' </colgroup>'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity" span="6">'
-                + ' </colgroup>'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity" span="6">'
-                + ' </colgroup>'
-                + ' <colgroup class="tItemsColGroup">'
-                + '  <col class="tItemsColRarity" span="6">'
-                + ' </colgroup>'
-                + ' <thead class="tItemsTHead">'
-                + '  <tr>'
-                + '   <th class="tItemsTh1">' + getTextForUI("Rarity", "elementText") + '</th>'
-                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[0] + '" colspan="6">' + getTextForUI("RarityCommon", "elementText") + '</th>'
-                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[1] + '" colspan="6">' + getTextForUI("RarityRare", "elementText") + '</th>'
-                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[2] + '" colspan="6">' + getTextForUI("RarityEpic", "elementText") + '</th>'
-                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[3] + '" colspan="6">' + getTextForUI("RarityLegendary", "elementText") + '</th>'
-                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[4] + '" colspan="6">' + getTextForUI("RarityMythic", "elementText") + '</th>'
-                + '  </tr>'
-                + '  <tr>'
-                + '   <th class="tItemsTh2">' + getTextForUI("equipementCaracs", "elementText") + '/' + getTextForUI("equipementType", "elementText") + '</th>';
-            for (let r of itemsRarity) {
-                itemsListMenu += '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[0] + ';r:' + r + '">' + getTextForUI("equipementHead", "elementText") + '</th>'
-                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[1] + ';r:' + r + '">' + getTextForUI("equipementBody", "elementText") + '</th>'
-                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[2] + ';r:' + r + '">' + getTextForUI("equipementLegs", "elementText") + '</th>'
-                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[3] + ';r:' + r + '">' + getTextForUI("equipementFlag", "elementText") + '</th>'
-                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[4] + ';r:' + r + '">' + getTextForUI("equipementPet", "elementText") + '</th>'
-                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[5] + ';r:' + r + '">' + getTextForUI("equipementWeapon", "elementText") + '</th>';
-            }
-            itemsListMenu += '  </tr>'
-                + ' </thead>'
-                + ' <tbody class="tItemsTBody">';
-            for (let c of itemsCaracs) {
-                if (c === 'mythic') {
-                    itemsListMenu += '  <tr>'
-                        + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*">' + getTextForUI("RarityMythic", "elementText") + '</td>';
-                }
-                else {
-                    let ext = (c === 16) ? "svg" : "png";
-                    itemsListMenu += '  <tr>'
-                        + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*"><img style="height:20px;width:20px" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/pictures/misc/items_icons/' + c + '.' + ext + '"></td>';
-                }
-                for (let r of itemsRarity) {
-                    for (let t of itemsType) {
-                        let allItems = itemsList[c][t][r];
-                        let total = allItems[itemsLockedStatus[0]] + allItems[itemsLockedStatus[1]];
-                        let displayNb = allItems[itemsLockedStatus[0]] + '/' + total;
-                        let itemsLockStatus;
-                        if (total === 0) {
-                            displayNb = "";
-                        }
-                        if (allItems[itemsLockedStatus[1]] === 0) {
-                            //no lock
-                            itemsLockStatus = "noneLocked";
-                        }
-                        else if (allItems[itemsLockedStatus[1]] === total) {
-                            //all locked
-                            itemsLockStatus = "allLocked";
-                        }
-                        else {
-                            //some locked
-                            itemsLockStatus = "someLocked";
-                        }
-                        itemsListMenu += '   <td class="tItemsTdItems" itemsLockStatus="' + itemsLockStatus + '" menuSellFilter="c:' + c + ';t:' + t + ';r:' + r + '"' + '>' + displayNb + '</td>';
-                    }
-                }
-                itemsListMenu += '  </tr>';
-            }
-            itemsListMenu += ' </tbody>'
-                + '</table>';
-            $("#menuSellList").html(itemsListMenu);
-            function setSlotFilter(inCaracsValue, inTypeValue, inRarityValue, inLockedValue) {
-                let filter = '#player-inventory.armor .slot:not(.empty)';
-                if (inCaracsValue !== "*") {
-                    filter += '[data-d*=\'"name_add":"' + inCaracsValue + '"\']';
-                }
-                if (inTypeValue !== "*") {
-                    filter += '[data-d*=\'"subtype":"' + inTypeValue + '"\']';
-                }
-                if (inRarityValue !== "*") {
-                    filter += '[data-d*=\'"rarity":"' + inRarityValue + '"\']';
-                }
-                if (inLockedValue === "locked" || inLockedValue === true) {
-                    filter += '[menuSellLocked]';
-                }
-                else {
-                    filter += ':not([menuSellLocked])';
-                }
-                return filter;
-            }
-            function setCellsFilter(inCaracsValue, inTypeValue, inRarityValue) {
-                let filter = 'table.tItems [menuSellFilter*="';
-                if (inCaracsValue !== "*") {
-                    filter += 'c:' + inCaracsValue + ';';
-                }
-                if (inTypeValue !== "*") {
-                    filter += 't:' + inTypeValue + ';';
-                }
-                if (inRarityValue !== "*") {
-                    filter += 'r:' + inRarityValue;
-                }
-                filter += '"]';
-                return filter;
-            }
-            $('table.tItems [menuSellFilter] ').each(function () {
-                this.addEventListener("click", function () {
-                    const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
-                    let toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
-                    let c = menuSellFilter[0].split(":")[1];
-                    let t = menuSellFilter[1].split(":")[1];
-                    let r = menuSellFilter[2].split(":")[1];
-                    AllLockUnlock(setSlotFilter(c, t, r, !toLock), toLock);
-                    let newLockStatus = toLock ? "allLocked" : "noneLocked";
-                    $(setCellsFilter(c, t, r)).each(function () {
-                        this.setAttribute("itemsLockStatus", newLockStatus);
-                    });
-                });
-            });
-        }
-        function AllLockUnlock(inFilter, lock) {
-            if (lock) {
-                $(inFilter).each(function () {
-                    this.setAttribute("menuSellLocked", "");
-                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
-                });
-            }
-            else {
-                $(inFilter).each(function () {
-                    this.removeAttribute("menuSellLocked");
-                    this.querySelector("img.menuSellLocked").remove();
-                });
-            }
-        }
-        function lockUnlock(inFilter) {
-            if ($(inFilter).length > 0) {
-                let currentLock = $(inFilter)[0].getAttribute("menuSellLocked");
-                if (currentLock === null) {
-                    $(inFilter)[0].setAttribute("menuSellLocked", "");
-                    $(inFilter).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
-                }
-                else {
-                    $(inFilter)[0].removeAttribute("menuSellLocked");
-                    $(inFilter + " img.menuSellLocked")[0].remove();
-                }
-            }
-        }
-        let menuSellStop = false;
-        var allLoaded = false;
-        var menuSellMaxItems = "all";
-        let fetchStarted = false;
-        //ugly hack
-        let loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
-        let loadingAnimationStop = (_f = (_e = (_d = unsafeWindow.shared) === null || _d === void 0 ? void 0 : _d.animations) === null || _e === void 0 ? void 0 : _e.loadingAnimation) === null || _f === void 0 ? void 0 : _f.stop;
-        function appendMenuSell() {
-            let menuID = "SellDialog";
-            if (getShopType() !== "armor") {
-                if (document.getElementById(menuID) !== null) {
-                    try {
-                        $(document).off('ajaxComplete', checkAjaxComplete);
-                        for (let menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"]) {
-                            const GMMenuID = GM_registerMenuCommand(getTextForUI(menu, "elementText"), function () { });
-                            $("#" + menu).remove();
-                            GM_unregisterMenuCommand(GMMenuID);
-                        }
-                        $("#" + menuID).remove();
-                    }
-                    catch (e) {
-                        LogUtils_logHHAuto("Catched error : Couldn't remove " + menuID + " menu : " + e);
-                    }
-                }
-                return;
-            }
-            else if (document.getElementById(menuID) !== null) {
-                document.getElementById("menuSellCurrentCount").innerHTML = $(itemsQuery).length + '';
-                return;
-            }
-            GM_addStyle('#SellDialog .close {   position: absolute;   top: 0;   right: 30px;   transition: all 200ms;   font-size: 50px;   font-weight: bold;   text-decoration: none;   color: #333; } '
-                + '#SellDialog .close:hover {   color: #06D85F; }'
-                + '#SellDialog p { font-size: 15px; }'
-                + '#SellDialog p.intro { margin: 0; }'
-                + '#SellDialog .myButton { font-size: 12px; min-width: 100px; text-align: center; }'
-                + '#SellDialog td.type { text-align: center; }');
-            var menuSellLock = '<div style="position: absolute;right: 220px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellLock", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSellLock">' + getTextForUI("menuSellLock", "elementText") + '</label></div>';
-            var menuSellMaskLocked = '<div style="position: absolute;right: 140px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellMaskLocked", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSellMaskLocked">' + getTextForUI("menuSellMaskLocked", "elementText") + '</label></div>';
-            var menuSell = '<div style="position: absolute;right: 300px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSell", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSell">' + getTextForUI("menuSell", "elementText") + '</label></div>'
-                + '<dialog style="overflow-y:auto;max-width:95%;max-height:95%;"id="SellDialog"><a class="close" id="SellDialogClose">&times;</a><form stylemethod="dialog">'
-                + '<div style="padding:0 10px; display:flex;flex-direction:column;">'
-                + '<p class="intro">' + getTextForUI("menuSellText", "elementText") + '</p>'
-                + '<div class="HHMenuRow">'
-                + '<p>' + getTextForUI("menuSellCurrentCount", "elementText") + '</p>'
-                + '<p id="menuSellCurrentCount">0</p>'
-                + '</div>'
-                + '<div id="menuSellStop"><label style="width:80px" class="myButton" id="menuSellStop">' + getTextForUI("OptionStop", "elementText") + '</label></div>'
-                + '<div id="menuSellHide" style="display:none">'
-                + '<p id="menuSellList" style="margin:0;"></p>'
-                + '<div class="HHMenuRow">'
-                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellButton", "tooltip") + '</span><label class="myButton" id="menuSellButton">' + getTextForUI("menuSellButton", "elementText") + '</label></div>'
-                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellNumber", "tooltip") + '</span><input id="menuSellNumber" style="width:80%;height:20px" required pattern="' + HHAuto_inputPattern.menuSellNumber + '" type="text" value="0"></div>'
-                + '</div>'
-                + '</div>'
-                + '<div id="menuSoldHide" style="display:none">'
-                + '<div class="HHMenuRow">'
-                + '<p>' + getTextForUI("menuSoldText", "elementText") + '</p>'
-                + '<p id="menuSoldCurrentCount">0</p>'
-                + '</div>'
-                + '<p id="menuSoldMessage">0</p>'
-                + '</div>'
-                + '</div>'
-                + '<menu> <label style="margin-left:800px" class="myButton" id="menuSellCancel">' + getTextForUI("OptionCancel", "elementText") + '</label></menu></form></dialog>';
-            initMenuSell();
-            initMenuSellLock();
-            initMenuSellMaskLocked();
-            GM_registerMenuCommand(getTextForUI("menuSell", "elementText"), displayMenuSell);
-            GM_registerMenuCommand(getTextForUI("menuSellLock", "elementText"), launchMenuSellLock);
-            GM_registerMenuCommand(getTextForUI("menuSellMaskLocked", "elementText"), launchMenuSellMaskLocked);
-            $(document).on('ajaxComplete', checkAjaxComplete);
-            function initMenuSell() {
-                $('#player-inventory.armor').append(menuSell);
-                const closeSellDialog = function () {
-                    const SellDialog = document.getElementById("SellDialog");
-                    if (typeof SellDialog.showModal !== "function") {
-                        alert("The <dialog> API is not supported by this browser");
-                        return;
-                    }
-                    $('#player-inventory.armor .slot:not(.empty)[canBeSold]').removeAttr('canBeSold');
-                    SellDialog.close();
-                };
-                $("#menuSell").on("click", displayMenuSell);
-                $("#menuSellCancel").on("click", closeSellDialog);
-                $("#SellDialogClose").on("click", closeSellDialog);
-                $("#menuSellStop").on("click", function () {
-                    this.style.display = "none";
-                    menuSellStop = true;
-                });
-                $("#menuSellButton").on("click", function () {
-                    if (Number(document.getElementById("menuSellNumber").value) > 0) {
-                        LogUtils_logHHAuto("Starting selling " + Number(document.getElementById("menuSellNumber").value) + " items.");
-                        sellArmorItems();
-                    }
-                });
-            }
-            function displayMenuSell() {
-                const SellDialog = document.getElementById("SellDialog");
-                if (typeof SellDialog.showModal !== "function") {
-                    alert("The <dialog> API is not supported by this browser");
-                    LogUtils_logHHAuto("The <dialog> API is not supported by this browser");
-                    return;
-                }
-                menuSellMaxItems = Number(window.prompt("Max amount of inventory to load (all for no limit)", menuSellMaxItems + ''));
-                if (menuSellMaxItems !== null) {
-                    menuSellMaxItems = isNaN(menuSellMaxItems) ? Number.MAX_VALUE : menuSellMaxItems;
-                    LogUtils_logHHAuto(`Going to load ${menuSellMaxItems} items`);
-                    $("menuSellStop").css("display", "block");
-                    menuSellStop = false;
-                    fetchStarted = true;
-                    unsafeWindow.shared.animations.loadingAnimation.start = function () { };
-                    unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
-                    if ($('#menuSellList>.tItems').length === 0) {
-                        menuSellListItems();
-                    }
-                    $("#menuSellHide").css("display", "block");
-                    SellDialog.showModal();
-                    $("#menuSellHide").css("display", "none");
-                    fetchAllArmorItems();
-                }
-            }
-            function initMenuSellMaskLocked() {
-                $('#player-inventory.armor').append(menuSellMaskLocked);
-                $("#menuSellMaskLocked").on("click", launchMenuSellMaskLocked);
-            }
-            function launchMenuSellMaskLocked() {
-                $("#player-inventory.armor .slot[menuSellLocked]").each(function () {
-                    $(this).parent().toggle();
-                });
-            }
-            function initMenuSellLock() {
-                $('#player-inventory.armor').append(menuSellLock);
-                $("#menuSellLock").on("click", launchMenuSellLock);
-            }
-            function launchMenuSellLock() {
-                let filterText = "#player-inventory.armor .slot.selected";
-                if ($(filterText).length > 0) {
-                    let toLock = $(filterText)[0].getAttribute("menuSellLocked") === null;
-                    AllLockUnlock(filterText, toLock);
-                }
-            }
-        }
-        function checkAjaxComplete(event, request, settings) {
-            let match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
-            if (match === null)
-                return;
-            allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
-            if (fetchStarted) {
-                setTimeout(fetchAllArmorItems, randomInterval(800, 1600));
-            }
-        }
-        function fetchAllArmorItems() {
-            let oldCount = $(itemsQuery).length;
-            $("#menuSellCurrentCount").html(oldCount + '');
-            if (allLoaded) {
-                LogUtils_logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
-            }
-            else {
-                LogUtils_logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
-            }
-            let scroll = $("#player-inventory.armor")[0];
-            const SellDialog = document.getElementById("SellDialog");
-            if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open) {
-                $("#menuSellStop").css("display", "none");
-                unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
-                unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
-                fetchStarted = false;
-                scroll.scrollTop = 0;
-                if (SellDialog.open) {
-                    $("#menuSellHide").css("display", "block");
-                    menuSellListItems();
-                }
-                else {
-                    LogUtils_logHHAuto('Sell Dialog closed, stopping');
-                }
-                return;
-            }
-            scroll.scrollTop = scroll.scrollHeight - scroll.offsetHeight;
-        }
-        function sellArmorEnded() {
-            $("#menuSellHide").css("display", "block");
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-        }
-        function sellArmorItems() {
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-            LogUtils_logHHAuto("setting autoloop to false");
-            LogUtils_logHHAuto('start selling common, rare and epic stuff');
-            $("#menuSellHide").css("display", "none");
-            $("#menuSoldHide").css("display", "block");
-            // Scroll to top
-            $('#player-inventory').animate({ scrollTop: 0 });
-            var initialNumberOfItems = $(itemsQuery).length;
-            var itemsToSell = Number(document.getElementById("menuSellNumber").value);
-            $("#menuSoldCurrentCount").html("0/" + itemsToSell);
-            $("#menuSoldMessage").html("");
-            let PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
-            function sellingEnd(message) {
-                $("#menuSoldMessage").html(message);
-                menuSellListItems();
-                sellArmorEnded();
-            }
-            function selling_func() {
-                const SellDialog = document.getElementById("SellDialog");
-                if ($('#player-inventory.armor').length === 0) {
-                    LogUtils_logHHAuto('Wrong tab');
-                    sellArmorEnded();
-                    return;
-                }
-                else if (!SellDialog.open) {
-                    LogUtils_logHHAuto('Sell Dialog closed, stopping');
-                    sellArmorEnded();
-                    return;
-                }
-                let availebleItems = $(itemsQuery);
-                let currentNumberOfItems = availebleItems.length;
-                if (currentNumberOfItems === 0) {
-                    LogUtils_logHHAuto('no more items for sale');
-                    sellingEnd(getTextForUI("menuSoldMessageNoMore", "elementText"));
-                    return;
-                }
-                if (initialNumberOfItems < currentNumberOfItems) {
-                    LogUtils_logHHAuto('Some items was loaded in the background, can\'t continue');
-                    sellingEnd(getTextForUI("menuSoldMessageErrorLoaded", "elementText"));
-                    return;
-                }
-                //console.log(initialNumberOfItems,currentNumberOfItems);
-                if ((initialNumberOfItems - currentNumberOfItems) >= itemsToSell) {
-                    LogUtils_logHHAuto('Reach wanted sold items.');
-                    sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
-                    return;
-                }
-                //check Selected item - can we sell it?
-                if (availebleItems.filter('.selected').length > 0) {
-                    let can_sell = false;
-                    //Non legendary or with specific attribute
-                    if (availebleItems.filter('.selected').filter(':not(.legendary),[canBeSold]').length > 0) {
-                        can_sell = true;
-                    }
-                    LogUtils_logHHAuto('can be sold ' + can_sell + ' : ' + availebleItems.filter('.selected')[0].getAttribute('data-d'));
-                    if (can_sell) {
-                        $('#shops .menu-switch-tab-content.active button.green_text_button[rel=sell]').click();
-                        let currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) + 1);
-                        $("#menuSoldCurrentCount").html(currSellNumber + "/" + itemsToSell);
-                        $("#menuSellCurrentCount").html($(itemsQuery).length + '');
-                        setTimeout(selling_func, randomInterval(300, 700));
-                        return;
-                    }
-                }
-                //Find new sellable items
-                if (availebleItems.filter(':not(.selected):not(.legendary),[canBeSold]').length > 0) {
-                    //Select first non legendary item
-                    //Or select item that checked before and can be sold
-                    availebleItems.filter(':not(.selected):not(.legendary):not(.mythic),[canBeSold]')[0].click();
-                    setTimeout(selling_func, randomInterval(300, 700));
-                    return;
-                }
-                else if (availebleItems.filter(':not(.selected)').length > 0) {
-                    let typesOfSets = ['EQ-LE-06', 'EQ-LE-05', 'EQ-LE-04', 'EQ-LE-0' + PlayerClass];
-                    let caracsOfSets = ['carac' + PlayerClass, 'chance', 'endurance', 'carac' + PlayerClass];
-                    //[MaxCarac,Index]
-                    let arraysOfSets = [
-                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-06'
-                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-05'
-                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-04'
-                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] //'EQ-LE-0'+ PlayerClass
-                    ];
-                    /*//Take equipped items into account
-                    for (let indexType = 0; indexType < typesOfSets.length; indexType++)
-                    {
-                        let equipedArray = $('#equiped .armor .slot[data-d*=' + typesOfSets[indexType] + ']');
-                        for (let i5 = 0; i5 < equipedArray.length; i5++) {
-                            let equipedObj = JSON.parse($(equipedArray[i5]).attr('data-d'));
-                            arraysOfSets[indexType][equipedObj.subtype][0] = equipedObj[caracsOfSets[indexType]];
-                        }
-                    }*/
-                    for (let i4 = 0; i4 < availebleItems.length; i4++) {
-                        let sellableItemObj = JSON.parse($(availebleItems[i4]).attr('data-d') || '');
-                        let indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
-                        if (indexType == -1) {
-                            //console.log('can_sell2');
-                            availebleItems[i4].setAttribute('canBeSold', '');
-                        }
-                        else {
-                            let currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
-                            let itemCarac = sellableItemObj[caracsOfSets[indexType]];
-                            //checking best gear in inventory based on best class stat
-                            if (currentBest[0] < itemCarac) {
-                                currentBest[0] = itemCarac;
-                                if (currentBest[1] >= 0) {
-                                    availebleItems[currentBest[1]].setAttribute('canBeSold', '');
-                                }
-                                currentBest[1] = i4;
-                            }
-                            else {
-                                availebleItems[i4].setAttribute('canBeSold', '');
-                            }
-                        }
-                    }
-                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length == 0) {
-                        LogUtils_logHHAuto('no more items for sale');
-                        sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
-                        return;
-                    }
-                }
-                setTimeout(selling_func, randomInterval(300, 700));
-            }
-            selling_func();
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Service/AutoLoopActions.ts
-// AutoLoopActions.ts
-//
-// Contains all discrete action handlers called by the AutoLoop. Each
-// handler checks whether its preconditions are met (feature enabled,
-// timer expired, energy available, not busy) and if so, triggers the
-// corresponding module action and marks the loop as busy.
-//
-// Handlers are executed in a fixed priority order defined in AutoLoop.ts.
-// Only one action fires per loop iteration (once ctx.busy is true, all
-// subsequent handlers skip). This serialization prevents conflicting
-// navigation and ensures the game page is in a known state.
-//
-// Handler naming convention: handle<Feature>(ctx) where ctx is the
-// shared AutoLoopContext carrying busy state, event data, and energy.
-//
-// Used by: AutoLoop.autoLoop()
-var AutoLoopActions_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ---------------------------------------------------------------------------
-//  Standard handler utility – reduces boilerplate for simple module handlers
-// ---------------------------------------------------------------------------
-/**
- * Executes a standard module handler if all preconditions are met.
- * Handles the common pattern: check busy → check autoLoop → check competition
- * → check lastAction → check isReady → log → execute → update busy & lastAction.
- */
-function runStandardHandler(ctx, d) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        const shouldRun = shouldRunStandardHandler({
-            ctxBusy: ctx.busy,
-            autoLoopActive: isAutoLoopActive(),
-            competitionActive: ctx.canCollectCompetitionActive,
-            lastActionPerformed: ctx.lastActionPerformed,
-            requiresAutoLoop: d.requiresAutoLoop,
-            requiresCompetition: d.requiresCompetition,
-            handlerAction: d.action,
-            isReady: d.isReady(),
-        });
-        if (!shouldRun)
-            return;
-        LogUtils_logHHAuto(d.name);
-        const result = yield d.execute();
-        ctx.busy = typeof result === 'boolean' ? result : true;
-        ctx.lastActionPerformed = d.action;
-    });
-}
-// ---------------------------------------------------------------------------
-//  Action handlers – called in order from autoLoop()
-// ---------------------------------------------------------------------------
-// 2. handleMythicWave - lines 255-261
-function handleMythicWave(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && isAutoLoopActive() && ctx.canCollectCompetitionActive
-            && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && checkTimerMustExist('eventMythicNextWave') && getSecondsLeft("eventMythicGoing") > 0
-            && Troll.isEnabled()) {
-            LogUtils_logHHAuto("Mythic wave !");
-            ctx.lastActionPerformed = "troll";
-        }
-    });
-}
-// 3. handleShop - lines 263-274
-function handleShop(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledShop", false) && Shop.isTimeToCheckShop() && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "shop")) {
-            if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
-                setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
-            }
-            if (checkTimer('nextShopTime') || getStoredValue(HHStoredVarPrefixKey + TK.charLevel) < HeroHelper.getLevel()) {
-                LogUtils_logHHAuto("Time to check shop.");
-                ctx.busy = Shop.updateShop();
-                ctx.lastActionPerformed = "shop";
-            }
-        }
-    });
-}
-// 3b. handleAutoEquipBoosters - auto-equip legendary boosters when slots are empty/expired
-function handleAutoEquipBoosters(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true"
-            && checkTimer('nextAutoEquipBoosterTime')
-            && isAutoLoopActive()) {
-            const equipped = yield Booster.autoEquipBoosters();
-            if (equipped) {
-                ctx.busy = true;
-                ctx.lastActionPerformed = "autoEquipBoosters";
-            }
-        }
-    });
-}
-// 4. handleHaremSize - lines 276-288
-function handleHaremSize(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            && isAutoLoopActive()
-            && Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMaxSizeExpirationSecs"))
-            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
-            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
-            && (ctx.lastActionPerformed === "none")) {
-            //console.log(! isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)),JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)).count_date,new Date().getTime() + ConfigHelper.getHHScriptVars("HaremSizeExpirationSecs") * 1000);
-            // Update girl count
-            // Trust the gotoPage return value: when the navigation mutex is
-            // already held (concurrent caller), gotoPage returns false and
-            // does not navigate. Setting ctx.busy = true unconditionally in
-            // that case would falsely block other handlers for one tick.
-            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-        }
-    });
-}
-// 5. handlePlaceOfPower - lines 290-344
-function handlePlaceOfPower(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && PlaceOfPower.isActivated()
-            && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pop")) {
-            var popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-            if (popToStart.length !== 0 || checkTimer('minPowerPlacesTime')) {
-                //if PopToStart exist bypass function
-                var popToStartExist = getStoredValue(HHStoredVarPrefixKey + TK.PopToStart) ? true : false;
-                //logHHAuto("startcollect : "+popToStartExist);
-                if (!popToStartExist) {
-                    //logHHAuto("pop1:"+popToStart);
-                    LogUtils_logHHAuto("Go and collect pop");
-                    ctx.busy = yield PlaceOfPower.collectAndUpdate();
-                }
-                var indexes = (getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter)).split(";");
-                popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                //console.log(indexes, popToStart);
-                for (var pop of popToStart) {
-                    if (ctx.busy === false && !indexes.includes(String(pop))) {
-                        LogUtils_logHHAuto("PoP is no longer in list :" + pop + " removing it from start list.");
-                        PlaceOfPower.removePopFromPopToStart(pop);
-                    }
-                }
-                popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                //logHHAuto("pop2:"+popToStart);
-                for (var index of indexes) {
-                    if (ctx.busy === false && popToStart.includes(Number(index))) {
-                        LogUtils_logHHAuto("Time to do PowerPlace" + index + ".");
-                        ctx.busy = yield PlaceOfPower.doPowerPlacesStuff(index);
-                        ctx.lastActionPerformed = "pop";
-                    }
-                }
-                if (ctx.busy === false) {
-                    //logHHAuto("pop3:"+getStoredValue(HHStoredVarPrefixKey+TK.PopToStart));
-                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                    //logHHAuto("pop3:"+popToStart);
-                    if (popToStart.length === 0) {
-                        //logHHAuto("removing popToStart");
-                        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
-                        // Reflect navigation success in ctx.busy so blocked
-                        // navigations (mutex held) do not falsely consume the
-                        // tick for the next handler.
-                        ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    }
-                }
-            }
-        }
-    });
-}
-// 6. handleGenericBattle - lines 346-363
-function handleGenericBattle(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            &&
-                (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-                    || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle"))
-            && isAutoLoopActive() && ctx.canCollectCompetitionActive) {
-            ctx.busy = true;
-            GenericBattle.doBattle();
-        }
-    });
-}
-// 7. handleLoveRaid - lines 365-372
-function handleLoveRaid(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to go and check raids.",
-            action: "loveraid",
-            requiresCompetition: true,
-            isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
-            execute: () => LoveRaidManager.parse(),
-        });
-    });
-}
-// 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
-function handleTrollBattle(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        // Clear the troll wait-marker (issue #1708) up-front. Only the
-        // wait-branch below sets it back to "true" when this tick decides to
-        // wait for an energy refill. Doing the clear unconditionally avoids
-        // a stale marker when the user disables auto-troll mid-wait or when
-        // the outer guard evaluates to false on a later tick.
-        setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "false");
-        if (ctx.busy === false && Troll.isTrollFightActivated()
-            && isAutoLoopActive() && ctx.canCollectCompetitionActive
-            && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "troll" || ctx.lastActionPerformed === "quest")) {
-            const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-            const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-            const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === "true";
-            const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
-            //logHHAuto("fight amount: "+currentPower+" troll threshold: "+threshold+" paranoia fight: "+Number(checkParanoiaSpendings('fight')));
-            const eventGirl = EventModule.getEventGirl();
-            const eventMythicGirl = EventModule.getEventMythicGirl();
-            const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-            const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-            const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-            // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
-            const loveRaid = LoveRaidManager.isActivated()
-                ? LoveRaidManager.getRaidToFight(allTrollRaids)
-                : undefined;
-            if (
-            //normal case (only when autoTrollBattle is ON)
-            (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-                && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
-                && ctx.currentPower > 0
-                &&
-                    (energyAboveThreshold
-                        || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true"))
-                || getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0 //paranoiaspendings to do
-                ||
-                    (
-                    // mythic Event Girl available and fights available
-                    (eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
-                        &&
-                            (ctx.currentPower > 0 //has fight => bypassing paranoia
-                                || Troll.canBuyFight(eventMythicGirl, false).canBuy // can buy fights
-                            ))
-                ||
-                    (
-                    // Raid Stars: raid with girl grade >= configured minimum.
-                    // Bypass reserve toggle controls whether the troll threshold applies.
-                    (raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
-                        &&
-                            (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
-                ||
-                    (
-                    // normal Event Girl available
-                    (eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true")
-                        &&
-                            (energyAboveThreshold
-                                || Troll.canBuyFight(eventGirl, false).canBuy // can buy fights
-                            ))
-                ||
-                    (
-                    // +Raid: user-selected Love raid.
-                    // Bypass reserve toggle controls whether the troll threshold applies.
-                    (LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
-                        &&
-                            (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)))) {
-                LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
-                setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
-                ctx.busy = true;
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) !== "true" || getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)[0] !== 'P') {
-                    ctx.busy = yield Troll.doBossBattle();
-                    if (ctx.busy) {
-                        ctx.lastActionPerformed = "troll";
-                    }
-                }
-                else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
-                    LogUtils_logHHAuto("AutoBattle disabled for power collection for AutoQuest.");
-                    document.getElementById("autoTrollBattle").checked = false;
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
-                    ctx.busy = false;
-                }
-                else {
-                    // Events/Raids only mode — quest power collection does not block
-                    ctx.busy = yield Troll.doBossBattle();
-                    if (ctx.busy) {
-                        ctx.lastActionPerformed = "troll";
-                    }
-                }
-            }
-            else {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === "true") {
-                    // end run
-                    setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "false");
-                }
-                // Wait-marker: when no battle path matches but a path WOULD match
-                // if combativity were available, set a session-scoped storage
-                // flag so the two pipeline handlers that originally caused the
-                // ping-pong loop (handleEventParsing, handleLeague) suppress
-                // their navigations until power refills (issue #1700).
-                //
-                // The marker MUST NOT touch ctx.busy or ctx.lastActionPerformed:
-                // doing so blocked every other classic AutoLoop handler that
-                // gates on lastAction === "none" (League self-skip, Season,
-                // Quest, Champion, Pantheon, PentaDrill, Pachinko, collectors,
-                // ...), freezing the bot for the duration of the wait
-                // (issue #1708).
-                if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
-                    LogUtils_logHHAuto("Troll fight pending: waiting for energy refill.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "true");
-                }
-            }
-        }
-        else {
-            setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, "0");
-        }
-    });
-}
-/**
- * Pure helper: would handleTrollBattle have fired a fight if combativity were
- * available? Mirrors the activation paths in the main if-block, but without
- * the power/buy checks. Used by the wait-marker branch in handleTrollBattle
- * to detect "only blocker is power=0" situations.
- *
- * Returns true if any of the following holds:
- * - autoTrollBattle is on (would fight last unlocked troll once power > 0)
- * - plusEventMythic is on AND a mythic event girl is currently parsed
- * - plusEvent is on AND a non-mythic event girl is currently parsed
- * - a raid stars raid with id_girl exists AND plusLoveRaid is on
- * - a user-selected LoveRaid with id_girl exists
- *
- * MAINTENANCE -- KEEP IN SYNC WITH handleTrollBattle:
- *
- * Whenever the OR-disjunction in handleTrollBattle gains, drops or refines
- * an activation path, this helper MUST mirror the change. If they drift,
- * the wait-marker either fires too often (blocking event-parsing without
- * cause) or too rarely (the issue #1700 ping-pong returns).
- *
- * Before editing handleTrollBattle's activation block:
- *
- *   git grep -n "wouldFightWithPower\|isTrollFightActivated" src/
- *
- * The activation paths are guarded by a Pure-spec
- * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 13 cases) and
- * a wait-marker spec (spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts,
- * 5 cases). New paths must be added to both specs. The lessons file
- * c:\Users\StephanMesser\.kiro\Arbeitsplatz\.kiro\steering\_lessons\
- * mapping-fix-vollstaendig-pruefen.md captures the cost of skipping this
- * pruning step.
- */
-function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
-    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true";
-    const mythicEventReady = Boolean(eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic) === true
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
-    const eventReady = Boolean(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic) !== true
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
-    const raidStarsReady = Boolean(raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
-    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl);
-    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
-}
-// 9. handlePachinko - lines 465-487 (all 3 pachinko types)
-function handlePachinko(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledMythicPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) === "true"
-            && isAutoLoopActive() && checkTimer("nextPachinko2Time") && ctx.canCollectCompetitionActive
-            && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-            LogUtils_logHHAuto("Time to fetch Mythic Pachinko.");
-            ctx.busy = yield Pachinko.getMythicPachinko();
-            ctx.lastActionPerformed = "pachinko";
-        }
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledGreatPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) === "true"
-            && isAutoLoopActive() && checkTimer("nextPachinkoTime") && ctx.canCollectCompetitionActive
-            && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-            LogUtils_logHHAuto("Time to fetch Great Pachinko.");
-            ctx.busy = yield Pachinko.getGreatPachinko();
-            ctx.lastActionPerformed = "pachinko";
-        }
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEquipmentPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) === "true"
-            && isAutoLoopActive() && checkTimer("nextPachinkoEquipTime") && ctx.canCollectCompetitionActive
-            && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-            LogUtils_logHHAuto("Time to fetch Equipment Pachinko.");
-            ctx.busy = yield Pachinko.getEquipmentPachinko();
-            ctx.lastActionPerformed = "pachinko";
-        }
-    });
-}
-// 10. handleContest - lines 489-497
-function handleContest(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to get contest rewards.",
-            action: "contest",
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledContest", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) === "true"
-                && (checkTimer('nextContestCollectTime') || unsafeWindow.has_contests_datas || Contest.getClaimsButton().length > 0),
-            execute: () => Contest.run(),
-        });
-    });
-}
-// 11. handleMissions - lines 499-507
-function handleMissions(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to do missions.",
-            action: "mission",
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledMission", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
-                && checkTimer('nextMissionTime'),
-            execute: () => Missions.run(),
-        });
-    });
-}
-// 12. handleQuest - lines 509-663 (includes the else-if at 660-663)
-function handleQuest(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledQuest", false)
-            && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true")) && isAutoLoopActive()
-            && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "quest")) {
-            if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === undefined) {
-                setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
-            }
-            const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
-            if (questRequirement === "battle") {
-                if (ConfigHelper.getHHScriptVars("isEnabledTrollBattle", false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "false") {
-                    LogUtils_logHHAuto("Quest requires battle.");
-                    LogUtils_logHHAuto("prepare to save one battle for quest");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "true");
-                    if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== "true") {
-                        // Mirrors the await pattern used in handleTrollBattle.
-                        // Without await the AJAX-driven battle could race with
-                        // the next tick / gotoPage and leave the loop with a
-                        // stale ctx.busy state until the navigation mutex
-                        // catches it.
-                        ctx.busy = yield Troll.doBossBattle();
-                    }
-                }
-            }
-            else if (questRequirement[0] === '$') {
-                if (Number(questRequirement.substr(1)) < HeroHelper.getMoney()) {
-                    // We have enough money... requirement fulfilled.
-                    LogUtils_logHHAuto("Continuing quest, required money obtained.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                    QuestHelper.run();
-                    ctx.busy = true;
-                }
-                else {
-                    //prevent paranoia to wait for quest
-                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                    if (isNaN(questRequirement.substr(1))) {
-                        LogUtils_logHHAuto(questRequirement);
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                        LogUtils_logHHAuto("Invalid money in session storage quest requirement !");
-                    }
-                    ctx.busy = false;
-                }
-            }
-            else if (questRequirement[0] === '*') {
-                var energyNeeded = Number(questRequirement.substr(1));
-                var energyCurrent = QuestHelper.getEnergy();
-                if (energyNeeded <= energyCurrent) {
-                    if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-                        // We have enough energy... requirement fulfilled.
-                        LogUtils_logHHAuto("Continuing quest, required energy obtained.");
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                        QuestHelper.run();
-                        ctx.busy = true;
-                    }
-                    else {
-                        ctx.busy = false;
-                    }
-                }
-                // Else we need energy, just wait.
-                else {
-                    //prevent paranoia to wait for quest
-                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                    ctx.busy = false;
-                    //logHHAuto("Replenishing energy for quest.(" + energyNeeded + " needed)");
-                }
-            }
-            else if (questRequirement[0] === 'P') {
-                // Battle power required.
-                var neededPower = Number(questRequirement.substr(1));
-                if (ctx.currentPower < neededPower) {
-                    LogUtils_logHHAuto("Quest requires " + neededPower + " Battle Power for advancement. Waiting...");
-                    ctx.busy = false;
-                    //prevent paranoia to wait for quest
-                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                }
-                else {
-                    LogUtils_logHHAuto("Battle Power obtained, resuming quest...");
-                    setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                    QuestHelper.run();
-                    ctx.busy = true;
-                }
-            }
-            else if (questRequirement === "unknownQuestButton") {
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true") {
-                    LogUtils_logHHAuto("AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.");
-                    document.getElementById("autoQuest").checked = false;
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
-                }
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
-                    LogUtils_logHHAuto("AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.");
-                    document.getElementById("autoSideQuest").checked = false;
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, "false");
-                }
-                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                ctx.busy = false;
-            }
-            else if (questRequirement === "errorInAutoBattle") {
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true") {
-                    LogUtils_logHHAuto("AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.");
-                    document.getElementById("autoQuest").checked = false;
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
-                }
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
-                    LogUtils_logHHAuto("AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.");
-                    document.getElementById("autoSideQuest").checked = false;
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, "false");
-                }
-                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                ctx.busy = false;
-            }
-            else if (questRequirement === "none") {
-                if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
-                    if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-                        //logHHAuto("NONE req.");
-                        ctx.busy = true;
-                        QuestHelper.run();
-                    }
-                }
-            }
-            else {
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, "true");
-                LogUtils_logHHAuto("Invalid quest requirement : " + questRequirement);
-                ctx.busy = false;
-            }
-            if (ctx.busy)
-                ctx.lastActionPerformed = "quest";
-        }
-        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "false" && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "false") {
-            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-        }
-    });
-}
-// 14. handleSeason - lines 699-724
-function handleSeason(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeason", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true"
-            && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season")) {
-            if (Season.isTimeToFight()) {
-                LogUtils_logHHAuto("Time to fight in Season.");
-                ctx.busy = yield Season.run();
-                ctx.lastActionPerformed = "season";
-            }
-            else if (checkTimer('nextSeasonTime')) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun) === "true") {
-                    // end run
-                    setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, "false");
-                }
-                if (getHHVars('Hero.energies.kiss.next_refresh_ts') === 0) {
-                    setTimer('nextSeasonTime', randomInterval(15 * 60, 17 * 60));
-                }
-                else {
-                    const next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts');
-                    setTimer('nextSeasonTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                }
-            }
-        }
-    });
-}
-// 15. handlePentaDrill - lines 726-753
-function handlePentaDrill(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true"
-            && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill")) {
-            // Need 7 girls to do PentaDrill
-            if (PentaDrill.isTimeToFight()) {
-                LogUtils_logHHAuto("Time to fight in PentaDrill.");
-                PentaDrill.run();
-                ctx.busy = true;
-                ctx.lastActionPerformed = "pentaDrill";
-            }
-            else if (checkTimer('nextPentaDrillTime')) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun) === "true") {
-                    // end run
-                    setStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun, "false");
-                }
-                if (getHHVars('Hero.energies.drill.next_refresh_ts') === 0) {
-                    setTimer('nextPentaDrillTime', randomInterval(15 * 60, 17 * 60));
-                }
-                else {
-                    const next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts');
-                    setTimer('nextPentaDrillTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                }
-            }
-        }
-    });
-}
-// 16. handlePantheon - lines 755-784
-function handlePantheon(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())
-            && Pantheon.isEnabled() && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pantheon")) {
-            if (Pantheon.isTimeToFight()) {
-                LogUtils_logHHAuto("Time to do Pantheon.");
-                Pantheon.run();
-                ctx.busy = true;
-                ctx.lastActionPerformed = "pantheon";
-            }
-            else if (checkTimer('nextPantheonTime')) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun) === "true") {
-                    // end run
-                    setStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun, "false");
-                }
-                if (getHHVars('Hero.energies.worship.next_refresh_ts') === 0) {
-                    setTimer('nextPantheonTime', randomInterval(15 * 60, 17 * 60));
-                }
-                else {
-                    const next_refresh = getHHVars('Hero.energies.worship.next_refresh_ts');
-                    setTimer('nextPantheonTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                }
-                //logHHAuto("reset lastActionPerformed from pantheon");
-                ctx.lastActionPerformed = "none";
-            }
-        }
-    });
-}
-// 17. handleChampionTicket - lines 786-810 (includes the nested buyTicket function)
-function handleChampionTicket(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledChamps", false)
-            && QuestHelper.getEnergy() >= ConfigHelper.getHHScriptVars("CHAMP_TICKET_PRICE") && QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold))
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoChampsUseEne) === "true" && isAutoLoopActive()
-            && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "champion")) {
-            const Hero = getHero();
-            function buyTicket() {
-                var params = {
-                    action: 'champion_buy_ticket',
-                    currency: 'energy_quest',
-                    amount: "1"
-                };
-                LogUtils_logHHAuto('Buying ticket with energy');
-                getHHAjax()(params, function (data) {
-                    //anim_number($('.tickets_number_amount'), data.tokens - amount, amount);
-                    Hero.updates(data.hero_changes);
-                    // C1: route the post-purchase reload through safeReload so
-                    // any in-flight game AJAX (parallel handler) gets to finish
-                    // before the URL change cancels open XHRs.
-                    safeReload();
-                });
-            }
-            // Set autoLoop=false BEFORE the setTimeout window so concurrent
-            // AutoLoop ticks during the 800-1600ms wait cannot start a second
-            // champion_buy_ticket AJAX. lastActionPerformed='champion' alone
-            // would not be enough: a fresh tick has ctx.busy=false and would
-            // re-enter handleChampionTicket because its lastAction guard
-            // accepts 'none' OR 'champion'. The safeReload() inside the AJAX
-            // callback later sets autoLoop=false a second time, but that
-            // second write is idempotent (already false) and serves the
-            // separate purpose of suppressing ticks during the reload itself.
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-            LogUtils_logHHAuto("setting autoloop to false");
-            ctx.busy = true;
-            setTimeout(buyTicket, randomInterval(800, 1600));
-            ctx.lastActionPerformed = "champion";
-        }
-    });
-}
-// 18. handleChampion - lines 812-818
-function handleChampion(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to check on champions!",
-            action: "champion",
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledChamps", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true"
-                && checkTimer('nextChampionTime'),
-            execute: () => Champion.doChampionStuff(),
-        });
-    });
-}
-// 19. handleClubChampion - lines 820-826
-function handleClubChampion(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to check on club champion!",
-            action: "clubChampion",
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true"
-                && checkTimer('nextClubChampionTime'),
-            execute: () => ClubChampion.doClubChampionStuff(),
-        });
-    });
-}
-// 20. handleSeasonCollect - lines 828-841
-function handleSeasonCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeason", false) && isAutoLoopActive() &&
-            (checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === "true" && ctx.canCollectCompetitionActive
-                ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true" && checkTimer('nextSeasonCollectAllTime') && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season")) {
-            LogUtils_logHHAuto("Time to go and check Season for collecting reward.");
-            ctx.busy = Season.goAndCollect();
-            ctx.lastActionPerformed = "season";
-        }
-    });
-}
-// 21. handlePentaDrillCollect - lines 843-855
-function handlePentaDrillCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill", false) && isAutoLoopActive() &&
-            (checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === "true" && ctx.canCollectCompetitionActive
-                ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true" && checkTimer('nextPentaDrillCollectAllTime') && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill")) {
-            LogUtils_logHHAuto("Time to go and check PentaDrill for collecting reward.");
-            ctx.busy = PentaDrill.goAndCollect();
-            ctx.lastActionPerformed = "pentaDrill";
-        }
-    });
-}
-// 22. handleSeasonalFreeCard - lines 857-865
-function handleSeasonalFreeCard(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to go and check SeasonalEvent to buy free card.",
-            action: "seasonal",
-            requiresCompetition: true,
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard) === "true"
-                && checkTimer('nextSeasonalCardCollectTime'),
-            execute: () => SeasonalEvent.goAndCollectFreeCard(),
-        });
-    });
-}
-// 23. handleSeasonalEventCollect - lines 867-879
-function handleSeasonalEventCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && isAutoLoopActive() &&
-            (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" && ctx.canCollectCompetitionActive
-                ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && checkTimer('nextSeasonalEventCollectAllTime') && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "seasonal")) {
-            LogUtils_logHHAuto("Time to go and check SeasonalEvent for collecting reward.");
-            ctx.busy = SeasonalEvent.goAndCollect();
-            ctx.lastActionPerformed = "seasonal";
-        }
-    });
-}
-// 24. handleSeasonalRankCollect - lines 881-890
-function handleSeasonalRankCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to go and check SeasonalEvent for collecting rank reward.",
-            action: "seasonal",
-            requiresCompetition: true,
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true"
-                && checkTimer('nextMegaEventRankCollectTime'),
-            execute: () => SeasonalEvent.goAndCollectMegaEventRankRewards(),
-        });
-    });
-}
-// 25. handlePoVCollect - lines 892-905
-function handlePoVCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && isAutoLoopActive() && PathOfValue.isEnabled() &&
-            (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true" && ctx.canCollectCompetitionActive
-                ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && checkTimer('nextPoVCollectAllTime') && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pov")) {
-            LogUtils_logHHAuto("Time to go and check Path of Valor for collecting reward.");
-            ctx.busy = PathOfValue.goAndCollect();
-            ctx.lastActionPerformed = "pov";
-        }
-    });
-}
-// 26. handlePoGCollect - lines 907-920
-function handlePoGCollect(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && isAutoLoopActive() && PathOfGlory.isEnabled() &&
-            (checkTimer('nextPoGCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === "true" && ctx.canCollectCompetitionActive
-                ||
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && checkTimer('nextPoGCollectAllTime') && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd())) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pog")) {
-            LogUtils_logHHAuto("Time to go and check Path of Glory for collecting reward.");
-            ctx.busy = PathOfGlory.goAndCollect();
-            ctx.lastActionPerformed = "pog";
-        }
-    });
-}
-// 27. handleFreeBundles - lines 922-930
-function handleFreeBundles(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to go and check Free Bundles for collecting reward.",
-            action: "bundle",
-            requiresCompetition: true,
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true"
-                && checkTimer('nextFreeBundlesCollectTime'),
-            execute: () => { Bundles.goAndCollectFreeBundles(); },
-        });
-    });
-}
-// 28. handleDailyGoals - lines 932-939
-function handleDailyGoals(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to go and check daily Goals for collecting reward.",
-            action: "dailyGoals",
-            requiresCompetition: true,
-            isReady: () => ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false)
-                && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true"
-                && checkTimer('nextDailyGoalsCollectTime'),
-            execute: () => DailyGoals.goAndCollect(),
-        });
-    });
-}
-// 29. handleLabyrinth - lines 941-946
-function handleLabyrinth(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        yield runStandardHandler(ctx, {
-            name: "Time to check on labyrinth.",
-            action: "labyrinth",
-            requiresCompetition: true,
-            isReady: () => getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true"
-                && Labyrinth.isEnabled()
-                && checkTimer('nextLabyrinthTime'),
-            execute: () => (new LabyrinthAuto).run(),
-        });
-    });
-}
-// 30. handleSalary - lines 948-958
-function handleSalary(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSalary", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) === "true"
-            && ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")
-            && (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch"))
-            && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "salary")) {
-            if (checkTimer("nextSalaryTime")) {
-                //logHHAuto("Time to check salary.");
-                ctx.busy = yield HaremSalary.getSalary();
-                // if(busy) lastActionPerformed = "salary"; // Removed from continuous actions for now
-            }
-        }
-    });
-}
-// 31. handleBossBangParse - lines 960-980
-function handleBossBangParse(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
-            &&
-                ((ctx.bossBangEventIDs.length > 0
-                    && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
-                    ||
-                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")
-                            && $('#contains_all #events #boss_bang .completed-event').length === 0)) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event")) {
-            LogUtils_logHHAuto("Going to parse boss bang event.");
-            ctx.busy = yield EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
-            ctx.lastActionPerformed = "event";
-        }
-    });
-}
-// 32. handleBossBangFight - lines 982-1002
-function handleBossBangFight(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        if (ctx.busy === false
-            && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
-            &&
-                ((ctx.bossBangEventIDs.length > 0
-                    && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent"))
-                    ||
-                        (ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")
-                            && $('#contains_all #events #boss_bang .completed-event').length === 0)) && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "bossBang") && checkTimer('nextBossBangTime')) {
-            LogUtils_logHHAuto("Going to fight boss bang.");
-            ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
-            ctx.lastActionPerformed = "bossBang";
-        }
-    });
-}
-// 33. handleGoHome - lines 1004-1016
-function handleGoHome(ctx) {
-    return AutoLoopActions_awaiter(this, void 0, void 0, function* () {
-        const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
-        if (ctx.busy === false
-            && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDHome")
-            && ctx.currentPage === lastPageCalled.page
-            && (new Date().getTime() - lastPageCalled.dateTime) > ConfigHelper.getHHScriptVars("minSecsBeforeGoHomeAfterActions") * 1000) {
-            //console.log("testingHome : GotoHome : "+getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled));
-            LogUtils_logHHAuto("Back to home page at the end of actions");
-            deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
-            // Track navigation outcome on ctx.busy: when the navigation
-            // mutex is already held, gotoPage returns false. Without
-            // updating ctx.busy the tick would still claim a navigation
-            // happened, which is wrong (the next tick will retry).
-            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-        }
-    });
-}
-
-;// CONCATENATED MODULE: ./src/Module/Spreadsheet.ts
-var Spreadsheet_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Spreadsheet.ts -- Adds external spreadsheet links to the game UI.
-//
-// Injects helpful links to community spreadsheets (e.g. BDSMPP blessing
-// spreadsheets) directly into the game interface. Listens for AJAX responses
-// to inject links at the right time when relevant pages load.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-class Spreadsheet {
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledSpreadsheets", false);
-    }
-    static canRun() {
-        return Spreadsheet.isEnabled() && $('.' + Spreadsheet.BDSMPP_CLASS).length === 0 && $('.' + Spreadsheet.LINK_CLASS).length === 0;
-    }
-    static run() {
-        if (!Spreadsheet.canRun())
-            return;
-        const page = getPage();
-        if (page === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            onAjaxResponse(/action=get_girls_blessings/i, (response, opt, xhr, evt) => {
-                setTimeout(function () {
-                    return Spreadsheet_awaiter(this, void 0, void 0, function* () {
-                        if (!Spreadsheet.canRun())
-                            return;
-                        const href = ConfigHelper.getHHScriptVars("spreadsheet");
-                        if (!href)
-                            return;
-                        const $sheet_link = $(`<a class="${Spreadsheet.LINK_CLASS}" target="_blank" href="${href}"><span class="nav_grid_icn"></span><span>${getTextForUI("spreadsheet", "elementText")}</span></a>`);
-                        $(Spreadsheet.POPUP_SELECTOR).append($sheet_link);
-                    });
-                }, 200);
-            });
-            GM_addStyle('.' + Spreadsheet.LINK_CLASS + ' {position: absolute; top: 5px; right: 60px;}');
-            GM_addStyle('.' + Spreadsheet.LINK_CLASS + ' .nav_grid_icn {display: inline-block;}');
-        }
-    }
-}
-Spreadsheet.LINK_CLASS = 'hhauto-spreadsheet-link';
-Spreadsheet.BDSMPP_CLASS = 'script-blessing-spreadsheet-link';
-Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
-
-;// CONCATENATED MODULE: ./src/Service/BlessingService.ts
-// BlessingService.ts -- Loads and caches weekly blessing data.
-//
-// Blessings change weekly and affect girl stats. This service loads
-// them via AJAX on the Home page and caches the result in localStorage.
-// The team builder reads from cache to make blessing-aware decisions.
-//
-// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
-//
-
-
-
-
-
-const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
-class BlessingService {
-    static loadIfExpired() {
-        const cached = BlessingService.getCached();
-        if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION_MS) {
-            return;
-        }
-        BlessingService.fetchAndCache();
-    }
-    static fetchAndCache() {
-        const ajax = getHHAjax();
-        if (!ajax) {
-            LogUtils_logHHAuto('BlessingService: hh_ajax not available');
-            return;
-        }
-        LogUtils_logHHAuto('BlessingService: fetching blessings...');
-        ajax({ action: 'get_girls_blessings' }, (response) => {
-            if (!response || !response.success) {
-                LogUtils_logHHAuto('BlessingService: fetch failed: ' + JSON.stringify(response));
-                return;
-            }
-            LogUtils_logHHAuto('BlessingService: response keys: ' + Object.keys(response).join(', '));
-            LogUtils_logHHAuto('BlessingService: raw (500 chars): ' + JSON.stringify(response).substring(0, 500));
-            const blessingData = {
-                timestamp: Date.now(),
-                raw: response,
-                blessedTraits: BlessingService.parseTraits(response),
-                blessedValues: BlessingService.parseBlessedValues(response),
-                blessedElement: BlessingService.parseElement(response),
-            };
-            setStoredValue(HHStoredVarPrefixKey + TK.blessingsCache, JSON.stringify(blessingData));
-            LogUtils_logHHAuto('BlessingService: cached. Traits: ' + blessingData.blessedTraits.join(', ') + ', Element: ' + (blessingData.blessedElement || 'unknown'));
-        });
-    }
-    static getCached() {
-        try {
-            return getStoredJSON(HHStoredVarPrefixKey + TK.blessingsCache, null);
-        }
-        catch (_a) {
-            return null;
-        }
-    }
-    static isCacheValid() {
-        const cached = BlessingService.getCached();
-        return cached !== null && (Date.now() - cached.timestamp) < CACHE_DURATION_MS;
-    }
-    /**
-     * Authoritative per-girl blessing multiplier from the game's
-     * blessing_bonuses field. This is the single source of truth for
-     * 'is this girl currently blessed and by how much'.
-     *
-     * The game writes the active per-class blessing percentages into
-     * blessing_bonuses.pvp_v3 (current league) and pvp_v4 (next league
-     * version). Each is shaped { caracN: number[] }; the list contains
-     * one entry per active blessing affecting the girl, applied
-     * multiplicatively. Examples:
-     *   pvp_v3.carac1 = []         -> no blessing -> multiplier 1.0
-     *   pvp_v3.carac1 = [25]       -> +25%        -> multiplier 1.25
-     *   pvp_v3.carac1 = [40, 25]   -> +40% AND +25% -> multiplier 1.75
-     *
-     * The girl's caracs sub-object already contains the multiplied stat,
-     * so the team builder does not need to multiply again. This helper
-     * is for diagnostics: 'is girl X blessed?' and 'how much'.
-     *
-     * Falls back from pvp_v4 to pvp_v3 (forwards-compatible with a future
-     * league version cutover).
-     */
-    static getEffectiveMultiplier(girl) {
-        var _a, _b;
-        const bb = (_a = girl.blessing_bonuses) !== null && _a !== void 0 ? _a : girl.blessingBonuses;
-        if (!bb || typeof bb !== 'object' || Array.isArray(bb))
-            return 1;
-        const v = (_b = bb.pvp_v4) !== null && _b !== void 0 ? _b : bb.pvp_v3;
-        if (!v || typeof v !== 'object')
-            return 1;
-        const pcs = v.carac1;
-        if (!Array.isArray(pcs) || pcs.length === 0)
-            return 1;
-        let mult = 1;
-        for (const p of pcs) {
-            const n = Number(p);
-            if (Number.isFinite(n) && n > 0) {
-                mult *= 1 + n / 100;
-            }
-        }
-        return mult;
-    }
-    /**
-     * List the blessing percentages currently active on this girl, in
-     * the order the game returned them. Useful for UI annotations like
-     * '(+25% blessing)' or '(+40%, +25% blessing)'.
-     */
-    static getActivePercents(girl) {
-        var _a, _b;
-        const bb = (_a = girl.blessing_bonuses) !== null && _a !== void 0 ? _a : girl.blessingBonuses;
-        if (!bb || typeof bb !== 'object' || Array.isArray(bb))
-            return [];
-        const v = (_b = bb.pvp_v4) !== null && _b !== void 0 ? _b : bb.pvp_v3;
-        if (!v || typeof v !== 'object')
-            return [];
-        const pcs = v.carac1;
-        if (!Array.isArray(pcs))
-            return [];
-        return pcs.filter((p) => Number.isFinite(Number(p)) && Number(p) > 0).map((p) => Number(p));
-    }
-    static parseTraits(response) {
-        const traits = [];
-        const active = response.active;
-        if (!Array.isArray(active))
-            return traits;
-        for (const blessing of active) {
-            const desc = (blessing.description || '').toLowerCase();
-            // Only count blessings that apply globally (not Love Labyrinth only)
-            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
-                continue;
-            if (desc.includes('eye color'))
-                traits.push('eyeColor');
-            if (desc.includes('hair color') || desc.includes('hair colour'))
-                traits.push('hairColor');
-            if (desc.includes('zodiac') || desc.includes('astrological') || (desc.includes('sign ') && !desc.includes('element')))
-                traits.push('zodiac');
-            if (desc.includes('favourite position') || desc.includes('favorite position'))
-                traits.push('position');
-        }
-        return traits;
-    }
-    /**
-     * Parse the specific blessed trait values from the API response.
-     * E.g. "Eye Color Golden" -> { eyeColor: "golden" }
-     */
-    static parseBlessedValues(response) {
-        const values = {};
-        const active = (response === null || response === void 0 ? void 0 : response.active) || [];
-        if (!Array.isArray(active))
-            return values;
-        for (const blessing of active) {
-            const desc = (blessing.description || '');
-            if (!desc.toLowerCase().includes('bonus on all attributes') || desc.toLowerCase().includes('labyrinth'))
-                continue;
-            // Extract from: <span class="blessing-condition">Eye Color Golden</span>
-            const match = desc.match(/blessing-condition[^>]*>([^<]+)/i);
-            if (!match)
-                continue;
-            const condition = match[1].trim();
-            if (condition.toLowerCase().startsWith('eye color')) {
-                values['eyeColor'] = condition.replace(/eye color\s*/i, '').trim().toLowerCase();
-            }
-            else if (condition.toLowerCase().startsWith('hair color') || condition.toLowerCase().startsWith('hair colour')) {
-                values['hairColor'] = condition.replace(/hair colou?r\s*/i, '').trim().toLowerCase();
-            }
-            else if (condition.toLowerCase().startsWith('zodiac') || condition.toLowerCase().startsWith('astrological') || condition.toLowerCase().startsWith('sign')) {
-                values['zodiac'] = condition.replace(/(?:zodiac|astrological)\s*(?:sign)?\s*/i, '').replace(/^sign\s*/i, '').trim().toLowerCase();
-            }
-            else if (condition.toLowerCase().startsWith('favourite position') || condition.toLowerCase().startsWith('favorite position')) {
-                values['position'] = condition.replace(/favou?rite? position\s*/i, '').trim().toLowerCase();
-            }
-            else if (condition.toLowerCase().startsWith('element')) {
-                // Element blessing handled by parseElement
-            }
-        }
-        return values;
-    }
-    static parseElement(response) {
-        const active = response.active;
-        if (!Array.isArray(active))
-            return undefined;
-        const elementMap = {
-            'eccentric': 'fire', 'sensual': 'water', 'exhibitionist': 'nature',
-            'physical': 'stone', 'playful': 'sun', 'dominatrix': 'darkness',
-            'submissive': 'psychic', 'voyeur': 'light',
-        };
-        for (const blessing of active) {
-            const desc = (blessing.description || '').toLowerCase();
-            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
-                continue;
-            if (!desc.includes('element'))
-                continue;
-            for (const [className, element] of Object.entries(elementMap)) {
-                if (desc.includes(className))
-                    return element;
-            }
-        }
-        return undefined;
-    }
-    /**
-     * Resolve the hex code for a blessed trait by analyzing blessing_bonuses on girls.
-     *
-     * Strategy: The Blessing API gives us names (e.g. "grey", "dolphin") but girl data
-     * uses hex codes (e.g. "888") or filenames (e.g. "2.png"). This method finds the
-     * mapping by looking at which girls have the blessing bonus and what trait value
-     * they share uniformly.
-     *
-     * @param girls - All available girls with their raw data
-     * @param blessedCategory - The trait category (eyeColor, hairColor, position)
-     * @param blessingPercent - The bonus percentage from the blessing (e.g. 30, 40)
-     * @returns The hex code / filename that corresponds to the blessed value, or undefined
-     */
-    static resolveHexForBlessing(girls, blessedCategory, blessingPercent) {
-        var _a;
-        // Find girls that have pvp_v3 blessing bonuses
-        const blessedGirls = girls.filter(g => {
-            if (!g.blessing_bonuses || typeof g.blessing_bonuses !== 'object')
-                return false;
-            if (Array.isArray(g.blessing_bonuses) && g.blessing_bonuses.length === 0)
-                return false;
-            return g.blessing_bonuses.pvp_v3 !== undefined;
-        });
-        if (blessedGirls.length === 0)
-            return undefined;
-        // Group blessed girls by their bonus percentage
-        const byPercent = new Map();
-        for (const g of blessedGirls) {
-            const pcts = (_a = g.blessing_bonuses.pvp_v3) === null || _a === void 0 ? void 0 : _a.carac1;
-            if (!Array.isArray(pcts))
-                continue;
-            for (const pct of pcts) {
-                if (!byPercent.has(pct))
-                    byPercent.set(pct, []);
-                byPercent.get(pct).push(g);
-            }
-        }
-        // For each percentage group, check if the target trait has a uniform value
-        const fieldMap = {
-            eyeColor: 'eye_color1',
-            hairColor: 'hair_color1',
-            position: 'position_img',
-            zodiac: 'zodiac',
-        };
-        const field = fieldMap[blessedCategory];
-        if (!field)
-            return undefined;
-        // If we know the exact percentage, check that group first
-        const groupsToCheck = blessingPercent
-            ? [byPercent.get(blessingPercent), ...Array.from(byPercent.values())]
-            : Array.from(byPercent.values());
-        for (const group of groupsToCheck) {
-            if (!group || group.length < 1)
-                continue;
-            // Count trait values in this group
-            const valueCounts = new Map();
-            for (const g of group) {
-                const val = g[field];
-                if (val && val !== '') {
-                    valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
-                }
-            }
-            // Pick the dominant value when it has >= 80% of the group
-            // OR is at least 3x larger than the next contender. The
-            // raw 90% threshold rejected legitimate dominants like
-            // edge cases (e.g. 41/47, 87%) where a few girls happen
-            // to have a different eye color but the SAME blessing
-            // bonus (multiple blessings stacked on the same girl).
-            const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
-            if (sorted.length > 0) {
-                const [topVal, topCount] = sorted[0];
-                const secondCount = sorted.length > 1 ? sorted[1][1] : 0;
-                const ratio = topCount / group.length;
-                const lead = secondCount === 0 ? Infinity : topCount / secondCount;
-                if (ratio >= 0.8 || lead >= 3) {
-                    LogUtils_logHHAuto('BlessingService: resolved ' + blessedCategory + ' -> hex="' + topVal + '" (' + topCount + '/' + group.length + ' girls, lead=' + (lead === Infinity ? 'inf' : lead.toFixed(1)) + ')');
-                    return topVal;
-                }
-            }
-        }
-        return undefined;
-    }
-    /**
-     * Resolve the currently blessed trait values to the hex codes / filenames
-     * / glyph strings used in the girl-data fields. Combines the cached
-     * blessing names (parseBlessedValues) with per-girl pool statistics
-     * (resolveHexForBlessing) so the team builder can match on the actual
-     * field values stored on each girl.
-     *
-     * Returns a per-category mapping like:
-     *   { eyeColor: "F00", hairColor: "0F0" }
-     *
-     * For zodiac, the value is the full glyph+name string as it appears in
-     * girl.zodiac (e.g. "GLYPH Capricorne"); the same string is what girls
-     * carry, so direct equality matches.
-     *
-     * Categories with no resolvable value are omitted from the result. If
-     * no blessing data is cached or no girls carry blessings, returns {}.
-     */
-    static getBlessedHexValues(girls) {
-        const result = {};
-        const cached = BlessingService.getCached();
-        if (!cached || !cached.raw)
-            return result;
-        const named = cached.blessedValues || {};
-        const categories = ['eyeColor', 'hairColor', 'zodiac', 'position'];
-        for (const cat of categories) {
-            const namedValue = named[cat];
-            if (!namedValue)
-                continue;
-            const pct = BlessingService.parseBlessingPercent(cached.raw, cat);
-            const hex = BlessingService.resolveHexForBlessing(girls, cat, pct);
-            if (hex)
-                result[cat] = hex;
-        }
-        return result;
-    }
-    /**
-     * Detect active blessings DIRECTLY from the girls in the pool, without
-     * relying on String-Parsing of the API description (which is locale-
-     * dependent: 'eye color' / 'couleur des yeux' / 'augenfarbe' ...).
-     *
-     * The game's blessing_bonuses field on each girl is the authoritative
-     * source: a girl with can_be_blessed=true has at least one active
-     * blessing applied to her caracs. By cross-referencing the can-be-
-     * blessed girls with their fields (element, rarity, eye_color1,
-     * hair_color1, zodiac, position_img), we identify what each blessing
-     * targets WITHOUT reading any localized description.
-     *
-     * Returns an array of detected blessings sorted by priority:
-     *   1. blessings with the highest bonus percent (e.g. 40% > 25%)
-     *   2. blessings with the largest blessed pool
-     *
-     * The percent comes from the pvp_v3.carac1 list on a representative
-     * blessed girl. When two blessings stack on the same girl, that girl's
-     * carac1 list has multiple entries; we extract individual percents per
-     * field (element/rarity/trait) by finding the field whose value is
-     * uniformly shared by girls carrying a particular percent.
-     */
-    static detectActiveBlessings(girls) {
-        var _a;
-        // Read fields tolerantly: callers pass either raw API girls
-        // (snake_case: eye_color1, hair_color1, position_img,
-        // blessing_bonuses, can_be_blessed) or GirlData objects (camelCase:
-        // eyeColor, hairColor, position, blessingBonuses). For 'blessed'
-        // status: prefer the explicit can_be_blessed flag, otherwise
-        // derive it from blessing_bonuses / blessingBonuses being a
-        // populated dict.
-        const bbOf = (g) => { var _a; return (_a = g.blessing_bonuses) !== null && _a !== void 0 ? _a : g.blessingBonuses; };
-        const isBlessed = (g) => {
-            if (g.can_be_blessed === true)
-                return true;
-            const bb = bbOf(g);
-            return !!(bb && typeof bb === 'object' && !Array.isArray(bb)
-                && (bb.pvp_v3 || bb.pvp_v4));
-        };
-        const blessed = girls.filter(g => isBlessed(g) && bbOf(g)
-            && typeof bbOf(g) === 'object' && !Array.isArray(bbOf(g)));
-        if (blessed.length === 0)
-            return [];
-        // Collect distinct percents seen across the blessed pool.
-        const percents = new Set();
-        for (const g of blessed) {
-            const bb = bbOf(g);
-            const v = (_a = bb.pvp_v3) !== null && _a !== void 0 ? _a : bb.pvp_v4;
-            if (!v || !Array.isArray(v.carac1))
-                continue;
-            for (const p of v.carac1) {
-                const n = Number(p);
-                if (Number.isFinite(n) && n > 0)
-                    percents.add(n);
-            }
-        }
-        const candidates = [];
-        // Read a girl's value for a given trait kind, accepting both
-        // snake_case (raw API) and camelCase (GirlData) forms.
-        const fieldOf = (g, kind) => {
-            var _a, _b, _c;
-            switch (kind) {
-                case 'eyeColor': return (_a = g.eye_color1) !== null && _a !== void 0 ? _a : g.eyeColor;
-                case 'hairColor': return (_b = g.hair_color1) !== null && _b !== void 0 ? _b : g.hairColor;
-                case 'zodiac': return g.zodiac;
-                case 'position': {
-                    // Raw position_img is '5.png', GirlData.position is '5'.
-                    const raw = (_c = g.position_img) !== null && _c !== void 0 ? _c : g.position;
-                    if (raw === undefined || raw === null)
-                        return undefined;
-                    return String(raw).replace(/\.png$/i, '');
-                }
-                case 'element': return g.element;
-                case 'rarity': return g.rarity;
-            }
-        };
-        const kinds = ['eyeColor', 'hairColor', 'zodiac', 'position', 'element', 'rarity'];
-        // For every (percent, kind), find the field+value that uniquely
-        // identifies girls receiving that blessing percent. We need both:
-        //   1. high dominance INSIDE the blessed pool (>= 80%)
-        //   2. specificity: girls outside the blessed pool with that same
-        //      value must not also receive the blessing -- otherwise we
-        //      pick up correlations (e.g. "all 40%-blessed girls happen
-        //      to be legendary" doesn't mean rarity=legendary IS the
-        //      blessing condition).
-        for (const percent of percents) {
-            const carrying = blessed.filter(g => {
-                var _a;
-                const bb = bbOf(g);
-                const v = (_a = bb.pvp_v3) !== null && _a !== void 0 ? _a : bb.pvp_v4;
-                return Array.isArray(v === null || v === void 0 ? void 0 : v.carac1) && v.carac1.includes(percent);
-            });
-            if (carrying.length === 0)
-                continue;
-            for (const kind of kinds) {
-                const valueCounts = new Map();
-                for (const g of carrying) {
-                    const raw = fieldOf(g, kind);
-                    if (raw === undefined || raw === null || raw === '')
-                        continue;
-                    const key = String(raw);
-                    valueCounts.set(key, (valueCounts.get(key) || 0) + 1);
-                }
-                if (valueCounts.size === 0)
-                    continue;
-                const sorted = [...valueCounts.entries()].sort((a, b) => b[1] - a[1]);
-                const [topVal, topCount] = sorted[0];
-                const second = sorted.length > 1 ? sorted[1][1] : 0;
-                const ratio = topCount / carrying.length;
-                const lead = second === 0 ? Infinity : topCount / second;
-                // Dominance check.
-                if (ratio < 0.8 && lead < 3)
-                    continue;
-                // Specificity check.
-                const samevalAll = girls.filter(g => { var _a; return String((_a = fieldOf(g, kind)) !== null && _a !== void 0 ? _a : '') === topVal; });
-                const samevalBlessed = samevalAll.filter(g => isBlessed(g));
-                const specificity = samevalAll.length === 0 ? 0 : samevalBlessed.length / samevalAll.length;
-                if (specificity < 0.8)
-                    continue;
-                candidates.push({ kind, value: topVal, percent, pool_size: samevalAll.length });
-            }
-        }
-        // De-duplicate: a single (kind, value) might appear with two different
-        // percents from stacked blessings; keep the highest percent.
-        const dedup = new Map();
-        for (const c of candidates) {
-            const key = c.kind + '=' + c.value;
-            const cur = dedup.get(key);
-            if (!cur || c.percent > cur.percent)
-                dedup.set(key, c);
-        }
-        // Sort by priority:
-        //   1. higher bonus percent first
-        //   2. larger pool size
-        //   3. trait-kind tiebreaker (eyes > hair > zodiac > position).
-        //      Element/rarity rank below the trait kinds.
-        const kindPriority = {
-            eyeColor: 5,
-            hairColor: 4,
-            zodiac: 3,
-            position: 2,
-            element: 1,
-            rarity: 0,
-        };
-        return [...dedup.values()].sort((a, b) => {
-            var _a, _b;
-            if (b.percent !== a.percent)
-                return b.percent - a.percent;
-            if (b.pool_size !== a.pool_size)
-                return b.pool_size - a.pool_size;
-            const pa = (_a = kindPriority[a.kind]) !== null && _a !== void 0 ? _a : 0;
-            const pb = (_b = kindPriority[b.kind]) !== null && _b !== void 0 ? _b : 0;
-            return pb - pa;
-        });
-    }
-    /**
- * Parse the blessing bonus percentage for a given trait category.
- * E.g. "Eye Color Grey" with "+ 40%" -> 40
- */
-    static parseBlessingPercent(response, category) {
-        const active = (response === null || response === void 0 ? void 0 : response.active) || [];
-        if (!Array.isArray(active))
-            return undefined;
-        const categoryKeywords = {
-            eyeColor: ['eye color'],
-            hairColor: ['hair color', 'hair colour'],
-            position: ['favourite position', 'favorite position'],
-            zodiac: ['zodiac', 'astrological', 'sign'],
-        };
-        const keywords = categoryKeywords[category];
-        if (!keywords)
-            return undefined;
-        for (const blessing of active) {
-            const desc = (blessing.description || '').toLowerCase();
-            if (!desc.includes('bonus on all attributes') || desc.includes('labyrinth'))
-                continue;
-            if (keywords.some(kw => desc.includes(kw))) {
-                const pctMatch = desc.match(/\+\s*(\d+)\s*%/);
-                if (pctMatch)
-                    return Number(pctMatch[1]);
-            }
-        }
-        return undefined;
     }
 }
 
@@ -18062,6 +14440,310 @@ class Club {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Module/ClubChampion.pure.ts
+// ClubChampion.pure.ts -- Pure decision logic for the club-champion auto module.
+//
+// Extracted from ClubChampion.updateClubChampionTimer and
+// ClubChampion._setTimer so the range selection and timer alignment can be
+// unit-tested without DOM access, jQuery, randomInterval, or the timer
+// helper.
+//
+// Two decisions live here:
+//
+// 1. decideNextClubChampionTime maps the scraped "seconds to next timer"
+//    plus the autoClubForceStart setting onto the [min, max] window the
+//    impure adapter then feeds into randomInterval. The girl-reward
+//    substitution is deliberately NOT modelled here -- it happens at the
+//    DOM-scrape boundary (getNextClubChampionTimer) and feeds a
+//    pre-substituted secsToNextTimer into this function. That keeps the
+//    pure layer uniform: input is one number, output is one window.
+//
+// 2. decideAlignedClubChampionTimer reproduces the small alignment branch
+//    in _setTimer: if both autoChamps and autoChampAlignTimer are on AND
+//    both timers fall into the alignment window, return max(proposed,
+//    champTimeLeft); otherwise return the proposed value untouched.
+//
+// Bit-for-bit equivalence is the explicit goal -- thresholds (>7200, >10,
+// <1200) keep their strict comparisons.
+/**
+ * Map the scraped timer plus force-start flag to a [min, max] window for
+ * randomInterval. Reproduces the three-branch cascade in
+ * updateClubChampionTimer line by line:
+ *
+ *   secsToNextTimer === -1                     -> [15*60, 17*60]   no-timer
+ *   secsToNextTimer >  7200 && force-start     -> [115*60, 125*60] force-start
+ *   else                                       -> [secs, secs+180] normal
+ *
+ * The 7200s threshold is strict (>): a timer of exactly 7200 falls
+ * through to the normal branch.
+ */
+function decideNextClubChampionTime(state) {
+    if (state.secsToNextTimer === -1) {
+        return { minTime: 15 * 60, maxTime: 17 * 60, reason: 'no-timer' };
+    }
+    if (state.secsToNextTimer > 7200 && state.autoClubForceStart) {
+        return { minTime: 115 * 60, maxTime: 125 * 60, reason: 'force-start' };
+    }
+    return {
+        minTime: state.secsToNextTimer,
+        maxTime: 180 + state.secsToNextTimer,
+        reason: 'normal',
+    };
+}
+/**
+ * Reproduce the alignment branch in _setTimer:
+ *
+ *   if (autoChamps && autoChampAlignTimer
+ *       && proposedTime > 10 && champTimeLeft < 1200 && proposedTime < 1200)
+ *       proposedTime = max(proposedTime, champTimeLeft);
+ *
+ * All three threshold comparisons are strict on purpose:
+ *   proposedTime > 10  -- skip near-immediate retries
+ *   champTimeLeft < 1200, proposedTime < 1200 -- only align when both are
+ *   below 20 minutes
+ *
+ * The intent of the alignment is to bundle club-champion and
+ * single-champion runs onto the same wake-up: when both fire within the
+ * next 20 minutes, the later one wins so the script does not page-cycle
+ * twice in quick succession.
+ */
+function decideAlignedClubChampionTimer(state) {
+    if (state.autoChamps
+        && state.autoChampAlignTimer
+        && state.proposedTime > 10
+        && state.champTimeLeft < 1200
+        && state.proposedTime < 1200) {
+        return Math.max(state.proposedTime, state.champTimeLeft);
+    }
+    return state.proposedTime;
+}
+
+;// CONCATENATED MODULE: ./src/Module/ClubChampion.ts
+var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// ClubChampion.ts -- Automates Club Champion cooperative fights.
+//
+// Club Champions are cooperative boss battles shared among club members. This
+// module manages fight scheduling, energy tracking, and automatic participation
+// in club champion rounds. Requires active club membership (see Club.ts).
+//
+// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ClubChampion {
+    static getNextClubChampionTimer() {
+        var page = getPage();
+        if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
+            let SecsToNextTimer = -1;
+            let restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
+            let restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
+            if ($(restTeamFilter).length > 0) {
+                SecsToNextTimer = Number(convertTimeToInt($(restTeamFilter).text()));
+                LogUtils_logHHAuto("Team is resting for : " + TimeHelper.toHHMMSS(SecsToNextTimer));
+            }
+            else if ($(restChampionFilter).length > 0) {
+                SecsToNextTimer = Number(convertTimeToInt($(restChampionFilter).text()));
+                LogUtils_logHHAuto("Champion is resting for : " + TimeHelper.toHHMMSS(SecsToNextTimer));
+                if (ClubChampion.hasGirlReward()) {
+                    SecsToNextTimer = randomInterval(30 * 60, 35 * 60);
+                    LogUtils_logHHAuto("Champion has girl reward");
+                }
+            }
+            else {
+                LogUtils_logHHAuto('No timer found');
+            }
+            LogUtils_logHHAuto('on clubs, next timer:' + SecsToNextTimer);
+            return SecsToNextTimer;
+        }
+        return 0; // -1 is only when no timer on club page
+    }
+    static updateClubChampionTimer() {
+        var page = getPage();
+        if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
+            LogUtils_logHHAuto('on clubs');
+            const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+            const noTimer = (secsToNextTimer === -1);
+            const decision = decideNextClubChampionTime({
+                secsToNextTimer,
+                autoClubForceStart: getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true",
+            });
+            const nextClubChampionTime = randomInterval(decision.minTime, decision.maxTime);
+            ClubChampion._setTimer(nextClubChampionTime);
+            return noTimer;
+        }
+        return true;
+    }
+    /** From club champion page */
+    static getRemainingRestTime() {
+        let remainingRestTime = 0;
+        let timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
+        if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
+            remainingRestTime = Number(convertTimeToInt(timerElm));
+        }
+        return remainingRestTime;
+    }
+    static hasGirlReward() {
+        return $('#club_champions .club_champions_rewards_container .slot.slot_girl_shards').length > 0;
+    }
+    static resetTimerIfNeeded() {
+        if ($('button[rel=perform].blue_button_L').length > 0 && $('.champions-bottom__rest').length == 0
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true") {
+            const champTimeLeft = getSecondsLeft('nextClubChampionTime');
+            if (champTimeLeft > 60) {
+                LogUtils_logHHAuto("Club champion seems available, reduce next timer to 30-60s.");
+                ClubChampion._setTimer(randomInterval(30, 60));
+            }
+        }
+    }
+    static doClubChampionStuff() {
+        return ClubChampion_awaiter(this, void 0, void 0, function* () {
+            var page = getPage();
+            if (page == ConfigHelper.getHHScriptVars("pagesIDClubChampion")) {
+                LogUtils_logHHAuto('on club_champion page');
+                if ($('button[rel=perform].blue_button_L').length == 0) {
+                    if ($('.champions-bottom__rest').length > 0) {
+                        LogUtils_logHHAuto('Girls are resting');
+                        const restTime = ClubChampion.getRemainingRestTime();
+                        ClubChampion._setTimer(randomInterval(restTime + 10, restTime + 2 * 60));
+                    }
+                    else {
+                        LogUtils_logHHAuto('Something is wrong!');
+                        ClubChampion._setTimer(randomInterval(15 * 60, 17 * 60));
+                    }
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    return true;
+                }
+                else {
+                    const clubChamptionFightActive = getHHVars('championData.fight.active') || false;
+                    const clubChamptionParticipants = getHHVars('championData.fight.participants') || {};
+                    const playerId = HeroHelper.getPlayerId();
+                    const userStarted = clubChamptionParticipants.find(participant => participant.id_member == playerId);
+                    const playerStarted = clubChamptionFightActive && userStarted && userStarted.challenge_count > 0;
+                    var TCount = Number($('div.input-field > span')[1].innerText.split(' / ')[1]);
+                    var ECount = QuestHelper.getEnergy();
+                    LogUtils_logHHAuto(`T:${TCount} E:${ECount} Player challenge :${(userStarted === null || userStarted === void 0 ? void 0 : userStarted.challenge_count) || 0}`);
+                    if (TCount == 0) {
+                        LogUtils_logHHAuto("No tickets!");
+                        const nextTime = randomInterval(3600, 4000);
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true") {
+                            // No ticket for boths
+                            setTimer('nextChampionTime', nextTime);
+                        }
+                        setTimer('nextClubChampionTime', nextTime);
+                        return false;
+                    }
+                    else {
+                        if ((!clubChamptionFightActive || !playerStarted) && getStoredValue(HHStoredVarPrefixKey + SK.autoBuildChampsTeam) === "true") {
+                            const tempChampBuildTeam = getStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
+                            if (tempChampBuildTeam == "club") {
+                                deleteStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam);
+                            }
+                            else {
+                                LogUtils_logHHAuto("Build team before start");
+                                if ($("#updateChampTeamButton").length == 0) {
+                                    Champion.moduleSimChampions();
+                                    yield TimeHelper.sleep(randomInterval(200, 500));
+                                }
+                                if ($("#updateChampTeamButton").attr("disabled") === "disabled") {
+                                    LogUtils_logHHAuto('Cannot build team, no free draft available. Starting champion without building team');
+                                }
+                                else {
+                                    $("#updateChampTeamButton").trigger("click"); // Auto loop false
+                                    setStoredValue(HHStoredVarPrefixKey + TK.champBuildTeam, "club");
+                                    yield TimeHelper.sleep(randomInterval(2000, 5000));
+                                    return true; // In next loop started after team build, start champ without building team again
+                                }
+                            }
+                        }
+                        if (TCount != 0) {
+                            LogUtils_logHHAuto("Using ticket");
+                            $('button[rel=perform].blue_button_L').trigger('click');
+                            ClubChampion._setTimer(randomInterval(15 * 60, 17 * 60));
+                        }
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDClub"));
+                        return true;
+                    }
+                }
+            }
+            else if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
+                deleteStoredValue(HHStoredVarPrefixKey + TK.clubChampLimitReached);
+                LogUtils_logHHAuto('on clubs');
+                const onChampTab = $("div.club-champion-members-challenges:visible").length === 1;
+                if (!onChampTab) {
+                    LogUtils_logHHAuto('Click champions tab');
+                    $("#club_champions_tab").trigger('click');
+                }
+                let Started = $("div.club-champion-members-challenges .player-row").length === 1;
+                let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+                let noTimer = secsToNextTimer === -1;
+                if ((Started || getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true") && noTimer) {
+                    let ticketUsed = 0;
+                    let ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
+                    if ($(ticketsUsedRequest).length > 0) {
+                        ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
+                    }
+                    let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoClubChampMax));
+                    //console.log(maxTickets, ticketUsed);
+                    if (maxTickets > ticketUsed) {
+                        LogUtils_logHHAuto("Let's do him!");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDClubChampion"));
+                        return true;
+                    }
+                    else {
+                        LogUtils_logHHAuto("Max tickets to use on Club Champ reached.");
+                        setStoredValue(HHStoredVarPrefixKey + TK.clubChampLimitReached, "true");
+                        setTimer('nextClubChampionTime', randomInterval(4 * 60 * 60, 5 * 60 * 60));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        return false;
+                    }
+                }
+                ClubChampion.updateClubChampionTimer();
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                return false;
+            }
+            else {
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDClub"));
+                return true;
+            }
+        });
+    }
+    /**
+     *
+     * @param {number} nextClubChampionTime
+     * @private
+     */
+    static _setTimer(nextClubChampionTime) {
+        const aligned = decideAlignedClubChampionTimer({
+            proposedTime: nextClubChampionTime,
+            champTimeLeft: getSecondsLeft('nextChampionTime'),
+            autoChamps: getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true",
+            autoChampAlignTimer: getStoredValue(HHStoredVarPrefixKey + SK.autoChampAlignTimer) === "true",
+        });
+        setTimer('nextClubChampionTime', aligned);
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Module/Events/LivelyScene.pure.ts
 // LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
 //
@@ -18587,6 +15269,1711 @@ PathOfAttraction.rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair 
 PathOfAttraction.freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
 PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
 PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
+
+;// CONCATENATED MODULE: ./src/Module/Events/PathOfGlory.ts
+// PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
+//
+// Path of Glory is a tiered event where the player earns points through
+// battles to unlock progressive reward tiers. This module tracks tier
+// progress, checks for claimable rewards, and manages fight energy and
+// timer scheduling for the event.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Glory event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class PathOfGlory {
+    static getRemainingTime() {
+        const poGTimerRequest = '#pog_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
+        if ($(poGTimerRequest).length > 0 && (getSecondsLeft("PoGRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoGEndDate) === undefined)) {
+            const poGTimer = Number(convertTimeToInt($(poGTimerRequest).text()));
+            setTimer("PoGRemainingTime", poGTimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.PoGEndDate, Math.ceil(new Date().getTime() / 1000) + poGTimer);
+        }
+    }
+    static displayRemainingTime() {
+        EventModule.displayGenericRemainingTime("#scriptPogTime", "path-of-glory", "HHAutoPoGTimer", "PoGRemainingTime", HHStoredVarPrefixKey + TK.PoGEndDate);
+    }
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
+    }
+    static getRewardButtonToCollect() {
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
+        let buttonsToCollect = [];
+        const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
+        for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
+            const currentButton = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
+            const currentTierNb = currentButton.getAttribute("tier");
+            //console.log("checking tier : "+currentTierNb);
+            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoGTiersToClaim[currentTier])[0]);
+            if (rewardsToCollect.includes(freeSlotType)) {
+                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoGTiersToClaim[currentTier]);
+                if (paidSlots.length > 0) {
+                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
+                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
+                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
+                        buttonsToCollect.push(currentButton);
+                        LogUtils_logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
+                    }
+                }
+                else {
+                    buttonsToCollect.push(currentButton);
+                    LogUtils_logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
+                }
+            }
+        }
+        return buttonsToCollect;
+    }
+    static goAndCollect() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPoG")) {
+            PathOfGlory.getRemainingTime();
+            const pogEnd = getSecondsLeft("PoGRemainingTime");
+            LogUtils_logHHAuto("PoG end in " + TimeHelper.debugDate(pogEnd));
+            if (checkTimer('nextPoGCollectAllTime') && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true") {
+                if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
+                    LogUtils_logHHAuto("Going to collect all POG item at once.");
+                    setTimeout(function () {
+                        $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
+                        setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
+                    }, 500);
+                    return true;
+                }
+                else {
+                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                }
+            }
+            if (checkTimer('nextPoGCollectTime') && (getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true")) {
+                LogUtils_logHHAuto("Checking Path of Glory for collectable rewards.");
+                LogUtils_logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                let buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
+                if (buttonsToCollect.length > 0) {
+                    function collectPoGRewards() {
+                        if (buttonsToCollect.length > 0) {
+                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                            buttonsToCollect[0].click();
+                            buttonsToCollect.shift();
+                            setTimeout(collectPoGRewards, randomInterval(300, 500));
+                        }
+                        else {
+                            LogUtils_logHHAuto("Path of Glory collection finished.");
+                            setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        }
+                    }
+                    collectPoGRewards();
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto("No Path of Glory reward to collect.");
+                    setTimer('nextPoGCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoGCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    return false;
+                }
+            }
+            return false;
+        }
+        else {
+            LogUtils_logHHAuto("Switching to Path of Glory screen.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDPoG"));
+            return true;
+        }
+    }
+    static maskReward() {
+        EventModule.moduleSimPoVPogMaskReward('pog_tab_container');
+    }
+    static styles() {
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/PathOfValue.ts
+// PathOfValue.ts -- Path of Value (PoV) event: tier collection and reward tracking.
+//
+// Path of Value is a tiered event similar to Path of Glory and Path of
+// Attraction, with its own point-based tier progression. This module tracks
+// progress through reward tiers, collects available rewards, and manages
+// event-specific timers and energy.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Path of Value event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class PathOfValue {
+    static getRemainingTime() {
+        const poVTimerRequest = '#pov_tab_container > div.potions-paths-first-row .potions-paths-timer span[rel=expires]';
+        if ($(poVTimerRequest).length > 0 && (getSecondsLeft("PoVRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoVEndDate) === undefined)) {
+            const poVTimer = Number(convertTimeToInt($(poVTimerRequest).text()));
+            setTimer("PoVRemainingTime", poVTimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.PoVEndDate, Math.ceil(new Date().getTime() / 1000) + poVTimer);
+        }
+    }
+    static displayRemainingTime() {
+        EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey + TK.PoVEndDate);
+    }
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
+    }
+    static getRewardButtonToCollect() {
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
+        let buttonsToCollect = [];
+        const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
+        for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
+            const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
+            const currentTierNb = currentButton.getAttribute("tier");
+            //console.log("checking tier : "+currentTierNb);
+            const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
+            if (rewardsToCollect.includes(freeSlotType)) {
+                const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);
+                if (paidSlots.length > 0) {
+                    const passSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[0]);
+                    const passPlusSlotType = RewardHelper.getRewardTypeBySlot(paidSlots[1]);
+                    if (rewardsToCollect.includes(passSlotType) && (paidSlots.length > 1 ? rewardsToCollect.includes(passPlusSlotType) : true)) {
+                        buttonsToCollect.push(currentButton);
+                        LogUtils_logHHAuto(`Adding for collection tier (with paid) : ${currentTierNb} (Free: ${freeSlotType}, Pass: ${passSlotType}, Pass+: ${paidSlots.length > 1 ? passPlusSlotType : 'locked'})`);
+                    }
+                }
+                else {
+                    buttonsToCollect.push(currentButton);
+                    LogUtils_logHHAuto(`Adding for collection tier (only free) : ${currentTierNb} (${freeSlotType})`);
+                }
+            }
+        }
+        return buttonsToCollect;
+    }
+    static goAndCollect() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPoV")) {
+            PathOfValue.getRemainingTime();
+            const povEnd = getSecondsLeft("PoVRemainingTime");
+            LogUtils_logHHAuto("PoV end in " + TimeHelper.debugDate(povEnd));
+            if (checkTimer('nextPoVCollectAllTime') && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true") {
+                if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0) {
+                    LogUtils_logHHAuto("Going to collect all POV item at once.");
+                    setTimeout(function () {
+                        $(ConfigHelper.getHHScriptVars("selectorClaimAllRewards"))[0].click();
+                        setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180)); // Add timer to check again later if there is new items to collect
+                        setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 500);
+                    }, 500);
+                    return true;
+                }
+                else {
+                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                }
+            }
+            if (checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === "true") {
+                LogUtils_logHHAuto("Checking Path of Valor for collectable rewards.");
+                LogUtils_logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                let buttonsToCollect = PathOfValue.getRewardButtonToCollect();
+                if (buttonsToCollect.length > 0) {
+                    function collectPoVRewards() {
+                        if (buttonsToCollect.length > 0) {
+                            LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                            buttonsToCollect[0].click();
+                            buttonsToCollect.shift();
+                            setTimeout(collectPoVRewards, randomInterval(300, 500));
+                        }
+                        else {
+                            LogUtils_logHHAuto("Path of Valor collection finished.");
+                            setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        }
+                    }
+                    collectPoVRewards();
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto("No Path of Valor reward to collect.");
+                    setTimer('nextPoVCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setTimer('nextPoVCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    return false;
+                }
+            }
+            return false;
+        }
+        else {
+            LogUtils_logHHAuto("Switching to Path of Valor screen.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDPoV"));
+            return true;
+        }
+    }
+    static styles() {
+    }
+    static maskReward() {
+        EventModule.moduleSimPoVPogMaskReward('pov_tab_container');
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Events/Seasonal.ts
+var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Seasonal.ts -- Seasonal mega-events: collection and reward claiming.
+//
+// Seasonal events are large-scale, time-limited events that span multiple
+// days. This module tracks seasonal event progress, collects available
+// rewards at each milestone, and manages event timers and page navigation.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Seasonal mega-event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class SeasonalEvent {
+    static isMegaSeasonalEvent() {
+        return $('#get_mega_pass_kobans_btn').length > 0;
+    }
+    static isMegaPassPaid() {
+        return $('#get_mega_pass_kobans_btn:visible').length <= 0;
+    }
+    static isActiveEvent() {
+        return unsafeWindow.seasonal_event_active || unsafeWindow.seasonal_time_remaining > 0 || unsafeWindow.mega_event_active || unsafeWindow.mega_event_time_remaining > 0;
+    }
+    static getRemainingTime() {
+        const seasonalEventTimerRequest = `.mega-event-panel .mega-event-container .mega-timer span[rel=expires]`;
+        if ($(seasonalEventTimerRequest).length > 0 && (getSecondsLeft("SeasonalEventRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate) === undefined)) {
+            const seasonalEventTimer = Number(convertTimeToInt($(seasonalEventTimerRequest).text()));
+            setTimer("SeasonalEventRemainingTime", seasonalEventTimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.SeasonalEventEndDate, Math.ceil(new Date().getTime() / 1000) + seasonalEventTimer);
+        }
+    }
+    static getGlobalRankRemainingTime() {
+        const rankTimerRequest = `#top_ranking_tab_container .ranking-timer-reset .ranking-timer span[rel=expires]`;
+        if ($(rankTimerRequest).length > 0) {
+            const rankTimer = Number(convertTimeToInt($(rankTimerRequest).text()));
+            return rankTimer;
+        }
+        LogUtils_logHHAuto('ERROR: can\'t get seasonal rank timer, default to maxCollectionDelay');
+        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+    }
+    static displayRemainingTime() {
+        LogUtils_logHHAuto('Not implemented');
+    }
+    static getSeasonalNotClaimedRewards() {
+        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_PATH);
+        const freeSlotSelectors = ".slot";
+        const paidSlotSelectors = ""; // Not available
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static getMegaSeasonalNotClaimedRewards() {
+        const arrayz = $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH);
+        const freeSlotSelectors = ".free-slot .slot";
+        const paidSlotSelectors = SeasonalEvent.isMegaPassPaid() ? ".paid-unclaimed .slot" : "";
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static goAndCollect(manualCollectAll = false) {
+        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList, []);
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+            try {
+                SeasonalEvent.getRemainingTime();
+                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+                const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
+                // logHHAuto("Seasonal end in " + seasonalEventEnd);
+                const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
+                const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
+                const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
+                const megaSeasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-section div.mega-tier-container:has(.free-slot button.mega-claim-reward)";
+                const seasonalFreeSlotQuery = ".mega-slot .slot,.mega-slot .slot_girl_shards";
+                const seasonalPaidSlotQuery = ""; // N/A
+                const megaSeasonalFreeSlotQuery = ".free-slot .slot";
+                const megaSeasonalPaidSlotQuery = ".pass-slot.paid-unclaimed .slot";
+                if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
+                    if (needToCollect)
+                        LogUtils_logHHAuto("Checking SeasonalEvent for collectable rewards.");
+                    if (needToCollectAllBeforeEnd)
+                        LogUtils_logHHAuto("Going to collect all SeasonalEvent rewards.");
+                    if (manualCollectAll)
+                        LogUtils_logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
+                    LogUtils_logHHAuto("setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    let buttonsToCollect = [];
+                    const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
+                    const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
+                    const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
+                    const isPassPaid = isMegaSeasonalEvent && SeasonalEvent.isMegaPassPaid();
+                    for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
+                        const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
+                        const currentTierNb = currentButton.getAttribute("tier");
+                        //console.log("checking tier : "+currentTierNb);
+                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
+                        if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
+                            if (isPassPaid) {
+                                // One button for both
+                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(paidSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
+                                if (rewardsToCollect.includes(paidSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
+                                    buttonsToCollect.push(currentButton);
+                                    LogUtils_logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
+                                }
+                                else {
+                                    LogUtils_logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
+                                }
+                            }
+                            else {
+                                buttonsToCollect.push(currentButton);
+                                LogUtils_logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
+                            }
+                        }
+                    }
+                    if (buttonsToCollect.length > 0) {
+                        function closeRewardAndCollectagain() {
+                            RewardHelper.closeRewardPopupIfAny(false);
+                            setTimeout(collectSeasonalEventRewards, randomInterval(300, 500));
+                        }
+                        function collectSeasonalEventRewards() {
+                            if (buttonsToCollect.length > 0) {
+                                LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                setTimeout(closeRewardAndCollectagain, randomInterval(300, 500));
+                            }
+                            else {
+                                LogUtils_logHHAuto("SeasonalEvent collection finished.");
+                                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                                if (!manualCollectAll) {
+                                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                                }
+                                SeasonalEvent.removeCollectAllButtonIfNeeded();
+                            }
+                        }
+                        collectSeasonalEventRewards();
+                        return true;
+                    }
+                    else {
+                        LogUtils_logHHAuto("No SeasonalEvent reward to collect.");
+                        setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        setTimer('nextSeasonalEventCollectAllTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                        if (!manualCollectAll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        }
+                        SeasonalEvent.removeCollectAllButtonIfNeeded();
+                        return false;
+                    }
+                }
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
+                setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+            }
+            return false;
+        }
+        else if (SeasonalEvent.isActiveEvent()) {
+            LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+            return true;
+        }
+        else {
+            LogUtils_logHHAuto("No SeasonalEvent active.");
+            setTimer('nextSeasonalEventCollectTime', 604800); // 1 week delay
+            setTimer('nextSeasonalEventCollectAllTime', 604800); // 1 week delay
+            return false;
+        }
+    }
+    static styles() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            SeasonalEvent.maskReward();
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+            SeasonalEvent.displayRewardsSeasonalDiv();
+            // SeasonalEvent.displayGirlsMileStones(); // TODO fixme
+            SeasonalEvent.displayCollectAllButton();
+        }
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers.double-mega-event .mega-tier-container {
+                width: 77px;}`);
+        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .bottom-container .right-part-container .mega-tiers-section .mega-progress-bar-section .mega-progress-bar-tiers .double-tier .mega-tier {
+                margin: 1rem 0 0;}`);
+    }
+    static hasUnclaimedRewards() {
+        return $(SeasonalEvent.SEASONAL_REWARD_MEGA_PATH + ', ' + SeasonalEvent.SEASONAL_REWARD_PATH).length > 0;
+    }
+    static maskReward() {
+        var arrayz;
+        let modified = false;
+        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+        const seasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
+        const megaSeasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
+        arrayz = $((isMegaSeasonalEvent ? megaSeasonalTierQuery : seasonalTierQuery) + ':not([style*="display:none"]):not([style*="display: none"])');
+        var obj;
+        if (arrayz.length > 0) {
+            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                obj = $(arrayz[i2]).find('.claimed:not([style*="display:none"]):not([style*="display: none"])'); // TODO ".paid-claimed .slot"
+                if (obj.length >= 1) {
+                    arrayz[i2].style.display = "none";
+                    modified = true;
+                }
+            }
+        }
+        if (modified) {
+            let divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
+            if (divToModify.length > 0) {
+                //(divToModify as any).getNiceScroll().resize();
+                const width_px = 152.1;
+                const start_px = 101;
+                const rewards_unclaimed = $('.mega-tier.unclaimed, .free-slot:not(.claimed)').length;
+                const scroll_width_hidden = Math.floor(start_px + (rewards_unclaimed - 1) * width_px);
+                $('.seasonal-progress-bar-current, .mega-progress-bar').css('width', scroll_width_hidden + 'px');
+                // try {
+                //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
+                // } catch(err) {}
+            }
+        }
+    }
+    static displayCollectAllButton() {
+        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#home_tab_container .bottom-container').append(divTooltip);
+            button.one('click', () => {
+                SeasonalEvent.goAndCollect(true);
+            });
+            $('button[rel="claim"]').on('click', () => {
+                // Wait 1s to let the reward popup open and then check if there is still unclaimed rewards, if not remove the collect all button and tooltip
+                setTimeout(() => {
+                    if (!SeasonalEvent.hasUnclaimedRewards()) {
+                        $('#SeasonalCollectAll').remove();
+                        divTooltip.remove();
+                    }
+                }, 1000);
+            });
+        }
+    }
+    static removeCollectAllButtonIfNeeded() {
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+            $('#SeasonalCollectAll').remove();
+        }
+    }
+    static displayGirlsMileStones() {
+        if ($('.HHGirlMilestone').length > 0)
+            return;
+        const $playerPoints = $('.player-shards .mega-event-currency');
+        if ($playerPoints.length == 0) {
+            LogUtils_logHHAuto("ERROR: Can't find player points");
+        }
+        const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
+        const girlContainer = $('.girls-reward-container');
+        const girlSlotRewards = $('#home_tab_container .bottom-container .slot.slot_girl_shards');
+        girlSlotRewards.each(function (index, girlSlot) {
+            const milestone = Number($('.tier-level p', $(girlSlot).parents('.mega-tier-container')).text());
+            if (milestone > 0) {
+                girlContainer.append(SeasonalEvent.getGirlMileStonesDiv(playerPoints, milestone, index + 1));
+            }
+        });
+    }
+    static getGirlMileStonesDiv(playerPoints, girlPointsTarget, girlIndex) {
+        const greeNitckHtml = '<img class="nc-claimed-reward-check" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/clubs/ic_Tick.png">';
+        const girlDiv = $('<div class="HHGirlMilestone girl-img-' + girlIndex + '"><div>Girl ' + girlIndex + ':' + playerPoints + '/' + girlPointsTarget + '</div></div>');
+        if (playerPoints >= girlPointsTarget) {
+            girlDiv.addClass('green');
+            girlDiv.append($(greeNitckHtml));
+        }
+        return girlDiv;
+    }
+    static displayRewardsSeasonalDiv() {
+        const target = $('.girls-reward-container'); // $('.event-resource-location');
+        const hhRewardId = 'HHSeasonalRewards';
+        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+        try {
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
+                LogUtils_logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
+                if (rewardCountByType['all'] > 0) {
+                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container { height: 5rem; margin-top: 0;}'); 
+                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container a { height: 2rem;}'); 
+                    for (var i = 0; i < 4; i++) {
+                        // move video down
+                        GM_addStyle(`.mega-event-panel .mega-event-container .tabs-section #home_tab_container .middle-container .lse-container-${i} { z-index:3;}`);
+                    }
+                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
+                    target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
+                }
+                else {
+                    target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
+                }
+            }
+        }
+        catch (err) {
+            LogUtils_logHHAuto("ERROR:", err.message);
+            target.append($('<div id=' + hhRewardId + ' style="display:none;"></div>'));
+        }
+    }
+    static goAndCollectMegaEventRankRewards() {
+        return Seasonal_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+                const topRank = $('#mega-event-tabs #top_ranking_tab');
+                const eventRank = $('#mega-event-tabs #event_ranking_tab');
+                if (!isMegaSeasonalEvent && topRank.length === 0 && eventRank.length === 0) {
+                    LogUtils_logHHAuto('Not Mega Event');
+                    setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
+                    return Promise.resolve(false);
+                }
+                else if (topRank.length > 0 || eventRank.length > 0) {
+                    LogUtils_logHHAuto('Not Mega Event but rank tab exist');
+                }
+                LogUtils_logHHAuto('Collect Mega Event Rank Rewards');
+                // switch tabs
+                if (topRank.length > 0)
+                    topRank.trigger("click");
+                yield TimeHelper.sleep(randomInterval(400, 600));
+                RewardHelper.closeRewardPopupIfAny();
+                if (eventRank.length > 0)
+                    eventRank.trigger("click");
+                yield TimeHelper.sleep(randomInterval(400, 600));
+                RewardHelper.closeRewardPopupIfAny();
+                setTimer('nextMegaEventRankCollectTime', SeasonalEvent.getGlobalRankRemainingTime() + randomInterval(3600, 4000));
+            }
+            else if (SeasonalEvent.isActiveEvent()) {
+                LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+                return Promise.resolve(true);
+            }
+            else {
+                LogUtils_logHHAuto("No SeasonalEvent active.");
+                setTimer('nextMegaEventRankCollectTime', 604800); // 1 week delay
+            }
+            return Promise.resolve(false);
+        });
+    }
+    static goAndCollectFreeCard() {
+        return Seasonal_awaiter(this, void 0, void 0, function* () {
+            var cardsOwned = getHHVars('mega_event_data.cards');
+            if (cardsOwned && cardsOwned.indexOf('1') >= 0) {
+                LogUtils_logHHAuto(`Free cards already collected (${cardsOwned}), wait for next seasonal event`);
+                setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
+            }
+            else {
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
+                    const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
+                    const cardTabs = $('#mega-event-tabs #cards_tab');
+                    if (cardTabs.length > 0) {
+                        LogUtils_logHHAuto('Collect free cards from Seasonal Event');
+                        // switch tabs
+                        cardTabs.trigger("click");
+                        yield TimeHelper.sleep(randomInterval(400, 600));
+                        const freeCardClaimButton = $('#cards_tab_container .free-card:not([disabled])');
+                        if (freeCardClaimButton.length > 0)
+                            freeCardClaimButton.trigger("click");
+                        yield TimeHelper.sleep(randomInterval(400, 600));
+                        RewardHelper.closeRewardPopupIfAny(); // Close card popup
+                        yield TimeHelper.sleep(randomInterval(400, 600));
+                        RewardHelper.closeRewardPopupIfAny(); // Close card reward popup
+                        if (freeCardClaimButton.length > 1) {
+                            LogUtils_logHHAuto('There is still free cards to collect, try again');
+                            freeCardClaimButton.trigger("click");
+                            yield TimeHelper.sleep(randomInterval(400, 600));
+                            RewardHelper.closeRewardPopupIfAny();
+                        }
+                    }
+                    setTimer('nextSeasonalCardCollectTime', getSecondsLeft("SeasonalEventRemainingTime") + randomInterval(3600, 4000));
+                }
+                else if (SeasonalEvent.isActiveEvent()) {
+                    LogUtils_logHHAuto("Switching to SeasonalEvent screen.");
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"));
+                    return Promise.resolve(true);
+                }
+                else {
+                    LogUtils_logHHAuto("No SeasonalEvent active.");
+                    setTimer('nextSeasonalCardCollectTime', 604800); // 1 week delay
+                }
+            }
+            return Promise.resolve(false);
+        });
+    }
+}
+SeasonalEvent.SEASONAL_REWARD_PATH = '.mega-tier.unclaimed';
+SeasonalEvent.SEASONAL_REWARD_MEGA_PATH = '.mega-tier-container:has(.free-slot button.mega-claim-reward)';
+
+;// CONCATENATED MODULE: ./src/Module/Pachinko.ts
+var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Pachinko.ts -- Automates free pachinko (gacha) pulls: regular, mythic, and equipment.
+//
+// Pachinko is the game's gacha system with free pulls on a timer. This module
+// tracks cooldowns for each pachinko type (regular, mythic, equipment), navigates
+// to the correct tab, and executes free pulls when available. Does not spend
+// premium currency -- only claims free pulls.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Pachinko {
+    static getGreatPachinko() {
+        return Pachinko.getFreePachinko('great', 'nextPachinkoTime', 'great-timer');
+    }
+    static getMythicPachinko() {
+        return Pachinko.getFreePachinko('mythic', 'nextPachinko2Time', 'mythic-timer');
+    }
+    static getEquipmentPachinko() {
+        return Pachinko.getFreePachinko('equipment', 'nextPachinkoEquipTime', 'equipment-timer');
+    }
+    static getFreePachinko(pachinkoType, pachinkoTimer, timerClass) {
+        return Pachinko_awaiter(this, void 0, void 0, function* () {
+            if (!pachinkoType || !pachinkoTimer) {
+                return false;
+            }
+            try {
+                if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDPachinko")) {
+                    LogUtils_logHHAuto("Navigating to Pachinko window.");
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDPachinko"));
+                    return true;
+                }
+                else {
+                    LogUtils_logHHAuto("Detected Pachinko Screen. Fetching Pachinko, setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    LogUtils_logHHAuto('switch to ' + pachinkoType);
+                    const equipementSection = '#pachinko_whole .playing-zone';
+                    const freeButtonQuery = '#playzone-replace-info button[data-free="true"].blue_button_L';
+                    function selectPachinko(pachinkoType) {
+                        return Pachinko_awaiter(this, void 0, void 0, function* () {
+                            $('.game-simple-block[type-pachinko=' + pachinkoType + ']').trigger('click');
+                            yield TimeHelper.sleep(randomInterval(400, 600));
+                        });
+                    }
+                    yield selectPachinko(pachinkoType);
+                    if ($(equipementSection).attr('type-panel') != pachinkoType) {
+                        LogUtils_logHHAuto(`Error pachinko ${pachinkoType} not loaded after click, retry`);
+                        yield selectPachinko(pachinkoType);
+                    }
+                    if ($(freeButtonQuery).length === 0) {
+                        LogUtils_logHHAuto('Not ready yet');
+                    }
+                    else {
+                        $(freeButtonQuery).trigger('click');
+                    }
+                    yield TimeHelper.sleep(randomInterval(100, 200));
+                    var npach = $('.' + timerClass + ' span[rel="expires"]').text();
+                    if (npach !== undefined && npach !== null && npach.length > 0) {
+                        setTimer(pachinkoTimer, Number(convertTimeToInt(npach)) + randomInterval(1, 5));
+                    }
+                    else {
+                        LogUtils_logHHAuto("Unable to find " + pachinkoType + " Pachinko time, wait 4h.");
+                        setTimer(pachinkoTimer, ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(1, 10));
+                    }
+                    setTimeout(function () {
+                        RewardHelper.closeRewardPopupIfAny();
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                        LogUtils_logHHAuto("setting autoloop to true");
+                        setTimeout(autoLoop, randomInterval(500, 800));
+                    }, randomInterval(300, 600));
+                }
+                return true;
+            }
+            catch (ex) {
+                LogUtils_logHHAuto("Catched error : Could not collect " + pachinkoType + " Pachinko... " + ex);
+                setTimer(pachinkoTimer, ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(1, 10));
+                return false;
+            }
+        });
+    }
+    static getNumberOfGirlToWinPatchinko() {
+        const girlsRewards = $("div.playing-zone .game-rewards .list-prizes .girl_shards");
+        let numberOfGirlsToWin = 0;
+        if (girlsRewards.length > 0) {
+            try {
+                numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
+            }
+            catch (exp) { }
+        }
+        return numberOfGirlsToWin;
+    }
+    static getNumberOfOrbsLeft(buttonSelector) {
+        let orbsLeft = 0;
+        if ($(buttonSelector + " span[total_orbs]").length > 0) {
+            orbsLeft = Number($(buttonSelector + " span[total_orbs]").first().text());
+        }
+        if (isNaN(orbsLeft)) {
+            orbsLeft = 0;
+            LogUtils_logHHAuto("ERROR getting orbs left");
+        }
+        return orbsLeft;
+    }
+    static buildPachinkoSelectPopUp(orbsPlayed = -1) {
+        Pachinko.autoPachinkoRunning = false;
+        if (Pachinko.failureTimeoutId)
+            clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
+        let PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
+            + '<div style="display:flex;flex-direction:row">'
+            + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoSelector", "tooltip") + '</span><select id="PachinkoSelector"></select></div>'
+            + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoLeft", "tooltip") + '</span><span id="PachinkoLeft"></span></div>'
+            + '</div>'
+            + '<div class="rowLine">'
+            + '<p id="girls_to_win"></p>'
+            + '</div>'
+            + '<div class="rowLine">'
+            + hhMenuSwitch('PachinkoFillOrbs')
+            + hhMenuSwitch('PachinkoByPassNoGirls')
+            + hhMenuSwitch('PachinkoStopFirstGirl')
+            + '</div>'
+            + '<div class="rowLine">'
+            + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoXTimes", "tooltip") + '</span><input id="PachinkoXTimes" style="width:50px;height:20px" required pattern="' + HHAuto_inputPattern.menuExpLevel + '" type="text" value="1"></div>'
+            + '</div>'
+            + '<div class="rowLine">'
+            + '<div style="padding:10px;width:50%" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("Launch", "tooltip") + '</span><label class="myButton" id="PachinkoPlayX" style="font-size:15px; width:100%;text-align:center">' + getTextForUI("Launch", "elementText") + '</label></div>'
+            + '</div>'
+            + '<p style="color: red;" id="PachinkoError"></p>'
+            + `<p id="PachinkoOrbsSpent">${orbsPlayed >= 0 ? getTextForUI("PachinkoOrbsSpent", "elementText") + ' ' + orbsPlayed : ''}</p>`
+            + '</div>';
+        fillHHPopUp("PachinkoMenu", getTextForUI("PachinkoButton", "elementText"), PachinkoMenu);
+        function updateOrbsNumber(orbsLeft) {
+            let fillAllOrbs = document.getElementById("PachinkoFillOrbs").checked;
+            if (fillAllOrbs && orbsLeft.length > 0) {
+                document.getElementById("PachinkoXTimes").value = orbsLeft[0].innerText;
+            }
+            else {
+                document.getElementById("PachinkoXTimes").value = '1';
+            }
+        }
+        $("#PachinkoPlayX").on("click", Pachinko.pachinkoPlayXTimes);
+        $(document).on('change', "#PachinkoSelector", function () {
+            let pachinkoSelector = document.getElementById("PachinkoSelector");
+            let selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
+            if (selectorText === getTextForUI("PachinkoSelectorNoButtons", "elementText")) {
+                $("#PachinkoLeft").text("");
+                return;
+            }
+            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
+            if (orbsLeft.length > 0) {
+                $("#PachinkoLeft").text(orbsLeft[0].innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
+            }
+            else {
+                $("#PachinkoLeft").text('0');
+            }
+            updateOrbsNumber(orbsLeft);
+        });
+        $(document).on('change', "#PachinkoFillOrbs", function () {
+            let timerSelector = document.getElementById("PachinkoSelector");
+            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
+            updateOrbsNumber(orbsLeft);
+        });
+        // Add options //changed
+        let pachinkoOptions = document.getElementById("PachinkoSelector");
+        let countTimers = 0;
+        let PachinkoType = $("div.playing-zone #playzone-replace-info div.cover h2")[0].innerText;
+        $("div.playing-zone div.btns-section button.blue_button_L").each(function () {
+            let optionElement = document.createElement("option");
+            let orbName = $(this).attr('orb_name') || '';
+            optionElement.value = orbName;
+            countTimers++;
+            optionElement.text = `${PachinkoType} x${Pachinko.getHumanPachinkoFromOrbName(orbName)}`;
+            pachinkoOptions.add(optionElement);
+            if (countTimers === 1) {
+                let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
+                $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
+            }
+        });
+        let numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
+        $("#girls_to_win").text(numberOfGirlsToWin + " girls to win"); // TODO translate
+        $('#PachinkoStopFirstGirl').parent().parent().parent().toggle(numberOfGirlsToWin > 0);
+        if (countTimers === 0) {
+            let optionElement = document.createElement("option");
+            optionElement.value = countTimers + '';
+            optionElement.text = getTextForUI("PachinkoSelectorNoButtons", "elementText");
+            pachinkoOptions.add(optionElement);
+        }
+    }
+    static modulePachinko() {
+        Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+        const menuID = "PachinkoButton";
+        let PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoButton", "tooltip") + '</span><label style="font-size:small" class="myButton" id="PachinkoButton">' + getTextForUI("PachinkoButton", "elementText") + '</label></div>';
+        if (document.getElementById(menuID) === null) {
+            $("#contains_all section").prepend(PachinkoButton);
+            $("#PachinkoButton").on("click", () => { Pachinko.buildPachinkoSelectPopUp(-1); });
+            GM_registerMenuCommand(getTextForUI(menuID, "elementText"), () => { Pachinko.buildPachinkoSelectPopUp(-1); });
+        }
+        else {
+            return;
+        }
+    }
+    static getSelectedOptionButtonSelector() {
+        const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
+        return "div.playing-zone div.btns-section button.blue_button_L[orb_name=" + selectedOption.value + "]";
+    }
+    static pachinkoPlayXTimes() {
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        LogUtils_logHHAuto("setting autoloop to false");
+        Pachinko.pachinkoSelector = document.getElementById("PachinkoSelector");
+        Pachinko.ByPassNoGirlChecked = document.getElementById("PachinkoByPassNoGirls").checked;
+        Pachinko.stopFirstGirlChecked = document.getElementById("PachinkoStopFirstGirl").checked;
+        const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
+        let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+        Pachinko.orbsToGo = Number(document.getElementById("PachinkoXTimes").value);
+        Pachinko.orbLeftOnAutoStart = Pachinko.getNumberOfOrbsLeft(buttonSelector);
+        if (Pachinko.orbLeftOnAutoStart <= 0) {
+            LogUtils_logHHAuto('No Orbs left for : ' + selectedOption.text);
+            $("#PachinkoError").text(getTextForUI("PachinkoSelectorNoButtons", "elementText"));
+            return;
+        }
+        if (Number.isNaN(Number(Pachinko.orbsToGo)) || Pachinko.orbsToGo < 1 || Pachinko.orbsToGo > Pachinko.orbLeftOnAutoStart) {
+            LogUtils_logHHAuto('Invalid orbs number ' + Pachinko.orbsToGo);
+            $("#PachinkoError").text(getTextForUI("PachinkoInvalidOrbsNb", "elementText") + " : " + Pachinko.orbsToGo);
+            return;
+        }
+        let PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
+            + '<p>' + selectedOption.text + ' : </p>'
+            + '<p id="PachinkoPlayedTimes" style="padding:0 10px">0/' + Pachinko.orbsToGo + '</p>'
+            + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
+            + '</div>';
+        fillHHPopUp("PachinkoPlay", getTextForUI("PachinkoButton", "elementText"), PachinkoPlay);
+        $("#PachinkoPlayCancel").on("click", () => {
+            maskHHPopUp();
+            LogUtils_logHHAuto("Cancel clicked, closing popUp.");
+            Pachinko.autoPachinkoRunning = false;
+            if (Pachinko.failureTimeoutId)
+                clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
+        });
+        if (!Pachinko.ajaxBindingDone) {
+            Pachinko.bindPachinkoAjaxReturn();
+        }
+        Pachinko.autoPachinkoRunning = true;
+        setTimeout(Pachinko.playXPachinko_func, randomInterval(500, 1500));
+    }
+    static stopXPachinkoNoGirl() {
+        LogUtils_logHHAuto("No more girl on Pachinko, cancelling.");
+        maskHHPopUp();
+        Pachinko.buildPachinkoSelectPopUp();
+        $("#PachinkoError").text(getTextForUI("PachinkoNoGirls", "elementText"));
+    }
+    static stopXPachinkoFailure() {
+        if (Pachinko.retry <= 2) {
+            LogUtils_logHHAuto("Pachinko failure, retry once.");
+            Pachinko.retry++;
+            setTimeout(Pachinko.playXPachinko_func, randomInterval(100, 300));
+        }
+        else {
+            LogUtils_logHHAuto("Pachinko failure, cancelling.");
+            maskHHPopUp();
+            Pachinko.buildPachinkoSelectPopUp();
+            $("#PachinkoError").text(getTextForUI("PachinkoFailure", "elementText"));
+        }
+    }
+    static playXPachinko_func() {
+        return Pachinko_awaiter(this, void 0, void 0, function* () {
+            let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+            const buttonContinueSelector = '.popup_buttons #play_again:visible';
+            if (!isDisplayedHHPopUp()) {
+                Pachinko.autoPachinkoRunning = false;
+                LogUtils_logHHAuto("PopUp closed, cancelling interval, restart autoloop.");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                return;
+            }
+            const confirmPachinko = document.getElementById("confirm_pachinko");
+            if (confirmPachinko !== null) {
+                if (Pachinko.ByPassNoGirlChecked && confirmPachinko.querySelector("#popup_confirm.blue_button_L") !== null) {
+                    confirmPachinko.querySelector("#popup_confirm.blue_button_L").click();
+                    LogUtils_logHHAuto('By pass no girl popup closed');
+                }
+                else {
+                    Pachinko.stopXPachinkoNoGirl();
+                    return;
+                }
+            }
+            const currentOrbsLeft = Pachinko.getNumberOfOrbsLeft(buttonSelector);
+            const spendedOrbs = Number(Pachinko.orbLeftOnAutoStart - currentOrbsLeft);
+            //if (debugEnabled) logHHAuto('orbsLeft: ' + Pachinko.orbLeftOnAutoStart + ", currentOrbsLeft: " + currentOrbsLeft + ', spendedOrbs: ' + spendedOrbs + '/orbsToGo: ' + orbsToGo);
+            if (Pachinko.stopFirstGirlChecked && $('#rewards_popup #reward_holder .shards_wrapper:visible').length > 0) {
+                LogUtils_logHHAuto("Girl in reward, stopping...");
+                maskHHPopUp();
+                Pachinko.buildPachinkoSelectPopUp(spendedOrbs);
+                return;
+            }
+            const pachinkoSelectedButton = $(buttonSelector)[0];
+            const continuePachinkoSelectedButton = $(buttonContinueSelector);
+            $("#PachinkoPlayedTimes").text(spendedOrbs + "/" + Pachinko.orbsToGo);
+            if (spendedOrbs < Pachinko.orbsToGo && currentOrbsLeft > 0) {
+                if (continuePachinkoSelectedButton.length > 0) {
+                    continuePachinkoSelectedButton.trigger('click');
+                }
+                else {
+                    if (RewardHelper.closeRewardPopupIfAny(false)) {
+                        yield TimeHelper.sleep(randomInterval(500, 1000));
+                        RewardHelper.closeGirlRewardPopupIfAny(true);
+                    }
+                    pachinkoSelectedButton.click();
+                    Pachinko.failureTimeoutId = setTimeout(() => {
+                        // Safe mode
+                        LogUtils_logHHAuto("ERROR: No reply from server after more than 5s.");
+                        Pachinko.stopXPachinkoFailure();
+                    }, randomInterval(5000, 8000));
+                    // Nothing to do here, will be done by ajaxComplete handler above.
+                }
+            }
+            else {
+                RewardHelper.closeRewardPopupIfAny(false);
+                LogUtils_logHHAuto("All spent, going back to Selector.");
+                maskHHPopUp();
+                Pachinko.buildPachinkoSelectPopUp(spendedOrbs);
+                return;
+            }
+        });
+    }
+    static bindPachinkoAjaxReturn() {
+        Pachinko.ajaxBindingDone = true;
+        $(document).ajaxComplete(function (evt, xhr, opt) {
+            var _a, _b;
+            if (!opt.data)
+                return;
+            if (!xhr.responseText.length)
+                return;
+            const searchParams = new URLSearchParams(opt.data);
+            if (searchParams.get('action') == 'play' && searchParams.get('class') == 'Pachinko') {
+                const response = safeJsonParse(xhr.responseText, null);
+                if (!response || !response.success) {
+                    if (Pachinko.debugEnabled)
+                        LogUtils_logHHAuto("Not response success");
+                    Pachinko.stopXPachinkoFailure();
+                    return;
+                }
+                if ((_b = (_a = response.rewards) === null || _a === void 0 ? void 0 : _a.heroChangesUpdate) === null || _b === void 0 ? void 0 : _b.orbs) {
+                    //const orbs = response.rewards?.heroChangesUpdate?.orbs;
+                    // o_g10 / o_g1 / o_eq2
+                    //const orbLeftFromResponse = orbs.o_g10;
+                    if (Pachinko.failureTimeoutId)
+                        clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
+                    if (Pachinko.autoPachinkoRunning) {
+                        setTimeout(Pachinko.playXPachinko_func, randomInterval(200, 500));
+                    }
+                    else if (Pachinko.debugEnabled) {
+                        LogUtils_logHHAuto('Ajax catched, do nothing');
+                    }
+                }
+                else
+                    Pachinko.stopXPachinkoFailure();
+            }
+        });
+    }
+    static getHumanPachinkoFromOrbName(orb_name) {
+        switch (orb_name) {
+            case 'o_v4': return '4';
+            case 'o_e1':
+            case 'o_eq1':
+            case 'o_g1':
+            case 'o_m1': return '1';
+            case 'o_eq2': return '2';
+            case 'o_m3': return '3';
+            case 'o_m6': return '6';
+            case 'o_eq10':
+            case 'o_g10':
+            case 'o_e10': return '10';
+            case 'o_ed': return 'Draft';
+            default: return 'Unknown';
+        }
+    }
+}
+Pachinko.ajaxBindingDone = false;
+Pachinko.orbLeftOnAutoStart = 0;
+Pachinko.orbsToGo = 0;
+Pachinko.autoPachinkoRunning = false;
+Pachinko.failureTimeoutId = undefined;
+Pachinko.pachinkoSelector = undefined;
+Pachinko.retry = 0;
+
+;// CONCATENATED MODULE: ./src/Module/Shop.ts
+// Shop.ts -- Automates the equipment shop: buys and sells equipment, manages
+// inventory.
+//
+// Handles automated interactions with the in-game equipment shop. Buys
+// desired equipment, sells unwanted items, and manages inventory slots.
+// Tracks shop refresh timers and available currency.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Shop {
+    static isTimeToCheckShop() {
+        const updateMarket = getStoredValue(HHStoredVarPrefixKey + SK.updateMarket) === "true";
+        const needBoosterStatus = Booster.needBoosterStatusFromStore();
+        return (updateMarket || needBoosterStatus) && (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch"));
+    }
+    static updateShop() {
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
+            LogUtils_logHHAuto("Navigating to Market window.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
+            return true;
+        }
+        else {
+            LogUtils_logHHAuto("Detected Market Screen. Fetching Assortment");
+            var assA = [];
+            var assB = [];
+            var assG = [];
+            var assP = [];
+            $('#shops div.armor.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
+                assA.push(JSON.parse(this.dataset.d)); });
+            $('#shops div.booster.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
+                assB.push(JSON.parse(this.dataset.d)); });
+            $('#shops div.gift.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
+                assG.push(JSON.parse(this.dataset.d)); });
+            $('#shops div.potion.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
+                assP.push(JSON.parse(this.dataset.d)); });
+            var HaveAff = 0;
+            var HaveExp = 0;
+            var HaveBooster = {};
+            $('#shops div.gift.player-inventory-content .slot').each(function () { if (this.dataset.d) {
+                var d = JSON.parse(this.dataset.d);
+                HaveAff += d.quantity * d.item.value;
+            } });
+            $('#shops div.potion.player-inventory-content .slot').each(function () { if (this.dataset.d) {
+                var d = JSON.parse(this.dataset.d);
+                HaveExp += d.quantity * d.item.value;
+            } });
+            var BoosterIdMap = {};
+            $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
+                var d = JSON.parse(this.dataset.d);
+                HaveBooster[d.item.identifier] = d.quantity;
+                if (d.item.id_item)
+                    BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };
+            } });
+            setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
+            setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
+            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify(HaveBooster));
+            setStoredValue(HHStoredVarPrefixKey + TK.boosterIdMap, JSON.stringify(BoosterIdMap));
+            LogUtils_logHHAuto('counted ' + getStoredValue(HHStoredVarPrefixKey + TK.haveAff) + ' Aff, ' + getStoredValue(HHStoredVarPrefixKey + TK.haveExp) + ' Exp, Booster: ' + JSON.stringify(HaveBooster));
+            // Debug: log each booster found in player inventory with id_item and quantity
+            for (const [identifier, data] of Object.entries(BoosterIdMap)) {
+                const qty = HaveBooster[identifier] || 0;
+                const entry = data;
+                LogUtils_logHHAuto(`  Booster inventory: ${entry.name} [${identifier}] id_item=${entry.id_item} rarity=${entry.rarity} qty=${qty}`);
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
+            setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
+            var nshop;
+            let shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
+            if (nshop === undefined && shopFrozenTimer.length > 0) {
+                nshop = convertTimeToInt(shopFrozenTimer);
+            }
+            let shopTimer = 60;
+            if (nshop !== undefined && nshop !== 0) {
+                // if (Number(nshop)+1 > 2*60*60)
+                // {
+                //     shopTimer=2*60*60;
+                // }
+                // else
+                // {
+                shopTimer = Number(nshop) + 1;
+                // }
+            }
+            setTimer('nextShopTime', shopTimer + randomInterval(60, 180));
+            if (isJSON(getStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled))
+                && getPage() === getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '' }).page) {
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                LogUtils_logHHAuto("Go to Home after Shopping");
+            }
+        }
+        return false;
+    }
+    static moduleShopActions() {
+        var _a, _b, _c, _d, _e, _f;
+        const itemsQuery = '#player-inventory.armor .slot:not(.empty):not([menuSellLocked]):not(.mythic)';
+        appendMenuSell();
+        /**
+         * @return "potion" / "gift" / player-stats / armor / booster / null
+         */
+        function getShopType() {
+            const shopSelected = $('section #shops #tabs-switcher .market-menu-switch-tab.active');
+            if (shopSelected.length > 0) {
+                return shopSelected.attr("type");
+            }
+            else {
+                return null;
+            }
+        }
+        function menuSellListItems() {
+            if ($('#menuSellList>.tItems').length === 0) {
+                GM_addStyle('.tItems {border-collapse: collapse;} '
+                    + '.tItems td,th {border: 1px solid #1B4F72;} '
+                    + '.tItemsColGroup {border: 3px solid #1B4F72;} '
+                    + '.tItemsTh1 {background-color: #2874A6;color: #fff;} '
+                    + '.tItemsTh2 {background-color: #3498DB;color: #fff;} '
+                    + '.tItemsTBody tr:nth-child(odd) {background-color: #85C1E9;} '
+                    + '.tItemsTBody tr:nth-child(even) {background-color: #D6EAF8;} '
+                    + '.tItemsTdItems[itemsLockStatus="allLocked"] {color: #FF0000} '
+                    + '.tItemsTdItems[itemsLockStatus="noneLocked"] {color: #1B4F72}'
+                    + '.tItemsTdItems[itemsLockStatus="someLocked"] {color: #FFA500}');
+            }
+            let itemsCaracsNb = 16;
+            let itemsCaracs = [];
+            for (let i = 1; i < itemsCaracsNb + 1; i++) {
+                itemsCaracs.push(i);
+            }
+            itemsCaracs.push('mythic'); // Needed for mythic equipement, can't use generic method for them
+            let itemsRarity = ["common", "rare", "epic", "legendary", "mythic"];
+            let itemsLockedStatus = ["not_locked", "locked"];
+            let itemsTypeNb = 6;
+            let itemsType = [];
+            for (let i = 1; i < itemsTypeNb + 1; i++) {
+                itemsType.push(i);
+            }
+            let itemsList = {};
+            for (let c of itemsCaracs) {
+                let filteredCarac;
+                if (c === 'mythic') {
+                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"rarity":"mythic"\']');
+                }
+                else {
+                    filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":' + c + '\']');
+                }
+                itemsList[c] = {};
+                for (let t of itemsType) {
+                    let filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + '\']');
+                    itemsList[c][t] = {};
+                    for (let r of itemsRarity) {
+                        let filteredRarity = filteredType.filter('[data-d*=\'"rarity":"' + r + '"\']');
+                        itemsList[c][t][r] = {};
+                        for (let l of itemsLockedStatus) {
+                            let filteredStatus = filteredRarity.filter(l === "locked" ? '[menuSellLocked]' : ':not([menuSellLocked])');
+                            itemsList[c][t][r][l] = filteredStatus.length;
+                        }
+                    }
+                }
+            }
+            let itemsListMenu = '<table class="tItems">'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity">'
+                + ' </colgroup>'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity" span="6">'
+                + ' </colgroup>'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity" span="6">'
+                + ' </colgroup>'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity" span="6">'
+                + ' </colgroup>'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity" span="6">'
+                + ' </colgroup>'
+                + ' <colgroup class="tItemsColGroup">'
+                + '  <col class="tItemsColRarity" span="6">'
+                + ' </colgroup>'
+                + ' <thead class="tItemsTHead">'
+                + '  <tr>'
+                + '   <th class="tItemsTh1">' + getTextForUI("Rarity", "elementText") + '</th>'
+                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[0] + '" colspan="6">' + getTextForUI("RarityCommon", "elementText") + '</th>'
+                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[1] + '" colspan="6">' + getTextForUI("RarityRare", "elementText") + '</th>'
+                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[2] + '" colspan="6">' + getTextForUI("RarityEpic", "elementText") + '</th>'
+                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[3] + '" colspan="6">' + getTextForUI("RarityLegendary", "elementText") + '</th>'
+                + '   <th class="tItemsTh1" menuSellFilter="c:*;t:*;r:' + itemsRarity[4] + '" colspan="6">' + getTextForUI("RarityMythic", "elementText") + '</th>'
+                + '  </tr>'
+                + '  <tr>'
+                + '   <th class="tItemsTh2">' + getTextForUI("equipementCaracs", "elementText") + '/' + getTextForUI("equipementType", "elementText") + '</th>';
+            for (let r of itemsRarity) {
+                itemsListMenu += '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[0] + ';r:' + r + '">' + getTextForUI("equipementHead", "elementText") + '</th>'
+                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[1] + ';r:' + r + '">' + getTextForUI("equipementBody", "elementText") + '</th>'
+                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[2] + ';r:' + r + '">' + getTextForUI("equipementLegs", "elementText") + '</th>'
+                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[3] + ';r:' + r + '">' + getTextForUI("equipementFlag", "elementText") + '</th>'
+                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[4] + ';r:' + r + '">' + getTextForUI("equipementPet", "elementText") + '</th>'
+                    + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[5] + ';r:' + r + '">' + getTextForUI("equipementWeapon", "elementText") + '</th>';
+            }
+            itemsListMenu += '  </tr>'
+                + ' </thead>'
+                + ' <tbody class="tItemsTBody">';
+            for (let c of itemsCaracs) {
+                if (c === 'mythic') {
+                    itemsListMenu += '  <tr>'
+                        + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*">' + getTextForUI("RarityMythic", "elementText") + '</td>';
+                }
+                else {
+                    let ext = (c === 16) ? "svg" : "png";
+                    itemsListMenu += '  <tr>'
+                        + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*"><img style="height:20px;width:20px" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/pictures/misc/items_icons/' + c + '.' + ext + '"></td>';
+                }
+                for (let r of itemsRarity) {
+                    for (let t of itemsType) {
+                        let allItems = itemsList[c][t][r];
+                        let total = allItems[itemsLockedStatus[0]] + allItems[itemsLockedStatus[1]];
+                        let displayNb = allItems[itemsLockedStatus[0]] + '/' + total;
+                        let itemsLockStatus;
+                        if (total === 0) {
+                            displayNb = "";
+                        }
+                        if (allItems[itemsLockedStatus[1]] === 0) {
+                            //no lock
+                            itemsLockStatus = "noneLocked";
+                        }
+                        else if (allItems[itemsLockedStatus[1]] === total) {
+                            //all locked
+                            itemsLockStatus = "allLocked";
+                        }
+                        else {
+                            //some locked
+                            itemsLockStatus = "someLocked";
+                        }
+                        itemsListMenu += '   <td class="tItemsTdItems" itemsLockStatus="' + itemsLockStatus + '" menuSellFilter="c:' + c + ';t:' + t + ';r:' + r + '"' + '>' + displayNb + '</td>';
+                    }
+                }
+                itemsListMenu += '  </tr>';
+            }
+            itemsListMenu += ' </tbody>'
+                + '</table>';
+            $("#menuSellList").html(itemsListMenu);
+            function setSlotFilter(inCaracsValue, inTypeValue, inRarityValue, inLockedValue) {
+                let filter = '#player-inventory.armor .slot:not(.empty)';
+                if (inCaracsValue !== "*") {
+                    filter += '[data-d*=\'"name_add":"' + inCaracsValue + '"\']';
+                }
+                if (inTypeValue !== "*") {
+                    filter += '[data-d*=\'"subtype":"' + inTypeValue + '"\']';
+                }
+                if (inRarityValue !== "*") {
+                    filter += '[data-d*=\'"rarity":"' + inRarityValue + '"\']';
+                }
+                if (inLockedValue === "locked" || inLockedValue === true) {
+                    filter += '[menuSellLocked]';
+                }
+                else {
+                    filter += ':not([menuSellLocked])';
+                }
+                return filter;
+            }
+            function setCellsFilter(inCaracsValue, inTypeValue, inRarityValue) {
+                let filter = 'table.tItems [menuSellFilter*="';
+                if (inCaracsValue !== "*") {
+                    filter += 'c:' + inCaracsValue + ';';
+                }
+                if (inTypeValue !== "*") {
+                    filter += 't:' + inTypeValue + ';';
+                }
+                if (inRarityValue !== "*") {
+                    filter += 'r:' + inRarityValue;
+                }
+                filter += '"]';
+                return filter;
+            }
+            $('table.tItems [menuSellFilter] ').each(function () {
+                this.addEventListener("click", function () {
+                    const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
+                    let toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
+                    let c = menuSellFilter[0].split(":")[1];
+                    let t = menuSellFilter[1].split(":")[1];
+                    let r = menuSellFilter[2].split(":")[1];
+                    AllLockUnlock(setSlotFilter(c, t, r, !toLock), toLock);
+                    let newLockStatus = toLock ? "allLocked" : "noneLocked";
+                    $(setCellsFilter(c, t, r)).each(function () {
+                        this.setAttribute("itemsLockStatus", newLockStatus);
+                    });
+                });
+            });
+        }
+        function AllLockUnlock(inFilter, lock) {
+            if (lock) {
+                $(inFilter).each(function () {
+                    this.setAttribute("menuSellLocked", "");
+                    $(this).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
+                });
+            }
+            else {
+                $(inFilter).each(function () {
+                    this.removeAttribute("menuSellLocked");
+                    this.querySelector("img.menuSellLocked").remove();
+                });
+            }
+        }
+        function lockUnlock(inFilter) {
+            if ($(inFilter).length > 0) {
+                let currentLock = $(inFilter)[0].getAttribute("menuSellLocked");
+                if (currentLock === null) {
+                    $(inFilter)[0].setAttribute("menuSellLocked", "");
+                    $(inFilter).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
+                }
+                else {
+                    $(inFilter)[0].removeAttribute("menuSellLocked");
+                    $(inFilter + " img.menuSellLocked")[0].remove();
+                }
+            }
+        }
+        let menuSellStop = false;
+        var allLoaded = false;
+        var menuSellMaxItems = "all";
+        let fetchStarted = false;
+        //ugly hack
+        let loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
+        let loadingAnimationStop = (_f = (_e = (_d = unsafeWindow.shared) === null || _d === void 0 ? void 0 : _d.animations) === null || _e === void 0 ? void 0 : _e.loadingAnimation) === null || _f === void 0 ? void 0 : _f.stop;
+        function appendMenuSell() {
+            let menuID = "SellDialog";
+            if (getShopType() !== "armor") {
+                if (document.getElementById(menuID) !== null) {
+                    try {
+                        $(document).off('ajaxComplete', checkAjaxComplete);
+                        for (let menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"]) {
+                            const GMMenuID = GM_registerMenuCommand(getTextForUI(menu, "elementText"), function () { });
+                            $("#" + menu).remove();
+                            GM_unregisterMenuCommand(GMMenuID);
+                        }
+                        $("#" + menuID).remove();
+                    }
+                    catch (e) {
+                        LogUtils_logHHAuto("Catched error : Couldn't remove " + menuID + " menu : " + e);
+                    }
+                }
+                return;
+            }
+            else if (document.getElementById(menuID) !== null) {
+                document.getElementById("menuSellCurrentCount").innerHTML = $(itemsQuery).length + '';
+                return;
+            }
+            GM_addStyle('#SellDialog .close {   position: absolute;   top: 0;   right: 30px;   transition: all 200ms;   font-size: 50px;   font-weight: bold;   text-decoration: none;   color: #333; } '
+                + '#SellDialog .close:hover {   color: #06D85F; }'
+                + '#SellDialog p { font-size: 15px; }'
+                + '#SellDialog p.intro { margin: 0; }'
+                + '#SellDialog .myButton { font-size: 12px; min-width: 100px; text-align: center; }'
+                + '#SellDialog td.type { text-align: center; }');
+            var menuSellLock = '<div style="position: absolute;right: 220px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellLock", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSellLock">' + getTextForUI("menuSellLock", "elementText") + '</label></div>';
+            var menuSellMaskLocked = '<div style="position: absolute;right: 140px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellMaskLocked", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSellMaskLocked">' + getTextForUI("menuSellMaskLocked", "elementText") + '</label></div>';
+            var menuSell = '<div style="position: absolute;right: 300px;top: 70px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSell", "tooltip") + '</span><label style="width:70px" class="myButton" id="menuSell">' + getTextForUI("menuSell", "elementText") + '</label></div>'
+                + '<dialog style="overflow-y:auto;max-width:95%;max-height:95%;"id="SellDialog"><a class="close" id="SellDialogClose">&times;</a><form stylemethod="dialog">'
+                + '<div style="padding:0 10px; display:flex;flex-direction:column;">'
+                + '<p class="intro">' + getTextForUI("menuSellText", "elementText") + '</p>'
+                + '<div class="HHMenuRow">'
+                + '<p>' + getTextForUI("menuSellCurrentCount", "elementText") + '</p>'
+                + '<p id="menuSellCurrentCount">0</p>'
+                + '</div>'
+                + '<div id="menuSellStop"><label style="width:80px" class="myButton" id="menuSellStop">' + getTextForUI("OptionStop", "elementText") + '</label></div>'
+                + '<div id="menuSellHide" style="display:none">'
+                + '<p id="menuSellList" style="margin:0;"></p>'
+                + '<div class="HHMenuRow">'
+                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellButton", "tooltip") + '</span><label class="myButton" id="menuSellButton">' + getTextForUI("menuSellButton", "elementText") + '</label></div>'
+                + '<div style="padding:10px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("menuSellNumber", "tooltip") + '</span><input id="menuSellNumber" style="width:80%;height:20px" required pattern="' + HHAuto_inputPattern.menuSellNumber + '" type="text" value="0"></div>'
+                + '</div>'
+                + '</div>'
+                + '<div id="menuSoldHide" style="display:none">'
+                + '<div class="HHMenuRow">'
+                + '<p>' + getTextForUI("menuSoldText", "elementText") + '</p>'
+                + '<p id="menuSoldCurrentCount">0</p>'
+                + '</div>'
+                + '<p id="menuSoldMessage">0</p>'
+                + '</div>'
+                + '</div>'
+                + '<menu> <label style="margin-left:800px" class="myButton" id="menuSellCancel">' + getTextForUI("OptionCancel", "elementText") + '</label></menu></form></dialog>';
+            initMenuSell();
+            initMenuSellLock();
+            initMenuSellMaskLocked();
+            GM_registerMenuCommand(getTextForUI("menuSell", "elementText"), displayMenuSell);
+            GM_registerMenuCommand(getTextForUI("menuSellLock", "elementText"), launchMenuSellLock);
+            GM_registerMenuCommand(getTextForUI("menuSellMaskLocked", "elementText"), launchMenuSellMaskLocked);
+            $(document).on('ajaxComplete', checkAjaxComplete);
+            function initMenuSell() {
+                $('#player-inventory.armor').append(menuSell);
+                const closeSellDialog = function () {
+                    const SellDialog = document.getElementById("SellDialog");
+                    if (typeof SellDialog.showModal !== "function") {
+                        alert("The <dialog> API is not supported by this browser");
+                        return;
+                    }
+                    $('#player-inventory.armor .slot:not(.empty)[canBeSold]').removeAttr('canBeSold');
+                    SellDialog.close();
+                };
+                $("#menuSell").on("click", displayMenuSell);
+                $("#menuSellCancel").on("click", closeSellDialog);
+                $("#SellDialogClose").on("click", closeSellDialog);
+                $("#menuSellStop").on("click", function () {
+                    this.style.display = "none";
+                    menuSellStop = true;
+                });
+                $("#menuSellButton").on("click", function () {
+                    if (Number(document.getElementById("menuSellNumber").value) > 0) {
+                        LogUtils_logHHAuto("Starting selling " + Number(document.getElementById("menuSellNumber").value) + " items.");
+                        sellArmorItems();
+                    }
+                });
+            }
+            function displayMenuSell() {
+                const SellDialog = document.getElementById("SellDialog");
+                if (typeof SellDialog.showModal !== "function") {
+                    alert("The <dialog> API is not supported by this browser");
+                    LogUtils_logHHAuto("The <dialog> API is not supported by this browser");
+                    return;
+                }
+                menuSellMaxItems = Number(window.prompt("Max amount of inventory to load (all for no limit)", menuSellMaxItems + ''));
+                if (menuSellMaxItems !== null) {
+                    menuSellMaxItems = isNaN(menuSellMaxItems) ? Number.MAX_VALUE : menuSellMaxItems;
+                    LogUtils_logHHAuto(`Going to load ${menuSellMaxItems} items`);
+                    $("menuSellStop").css("display", "block");
+                    menuSellStop = false;
+                    fetchStarted = true;
+                    unsafeWindow.shared.animations.loadingAnimation.start = function () { };
+                    unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
+                    if ($('#menuSellList>.tItems').length === 0) {
+                        menuSellListItems();
+                    }
+                    $("#menuSellHide").css("display", "block");
+                    SellDialog.showModal();
+                    $("#menuSellHide").css("display", "none");
+                    fetchAllArmorItems();
+                }
+            }
+            function initMenuSellMaskLocked() {
+                $('#player-inventory.armor').append(menuSellMaskLocked);
+                $("#menuSellMaskLocked").on("click", launchMenuSellMaskLocked);
+            }
+            function launchMenuSellMaskLocked() {
+                $("#player-inventory.armor .slot[menuSellLocked]").each(function () {
+                    $(this).parent().toggle();
+                });
+            }
+            function initMenuSellLock() {
+                $('#player-inventory.armor').append(menuSellLock);
+                $("#menuSellLock").on("click", launchMenuSellLock);
+            }
+            function launchMenuSellLock() {
+                let filterText = "#player-inventory.armor .slot.selected";
+                if ($(filterText).length > 0) {
+                    let toLock = $(filterText)[0].getAttribute("menuSellLocked") === null;
+                    AllLockUnlock(filterText, toLock);
+                }
+            }
+        }
+        function checkAjaxComplete(event, request, settings) {
+            let match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
+            if (match === null)
+                return;
+            allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
+            if (fetchStarted) {
+                setTimeout(fetchAllArmorItems, randomInterval(800, 1600));
+            }
+        }
+        function fetchAllArmorItems() {
+            let oldCount = $(itemsQuery).length;
+            $("#menuSellCurrentCount").html(oldCount + '');
+            if (allLoaded) {
+                LogUtils_logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
+            }
+            else {
+                LogUtils_logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
+            }
+            let scroll = $("#player-inventory.armor")[0];
+            const SellDialog = document.getElementById("SellDialog");
+            if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open) {
+                $("#menuSellStop").css("display", "none");
+                unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
+                unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
+                fetchStarted = false;
+                scroll.scrollTop = 0;
+                if (SellDialog.open) {
+                    $("#menuSellHide").css("display", "block");
+                    menuSellListItems();
+                }
+                else {
+                    LogUtils_logHHAuto('Sell Dialog closed, stopping');
+                }
+                return;
+            }
+            scroll.scrollTop = scroll.scrollHeight - scroll.offsetHeight;
+        }
+        function sellArmorEnded() {
+            $("#menuSellHide").css("display", "block");
+            // Re-enable autoLoop. The next tick is triggered by the
+            // existing setTimeout-recursion at the bottom of autoLoop()
+            // itself (it re-schedules as long as the autoLoop storage
+            // flag is "true"). A direct setTimeout(autoLoop) here would
+            // require a top-level import of Service/AutoLoop, which makes
+            // Shop.ts part of a Module -> Service -> Module import cycle
+            // and breaks Pipeline.config.ts (which imports Shop). The
+            // resulting TDZ-style cycle is the pattern guarded against
+            // by the zirkulaerer-import-tdz-crash lesson.
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+        }
+        function sellArmorItems() {
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            LogUtils_logHHAuto("setting autoloop to false");
+            LogUtils_logHHAuto('start selling common, rare and epic stuff');
+            $("#menuSellHide").css("display", "none");
+            $("#menuSoldHide").css("display", "block");
+            // Scroll to top
+            $('#player-inventory').animate({ scrollTop: 0 });
+            var initialNumberOfItems = $(itemsQuery).length;
+            var itemsToSell = Number(document.getElementById("menuSellNumber").value);
+            $("#menuSoldCurrentCount").html("0/" + itemsToSell);
+            $("#menuSoldMessage").html("");
+            let PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
+            function sellingEnd(message) {
+                $("#menuSoldMessage").html(message);
+                menuSellListItems();
+                sellArmorEnded();
+            }
+            function selling_func() {
+                const SellDialog = document.getElementById("SellDialog");
+                if ($('#player-inventory.armor').length === 0) {
+                    LogUtils_logHHAuto('Wrong tab');
+                    sellArmorEnded();
+                    return;
+                }
+                else if (!SellDialog.open) {
+                    LogUtils_logHHAuto('Sell Dialog closed, stopping');
+                    sellArmorEnded();
+                    return;
+                }
+                let availebleItems = $(itemsQuery);
+                let currentNumberOfItems = availebleItems.length;
+                if (currentNumberOfItems === 0) {
+                    LogUtils_logHHAuto('no more items for sale');
+                    sellingEnd(getTextForUI("menuSoldMessageNoMore", "elementText"));
+                    return;
+                }
+                if (initialNumberOfItems < currentNumberOfItems) {
+                    LogUtils_logHHAuto('Some items was loaded in the background, can\'t continue');
+                    sellingEnd(getTextForUI("menuSoldMessageErrorLoaded", "elementText"));
+                    return;
+                }
+                //console.log(initialNumberOfItems,currentNumberOfItems);
+                if ((initialNumberOfItems - currentNumberOfItems) >= itemsToSell) {
+                    LogUtils_logHHAuto('Reach wanted sold items.');
+                    sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
+                    return;
+                }
+                //check Selected item - can we sell it?
+                if (availebleItems.filter('.selected').length > 0) {
+                    let can_sell = false;
+                    //Non legendary or with specific attribute
+                    if (availebleItems.filter('.selected').filter(':not(.legendary),[canBeSold]').length > 0) {
+                        can_sell = true;
+                    }
+                    LogUtils_logHHAuto('can be sold ' + can_sell + ' : ' + availebleItems.filter('.selected')[0].getAttribute('data-d'));
+                    if (can_sell) {
+                        $('#shops .menu-switch-tab-content.active button.green_text_button[rel=sell]').click();
+                        let currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) + 1);
+                        $("#menuSoldCurrentCount").html(currSellNumber + "/" + itemsToSell);
+                        $("#menuSellCurrentCount").html($(itemsQuery).length + '');
+                        setTimeout(selling_func, randomInterval(300, 700));
+                        return;
+                    }
+                }
+                //Find new sellable items
+                if (availebleItems.filter(':not(.selected):not(.legendary),[canBeSold]').length > 0) {
+                    //Select first non legendary item
+                    //Or select item that checked before and can be sold
+                    availebleItems.filter(':not(.selected):not(.legendary):not(.mythic),[canBeSold]')[0].click();
+                    setTimeout(selling_func, randomInterval(300, 700));
+                    return;
+                }
+                else if (availebleItems.filter(':not(.selected)').length > 0) {
+                    let typesOfSets = ['EQ-LE-06', 'EQ-LE-05', 'EQ-LE-04', 'EQ-LE-0' + PlayerClass];
+                    let caracsOfSets = ['carac' + PlayerClass, 'chance', 'endurance', 'carac' + PlayerClass];
+                    //[MaxCarac,Index]
+                    let arraysOfSets = [
+                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-06'
+                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-05'
+                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-04'
+                        [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] //'EQ-LE-0'+ PlayerClass
+                    ];
+                    /*//Take equipped items into account
+                    for (let indexType = 0; indexType < typesOfSets.length; indexType++)
+                    {
+                        let equipedArray = $('#equiped .armor .slot[data-d*=' + typesOfSets[indexType] + ']');
+                        for (let i5 = 0; i5 < equipedArray.length; i5++) {
+                            let equipedObj = JSON.parse($(equipedArray[i5]).attr('data-d'));
+                            arraysOfSets[indexType][equipedObj.subtype][0] = equipedObj[caracsOfSets[indexType]];
+                        }
+                    }*/
+                    for (let i4 = 0; i4 < availebleItems.length; i4++) {
+                        let sellableItemObj = JSON.parse($(availebleItems[i4]).attr('data-d') || '');
+                        let indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
+                        if (indexType == -1) {
+                            //console.log('can_sell2');
+                            availebleItems[i4].setAttribute('canBeSold', '');
+                        }
+                        else {
+                            let currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
+                            let itemCarac = sellableItemObj[caracsOfSets[indexType]];
+                            //checking best gear in inventory based on best class stat
+                            if (currentBest[0] < itemCarac) {
+                                currentBest[0] = itemCarac;
+                                if (currentBest[1] >= 0) {
+                                    availebleItems[currentBest[1]].setAttribute('canBeSold', '');
+                                }
+                                currentBest[1] = i4;
+                            }
+                            else {
+                                availebleItems[i4].setAttribute('canBeSold', '');
+                            }
+                        }
+                    }
+                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length == 0) {
+                        LogUtils_logHHAuto('no more items for sale');
+                        sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
+                        return;
+                    }
+                }
+                setTimeout(selling_func, randomInterval(300, 700));
+            }
+            selling_func();
+        }
+    }
+}
 
 ;// CONCATENATED MODULE: ./src/Service/TeamScoringService.ts
 // TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
@@ -20622,6 +19009,681 @@ function handlePageSpecific(ctx) {
     });
 }
 
+;// CONCATENATED MODULE: ./src/model/Mission.ts
+// Models for in-game missions and their rewards.
+// Mission holds the cost, duration, remaining time, completion state,
+// and a reference to the DOM element. MissionRewards describes each reward entry.
+class Mission {
+    constructor() {
+        this.finished = false;
+    }
+}
+class MissionRewards {
+    constructor() {
+        this.type = '';
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Missions.ts
+// Missions.ts -- Automates missions: collects completed missions and starts new ones.
+//
+// Missions are time-based tasks that yield rewards. This module checks for
+// completed missions, collects their rewards, and starts the next available
+// mission automatically. Tracks mission durations and schedules collection
+// at the right time.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+class Missions {
+    /**
+    * Recieves a list of mission objects and returns the mission object to use.
+    * A mission object looks similar to this :-
+    * Eg 1:   {"id_member_mission":"256160093","id_mission":"23","duration":"53","cost":"1","remaining_time":"-83057","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"slot_SC"},"type":"money","data":277}]}
+    * Eg 2:   {"id_member_mission":"256160095","id_mission":"10","duration":"53","cost":"1","remaining_time":"-81330","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"rare"},"type":"item","data":{"id_item":"23","type":"gift","subtype":"0","identifier":"K3","rarity":"rare","value":"80","carac1":0,"carac2":0,"carac3":0,"endurance":0,"chance":0,"ego":0,"damage":0,"duration":0,"level_mini":"1","name":"Bracelet","Name":"Bracelet","ico":"https://content.haremheroes.com/pictures/items/K3.png","price_sell":5561,"count":1,"id_m_i":[]}}]}
+    * Eg 3:   {"id_member_mission":"256822795","id_mission":"337","duration":"17172","cost":"144","remaining_time":null,"remaining_cost":"144","rewards":[{"classList":{"0":"slot","1":"slot_HC"},"type":"koban","data":11}]}
+    * Eg 1 has mission rewards of xp and money.
+    * Eg 2 has mission rewards of xp and item.
+    * Eg 3 has mission rewards of koban/hard_currency.
+    * cost is the koban price for instant complete.
+    */
+    static getSuitableMission(missionsList) {
+        var msn = missionsList[0];
+        const kFirst = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionKFirst) === "true";
+        const invertOrder = getStoredValue(HHStoredVarPrefixKey + SK.invertMissions) === "true";
+        try {
+            for (var m in missionsList) {
+                if (JSON.stringify(missionsList[m].rewards).includes("koban") && kFirst) {
+                    return missionsList[m];
+                }
+                if (Number(msn.duration) > Number(missionsList[m].duration) && !invertOrder) {
+                    msn = missionsList[m];
+                }
+                else if (Number(msn.duration) < Number(missionsList[m].duration) && invertOrder) {
+                    msn = missionsList[m];
+                }
+            }
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Something went wrong, starting first mission in the list ", error);
+            msn = missionsList[0];
+        }
+        return msn;
+    }
+    static run() {
+        // returns boolean to set busy
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDMissions")) {
+            LogUtils_logHHAuto("Navigating to missions page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"));
+            // return busy
+            return true;
+        }
+        else {
+            try {
+                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+                LogUtils_logHHAuto("On missions page.");
+                if (RewardHelper.closeRewardPopupIfAny()) {
+                    return true;
+                }
+                let canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
+                var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
+                if (debugEnabled)
+                    LogUtils_logHHAuto("Missions parsed, mission list is:", missions);
+                if (debugEnabled && missionOngoing != null)
+                    LogUtils_logHHAuto("Mission missionOngoing:", missionOngoing);
+                if (!allGood && checkTimer('nextMissionTime')) {
+                    LogUtils_logHHAuto("Something went wrong, need to retry in 15secs.");
+                    setTimer('nextMissionTime', randomInterval(15, 30));
+                    return true;
+                }
+                if (missions.length > 0 && missionOngoing == null) {
+                    var mission = Missions.getSuitableMission(missions);
+                    LogUtils_logHHAuto(`Selected mission to be started (duration: ${mission.duration}sec):`);
+                    if (debugEnabled)
+                        LogUtils_logHHAuto(mission);
+                    var missionButton = $(mission.missionObject).find("button:visible[rel='mission_start']").first();
+                    if (missionButton.length > 0) {
+                        missionButton.trigger('click');
+                        missionOngoing = mission;
+                        missionOngoing.remaining_time = Number(mission.duration);
+                    }
+                    else {
+                        LogUtils_logHHAuto("Something went wrong, no start button");
+                        setTimer('nextMissionTime', randomInterval(15, 30));
+                        return true;
+                    }
+                }
+                if (canCollect) {
+                    LogUtils_logHHAuto("Collecting finished mission's reward.");
+                    $(".mission_button button:visible[rel='claim']").first().trigger('click');
+                    return true;
+                }
+                if (missionOngoing != null) {
+                    LogUtils_logHHAuto("Mission ongoing waiting it ends.");
+                    if (checkTimer('nextMissionTime'))
+                        setTimer('nextMissionTime', missionOngoing.remaining_time + randomInterval(10, 20));
+                    return true;
+                }
+                if (missions.length == 0 && missionOngoing == null) {
+                    LogUtils_logHHAuto("No missions detected...!");
+                    // get gift
+                    const isAfterGift = $("#missions .end_gift:visible").length > 0;
+                    if (isAfterGift) {
+                        const buttonAfterGift = $("#missions .end_gift button:visible");
+                        if (buttonAfterGift.length > 0) {
+                            LogUtils_logHHAuto("Collecting gift.");
+                            buttonAfterGift.trigger('click');
+                        }
+                        else {
+                            LogUtils_logHHAuto("Refreshing to collect gift...");
+                            // C1: safeReload waits for any in-flight game
+                            // AJAX before the reload, so an open POST is
+                            // not cancelled (issue #1598).
+                            safeReload();
+                            return true;
+                        }
+                    }
+                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
+                    if (time === undefined || time === null || time.length === 0) {
+                        LogUtils_logHHAuto("New mission time was undefined... Setting it manually to 10min.");
+                        setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
+                    }
+                    else
+                        setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1, 5));
+                }
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
+                setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
+            }
+            // not busy
+            return false;
+        }
+    }
+    static parseMissions(canCollect) {
+        var missionOngoing = null;
+        var missions = [];
+        var lastMissionData = {};
+        var allGood = true;
+        // parse missions
+        const allMissions = $(".mission_object");
+        LogUtils_logHHAuto("Found " + allMissions.length + " missions to be parsed.");
+        try {
+            allMissions.each((idx, missionObject) => {
+                var data = $.data(missionObject).d;
+                lastMissionData = data;
+                // Do not list completed missions
+                var toAdd = true;
+                if (data.remaining_time !== null) {
+                    // This is not a fresh mission (ongoing)
+                    if (data.remaining_time > 0) {
+                        // allGood = false;
+                        if ($('.finish_in_bar[style*="display:none;"], .finish_in_bar[style*="display: none;"]', missionObject).length === 0) {
+                            LogUtils_logHHAuto("Unfinished mission detected...(" + data.remaining_time + "sec. remaining)");
+                            missionOngoing = data;
+                            data.finished = false;
+                        }
+                        else {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"), {}, randomInterval(300, 800));
+                            allGood = false; // Need refresh
+                        }
+                    }
+                    else {
+                        data.finished = true;
+                        toAdd = false;
+                    }
+                    return;
+                }
+                else if (data.remaining_cost === null) {
+                    // Finished missioned
+                    data.finished = true;
+                    data.remaining_time = 0;
+                    toAdd = false;
+                }
+                data.missionObject = missionObject;
+                var rewards = Missions.getMissionRewards(missionObject);
+                data.rewards = rewards;
+                if (toAdd)
+                    missions.push(data);
+            });
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Catched error : Couldn't parse missions (try again in 15min) : " + error);
+            LogUtils_logHHAuto("Last mission parsed : " + JSON.stringify(lastMissionData));
+            setTimer('nextMissionTime', randomInterval(15 * 60, 20 * 60));
+            allGood = false;
+        }
+        return { allGood, missions, missionOngoing };
+    }
+    static getMissionRewards(missionObject) {
+        var rewards = [];
+        // set rewards
+        try {
+            // get Reward slots
+            var slots = missionObject.querySelectorAll(".slot");
+            // traverse slots
+            $.each(slots, function (idx, slotDiv) {
+                var reward = new MissionRewards();
+                // get slot class list
+                reward.classList = slotDiv.classList;
+                // set reward type
+                if (reward.classList.contains("slot_xp"))
+                    reward.type = "xp";
+                else if (reward.classList.contains("slot_soft_currency"))
+                    reward.type = "money";
+                else if (reward.classList.contains("slot_hard_currency"))
+                    reward.type = "koban";
+                else
+                    reward.type = "item";
+                // set value if xp
+                if (reward.type === "xp" || reward.type === "money" || reward.type === "koban") {
+                    // remove all non numbers and HTML tags
+                    try {
+                        reward.data = Number(slotDiv.innerHTML.replace(/<.*?>/g, '').replace(/\D/g, ''));
+                    }
+                    catch (e) {
+                        LogUtils_logHHAuto("Catched error : Couldn't parse xp/money data : " + e);
+                        LogUtils_logHHAuto(slotDiv);
+                    }
+                }
+                // set item details if item
+                else if (reward.type === "item") {
+                    try {
+                        reward.data = $.data(slotDiv).d;
+                    }
+                    catch (e) {
+                        LogUtils_logHHAuto("Catched error : Couldn't parse item reward slot details : " + e);
+                        LogUtils_logHHAuto(slotDiv);
+                        reward.type = "unknown";
+                    }
+                }
+                rewards.push(reward);
+            });
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Catched error : Couldn't parse rewards for missions : " + error);
+        }
+        return rewards;
+    }
+    static styles() {
+        if ($("#missions #ad_activities").length) {
+            $("#missions .missions_wrap").removeClass('height-for-ad').removeClass('height-with-ad');
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.compactMissions) === "true") {
+            GM_addStyle('#missions .missions_wrap  {'
+                + 'display:flex;'
+                + 'flex-wrap: wrap;'
+                + 'align-content: baseline;'
+                + '}');
+            const missionsContainerPath = '#missions .missions_wrap .mission_object.mission_entry';
+            GM_addStyle(missionsContainerPath + ' {'
+                + 'height: 56px;'
+                + 'margin-right:3px;'
+                + 'width: 49%;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_reward {'
+                + 'width: 110px;'
+                + 'padding-left: 5px;'
+                + 'padding-top: 5px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_image {'
+                + 'height: 50px;'
+                + 'width: 50px;'
+                + 'margin-top: 0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_details {'
+                + 'display:none;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button {'
+                + 'display:flex;'
+                + 'flex-direction:inherit;'
+                + 'width:245px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button .duration {'
+                + 'top:5px;'
+                + 'left:5px;'
+                + 'width: auto;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button {'
+                + 'margin:0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="finish"] {'
+                + 'height: 50px;'
+                + 'top:0;'
+                + 'left: 2rem;'
+                + 'padding: 4px 4px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="claim"] {'
+                + 'left:0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button .hh_bar {'
+                + 'left:5px;'
+                + '}');
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
+// Bundles.pure.ts -- Pure decision logic for the free-bundle collector.
+//
+// Extracted from Bundles.getExpiryTime so the 24-hour threshold check
+// can be unit-tested without DOM access, jQuery, or randomInterval.
+//
+// The impure adapter Bundles.getExpiryTime scrapes the popup timer
+// from the DOM and falls back to maxCollectionDelay + jitter when the
+// timer is missing or claims to be more than a day in the future
+// (which happens with stale or malformed DOM state). This pure
+// function captures only the threshold decision; the fallback value
+// itself is computed by the adapter and passed in.
+/**
+ * Reproduce Bundles.getExpiryTime bit by bit:
+ *
+ *   if scrapedSeconds === null            -> fallbackSeconds
+ *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
+ *   otherwise                              -> scrapedSeconds
+ *
+ * The 24-hour boundary is strict (<): the original code reads
+ * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
+ * exactly 24 * 3600 falls through to the fallback branch.
+ */
+function decideExpiryTime(state) {
+    if (state.scrapedSeconds === null)
+        return state.fallbackSeconds;
+    if (state.scrapedSeconds >= 24 * 3600)
+        return state.fallbackSeconds;
+    return state.scrapedSeconds;
+}
+
+;// CONCATENATED MODULE: ./src/Module/Bundles.ts
+// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
+//
+// The game periodically offers free bundle rewards in a popup. This module
+// detects available bundles, navigates to the shop page, and claims them
+// automatically on a timer-based schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class Bundles {
+    static getExpiryTime() {
+        const timerRequest = `#popup-payment-container .period_deal .shop-timer span[rel=expires]`;
+        let scrapedSeconds = null;
+        if ($(timerRequest).length > 0) {
+            scrapedSeconds = Number(convertTimeToInt($(timerRequest).text()));
+            LogUtils_logHHAuto('freeBundleTimer', scrapedSeconds);
+        }
+        const fallbackSeconds = ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+        const decision = decideExpiryTime({ scrapedSeconds, fallbackSeconds });
+        if (scrapedSeconds === null || scrapedSeconds >= 24 * 3600) {
+            LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
+        }
+        return decision;
+    }
+    static goAndCollectFreeBundles() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            try {
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) !== "true") {
+                    LogUtils_logHHAuto("Error autoFreeBundlesCollect not activated.");
+                    return;
+                }
+                const plusButton = $("header .currency .reversed_tooltip");
+                if (plusButton.length > 0) {
+                    LogUtils_logHHAuto("click button for popup.");
+                    plusButton.trigger('click');
+                }
+                else {
+                    LogUtils_logHHAuto("No button for popup. Try again in 5h.");
+                    setTimer('nextFreeBundlesCollectTime', randomInterval(4 * 60 * 60, 6 * 60 * 60));
+                    return false;
+                }
+                LogUtils_logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
+                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
+                const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
+                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
+                function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
+                    LogUtils_logHHAuto(message);
+                    setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
+                    $("#common-popups .close_cross").trigger('click'); // Close popup
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    LogUtils_logHHAuto("setting autoloop to true");
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                }
+                function parseAndCollectFreeBundles() {
+                    const freeBundlesNumber = $(freeButtonBundleQuery).length;
+                    if (freeBundlesNumber > 0) {
+                        LogUtils_logHHAuto("Free Bundles found: " + freeBundlesNumber);
+                        let buttonsToCollect = [];
+                        for (let currentBundle = 0; currentBundle < freeBundlesNumber; currentBundle++) {
+                            buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);
+                        }
+                        function collectFreeBundle() {
+                            if (buttonsToCollect.length > 0) {
+                                LogUtils_logHHAuto("Collecting bundle n°" + buttonsToCollect[0].getAttribute('product'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(500, 800));
+                                setTimeout(switchToBundleTabs, randomInterval(1500, 2500));
+                            }
+                        }
+                        collectFreeBundle();
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                function switchToBundleTabs() {
+                    const bundleTabs = $(bundleTabsListQuery, $(bundleTabsContainerQuery));
+                    if (bundleTabs.length > 0) {
+                        let freeBundleFound = false;
+                        for (let bundleIndex = 0; bundleIndex < bundleTabs.length && !freeBundleFound; bundleIndex++) {
+                            bundleTabs[bundleIndex].click();
+                            LogUtils_logHHAuto("Looking in tabs '" + $(bundleTabs[bundleIndex]).attr('type') + "'.");
+                            freeBundleFound = parseAndCollectFreeBundles();
+                            if (!freeBundleFound && $(subTabsQuery).length > 0) {
+                                const subTabs = $(subTabsQuery);
+                                LogUtils_logHHAuto("Sub tabs found, switching to next one");
+                                for (let subTabIndex = 1; subTabIndex < subTabs.length && !freeBundleFound; subTabIndex++) {
+                                    subTabs[subTabIndex].click();
+                                    LogUtils_logHHAuto("Looking in sub tabs '" + $(subTabs[subTabIndex]).attr('period_deal') + "'.");
+                                    freeBundleFound = parseAndCollectFreeBundles();
+                                }
+                            }
+                        }
+                        if (!freeBundleFound)
+                            collectFreeBundlesFinished("Free bundle collection finished.", Bundles.getExpiryTime() + randomInterval(3600, 4000));
+                    }
+                    else {
+                        collectFreeBundlesFinished("No bundle tabs in popup, wait one hour.", 60 * 60);
+                        return false;
+                    }
+                }
+                // Wait popup is opened
+                setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
+                return true;
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
+                setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
+                return false;
+            }
+        }
+        else {
+            LogUtils_logHHAuto("Navigating to home page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            // return busy
+            return true;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
+var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
+//
+// Harem girls generate soft currency (salary) over time. This module
+// periodically navigates to the harem page and collects accumulated salary
+// earnings, tracking collection timers to avoid unnecessary page loads.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+class HaremSalary {
+    static getSalaryButton() {
+        return $("#collect_all_container button[id='collect_all']");
+    }
+    static getSalarySumTag() {
+        const salaryButton = HaremSalary.getSalaryButton();
+        let salarySumTag = NaN;
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
+            salarySumTag = Number($('[rel="next_salary"]', salaryButton)[0].innerText.replace(/[^0-9]/gi, ''));
+        }
+        else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            salarySumTag = Number(getHHVars("salary_collect"));
+        }
+        return salarySumTag;
+    }
+    static getSalary() {
+        return HaremSalary_awaiter(this, void 0, void 0, function* () {
+            try {
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+                    const salaryButton = HaremSalary.getSalaryButton();
+                    const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style") === "display: none;");
+                    if (!salaryToCollect) {
+                        //logHHAuto("No salary to collect");
+                        setTimer('nextSalaryTime', randomInterval(60, 180));
+                    }
+                    else {
+                        const salarySumTag = HaremSalary.getSalarySumTag();
+                        const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSalaryMinSalary) || 20000);
+                        if (enoughSalaryToCollect) {
+                            const getButtonClass = salaryButton.attr("class") || '';
+                            if (getButtonClass.indexOf("blue_button_L") !== -1 || getButtonClass.indexOf("round_blue_button") !== -1) {
+                                LogUtils_logHHAuto('Collected all salary');
+                                salaryButton.trigger('click');
+                                yield TimeHelper.sleep(randomInterval(200, 400));
+                                setTimer('nextSalaryTime', randomInterval(60, 180));
+                                return false;
+                            }
+                            else {
+                                LogUtils_logHHAuto("Unknown salary button color : " + getButtonClass);
+                                setTimer('nextSalaryTime', randomInterval(60, 180));
+                            }
+                        }
+                        else {
+                            LogUtils_logHHAuto("Not enough salary to collect, wait");
+                            setTimer('nextSalaryTime', randomInterval(60, 180));
+                        }
+                    }
+                }
+            }
+            catch (ex) {
+                LogUtils_logHHAuto("Catched error : Could not collect salary... " + ex);
+                setTimer('nextSalaryTime', randomInterval(60, 180));
+                // return not busy
+                return false;
+            }
+            return false;
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/GenericBattle.ts
+// GenericBattle.ts -- Handles the battle result page UI across all fight types.
+//
+// When a battle completes (troll, event, league, etc.), this module manages
+// the result page: adds skip buttons, auto-skips fight animations, and parses
+// reward drops. It acts as a shared handler for all battle outcomes rather
+// than being specific to one game mode.
+//
+// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+//          and other fight modules that navigate to battle pages
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class GenericBattle {
+    static doBattle() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
+            LogUtils_logHHAuto("On battle page.");
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true") {
+                LogUtils_logHHAuto("Reloading after league fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"), {}, randomInterval(4000, 5000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
+                const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
+                let troll_id = queryStringGetParam(window.location.search, 'id_opponent');
+                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
+                if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
+                }
+                const eventGirl = EventModule.getEventGirl();
+                const eventMythicGirl = EventModule.getEventMythicGirl();
+                if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic)
+                    ||
+                        getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic)) {
+                    LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
+                    RewardHelper.ObserveAndGetGirlRewards();
+                }
+                else {
+                    LoveRaidManager.getTrollRaids().forEach(raid => {
+                        if (raid.trollId === Number(troll_id)) {
+                            LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            return true;
+                        }
+                    });
+                    if (troll_id !== null) {
+                        LogUtils_logHHAuto("Go back to Troll after Troll fight.");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: troll_id }, randomInterval(2000, 4000));
+                    }
+                    else {
+                        LogUtils_logHHAuto("Go to home after unknown troll fight.");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"), {}, randomInterval(2000, 4000));
+                    }
+                }
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
+                LogUtils_logHHAuto("Go back to Season arena after Season fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonArena"), {}, randomInterval(2000, 4000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true") {
+                LogUtils_logHHAuto("Go back to Penta drill arena after fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(5000, 8000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())) {
+                LogUtils_logHHAuto("Go back to Pantheon arena after Pantheon temple.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPantheon"), {}, randomInterval(2000, 4000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true") {
+                LogUtils_logHHAuto("Go back to Labyrinth after fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
+            }
+            return true;
+        }
+        else {
+            LogUtils_logHHAuto('Unable to identify page.');
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            return;
+        }
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Service/Pipeline.config.ts
 var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -20637,6 +19699,9 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
 // Defines the types and interfaces for handler configurations,
 // plus concrete handler entries for migrated handlers.
 //
+// Order of handler execution is given by the position in the `pipeline`
+// array below: first element runs first. Reordering = move a line.
+//
 // Used by: Scheduler.ts
 
 
@@ -20645,15 +19710,104 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Build a HandlerConfig from a legacy ModuleHandlerDescriptor. Used to migrate
+ * handlers that already wrap a uniform `name + action + isReady + execute`
+ * shape (the descriptors used by `runStandardHandler` in AutoLoopActions.ts).
+ *
+ * The returned config is single-step, non-atomic, always-interruptible, and
+ * mirrors the cascade in `runStandardHandler`:
+ *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
+ *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
+ *
+ * The `lastActionPerformed` continuation is preserved during the v7.36.0
+ * migration. v7.37.0 will replace it with a scheduler-internal multi-step
+ * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
+ */
+function fromDescriptor(descriptor, opts) {
+    var _a, _b;
+    const atomic = (_a = opts.atomic) !== null && _a !== void 0 ? _a : false;
+    // The HandlerConfig.name is the technical identifier used as map key in
+    // Scheduler.lastRunAt, Scheduler.states, sessionStorage TK.pipelineLastRunAt
+    // and the [Scheduler] Starting chain '...' log line. Keep it short and
+    // identifier-like (e.g. 'handleMissions'). It must NOT collide with the
+    // descriptor.name, which is a user-facing log message ('Time to do
+    // missions.'). The user message is logged inside step.fn via descriptor.name.
+    // If opts.handlerName is omitted we fall back to descriptor.action so older
+    // call sites keep a stable, dot-free key.
+    const handlerName = (_b = opts.handlerName) !== null && _b !== void 0 ? _b : descriptor.action;
+    return {
+        name: handlerName,
+        minIntervalMs: opts.minIntervalMs,
+        atomic,
+        interruptible: atomic ? 'never' : 'always',
+        precondition: (ctx) => shouldRunStandardHandler({
+            ctxBusy: ctx.busy,
+            autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
+            competitionActive: ctx.canCollectCompetitionActive,
+            lastActionPerformed: ctx.lastActionPerformed,
+            requiresAutoLoop: descriptor.requiresAutoLoop,
+            requiresCompetition: descriptor.requiresCompetition,
+            handlerAction: descriptor.action,
+            isReady: descriptor.isReady(),
+        }),
+        steps: [{
+                name: descriptor.action,
+                fn: (ctx) => Pipeline_config_awaiter(this, void 0, void 0, function* () {
+                    try {
+                        LogUtils_logHHAuto(descriptor.name);
+                        const result = yield descriptor.execute();
+                        ctx.busy = typeof result === 'boolean' ? result : true;
+                        ctx.lastActionPerformed = descriptor.action;
+                        return { ok: true };
+                    }
+                    catch (err) {
+                        return { ok: false, reason: String(err), retryable: true };
+                    }
+                }),
+            }],
+    };
+}
 // ---------------------------------------------------------------------------
 //  Handler: handleEventParsing
-//  Priority 1 (highest) -- runs nearly every tick.
 //  Non-atomic, always interruptible.
 //  Wraps: EventModule.parseEventPage()
 // ---------------------------------------------------------------------------
 const handleEventParsing = {
     name: 'handleEventParsing',
-    priority: 1,
     minIntervalMs: 2000,
     atomic: false,
     interruptible: 'always',
@@ -20732,13 +19886,11 @@ function getStaleEventIDs(now = Date.now()) {
 }
 // ---------------------------------------------------------------------------
 //  Handler: handleLeague
-//  Priority 13 -- matches original AutoLoop ordering.
 //  Atomic (fight sequence must not be interrupted).
 //  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
 // ---------------------------------------------------------------------------
 const handleLeague = {
     name: 'handleLeague',
-    priority: 13,
     // Aligned with the short setTimer('nextLeaguesTime') value used in
     // LeagueHelper.doLeagueBattle when energy remains after a batch.
     // A larger Scheduler cool-down would silently extend the gap and
@@ -20775,30 +19927,1304 @@ const handleLeague = {
             timeoutMs: 25000,
         },
     ],
-    onFailure: (failedStep, reason) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+    onFailure: (_ctx, failedStep, reason) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
         LogUtils_logHHAuto('[Pipeline] handleLeague failed at ' + failedStep + ': ' + reason);
     }),
     totalTimeoutMs: 30000,
 };
 // ---------------------------------------------------------------------------
+//  Handler: handleShop
+//  Migrated from AutoLoopActions.handleShop in 3.2.G.a.
+//  Non-atomic, always interruptible. Logs and updates the shop only when
+//  the inner trigger matches the legacy implementation: either the shop
+//  cool-down timer has elapsed, or the cached character level is below the
+//  current hero level (signals a level-up that should refresh shop offers).
+// ---------------------------------------------------------------------------
+const handleShop = {
+    name: 'handleShop',
+    // Cool-down for the pipeline scheduler. The Shop module also keeps its
+    // own internal nextShopTime timer; both must elapse before a real shop
+    // navigation happens. 5_000 ms keeps the handler responsive without
+    // burning a tick slot every second.
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true)
+            return false;
+        if (!Shop.isTimeToCheckShop())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        // Legacy lastActionPerformed continuation gate. v7.37.0 will replace
+        // this with a scheduler-internal multi-step model; see
+        // docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md.
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
+            return false;
+        // Inner trigger -- belongs in precondition, not the step. The legacy
+        // handler had a two-stage gate (outer if + inner if) inside one tick,
+        // so a precondition-true / inner-false combination was a no-op.
+        // In the pipeline model the scheduler logs "Starting" and bumps the
+        // cool-down on every step.fn call, even silent ones. That bursts the
+        // scheduler into a 5-second spam loop while Shop.isTimeToCheckShop()
+        // stays true (updateMarket / needBoosterStatusFromStore flags persist
+        // until the shop is actually scraped). Lesson: when migrating a
+        // multi-stage if cascade, every gate must move to the precondition.
+        // Initialise the cached level on first call -- mirrors the legacy
+        // handler. Without this, getLevel-vs-stored comparison below would
+        // always fire on a fresh install.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
+            setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
+        }
+        const timerReady = checkTimer('nextShopTime');
+        const levelChanged = getStoredValue(HHStoredVarPrefixKey + TK.charLevel) < getHHVars('Hero.infos.level');
+        if (!timerReady && !levelChanged)
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'updateShop',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to check shop.');
+                    const result = Shop.updateShop();
+                    ctx.busy = result === true;
+                    ctx.lastActionPerformed = 'shop';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
+//  Handler: handleAutoEquipBoosters
+//  Migrated from AutoLoopActions.handleAutoEquipBoosters in 3.2.G.a.
+//  Non-atomic, always interruptible. Auto-equips legendary boosters when
+//  slots are empty/expired and the user opted in.
+// ---------------------------------------------------------------------------
+const handleAutoEquipBoosters = {
+    name: 'handleAutoEquipBoosters',
+    // Boosters can expire mid-session; keep the scheduler cool-down short so
+    // the next eligible tick reacts quickly. The internal Booster timer (and
+    // the freshness stamp introduced in cluster Z) handles longer waits.
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) !== 'true')
+            return false;
+        if (!checkTimer('nextAutoEquipBoosterTime'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        // No lastActionPerformed gate in the legacy handler.
+        return true;
+    },
+    steps: [{
+            name: 'autoEquipBoosters',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    const equipped = yield Booster.autoEquipBoosters();
+                    if (equipped) {
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'autoEquipBoosters';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
+//  Handlers migrated in 3.2.G.b via fromDescriptor.
+//  Each one is a one-step wrapper around the legacy ModuleHandlerDescriptor.
+//  isReady captures both outer and inner trigger -- the lesson
+//  pipeline-inner-trigger-in-precondition warns against splitting them
+//  between precondition and step.fn.
+//  All eleven handlers are non-atomic, always interruptible, and use
+//  minIntervalMs sized to match the legacy tick frequency for that module.
+// ---------------------------------------------------------------------------
+const handleLoveRaid = fromDescriptor({
+    name: "Time to go and check raids.",
+    action: "loveraid",
+    requiresCompetition: true,
+    isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
+    execute: () => LoveRaidManager.parse(),
+}, { minIntervalMs: 5000, handlerName: "handleLoveRaid" });
+const handleContest = fromDescriptor({
+    name: "Time to get contest rewards.",
+    action: "contest",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledContest", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) === "true"
+        && (checkTimer('nextContestCollectTime') || unsafeWindow.has_contests_datas || Contest.getClaimsButton().length > 0),
+    execute: () => Contest.run(),
+}, { minIntervalMs: 5000, handlerName: "handleContest" });
+const handleMissions = fromDescriptor({
+    name: "Time to do missions.",
+    action: "mission",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledMission", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
+        && checkTimer('nextMissionTime'),
+    execute: () => Missions.run(),
+}, { minIntervalMs: 5000, handlerName: "handleMissions" });
+const handleChampion = fromDescriptor({
+    name: "Time to check on champions!",
+    action: "champion",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledChamps", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true"
+        && checkTimer('nextChampionTime'),
+    execute: () => Champion.doChampionStuff(),
+}, { minIntervalMs: 5000, handlerName: "handleChampion" });
+const handleClubChampion = fromDescriptor({
+    name: "Time to check on club champion!",
+    action: "clubChampion",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true"
+        && checkTimer('nextClubChampionTime'),
+    execute: () => ClubChampion.doClubChampionStuff(),
+}, { minIntervalMs: 5000, handlerName: "handleClubChampion" });
+const handleSeasonalFreeCard = fromDescriptor({
+    name: "Time to go and check SeasonalEvent to buy free card.",
+    action: "seasonal",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard) === "true"
+        && checkTimer('nextSeasonalCardCollectTime'),
+    execute: () => SeasonalEvent.goAndCollectFreeCard(),
+}, { minIntervalMs: 5000, handlerName: "handleSeasonalFreeCard" });
+const handleSeasonalRankCollect = fromDescriptor({
+    name: "Time to go and check SeasonalEvent for collecting rank reward.",
+    action: "seasonal",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true"
+        && checkTimer('nextMegaEventRankCollectTime'),
+    execute: () => SeasonalEvent.goAndCollectMegaEventRankRewards(),
+}, { minIntervalMs: 5000, handlerName: "handleSeasonalRankCollect" });
+const handleFreeBundles = fromDescriptor({
+    name: "Time to go and check Free Bundles for collecting reward.",
+    action: "bundle",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true"
+        && checkTimer('nextFreeBundlesCollectTime'),
+    execute: () => { Bundles.goAndCollectFreeBundles(); },
+}, { minIntervalMs: 5000, handlerName: "handleFreeBundles" });
+const handleDailyGoals = fromDescriptor({
+    name: "Time to go and check daily Goals for collecting reward.",
+    action: "dailyGoals",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true"
+        && checkTimer('nextDailyGoalsCollectTime'),
+    execute: () => DailyGoals.goAndCollect(),
+}, { minIntervalMs: 5000, handlerName: "handleDailyGoals" });
+const handleLabyrinth = fromDescriptor({
+    name: "Time to check on labyrinth.",
+    action: "labyrinth",
+    requiresCompetition: true,
+    isReady: () => getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true"
+        && Labyrinth.isEnabled()
+        && checkTimer('nextLabyrinthTime'),
+    execute: () => (new LabyrinthAuto).run(),
+}, { minIntervalMs: 5000, handlerName: "handleLabyrinth" });
+// ---------------------------------------------------------------------------
+//  Handlers migrated in 3.2.G.complete (the remaining classic handlers).
+//
+//  These are the handlers that did not fit the runStandardHandler descriptor
+//  shape used in 3.2.G.b. Each one keeps its full legacy logic in step.fn,
+//  with all gates lifted into precondition (lesson
+//  pipeline-inner-trigger-in-precondition).
+//
+//  handleMythicWave is intentionally NOT migrated. Its only effect was
+//  setting ctx.lastActionPerformed = "troll" in the same tick to grant
+//  handleTrollBattle the slot reservation. In the pipeline model the
+//  scheduler picks one handler per tick, so the reservation has no
+//  destination -- and handleTrollBattle's own gate already accepts
+//  lastActionPerformed = "none" anyway. The function is kept in
+//  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
+//  is removed.
+// ---------------------------------------------------------------------------
+const handleHaremSize = {
+    name: 'handleHaremSize',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs')))
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDWaifu'))
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEditTeam'))
+            return false;
+        if (ctx.lastActionPerformed !== 'none')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'gotoWaifu',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDWaifu'));
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePlaceOfPower = {
+    name: 'handlePlaceOfPower',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!PlaceOfPower.isActivated())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pop')
+            return false;
+        const popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+        if (popToStart.length === 0 && !checkTimer('minPowerPlacesTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'doPoP',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    let popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    const popToStartExist = getStoredValue(HHStoredVarPrefixKey + TK.PopToStart) ? true : false;
+                    if (!popToStartExist) {
+                        LogUtils_logHHAuto('Go and collect pop');
+                        ctx.busy = yield PlaceOfPower.collectAndUpdate();
+                    }
+                    const indexes = getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter).split(';');
+                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    for (const pop of popToStart) {
+                        if (ctx.busy === false && !indexes.includes(String(pop))) {
+                            LogUtils_logHHAuto('PoP is no longer in list :' + pop + ' removing it from start list.');
+                            PlaceOfPower.removePopFromPopToStart(pop);
+                        }
+                    }
+                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    for (const index of indexes) {
+                        if (ctx.busy === false && popToStart.includes(Number(index))) {
+                            LogUtils_logHHAuto('Time to do PowerPlace' + index + '.');
+                            ctx.busy = yield PlaceOfPower.doPowerPlacesStuff(index);
+                            ctx.lastActionPerformed = 'pop';
+                        }
+                    }
+                    if (ctx.busy === false) {
+                        popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                        if (popToStart.length === 0) {
+                            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleGenericBattle = {
+    name: 'handleGenericBattle',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        const battlePages = [
+            ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
+            ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
+            ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
+            ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
+            ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
+            ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
+        ];
+        return battlePages.includes(ctx.currentPage);
+    },
+    steps: [{
+            name: 'doBattle',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = true;
+                    GenericBattle.doBattle();
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleTrollBattle = {
+    name: 'handleTrollBattle',
+    // 7.35.61 live test on PH ran 75 [Scheduler] Starting chain 'handleTrollBattle'
+    // logs in 30 minutes for 28 actual fights. The remaining 47 ticks were
+    // legitimate skips (currentPower below threshold, no event girl, no raid):
+    // the precondition matched but step.fn fell through. In the classic
+    // implementation these were silent no-ops; the pipeline still emits
+    // Starting/completed pairs which adds log noise. Doubling the cool-down
+    // to 4 s halves the polling rate without affecting fight responsiveness
+    // (the inner Troll battle sequence holds the autoLoop flag for several
+    // seconds between fights anyway).
+    minIntervalMs: 4000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!Troll.isTrollFightActivated())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'trollBattleOrWait',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    // Always clear the troll wait-marker up-front (issue #1708 / #1700).
+                    // Only the wait-branch below sets it back to "true" when this tick
+                    // decides to wait for an energy refill. Doing the clear unconditionally
+                    // avoids a stale marker when the user disables auto-troll mid-wait.
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'false');
+                    const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
+                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+                    const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
+                    const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
+                    const eventGirl = EventModule.getEventGirl();
+                    const eventMythicGirl = EventModule.getEventMythicGirl();
+                    const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+                    const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+                    const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+                    const loveRaid = LoveRaidManager.isActivated()
+                        ? LoveRaidManager.getRaidToFight(allTrollRaids)
+                        : undefined;
+                    const shouldFight = (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
+                        && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
+                        && ctx.currentPower > 0
+                        && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true'))
+                        || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
+                        || ((eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
+                            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy))
+                        || ((raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+                                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
+                        || ((eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
+                            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy))
+                        || ((LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+                                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)));
+                    if (shouldFight) {
+                        LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
+                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, '0');
+                        ctx.busy = true;
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) !== 'true' || getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)[0] !== 'P') {
+                            ctx.busy = yield Troll.doBossBattle();
+                            if (ctx.busy)
+                                ctx.lastActionPerformed = 'troll';
+                        }
+                        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true') {
+                            LogUtils_logHHAuto('AutoBattle disabled for power collection for AutoQuest.');
+                            document.getElementById('autoTrollBattle').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
+                            ctx.busy = false;
+                        }
+                        else {
+                            ctx.busy = yield Troll.doBossBattle();
+                            if (ctx.busy)
+                                ctx.lastActionPerformed = 'troll';
+                        }
+                    }
+                    else {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
+                        }
+                        if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
+                            LogUtils_logHHAuto('Troll fight pending: waiting for energy refill.');
+                            setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'true');
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+/**
+ * Pure helper used by handleTrollBattle. Mirrors the OR-disjunction in the
+ * trollBattleOrWait step.fn; if those activation paths drift, the wait-marker
+ * either fires too often (blocking event-parsing) or too rarely (issue #1700
+ * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
+ *
+ * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (13 cases)
+ *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (5 cases)
+ * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
+ */
+function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
+    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true';
+    const mythicEventReady = Boolean(eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic) === true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true';
+    const eventReady = Boolean(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic) !== true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true';
+    const raidStarsReady = Boolean(raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === 'true';
+    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl);
+    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
+}
+const handlePachinko = {
+    name: 'handlePachinko',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pachinko')
+            return false;
+        const myth = ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time');
+        const great = ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime');
+        const equip = ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime');
+        return myth || great || equip;
+    },
+    steps: [{
+            name: 'fetchPachinko',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time')) {
+                        LogUtils_logHHAuto('Time to fetch Mythic Pachinko.');
+                        ctx.busy = yield Pachinko.getMythicPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime')) {
+                        LogUtils_logHHAuto('Time to fetch Great Pachinko.');
+                        ctx.busy = yield Pachinko.getGreatPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime')) {
+                        LogUtils_logHHAuto('Time to fetch Equipment Pachinko.');
+                        ctx.busy = yield Pachinko.getEquipmentPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleQuest = {
+    name: 'handleQuest',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) !== true)
+            return false;
+        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
+        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
+        if (!autoQuest && !autoSideQuest)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'quest')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'doQuest',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === undefined) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
+                    }
+                    const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+                    if (questRequirement === 'battle') {
+                        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
+                            LogUtils_logHHAuto('Quest requires battle.');
+                            LogUtils_logHHAuto('prepare to save one battle for quest');
+                            setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') {
+                                ctx.busy = yield Troll.doBossBattle();
+                            }
+                        }
+                    }
+                    else if (questRequirement[0] === '$') {
+                        if (Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
+                            LogUtils_logHHAuto('Continuing quest, required money obtained.');
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                            QuestHelper.run();
+                            ctx.busy = true;
+                        }
+                        else {
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                            if (isNaN(Number(questRequirement.substr(1)))) {
+                                LogUtils_logHHAuto(questRequirement);
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                                LogUtils_logHHAuto('Invalid money in session storage quest requirement !');
+                            }
+                            ctx.busy = false;
+                        }
+                    }
+                    else if (questRequirement[0] === '*') {
+                        const energyNeeded = Number(questRequirement.substr(1));
+                        const energyCurrent = QuestHelper.getEnergy();
+                        if (energyNeeded <= energyCurrent) {
+                            if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
+                                LogUtils_logHHAuto('Continuing quest, required energy obtained.');
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                                QuestHelper.run();
+                                ctx.busy = true;
+                            }
+                            else {
+                                ctx.busy = false;
+                            }
+                        }
+                        else {
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                            ctx.busy = false;
+                        }
+                    }
+                    else if (questRequirement[0] === 'P') {
+                        const neededPower = Number(questRequirement.substr(1));
+                        if (ctx.currentPower < neededPower) {
+                            LogUtils_logHHAuto('Quest requires ' + neededPower + ' Battle Power for advancement. Waiting...');
+                            ctx.busy = false;
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        }
+                        else {
+                            LogUtils_logHHAuto('Battle Power obtained, resuming quest...');
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                            QuestHelper.run();
+                            ctx.busy = true;
+                        }
+                    }
+                    else if (questRequirement === 'unknownQuestButton') {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
+                    else if (questRequirement === 'errorInAutoBattle') {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
+                    else if (questRequirement === 'none') {
+                        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
+                            if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
+                                ctx.busy = true;
+                                QuestHelper.run();
+                            }
+                        }
+                    }
+                    else {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        LogUtils_logHHAuto('Invalid quest requirement : ' + questRequirement);
+                        ctx.busy = false;
+                    }
+                    if (ctx.busy)
+                        ctx.lastActionPerformed = 'quest';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeason = {
+    name: 'handleSeason',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
+            return false;
+        if (!Season.isTimeToFight() && !checkTimer('nextSeasonTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'seasonBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (Season.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to fight in Season.');
+                        ctx.busy = yield Season.run();
+                        ctx.lastActionPerformed = 'season';
+                    }
+                    else if (checkTimer('nextSeasonTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.kiss.next_refresh_ts') === 0) {
+                            setTimer('nextSeasonTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts');
+                            setTimer('nextSeasonTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePentaDrill = {
+    name: 'handlePentaDrill',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
+            return false;
+        if (!PentaDrill.isTimeToFight() && !checkTimer('nextPentaDrillTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'pentaDrillBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (PentaDrill.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to fight in PentaDrill.');
+                        PentaDrill.run();
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'pentaDrill';
+                    }
+                    else if (checkTimer('nextPentaDrillTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.drill.next_refresh_ts') === 0) {
+                            setTimer('nextPentaDrillTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts');
+                            setTimer('nextPentaDrillTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePantheon = {
+    name: 'handlePantheon',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        const autoPantheon = getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === 'true';
+        const dailyPantheon = DailyGoals.isPantheonDailyGoal();
+        if (!autoPantheon && !dailyPantheon)
+            return false;
+        if (!Pantheon.isEnabled())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pantheon')
+            return false;
+        if (!Pantheon.isTimeToFight() && !checkTimer('nextPantheonTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'pantheonBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (Pantheon.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to do Pantheon.');
+                        Pantheon.run();
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'pantheon';
+                    }
+                    else if (checkTimer('nextPantheonTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.worship.next_refresh_ts') === 0) {
+                            setTimer('nextPantheonTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.worship.next_refresh_ts');
+                            setTimer('nextPantheonTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                        ctx.lastActionPerformed = 'none';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleChampionTicket = {
+    name: 'handleChampionTicket',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledChamps', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChampsUseEne) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'champion')
+            return false;
+        const energy = QuestHelper.getEnergy();
+        const ticketPrice = ConfigHelper.getHHScriptVars('CHAMP_TICKET_PRICE');
+        if (energy < ticketPrice)
+            return false;
+        if (energy <= Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'buyChampionTicket',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                var _a;
+                try {
+                    // Avoid getHero() import: it lives in HeroHelper.ts which imports autoLoop,
+                    // closing a Module->Service->Module cycle (lesson zirkulaerer-import-tdz-crash).
+                    // unsafeWindow.shared?.Hero is the same object getHero() returns.
+                    const Hero = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero;
+                    if (!Hero)
+                        return { ok: false, reason: 'Hero unavailable', retryable: true };
+                    function buyTicket() {
+                        const params = {
+                            action: 'champion_buy_ticket',
+                            currency: 'energy_quest',
+                            amount: '1',
+                        };
+                        LogUtils_logHHAuto('Buying ticket with energy');
+                        getHHAjax()(params, function (data) {
+                            Hero.updates(data.hero_changes);
+                            // Route the post-purchase reload through safeReload so any
+                            // in-flight game AJAX gets to finish before the URL change.
+                            safeReload();
+                        });
+                    }
+                    // Set autoLoop=false BEFORE the setTimeout window so concurrent
+                    // AutoLoop ticks during the 800-1600ms wait cannot start a second
+                    // champion_buy_ticket AJAX. The safeReload() inside the AJAX
+                    // callback later sets autoLoop=false a second time -- the
+                    // second write is idempotent and serves the separate purpose of
+                    // suppressing ticks during the reload itself. See ChampionTicket
+                    // race-window discussion in REVIEW_AutoLoop_Findings.md F1.
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+                    LogUtils_logHHAuto('setting autoloop to false');
+                    ctx.busy = true;
+                    setTimeout(buyTicket, randomInterval(800, 1600));
+                    ctx.lastActionPerformed = 'champion';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeasonCollect = {
+    name: 'handleSeasonCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
+            return false;
+        const collectGate = checkTimer('nextSeasonCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === 'true'
+            && checkTimer('nextSeasonCollectAllTime')
+            && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectSeason',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Season for collecting reward.');
+                    ctx.busy = Season.goAndCollect();
+                    ctx.lastActionPerformed = 'season';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePentaDrillCollect = {
+    name: 'handlePentaDrillCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
+            return false;
+        const collectGate = checkTimer('nextPentaDrillCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === 'true'
+            && checkTimer('nextPentaDrillCollectAllTime')
+            && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPentaDrill',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check PentaDrill for collecting reward.');
+                    ctx.busy = PentaDrill.goAndCollect();
+                    ctx.lastActionPerformed = 'pentaDrill';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeasonalEventCollect = {
+    name: 'handleSeasonalEventCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeasonalEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'seasonal')
+            return false;
+        const collectGate = checkTimer('nextSeasonalEventCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === 'true'
+            && checkTimer('nextSeasonalEventCollectAllTime')
+            && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectSeasonalEvent',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check SeasonalEvent for collecting reward.');
+                    ctx.busy = SeasonalEvent.goAndCollect();
+                    ctx.lastActionPerformed = 'seasonal';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePoVCollect = {
+    name: 'handlePoVCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!PathOfValue.isEnabled())
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pov')
+            return false;
+        const collectGate = checkTimer('nextPoVCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === 'true'
+            && checkTimer('nextPoVCollectAllTime')
+            && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPoV',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Path of Valor for collecting reward.');
+                    ctx.busy = PathOfValue.goAndCollect();
+                    ctx.lastActionPerformed = 'pov';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePoGCollect = {
+    name: 'handlePoGCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!PathOfGlory.isEnabled())
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pog')
+            return false;
+        const collectGate = checkTimer('nextPoGCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === 'true'
+            && checkTimer('nextPoGCollectAllTime')
+            && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPoG',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Path of Glory for collecting reward.');
+                    ctx.busy = PathOfGlory.goAndCollect();
+                    ctx.lastActionPerformed = 'pog';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSalary = {
+    name: 'handleSalary',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSalary', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) !== 'true')
+            return false;
+        if (ctx.currentPage !== ConfigHelper.getHHScriptVars('pagesIDHome'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === 'true' && checkTimer('paranoiaSwitch'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'salary')
+            return false;
+        if (!checkTimer('nextSalaryTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'getSalary',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = yield HaremSalary.getSalary();
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleBossBangParse = {
+    name: 'handleBossBangParse',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'event')
+            return false;
+        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
+        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
+        const hasParseTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
+        return hasParseTarget || hasIncompleteOnPage;
+    },
+    steps: [{
+            name: 'parseBossBang',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Going to parse boss bang event.');
+                    ctx.busy = yield EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
+                    ctx.lastActionPerformed = 'event';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleBossBangFight = {
+    name: 'handleBossBangFight',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'bossBang')
+            return false;
+        if (!checkTimer('nextBossBangTime'))
+            return false;
+        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
+        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
+        const hasFightTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
+        return hasFightTarget || hasIncompleteOnPage;
+    },
+    steps: [{
+            name: 'fightBossBang',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Going to fight boss bang.');
+                    ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
+                    ctx.lastActionPerformed = 'bossBang';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleGoHome = {
+    name: 'handleGoHome',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDHome'))
+            return false;
+        const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
+        if (ctx.currentPage !== lastPageCalled.page)
+            return false;
+        const cooldown = ConfigHelper.getHHScriptVars('minSecsBeforeGoHomeAfterActions');
+        if ((new Date().getTime() - lastPageCalled.dateTime) <= cooldown * 1000)
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'gotoHome',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Back to home page at the end of actions');
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
+                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
 //  Pipeline: ordered list of all handler configurations.
-//  Handlers are evaluated by priority (ascending) each tick.
+//
+//  ORDER MATTERS: position in this array = priority. Earlier elements run
+//  first. To reorder a handler (e.g. move PoP to the end, or place the Mythic
+//  Wave handler at slot 3), move its entry within this array. No priority
+//  numbers to keep in sync.
+//
+//  The Scheduler walks the list once per tick, picks the first ready handler
+//  (precondition true, cool-down elapsed, state IDLE), and runs it.
+//
+//  Migration notes (3.2.G.a -> 3.2.G.i): handlers move from
+//  AutoLoopActions.ts into this array. Until the migration is complete,
+//  the classic handler block in AutoLoop.autoLoop() and the pipeline run
+//  sequentially within one tick (classic first, then pipeline). The order
+//  inside this array is kept so the same handler always runs at most once
+//  per tick across both systems (the classic block is updated to skip
+//  handlers that have already moved to the pipeline).
+//
+//  Order matches the legacy AutoLoop call order so behaviour stays
+//  identical until the remaining handlers are migrated in 3.2.G.c-i.
 // ---------------------------------------------------------------------------
 const pipeline = [
+    // Order matches the legacy AutoLoop call order to preserve relative
+    // scheduling. handleMythicWave is intentionally skipped (no useful effect
+    // in the pipeline model -- see comment on its absent migration above).
     handleEventParsing,
+    handleShop,
+    handleAutoEquipBoosters,
+    handleHaremSize,
+    handlePlaceOfPower,
+    handleGenericBattle,
+    handleLoveRaid,
+    handleTrollBattle,
+    handlePachinko,
+    handleContest,
+    handleMissions,
+    handleQuest,
     handleLeague,
+    handleSeason,
+    handlePentaDrill,
+    handlePantheon,
+    handleChampionTicket,
+    handleChampion,
+    handleClubChampion,
+    handleSeasonCollect,
+    handlePentaDrillCollect,
+    handleSeasonalFreeCard,
+    handleSeasonalEventCollect,
+    handleSeasonalRankCollect,
+    handlePoVCollect,
+    handlePoGCollect,
+    handleFreeBundles,
+    handleDailyGoals,
+    handleLabyrinth,
+    handleSalary,
+    handleBossBangParse,
+    handleBossBangFight,
+    handleGoHome,
 ];
 
 ;// CONCATENATED MODULE: ./src/Service/Scheduler.ts
 // Scheduler.ts -- Declarative pipeline scheduler runtime.
 //
 // Manages handler execution via a state machine. Each tick evaluates
-// which handler should run next based on priority, preconditions,
-// and min-interval constraints. Supports atomic chains (uninterruptible)
-// and SOFT/HARD interrupt semantics.
+// which handler should run next based on pipeline order (array position),
+// preconditions, and min-interval constraints. Supports atomic chains
+// (uninterruptible) and SOFT/HARD interrupt semantics.
 //
 // Depends on: Pipeline.config.ts (types), MouseService (SOFT), ParanoiaService (SOFT)
-// Used by: AutoLoop.ts (calls Scheduler.tick() each iteration)
+// Used by: AutoLoop.ts (calls Scheduler.tick(ctx) each iteration)
 var Scheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -20817,8 +21243,22 @@ var Scheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 /** Default watchdog timeout if not specified per handler */
 const DEFAULT_TOTAL_TIMEOUT_MS = 30000;
 /**
+ * Pipeline order resolution. Position in the `pipeline` array defines
+ * priority: a lower index runs before a higher index. We resolve via
+ * `pipeline.indexOf(handler)` so we can keep the API name "priority"
+ * inside the comparator without leaking it through HandlerConfig.
+ *
+ * Handlers that are not in the pipeline (defensive case for tests that
+ * synthesise their own configs) get Number.MAX_SAFE_INTEGER so they
+ * always sort last.
+ */
+function pipelineRank(config) {
+    const idx = pipeline.indexOf(config);
+    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+}
+/**
  * The Scheduler is a singleton that manages pipeline handler execution.
- * Call `Scheduler.tick()` once per AutoLoop iteration.
+ * Call `Scheduler.tick(ctx)` once per AutoLoop iteration.
  */
 class Scheduler {
     constructor() {
@@ -20864,10 +21304,11 @@ class Scheduler {
         }
     }
     /**
-     * Main entry point. Called once per AutoLoop iteration.
-     * Evaluates SOFT-interrupts, watchdog, active chains, and next-ready handlers.
+     * Main entry point. Called once per AutoLoop iteration with the shared
+     * AutoLoop context. The context is forwarded to every handler precondition
+     * and step.fn invocation.
      */
-    tick() {
+    tick(ctx) {
         return Scheduler_awaiter(this, void 0, void 0, function* () {
             // 1. SOFT-Interrupt check (always takes precedence)
             if (this.shouldSoftAbort()) {
@@ -20879,32 +21320,32 @@ class Scheduler {
             // 2. Watchdog: kill hung chains
             if (this.currentChain && this.isHung(this.currentChain)) {
                 LogUtils_logHHAuto(`[Scheduler] Watchdog: chain '${this.currentChain.config.name}' timed out`);
-                yield this.failChain('watchdog timeout');
+                yield this.failChain(ctx, 'watchdog timeout');
             }
             // 3. If an atomic chain is running, continue it
             if (this.currentChain) {
                 if (this.currentChain.config.atomic) {
-                    yield this.continueCurrentChain();
+                    yield this.continueCurrentChain(ctx);
                     return;
                 }
                 // Non-atomic chain running: check for HARD interrupt
-                const higherPrio = this.findHigherPriorityReady(this.currentChain.config.priority);
+                const higherPrio = this.findHigherPriorityReady(ctx, this.currentChain.config);
                 if (higherPrio && this.currentChain.config.interruptible === 'always') {
                     const interruptedName = this.currentChain.config.name;
                     LogUtils_logHHAuto(`[Scheduler] HARD interrupt: '${higherPrio.name}' preempts '${interruptedName}'`);
                     this.currentChain = null;
                     this.states.set(interruptedName, 'IDLE');
-                    yield this.startChain(higherPrio);
+                    yield this.startChain(ctx, higherPrio);
                     return;
                 }
                 // Continue current non-atomic chain
-                yield this.continueCurrentChain();
+                yield this.continueCurrentChain(ctx);
                 return;
             }
             // 4. No active chain: find next ready handler
-            const next = this.findNextReady();
+            const next = this.findNextReady(ctx);
             if (next) {
-                yield this.startChain(next);
+                yield this.startChain(ctx, next);
             }
         });
     }
@@ -20923,52 +21364,55 @@ class Scheduler {
     }
     /**
      * Find the highest-priority handler that is ready to run.
+     * Highest priority = lowest pipeline-array index.
      */
-    findNextReady() {
+    findNextReady(ctx) {
         var _a;
         return (_a = pipeline
             .filter(h => this.isIdle(h.name))
             .filter(h => this.minIntervalElapsed(h))
-            .filter(h => h.precondition())
-            .sort((a, b) => a.priority - b.priority)[0]) !== null && _a !== void 0 ? _a : null;
+            .filter(h => h.precondition(ctx))
+            .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0]) !== null && _a !== void 0 ? _a : null;
     }
     /**
-     * Find a ready handler with higher priority than the given threshold.
+     * Find a ready handler with higher priority than the given handler.
+     * "Higher priority" means earlier in the pipeline array.
      */
-    findHigherPriorityReady(currentPriority) {
+    findHigherPriorityReady(ctx, current) {
         var _a;
+        const currentRank = pipelineRank(current);
         return (_a = pipeline
-            .filter(h => h.priority < currentPriority)
+            .filter(h => pipelineRank(h) < currentRank)
             .filter(h => this.isIdle(h.name))
             .filter(h => this.minIntervalElapsed(h))
-            .filter(h => h.precondition())
-            .sort((a, b) => a.priority - b.priority)[0]) !== null && _a !== void 0 ? _a : null;
+            .filter(h => h.precondition(ctx))
+            .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0]) !== null && _a !== void 0 ? _a : null;
     }
     /**
      * Start executing a handler chain from step 0.
      */
-    startChain(config) {
+    startChain(ctx, config) {
         return Scheduler_awaiter(this, void 0, void 0, function* () {
             LogUtils_logHHAuto(`[Scheduler] Starting chain '${config.name}'`);
             this.states.set(config.name, 'RUNNING');
             this.currentChain = { config, stepIdx: 0, startedAt: Date.now() };
-            yield this.executeCurrentStep();
+            yield this.executeCurrentStep(ctx);
         });
     }
     /**
      * Continue executing the current chain from where it left off.
      */
-    continueCurrentChain() {
+    continueCurrentChain(ctx) {
         return Scheduler_awaiter(this, void 0, void 0, function* () {
             if (!this.currentChain)
                 return;
-            yield this.executeCurrentStep();
+            yield this.executeCurrentStep(ctx);
         });
     }
     /**
      * Execute the current step of the active chain.
      */
-    executeCurrentStep() {
+    executeCurrentStep(ctx) {
         return Scheduler_awaiter(this, void 0, void 0, function* () {
             var _a, _b;
             if (!this.currentChain)
@@ -20984,7 +21428,7 @@ class Scheduler {
             const timeoutMs = (_b = (_a = step.timeoutMs) !== null && _a !== void 0 ? _a : config.totalTimeoutMs) !== null && _b !== void 0 ? _b : DEFAULT_TOTAL_TIMEOUT_MS;
             let result;
             try {
-                result = yield this.executeWithTimeout(step.fn, timeoutMs);
+                result = yield this.executeWithTimeout(() => step.fn(ctx), timeoutMs);
             }
             catch (err) {
                 result = { ok: false, reason: `Exception: ${err}`, retryable: false };
@@ -20998,10 +21442,10 @@ class Scheduler {
                 // If more steps remain, they execute on the next tick (non-blocking)
             }
             else {
-                // Step failed — cast needed because TS cannot narrow through try/catch reassignment
+                // Step failed -- cast needed because TS cannot narrow through try/catch reassignment
                 const failure = result;
                 LogUtils_logHHAuto(`[Scheduler] Step '${step.name}' failed in '${config.name}': ${failure.reason}`);
-                yield this.failChain(failure.reason, step.name);
+                yield this.failChain(ctx, failure.reason, step.name);
             }
         });
     }
@@ -21021,7 +21465,7 @@ class Scheduler {
     /**
      * Handle chain failure: call onFailure callback, reset state.
      */
-    failChain(reason, failedStep) {
+    failChain(ctx, reason, failedStep) {
         return Scheduler_awaiter(this, void 0, void 0, function* () {
             if (!this.currentChain)
                 return;
@@ -21030,7 +21474,7 @@ class Scheduler {
             this.currentChain = null;
             if (config.onFailure && failedStep) {
                 try {
-                    yield config.onFailure(failedStep, reason);
+                    yield config.onFailure(ctx, failedStep, reason);
                 }
                 catch (err) {
                     LogUtils_logHHAuto(`[Scheduler] onFailure callback threw for '${config.name}': ${err}`);
@@ -21183,7 +21627,6 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-
 function getBurst() {
     const sMenu = document.getElementById('sMenu');
     const sMenuVisible = sMenu != null && sMenu.style.display !== 'none';
@@ -21303,38 +21746,17 @@ function autoLoop() {
             }
             else {
                 // --- Action Handlers (executed in order, each checks ctx.busy) ---
-                yield handleMythicWave(ctx);
-                yield handleShop(ctx);
-                yield handleAutoEquipBoosters(ctx);
-                yield handleHaremSize(ctx);
-                yield handlePlaceOfPower(ctx);
-                yield handleGenericBattle(ctx);
-                yield handleLoveRaid(ctx);
-                yield handleTrollBattle(ctx);
-                yield handlePachinko(ctx);
-                yield handleContest(ctx);
-                yield handleMissions(ctx);
-                yield handleQuest(ctx);
-                yield handleSeason(ctx);
-                yield handlePentaDrill(ctx);
-                yield handlePantheon(ctx);
-                yield handleChampionTicket(ctx);
-                yield handleChampion(ctx);
-                yield handleClubChampion(ctx);
-                yield handleSeasonCollect(ctx);
-                yield handlePentaDrillCollect(ctx);
-                yield handleSeasonalFreeCard(ctx);
-                yield handleSeasonalEventCollect(ctx);
-                yield handleSeasonalRankCollect(ctx);
-                yield handlePoVCollect(ctx);
-                yield handlePoGCollect(ctx);
-                yield handleFreeBundles(ctx);
-                yield handleDailyGoals(ctx);
-                yield handleLabyrinth(ctx);
-                yield handleSalary(ctx);
-                yield handleBossBangParse(ctx);
-                yield handleBossBangFight(ctx);
-                yield handleGoHome(ctx);
+                // All 33 classic action handlers have been migrated to Pipeline.config.ts.
+                // - 3.2.G.a: handleShop, handleAutoEquipBoosters
+                // - 3.2.G.b: handleLoveRaid, handleContest, handleMissions, handleChampion,
+                //   handleClubChampion, handleSeasonalFreeCard, handleSeasonalRankCollect,
+                //   handleFreeBundles, handleDailyGoals, handleLabyrinth (via fromDescriptor)
+                // - 3.2.G.complete: the remaining 19 handlers (HaremSize, PlaceOfPower,
+                //   GenericBattle, TrollBattle, Pachinko, Quest, Season, PentaDrill, Pantheon,
+                //   ChampionTicket, SeasonCollect, PentaDrillCollect, SeasonalEventCollect,
+                //   PoVCollect, PoGCollect, Salary, BossBangParse, BossBangFight, GoHome).
+                // handleMythicWave is intentionally not migrated -- see comment in
+                // Pipeline.config.ts above the migrated handlers.
                 // --- Scheduler Pipeline (migrated handlers run here) ---
                 // Only trigger the scheduler when no classic action handler has
                 // already started an action this tick. Without this gate the
@@ -21344,7 +21766,7 @@ function autoLoop() {
                 // lastRunAt from being bumped on a tick where no real work was
                 // possible, which kept the cool-down counting from a wasted run.
                 if (!ctx.busy) {
-                    yield scheduler.tick();
+                    yield scheduler.tick(ctx);
                 }
             }
         }
@@ -27560,7 +27982,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.55";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.56";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

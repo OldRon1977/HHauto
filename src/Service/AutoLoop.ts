@@ -44,38 +44,6 @@ import { ParanoiaService } from "./ParanoiaService";
 import { setDefaults } from "./StartService";
 import { AutoLoopContext } from './AutoLoopContext';
 import {
-    handleMythicWave,
-    handleShop,
-    handleAutoEquipBoosters,
-    handleHaremSize,
-    handlePlaceOfPower,
-    handleGenericBattle,
-    handleLoveRaid,
-    handleTrollBattle,
-    handlePachinko,
-    handleContest,
-    handleMissions,
-    handleQuest,
-    handleSeason,
-    handlePentaDrill,
-    handlePantheon,
-    handleChampionTicket,
-    handleChampion,
-    handleClubChampion,
-    handleSeasonCollect,
-    handlePentaDrillCollect,
-    handleSeasonalFreeCard,
-    handleSeasonalEventCollect,
-    handleSeasonalRankCollect,
-    handlePoVCollect,
-    handlePoGCollect,
-    handleFreeBundles,
-    handleDailyGoals,
-    handleLabyrinth,
-    handleSalary,
-    handleBossBangParse,
-    handleBossBangFight,
-    handleGoHome,
 } from './AutoLoopActions';
 import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
@@ -236,38 +204,17 @@ export async function autoLoop()
             logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
         } else {
         // --- Action Handlers (executed in order, each checks ctx.busy) ---
-        await handleMythicWave(ctx);
-        await handleShop(ctx);
-        await handleAutoEquipBoosters(ctx);
-        await handleHaremSize(ctx);
-        await handlePlaceOfPower(ctx);
-        await handleGenericBattle(ctx);
-        await handleLoveRaid(ctx);
-        await handleTrollBattle(ctx);
-        await handlePachinko(ctx);
-        await handleContest(ctx);
-        await handleMissions(ctx);
-        await handleQuest(ctx);
-        await handleSeason(ctx);
-        await handlePentaDrill(ctx);
-        await handlePantheon(ctx);
-        await handleChampionTicket(ctx);
-        await handleChampion(ctx);
-        await handleClubChampion(ctx);
-        await handleSeasonCollect(ctx);
-        await handlePentaDrillCollect(ctx);
-        await handleSeasonalFreeCard(ctx);
-        await handleSeasonalEventCollect(ctx);
-        await handleSeasonalRankCollect(ctx);
-        await handlePoVCollect(ctx);
-        await handlePoGCollect(ctx);
-        await handleFreeBundles(ctx);
-        await handleDailyGoals(ctx);
-        await handleLabyrinth(ctx);
-        await handleSalary(ctx);
-        await handleBossBangParse(ctx);
-        await handleBossBangFight(ctx);
-        await handleGoHome(ctx);
+        // All 33 classic action handlers have been migrated to Pipeline.config.ts.
+        // - 3.2.G.a: handleShop, handleAutoEquipBoosters
+        // - 3.2.G.b: handleLoveRaid, handleContest, handleMissions, handleChampion,
+        //   handleClubChampion, handleSeasonalFreeCard, handleSeasonalRankCollect,
+        //   handleFreeBundles, handleDailyGoals, handleLabyrinth (via fromDescriptor)
+        // - 3.2.G.complete: the remaining 19 handlers (HaremSize, PlaceOfPower,
+        //   GenericBattle, TrollBattle, Pachinko, Quest, Season, PentaDrill, Pantheon,
+        //   ChampionTicket, SeasonCollect, PentaDrillCollect, SeasonalEventCollect,
+        //   PoVCollect, PoGCollect, Salary, BossBangParse, BossBangFight, GoHome).
+        // handleMythicWave is intentionally not migrated -- see comment in
+        // Pipeline.config.ts above the migrated handlers.
 
         // --- Scheduler Pipeline (migrated handlers run here) ---
         // Only trigger the scheduler when no classic action handler has
@@ -278,7 +225,7 @@ export async function autoLoop()
         // lastRunAt from being bumped on a tick where no real work was
         // possible, which kept the cool-down counting from a wasted run.
         if (!ctx.busy) {
-            await scheduler.tick();
+            await scheduler.tick(ctx);
         }
         }
     }

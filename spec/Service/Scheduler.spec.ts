@@ -1,7 +1,8 @@
 // Scheduler.spec.ts -- Unit tests for the Scheduler state machine.
 //
 // Tests cover: state transitions, atomic blocks, SOFT/HARD interrupts,
-// watchdog, min-interval, priority ordering, preconditions, onFailure.
+// watchdog, min-interval, pipeline ordering (array position),
+// preconditions, onFailure.
 
 // Mock dependencies before importing Scheduler
 const mouseServiceState = { mouseBusy: false };
@@ -46,16 +47,15 @@ jest.mock('../../src/Service/Pipeline.config', () => ({
 }));
 
 import { Scheduler } from '../../src/Service/Scheduler';
-import { HandlerConfig, StepResult } from '../../src/Service/Pipeline.config';
-import * as MouseServiceModule from '../../src/Service/MouseService';
+import { HandlerConfig } from '../../src/Service/Pipeline.config';
 import * as HelperModule from '../../src/Helper/StorageHelper';
 import { pipeline } from '../../src/Service/Pipeline.config';
+import { AutoLoopContext } from '../../src/Service/AutoLoopContext';
 
 // Helper to create a minimal handler config
 function makeHandler(overrides: Partial<HandlerConfig> = {}): HandlerConfig {
   return {
     name: overrides.name ?? 'testHandler',
-    priority: overrides.priority ?? 10,
     minIntervalMs: overrides.minIntervalMs ?? 0,
     atomic: overrides.atomic ?? false,
     interruptible: overrides.interruptible ?? 'always',
@@ -68,13 +68,31 @@ function makeHandler(overrides: Partial<HandlerConfig> = {}): HandlerConfig {
   };
 }
 
+// Helper to build a default context for tick() calls. Tests may override
+// individual fields; the production Scheduler does not read most of them
+// directly but forwards ctx to handler preconditions / step functions.
+function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
+  return {
+    busy: false,
+    lastActionPerformed: 'none',
+    currentPower: 0,
+    canCollectCompetitionActive: false,
+    eventIDs: [],
+    bossBangEventIDs: [],
+    currentPage: 'home.html',
+    ...overrides,
+  };
+}
+
 describe('Scheduler', () => {
   let scheduler: Scheduler;
+  let ctx: AutoLoopContext;
 
   beforeEach(() => {
     // Reset persistent store so tests start with empty cool-downs
     for (const key of Object.keys(persistedStore)) delete persistedStore[key];
     scheduler = new Scheduler();
+    ctx = makeCtx();
     pipeline.length = 0;
     mouseServiceState.mouseBusy = false;
     (HelperModule.getStoredValue as jest.Mock).mockImplementation((key: string) => {
@@ -89,7 +107,7 @@ describe('Scheduler', () => {
       pipeline.push(handler);
 
       expect(scheduler.getState('simple')).toBeUndefined();
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(scheduler.getState('simple')).toBe('IDLE');
       expect(scheduler.getActiveChain()).toBeNull();
     });
@@ -105,8 +123,8 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
-      expect(onFailure).toHaveBeenCalledWith('badStep', 'broken');
+      await scheduler.tick(ctx);
+      expect(onFailure).toHaveBeenCalledWith(ctx, 'badStep', 'broken');
       expect(scheduler.getState('failing')).toBe('IDLE');
     });
 
@@ -122,11 +140,11 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['s1']);
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['s1', 's2']);
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['s1', 's2', 's3']);
       expect(scheduler.getActiveChain()).toBeNull();
     });
@@ -137,7 +155,6 @@ describe('Scheduler', () => {
       const atomicSteps: string[] = [];
       const atomicHandler = makeHandler({
         name: 'atomic',
-        priority: 10,
         atomic: true,
         interruptible: 'never',
         steps: [
@@ -148,18 +165,19 @@ describe('Scheduler', () => {
       let highPrioReady = false;
       const highPrioHandler = makeHandler({
         name: 'highPrio',
-        priority: 1,
         precondition: () => highPrioReady,
         steps: [{ name: 'h1', fn: async () => ({ ok: true }) }],
       });
-      pipeline.push(atomicHandler, highPrioHandler);
+      // highPrio first in array = higher priority than atomic
+      pipeline.push(highPrioHandler, atomicHandler);
 
-      await scheduler.tick();
+      // atomic was added later but is the only ready handler initially
+      await scheduler.tick(ctx);
       expect(atomicSteps).toEqual(['a1']);
       expect(scheduler.getActiveChain()?.name).toBe('atomic');
 
       highPrioReady = true;
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(atomicSteps).toEqual(['a1', 'a2']);
       expect(scheduler.getActiveChain()).toBeNull();
     });
@@ -176,11 +194,11 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(atomicSteps).toEqual(['a1']);
 
       mouseServiceState.mouseBusy = true;
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(atomicSteps).toEqual(['a1']);
       expect(scheduler.getActiveChain()).toBeNull();
       expect(scheduler.getState('atomicSoft')).toBe('IDLE');
@@ -190,9 +208,14 @@ describe('Scheduler', () => {
   describe('HARD Interrupt', () => {
     it('non-atomic interruptible handler is preempted by higher priority', async () => {
       const steps: string[] = [];
+      let highPrioReady = false;
+      const highPrio = makeHandler({
+        name: 'highPrio',
+        precondition: () => highPrioReady,
+        steps: [{ name: 'h1', fn: async () => { steps.push('h1'); return { ok: true }; } }],
+      });
       const lowPrio = makeHandler({
         name: 'lowPrio',
-        priority: 10,
         atomic: false,
         interruptible: 'always',
         steps: [
@@ -200,20 +223,14 @@ describe('Scheduler', () => {
           { name: 'l2', fn: async () => { steps.push('l2'); return { ok: true }; } },
         ],
       });
-      let highPrioReady = false;
-      const highPrio = makeHandler({
-        name: 'highPrio',
-        priority: 1,
-        precondition: () => highPrioReady,
-        steps: [{ name: 'h1', fn: async () => { steps.push('h1'); return { ok: true }; } }],
-      });
-      pipeline.push(lowPrio, highPrio);
+      // highPrio first in array = higher priority than lowPrio
+      pipeline.push(highPrio, lowPrio);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['l1']);
 
       highPrioReady = true;
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toContain('h1');
       expect(scheduler.getState('lowPrio')).toBe('IDLE');
     });
@@ -234,14 +251,14 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick(); // executes s1
+      await scheduler.tick(ctx); // executes s1
 
       // Simulate time passing beyond timeout
       const originalNow = Date.now;
       const frozenTime = originalNow() + 200;
       Date.now = () => frozenTime;
 
-      await scheduler.tick(); // watchdog triggers
+      await scheduler.tick(ctx); // watchdog triggers
       expect(scheduler.getActiveChain()).toBeNull();
 
       Date.now = originalNow;
@@ -258,35 +275,34 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['s1']);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual(['s1']); // not re-run
     });
   });
 
-  describe('Priority Ordering', () => {
-    it('runs lower-number priority first', async () => {
+  describe('Pipeline Ordering', () => {
+    it('runs the earlier-in-array handler first', async () => {
       const order: string[] = [];
-      const handlerA = makeHandler({
-        name: 'A',
-        priority: 20,
-        minIntervalMs: 60000,
-        steps: [{ name: 's', fn: async () => { order.push('A'); return { ok: true }; } }],
-      });
       const handlerB = makeHandler({
         name: 'B',
-        priority: 5,
         minIntervalMs: 60000,
         steps: [{ name: 's', fn: async () => { order.push('B'); return { ok: true }; } }],
       });
-      pipeline.push(handlerA, handlerB);
+      const handlerA = makeHandler({
+        name: 'A',
+        minIntervalMs: 60000,
+        steps: [{ name: 's', fn: async () => { order.push('A'); return { ok: true }; } }],
+      });
+      // B first in array = higher priority than A
+      pipeline.push(handlerB, handlerA);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(order).toEqual(['B']);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(order).toEqual(['B', 'A']);
     });
   });
@@ -301,14 +317,45 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
       expect(steps).toEqual([]);
       expect(scheduler.getActiveChain()).toBeNull();
+    });
+
+    it('forwards the AutoLoopContext to precondition', async () => {
+      const seen: AutoLoopContext[] = [];
+      const handler = makeHandler({
+        name: 'ctxAware',
+        precondition: (c) => { seen.push(c); return false; },
+      });
+      pipeline.push(handler);
+
+      const customCtx = makeCtx({ currentPage: 'shop.html' });
+      await scheduler.tick(customCtx);
+      expect(seen).toHaveLength(1);
+      expect(seen[0].currentPage).toBe('shop.html');
+    });
+
+    it('forwards the AutoLoopContext to step.fn', async () => {
+      const seen: AutoLoopContext[] = [];
+      const handler = makeHandler({
+        name: 'ctxStep',
+        steps: [{
+          name: 's',
+          fn: async (c) => { seen.push(c); return { ok: true }; },
+        }],
+      });
+      pipeline.push(handler);
+
+      const customCtx = makeCtx({ currentPower: 42 });
+      await scheduler.tick(customCtx);
+      expect(seen).toHaveLength(1);
+      expect(seen[0].currentPower).toBe(42);
     });
   });
 
   describe('onFailure Callback', () => {
-    it('calls onFailure with step name and reason', async () => {
+    it('calls onFailure with ctx, step name and reason', async () => {
       const onFailure = jest.fn();
       const handler = makeHandler({
         name: 'failHandler',
@@ -320,10 +367,10 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick(); // goodStep
-      await scheduler.tick(); // badStep fails
+      await scheduler.tick(ctx); // goodStep
+      await scheduler.tick(ctx); // badStep fails
 
-      expect(onFailure).toHaveBeenCalledWith('badStep', 'network error');
+      expect(onFailure).toHaveBeenCalledWith(ctx, 'badStep', 'network error');
     });
   });
 
@@ -336,7 +383,7 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
 
       const persistedRaw = persistedStore['HHAuto_Temp_pipelineLastRunAt'];
       expect(persistedRaw).toBeDefined();
@@ -353,7 +400,7 @@ describe('Scheduler', () => {
       });
       pipeline.push(handler);
 
-      await scheduler.tick();
+      await scheduler.tick(ctx);
 
       const persistedRaw = persistedStore['HHAuto_Temp_pipelineLastRunAt'];
       expect(persistedRaw).toBeDefined();
@@ -376,7 +423,7 @@ describe('Scheduler', () => {
       // Build a new Scheduler instance (mimics page reload)
       const fresh = new Scheduler();
       pipeline.push(handler);
-      await fresh.tick();
+      await fresh.tick(ctx);
 
       // Should NOT have re-run because cool-down survives the reload
       expect(steps).toEqual([]);
@@ -396,7 +443,7 @@ describe('Scheduler', () => {
 
       const fresh = new Scheduler();
       pipeline.push(handler);
-      await fresh.tick();
+      await fresh.tick(ctx);
 
       // Should run again because cool-down has expired
       expect(steps).toEqual(['s']);
@@ -423,7 +470,7 @@ describe('Scheduler', () => {
 
       const fresh = new Scheduler();
       pipeline.push(handler);
-      await fresh.tick();
+      await fresh.tick(ctx);
 
       // Should run because malformed data is treated as no-cool-down
       expect(steps).toEqual(['s']);

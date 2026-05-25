@@ -1,12 +1,12 @@
 // Scheduler.ts -- Declarative pipeline scheduler runtime.
 //
 // Manages handler execution via a state machine. Each tick evaluates
-// which handler should run next based on priority, preconditions,
-// and min-interval constraints. Supports atomic chains (uninterruptible)
-// and SOFT/HARD interrupt semantics.
+// which handler should run next based on pipeline order (array position),
+// preconditions, and min-interval constraints. Supports atomic chains
+// (uninterruptible) and SOFT/HARD interrupt semantics.
 //
 // Depends on: Pipeline.config.ts (types), MouseService (SOFT), ParanoiaService (SOFT)
-// Used by: AutoLoop.ts (calls Scheduler.tick() each iteration)
+// Used by: AutoLoop.ts (calls Scheduler.tick(ctx) each iteration)
 
 import { HandlerConfig, StepResult, pipeline } from './Pipeline.config';
 import { mouseBusy } from './MouseService';
@@ -14,6 +14,7 @@ import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/Storage
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { logHHAuto } from "../Utils/LogUtils";
+import { AutoLoopContext } from "./AutoLoopContext";
 
 /** Possible states for each handler in the pipeline */
 export type HandlerState = 'IDLE' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'INTERRUPTED';
@@ -29,8 +30,23 @@ interface ActiveChain {
 const DEFAULT_TOTAL_TIMEOUT_MS = 30_000;
 
 /**
+ * Pipeline order resolution. Position in the `pipeline` array defines
+ * priority: a lower index runs before a higher index. We resolve via
+ * `pipeline.indexOf(handler)` so we can keep the API name "priority"
+ * inside the comparator without leaking it through HandlerConfig.
+ *
+ * Handlers that are not in the pipeline (defensive case for tests that
+ * synthesise their own configs) get Number.MAX_SAFE_INTEGER so they
+ * always sort last.
+ */
+function pipelineRank(config: HandlerConfig): number {
+  const idx = pipeline.indexOf(config);
+  return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+}
+
+/**
  * The Scheduler is a singleton that manages pipeline handler execution.
- * Call `Scheduler.tick()` once per AutoLoop iteration.
+ * Call `Scheduler.tick(ctx)` once per AutoLoop iteration.
  */
 export class Scheduler {
   private states: Map<string, HandlerState> = new Map();
@@ -77,10 +93,11 @@ export class Scheduler {
   }
 
   /**
-   * Main entry point. Called once per AutoLoop iteration.
-   * Evaluates SOFT-interrupts, watchdog, active chains, and next-ready handlers.
+   * Main entry point. Called once per AutoLoop iteration with the shared
+   * AutoLoop context. The context is forwarded to every handler precondition
+   * and step.fn invocation.
    */
-  async tick(): Promise<void> {
+  async tick(ctx: AutoLoopContext): Promise<void> {
     // 1. SOFT-Interrupt check (always takes precedence)
     if (this.shouldSoftAbort()) {
       if (this.currentChain) {
@@ -92,34 +109,34 @@ export class Scheduler {
     // 2. Watchdog: kill hung chains
     if (this.currentChain && this.isHung(this.currentChain)) {
       logHHAuto(`[Scheduler] Watchdog: chain '${this.currentChain.config.name}' timed out`);
-      await this.failChain('watchdog timeout');
+      await this.failChain(ctx, 'watchdog timeout');
     }
 
     // 3. If an atomic chain is running, continue it
     if (this.currentChain) {
       if (this.currentChain.config.atomic) {
-        await this.continueCurrentChain();
+        await this.continueCurrentChain(ctx);
         return;
       }
       // Non-atomic chain running: check for HARD interrupt
-      const higherPrio = this.findHigherPriorityReady(this.currentChain.config.priority);
+      const higherPrio = this.findHigherPriorityReady(ctx, this.currentChain.config);
       if (higherPrio && this.currentChain.config.interruptible === 'always') {
         const interruptedName = this.currentChain.config.name;
         logHHAuto(`[Scheduler] HARD interrupt: '${higherPrio.name}' preempts '${interruptedName}'`);
         this.currentChain = null;
         this.states.set(interruptedName, 'IDLE');
-        await this.startChain(higherPrio);
+        await this.startChain(ctx, higherPrio);
         return;
       }
       // Continue current non-atomic chain
-      await this.continueCurrentChain();
+      await this.continueCurrentChain(ctx);
       return;
     }
 
     // 4. No active chain: find next ready handler
-    const next = this.findNextReady();
+    const next = this.findNextReady(ctx);
     if (next) {
-      await this.startChain(next);
+      await this.startChain(ctx, next);
     }
   }
 
@@ -139,49 +156,52 @@ export class Scheduler {
 
   /**
    * Find the highest-priority handler that is ready to run.
+   * Highest priority = lowest pipeline-array index.
    */
-  private findNextReady(): HandlerConfig | null {
+  private findNextReady(ctx: AutoLoopContext): HandlerConfig | null {
     return pipeline
       .filter(h => this.isIdle(h.name))
       .filter(h => this.minIntervalElapsed(h))
-      .filter(h => h.precondition())
-      .sort((a, b) => a.priority - b.priority)[0] ?? null;
+      .filter(h => h.precondition(ctx))
+      .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0] ?? null;
   }
 
   /**
-   * Find a ready handler with higher priority than the given threshold.
+   * Find a ready handler with higher priority than the given handler.
+   * "Higher priority" means earlier in the pipeline array.
    */
-  private findHigherPriorityReady(currentPriority: number): HandlerConfig | null {
+  private findHigherPriorityReady(ctx: AutoLoopContext, current: HandlerConfig): HandlerConfig | null {
+    const currentRank = pipelineRank(current);
     return pipeline
-      .filter(h => h.priority < currentPriority)
+      .filter(h => pipelineRank(h) < currentRank)
       .filter(h => this.isIdle(h.name))
       .filter(h => this.minIntervalElapsed(h))
-      .filter(h => h.precondition())
-      .sort((a, b) => a.priority - b.priority)[0] ?? null;
+      .filter(h => h.precondition(ctx))
+      .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0] ?? null;
   }
 
   /**
    * Start executing a handler chain from step 0.
    */
-  private async startChain(config: HandlerConfig): Promise<void> {
+  private async startChain(ctx: AutoLoopContext, config: HandlerConfig): Promise<void> {
     logHHAuto(`[Scheduler] Starting chain '${config.name}'`);
     this.states.set(config.name, 'RUNNING');
     this.currentChain = { config, stepIdx: 0, startedAt: Date.now() };
-    await this.executeCurrentStep();
+    await this.executeCurrentStep(ctx);
   }
 
   /**
    * Continue executing the current chain from where it left off.
    */
-  private async continueCurrentChain(): Promise<void> {
+  private async continueCurrentChain(ctx: AutoLoopContext): Promise<void> {
     if (!this.currentChain) return;
-    await this.executeCurrentStep();
+    await this.executeCurrentStep(ctx);
   }
 
   /**
    * Execute the current step of the active chain.
    */
-  private async executeCurrentStep(): Promise<void> {
+  private async executeCurrentStep(ctx: AutoLoopContext): Promise<void> {
     if (!this.currentChain) return;
 
     const { config, stepIdx } = this.currentChain;
@@ -198,7 +218,7 @@ export class Scheduler {
     let result: StepResult;
 
     try {
-      result = await this.executeWithTimeout(step.fn, timeoutMs);
+      result = await this.executeWithTimeout(() => step.fn(ctx), timeoutMs);
     } catch (err) {
       result = { ok: false, reason: `Exception: ${err}`, retryable: false };
     }
@@ -211,10 +231,10 @@ export class Scheduler {
       }
       // If more steps remain, they execute on the next tick (non-blocking)
     } else {
-      // Step failed — cast needed because TS cannot narrow through try/catch reassignment
+      // Step failed -- cast needed because TS cannot narrow through try/catch reassignment
       const failure = result as { ok: false; reason: string; retryable: boolean };
       logHHAuto(`[Scheduler] Step '${step.name}' failed in '${config.name}': ${failure.reason}`);
-      await this.failChain(failure.reason, step.name);
+      await this.failChain(ctx, failure.reason, step.name);
     }
   }
 
@@ -234,7 +254,7 @@ export class Scheduler {
   /**
    * Handle chain failure: call onFailure callback, reset state.
    */
-  private async failChain(reason: string, failedStep?: string): Promise<void> {
+  private async failChain(ctx: AutoLoopContext, reason: string, failedStep?: string): Promise<void> {
     if (!this.currentChain) return;
     const { config } = this.currentChain;
 
@@ -243,7 +263,7 @@ export class Scheduler {
 
     if (config.onFailure && failedStep) {
       try {
-        await config.onFailure(failedStep, reason);
+        await config.onFailure(ctx, failedStep, reason);
       } catch (err) {
         logHHAuto(`[Scheduler] onFailure callback threw for '${config.name}': ${err}`);
       }

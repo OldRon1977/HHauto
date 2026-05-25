@@ -15,7 +15,6 @@ import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../Helper/TimerHelper";
-import { autoLoop } from "../Service/AutoLoop";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { isJSON, safeJsonParse } from "../Utils/Utils";
@@ -600,8 +599,16 @@ export class Shop {
 
         function sellArmorEnded() {
             $("#menuSellHide").css("display","block");
+            // Re-enable autoLoop. The next tick is triggered by the
+            // existing setTimeout-recursion at the bottom of autoLoop()
+            // itself (it re-schedules as long as the autoLoop storage
+            // flag is "true"). A direct setTimeout(autoLoop) here would
+            // require a top-level import of Service/AutoLoop, which makes
+            // Shop.ts part of a Module -> Service -> Module import cycle
+            // and breaks Pipeline.config.ts (which imports Shop). The
+            // resulting TDZ-style cycle is the pattern guarded against
+            // by the zirkulaerer-import-tdz-crash lesson.
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
         }
     
         function sellArmorItems()

@@ -1,7 +1,7 @@
 // Pipeline.config.spec.ts -- Unit tests for the pipeline configuration.
 //
 // Tests cover: config parsability, valid fields, no duplicates,
-// handler-specific properties (atomic, priority, interruptible).
+// handler-specific properties (atomic, ordering, interruptible).
 
 // Mock all external dependencies that Pipeline.config.ts imports
 jest.mock('../../src/Module/League', () => ({
@@ -18,6 +18,27 @@ jest.mock('../../src/Module/Events/EventModule', () => ({
   },
 }));
 
+jest.mock('../../src/Module/Shop', () => ({
+  Shop: {
+    isTimeToCheckShop: jest.fn().mockReturnValue(false),
+    updateShop: jest.fn().mockReturnValue(false),
+  },
+}));
+
+jest.mock('../../src/Module/Booster', () => ({
+  Booster: {
+    autoEquipBoosters: jest.fn().mockResolvedValue(false),
+  },
+}));
+
+jest.mock('../../src/Helper/HHHelper', () => ({
+  getHHVars: jest.fn().mockReturnValue(100),
+}));
+
+jest.mock('../../src/Helper/TimerHelper', () => ({
+  checkTimer: jest.fn().mockReturnValue(false),
+}));
+
 jest.mock('../../src/Helper/ConfigHelper', () => ({
   ConfigHelper: {
     getHHScriptVars: jest.fn().mockReturnValue(true),
@@ -26,6 +47,7 @@ jest.mock('../../src/Helper/ConfigHelper', () => ({
 
 jest.mock('../../src/Helper/StorageHelper', () => ({
   getStoredValue: jest.fn().mockReturnValue('[]'),
+  setStoredValue: jest.fn(),
 }));
 
 jest.mock('../../src/config/HHStoredVars', () => ({
@@ -33,17 +55,36 @@ jest.mock('../../src/config/HHStoredVars', () => ({
 }));
 
 jest.mock('../../src/config/StorageKeys', () => ({
-  SK: { master: 'master' },
-  TK: { eventsList: 'Temp_eventsList', trollWaitForEnergy: 'Temp_trollWaitForEnergy' },
+  SK: { master: 'master', autoEquipBoosters: 'Setting_autoEquipBoosters' },
+  TK: {
+    eventsList: 'Temp_eventsList',
+    trollWaitForEnergy: 'Temp_trollWaitForEnergy',
+    charLevel: 'Temp_charLevel',
+    autoLoop: 'Temp_autoLoop',
+  },
 }));
 
 jest.mock('../../src/Utils/LogUtils', () => ({
   logHHAuto: jest.fn(),
 }));
 
-import { pipeline, HandlerConfig, getStaleEventIDs } from '../../src/Service/Pipeline.config';
+import { pipeline, getStaleEventIDs } from '../../src/Service/Pipeline.config';
 import { getStoredValue } from '../../src/Helper/StorageHelper';
+import { AutoLoopContext } from '../../src/Service/AutoLoopContext';
 const getStoredValueMock = getStoredValue as jest.Mock;
+
+function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
+  return {
+    busy: false,
+    lastActionPerformed: 'none',
+    currentPower: 0,
+    canCollectCompetitionActive: false,
+    eventIDs: [],
+    bossBangEventIDs: [],
+    currentPage: 'home.html',
+    ...overrides,
+  };
+}
 
 describe('Pipeline.config', () => {
   describe('pipeline array', () => {
@@ -55,7 +96,6 @@ describe('Pipeline.config', () => {
     it('contains only valid HandlerConfig objects', () => {
       for (const handler of pipeline) {
         expect(handler).toHaveProperty('name');
-        expect(handler).toHaveProperty('priority');
         expect(handler).toHaveProperty('minIntervalMs');
         expect(handler).toHaveProperty('atomic');
         expect(handler).toHaveProperty('interruptible');
@@ -64,8 +104,6 @@ describe('Pipeline.config', () => {
 
         expect(typeof handler.name).toBe('string');
         expect(handler.name.length).toBeGreaterThan(0);
-        expect(typeof handler.priority).toBe('number');
-        expect(handler.priority).toBeGreaterThan(0);
         expect(typeof handler.minIntervalMs).toBe('number');
         expect(handler.minIntervalMs).toBeGreaterThanOrEqual(0);
         expect(typeof handler.atomic).toBe('boolean');
@@ -82,15 +120,9 @@ describe('Pipeline.config', () => {
       expect(uniqueNames.size).toBe(names.length);
     });
 
-    it('has no duplicate priorities', () => {
-      const priorities = pipeline.map(h => h.priority);
-      const uniquePriorities = new Set(priorities);
-      expect(uniquePriorities.size).toBe(priorities.length);
-    });
-
-    it('is sorted by priority ascending', () => {
-      for (let i = 1; i < pipeline.length; i++) {
-        expect(pipeline[i].priority).toBeGreaterThan(pipeline[i - 1].priority);
+    it('does not expose a numeric priority field (replaced by array order)', () => {
+      for (const handler of pipeline) {
+        expect((handler as unknown as Record<string, unknown>)['priority']).toBeUndefined();
       }
     });
   });
@@ -137,17 +169,19 @@ describe('Pipeline.config', () => {
       expect(handler.interruptible).toBe('always');
     });
 
-    it('has highest priority (1)', () => {
-      expect(handler.priority).toBe(1);
+    it('runs before handleLeague (earlier index in pipeline)', () => {
+      const idxParsing = pipeline.findIndex(h => h.name === 'handleEventParsing');
+      const idxLeague = pipeline.findIndex(h => h.name === 'handleLeague');
+      expect(idxParsing).toBeLessThan(idxLeague);
     });
 
     it('precondition returns boolean', () => {
-      const result = handler.precondition();
+      const result = handler.precondition(makeCtx());
       expect(typeof result).toBe('boolean');
     });
 
     it('step fn returns StepResult', async () => {
-      const result = await handler.steps[0].fn();
+      const result = await handler.steps[0].fn(makeCtx());
       expect(result).toHaveProperty('ok');
       expect(result.ok).toBe(true);
     });
@@ -165,10 +199,6 @@ describe('Pipeline.config', () => {
       expect(handler.interruptible).toBe('never');
     });
 
-    it('has priority 13', () => {
-      expect(handler.priority).toBe(13);
-    });
-
     it('has minIntervalMs of 2 seconds', () => {
       expect(handler.minIntervalMs).toBe(2_000);
     });
@@ -179,19 +209,19 @@ describe('Pipeline.config', () => {
     });
 
     it('precondition returns boolean', () => {
-      const result = handler.precondition();
+      const result = handler.precondition(makeCtx());
       expect(typeof result).toBe('boolean');
     });
 
     it('step fn returns StepResult', async () => {
-      const result = await handler.steps[0].fn();
+      const result = await handler.steps[0].fn(makeCtx());
       expect(result).toHaveProperty('ok');
       expect(result.ok).toBe(true);
     });
 
     it('onFailure does not throw', async () => {
       await expect(
-        handler.onFailure!('doLeagueBattle', 'test error')
+        handler.onFailure!(makeCtx(), 'doLeagueBattle', 'test error')
       ).resolves.toBeUndefined();
     });
   });
@@ -211,7 +241,7 @@ describe('Pipeline.config', () => {
         });
         return undefined;
       });
-      expect(handler.precondition()).toBe(false);
+      expect(handler.precondition(makeCtx())).toBe(false);
     });
 
     it('handleEventParsing precondition still triggers when trollWaitForEnergy=false', () => {
@@ -223,7 +253,7 @@ describe('Pipeline.config', () => {
         });
         return undefined;
       });
-      expect(handler.precondition()).toBe(true);
+      expect(handler.precondition(makeCtx())).toBe(true);
     });
 
     it('handleLeague precondition is NOT blocked by trollWaitForEnergy=true', () => {
@@ -238,7 +268,208 @@ describe('Pipeline.config', () => {
       // LeagueHelper.isAutoLeagueActivated and isTimeToFight default to true in
       // the file-level mock, so the precondition must return true even with
       // the troll wait flag set.
-      expect(handler.precondition()).toBe(true);
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+  });
+
+  describe('handleShop (3.2.G.a)', () => {
+    const handler = pipeline.find(h => h.name === 'handleShop')!;
+    const Shop = jest.requireMock('../../src/Module/Shop').Shop as { isTimeToCheckShop: jest.Mock; updateShop: jest.Mock };
+    const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+    const TimerHelperMock = jest.requireMock('../../src/Helper/TimerHelper') as { checkTimer: jest.Mock };
+    const HHHelperMock = jest.requireMock('../../src/Helper/HHHelper') as { getHHVars: jest.Mock };
+
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+      Shop.isTimeToCheckShop.mockReturnValue(false);
+      Shop.updateShop.mockReturnValue(false);
+      ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
+      TimerHelperMock.checkTimer.mockReturnValue(false);
+      HHHelperMock.getHHVars.mockReturnValue(100);
+    });
+
+    it('exists in pipeline', () => {
+      expect(handler).toBeDefined();
+    });
+
+    it('runs after handleEventParsing and before handleLeague', () => {
+      const idxParsing = pipeline.findIndex(h => h.name === 'handleEventParsing');
+      const idxShop = pipeline.findIndex(h => h.name === 'handleShop');
+      const idxLeague = pipeline.findIndex(h => h.name === 'handleLeague');
+      expect(idxParsing).toBeLessThan(idxShop);
+      expect(idxShop).toBeLessThan(idxLeague);
+    });
+
+    it('precondition false when isEnabledShop is off', () => {
+      ConfigHelperMock.getHHScriptVars.mockImplementation((k: string) => k !== 'isEnabledShop');
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition false when Shop.isTimeToCheckShop returns false', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(false);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition false when autoLoop is off', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'false' : undefined);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition false when ctx.busy is true', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      expect(handler.precondition(makeCtx({ busy: true }))).toBe(false);
+    });
+
+    it('precondition false when lastActionPerformed is foreign', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      expect(handler.precondition(makeCtx({ lastActionPerformed: 'troll' }))).toBe(false);
+    });
+
+    it('precondition true when all gates pass', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      // Inner trigger must also be true after 3.2.G.a-fix1 (timer or
+      // level change). Otherwise the scheduler used to spam
+      // "Starting chain 'handleShop'" every 5s without doing real work.
+      TimerHelperMock.checkTimer.mockReturnValue(true);
+      HHHelperMock.getHHVars.mockReturnValue(100);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        if (k.endsWith('Temp_charLevel')) return 100;
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('precondition false when neither nextShopTime elapsed nor hero level changed (3.2.G.a-fix1: prevents 5s scheduler spam)', () => {
+      // Regression: in the original 3.2.G.a migration the inner timer/level
+      // checks lived in step.fn with a silent "ok: true" return. Because
+      // the scheduler logs "Starting"/"completed" and bumps lastRunAt on
+      // every step.fn call, that produced 38 starts for 2 actual shop
+      // accesses over the test session. Now the inner trigger lives in
+      // the precondition where it belongs.
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
+      TimerHelperMock.checkTimer.mockReturnValue(false);
+      HHHelperMock.getHHVars.mockReturnValue(100);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        if (k.endsWith('Temp_charLevel')) return 100;
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition true when nextShopTime elapsed', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
+      TimerHelperMock.checkTimer.mockReturnValue(true);
+      HHHelperMock.getHHVars.mockReturnValue(100);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        if (k.endsWith('Temp_charLevel')) return 100;
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('precondition true when hero level above cached level (level-up trigger)', () => {
+      Shop.isTimeToCheckShop.mockReturnValue(true);
+      ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
+      TimerHelperMock.checkTimer.mockReturnValue(false);
+      HHHelperMock.getHHVars.mockReturnValue(102);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        if (k.endsWith('Temp_charLevel')) return 100;
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('step calls Shop.updateShop and persists ctx.busy from result', async () => {
+      Shop.updateShop.mockReturnValue(true);
+      const ctx = makeCtx();
+      const result = await handler.steps[0].fn(ctx);
+      expect(result.ok).toBe(true);
+      expect(Shop.updateShop).toHaveBeenCalledTimes(1);
+      expect(ctx.busy).toBe(true);
+      expect(ctx.lastActionPerformed).toBe('shop');
+    });
+  });
+
+  describe('handleAutoEquipBoosters (3.2.G.a)', () => {
+    const handler = pipeline.find(h => h.name === 'handleAutoEquipBoosters')!;
+    const Booster = jest.requireMock('../../src/Module/Booster').Booster as { autoEquipBoosters: jest.Mock };
+    const TimerHelperMock = jest.requireMock('../../src/Helper/TimerHelper') as { checkTimer: jest.Mock };
+
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+      Booster.autoEquipBoosters.mockResolvedValue(false);
+      TimerHelperMock.checkTimer.mockReturnValue(false);
+    });
+
+    it('exists in pipeline', () => {
+      expect(handler).toBeDefined();
+    });
+
+    it('precondition false when autoEquipBoosters opt-in is off', () => {
+      TimerHelperMock.checkTimer.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => k.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition false when nextAutoEquipBoosterTime is not yet elapsed', () => {
+      TimerHelperMock.checkTimer.mockReturnValue(false);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Setting_autoEquipBoosters')) return 'true';
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('precondition true when all gates pass', () => {
+      TimerHelperMock.checkTimer.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Setting_autoEquipBoosters')) return 'true';
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('precondition is NOT gated on lastActionPerformed', () => {
+      TimerHelperMock.checkTimer.mockReturnValue(true);
+      getStoredValueMock.mockImplementation((k: string) => {
+        if (k.endsWith('Setting_autoEquipBoosters')) return 'true';
+        if (k.endsWith('Temp_autoLoop')) return 'true';
+        return undefined;
+      });
+      // The legacy handler has no lastActionPerformed gate. Preserve that.
+      expect(handler.precondition(makeCtx({ lastActionPerformed: 'troll' }))).toBe(true);
+    });
+
+    it('step does not mutate ctx when Booster.autoEquipBoosters returns false', async () => {
+      Booster.autoEquipBoosters.mockResolvedValue(false);
+      const ctx = makeCtx();
+      const result = await handler.steps[0].fn(ctx);
+      expect(result.ok).toBe(true);
+      expect(ctx.busy).toBe(false);
+      expect(ctx.lastActionPerformed).toBe('none');
+    });
+
+    it('step sets ctx.busy and ctx.lastActionPerformed when equip succeeds', async () => {
+      Booster.autoEquipBoosters.mockResolvedValue(true);
+      const ctx = makeCtx();
+      const result = await handler.steps[0].fn(ctx);
+      expect(result.ok).toBe(true);
+      expect(ctx.busy).toBe(true);
+      expect(ctx.lastActionPerformed).toBe('autoEquipBoosters');
     });
   });
 

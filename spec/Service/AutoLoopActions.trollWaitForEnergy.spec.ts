@@ -106,10 +106,20 @@ jest.mock("../../src/config/StorageKeys", () => ({
     },
 }));
 
-import { handleTrollBattle } from "../../src/Service/AutoLoopActions";
+import { pipeline } from "../../src/Service/Pipeline.config";
 import { getStoredValue, setStoredValue } from "../../src/Helper/StorageHelper";
 import { EventModule } from "../../src/Module/Events/EventModule";
 import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
+
+// In 3.2.G.complete handleTrollBattle moved to Pipeline.config.ts. The spec
+// now exercises the pipeline step.fn directly. The pre-clear and the
+// wait-branch live in the same step.fn body so the assertions below are
+// equivalent to the legacy handleTrollBattle ones.
+const trollPipelineHandler = pipeline.find(h => h.name === 'handleTrollBattle');
+async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
+    if (!trollPipelineHandler) throw new Error('handleTrollBattle not in pipeline');
+    await trollPipelineHandler.steps[0].fn(ctx);
+}
 
 const getStoredValueMock = getStoredValue as jest.Mock;
 const setStoredValueMock = setStoredValue as jest.Mock;

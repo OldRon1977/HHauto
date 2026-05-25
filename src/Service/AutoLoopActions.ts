@@ -18,46 +18,13 @@
 import { AutoLoopContext } from './AutoLoopContext';
 import { ModuleHandlerDescriptor } from '../model/IModule';
 import { shouldRunStandardHandler } from './AutoLoop.pure';
-import { ConfigHelper } from "../Helper/ConfigHelper";
-import { getHero, HeroHelper } from "../Helper/HeroHelper";
-import { getHHVars } from "../Helper/HHHelper";
-import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
-import { getLimitTimeBeforeEnd, randomInterval } from "../Helper/TimeHelper";
-import { checkTimer, checkTimerMustExist, getSecondsLeft, getTimer, setTimer } from "../Helper/TimerHelper";
-import { PentaDrill } from '../Module/PentaDrill';
-import { Booster } from "../Module/Booster";
-import { Bundles } from "../Module/Bundles";
-import { Champion } from "../Module/Champion";
-import { ClubChampion } from "../Module/ClubChampion";
-import { Contest } from "../Module/Contest";
-import { DailyGoals } from "../Module/DailyGoals";
-import { BossBang } from "../Module/Events/BossBang";
-import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
-import { PathOfGlory } from "../Module/Events/PathOfGlory";
-import { PathOfValue } from "../Module/Events/PathOfValue";
-import { Season } from "../Module/Events/Season";
-import { SeasonalEvent } from "../Module/Events/Seasonal";
-import { GenericBattle } from "../Module/GenericBattle";
-import { Harem } from "../Module/harem/Harem";
-import { HaremSalary } from "../Module/harem/HaremSalary";
-import { Labyrinth } from "../Module/Labyrinth";
-import { LabyrinthAuto } from "../Module/LabyrinthAuto";
-import { Missions } from "../Module/Missions";
-import { Pachinko } from "../Module/Pachinko";
-import { Pantheon } from "../Module/Pantheon";
-import { PlaceOfPower } from "../Module/PlaceOfPower";
-import { QuestHelper } from "../Module/Quest";
-import { Shop } from "../Module/Shop";
-import { Troll } from "../Module/Troll";
+import { getStoredValue } from "../Helper/StorageHelper";
 import { logHHAuto } from "../Utils/LogUtils";
-import { getHHAjax } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
-import { SK, TK } from "../config/StorageKeys";
+import { SK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
-import { gotoPage, safeReload } from "./PageNavigationService";
-import { ParanoiaService } from "./ParanoiaService";
 import { isAutoLoopActive } from './AutoLoop';
 
 // ---------------------------------------------------------------------------
@@ -92,304 +59,36 @@ export async function runStandardHandler(ctx: AutoLoopContext, d: ModuleHandlerD
 //  Action handlers – called in order from autoLoop()
 // ---------------------------------------------------------------------------
 
-// 2. handleMythicWave - lines 255-261
-export async function handleMythicWave(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && isAutoLoopActive() && ctx.canCollectCompetitionActive
-        && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true" && checkTimerMustExist('eventMythicNextWave') && getSecondsLeft("eventMythicGoing") > 0
-        && Troll.isEnabled())
-    {
-        logHHAuto("Mythic wave !");
-        ctx.lastActionPerformed = "troll";
-    }
+// handleMythicWave: deprecated since 3.2.G.complete. Its only effect was to
+// set ctx.lastActionPerformed = "troll" in the same tick to grant
+// handleTrollBattle the slot reservation. In the pipeline model the scheduler
+// picks one handler per tick, so the reservation has no destination -- and
+// handleTrollBattle's own gate already accepts lastActionPerformed = "none".
+// Kept as exported function for any external caller, slated for removal in
+// v7.37.0.
+export async function handleMythicWave(_ctx: AutoLoopContext): Promise<void> {
+    return;
 }
 
-// 3. handleShop - lines 263-274
-export async function handleShop(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy===false && ConfigHelper.getHHScriptVars("isEnabledShop",false) && Shop.isTimeToCheckShop() && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "shop"))
-    {
-        if (getStoredValue(HHStoredVarPrefixKey+TK.charLevel) ===undefined)
-        {
-            setStoredValue(HHStoredVarPrefixKey+TK.charLevel, 0);
-        }
-        if (checkTimer('nextShopTime') || getStoredValue(HHStoredVarPrefixKey + TK.charLevel) < HeroHelper.getLevel()) {
-            logHHAuto("Time to check shop.");
-            ctx.busy = Shop.updateShop();
-            ctx.lastActionPerformed = "shop";
-        }
-    }
-}
-
-// 3b. handleAutoEquipBoosters - auto-equip legendary boosters when slots are empty/expired
-export async function handleAutoEquipBoosters(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) === "true"
-        && checkTimer('nextAutoEquipBoosterTime')
-        && isAutoLoopActive()
-    ) {
-        const equipped = await Booster.autoEquipBoosters();
-        if (equipped) {
-            ctx.busy = true;
-            ctx.lastActionPerformed = "autoEquipBoosters";
-        }
-    }
-}
+// handleShop, handleAutoEquipBoosters: migrated to Pipeline.config.ts in 3.2.G.a.
 
 // 4. handleHaremSize - lines 276-288
-export async function handleHaremSize(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy === false
-        && isAutoLoopActive()
-        && Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMaxSizeExpirationSecs"))
-        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDWaifu")
-        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEditTeam")
-        && (ctx.lastActionPerformed === "none")
-    ) {
-        //console.log(! isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)),JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize)).count_date,new Date().getTime() + ConfigHelper.getHHScriptVars("HaremSizeExpirationSecs") * 1000);
-        // Update girl count
-        // Trust the gotoPage return value: when the navigation mutex is
-        // already held (concurrent caller), gotoPage returns false and
-        // does not navigate. Setting ctx.busy = true unconditionally in
-        // that case would falsely block other handlers for one tick.
-        ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-    }
-}
+// handleHaremSize: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 5. handlePlaceOfPower - lines 290-344
-export async function handlePlaceOfPower(ctx: AutoLoopContext): Promise<void> {
-    if(ctx.busy === false && PlaceOfPower.isActivated()
-    && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pop"))
-    {
+// handlePlaceOfPower: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-        var popToStart = getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
-        if (popToStart.length !== 0 || checkTimer('minPowerPlacesTime'))
-        {
-            //if PopToStart exist bypass function
-            var popToStartExist = getStoredValue(HHStoredVarPrefixKey+TK.PopToStart)?true:false;
-            //logHHAuto("startcollect : "+popToStartExist);
-            if (! popToStartExist)
-            {
-                //logHHAuto("pop1:"+popToStart);
-                logHHAuto("Go and collect pop");
-                ctx.busy = await PlaceOfPower.collectAndUpdate();
-            }
-            var indexes=(getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlacesIndexFilter)).split(";");
-
-            popToStart = getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
-            //console.log(indexes, popToStart);
-            for(var pop of popToStart)
-            {
-                if (ctx.busy === false && ! indexes.includes(String(pop)))
-                {
-                    logHHAuto("PoP is no longer in list :"+pop+" removing it from start list.");
-                    PlaceOfPower.removePopFromPopToStart(pop);
-                }
-            }
-            popToStart = getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
-            //logHHAuto("pop2:"+popToStart);
-            for(var index of indexes)
-            {
-                if (ctx.busy === false && popToStart.includes(Number(index)))
-                {
-                    logHHAuto("Time to do PowerPlace"+index+".");
-                    ctx.busy = await PlaceOfPower.doPowerPlacesStuff(index);
-                    ctx.lastActionPerformed = "pop";
-                }
-            }
-            if (ctx.busy === false)
-            {
-                //logHHAuto("pop3:"+getStoredValue(HHStoredVarPrefixKey+TK.PopToStart));
-                popToStart = getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
-                //logHHAuto("pop3:"+popToStart);
-                if (popToStart.length === 0)
-                {
-                    //logHHAuto("removing popToStart");
-                    sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopToStart);
-                    // Reflect navigation success in ctx.busy so blocked
-                    // navigations (mutex held) do not falsely consume the
-                    // tick for the next handler.
-                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                }
-            }
-        }
-    }
-}
 
 // 6. handleGenericBattle - lines 346-363
-export async function handleGenericBattle(ctx: AutoLoopContext): Promise<void> {
-    if
-        (
-            ctx.busy === false
-            &&
-            (
-                ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-                || ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")
-            )
-            && isAutoLoopActive() && ctx.canCollectCompetitionActive
-        )
-    {
-        ctx.busy = true;
-        GenericBattle.doBattle();
-    }
-}
+// handleGenericBattle: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-// 7. handleLoveRaid - lines 365-372
-export async function handleLoveRaid(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to go and check raids.",
-        action: "loveraid",
-        requiresCompetition: true,
-        isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
-        execute: () => LoveRaidManager.parse(),
-    });
-}
+
+// handleLoveRaid: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
-export async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
-    // Clear the troll wait-marker (issue #1708) up-front. Only the
-    // wait-branch below sets it back to "true" when this tick decides to
-    // wait for an energy refill. Doing the clear unconditionally avoids
-    // a stale marker when the user disables auto-troll mid-wait or when
-    // the outer guard evaluates to false on a later tick.
-    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "false");
+// handleTrollBattle: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-    if(ctx.busy === false && Troll.isTrollFightActivated()
-    && isAutoLoopActive() && ctx.canCollectCompetitionActive
-    && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "troll" || ctx.lastActionPerformed === "quest"))
-    {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun) === "true";
-        const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold-1);
-        //logHHAuto("fight amount: "+currentPower+" troll threshold: "+threshold+" paranoia fight: "+Number(checkParanoiaSpendings('fight')));
-        const eventGirl: EventGirl = EventModule.getEventGirl();
-        const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
-        const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-        const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-        const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-        // +Raid: user-selected girl bypasses grade filter, auto-mode respects it
-        const loveRaid: LoveRaid = LoveRaidManager.isActivated()
-            ? LoveRaidManager.getRaidToFight(allTrollRaids)
-            : undefined;
-        if
-            (
-                //normal case (only when autoTrollBattle is ON)
-                (
-                    getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-                    && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired))
-                    && ctx.currentPower > 0
-                    &&
-                    (
-                        energyAboveThreshold
-                        || getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true"
-                    )
-                )
-                || getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0 //paranoiaspendings to do
-                ||
-                (
-                    // mythic Event Girl available and fights available
-                    (eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true")
-                    &&
-                    (
-                        ctx.currentPower > 0 //has fight => bypassing paranoia
-                        || Troll.canBuyFight(eventMythicGirl, false).canBuy // can buy fights
-                    )
-                )
-                ||
-                (
-                    // Raid Stars: raid with girl grade >= configured minimum.
-                    // Bypass reserve toggle controls whether the troll threshold applies.
-                    (raidStarsRaid?.id_girl)
-                    &&
-                    (
-                        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
-                            ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                            : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                    )
-                )
-                ||
-                (
-                    // normal Event Girl available
-                    (eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true")
-                    &&
-                    (
-                        energyAboveThreshold
-                        || Troll.canBuyFight(eventGirl, false).canBuy // can buy fights
-                    )
-                )
-                ||
-                (
-                    // +Raid: user-selected Love raid.
-                    // Bypass reserve toggle controls whether the troll threshold applies.
-                    (LoveRaidManager.isActivated() && loveRaid?.id_girl)
-                    &&
-                    (
-                        getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"
-                            ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                            : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                    )
-                )
-            )
-        {
-            logHHAuto('Troll:', {threshold: threshold, runThreshold:runThreshold, TrollHumanLikeRun: humanLikeRun});
-            setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
-            ctx.busy = true;
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) !== "true" || getStoredValue(HHStoredVarPrefixKey+TK.questRequirement)[0] !== 'P')
-            {
-                ctx.busy = await Troll.doBossBattle();
-                if (ctx.busy) {
-                    ctx.lastActionPerformed = "troll";
-                }
-            }
-            else if (getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) === "true")
-            {
-                logHHAuto("AutoBattle disabled for power collection for AutoQuest.");
-                (<HTMLInputElement>document.getElementById("autoTrollBattle")).checked = false;
-                setStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle, "false");
-                ctx.busy = false;
-            }
-            else
-            {
-                // Events/Raids only mode — quest power collection does not block
-                ctx.busy = await Troll.doBossBattle();
-                if (ctx.busy) {
-                    ctx.lastActionPerformed = "troll";
-                }
-            }
-        }
-        else
-        {
-            if(getStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun) === "true") {
-                // end run
-                setStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun, "false");
-            }
-            // Wait-marker: when no battle path matches but a path WOULD match
-            // if combativity were available, set a session-scoped storage
-            // flag so the two pipeline handlers that originally caused the
-            // ping-pong loop (handleEventParsing, handleLeague) suppress
-            // their navigations until power refills (issue #1700).
-            //
-            // The marker MUST NOT touch ctx.busy or ctx.lastActionPerformed:
-            // doing so blocked every other classic AutoLoop handler that
-            // gates on lastAction === "none" (League self-skip, Season,
-            // Quest, Champion, Pantheon, PentaDrill, Pachinko, collectors,
-            // ...), freezing the bot for the duration of the wait
-            // (issue #1708).
-            if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
-                logHHAuto("Troll fight pending: waiting for energy refill.");
-                setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, "true");
-            }
-        }
-
-    }
-    else
-    {
-        setStoredValue(HHStoredVarPrefixKey+TK.battlePowerRequired, "0");
-    }
-}
 
 /**
  * Pure helper: would handleTrollBattle have fired a fight if combativity were
@@ -441,613 +140,79 @@ export function wouldFightWithPower(
 }
 
 // 9. handlePachinko - lines 465-487 (all 3 pachinko types)
-export async function handlePachinko(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledMythicPachinko",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoFreePachinko) === "true"
-        && isAutoLoopActive() && checkTimer("nextPachinko2Time") && ctx.canCollectCompetitionActive
-        && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-        logHHAuto("Time to fetch Mythic Pachinko.");
-        ctx.busy = await Pachinko.getMythicPachinko();
-        ctx.lastActionPerformed = "pachinko";
-    }
+// handlePachinko: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledGreatPachinko",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoFreePachinko) === "true"
-        && isAutoLoopActive() && checkTimer("nextPachinkoTime") && ctx.canCollectCompetitionActive
-        && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-        logHHAuto("Time to fetch Great Pachinko.");
-        ctx.busy = await Pachinko.getGreatPachinko();
-        ctx.lastActionPerformed = "pachinko";
-    }
 
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledEquipmentPachinko",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoFreePachinko) === "true"
-        && isAutoLoopActive() && checkTimer("nextPachinkoEquipTime") && ctx.canCollectCompetitionActive
-        && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pachinko")) {
-        logHHAuto("Time to fetch Equipment Pachinko.");
-        ctx.busy = await Pachinko.getEquipmentPachinko();
-        ctx.lastActionPerformed = "pachinko";
-    }
-}
+// handleContest: migrated to Pipeline.config.ts in 3.2.G.b.
 
-// 10. handleContest - lines 489-497
-export async function handleContest(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to get contest rewards.",
-        action: "contest",
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledContest", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) === "true"
-            && (checkTimer('nextContestCollectTime') || unsafeWindow.has_contests_datas || Contest.getClaimsButton().length > 0),
-        execute: () => Contest.run(),
-    });
-}
-
-// 11. handleMissions - lines 499-507
-export async function handleMissions(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to do missions.",
-        action: "mission",
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledMission", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
-            && checkTimer('nextMissionTime'),
-        execute: () => Missions.run(),
-    });
-}
+// handleMissions: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 12. handleQuest - lines 509-663 (includes the else-if at 660-663)
-export async function handleQuest(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledQuest",false)
-        && (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest",false)
-        && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true")) && isAutoLoopActive()
-        && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "quest"))
-    {
-        if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === undefined)
-        {
-            setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "false");
-        }
-        const questRequirement = getStoredValue(HHStoredVarPrefixKey+TK.questRequirement);
-        if (questRequirement === "battle")
-        {
-            if (ConfigHelper.getHHScriptVars("isEnabledTrollBattle",false) && getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "false")
-            {
-                logHHAuto("Quest requires battle.");
-                logHHAuto("prepare to save one battle for quest");
-                setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "true");
-                if(getStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle) !== "true") {
-                    // Mirrors the await pattern used in handleTrollBattle.
-                    // Without await the AJAX-driven battle could race with
-                    // the next tick / gotoPage and leave the loop with a
-                    // stale ctx.busy state until the navigation mutex
-                    // catches it.
-                    ctx.busy = await Troll.doBossBattle();
-                }
-            }
-        }
-        else if (questRequirement[0] === '$')
-        {
-            if (Number(questRequirement.substr(1)) < HeroHelper.getMoney()) {
-                // We have enough money... requirement fulfilled.
-                logHHAuto("Continuing quest, required money obtained.");
-                setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                QuestHelper.run();
-                ctx.busy = true;
-            }
-            else
-            {
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-                if(isNaN(questRequirement.substr(1)))
-                {
-                    logHHAuto(questRequirement);
-                    setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                    logHHAuto("Invalid money in session storage quest requirement !");
-                }
-                ctx.busy = false;
-            }
-        }
-        else if (questRequirement[0] === '*')
-        {
-            var energyNeeded = Number(questRequirement.substr(1));
-            var energyCurrent = QuestHelper.getEnergy();
-            if (energyNeeded <= energyCurrent)
-            {
-                if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0 )
-                {
-                    // We have enough energy... requirement fulfilled.
-                    logHHAuto("Continuing quest, required energy obtained.");
-                    setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                    QuestHelper.run();
-                    ctx.busy = true;
-                }
-                else
-                {
-                    ctx.busy = false;
-                }
-            }
-            // Else we need energy, just wait.
-            else
-            {
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-                ctx.busy = false;
-                //logHHAuto("Replenishing energy for quest.(" + energyNeeded + " needed)");
-            }
-        }
-        else if (questRequirement[0] === 'P')
-        {
-            // Battle power required.
-            var neededPower = Number(questRequirement.substr(1));
-            if(ctx.currentPower < neededPower)
-            {
-                logHHAuto("Quest requires "+neededPower+" Battle Power for advancement. Waiting...");
-                ctx.busy = false;
-                //prevent paranoia to wait for quest
-                setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-            }
-            else
-            {
-                logHHAuto("Battle Power obtained, resuming quest...");
-                setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-                QuestHelper.run();
-                ctx.busy = true;
-            }
-        }
-        else if (questRequirement === "unknownQuestButton")
-        {
-            //prevent paranoia to wait for quest
-            setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true")
-            {
-                logHHAuto("AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.");
-                (<HTMLInputElement>document.getElementById("autoQuest")).checked = false;
-                setStoredValue(HHStoredVarPrefixKey+SK.autoQuest, "false");
-            }
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true")
-            {
-                logHHAuto("AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.");
-                (<HTMLInputElement>document.getElementById("autoSideQuest")).checked = false;
-                setStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest, "false");
-            }
-            setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-            ctx.busy = false;
-        }
-        else if (questRequirement === "errorInAutoBattle")
-        {
-            //prevent paranoia to wait for quest
-            setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true")
-            {
-                logHHAuto("AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.");
-                (<HTMLInputElement>document.getElementById("autoQuest")).checked = false;
-                setStoredValue(HHStoredVarPrefixKey+SK.autoQuest, "false");
-            }
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true")
-            {
-                logHHAuto("AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.");
-                (<HTMLInputElement>document.getElementById("autoSideQuest")).checked = false;
-                setStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest, "false");
-            }
-            setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-            ctx.busy = false;
-        }
-        else if(questRequirement === "none")
-        {
-            if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt'))
-            {
-                if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0 )
-                {
-                    //logHHAuto("NONE req.");
-                    ctx.busy = true;
-                    QuestHelper.run();
-                }
-            }
-        }
-        else
-        {
-            //prevent paranoia to wait for quest
-            setStoredValue(HHStoredVarPrefixKey+TK.paranoiaQuestBlocked, "true");
-            logHHAuto("Invalid quest requirement : "+questRequirement);
-            ctx.busy=false;
-        }
-        if(ctx.busy) ctx.lastActionPerformed = "quest";
-    }
-    else if(getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "false" && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "false")
-    {
-        setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
-    }
-}
+// handleQuest: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 14. handleSeason - lines 699-724
-export async function handleSeason(ctx: AutoLoopContext): Promise<void> {
-    if(ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSeason",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeason) === "true"
-        && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season"))
-    {
-        if (Season.isTimeToFight())
-        {
-            logHHAuto("Time to fight in Season.");
-            ctx.busy = await Season.run();
-            ctx.lastActionPerformed = "season";
-        }
-        else if (checkTimer('nextSeasonTime'))
-        {
-            if(getStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun) === "true") {
-                // end run
-                setStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun, "false");
-            }
-            if (getHHVars('Hero.energies.kiss.next_refresh_ts') === 0)
-            {
-                setTimer('nextSeasonTime', randomInterval(15*60, 17*60));
-            }
-            else
-            {
-                const next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts')
-                setTimer('nextSeasonTime', randomInterval(next_refresh+10, next_refresh + 180));
-            }
-        }
-    }
-}
+// handleSeason: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 15. handlePentaDrill - lines 726-753
-export async function handlePentaDrill(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill", false) && getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrill) === "true"
-        && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill"))
-    {
-        // Need 7 girls to do PentaDrill
-        if (PentaDrill.isTimeToFight())
-        {
-            logHHAuto("Time to fight in PentaDrill.");
-            PentaDrill.run();
-            ctx.busy = true;
-            ctx.lastActionPerformed = "pentaDrill";
-        }
-        else if (checkTimer('nextPentaDrillTime'))
-        {
-            if (getStoredValue(HHStoredVarPrefixKey +TK.PentaDrillHumanLikeRun) === "true") {
-                // end run
-                setStoredValue(HHStoredVarPrefixKey +TK.PentaDrillHumanLikeRun, "false");
-            }
-            if (getHHVars('Hero.energies.drill.next_refresh_ts') === 0)
-            {
-                setTimer('nextPentaDrillTime', randomInterval(15*60, 17*60));
-            }
-            else
-            {
-                const next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts')
-                setTimer('nextPentaDrillTime', randomInterval(next_refresh+10, next_refresh + 180));
-            }
-        }
-    }
-}
+// handlePentaDrill: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 16. handlePantheon - lines 755-784
-export async function handlePantheon(ctx: AutoLoopContext): Promise<void> {
-    if(ctx.busy === false
-        && (getStoredValue(HHStoredVarPrefixKey+SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())
-        && Pantheon.isEnabled() && isAutoLoopActive() && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pantheon"))
-    {
-        if (Pantheon.isTimeToFight())
-        {
-            logHHAuto("Time to do Pantheon.");
-            Pantheon.run();
-            ctx.busy = true;
-            ctx.lastActionPerformed = "pantheon";
-        }
-        else if (checkTimer('nextPantheonTime'))
-        {
-            if(getStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun) === "true") {
-                // end run
-                setStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun, "false");
-            }
-            if (getHHVars('Hero.energies.worship.next_refresh_ts') === 0)
-            {
-                setTimer('nextPantheonTime', randomInterval(15*60, 17*60));
-            }
-            else
-            {
-                const next_refresh = getHHVars('Hero.energies.worship.next_refresh_ts')
-                setTimer('nextPantheonTime', randomInterval(next_refresh+10, next_refresh + 180));
-            }
-            //logHHAuto("reset lastActionPerformed from pantheon");
-            ctx.lastActionPerformed = "none";
-        }
-    }
-}
+// handlePantheon: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 17. handleChampionTicket - lines 786-810 (includes the nested buyTicket function)
-export async function handleChampionTicket(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy===false && ConfigHelper.getHHScriptVars("isEnabledChamps",false)
-        && QuestHelper.getEnergy()>=ConfigHelper.getHHScriptVars("CHAMP_TICKET_PRICE") && QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey+SK.autoQuestThreshold))
-        && getStoredValue(HHStoredVarPrefixKey+SK.autoChampsUseEne) ==="true" && isAutoLoopActive()
-        && ctx.canCollectCompetitionActive && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "champion"))
-    {
-        const Hero = getHero();
-        function buyTicket()
-        {
-            var params = {
-                action: 'champion_buy_ticket',
-                currency: 'energy_quest',
-                amount: "1"
-            };
-            logHHAuto('Buying ticket with energy');
-            getHHAjax()(params, function(data) {
-                //anim_number($('.tickets_number_amount'), data.tokens - amount, amount);
-                Hero.updates(data.hero_changes);
-                // C1: route the post-purchase reload through safeReload so
-                // any in-flight game AJAX (parallel handler) gets to finish
-                // before the URL change cancels open XHRs.
-                safeReload();
-            });
-        }
-        // Set autoLoop=false BEFORE the setTimeout window so concurrent
-        // AutoLoop ticks during the 800-1600ms wait cannot start a second
-        // champion_buy_ticket AJAX. lastActionPerformed='champion' alone
-        // would not be enough: a fresh tick has ctx.busy=false and would
-        // re-enter handleChampionTicket because its lastAction guard
-        // accepts 'none' OR 'champion'. The safeReload() inside the AJAX
-        // callback later sets autoLoop=false a second time, but that
-        // second write is idempotent (already false) and serves the
-        // separate purpose of suppressing ticks during the reload itself.
-        setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-        logHHAuto("setting autoloop to false");
-        ctx.busy = true;
-        setTimeout(buyTicket,randomInterval(800,1600));
-        ctx.lastActionPerformed = "champion";
-    }
-}
+// handleChampionTicket: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-// 18. handleChampion - lines 812-818
-export async function handleChampion(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to check on champions!",
-        action: "champion",
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledChamps", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true"
-            && checkTimer('nextChampionTime'),
-        execute: () => Champion.doChampionStuff(),
-    });
-}
 
-// 19. handleClubChampion - lines 820-826
-export async function handleClubChampion(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to check on club champion!",
-        action: "clubChampion",
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true"
-            && checkTimer('nextClubChampionTime'),
-        execute: () => ClubChampion.doClubChampionStuff(),
-    });
-}
+// handleChampion: migrated to Pipeline.config.ts in 3.2.G.b.
+
+// handleClubChampion: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 20. handleSeasonCollect - lines 828-841
-export async function handleSeasonCollect(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy===false && ConfigHelper.getHHScriptVars("isEnabledSeason",false) && isAutoLoopActive() &&
-        (
-            checkTimer('nextSeasonCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollect) === "true" && ctx.canCollectCompetitionActive
-            ||
-            getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true" && checkTimer('nextSeasonCollectAllTime') && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd())
-        )  && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "season")
-    )
-    {
-        logHHAuto("Time to go and check Season for collecting reward.");
-        ctx.busy = Season.goAndCollect();
-        ctx.lastActionPerformed = "season";
-    }
-}
+// handleSeasonCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 21. handlePentaDrillCollect - lines 843-855
-export async function handlePentaDrillCollect(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy===false && ConfigHelper.getHHScriptVars("isEnabledPentaDrill",false) && isAutoLoopActive() &&
-        (
-            checkTimer('nextPentaDrillCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollect) === "true" && ctx.canCollectCompetitionActive
-            ||
-            getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollectAll) === "true" && checkTimer('nextPentaDrillCollectAllTime') && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd())
-        ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pentaDrill")
-    )
-    {
-        logHHAuto("Time to go and check PentaDrill for collecting reward.");
-        ctx.busy = PentaDrill.goAndCollect();
-        ctx.lastActionPerformed = "pentaDrill";
-    }
-}
+// handlePentaDrillCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-// 22. handleSeasonalFreeCard - lines 857-865
-export async function handleSeasonalFreeCard(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to go and check SeasonalEvent to buy free card.",
-        action: "seasonal",
-        requiresCompetition: true,
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard) === "true"
-            && checkTimer('nextSeasonalCardCollectTime'),
-        execute: () => SeasonalEvent.goAndCollectFreeCard(),
-    });
-}
+
+// handleSeasonalFreeCard: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 23. handleSeasonalEventCollect - lines 867-879
-export async function handleSeasonalEventCollect(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy===false && ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent",false) && isAutoLoopActive() &&
-        (
-            checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true" && ctx.canCollectCompetitionActive
-            ||
-            getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true" && checkTimer('nextSeasonalEventCollectAllTime') && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd())
-        ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "seasonal")
-    )
-    {
-        logHHAuto("Time to go and check SeasonalEvent for collecting reward.");
-        ctx.busy = SeasonalEvent.goAndCollect();
-        ctx.lastActionPerformed = "seasonal";
-    }
-}
+// handleSeasonalEventCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-// 24. handleSeasonalRankCollect - lines 881-890
-export async function handleSeasonalRankCollect(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to go and check SeasonalEvent for collecting rank reward.",
-        action: "seasonal",
-        requiresCompetition: true,
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true"
-            && checkTimer('nextMegaEventRankCollectTime'),
-        execute: () => SeasonalEvent.goAndCollectMegaEventRankRewards(),
-    });
-}
+
+// handleSeasonalRankCollect: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 25. handlePoVCollect - lines 892-905
-export async function handlePoVCollect(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy===false && isAutoLoopActive() && PathOfValue.isEnabled() &&
-        (
-            checkTimer('nextPoVCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) === "true" && ctx.canCollectCompetitionActive
-            ||
-            getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true" && checkTimer('nextPoVCollectAllTime') && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd())
-        ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pov")
-    )
-    {
-        logHHAuto("Time to go and check Path of Valor for collecting reward.");
-        ctx.busy = PathOfValue.goAndCollect();
-        ctx.lastActionPerformed = "pov";
-    }
-}
+// handlePoVCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 26. handlePoGCollect - lines 907-920
-export async function handlePoGCollect(ctx: AutoLoopContext): Promise<void> {
-    if (
-        ctx.busy===false && isAutoLoopActive() && PathOfGlory.isEnabled() &&
-        (
-            checkTimer('nextPoGCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) === "true" && ctx.canCollectCompetitionActive
-            ||
-            getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true" && checkTimer('nextPoGCollectAllTime') && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd())
-        ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "pog")
-    )
-    {
-        logHHAuto("Time to go and check Path of Glory for collecting reward.");
-        ctx.busy = PathOfGlory.goAndCollect();
-        ctx.lastActionPerformed = "pog";
-    }
-}
+// handlePoGCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
 
-// 27. handleFreeBundles - lines 922-930
-export async function handleFreeBundles(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to go and check Free Bundles for collecting reward.",
-        action: "bundle",
-        requiresCompetition: true,
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true"
-            && checkTimer('nextFreeBundlesCollectTime'),
-        execute: () => { Bundles.goAndCollectFreeBundles(); },
-    });
-}
 
-// 28. handleDailyGoals - lines 932-939
-export async function handleDailyGoals(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to go and check daily Goals for collecting reward.",
-        action: "dailyGoals",
-        requiresCompetition: true,
-        isReady: () => ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true"
-            && checkTimer('nextDailyGoalsCollectTime'),
-        execute: () => DailyGoals.goAndCollect(),
-    });
-}
+// handleFreeBundles: migrated to Pipeline.config.ts in 3.2.G.b.
 
-// 29. handleLabyrinth - lines 941-946
-export async function handleLabyrinth(ctx: AutoLoopContext): Promise<void> {
-    await runStandardHandler(ctx, {
-        name: "Time to check on labyrinth.",
-        action: "labyrinth",
-        requiresCompetition: true,
-        isReady: () => getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true"
-            && Labyrinth.isEnabled()
-            && checkTimer('nextLabyrinthTime'),
-        execute: () => (new LabyrinthAuto).run(),
-    });
-}
+// handleDailyGoals: migrated to Pipeline.config.ts in 3.2.G.b.
+
+// handleLabyrinth: migrated to Pipeline.config.ts in 3.2.G.b.
 
 // 30. handleSalary - lines 948-958
-export async function handleSalary(ctx: AutoLoopContext): Promise<void> {
-    if (ctx.busy === false && ConfigHelper.getHHScriptVars("isEnabledSalary",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSalary) === "true"
-        && ctx.currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")
-        && ( getStoredValue(HHStoredVarPrefixKey+SK.paranoia) !== "true" || !checkTimer("paranoiaSwitch") )
-        && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "salary"))
-    {
-        if (checkTimer("nextSalaryTime")) {
-            //logHHAuto("Time to check salary.");
-            ctx.busy = await HaremSalary.getSalary();
-            // if(busy) lastActionPerformed = "salary"; // Removed from continuous actions for now
-        }
-    }
-}
+// handleSalary: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 31. handleBossBangParse - lines 960-980
-export async function handleBossBangParse(ctx: AutoLoopContext): Promise<void> {
-    if(
-        ctx.busy === false
-        && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
-        &&
-        (
-            (
-                ctx.bossBangEventIDs.length > 0
-                && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent")
-            )
-            ||
-            (
-                ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent")
-                && $('#contains_all #events #boss_bang .completed-event').length === 0
-            )
-        ) && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "event")
-    )
-    {
-        logHHAuto("Going to parse boss bang event.");
-        ctx.busy = await EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
-        ctx.lastActionPerformed = "event";
-    }
-}
+// handleBossBangParse: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 32. handleBossBangFight - lines 982-1002
-export async function handleBossBangFight(ctx: AutoLoopContext): Promise<void> {
-    if(
-        ctx.busy === false
-        && ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true"
-        &&
-        (
-            (
-                ctx.bossBangEventIDs.length > 0
-                && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDEvent")
-            )
-            ||
-            (
-                ctx.currentPage===ConfigHelper.getHHScriptVars("pagesIDEvent")
-                && $('#contains_all #events #boss_bang .completed-event').length === 0
-            )
-        ) && isAutoLoopActive() && (ctx.lastActionPerformed === "none" || ctx.lastActionPerformed === "bossBang") && checkTimer('nextBossBangTime')
-    )
-    {
-        logHHAuto("Going to fight boss bang.");
-        ctx.busy = await BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
-        ctx.lastActionPerformed = "bossBang";
-    }
-}
+// handleBossBangFight: migrated to Pipeline.config.ts in 3.2.G.complete.
+
 
 // 33. handleGoHome - lines 1004-1016
-export async function handleGoHome(ctx: AutoLoopContext): Promise<void> {
-    const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0});
-    if (
-        ctx.busy === false
-        && ctx.currentPage !== ConfigHelper.getHHScriptVars("pagesIDHome")
-        && ctx.currentPage === lastPageCalled.page
-        && (new Date().getTime() - lastPageCalled.dateTime) > ConfigHelper.getHHScriptVars("minSecsBeforeGoHomeAfterActions") * 1000
-    )
-    {
-        //console.log("testingHome : GotoHome : "+getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled));
-        logHHAuto("Back to home page at the end of actions");
-        deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
-        // Track navigation outcome on ctx.busy: when the navigation
-        // mutex is already held, gotoPage returns false. Without
-        // updating ctx.busy the tick would still claim a navigation
-        // happened, which is wrong (the next tick will retry).
-        ctx.busy = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-    }
-}
+// handleGoHome: migrated to Pipeline.config.ts in 3.2.G.complete.
+
