@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.57 - StorageHelper review, league timer refresh, expired-event loop fix
+
+#### Fixed
+
+- The league info row in the pInfo overlay refreshes its timer even when the bot cannot fight right now (no challenge tokens, no booster equipped). Earlier versions left the row stuck on "No timer" until the next successful league battle wrote a fresh timer.
+- The script no longer reload-loops to an event tab the game has already closed. A registry entry whose game-side end is in the past is now dropped from storage before the trigger fires, so a stale entry left over from a long-running browser tab cannot drive the bot into a permanent /event.html reload cycle.
+- A few rare crash paths in the storage layer are no longer fatal:
+  - setStoredValue tolerates non-Error throws that previously killed an AutoLoop tick.
+  - The kobanUsing master-switch lookup no longer recurses, so a registry typo cannot produce a stack overflow inside every storage read.
+  - The storage-quota cleanup no longer writes while it cleans, removing the amplifier when a non-log temp value (e.g. a large HaremSize) hits the quota.
+
+#### Changed
+
+- The 33 AutoLoop pipeline handlers now run in a new user-facing priority sequence: salary first, then shop / boosters / harem-size / missions, the resource collectors, daily goals, champion ticket, place of power, club champion / champion / love raid / troll battle, boss bang, league / season / quest, pantheon, penta drill, labyrinth, generic battle, go-home. Pure data move -- handler behaviour itself is unchanged.
+- The settings-storage UI helper file was reorganised internally (lint baseline cleared, edge cases tightened around setting defaults and per-tab toggle, prefix-migration kept dormant but documented). No user-visible behaviour change beyond the points above.
+- A long-standing typo in the page-detection storage key (`Setting_unkownPagesList` → `Setting_unknownPagesList`) is corrected. The key only carried diagnostic data, so the rename starts the new key fresh on the next reload.
+
 ### v7.35.55 - AutoLoop refactor and league/booster hotfixes
 
 #### Fixed

@@ -348,6 +348,31 @@ export class EventModule {
         {
             if (inTab !== "global")
             {
+                // Expired-event short-circuit (issue #1738): if the
+                // entry the precondition picked is already past its
+                // game-side end (seconds_before_end <= now), don't
+                // navigate to /event.html with that tab. The game has
+                // dropped the tab, so the navigation lands on a page
+                // whose getDisplayedIdEventPage() returns '', the
+                // outer if(getPage()===pagesIDEvent) branch is never
+                // reached, and the loop runs forever.
+                //
+                // Drop the registry entry directly here so the next
+                // tick's getStaleEventIDs() does not pick it again.
+                // Pipeline.config.ts pruneExpiredEvents handles this
+                // before the trigger fires; this branch is the
+                // belt-and-braces guard for direct callers.
+                try {
+                    const evList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                    const ev = (evList as Record<string, any>)[inTab];
+                    const end = Number(ev?.seconds_before_end);
+                    if (Number.isFinite(end) && end <= Date.now()) {
+                        logHHAuto(`Skipping navigation to expired event ${inTab}, dropping stale registry entry.`);
+                        EventModule.clearEventData(inTab);
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        return true;
+                    }
+                } catch (e) { /* fall through to normal navigation */ }
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"),{tab:inTab});
             }
             else

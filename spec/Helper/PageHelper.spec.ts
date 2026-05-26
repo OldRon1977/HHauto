@@ -11,7 +11,7 @@ describe("Page Helper", function () {
         document.body.innerHTML = `<!DOCTYPE html>`;
         restoreLocation = MockHelper.snapshotLocation();
         MockHelper.mockDomain();
-        sessionStorage.removeItem(HHStoredVarPrefixKey + "Temp_unkownPagesList");
+        sessionStorage.removeItem(HHStoredVarPrefixKey + "Temp_unknownPagesList");
     });
 
     afterEach(() => {
@@ -82,22 +82,22 @@ describe("Page Helper", function () {
         it("checkUnknown known", function () {
             MockHelper.mockPage('home');
             expect(getPage(true)).toBe('home');
-            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unkownPagesList")).toBeNull();
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBeNull();
         });
 
         it("checkUnknown Unknown", function () {
             MockHelper.mockDomain('www.hentaiheroes.com', 'XXX-page.html');
             MockHelper.mockPage('XXX');
             expect(getPage(true)).toBe('XXX');
-            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unkownPagesList")).toBe('{"XXX":"/XXX-page.html"}');
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBe('{"XXX":"/XXX-page.html"}');
         });
 
         it("checkUnknown Unknown twice", function () {
-            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unkownPagesList", '{"XXX":"/XXX-page.html"}')
+            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unknownPagesList", '{"XXX":"/XXX-page.html"}')
             MockHelper.mockDomain('www.hentaiheroes.com', 'ZZZ-page.html');
             MockHelper.mockPage('ZZZ');
             expect(getPage(true)).toBe('ZZZ');
-            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unkownPagesList")).toBe('{"XXX":"/XXX-page.html","ZZZ":"/ZZZ-page.html"}');
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBe('{"XXX":"/XXX-page.html","ZZZ":"/ZZZ-page.html"}');
         });
 
         it("checkUnknown idempotent: does not rewrite when same page already recorded", function () {
@@ -107,7 +107,7 @@ describe("Page Helper", function () {
             // re-serializes via JSON.stringify, the sentinel is lost and the value
             // changes; if the idempotency guard holds, the sentinel survives untouched.
             const sentinel = '{ "XXX" : "/XXX-page.html" }';
-            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unkownPagesList", sentinel);
+            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unknownPagesList", sentinel);
 
             MockHelper.mockDomain('www.hentaiheroes.com', 'XXX-page.html');
             MockHelper.mockPage('XXX');
@@ -116,17 +116,17 @@ describe("Page Helper", function () {
 
             // The whitespace-laden sentinel is still byte-identical only if the code
             // skipped the JSON.stringify+setStoredValue round-trip.
-            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unkownPagesList")).toBe(sentinel);
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBe(sentinel);
         });
 
         it("checkUnknown rewrites when pathname changes for a known page id", function () {
             // Same page id, different pathname -> must write.
-            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unkownPagesList", '{"XXX":"/old-path.html"}');
+            sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_unknownPagesList", '{"XXX":"/old-path.html"}');
             MockHelper.mockDomain('www.hentaiheroes.com', 'XXX-page.html');
             MockHelper.mockPage('XXX');
 
             expect(getPage(true)).toBe('XXX');
-            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unkownPagesList")).toBe('{"XXX":"/XXX-page.html"}');
+            expect(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_unknownPagesList")).toBe('{"XXX":"/XXX-page.html"}');
         });
 
         it("missing root element: getPage stays a pure read, haltScript opts into shutdown", function () {

@@ -12,7 +12,7 @@
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHero } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
-import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { getSecondsLeft, getTimer, setTimer } from "../Helper/TimerHelper";
 import { EventModule } from "../Module/Events/EventModule";
@@ -77,10 +77,10 @@ export class ParanoiaService {
 
     static clearParanoiaSpendings() {
         ParanoiaService.countParanoiaLoop = 0;
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaSpendings);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.NextSwitch);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
     }
 
     static updatedParanoiaSpendings(inSpendingFunction, inSpent) {

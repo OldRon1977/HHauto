@@ -142,8 +142,8 @@ export class PlaceOfPower {
     }
     static cleanTempPopToStart()
     {
-        sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopUnableToStart);
-        sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopToStart);
+        deleteStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart);
+        deleteStoredValue(HHStoredVarPrefixKey+TK.PopToStart);
     }
     static removePopFromPopToStart(index)
     {
@@ -354,7 +354,7 @@ export class PlaceOfPower {
             });
             if (PopToStart.length === 0)
             {
-                sessionStorage.removeItem(HHStoredVarPrefixKey+TK.PopUnableToStart);
+                deleteStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart);
             }
             logHHAuto("build popToStart : "+PopToStart);
             setStoredValue(HHStoredVarPrefixKey+TK.PopToStart, JSON.stringify(PopToStart));

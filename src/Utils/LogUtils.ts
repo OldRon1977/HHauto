@@ -23,19 +23,27 @@ import { safeJsonParse } from './Utils';
 const MAX_LINES = 500
 
 /**
- * Wipe all existing log entries from storage and record a single
- * "cleaned" marker with the storage size before the clean.
- * Also deletes the cached league opponent list which can grow large.
+ * Wipe all existing log entries from storage and free up large temp
+ * caches. Called from setStoredValue's quota-error catch path, so this
+ * function MUST NOT itself perform any storage write -- otherwise a
+ * non-log-driven quota fault (e.g. an oversized TK.HaremSize) can be
+ * amplified, since the very recovery path would try to add a "cleaned"
+ * marker to an already-full storage, throw again, and recurse through
+ * setStoredValue's catch.
+ *
+ * Strategy:
+ *   - Drop the entire log buffer (delete, not overwrite -- frees the
+ *     full key without a new write).
+ *   - Drop the league opponent cache, which is the second-largest temp
+ *     value typically present.
+ * Console.log still receives a one-line breadcrumb so the cleanup is
+ * visible during debugging without touching storage.
  */
 export function cleanLogsInStorage() {
-    var currentLoggingText: any = {};
-    let currDate = new Date();
-    var prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":cleanLogsInStorage";
-    currentLoggingText[prefix] = 'Cleaned logging, storage size before clean ' + getLocalStorageSize();
-    setStoredValue(HHStoredVarPrefixKey + TK.Logging, JSON.stringify(currentLoggingText));
-
-    // Delete big temp in storage
+    const sizeBefore = getLocalStorageSize();
+    deleteStoredValue(HHStoredVarPrefixKey + TK.Logging);
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
+    console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 
 /**

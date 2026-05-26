@@ -2504,7 +2504,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.lseManualCollectAll] =
     storage: "localStorage",
     HHType: "Temp"
 };
-HHStoredVars[HHStoredVarPrefixKey + TK.unkownPagesList] =
+HHStoredVars[HHStoredVarPrefixKey + TK.unknownPagesList] =
     {
     storage:"sessionStorage",
     HHType:"Temp"

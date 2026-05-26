@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.56
+// @version      7.35.57
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1336,7 +1336,7 @@ const TK = {
     // Misc
     sandalwoodFailure: "Temp_sandalwoodFailure",
     sandalwoodMaxUsages: "Temp_sandalwoodMaxUsages",
-    unkownPagesList: "Temp_unkownPagesList",
+    unknownPagesList: "Temp_unknownPagesList",
     userLink: "Temp_userLink",
     // Survey
     surveyShown: "Temp_surveyShown",
@@ -1857,14 +1857,14 @@ function getPage(checkUnknown = false) {
             }
         }
         if (!isKnown && page) {
-            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unkownPagesList, {});
+            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unknownPagesList, {});
             // Idempotent write: skip the JSON.stringify+setStoredValue round-trip
             // when this page was already recorded with the same pathname (avoids
             // a write per AutoLoop tick on long-running unknown pages).
             if (unknownPageList[page] !== window.location.pathname) {
-                LogUtils_logHHAuto(`Page unkown for script : ${page} / ${window.location.pathname}`);
+                LogUtils_logHHAuto(`Page unknown for script : ${page} / ${window.location.pathname}`);
                 unknownPageList[page] = window.location.pathname;
-                setStoredValue(HHStoredVarPrefixKey + TK.unkownPagesList, JSON.stringify(unknownPageList));
+                setStoredValue(HHStoredVarPrefixKey + TK.unknownPagesList, JSON.stringify(unknownPageList));
             }
         }
     }
@@ -9449,10 +9449,10 @@ class ParanoiaService {
     }
     static clearParanoiaSpendings() {
         ParanoiaService.countParanoiaLoop = 0;
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaSpendings);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.NextSwitch);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
     }
     static updatedParanoiaSpendings(inSpendingFunction, inSpent) {
         var currentPSpendings = new Map([]);
@@ -19864,11 +19864,22 @@ const handleEventParsing = {
  * On unexpected storage shape this returns a single sentinel ID so that the
  * caller still triggers a parse cycle (preserves the previous fallback
  * behaviour where the precondition returned true on parse errors).
+ *
+ * Expired-event side effect: entries whose `seconds_before_end` is in the
+ * past are events the game no longer hosts. parseEventPage cannot refresh
+ * them (the in-game tab has been replaced by a successor or removed
+ * entirely), so they would stay stale forever and drive
+ * handleEventParsing into a permanent reload loop (issue #1738 -- a
+ * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
+ * the user gave up). pruneExpiredEvents() removes them from the registry
+ * BEFORE this filter runs so the loop terminates and storage stays
+ * bounded.
  */
 function getStaleEventIDs(now = Date.now()) {
     try {
         const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
         const eventList = storedList ? JSON.parse(storedList) : {};
+        pruneExpiredEvents(eventList, now);
         return Object.keys(eventList).filter(id => {
             const ev = eventList[id];
             if (!ev || ev.isCompleted)
@@ -19882,6 +19893,42 @@ function getStaleEventIDs(now = Date.now()) {
         // accidentally skip a refresh cycle. The actual parseEventPage call
         // tolerates an empty/garbage tab via its own "global" fallback.
         return ['__parse_error__'];
+    }
+}
+/**
+ * Drop event registry entries whose game-side end has already passed
+ * (`seconds_before_end <= now`). Such entries cannot be refreshed by
+ * parseEventPage (the in-game tab is gone), so leaving them in the
+ * registry would keep handleEventParsing.precondition firing forever
+ * (issue #1738).
+ *
+ * Mutates the input map AND persists the pruned shape so the next
+ * read sees the cleaned state. Exported for direct unit testing in
+ * Pipeline.config.spec.ts.
+ *
+ * Defensive: an entry without `seconds_before_end`, or with a
+ * non-finite value, is left in place. parseEventPage handles those
+ * via its existing "ERROR: No event Id found" path on the next visit.
+ */
+function pruneExpiredEvents(eventList, now) {
+    let mutated = false;
+    for (const id of Object.keys(eventList)) {
+        const ev = eventList[id];
+        if (!ev)
+            continue;
+        const end = Number(ev.seconds_before_end);
+        if (Number.isFinite(end) && end <= now) {
+            delete eventList[id];
+            mutated = true;
+        }
+    }
+    if (mutated) {
+        if (Object.keys(eventList).length === 0) {
+            deleteStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        }
+        else {
+            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+        }
     }
 }
 // ---------------------------------------------------------------------------
@@ -19900,24 +19947,58 @@ const handleLeague = {
     minIntervalMs: 2000,
     atomic: true,
     interruptible: 'never',
-    precondition: () => {
+    precondition: (ctx) => {
+        // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
+        //
+        //   1. League auto-mode active and feature enabled at all?
+        //   2. Bot not currently mid-action on a different module
+        //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
+        //      out of step.fn so the chain doesn't fire just to log a skip).
+        //   3. Either ready to fight (energy + threshold + booster check) OR
+        //      the cool-down timer has expired and we still need to refresh
+        //      the pInfo display with a default timer value (issue raised
+        //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
+        //      false because the only setTimer paths live behind a fight).
+        //
         // Note (issue #1708 follow-up): handleLeague is intentionally NOT
         // gated on trollWaitForEnergy. League uses a separate energy pool
         // (challenge tokens) that is unrelated to troll combativity (fight
         // tokens). LeagueHelper.isTimeToFight() already checks challenge
-        // energy, and the 60_000 ms minIntervalMs caps re-entry. Blocking
-        // league while troll waits for combativity (as v7.35.45 did) keeps
-        // league fights from happening even though the user has the energy
-        // to do them. handleEventParsing is gated separately because it
-        // ran every 2 s and was the actual ping-pong driver in #1700.
-        return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
+        // energy, and the minIntervalMs caps re-entry. Blocking league
+        // while troll waits for combativity (as v7.35.45 did) keeps league
+        // fights from happening even though the user has the energy to do
+        // them. handleEventParsing is gated separately because it ran every
+        // 2 s and was the actual ping-pong driver in #1700.
+        if (!LeagueHelper.isAutoLeagueActivated())
+            return false;
+        const lastAction = ctx.lastActionPerformed;
+        if (lastAction !== 'none' && lastAction !== 'league')
+            return false;
+        return LeagueHelper.isTimeToFight() || checkTimer('nextLeaguesTime');
     },
     steps: [
         {
-            name: 'doLeagueBattle',
-            fn: () => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+            name: 'doLeagueBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    LeagueHelper.doLeagueBattle();
+                    if (LeagueHelper.isTimeToFight()) {
+                        LeagueHelper.doLeagueBattle();
+                        ctx.lastActionPerformed = 'league';
+                        return { ok: true };
+                    }
+                    // Fight not possible right now (energy below threshold,
+                    // booster missing, etc.). Refresh the cool-down timer so the
+                    // pInfo display can show the next refresh time instead of
+                    // 'No timer'. Default fallback when the game has not yet
+                    // reported a next_refresh_ts is the same 15-17 min window
+                    // doLeagueBattle uses for similar idle paths.
+                    const next_refresh = Number(getHHVars('Hero.energies.challenge.next_refresh_ts'));
+                    if (Number.isFinite(next_refresh) && next_refresh > 0) {
+                        setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                    }
+                    else {
+                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+                    }
                     return { ok: true };
                 }
                 catch (err) {
@@ -20234,7 +20315,7 @@ const handlePlaceOfPower = {
                     if (ctx.busy === false) {
                         popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
                         if (popToStart.length === 0) {
-                            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
+                            deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
                             ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
                         }
                     }
@@ -21165,53 +21246,56 @@ const handleGoHome = {
 //  The Scheduler walks the list once per tick, picks the first ready handler
 //  (precondition true, cool-down elapsed, state IDLE), and runs it.
 //
-//  Migration notes (3.2.G.a -> 3.2.G.i): handlers move from
-//  AutoLoopActions.ts into this array. Until the migration is complete,
-//  the classic handler block in AutoLoop.autoLoop() and the pipeline run
-//  sequentially within one tick (classic first, then pipeline). The order
-//  inside this array is kept so the same handler always runs at most once
-//  per tick across both systems (the classic block is updated to skip
-//  handlers that have already moved to the pipeline).
+//  Migration history: all 33 AutoLoop action handlers now live in this
+//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
+//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
 //
-//  Order matches the legacy AutoLoop call order so behaviour stays
-//  identical until the remaining handlers are migrated in 3.2.G.c-i.
+//  Order is the agreed user-facing priority sequence: high-yield /
+//  low-cost actions (salary, shop, missions) and resource collectors
+//  before the long battle / quest / labyrinth blocks. handleEventParsing
+//  is locked at slot 1 because it populates event/mythic-girl data that
+//  later handlers (handleTrollBattle, the collect handlers) read.
+//  handleGoHome is locked at the tail because it closes the tick on a
+//  non-home page. handleGenericBattle is kept just before handleGoHome
+//  as a catch-all when the bot has landed on any battle page.
 // ---------------------------------------------------------------------------
 const pipeline = [
-    // Order matches the legacy AutoLoop call order to preserve relative
-    // scheduling. handleMythicWave is intentionally skipped (no useful effect
-    // in the pipeline model -- see comment on its absent migration above).
+    // handleMythicWave is intentionally not listed: it was a legacy slot
+    // reservation used by the classic handleTrollBattle path and has no
+    // effect in the pipeline model. The mythic girl is fully covered by
+    // handleTrollBattle's activation paths.
     handleEventParsing,
+    handleSalary,
     handleShop,
     handleAutoEquipBoosters,
     handleHaremSize,
-    handlePlaceOfPower,
-    handleGenericBattle,
-    handleLoveRaid,
-    handleTrollBattle,
-    handlePachinko,
-    handleContest,
     handleMissions,
-    handleQuest,
-    handleLeague,
-    handleSeason,
-    handlePentaDrill,
-    handlePantheon,
-    handleChampionTicket,
-    handleChampion,
-    handleClubChampion,
+    handlePachinko,
+    handleSeasonalFreeCard,
+    handleFreeBundles,
     handleSeasonCollect,
     handlePentaDrillCollect,
-    handleSeasonalFreeCard,
     handleSeasonalEventCollect,
     handleSeasonalRankCollect,
     handlePoVCollect,
     handlePoGCollect,
-    handleFreeBundles,
+    handleContest,
     handleDailyGoals,
-    handleLabyrinth,
-    handleSalary,
+    handleChampionTicket,
+    handlePlaceOfPower,
+    handleClubChampion,
+    handleChampion,
+    handleLoveRaid,
+    handleTrollBattle,
     handleBossBangParse,
     handleBossBangFight,
+    handleLeague,
+    handleSeason,
+    handleQuest,
+    handlePantheon,
+    handlePentaDrill,
+    handleLabyrinth,
+    handleGenericBattle,
     handleGoHome,
 ];
 
@@ -22799,6 +22883,32 @@ class EventModule {
             }
             else {
                 if (inTab !== "global") {
+                    // Expired-event short-circuit (issue #1738): if the
+                    // entry the precondition picked is already past its
+                    // game-side end (seconds_before_end <= now), don't
+                    // navigate to /event.html with that tab. The game has
+                    // dropped the tab, so the navigation lands on a page
+                    // whose getDisplayedIdEventPage() returns '', the
+                    // outer if(getPage()===pagesIDEvent) branch is never
+                    // reached, and the loop runs forever.
+                    //
+                    // Drop the registry entry directly here so the next
+                    // tick's getStaleEventIDs() does not pick it again.
+                    // Pipeline.config.ts pruneExpiredEvents handles this
+                    // before the trigger fires; this branch is the
+                    // belt-and-braces guard for direct callers.
+                    try {
+                        const evList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                        const ev = evList[inTab];
+                        const end = Number(ev === null || ev === void 0 ? void 0 : ev.seconds_before_end);
+                        if (Number.isFinite(end) && end <= Date.now()) {
+                            LogUtils_logHHAuto(`Skipping navigation to expired event ${inTab}, dropping stale registry entry.`);
+                            EventModule.clearEventData(inTab);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return true;
+                        }
+                    }
+                    catch (e) { /* fall through to normal navigation */ }
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
                 }
                 else {
@@ -23751,8 +23861,8 @@ class PlaceOfPower {
         }
     }
     static cleanTempPopToStart() {
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopUnableToStart);
-        sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.PopUnableToStart);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
     }
     static removePopFromPopToStart(index) {
         var epop;
@@ -23927,7 +24037,7 @@ class PlaceOfPower {
                     }
                 });
                 if (PopToStart.length === 0) {
-                    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopUnableToStart);
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.PopUnableToStart);
                 }
                 LogUtils_logHHAuto("build popToStart : " + PopToStart);
                 setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify(PopToStart));
@@ -26647,7 +26757,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.lseManualCollectAll] =
         storage: "localStorage",
         HHType: "Temp"
     };
-HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.unkownPagesList] =
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.unknownPagesList] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -26786,18 +26896,27 @@ function getBrowserData(nav) {
 /** Maximum number of log entries kept in storage before old ones are pruned. */
 const MAX_LINES = 500;
 /**
- * Wipe all existing log entries from storage and record a single
- * "cleaned" marker with the storage size before the clean.
- * Also deletes the cached league opponent list which can grow large.
+ * Wipe all existing log entries from storage and free up large temp
+ * caches. Called from setStoredValue's quota-error catch path, so this
+ * function MUST NOT itself perform any storage write -- otherwise a
+ * non-log-driven quota fault (e.g. an oversized TK.HaremSize) can be
+ * amplified, since the very recovery path would try to add a "cleaned"
+ * marker to an already-full storage, throw again, and recurse through
+ * setStoredValue's catch.
+ *
+ * Strategy:
+ *   - Drop the entire log buffer (delete, not overwrite -- frees the
+ *     full key without a new write).
+ *   - Drop the league opponent cache, which is the second-largest temp
+ *     value typically present.
+ * Console.log still receives a one-line breadcrumb so the cleanup is
+ * visible during debugging without touching storage.
  */
 function cleanLogsInStorage() {
-    var currentLoggingText = {};
-    let currDate = new Date();
-    var prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":cleanLogsInStorage";
-    currentLoggingText[prefix] = 'Cleaned logging, storage size before clean ' + getLocalStorageSize();
-    setStoredValue(HHStoredVarPrefixKey + TK.Logging, JSON.stringify(currentLoggingText));
-    // Delete big temp in storage
+    const sizeBefore = getLocalStorageSize();
+    deleteStoredValue(HHStoredVarPrefixKey + TK.Logging);
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
+    console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 /**
  * Write a timestamped log entry to both the browser console and persistent
@@ -26933,6 +27052,16 @@ function saveHHDebugLog() {
 // Also provides export/import of settings as JSON files and a popup
 // for selecting which reward types to auto-collect.
 //
+// External callers MUST use getStoredValue / setStoredValue /
+// deleteStoredValue / getStoredJSON. Direct access to localStorage or
+// sessionStorage is reserved for the storage adapter itself, the
+// ForbiddenBackoff backoff path (see _lessons/zirkulaerer-import-tdz-
+// crash.md -- it must not import HHStoredVars to keep the dependency
+// graph cycle-free), and game-side state that the script does not own
+// (e.g. localStorage.sort_by, set by the game's harem UI). Anything
+// else is a bypass that defeats the registry, kobanUsing master-switch,
+// and quota-retry contracts.
+//
 // Used by: Every module and helper in the project.
 
 
@@ -26949,19 +27078,37 @@ function getStoredJSON(key, defaultValue, reviver) {
         return defaultValue;
     return safeJsonParse(val, defaultValue, reviver);
 }
+/**
+ * Returns the active "default" storage based on the settPerTab toggle.
+ * When settPerTab is "true", per-tab isolation is on: every Storage()
+ * key lives in sessionStorage and is therefore tab-local.
+ *
+ * IMPORTANT side-effect of toggling settPerTab at runtime: existing
+ * Storage()-typed values do NOT migrate between localStorage and
+ * sessionStorage. Settings recorded under one mode become invisible
+ * (defaults take over) when the user flips to the other mode and
+ * reappear when they flip back. This is intentional -- per-tab mode
+ * is supposed to start fresh -- but it is not currently surfaced to
+ * the user in the menu UI.
+ */
 function getStorage() {
     return getStoredValue(HHStoredVarPrefixKey + SK.settPerTab) === "true" ? sessionStorage : localStorage;
 }
 function getStoredValue(inVarName) {
-    if (HHStoredVars_HHStoredVars.hasOwnProperty(inVarName)) {
-        const storedValue = getStorageItem(HHStoredVars_HHStoredVars[inVarName].storage)[inVarName];
-        if (HHStoredVars_HHStoredVars[inVarName].kobanUsing) {
-            // Check main switch for spenind Koban
-            return getStoredValue(HHStoredVarPrefixKey + 'Setting_spendKobans0') === "true" ? storedValue : "false";
-        }
+    if (!HHStoredVars_HHStoredVars.hasOwnProperty(inVarName))
+        return undefined;
+    const storedValue = getStorageItem(HHStoredVars_HHStoredVars[inVarName].storage)[inVarName];
+    if (!HHStoredVars_HHStoredVars[inVarName].kobanUsing)
         return storedValue;
-    }
-    return undefined;
+    // Check main switch for spending Koban via a direct storage read,
+    // NOT recursion via getStoredValue, to avoid an infinite call stack
+    // if Setting_spendKobans0 itself were ever (accidentally) registered
+    // with kobanUsing: true. The master switch is itself a Storage()
+    // entry so we route through getStorageItem with its registered type.
+    const masterKey = HHStoredVarPrefixKey + SK.spendKobans0;
+    const masterEntry = HHStoredVars_HHStoredVars[masterKey];
+    const masterValue = masterEntry ? getStorageItem(masterEntry.storage)[masterKey] : undefined;
+    return masterValue === "true" ? storedValue : "false";
 }
 function deleteStoredValue(inVarName) {
     if (HHStoredVars_HHStoredVars.hasOwnProperty(inVarName)) {
@@ -26969,38 +27116,34 @@ function deleteStoredValue(inVarName) {
     }
 }
 function setStoredValue(inVarName, inValue, retry = false) {
-    if (HHStoredVars_HHStoredVars.hasOwnProperty(inVarName)) {
-        try {
-            getStorageItem(HHStoredVars_HHStoredVars[inVarName].storage)[inVarName] = inValue;
-        }
-        catch ({ errName, message }) {
-            cleanLogsInStorage();
-            LogUtils_logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry ? 'user storage need to be cleaned' : 'retry...'}`);
-            if (!retry)
-                setStoredValue(inVarName, inValue, true);
-        }
+    if (!HHStoredVars_HHStoredVars.hasOwnProperty(inVarName))
+        return;
+    try {
+        getStorageItem(HHStoredVars_HHStoredVars[inVarName].storage)[inVarName] = inValue;
+    }
+    catch (e) {
+        // Robust catch: destructuring `{ errName, message }` from a
+        // non-Error throw (primitive, plain object missing those keys)
+        // would throw a TypeError out of setStoredValue itself --
+        // catastrophic in the AutoLoop hot-loop where this runs >100x
+        // per tick. Coerce to a string message instead.
+        const message = (e instanceof Error) ? e.message : String(e);
+        cleanLogsInStorage();
+        LogUtils_logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry ? 'user storage need to be cleaned' : 'retry...'}`);
+        if (!retry)
+            setStoredValue(inVarName, inValue, true);
     }
 }
 function extractHHVars(dataToSave, extractLog = false, extractTemp = true, extractSettings = true) {
-    let storageType;
-    let storageName;
-    let currentStorageName = getStoredValue(HHStoredVarPrefixKey + SK.settPerTab) === "true" ? "sessionStorage" : "localStorage";
-    let variableName;
-    let storageItem;
-    let varType;
-    for (let i of Object.keys(HHStoredVars_HHStoredVars)) {
-        varType = HHStoredVars_HHStoredVars[i].HHType;
-        if (varType === "Setting" && extractSettings || varType === "Temp" && extractTemp) {
-            storageType = HHStoredVars_HHStoredVars[i].storage;
-            variableName = i;
-            storageName = storageType;
-            storageItem = getStorageItem(storageType);
-            if (storageType === 'Storage()') {
-                storageName = currentStorageName;
-            }
-            if (variableName !== HHStoredVarPrefixKey + TK.Logging) {
-                dataToSave[storageName + "." + variableName] = getStoredValue(variableName);
-            }
+    const currentStorageName = getStoredValue(HHStoredVarPrefixKey + SK.settPerTab) === "true" ? "sessionStorage" : "localStorage";
+    for (const i of Object.keys(HHStoredVars_HHStoredVars)) {
+        const varType = HHStoredVars_HHStoredVars[i].HHType;
+        if (!((varType === "Setting" && extractSettings) || (varType === "Temp" && extractTemp)))
+            continue;
+        const storageType = HHStoredVars_HHStoredVars[i].storage;
+        const storageName = storageType === 'Storage()' ? currentStorageName : storageType;
+        if (i !== HHStoredVarPrefixKey + TK.Logging) {
+            dataToSave[storageName + "." + i] = getStoredValue(i);
         }
     }
     if (extractLog) {
@@ -27009,9 +27152,9 @@ function extractHHVars(dataToSave, extractLog = false, extractTemp = true, extra
     return dataToSave;
 }
 function saveHHVarsSettingsAsJSON() {
-    var dataToSave = {};
+    const dataToSave = {};
     extractHHVars(dataToSave, false, false, true);
-    var name = 'HH_SaveSettings_' + Date.now() + '.json';
+    const name = 'HH_SaveSettings_' + Date.now() + '.json';
     const a = document.createElement('a');
     a.download = name;
     a.href = URL.createObjectURL(new Blob([JSON.stringify(dataToSave)], { type: 'application/json' }));
@@ -27021,48 +27164,44 @@ function getStorageItem(inStorageType) {
     switch (inStorageType) {
         case 'localStorage':
             return localStorage;
-            break;
         case 'sessionStorage':
             return sessionStorage;
-            break;
         case 'Storage()':
             return getStorage();
-            break;
     }
 }
 function migrateHHVars() {
-    /*
-    const varReplacement =
-          [
-              {from:"HHAuto_Setting_MaxAff", to:"HHAuto_Setting_maxAff"},
-              {from:"HHAuto_Setting_MaxExp", to:"HHAuto_Setting_maxExp"},
-              {from:"HHAuto_Setting_autoMissionC", to:"HHAuto_Setting_autoMissionCollect"},
-          ];
-    for(let replacement of varReplacement)
-    {
-        const oldVar = replacement.from;
-        const newVar = replacement.to;
-        if (sessionStorage[oldVar] !== undefined)
-        {
-            sessionStorage[newVar] = sessionStorage[oldVar];
-            sessionStorage.removeItem(oldVar);
-        }
-        if (localStorage[oldVar] !== undefined)
-        {
-            localStorage[newVar] = localStorage[oldVar];
-            localStorage.removeItem(oldVar);
-        }
-    }*/
-    if (HHStoredVarPrefixKey !== 'HHAuto_' && haveHHAutoSettings()) {
-        // Migrate from default to custom keys
-        for (const newKey of Object.keys(HHStoredVars_HHStoredVars)) {
-            const oldKeys = newKey.replace(HHStoredVarPrefixKey, 'HHAuto_');
-            const storageItem = getStorageItem(HHStoredVars_HHStoredVars[newKey].storage);
-            const itemValue = storageItem[oldKeys];
-            storageItem.removeItem(oldKeys);
-            if (itemValue) {
-                setStoredValue(newKey, itemValue);
-            }
+    // Custom-prefix migration: when the user runs a forked build with a
+    // non-default HHStoredVarPrefixKey and old "HHAuto_"-prefixed
+    // settings are still in storage, copy each registered key over from
+    // the legacy slot to the active prefix.
+    //
+    // Status (2026-05-26): the active HHStoredVarPrefixKey is hardcoded
+    // to "HHAuto_" in src/config/HHStoredVars.ts, so the body of this
+    // function is dormant in production. The function and its call
+    // site (StartService.ts: migrateHHVars()) are intentionally kept
+    // because:
+    //   - Flipping the prefix is the documented mechanism for
+    //     multi-account isolation (no current PR, but on the roadmap).
+    //   - The cost of keeping the migration around is negligible
+    //     (one early-return check per script start).
+    //   - If a future patch enables the custom prefix without re-
+    //     introducing the migration, every user who upgrades loses
+    //     their settings on the next reload, which is unrecoverable.
+    // Remove together with the multi-account feature, not before.
+    if (HHStoredVarPrefixKey === 'HHAuto_' || !haveHHAutoSettings())
+        return;
+    for (const newKey of Object.keys(HHStoredVars_HHStoredVars)) {
+        const oldKeys = newKey.replace(HHStoredVarPrefixKey, 'HHAuto_');
+        const storageItem = getStorageItem(HHStoredVars_HHStoredVars[newKey].storage);
+        const itemValue = storageItem[oldKeys];
+        storageItem.removeItem(oldKeys);
+        // Preserve the value if it is set at all -- including the empty
+        // string and "0" (falsy in JS but legitimate stored-string
+        // values for some toggles). Only skip when the legacy slot was
+        // never populated.
+        if (itemValue !== undefined && itemValue !== null) {
+            setStoredValue(newKey, itemValue);
         }
     }
 }
@@ -27080,12 +27219,12 @@ function getUserHHStoredVarDefault(inVarName) {
     return null;
 }
 function saveHHStoredVarsDefaults() {
-    var dataToSave = {};
+    const dataToSave = {};
     getMenuValues();
     extractHHVars(dataToSave, false, false, true);
-    let savedHHStoredVars = {};
-    for (var i of Object.keys(dataToSave)) {
-        let variableName = i.split(".")[1];
+    const savedHHStoredVars = {};
+    for (const i of Object.keys(dataToSave)) {
+        const variableName = i.split(".")[1];
         if (variableName !== HHStoredVarPrefixKey + SK.saveDefaults && HHStoredVars_HHStoredVars[variableName].default !== dataToSave[i]) {
             savedHHStoredVars[variableName] = dataToSave[i];
         }
@@ -27094,27 +27233,31 @@ function saveHHStoredVarsDefaults() {
     LogUtils_logHHAuto("HHStoredVar defaults saved !");
 }
 function setHHStoredVarToDefault(inVarName) {
-    if (HHStoredVars_HHStoredVars[inVarName] !== undefined) {
-        if (HHStoredVars_HHStoredVars[inVarName].default !== undefined && HHStoredVars_HHStoredVars[inVarName].storage !== undefined) {
-            let storageItem;
-            storageItem = getStorageItem(HHStoredVars_HHStoredVars[inVarName].storage);
-            let userDefinedDefault = getUserHHStoredVarDefault(inVarName);
-            let isValid = HHStoredVars_HHStoredVars[inVarName].isValid === undefined ? true : HHStoredVars_HHStoredVars[inVarName].isValid.test(userDefinedDefault);
-            if (userDefinedDefault !== null && isValid) {
-                LogUtils_logHHAuto("HHStoredVar " + inVarName + " set to user default value : " + userDefinedDefault);
-                storageItem[inVarName] = userDefinedDefault;
-            }
-            else {
-                LogUtils_logHHAuto("HHStoredVar " + inVarName + " set to default value : " + HHStoredVars_HHStoredVars[inVarName].default);
-                storageItem[inVarName] = HHStoredVars_HHStoredVars[inVarName].default;
-            }
-        }
-        else {
-            LogUtils_logHHAuto("HHStoredVar " + inVarName + " either have no storage or default defined.");
-        }
+    const entry = HHStoredVars_HHStoredVars[inVarName];
+    if (entry === undefined) {
+        LogUtils_logHHAuto("HHStoredVar " + inVarName + " doesn't exist.");
+        return;
+    }
+    if (entry.default === undefined || entry.storage === undefined) {
+        LogUtils_logHHAuto("HHStoredVar " + inVarName + " either have no storage or default defined.");
+        return;
+    }
+    const storageItem = getStorageItem(entry.storage);
+    const userDefinedDefault = getUserHHStoredVarDefault(inVarName);
+    // Null-check first, then validate: avoids running a regex against
+    // the literal string "null" (JavaScript coerces null to "null"
+    // when fed to RegExp.test). The previous implementation worked by
+    // accident through the userDefinedDefault !== null guard, but the
+    // ordering was fragile -- a refactor that simplified the guard
+    // could re-introduce the issue.
+    if (userDefinedDefault !== null
+        && (entry.isValid === undefined || entry.isValid.test(userDefinedDefault))) {
+        LogUtils_logHHAuto("HHStoredVar " + inVarName + " set to user default value : " + userDefinedDefault);
+        storageItem[inVarName] = userDefinedDefault;
     }
     else {
-        LogUtils_logHHAuto("HHStoredVar " + inVarName + " doesn't exist.");
+        LogUtils_logHHAuto("HHStoredVar " + inVarName + " set to default value : " + entry.default);
+        storageItem[inVarName] = entry.default;
     }
 }
 function getHHStoredVarDefault(inVarName) {
@@ -27131,43 +27274,38 @@ function getHHStoredVarDefault(inVarName) {
     }
 }
 function debugDeleteAllVars() {
-    Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith(HHStoredVarPrefixKey + "Setting_")) {
-            localStorage.removeItem(key);
-        }
-    });
-    Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith(HHStoredVarPrefixKey + "Setting_")) {
-            sessionStorage.removeItem(key);
-        }
-    });
-    Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith(HHStoredVarPrefixKey + "Temp_")) {
-            localStorage.removeItem(key);
-        }
-    });
-    Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith(HHStoredVarPrefixKey + "Temp_") && key !== HHStoredVarPrefixKey + TK.Logging) {
-            sessionStorage.removeItem(key);
-        }
-    });
+    // Iterate the registry instead of duplicating the "Setting_" /
+    // "Temp_" prefix convention here. Routing through deleteStoredValue
+    // keeps the cleanup honest: any key that getStoredValue/setStored
+    // Value would honour is in scope, anything else is intentionally
+    // out of scope (e.g. game-side localStorage entries the script
+    // does not own). TK.Logging stays so a fresh log buffer is
+    // available when the user presses the debug-delete button.
+    const loggingKey = HHStoredVarPrefixKey + TK.Logging;
+    for (const key of Object.keys(HHStoredVars_HHStoredVars)) {
+        if (key === loggingKey)
+            continue;
+        deleteStoredValue(key);
+    }
     LogUtils_logHHAuto('Deleted all script vars.');
 }
 function debugDeleteTempVars() {
-    var dataToSave = {};
+    // Snapshot Settings BEFORE wiping. extractHHVars serialises each
+    // key as "<currentStorageName>.<varName>" using the active
+    // settPerTab value. After debugDeleteAllVars + setDefaults(true)
+    // settPerTab is back to its registry default, which may not match
+    // the user's preference. Rather than restoring into the snapshot's
+    // bucket (which would write into the wrong storage), we restore
+    // each value via setStoredValue, which routes through the registry
+    // and respects the post-reset settPerTab automatically.
+    const dataToSave = {};
     extractHHVars(dataToSave, false, false, true);
-    var storageType;
-    var variableName;
-    var storageItem;
     debugDeleteAllVars();
     setDefaults(true);
-    var keys = Object.keys(dataToSave);
-    for (var i of keys) {
-        storageType = i.split(".")[0];
-        variableName = i.split(".")[1];
-        storageItem = getStorageItem(storageType);
-        LogUtils_logHHAuto(i + ':' + dataToSave[i]);
-        storageItem[variableName] = dataToSave[i];
+    for (const compoundKey of Object.keys(dataToSave)) {
+        const variableName = compoundKey.split(".")[1];
+        LogUtils_logHHAuto(compoundKey + ':' + dataToSave[compoundKey]);
+        setStoredValue(variableName, dataToSave[compoundKey]);
     }
 }
 function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("menuCollectableText", "elementText")) {
@@ -27179,7 +27317,7 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         let count = 0;
         const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
         const rewardsToCollect = getStoredJSON(inVarName, []);
-        for (let currentItem of Object.keys(possibleRewards)) {
+        for (const currentItem of Object.keys(possibleRewards)) {
             //console.log(currentItem,possibleRewards[currentItem]);
             if (count === 4) {
                 count = 0;
@@ -27209,7 +27347,7 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         });
     }
     function getSelectedCollectables() {
-        let collectablesList = [];
+        const collectablesList = [];
         document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem").forEach(currentInputElement => {
             const currentInput = currentInputElement;
             if (currentInput.checked) {
@@ -27221,14 +27359,19 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
     }
 }
 function getLocalStorageSize() {
-    var allStrings = '';
-    for (var key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
+    // Approximate size in KB. The factor (16 / 8) converts JavaScript
+    // string length (UTF-16 code units) to bytes (16 bits per code
+    // unit / 8 bits per byte = 2 bytes). The "+3" is a small constant
+    // header allowance carried over from the original implementation;
+    // kept as-is because the value is informational only.
+    let allStrings = '';
+    for (const key in localStorage) {
+        if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
             allStrings += localStorage[key];
         }
     }
-    for (var key in sessionStorage) {
-        if (sessionStorage.hasOwnProperty(key)) {
+    for (const key in sessionStorage) {
+        if (Object.prototype.hasOwnProperty.call(sessionStorage, key)) {
             allStrings += sessionStorage[key];
         }
     }
@@ -27982,7 +28125,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.56";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.57";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

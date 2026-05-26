@@ -225,15 +225,15 @@ export function getPage(checkUnknown = false): string
         }
         if (!isKnown && page)
         {
-            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unkownPagesList, {});
+            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unknownPagesList, {});
             // Idempotent write: skip the JSON.stringify+setStoredValue round-trip
             // when this page was already recorded with the same pathname (avoids
             // a write per AutoLoop tick on long-running unknown pages).
             if (unknownPageList[page] !== window.location.pathname)
             {
-                logHHAuto(`Page unkown for script : ${page} / ${window.location.pathname}`);
+                logHHAuto(`Page unknown for script : ${page} / ${window.location.pathname}`);
                 unknownPageList[page] = window.location.pathname;
-                setStoredValue(HHStoredVarPrefixKey + TK.unkownPagesList, JSON.stringify(unknownPageList));
+                setStoredValue(HHStoredVarPrefixKey + TK.unknownPagesList, JSON.stringify(unknownPageList));
             }
         }
     }

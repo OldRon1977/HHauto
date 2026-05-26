@@ -48,6 +48,7 @@ jest.mock('../../src/Helper/ConfigHelper', () => ({
 jest.mock('../../src/Helper/StorageHelper', () => ({
   getStoredValue: jest.fn().mockReturnValue('[]'),
   setStoredValue: jest.fn(),
+  deleteStoredValue: jest.fn(),
 }));
 
 jest.mock('../../src/config/HHStoredVars', () => ({
@@ -68,10 +69,12 @@ jest.mock('../../src/Utils/LogUtils', () => ({
   logHHAuto: jest.fn(),
 }));
 
-import { pipeline, getStaleEventIDs } from '../../src/Service/Pipeline.config';
-import { getStoredValue } from '../../src/Helper/StorageHelper';
+import { pipeline, getStaleEventIDs, pruneExpiredEvents } from '../../src/Service/Pipeline.config';
+import { getStoredValue, setStoredValue, deleteStoredValue } from '../../src/Helper/StorageHelper';
 import { AutoLoopContext } from '../../src/Service/AutoLoopContext';
 const getStoredValueMock = getStoredValue as jest.Mock;
+const setStoredValueMock = setStoredValue as jest.Mock;
+const deleteStoredValueMock = deleteStoredValue as jest.Mock;
 
 function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
   return {
@@ -536,6 +539,95 @@ describe('Pipeline.config', () => {
       getStoredValueMock.mockReturnValue('not-json');
       const result = getStaleEventIDs(1000);
       expect(result).toEqual(['__parse_error__']);
+    });
+  });
+
+  describe('expired-event cleanup (issue #1738)', () => {
+    beforeEach(() => {
+      getStoredValueMock.mockReset();
+      setStoredValueMock.mockReset();
+      deleteStoredValueMock.mockReset();
+    });
+
+    it('pruneExpiredEvents drops entries with seconds_before_end <= now and persists', () => {
+      const now = 2_000_000;
+      const eventList: Record<string, any> = {
+        expired_event: { id: 'expired_event', seconds_before_end: 1_500_000, isCompleted: false },
+        future_event: { id: 'future_event', seconds_before_end: 3_000_000, isCompleted: false },
+      };
+      pruneExpiredEvents(eventList, now);
+      expect(eventList).toEqual({
+        future_event: { id: 'future_event', seconds_before_end: 3_000_000, isCompleted: false },
+      });
+      expect(setStoredValueMock).toHaveBeenCalledTimes(1);
+      expect(deleteStoredValueMock).not.toHaveBeenCalled();
+    });
+
+    it('pruneExpiredEvents deletes the storage key when every entry was expired', () => {
+      const now = 2_000_000;
+      const eventList: Record<string, any> = {
+        expired_a: { id: 'expired_a', seconds_before_end: 1_000_000 },
+        expired_b: { id: 'expired_b', seconds_before_end: 1_500_000 },
+      };
+      pruneExpiredEvents(eventList, now);
+      expect(eventList).toEqual({});
+      expect(deleteStoredValueMock).toHaveBeenCalledTimes(1);
+      expect(setStoredValueMock).not.toHaveBeenCalled();
+    });
+
+    it('pruneExpiredEvents leaves entries without seconds_before_end alone', () => {
+      const now = 2_000_000;
+      const eventList: Record<string, any> = {
+        partial_event: { id: 'partial_event', isCompleted: false },
+        bad_value: { id: 'bad_value', seconds_before_end: 'not-a-number' },
+      };
+      pruneExpiredEvents(eventList, now);
+      expect(eventList).toEqual({
+        partial_event: { id: 'partial_event', isCompleted: false },
+        bad_value: { id: 'bad_value', seconds_before_end: 'not-a-number' },
+      });
+      expect(setStoredValueMock).not.toHaveBeenCalled();
+      expect(deleteStoredValueMock).not.toHaveBeenCalled();
+    });
+
+    it('pruneExpiredEvents is a no-op when no entry is expired', () => {
+      const now = 2_000_000;
+      const eventList: Record<string, any> = {
+        future_event: { id: 'future_event', seconds_before_end: 3_000_000 },
+      };
+      pruneExpiredEvents(eventList, now);
+      expect(setStoredValueMock).not.toHaveBeenCalled();
+      expect(deleteStoredValueMock).not.toHaveBeenCalled();
+    });
+
+    it('getStaleEventIDs prunes expired entries before returning the stale list', () => {
+      const now = 2_000_000;
+      const eventList = {
+        expired_event: { id: 'expired_event', seconds_before_end: 1_500_000, next_refresh: 100, isCompleted: false },
+        stale_future_event: { id: 'stale_future_event', seconds_before_end: 3_000_000, next_refresh: 100, isCompleted: false },
+      };
+      getStoredValueMock.mockReturnValueOnce(JSON.stringify(eventList));
+      const stale = getStaleEventIDs(now);
+      expect(stale).toEqual(['stale_future_event']);
+      // Persistence call from pruneExpiredEvents.
+      expect(setStoredValueMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('getStaleEventIDs does not include the expired event in the stale list (issue #1738 loop guard)', () => {
+      const now = 2_000_000;
+      const eventList = {
+        // Mirrors the lively_scene_event_12 entry from the bug report.
+        lively_scene_event_12: {
+          id: 'lively_scene_event_12',
+          seconds_before_end: 1_000_000,
+          next_refresh: 1_500_000,
+          isCompleted: false,
+        },
+      };
+      getStoredValueMock.mockReturnValueOnce(JSON.stringify(eventList));
+      const stale = getStaleEventIDs(now);
+      expect(stale).toEqual([]);
+      expect(deleteStoredValueMock).toHaveBeenCalledTimes(1);
     });
   });
 });

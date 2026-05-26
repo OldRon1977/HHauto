@@ -372,7 +372,7 @@ export const TK = {
     // Misc
     sandalwoodFailure: "Temp_sandalwoodFailure",
     sandalwoodMaxUsages: "Temp_sandalwoodMaxUsages",
-    unkownPagesList: "Temp_unkownPagesList",
+    unknownPagesList: "Temp_unknownPagesList",
     userLink: "Temp_userLink",
 
     // Survey

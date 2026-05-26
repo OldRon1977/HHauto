@@ -26,11 +26,21 @@
 // Also provides export/import of settings as JSON files and a popup
 // for selecting which reward types to auto-collect.
 //
+// External callers MUST use getStoredValue / setStoredValue /
+// deleteStoredValue / getStoredJSON. Direct access to localStorage or
+// sessionStorage is reserved for the storage adapter itself, the
+// ForbiddenBackoff backoff path (see _lessons/zirkulaerer-import-tdz-
+// crash.md -- it must not import HHStoredVars to keep the dependency
+// graph cycle-free), and game-side state that the script does not own
+// (e.g. localStorage.sort_by, set by the game's harem UI). Anything
+// else is a bypass that defeats the registry, kobanUsing master-switch,
+// and quota-retry contracts.
+//
 // Used by: Every module and helper in the project.
 import { setDefaults } from "../Service/StartService";
 import { fillHHPopUp } from "../Utils/HHPopup";
 import { cleanLogsInStorage, logHHAuto } from "../Utils/LogUtils";
-import { isJSON, safeJsonParse } from "../Utils/Utils";
+import { safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { ConfigHelper } from "./ConfigHelper";
@@ -43,23 +53,38 @@ export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: s
     return safeJsonParse(val, defaultValue, reviver);
 }
 
+/**
+ * Returns the active "default" storage based on the settPerTab toggle.
+ * When settPerTab is "true", per-tab isolation is on: every Storage()
+ * key lives in sessionStorage and is therefore tab-local.
+ *
+ * IMPORTANT side-effect of toggling settPerTab at runtime: existing
+ * Storage()-typed values do NOT migrate between localStorage and
+ * sessionStorage. Settings recorded under one mode become invisible
+ * (defaults take over) when the user flips to the other mode and
+ * reappear when they flip back. This is intentional -- per-tab mode
+ * is supposed to start fresh -- but it is not currently surfaced to
+ * the user in the menu UI.
+ */
 export function getStorage()
 {
-    return getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true"?sessionStorage:localStorage;
+    return getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true" ? sessionStorage : localStorage;
 }
 
 export function getStoredValue(inVarName: string)
 {
-    if (HHStoredVars.hasOwnProperty(inVarName))
-    {
-        const storedValue = getStorageItem(HHStoredVars[inVarName].storage)[inVarName];
-        if(HHStoredVars[inVarName].kobanUsing) {
-            // Check main switch for spenind Koban
-            return getStoredValue(HHStoredVarPrefixKey+'Setting_spendKobans0') === "true" ? storedValue : "false";
-        }
-        return storedValue
-    }
-    return undefined;
+    if (!HHStoredVars.hasOwnProperty(inVarName)) return undefined;
+    const storedValue = getStorageItem(HHStoredVars[inVarName].storage)[inVarName];
+    if (!HHStoredVars[inVarName].kobanUsing) return storedValue;
+    // Check main switch for spending Koban via a direct storage read,
+    // NOT recursion via getStoredValue, to avoid an infinite call stack
+    // if Setting_spendKobans0 itself were ever (accidentally) registered
+    // with kobanUsing: true. The master switch is itself a Storage()
+    // entry so we route through getStorageItem with its registered type.
+    const masterKey = HHStoredVarPrefixKey + SK.spendKobans0;
+    const masterEntry = HHStoredVars[masterKey];
+    const masterValue = masterEntry ? getStorageItem(masterEntry.storage)[masterKey] : undefined;
+    return masterValue === "true" ? storedValue : "false";
 }
 
 export function deleteStoredValue(inVarName: string)
@@ -72,44 +97,35 @@ export function deleteStoredValue(inVarName: string)
 
 export function setStoredValue(inVarName: string, inValue: any, retry: boolean=false)
 {
-    if (HHStoredVars.hasOwnProperty(inVarName))
-    {
-        try {
-            getStorageItem(HHStoredVars[inVarName].storage)[inVarName] = inValue;
-        } catch ({ errName, message }) {
-            cleanLogsInStorage();
-            logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry?'user storage need to be cleaned':'retry...'}`);
-            if (!retry) setStoredValue(inVarName, inValue, true);
-        }
+    if (!HHStoredVars.hasOwnProperty(inVarName)) return;
+    try {
+        getStorageItem(HHStoredVars[inVarName].storage)[inVarName] = inValue;
+    } catch (e) {
+        // Robust catch: destructuring `{ errName, message }` from a
+        // non-Error throw (primitive, plain object missing those keys)
+        // would throw a TypeError out of setStoredValue itself --
+        // catastrophic in the AutoLoop hot-loop where this runs >100x
+        // per tick. Coerce to a string message instead.
+        const message = (e instanceof Error) ? e.message : String(e);
+        cleanLogsInStorage();
+        logHHAuto(`ERROR: Can't save value in storage for ${inVarName} (${message}), ${retry?'user storage need to be cleaned':'retry...'}`);
+        if (!retry) setStoredValue(inVarName, inValue, true);
     }
 }
 
 
 export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,extractSettings=true)
 {
-    let storageType;
-    let storageName;
-    let currentStorageName = getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) ==="true"?"sessionStorage":"localStorage";
-    let variableName;
-    let storageItem;
-    let varType;
-    for (let i of Object.keys(HHStoredVars))
+    const currentStorageName = getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true" ? "sessionStorage" : "localStorage";
+    for (const i of Object.keys(HHStoredVars))
     {
-        varType = HHStoredVars[i].HHType;
-        if (varType === "Setting" && extractSettings || varType === "Temp" && extractTemp)
+        const varType = HHStoredVars[i].HHType;
+        if (!((varType === "Setting" && extractSettings) || (varType === "Temp" && extractTemp))) continue;
+        const storageType = HHStoredVars[i].storage;
+        const storageName = storageType === 'Storage()' ? currentStorageName : storageType;
+        if (i !== HHStoredVarPrefixKey + TK.Logging)
         {
-            storageType = HHStoredVars[i].storage;
-            variableName = i;
-            storageName = storageType;
-            storageItem = getStorageItem(storageType);
-            if (storageType === 'Storage()')
-            {
-                storageName = currentStorageName;
-            }
-            if (variableName !== HHStoredVarPrefixKey + TK.Logging)
-            {
-                dataToSave[storageName+"."+variableName] = getStoredValue(variableName);
-            }
+            dataToSave[storageName + "." + i] = getStoredValue(i);
         }
     }
     if (extractLog)
@@ -120,68 +136,61 @@ export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,ext
 }
 
 export function saveHHVarsSettingsAsJSON() {
-    var dataToSave={};
-    extractHHVars(dataToSave,false,false,true);
-    var name='HH_SaveSettings_'+Date.now()+'.json';
-    const a = document.createElement('a')
-    a.download = name
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(dataToSave)], {type: 'application/json'}))
-    a.click()
+    const dataToSave = {};
+    extractHHVars(dataToSave, false, false, true);
+    const name = 'HH_SaveSettings_' + Date.now() + '.json';
+    const a = document.createElement('a');
+    a.download = name;
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(dataToSave)], { type: 'application/json' }));
+    a.click();
 }
 
 export function getStorageItem(inStorageType)
 {
     switch (inStorageType)
     {
-        case 'localStorage' :
+        case 'localStorage':
             return localStorage;
-            break;
-        case 'sessionStorage' :
+        case 'sessionStorage':
             return sessionStorage;
-            break;
-        case 'Storage()' :
+        case 'Storage()':
             return getStorage();
-            break;
     }
 }
 
 export function migrateHHVars()
 {
-    /*
-    const varReplacement =
-          [
-              {from:"HHAuto_Setting_MaxAff", to:"HHAuto_Setting_maxAff"},
-              {from:"HHAuto_Setting_MaxExp", to:"HHAuto_Setting_maxExp"},
-              {from:"HHAuto_Setting_autoMissionC", to:"HHAuto_Setting_autoMissionCollect"},
-          ];
-    for(let replacement of varReplacement)
+    // Custom-prefix migration: when the user runs a forked build with a
+    // non-default HHStoredVarPrefixKey and old "HHAuto_"-prefixed
+    // settings are still in storage, copy each registered key over from
+    // the legacy slot to the active prefix.
+    //
+    // Status (2026-05-26): the active HHStoredVarPrefixKey is hardcoded
+    // to "HHAuto_" in src/config/HHStoredVars.ts, so the body of this
+    // function is dormant in production. The function and its call
+    // site (StartService.ts: migrateHHVars()) are intentionally kept
+    // because:
+    //   - Flipping the prefix is the documented mechanism for
+    //     multi-account isolation (no current PR, but on the roadmap).
+    //   - The cost of keeping the migration around is negligible
+    //     (one early-return check per script start).
+    //   - If a future patch enables the custom prefix without re-
+    //     introducing the migration, every user who upgrades loses
+    //     their settings on the next reload, which is unrecoverable.
+    // Remove together with the multi-account feature, not before.
+    if(HHStoredVarPrefixKey === 'HHAuto_' || !haveHHAutoSettings()) return;
+    for (const newKey of Object.keys(HHStoredVars))
     {
-        const oldVar = replacement.from;
-        const newVar = replacement.to;
-        if (sessionStorage[oldVar] !== undefined)
-        {
-            sessionStorage[newVar] = sessionStorage[oldVar];
-            sessionStorage.removeItem(oldVar);
-        }
-        if (localStorage[oldVar] !== undefined)
-        {
-            localStorage[newVar] = localStorage[oldVar];
-            localStorage.removeItem(oldVar);
-        }
-    }*/
-
-    if(HHStoredVarPrefixKey !== 'HHAuto_' && haveHHAutoSettings()) {
-        // Migrate from default to custom keys
-        for (const newKey of Object.keys(HHStoredVars))
-        {
-            const oldKeys = newKey.replace(HHStoredVarPrefixKey,'HHAuto_');
-            const storageItem = getStorageItem(HHStoredVars[newKey].storage);
-            const itemValue = storageItem[oldKeys];
-
-            storageItem.removeItem(oldKeys);
-            if (itemValue) {
-                setStoredValue(newKey, itemValue);
-            }
+        const oldKeys = newKey.replace(HHStoredVarPrefixKey, 'HHAuto_');
+        const storageItem = getStorageItem(HHStoredVars[newKey].storage);
+        const itemValue = storageItem[oldKeys];
+        storageItem.removeItem(oldKeys);
+        // Preserve the value if it is set at all -- including the empty
+        // string and "0" (falsy in JS but legitimate stored-string
+        // values for some toggles). Only skip when the legacy slot was
+        // never populated.
+        if (itemValue !== undefined && itemValue !== null) {
+            setStoredValue(newKey, itemValue);
         }
     }
 }
@@ -205,13 +214,13 @@ export function getUserHHStoredVarDefault(inVarName)
 
 export function saveHHStoredVarsDefaults()
 {
-    var dataToSave={};
+    const dataToSave = {};
     getMenuValues();
-    extractHHVars(dataToSave,false,false,true);
-    let savedHHStoredVars={};
-    for(var i of Object.keys(dataToSave))
+    extractHHVars(dataToSave, false, false, true);
+    const savedHHStoredVars = {};
+    for (const i of Object.keys(dataToSave))
     {
-        let variableName = i.split(".")[1];
+        const variableName = i.split(".")[1];
         if (variableName !== HHStoredVarPrefixKey+SK.saveDefaults && HHStoredVars[variableName].default !== dataToSave[i])
         {
             savedHHStoredVars[variableName] = dataToSave[i];
@@ -223,34 +232,35 @@ export function saveHHStoredVarsDefaults()
 
 export function setHHStoredVarToDefault(inVarName)
 {
-    if (HHStoredVars[inVarName] !== undefined)
+    const entry = HHStoredVars[inVarName];
+    if (entry === undefined)
     {
-        if (HHStoredVars[inVarName].default !== undefined && HHStoredVars[inVarName].storage !== undefined)
-        {
-            let storageItem;
-            storageItem = getStorageItem(HHStoredVars[inVarName].storage);
-
-            let userDefinedDefault = getUserHHStoredVarDefault(inVarName);
-            let isValid = HHStoredVars[inVarName].isValid===undefined?true:HHStoredVars[inVarName].isValid.test(userDefinedDefault);
-            if (userDefinedDefault !== null && isValid)
-            {
-                logHHAuto("HHStoredVar "+inVarName+" set to user default value : "+userDefinedDefault);
-                storageItem[inVarName] = userDefinedDefault;
-            }
-            else
-            {
-                logHHAuto("HHStoredVar "+inVarName+" set to default value : "+HHStoredVars[inVarName].default);
-                storageItem[inVarName] = HHStoredVars[inVarName].default;
-            }
-        }
-        else
-        {
-            logHHAuto("HHStoredVar "+inVarName+" either have no storage or default defined.");
-        }
+        logHHAuto("HHStoredVar "+inVarName+" doesn't exist.");
+        return;
+    }
+    if (entry.default === undefined || entry.storage === undefined)
+    {
+        logHHAuto("HHStoredVar "+inVarName+" either have no storage or default defined.");
+        return;
+    }
+    const storageItem = getStorageItem(entry.storage);
+    const userDefinedDefault = getUserHHStoredVarDefault(inVarName);
+    // Null-check first, then validate: avoids running a regex against
+    // the literal string "null" (JavaScript coerces null to "null"
+    // when fed to RegExp.test). The previous implementation worked by
+    // accident through the userDefinedDefault !== null guard, but the
+    // ordering was fragile -- a refactor that simplified the guard
+    // could re-introduce the issue.
+    if (userDefinedDefault !== null
+        && (entry.isValid === undefined || entry.isValid.test(userDefinedDefault)))
+    {
+        logHHAuto("HHStoredVar "+inVarName+" set to user default value : "+userDefinedDefault);
+        storageItem[inVarName] = userDefinedDefault;
     }
     else
     {
-        logHHAuto("HHStoredVar "+inVarName+" doesn't exist.");
+        logHHAuto("HHStoredVar "+inVarName+" set to default value : "+entry.default);
+        storageItem[inVarName] = entry.default;
     }
 }
 
@@ -275,56 +285,44 @@ export function getHHStoredVarDefault(inVarName)
 
 export function debugDeleteAllVars()
 {
-    Object.keys(localStorage).forEach((key) =>
-                                      {
-        if (key.startsWith(HHStoredVarPrefixKey+"Setting_"))
-        {
-            localStorage.removeItem(key);
-        }
-    });
-    Object.keys(sessionStorage).forEach((key) =>
-                                        {
-        if (key.startsWith(HHStoredVarPrefixKey+"Setting_"))
-        {
-            sessionStorage.removeItem(key);
-        }
-    });
-    Object.keys(localStorage).forEach((key) =>
-                                      {
-        if (key.startsWith(HHStoredVarPrefixKey+"Temp_"))
-        {
-            localStorage.removeItem(key);
-        }
-    });
-    Object.keys(sessionStorage).forEach((key) =>
-                                        {
-        if (key.startsWith(HHStoredVarPrefixKey+"Temp_") && key !== HHStoredVarPrefixKey+TK.Logging)
-        {
-            sessionStorage.removeItem(key);
-        }
-    });
+    // Iterate the registry instead of duplicating the "Setting_" /
+    // "Temp_" prefix convention here. Routing through deleteStoredValue
+    // keeps the cleanup honest: any key that getStoredValue/setStored
+    // Value would honour is in scope, anything else is intentionally
+    // out of scope (e.g. game-side localStorage entries the script
+    // does not own). TK.Logging stays so a fresh log buffer is
+    // available when the user presses the debug-delete button.
+    const loggingKey = HHStoredVarPrefixKey + TK.Logging;
+    for (const key of Object.keys(HHStoredVars))
+    {
+        if (key === loggingKey) continue;
+        deleteStoredValue(key);
+    }
     logHHAuto('Deleted all script vars.');
 }
 
 
 export function debugDeleteTempVars()
 {
-    var dataToSave={};
-    extractHHVars(dataToSave,false,false,true);
-    var storageType;
-    var variableName;
-    var storageItem;
+    // Snapshot Settings BEFORE wiping. extractHHVars serialises each
+    // key as "<currentStorageName>.<varName>" using the active
+    // settPerTab value. After debugDeleteAllVars + setDefaults(true)
+    // settPerTab is back to its registry default, which may not match
+    // the user's preference. Rather than restoring into the snapshot's
+    // bucket (which would write into the wrong storage), we restore
+    // each value via setStoredValue, which routes through the registry
+    // and respects the post-reset settPerTab automatically.
+    const dataToSave = {};
+    extractHHVars(dataToSave, false, false, true);
 
     debugDeleteAllVars();
     setDefaults(true);
-    var keys=Object.keys(dataToSave);
-    for(var i of keys)
+
+    for (const compoundKey of Object.keys(dataToSave))
     {
-        storageType=i.split(".")[0];
-        variableName=i.split(".")[1];
-        storageItem = getStorageItem(storageType);
-        logHHAuto(i+':'+ dataToSave[i]);
-        storageItem[variableName] = dataToSave[i];
+        const variableName = compoundKey.split(".")[1];
+        logHHAuto(compoundKey + ':' + dataToSave[compoundKey]);
+        setStoredValue(variableName, dataToSave[compoundKey]);
     }
 }
 
@@ -340,7 +338,7 @@ export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextFo
         let count = 0;
         const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
         const rewardsToCollect = getStoredJSON(inVarName, []);
-        for (let currentItem of Object.keys(possibleRewards))
+        for (const currentItem of Object.keys(possibleRewards))
         {
             //console.log(currentItem,possibleRewards[currentItem]);
             if (count === 4)
@@ -375,7 +373,7 @@ export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextFo
 
     function getSelectedCollectables()
     {
-        let collectablesList:string[] = [];
+        const collectablesList: string[] = [];
         document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem").forEach(currentInputElement =>
                                                                                                            {
             const currentInput = <HTMLInputElement> currentInputElement;
@@ -390,14 +388,19 @@ export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextFo
 }
 
 export function getLocalStorageSize() {
-    var allStrings = '';
-    for (var key in localStorage) {
-        if (localStorage.hasOwnProperty(key)) {
+    // Approximate size in KB. The factor (16 / 8) converts JavaScript
+    // string length (UTF-16 code units) to bytes (16 bits per code
+    // unit / 8 bits per byte = 2 bytes). The "+3" is a small constant
+    // header allowance carried over from the original implementation;
+    // kept as-is because the value is informational only.
+    let allStrings = '';
+    for (const key in localStorage) {
+        if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
             allStrings += localStorage[key];
         }
     }
-    for (var key in sessionStorage) {
-        if (sessionStorage.hasOwnProperty(key)) {
+    for (const key in sessionStorage) {
+        if (Object.prototype.hasOwnProperty.call(sessionStorage, key)) {
             allStrings += sessionStorage[key];
         }
     }

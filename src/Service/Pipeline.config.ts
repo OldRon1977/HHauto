@@ -227,11 +227,22 @@ const handleEventParsing: HandlerConfig = {
  * On unexpected storage shape this returns a single sentinel ID so that the
  * caller still triggers a parse cycle (preserves the previous fallback
  * behaviour where the precondition returned true on parse errors).
+ *
+ * Expired-event side effect: entries whose `seconds_before_end` is in the
+ * past are events the game no longer hosts. parseEventPage cannot refresh
+ * them (the in-game tab has been replaced by a successor or removed
+ * entirely), so they would stay stale forever and drive
+ * handleEventParsing into a permanent reload loop (issue #1738 -- a
+ * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
+ * the user gave up). pruneExpiredEvents() removes them from the registry
+ * BEFORE this filter runs so the loop terminates and storage stays
+ * bounded.
  */
 export function getStaleEventIDs(now: number = Date.now()): string[] {
   try {
     const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
     const eventList = storedList ? JSON.parse(storedList) : {};
+    pruneExpiredEvents(eventList, now);
     return Object.keys(eventList).filter(id => {
       const ev = eventList[id];
       if (!ev || ev.isCompleted) return false;
@@ -243,6 +254,41 @@ export function getStaleEventIDs(now: number = Date.now()): string[] {
     // accidentally skip a refresh cycle. The actual parseEventPage call
     // tolerates an empty/garbage tab via its own "global" fallback.
     return ['__parse_error__'];
+  }
+}
+
+/**
+ * Drop event registry entries whose game-side end has already passed
+ * (`seconds_before_end <= now`). Such entries cannot be refreshed by
+ * parseEventPage (the in-game tab is gone), so leaving them in the
+ * registry would keep handleEventParsing.precondition firing forever
+ * (issue #1738).
+ *
+ * Mutates the input map AND persists the pruned shape so the next
+ * read sees the cleaned state. Exported for direct unit testing in
+ * Pipeline.config.spec.ts.
+ *
+ * Defensive: an entry without `seconds_before_end`, or with a
+ * non-finite value, is left in place. parseEventPage handles those
+ * via its existing "ERROR: No event Id found" path on the next visit.
+ */
+export function pruneExpiredEvents(eventList: Record<string, any>, now: number): void {
+  let mutated = false;
+  for (const id of Object.keys(eventList)) {
+    const ev = eventList[id];
+    if (!ev) continue;
+    const end = Number(ev.seconds_before_end);
+    if (Number.isFinite(end) && end <= now) {
+      delete eventList[id];
+      mutated = true;
+    }
+  }
+  if (mutated) {
+    if (Object.keys(eventList).length === 0) {
+      deleteStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+    } else {
+      setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+    }
   }
 }
 
@@ -263,24 +309,55 @@ const handleLeague: HandlerConfig = {
   minIntervalMs: 2_000,
   atomic: true,
   interruptible: 'never',
-  precondition: () => {
+  precondition: (ctx) => {
+    // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
+    //
+    //   1. League auto-mode active and feature enabled at all?
+    //   2. Bot not currently mid-action on a different module
+    //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
+    //      out of step.fn so the chain doesn't fire just to log a skip).
+    //   3. Either ready to fight (energy + threshold + booster check) OR
+    //      the cool-down timer has expired and we still need to refresh
+    //      the pInfo display with a default timer value (issue raised
+    //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
+    //      false because the only setTimer paths live behind a fight).
+    //
     // Note (issue #1708 follow-up): handleLeague is intentionally NOT
     // gated on trollWaitForEnergy. League uses a separate energy pool
     // (challenge tokens) that is unrelated to troll combativity (fight
     // tokens). LeagueHelper.isTimeToFight() already checks challenge
-    // energy, and the 60_000 ms minIntervalMs caps re-entry. Blocking
-    // league while troll waits for combativity (as v7.35.45 did) keeps
-    // league fights from happening even though the user has the energy
-    // to do them. handleEventParsing is gated separately because it
-    // ran every 2 s and was the actual ping-pong driver in #1700.
-    return LeagueHelper.isAutoLeagueActivated() && LeagueHelper.isTimeToFight();
+    // energy, and the minIntervalMs caps re-entry. Blocking league
+    // while troll waits for combativity (as v7.35.45 did) keeps league
+    // fights from happening even though the user has the energy to do
+    // them. handleEventParsing is gated separately because it ran every
+    // 2 s and was the actual ping-pong driver in #1700.
+    if (!LeagueHelper.isAutoLeagueActivated()) return false;
+    const lastAction = ctx.lastActionPerformed;
+    if (lastAction !== 'none' && lastAction !== 'league') return false;
+    return LeagueHelper.isTimeToFight() || checkTimer('nextLeaguesTime');
   },
   steps: [
     {
-      name: 'doLeagueBattle',
-      fn: async (): Promise<StepResult> => {
+      name: 'doLeagueBattleOrTimer',
+      fn: async (ctx): Promise<StepResult> => {
         try {
-          LeagueHelper.doLeagueBattle();
+          if (LeagueHelper.isTimeToFight()) {
+            LeagueHelper.doLeagueBattle();
+            ctx.lastActionPerformed = 'league';
+            return { ok: true };
+          }
+          // Fight not possible right now (energy below threshold,
+          // booster missing, etc.). Refresh the cool-down timer so the
+          // pInfo display can show the next refresh time instead of
+          // 'No timer'. Default fallback when the game has not yet
+          // reported a next_refresh_ts is the same 15-17 min window
+          // doLeagueBattle uses for similar idle paths.
+          const next_refresh = Number(getHHVars('Hero.energies.challenge.next_refresh_ts'));
+          if (Number.isFinite(next_refresh) && next_refresh > 0) {
+            setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
+          } else {
+            setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+          }
           return { ok: true };
         } catch (err) {
           return { ok: false, reason: String(err), retryable: true };
@@ -590,7 +667,7 @@ const handlePlaceOfPower: HandlerConfig = {
         if (ctx.busy === false) {
           popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
           if (popToStart.length === 0) {
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.PopToStart);
+            deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
             ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
           }
         }
@@ -1430,53 +1507,56 @@ const handleGoHome: HandlerConfig = {
 //  The Scheduler walks the list once per tick, picks the first ready handler
 //  (precondition true, cool-down elapsed, state IDLE), and runs it.
 //
-//  Migration notes (3.2.G.a -> 3.2.G.i): handlers move from
-//  AutoLoopActions.ts into this array. Until the migration is complete,
-//  the classic handler block in AutoLoop.autoLoop() and the pipeline run
-//  sequentially within one tick (classic first, then pipeline). The order
-//  inside this array is kept so the same handler always runs at most once
-//  per tick across both systems (the classic block is updated to skip
-//  handlers that have already moved to the pipeline).
+//  Migration history: all 33 AutoLoop action handlers now live in this
+//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
+//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
 //
-//  Order matches the legacy AutoLoop call order so behaviour stays
-//  identical until the remaining handlers are migrated in 3.2.G.c-i.
+//  Order is the agreed user-facing priority sequence: high-yield /
+//  low-cost actions (salary, shop, missions) and resource collectors
+//  before the long battle / quest / labyrinth blocks. handleEventParsing
+//  is locked at slot 1 because it populates event/mythic-girl data that
+//  later handlers (handleTrollBattle, the collect handlers) read.
+//  handleGoHome is locked at the tail because it closes the tick on a
+//  non-home page. handleGenericBattle is kept just before handleGoHome
+//  as a catch-all when the bot has landed on any battle page.
 // ---------------------------------------------------------------------------
 
 export const pipeline: HandlerConfig[] = [
-  // Order matches the legacy AutoLoop call order to preserve relative
-  // scheduling. handleMythicWave is intentionally skipped (no useful effect
-  // in the pipeline model -- see comment on its absent migration above).
+  // handleMythicWave is intentionally not listed: it was a legacy slot
+  // reservation used by the classic handleTrollBattle path and has no
+  // effect in the pipeline model. The mythic girl is fully covered by
+  // handleTrollBattle's activation paths.
   handleEventParsing,
+  handleSalary,
   handleShop,
   handleAutoEquipBoosters,
   handleHaremSize,
-  handlePlaceOfPower,
-  handleGenericBattle,
-  handleLoveRaid,
-  handleTrollBattle,
-  handlePachinko,
-  handleContest,
   handleMissions,
-  handleQuest,
-  handleLeague,
-  handleSeason,
-  handlePentaDrill,
-  handlePantheon,
-  handleChampionTicket,
-  handleChampion,
-  handleClubChampion,
+  handlePachinko,
+  handleSeasonalFreeCard,
+  handleFreeBundles,
   handleSeasonCollect,
   handlePentaDrillCollect,
-  handleSeasonalFreeCard,
   handleSeasonalEventCollect,
   handleSeasonalRankCollect,
   handlePoVCollect,
   handlePoGCollect,
-  handleFreeBundles,
+  handleContest,
   handleDailyGoals,
-  handleLabyrinth,
-  handleSalary,
+  handleChampionTicket,
+  handlePlaceOfPower,
+  handleClubChampion,
+  handleChampion,
+  handleLoveRaid,
+  handleTrollBattle,
   handleBossBangParse,
   handleBossBangFight,
+  handleLeague,
+  handleSeason,
+  handleQuest,
+  handlePantheon,
+  handlePentaDrill,
+  handleLabyrinth,
+  handleGenericBattle,
   handleGoHome,
 ];
