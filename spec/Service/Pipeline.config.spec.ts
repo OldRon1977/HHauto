@@ -740,4 +740,68 @@ describe('Pipeline.config', () => {
       jest.restoreAllMocks();
     });
   });
+
+  describe('battle-result page guard (issue #1740)', () => {
+    // Regression for issue #1740: v7.35.57 reordered the pipeline so
+    // handleGenericBattle (which parses the post-fight reward popup and writes
+    // raid girl shards back to storage) runs AFTER handleTrollBattle. Because
+    // handleTrollBattle had no page guard, on the troll-battle result page it
+    // won the tick and navigated away before the reward was read. The raid
+    // girl's shard count never reached 100, so getRaidToFight never cleared the
+    // selector and the bot fought the same raid troll forever. The fix gives
+    // handleTrollBattle the same battle-result-page guard handleGenericBattle
+    // already has, so it yields those pages.
+    const trollHandler = pipeline.find(h => h.name === 'handleTrollBattle')!;
+    const genericHandler = pipeline.find(h => h.name === 'handleGenericBattle')!;
+    const TrollMock = jest.requireMock('../../src/Module/Troll').Troll as Record<string, jest.Mock>;
+    const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+    const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+    beforeEach(() => {
+      getStoredValueMock.mockReset();
+      getStoredValueMock.mockImplementation((key: string) => key.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      // Make page-ID lookups echo the key so currentPage can match exactly.
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      TrollMock.isTrollFightActivated = jest.fn().mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+    });
+
+    it('handleTrollBattle runs before handleGenericBattle in the pipeline', () => {
+      const idxTroll = pipeline.findIndex(h => h.name === 'handleTrollBattle');
+      const idxGeneric = pipeline.findIndex(h => h.name === 'handleGenericBattle');
+      expect(idxTroll).toBeGreaterThanOrEqual(0);
+      expect(idxGeneric).toBeGreaterThan(idxTroll);
+    });
+
+    it('handleTrollBattle precondition returns false on the troll-battle result page', () => {
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDTrollBattle' });
+      expect(trollHandler.precondition(ctx)).toBe(false);
+    });
+
+    it('handleGenericBattle precondition returns true on the troll-battle result page', () => {
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDTrollBattle' });
+      expect(genericHandler.precondition(ctx)).toBe(true);
+    });
+
+    it('handleTrollBattle precondition still passes on a non-battle page (e.g. pre-battle)', () => {
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'troll-pre-battle.html' });
+      expect(trollHandler.precondition(ctx)).toBe(true);
+    });
+
+    it.each([
+      'pagesIDLeagueBattle',
+      'pagesIDTrollBattle',
+      'pagesIDSeasonBattle',
+      'pagesIDPentaDrillBattle',
+      'pagesIDPantheonBattle',
+      'pagesIDLabyrinthBattle',
+    ])('handleTrollBattle yields battle-result page %s', (page) => {
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: page });
+      expect(trollHandler.precondition(ctx)).toBe(false);
+    });
+  });
 });

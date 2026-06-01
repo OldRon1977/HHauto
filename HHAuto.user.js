@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.58
+// @version      7.35.59
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -20367,6 +20367,27 @@ const handlePlaceOfPower = {
             }),
         }],
 };
+/**
+ * Battle-result pages handled by handleGenericBattle (GenericBattle.doBattle).
+ * On these pages the post-fight reward popup must be parsed
+ * (RewardHelper.ObserveAndGetGirlRewards) so girl/raid shard progress is written
+ * back to storage. handleTrollBattle runs earlier in the pipeline and has no
+ * page guard, so it must explicitly yield these pages -- otherwise doBossBattle()
+ * navigates away ("Navigating to chosen Troll") before the reward is read, the
+ * raid girl's shard count never reaches 100, and getRaidToFight never clears the
+ * selector: an endless troll fight loop on an already-won raid girl (issue #1740).
+ */
+function isGenericBattleResultPage(currentPage) {
+    const battlePages = [
+        ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
+    ];
+    return battlePages.includes(currentPage);
+}
 const handleGenericBattle = {
     name: 'handleGenericBattle',
     minIntervalMs: 2000,
@@ -20379,15 +20400,7 @@ const handleGenericBattle = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        const battlePages = [
-            ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
-            ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
-            ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
-            ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
-            ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
-            ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
-        ];
-        return battlePages.includes(ctx.currentPage);
+        return isGenericBattleResultPage(ctx.currentPage);
     },
     steps: [{
             name: 'doBattle',
@@ -20425,6 +20438,10 @@ const handleTrollBattle = {
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
         if (!ctx.canCollectCompetitionActive)
+            return false;
+        // Yield battle-result pages to handleGenericBattle so the post-fight reward
+        // popup is parsed and raid girl shards are written back (issue #1740).
+        if (isGenericBattleResultPage(ctx.currentPage))
             return false;
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest')
             return false;
@@ -28213,7 +28230,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.58";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.59";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

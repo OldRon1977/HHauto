@@ -679,6 +679,28 @@ const handlePlaceOfPower: HandlerConfig = {
   }],
 };
 
+/**
+ * Battle-result pages handled by handleGenericBattle (GenericBattle.doBattle).
+ * On these pages the post-fight reward popup must be parsed
+ * (RewardHelper.ObserveAndGetGirlRewards) so girl/raid shard progress is written
+ * back to storage. handleTrollBattle runs earlier in the pipeline and has no
+ * page guard, so it must explicitly yield these pages -- otherwise doBossBattle()
+ * navigates away ("Navigating to chosen Troll") before the reward is read, the
+ * raid girl's shard count never reaches 100, and getRaidToFight never clears the
+ * selector: an endless troll fight loop on an already-won raid girl (issue #1740).
+ */
+function isGenericBattleResultPage(currentPage: string): boolean {
+  const battlePages = [
+    ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
+    ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
+    ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
+    ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
+    ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
+    ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
+  ];
+  return battlePages.includes(currentPage);
+}
+
 const handleGenericBattle: HandlerConfig = {
   name: 'handleGenericBattle',
   minIntervalMs: 2_000,
@@ -688,15 +710,7 @@ const handleGenericBattle: HandlerConfig = {
     if (ctx.busy) return false;
     if (!ctx.canCollectCompetitionActive) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    const battlePages = [
-      ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
-      ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
-      ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
-      ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
-      ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
-      ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
-    ];
-    return battlePages.includes(ctx.currentPage);
+    return isGenericBattleResultPage(ctx.currentPage);
   },
   steps: [{
     name: 'doBattle',
@@ -731,6 +745,9 @@ const handleTrollBattle: HandlerConfig = {
     if (!Troll.isTrollFightActivated()) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
     if (!ctx.canCollectCompetitionActive) return false;
+    // Yield battle-result pages to handleGenericBattle so the post-fight reward
+    // popup is parsed and raid girl shards are written back (issue #1740).
+    if (isGenericBattleResultPage(ctx.currentPage)) return false;
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest') return false;
     return true;
   },

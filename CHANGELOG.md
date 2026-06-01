@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.59 - raid girl skin endless-fight fix
+
+#### Fixed
+
+- **An already-won raid girl no longer traps the bot in an endless troll fight.** After a raid girl reached 100 shards, the post-fight reward was not being read on the battle-result page, so the script never noticed she was finished and kept fighting the same raid troll. The reward popup is now parsed again before the next fight, so the raid selector clears as soon as the girl is complete.
 ### v7.35.58 - loop-module review (Quest, Contest, Daily Goals, Champion, Place of Power)
 
 #### Fixed
