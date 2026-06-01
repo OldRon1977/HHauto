@@ -326,6 +326,34 @@ export class BlessingService {
     }
 
     /**
+     * Resolve a girl's value for a blessing trait kind, accepting both
+     * raw API girls (snake_case: eye_color1, hair_color1, position_img)
+     * and GirlData (camelCase: eyeColor, hairColor, position). Single
+     * source of truth shared by detectActiveBlessings and the team
+     * builder's blessing matcher, so a future game field rename is a
+     * one-place change (see lesson mapping-fix-vollstaendig-pruefen).
+     * position is normalised (the '.png' suffix is stripped).
+     */
+    static resolveTraitField(
+        g: any,
+        kind: 'eyeColor' | 'hairColor' | 'zodiac' | 'position' | 'element' | 'rarity',
+    ): string | undefined {
+        switch (kind) {
+            case 'eyeColor':  return g.eye_color1 ?? g.eyeColor;
+            case 'hairColor': return g.hair_color1 ?? g.hairColor;
+            case 'zodiac':    return g.zodiac;
+            case 'position': {
+                const raw = g.position_img ?? g.position;
+                if (raw === undefined || raw === null) return undefined;
+                return String(raw).replace(/\.png$/i, '');
+            }
+            case 'element':   return g.element;
+            case 'rarity':    return g.rarity;
+            default:          return undefined;
+        }
+    }
+
+    /**
      * Detect active blessings DIRECTLY from the girls in the pool, without
      * relying on String-Parsing of the API description (which is locale-
      * dependent: 'eye color' / 'couleur des yeux' / 'augenfarbe' ...).
@@ -397,21 +425,8 @@ export class BlessingService {
 
         // Read a girl's value for a given trait kind, accepting both
         // snake_case (raw API) and camelCase (GirlData) forms.
-        const fieldOf = (g: any, kind: Cand['kind']): string | undefined => {
-            switch (kind) {
-                case 'eyeColor':  return g.eye_color1 ?? g.eyeColor;
-                case 'hairColor': return g.hair_color1 ?? g.hairColor;
-                case 'zodiac':    return g.zodiac;
-                case 'position': {
-                    // Raw position_img is '5.png', GirlData.position is '5'.
-                    const raw = g.position_img ?? g.position;
-                    if (raw === undefined || raw === null) return undefined;
-                    return String(raw).replace(/\.png$/i, '');
-                }
-                case 'element':   return g.element;
-                case 'rarity':    return g.rarity;
-            }
-        };
+        const fieldOf = (g: any, kind: Cand['kind']): string | undefined =>
+            BlessingService.resolveTraitField(g, kind);
 
         const kinds: Cand['kind'][] = ['eyeColor', 'hairColor', 'zodiac', 'position', 'element', 'rarity'];
 

@@ -116,14 +116,7 @@ export class TeamModule {
                     safeReload(randomInterval(200, 500));
                 }
             });
-        } 
-        // else if (getPage().match(/^\/characters\/\d+$/)) {
-        // TODO unequip from harem page
-        //     logHHAuto('Unequip from harem page');
-        //     if ($('#unequip_all').length > 0) {
-        //         $('#unequip_all').trigger('click');
-        //     }
-        // }
+        }
     }
 
     static manageSkillScrollTooltip() {
@@ -137,12 +130,6 @@ export class TeamModule {
     }
 
     static createSkillScrollTooltip(teamGirls: KKTeamGirl[]=null, displayTooltip: boolean=true): TeamData {
-        // if (!teamGirls || teamGirls.length != 7) {
-        //     teamGirls = TeamModule.getSelectedGirls();
-        //     if (teamGirls.length != 7) {
-        //         return;
-        //     }
-        // }
         const teamGirlWithoutMain = teamGirls.slice(1);
         const heroCurrencies = getHero().currencies;
         let scrollTooltipDetail = '';
@@ -193,11 +180,6 @@ export class TeamModule {
         return team;
     }
 
-    static stuffAllGirls() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDBattleTeams")) {
-        }
-    }
-
     static buildStuffTeamSelectPopUp() {
         const teamGirls = TeamModule.getSelectedGirls();
         if (teamGirls.length == 0) {
@@ -215,7 +197,7 @@ export class TeamModule {
             <span>Needed: ${team['scrolls_' + rarity.toLowerCase()]}/Owned: ${heroCurrencies['scrolls_'+rarity.toLowerCase()]} <span><br/>`;
         };
 
-        const estimatedCost = 5 * (team.scrolls_mythic || 0 + team.scrolls_legendary || 0 + team.scrolls_epic || 0 + team.scrolls_rare || 0 + team.scrolls_common || 0);
+        const estimatedCost = 5 * ((team.scrolls_mythic || 0) + (team.scrolls_legendary || 0) + (team.scrolls_epic || 0) + (team.scrolls_rare || 0) + (team.scrolls_common || 0));
 
         let stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
             <div class="rowLine">
@@ -298,17 +280,6 @@ export class TeamModule {
             }
         });
     }
-
-    // static getSkillNeededScrollsOneGirl(girl: KKTeamGirl): number {
-    //     const rarity = girl.girl.rarity;
-    //     const nbGrades = girl.girl.nb_grades;
-    //     const skills: any[] = Object.values(girl.skill_tiers_info);
-    //     const usedScrolls = Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
-
-    //     const fullNeededScrolls = HaremGirl.SCROLLS_NEED_5[rarity + '_' + nbGrades];
-    //     logHHAuto(`Total skill points used by ${girl.girl.name}: ${usedScrolls}/${fullNeededScrolls}`);
-    //     return fullNeededScrolls - usedScrolls;
-    // }
 
     static getSkillNeededScrolls(mainGirl: KKTeamGirl, teamGirls: KKTeamGirl[], rarity: string, nbGrades: number): number {
         const girls = teamGirls.filter(girl => girl.girl && girl.girl.rarity === rarity && girl.girl.nb_grades == nbGrades);
@@ -394,7 +365,7 @@ export class TeamModule {
         const selectedTeam = $('.team-slot-container.selected-team').attr('data-team-index');
         if (isNaN(Number(selectedTeam))) {
             logHHAuto('Error: can\'t get selected team index, cancel action');
-            return;
+            return [];
         }
         const girlIds = [...unsafeWindow.teams_data[selectedTeam].girls_ids];
         if (girlIds.length != 7) {
@@ -470,13 +441,19 @@ export class TeamModule {
         }
     }
 
-    private static setTopTeamV2(mode: ScoringMode, availableGirls: any[]) {
-        const playerLevel = Number(HeroHelper.getLevel());
-        const rawClass = Number(HeroHelper.getClass());
-        const playerClass: PlayerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass as PlayerClass : 1;
-
-        // Map availableGirls to GirlData interface
-        const girls: GirlData[] = availableGirls.map(g => ({
+    /**
+     * Map one raw availableGirls entry (game DOM/window data) onto the
+     * GirlData interface the team builder consumes. Extracted from
+     * setTopTeamV2 so the mapping is unit-testable in isolation (the rest
+     * of setTopTeamV2 is DOM/UI). Pure: no side effects, no DOM access.
+     *
+     * can_be_blessed / can_be_blessed_pvp4 are passed through as untyped
+     * bonus properties so BlessingService.detectActiveBlessings has an
+     * authoritative blessed-or-not flag (issue 1679 phase 2); the static
+     * type stays GirlData.
+     */
+    static mapAvailableGirl(g: any): GirlData {
+        return ({
             id_girl: Number(g.id_girl),
             name: g.name || '',
             carac1: Number(g.carac1 || 0),
@@ -500,13 +477,18 @@ export class TeamModule {
             eyeColor: g.eye_color1 || undefined,
             position: g.position_img ? String(g.position_img).replace('.png', '') : undefined,
             blessingBonuses: g.blessing_bonuses || undefined,
-            // Pass through can_be_blessed so detectActiveBlessings has
-            // an authoritative blessed-or-not flag (issue 1679 phase 2).
-            // The flag is added as a non-typed bonus property; the type
-            // signature stays GirlData.
             ...(typeof g.can_be_blessed === 'boolean' ? { can_be_blessed: g.can_be_blessed } : {}),
             ...(typeof g.can_be_blessed_pvp4 === 'boolean' ? { can_be_blessed_pvp4: g.can_be_blessed_pvp4 } : {}),
-        }) as GirlData);
+        }) as GirlData;
+    }
+
+    private static setTopTeamV2(mode: ScoringMode, availableGirls: any[]) {
+        const playerLevel = Number(HeroHelper.getLevel());
+        const rawClass = Number(HeroHelper.getClass());
+        const playerClass: PlayerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass as PlayerClass : 1;
+
+        // Map availableGirls (raw game data) to the GirlData interface.
+        const girls: GirlData[] = availableGirls.map(g => TeamModule.mapAvailableGirl(g));
 
         // Build BOTH modes so we can detect when "Best Possible" produces
         // the same team as "Current Best" — this happens when the top 7

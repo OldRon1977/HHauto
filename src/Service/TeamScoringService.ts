@@ -128,7 +128,12 @@ export class TeamScoringService {
      */
     static scoreBestPossible(girl: GirlData, _playerClass?: PlayerClass): number {
         const current = TeamScoringService.caracsSum(girl);
-        const level = girl.level || 1;
+        // Clamp the level into [1, PROJECTION_LEVEL_CAP]. 750 is the hard
+        // girl cap (a girl can be developed to 750 regardless of player
+        // level), so level > 750 should not occur; the guard is pure
+        // game-drift defence -- without it a drifted level > 750 would
+        // make the factor < 1 and wrongly devalue a fully-developed girl.
+        const level = Math.min(Math.max(girl.level || 1, 1), PROJECTION_LEVEL_CAP);
         const currentGrades = girl.graded || 0;
         const maxGrades = girl.nb_grades || 0;
         return current

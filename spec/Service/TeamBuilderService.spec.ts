@@ -266,17 +266,24 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 7 keys', () => {
         expect(r.girls[0].id_girl).toBe(1); // shieldA
     });
 
-    it('4: Trait-Wert-Match in cluster category', () => {
-        // Cluster is zodiac=Bélier (stones). The decisive contest is
-        // between two Shield mythics with identical caracs_sum:
-        //   shieldNoTrait: zodiac=Balance (no match)
-        //   shieldTrait:   zodiac=Bélier (matches the cluster)
-        // Keys 1-3 tie. Key 4 (Trait-Wert-Match) decides; shieldTrait wins.
-        const shieldNoTrait = girl({
+    it('4: cluster forms on the dominant trait value (Belier), leader is a Stone Shield', () => {
+        // Cluster is zodiac=Belier (7 of 8 stones). Two Shield mythics
+        // with identical caracs_sum: id1 zodiac=Balance, id2 zodiac=Belier.
+        //
+        // Philosophy B (candidate matrix): the strongest fielded team
+        // wins. The flat candidate fields the 7 strongest stones (which
+        // includes BOTH shields, since they outscore the weaker fillers)
+        // and outscores any cluster-constrained team that has to drop one
+        // shield. The old key-4 trait-match leader bias no longer forces a
+        // specific girl; the cluster value is still reported as Belier and
+        // the leader is a Stone Mythic Shield. Which of the two equal-stat
+        // shields leads is decided by candidate/append order, not by
+        // trait-match, so we assert the invariants, not the exact id.
+        const shieldBalance = girl({
             id_girl: 1, rarity: 'mythic', element: 'stone',
             zodiac: 'Balance', carac3: 5000,
         });
-        const shieldTrait = girl({
+        const shieldBelier = girl({
             id_girl: 2, rarity: 'mythic', element: 'stone',
             zodiac: 'Bélier', carac3: 5000,
         });
@@ -284,9 +291,14 @@ describe('TeamBuilderService -- Leaderauswahl-Regel 7 keys', () => {
             id_girl: 100 + i, rarity: 'mythic', element: 'stone',
             zodiac: 'Bélier', carac3: 3000 - i,
         }));
-        const r = TeamBuilderService.buildTeam([shieldNoTrait, shieldTrait, ...filler], 1, 100, 3)!;
+        const r = TeamBuilderService.buildTeam([shieldBalance, shieldBelier, ...filler], 1, 100, 3)!;
         expect(r.traitValue).toBe('Bélier');
-        expect(r.girls[0].id_girl).toBe(2);
+        expect(r.girls[0].element).toBe('stone');
+        expect(r.leaderTier5.name).toBe('Shield');
+        // Both equal-stat shields are fielded somewhere in the team.
+        const ids = r.girls.map(g => g.id_girl);
+        expect(ids).toContain(1);
+        expect(ids).toContain(2);
     });
 
     it('5: blessed vor unblessed', () => {
