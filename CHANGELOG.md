@@ -7,6 +7,19 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.58 - loop-module review (Quest, Contest, Daily Goals, Champion, Place of Power)
+
+#### Fixed
+
+- A locked Place of Power no longer traps the bot in an endless "navigating to powerplace" cycle. When a spot cannot be entered, the bot now records it after the second attempt and moves on instead of retrying every tick. This also removes one of the access-forbidden triggers at its root, since the rapid retry loop was part of what provoked the server.
+- A quest step that requires an outfit change no longer spins forever on an unrecognised state. Auto-quest now bails out cleanly and asks you to proceed that screen manually, the same way it already handles other quest steps it cannot complete on its own.
+- Multi-tier contest finishes collect their rewards across consecutive ticks instead of doing a full page reload after every single reward.
+- Daily-goals detection no longer wipes its own cache when the bot passes through the missions or contests pages. Previously the cached goal list was cleared on those pages, so the pantheon daily-goal booster override could report "no active goal" between two daily-goals visits. The override now fires reliably.
+
+#### Changed
+
+- Internal hardening with no visible behaviour change: number-coercion on the champion auto-team configuration values, defensive error handling in the daily-goals collector, and removal of a small amount of dead code.
+
 ### v7.35.57 - StorageHelper review, league timer refresh, expired-event loop fix
 
 #### Fixed

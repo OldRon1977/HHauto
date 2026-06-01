@@ -998,6 +998,33 @@ const handleQuest: HandlerConfig = {
           }
           setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
           ctx.busy = false;
+        } else if (questRequirement === 'outfit') {
+          // Quest step requires an outfit change. Quest.ts:215 writes the
+          // 'outfit' marker but no else-if matched it before, so the
+          // pipeline fell through to the catch-all 'Invalid quest
+          // requirement' branch every tick: the marker was never reset,
+          // so the bot stayed in an infinite log-spam loop on outfit-
+          // gated quests until the user manually intervened. Auto-quest
+          // also stayed enabled (unlike unknownQuestButton), so the
+          // pInfo gave no hint that the bot was stuck.
+          //
+          // Mirror the unknownQuestButton path: disable autoQuest /
+          // autoSideQuest, log a user-actionable message, reset the
+          // marker, set paranoiaQuestBlocked so other handlers know not
+          // to wait for quest progress.
+          setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+          if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+            logHHAuto('AutoQuest disabled. The current quest step requires an outfit change. Please manually proceed the current quest screen.');
+            (document.getElementById('autoQuest') as HTMLInputElement).checked = false;
+            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+          }
+          if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+            logHHAuto('AutoQuest disabled. The current side-quest step requires an outfit change. Please manually proceed the current quest screen.');
+            (document.getElementById('autoSideQuest') as HTMLInputElement).checked = false;
+            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+          }
+          setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+          ctx.busy = false;
         } else if (questRequirement === 'none') {
           if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
@@ -1516,6 +1543,19 @@ const handleGoHome: HandlerConfig = {
 //  before the long battle / quest / labyrinth blocks. handleEventParsing
 //  is locked at slot 1 because it populates event/mythic-girl data that
 //  later handlers (handleTrollBattle, the collect handlers) read.
+//
+//  Producer/consumer chain in the upper block (slots 2-5):
+//   - slot 2 handleHaremSize: refreshes the TK.HaremSize cache (girl
+//     count + timestamp) consumed by every battle handler's synergy
+//     and team-power calculation.
+//   - slot 3 handleSalary: cheap one-click action with no dependents,
+//     parked here because it is essentially free.
+//   - slot 4 handleShop: writes the storeContents / charLevel /
+//     boosterStatus / boosterIdMap snapshot.
+//   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
+//     produced by handleShop. Must run after handleShop in the same
+//     tick so equip decisions see fresh inventory.
+//
 //  handleGoHome is locked at the tail because it closes the tick on a
 //  non-home page. handleGenericBattle is kept just before handleGoHome
 //  as a catch-all when the bot has landed on any battle page.
@@ -1527,10 +1567,10 @@ export const pipeline: HandlerConfig[] = [
   // effect in the pipeline model. The mythic girl is fully covered by
   // handleTrollBattle's activation paths.
   handleEventParsing,
+  handleHaremSize,
   handleSalary,
   handleShop,
   handleAutoEquipBoosters,
-  handleHaremSize,
   handleMissions,
   handlePachinko,
   handleSeasonalFreeCard,

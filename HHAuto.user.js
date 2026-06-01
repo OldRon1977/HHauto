@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.57
+// @version      7.35.58
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -6099,8 +6099,15 @@ class DailyGoals {
                         return false;
                     }
                 }
-                catch ({ errName, message }) {
-                    LogUtils_logHHAuto(`ERROR during daily goals run: ${message}, retry in 1h`);
+                catch (err) {
+                    // Pre-fix this destructured `{ errName, message }` from the
+                    // thrown value, which crashed on primitive throws (the
+                    // destructure itself raised TypeError) and silently logged
+                    // `undefined` on non-Error objects. Standard catch handles
+                    // both safely; the message extraction stays defensive so a
+                    // primitive throw still produces a readable log line.
+                    const errMessage = err instanceof Error ? err.message : String(err);
+                    LogUtils_logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
                     setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
                     return false;
                 }
@@ -6111,26 +6118,40 @@ class DailyGoals {
                 return true;
             }
         }
+        // Default branch: timer not yet elapsed or autoDailyGoalsCollect
+        // disabled. Pre-fix the function fell through with an implicit
+        // `undefined` return that the Pipeline adapter coerced to falsy
+        // (busy=false). Spell that out explicitly to match the declared
+        // boolean return type and to survive a future strict-TS push.
+        return false;
     }
     static parse() {
-        const supportedGoals = [];
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals") && unsafeWindow.daily_goals_list) {
-            for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++) {
-                const goal = unsafeWindow.daily_goals_list[currentTier];
-                if (goal && goal.progress_data.current < goal.progress_data.max)
-                    switch (goal.anchor) {
-                        // case ConfigHelper.getHHScriptVars("pagesURLLabyrinth"):
-                        // case ConfigHelper.getHHScriptVars("pagesURLSeasonArena"):
-                        // case ConfigHelper.getHHScriptVars("pagesURLHarem"):
-                        case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
-                        case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
-                            supportedGoals.push(goal);
-                            break;
-                    }
-            }
+        // parse() is registered as a page handler on the missions and
+        // contests pages too (AutoLoopPageHandlers), not just on the
+        // daily-goals page. On those pages unsafeWindow.daily_goals_list
+        // is not populated, so the method used to fall through, log
+        // "Can't parse Daily Goals", and then overwrite the dailyGoalsList
+        // cache with an empty array. That wiped the cache between two real
+        // daily-goals visits, so isPantheonDailyGoal() reported false and
+        // the pantheon booster-override for an active daily goal never
+        // fired. Guard with an early return that leaves the cache intact
+        // and hands back whatever was last parsed.
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
         }
-        else {
-            LogUtils_logHHAuto("Can't parse Daily Goals");
+        const supportedGoals = [];
+        for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++) {
+            const goal = unsafeWindow.daily_goals_list[currentTier];
+            if (goal && goal.progress_data.current < goal.progress_data.max)
+                switch (goal.anchor) {
+                    // case ConfigHelper.getHHScriptVars("pagesURLLabyrinth"):
+                    // case ConfigHelper.getHHScriptVars("pagesURLSeasonArena"):
+                    // case ConfigHelper.getHHScriptVars("pagesURLHarem"):
+                    case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
+                    case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
+                        supportedGoals.push(goal);
+                        break;
+                }
         }
         setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(supportedGoals));
         LogUtils_logHHAuto("Daily Goals", supportedGoals);
@@ -11906,7 +11927,15 @@ class Contest {
                 // see stale claim buttons and create an infinite collect loop.
                 contestContainer.remove();
                 if (contest_list.length > 1) {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
+                    // Multi-reward contests previously triggered a full page
+                    // reload after every claim, producing N-1 reloads in
+                    // quick succession on a 5-tier finish. The reloads put
+                    // unnecessary pressure on the Forbidden race window we
+                    // already mitigated via ADR-003. Stay on the page, set
+                    // busy=true so the scheduler comes back next tick, and
+                    // collect the next reward then. The DOM-removal above
+                    // ensures getClaimsButton() reports the remaining
+                    // reward count correctly on the follow-up tick.
                     return true;
                 }
             }
@@ -12898,6 +12927,14 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// Champion.ts -- Automates the Champions game mode.
+//
+// Handles map navigation, ticket-based fights, and reward collection for the
+// Champions feature. Manages fight energy (tickets), selects opponents, and
+// tracks cooldown timers between rounds.
+//
+// Used by: Service/index.ts (main automation loop)
+//
 
 
 
@@ -12917,8 +12954,6 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 class Champion {
-    run() {
-    }
     static ChampDisplayAutoTeamPopup(numberDone, numberEnd, remainingTime) {
         $(".champions-top__inner-wrapper").prepend('<div id="popup_message_champ" class="HHpopup_message" name="popup_message_champ" style="margin:0px;width:400px" ><a id="popup_message_champ_close" class="close">&times;</a>'
             + getTextForUI("autoChampsTeamLoop", "elementText") + ' : <br>' + numberDone + '/' + numberEnd + ' (' + remainingTime + 'sec)</div>');
@@ -12944,8 +12979,13 @@ class Champion {
             });
             return poses;
         };
-        var getChampMaxLoop = function () { var _a; return (_a = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsTeamLoop)) !== null && _a !== void 0 ? _a : 10; };
-        var getMinGirlPower = function () { var _a; return (_a = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsGirlThreshold)) !== null && _a !== void 0 ? _a : 50000; };
+        // Storage values come back as strings; coerce explicitly so the
+        // numeric comparisons further down (counterLoop <= maxLoops,
+        // damage >= girlMinPower) stay strict-typed instead of relying
+        // on JavaScript's loose-equality coercion. Empty-string storage
+        // returns NaN via Number(""), which the `||` fallback rescues.
+        var getChampMaxLoop = function () { return Number(getStoredValue(HHStoredVarPrefixKey + SK.autoChampsTeamLoop)) || 10; };
+        var getMinGirlPower = function () { return Number(getStoredValue(HHStoredVarPrefixKey + SK.autoChampsGirlThreshold)) || 50000; };
         var getChampSecondLine = function () { return getStoredValue(HHStoredVarPrefixKey + SK.autoChampsTeamKeepSecondLine) === 'true'; };
         //let champTeamButton = '<div style="position: absolute;left: 330px;top: 10px;width:90px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("ChampTeamButton","tooltip")+'</span><label class="myButton" id="ChampTeamButton">'+getTextForUI("ChampTeamButton","elementText")+'</label></div>';
         GM_addStyle('.girl-box__draggable.switching {background-color: #ffb827;}');
@@ -20656,6 +20696,34 @@ const handleQuest = {
                         setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
                         ctx.busy = false;
                     }
+                    else if (questRequirement === 'outfit') {
+                        // Quest step requires an outfit change. Quest.ts:215 writes the
+                        // 'outfit' marker but no else-if matched it before, so the
+                        // pipeline fell through to the catch-all 'Invalid quest
+                        // requirement' branch every tick: the marker was never reset,
+                        // so the bot stayed in an infinite log-spam loop on outfit-
+                        // gated quests until the user manually intervened. Auto-quest
+                        // also stayed enabled (unlike unknownQuestButton), so the
+                        // pInfo gave no hint that the bot was stuck.
+                        //
+                        // Mirror the unknownQuestButton path: disable autoQuest /
+                        // autoSideQuest, log a user-actionable message, reset the
+                        // marker, set paranoiaQuestBlocked so other handlers know not
+                        // to wait for quest progress.
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled. The current quest step requires an outfit change. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled. The current side-quest step requires an outfit change. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
                     else if (questRequirement === 'none') {
                         if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
                             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
@@ -21255,6 +21323,19 @@ const handleGoHome = {
 //  before the long battle / quest / labyrinth blocks. handleEventParsing
 //  is locked at slot 1 because it populates event/mythic-girl data that
 //  later handlers (handleTrollBattle, the collect handlers) read.
+//
+//  Producer/consumer chain in the upper block (slots 2-5):
+//   - slot 2 handleHaremSize: refreshes the TK.HaremSize cache (girl
+//     count + timestamp) consumed by every battle handler's synergy
+//     and team-power calculation.
+//   - slot 3 handleSalary: cheap one-click action with no dependents,
+//     parked here because it is essentially free.
+//   - slot 4 handleShop: writes the storeContents / charLevel /
+//     boosterStatus / boosterIdMap snapshot.
+//   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
+//     produced by handleShop. Must run after handleShop in the same
+//     tick so equip decisions see fresh inventory.
+//
 //  handleGoHome is locked at the tail because it closes the tick on a
 //  non-home page. handleGenericBattle is kept just before handleGoHome
 //  as a catch-all when the bot has landed on any battle page.
@@ -21265,10 +21346,10 @@ const pipeline = [
     // effect in the pipeline model. The mythic girl is fully covered by
     // handleTrollBattle's activation paths.
     handleEventParsing,
+    handleHaremSize,
     handleSalary,
     handleShop,
     handleAutoEquipBoosters,
-    handleHaremSize,
     handleMissions,
     handlePachinko,
     handleSeasonalFreeCard,
@@ -23865,16 +23946,14 @@ class PlaceOfPower {
         deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
     }
     static removePopFromPopToStart(index) {
-        var epop;
-        var popToSart;
-        var newPopToStart;
-        popToSart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-        newPopToStart = [];
-        for (epop of popToSart) {
-            if (epop != index) {
-                newPopToStart.push(epop);
-            }
-        }
+        const popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+        // Coerce both sides to Number for the comparison: the storage round-
+        // trip can turn the index into a string when callers pass through
+        // setStoredValue/getStoredValue, while popToStart is JSON-parsed
+        // back to numbers. Strict-equality across the mixed types would
+        // never match and the entry would never be removed.
+        const indexNum = Number(index);
+        const newPopToStart = popToStart.filter(p => p !== indexNum);
         setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify(newPopToStart));
     }
     static collectAndUpdate() {
@@ -24065,7 +24144,16 @@ class PlaceOfPower {
     static doPowerPlacesStuff(index) {
         return PlaceOfPower_awaiter(this, void 0, void 0, function* () {
             if (getPage() !== "powerplace" + index) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted) != null && index === getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted)) {
+                // Self-heal for failed PoP navigation: storage round-trips numbers as
+                // strings, so the previous strict-equality check (index === stored)
+                // never matched and this branch was dead code -- the bot stayed in
+                // an infinite "Navigating to powerplaceN page" loop on locked PoPs
+                // (issue #1598 root cause). Coerce the stored value to a Number
+                // before comparing so the index goes onto the unable-to-start list
+                // and the loop terminates.
+                const storedPopTarget = getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
+                const storedPopTargetNum = storedPopTarget !== undefined ? Number(storedPopTarget) : NaN;
+                if (!isNaN(storedPopTargetNum) && index === storedPopTargetNum) {
                     PlaceOfPower.addPopToUnableToStart(index, "Navigation to powerplace" + index + " page failed back to home page.");
                     PlaceOfPower.removePopFromPopToStart(index);
                     deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
@@ -28125,7 +28213,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.57";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.58";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

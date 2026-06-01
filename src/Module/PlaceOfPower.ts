@@ -145,21 +145,17 @@ export class PlaceOfPower {
         deleteStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart);
         deleteStoredValue(HHStoredVarPrefixKey+TK.PopToStart);
     }
-    static removePopFromPopToStart(index)
+    static removePopFromPopToStart(index: number | string)
     {
-        var epop;
-        var popToSart;
-        var newPopToStart;
-        popToSart= getStoredJSON(HHStoredVarPrefixKey+TK.PopToStart, []);
-        newPopToStart=[];
-        for (epop of popToSart)
-        {
-            if (epop != index)
-            {
-                newPopToStart.push(epop);
-            }
-        }
-        setStoredValue(HHStoredVarPrefixKey+TK.PopToStart, JSON.stringify(newPopToStart));
+        const popToStart: number[] = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+        // Coerce both sides to Number for the comparison: the storage round-
+        // trip can turn the index into a string when callers pass through
+        // setStoredValue/getStoredValue, while popToStart is JSON-parsed
+        // back to numbers. Strict-equality across the mixed types would
+        // never match and the entry would never be removed.
+        const indexNum = Number(index);
+        const newPopToStart = popToStart.filter(p => p !== indexNum);
+        setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify(newPopToStart));
     }
 
     static async collectAndUpdate()
@@ -383,7 +379,16 @@ export class PlaceOfPower {
     {
         if(getPage() !== "powerplace"+index)
         {
-            if (getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted) != null && index === getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted)) {
+            // Self-heal for failed PoP navigation: storage round-trips numbers as
+            // strings, so the previous strict-equality check (index === stored)
+            // never matched and this branch was dead code -- the bot stayed in
+            // an infinite "Navigating to powerplaceN page" loop on locked PoPs
+            // (issue #1598 root cause). Coerce the stored value to a Number
+            // before comparing so the index goes onto the unable-to-start list
+            // and the loop terminates.
+            const storedPopTarget = getStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
+            const storedPopTargetNum = storedPopTarget !== undefined ? Number(storedPopTarget) : NaN;
+            if (!isNaN(storedPopTargetNum) && index === storedPopTargetNum) {
                 PlaceOfPower.addPopToUnableToStart(index, "Navigation to powerplace" + index + " page failed back to home page.");
                 PlaceOfPower.removePopFromPopToStart(index);
                 deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);

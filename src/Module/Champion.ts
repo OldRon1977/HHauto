@@ -6,7 +6,6 @@
 //
 // Used by: Service/index.ts (main automation loop)
 //
-import { get } from 'jquery';
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { hhButton } from "../Helper/HHMenuHelper";
@@ -34,8 +33,6 @@ import { EventModule } from "./Events/EventModule";
 import { QuestHelper } from "./Quest";
 
 export class Champion {
-    run(){
-    }
 
     static ChampDisplayAutoTeamPopup(numberDone,numberEnd,remainingTime)
     {
@@ -69,8 +66,13 @@ export class Champion {
             });
             return poses;
         }
-        var getChampMaxLoop = function() { return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamLoop) ?? 10; }
-        var getMinGirlPower = function() { return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsGirlThreshold) ?? 50000; }
+        // Storage values come back as strings; coerce explicitly so the
+        // numeric comparisons further down (counterLoop <= maxLoops,
+        // damage >= girlMinPower) stay strict-typed instead of relying
+        // on JavaScript's loose-equality coercion. Empty-string storage
+        // returns NaN via Number(""), which the `||` fallback rescues.
+        var getChampMaxLoop = function() { return Number(getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamLoop)) || 10; }
+        var getMinGirlPower = function() { return Number(getStoredValue(HHStoredVarPrefixKey+SK.autoChampsGirlThreshold)) || 50000; }
         var getChampSecondLine = function(){return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamKeepSecondLine) === 'true';}
 
         //let champTeamButton = '<div style="position: absolute;left: 330px;top: 10px;width:90px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("ChampTeamButton","tooltip")+'</span><label class="myButton" id="ChampTeamButton">'+getTextForUI("ChampTeamButton","elementText")+'</label></div>';

@@ -31,6 +31,25 @@ jest.mock('../../src/Module/Booster', () => ({
   },
 }));
 
+jest.mock('../../src/Module/Quest', () => ({
+  QuestHelper: {
+    getEnergy: jest.fn().mockReturnValue(0),
+    run: jest.fn(),
+  },
+}));
+
+jest.mock('../../src/Service/ParanoiaService', () => ({
+  ParanoiaService: {
+    checkParanoiaSpendings: jest.fn().mockReturnValue(0),
+  },
+}));
+
+jest.mock('../../src/Module/Troll', () => ({
+  Troll: {
+    doBossBattle: jest.fn().mockResolvedValue(false),
+  },
+}));
+
 jest.mock('../../src/Helper/HHHelper', () => ({
   getHHVars: jest.fn().mockReturnValue(100),
 }));
@@ -56,12 +75,19 @@ jest.mock('../../src/config/HHStoredVars', () => ({
 }));
 
 jest.mock('../../src/config/StorageKeys', () => ({
-  SK: { master: 'master', autoEquipBoosters: 'Setting_autoEquipBoosters' },
+  SK: {
+    master: 'master',
+    autoEquipBoosters: 'Setting_autoEquipBoosters',
+    autoQuest: 'Setting_autoQuest',
+    autoSideQuest: 'Setting_autoSideQuest',
+  },
   TK: {
     eventsList: 'Temp_eventsList',
     trollWaitForEnergy: 'Temp_trollWaitForEnergy',
     charLevel: 'Temp_charLevel',
     autoLoop: 'Temp_autoLoop',
+    questRequirement: 'Temp_questRequirement',
+    paranoiaQuestBlocked: 'Temp_paranoiaQuestBlocked',
   },
 }));
 
@@ -628,6 +654,90 @@ describe('Pipeline.config', () => {
       const stale = getStaleEventIDs(now);
       expect(stale).toEqual([]);
       expect(deleteStoredValueMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('handleQuest', () => {
+    const handler = pipeline.find(h => h.name === 'handleQuest')!;
+
+    beforeEach(() => {
+      getStoredValueMock.mockReset();
+      setStoredValueMock.mockReset();
+      deleteStoredValueMock.mockReset();
+    });
+
+    it('exists in pipeline', () => {
+      expect(handler).toBeDefined();
+    });
+
+    it('outfit marker disables autoQuest, resets the marker, and sets paranoiaQuestBlocked', async () => {
+      // Storage reads return 'true' for autoQuest, 'false' for autoSideQuest,
+      // 'false' for autoTrollBattleSaveQuest, 'outfit' for the marker.
+      // Order matches the reads inside step.fn.
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return 'outfit';
+        if (key.endsWith('Setting_autoQuest')) return 'true';
+        if (key.endsWith('Setting_autoSideQuest')) return 'false';
+        return undefined;
+      });
+      // Provide a stub DOM input so the autoQuest checkbox toggle does not
+      // throw. The handler reads document.getElementById('autoQuest').
+      const stubInput = { checked: true } as unknown as HTMLInputElement;
+      jest.spyOn(document, 'getElementById').mockImplementation((id: string) =>
+        id === 'autoQuest' || id === 'autoSideQuest' ? (stubInput as unknown as HTMLElement) : null
+      );
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true });
+      await handler.steps[0].fn(ctx);
+
+      // Marker reset to 'none', autoQuest disabled, paranoiaQuestBlocked set.
+      const writes = setStoredValueMock.mock.calls.map(c => [c[0], c[1]]);
+      expect(writes).toContainEqual([
+        expect.stringContaining('Temp_paranoiaQuestBlocked'),
+        'true',
+      ]);
+      expect(writes).toContainEqual([
+        expect.stringContaining('Setting_autoQuest'),
+        'false',
+      ]);
+      expect(writes).toContainEqual([
+        expect.stringContaining('Temp_questRequirement'),
+        'none',
+      ]);
+      // ctx.busy stays false (no continuation).
+      expect(ctx.busy).toBe(false);
+
+      jest.restoreAllMocks();
+    });
+
+    it('outfit marker also disables autoSideQuest when it is enabled', async () => {
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return 'outfit';
+        if (key.endsWith('Setting_autoQuest')) return 'false';
+        if (key.endsWith('Setting_autoSideQuest')) return 'true';
+        return undefined;
+      });
+      const stubInput = { checked: true } as unknown as HTMLInputElement;
+      jest.spyOn(document, 'getElementById').mockImplementation((id: string) =>
+        id === 'autoQuest' || id === 'autoSideQuest' ? (stubInput as unknown as HTMLElement) : null
+      );
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true });
+      await handler.steps[0].fn(ctx);
+
+      const writes = setStoredValueMock.mock.calls.map(c => [c[0], c[1]]);
+      expect(writes).toContainEqual([
+        expect.stringContaining('Setting_autoSideQuest'),
+        'false',
+      ]);
+      expect(writes).toContainEqual([
+        expect.stringContaining('Temp_questRequirement'),
+        'none',
+      ]);
+
+      jest.restoreAllMocks();
     });
   });
 });

@@ -50,7 +50,15 @@ export class Contest {
                 contestContainer.remove();
                 if ( contest_list.length > 1 )
                 {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
+                    // Multi-reward contests previously triggered a full page
+                    // reload after every claim, producing N-1 reloads in
+                    // quick succession on a 5-tier finish. The reloads put
+                    // unnecessary pressure on the Forbidden race window we
+                    // already mitigated via ADR-003. Stay on the page, set
+                    // busy=true so the scheduler comes back next tick, and
+                    // collect the next reward then. The DOM-removal above
+                    // ensures getClaimsButton() reports the remaining
+                    // reward count correctly on the follow-up tick.
                     return true;
                 }
             }

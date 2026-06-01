@@ -165,8 +165,15 @@ export class DailyGoals {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                         return false;
                     }
-                } catch ({ errName, message }) {
-                    logHHAuto(`ERROR during daily goals run: ${message}, retry in 1h`);
+                } catch (err) {
+                    // Pre-fix this destructured `{ errName, message }` from the
+                    // thrown value, which crashed on primitive throws (the
+                    // destructure itself raised TypeError) and silently logged
+                    // `undefined` on non-Error objects. Standard catch handles
+                    // both safely; the message extraction stays defensive so a
+                    // primitive throw still produces a readable log line.
+                    const errMessage = err instanceof Error ? err.message : String(err);
+                    logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
                     setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
                     return false;
                 }
@@ -178,29 +185,43 @@ export class DailyGoals {
                 return true;
             }
         }
+        // Default branch: timer not yet elapsed or autoDailyGoalsCollect
+        // disabled. Pre-fix the function fell through with an implicit
+        // `undefined` return that the Pipeline adapter coerced to falsy
+        // (busy=false). Spell that out explicitly to match the declared
+        // boolean return type and to survive a future strict-TS push.
+        return false;
     }
 
     static parse(): KKDailyGoal[] {
-        const supportedGoals: KKDailyGoal[] = [];
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals") && unsafeWindow.daily_goals_list) {
-            for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++)
-            {
-                const goal = unsafeWindow.daily_goals_list[currentTier];
-                if (goal && goal.progress_data.current < goal.progress_data.max )
-                    switch (goal.anchor){
-                        // case ConfigHelper.getHHScriptVars("pagesURLLabyrinth"):
-                        // case ConfigHelper.getHHScriptVars("pagesURLSeasonArena"):
-                        // case ConfigHelper.getHHScriptVars("pagesURLHarem"):
-                        case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
-                        case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
-                            supportedGoals.push(goal);
-                        break;
-                    }
-            }
+        // parse() is registered as a page handler on the missions and
+        // contests pages too (AutoLoopPageHandlers), not just on the
+        // daily-goals page. On those pages unsafeWindow.daily_goals_list
+        // is not populated, so the method used to fall through, log
+        // "Can't parse Daily Goals", and then overwrite the dailyGoalsList
+        // cache with an empty array. That wiped the cache between two real
+        // daily-goals visits, so isPantheonDailyGoal() reported false and
+        // the pantheon booster-override for an active daily goal never
+        // fired. Guard with an early return that leaves the cache intact
+        // and hands back whatever was last parsed.
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
         }
-        else
+
+        const supportedGoals: KKDailyGoal[] = [];
+        for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++)
         {
-            logHHAuto("Can't parse Daily Goals");
+            const goal = unsafeWindow.daily_goals_list[currentTier];
+            if (goal && goal.progress_data.current < goal.progress_data.max )
+                switch (goal.anchor){
+                    // case ConfigHelper.getHHScriptVars("pagesURLLabyrinth"):
+                    // case ConfigHelper.getHHScriptVars("pagesURLSeasonArena"):
+                    // case ConfigHelper.getHHScriptVars("pagesURLHarem"):
+                    case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
+                    case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
+                        supportedGoals.push(goal);
+                    break;
+                }
         }
 
         setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(supportedGoals));
