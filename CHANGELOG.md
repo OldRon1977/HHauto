@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.35.62 - pachinko orb over-consumption fix
+
+#### Fixed
+
+- **Auto-pachinko no longer spends more orbs than requested.** On fast runs the on-screen orb counter could lag behind the server, so the routine kept pulling after it had already reached the requested number and used up extra orbs. The stop count now follows the server's reported orb total, so a run of N stops exactly at N.
+
+#### Changed
+
+- The pachinko log now records the start of a run (selected type, target, available) and a clear finish line with the number of orbs spent, making runs easier to review afterwards.
+
 ### v7.35.59 - raid girl skin endless-fight fix
 
 #### Fixed

@@ -37,4 +37,21 @@ describe("Pachinko", function() {
       expect(Pachinko.getHumanPachinkoFromOrbName('o_g10')).toBe('10');
     });
   });
+
+  describe("resolveStopOrbsLeft", function() {
+    it("prefers the server count when it is a valid number", function() {
+      // Server is authoritative even when the DOM lags behind (issue 1745).
+      expect(Pachinko.resolveStopOrbsLeft(104, 109)).toBe(104);
+    });
+    it("accepts zero from the server", function() {
+      expect(Pachinko.resolveStopOrbsLeft(0, 5)).toBe(0);
+    });
+    it("falls back to the DOM when the server count is undefined", function() {
+      // First tick of a run, before any play-response has arrived.
+      expect(Pachinko.resolveStopOrbsLeft(undefined, 123)).toBe(123);
+    });
+    it("falls back to the DOM when the server count is negative", function() {
+      expect(Pachinko.resolveStopOrbsLeft(-1, 42)).toBe(42);
+    });
+  });
 });
