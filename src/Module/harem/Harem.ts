@@ -15,7 +15,6 @@ import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { deleteStoredValue, getStoredValue, setStoredValue, getStoredJSON } from "../../Helper/StorageHelper";
 import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
-import { setTimer } from "../../Helper/TimerHelper";
 import { addNutakuSession, gotoPage } from "../../Service/PageNavigationService";
 import { fillHHPopUp } from "../../Utils/HHPopup";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -53,7 +52,7 @@ export class Harem {
         logHHAuto("clearHaremToolVariables: re-enabling autoLoop.");
 
         const lastActionPerformed:string = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
-        if(lastActionPerformed == Harem.HAREM_UPGRADE_LAST_ACTION) {
+        if(lastActionPerformed === Harem.HAREM_UPGRADE_LAST_ACTION) {
             setStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed, "none");
         }
     }
@@ -61,9 +60,6 @@ export class Harem {
     static getGirlMapSorted(inSortType = "DateAcquired",inSortReversed = true )
     {
         let girlsMap = getHHVars("shared.GirlSalaryManager.girlsMap");
-        // if (girlsMap === null) {
-        //     girlsMap = getHHVars("girlsDataList");
-        // }
         if (girlsMap !== null)
         {
 
@@ -104,7 +100,7 @@ export class Harem {
             girlsDataList = getHHVars("girlsDataList");
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
-            let girlNameDictionary = new Map();
+            const girlNameDictionary = new Map();
             // The game returns girlsDataList as either an Array (legacy)
             // or a plain Object keyed by girl id (current). forEach only
             // exists on the Array form -- normalise via Object.values().
@@ -125,12 +121,12 @@ export class Harem {
         if (localStorage.getItem('HHS.HHPNMap') !== null) {
             try {
                 const girlsArray = JSON.parse(localStorage.getItem('HHS.HHPNMap'));
-                let girlNameDictionary = new Map();
+                const girlNameDictionary = new Map();
                 girlsArray.forEach((data:any) => {
                     girlNameDictionary.set(data[0]+"", data[1]);
                 });
                 return girlNameDictionary;
-            } catch (error) {
+            } catch {
                 return null;
             }
         } else {
@@ -138,14 +134,14 @@ export class Harem {
         }
     }
 
-    static getGirlData(girlId: number) :KKHaremGirl{
+    static getGirlData(girlId: number): KKHaremGirl | null {
         var gMap = getHHVars('girlsDataList');
         if (gMap === null) {
             // error
             //logHHAuto("Girls Map was undefined...! Error, cannot export girls.");
         }
         else {
-            return Object.values(gMap).find((girl:KKHaremGirl) => girl.id_girl == girlId) as KKHaremGirl;
+            return Object.values(gMap).find((girl:KKHaremGirl) => Number(girl.id_girl) === Number(girlId)) as KKHaremGirl;
         }
         return null;
     }
@@ -157,7 +153,7 @@ export class Harem {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
             styles = 'position: absolute;top: 10px;width:24px;z-index:10';
         }
-        let ExportGirlsData = `<div style="${styles}" class="tooltipHH" id="${menuID}"><span class="tooltipHHtext">${getTextForUI("ExportGirlsData","tooltip")}</span><label style="font-size:small" class="myButton" id="ExportGirlsDataButton">${getTextForUI("ExportGirlsData","elementText")}</label></div>`;
+        const ExportGirlsData = `<div style="${styles}" class="tooltipHH" id="${menuID}"><span class="tooltipHHtext">${getTextForUI("ExportGirlsData","tooltip")}</span><label style="font-size:small" class="myButton" id="ExportGirlsDataButton">${getTextForUI("ExportGirlsData","elementText")}</label></div>`;
         if (document.getElementById(menuID) === null)
         {
             $("#filter_girls").after(ExportGirlsData);
@@ -192,10 +188,8 @@ export class Harem {
             else
             {
                 try{
-                    var cnt = 1;
                     for(var key in gMap)
                     {
-                        cnt++;
                         var gData = gMap[key];
                         dataToSave += gData.name + ",";
                         dataToSave += gData.rarity + ",";
@@ -228,22 +222,11 @@ export class Harem {
             return dataToSave;
         }
 
-        function stripSpan(tmpStr:string)
-        {
-            var newStr = "";
-            while(tmpStr.indexOf(">") > -1)
-            {
-                tmpStr = tmpStr.substring(tmpStr.indexOf(">") + 1);
-                newStr += tmpStr.slice(0, tmpStr.indexOf("<"));
-                //        tmpStr = tmpStr.substring(tmpStr.indexOf(">")+1);
-            }
-            return newStr;
-        }
     }
 
     static getFilteredGirlList(): string[]  {
         // Store girls for harem tools
-        let filteredGirlsList:string[] = [];
+        const filteredGirlsList:string[] = [];
         const girlListDisplayed = getHHVars("shared.GirlSalaryManager.girlsMap");
         const girlsListLoaded = getHHVars("girlsDataList");
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
@@ -258,7 +241,7 @@ export class Harem {
                 if (girl.shards >= 100) filteredGirlsList.push("" + girl.id_girl);
             });
         }
-        else if (girlsListSec.length > 0) {
+        else if (girlsListSec && girlsListSec.length > 0) {
             girlsListSec.forEach((girl) => {
                 if (girl.gData.shards >= 100) filteredGirlsList.push(""+girl.gId);
             });
@@ -272,10 +255,10 @@ export class Harem {
         const girlsDataList = getHHVars("girlsDataList", false);
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
 
-        if (girlCount == 0 && girlsDataList) {
+        if (girlCount === 0 && girlsDataList) {
             girlCount = Object.values(girlsDataList).length;
         }
-        if (girlCount == 0 && girlsListSec.length > 0) {
+        if (girlCount === 0 && girlsListSec && girlsListSec.length > 0) {
             girlCount = girlsListSec.length;
         }
 
@@ -306,7 +289,7 @@ export class Harem {
                         const skills: any[] = Object.values(girl.skill_tiers_info);
                         const totalScrolls = Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
                         //if (debugEnabled) logHHAuto(`Girl ${girl.name}, ${girl.rarity} has used ${totalScrolls} scrolls`);
-                        const girlRarity = girl.rarity == 'starting' ? 'common' : girl.rarity; // Starting girl use common scrolls
+                        const girlRarity = girl.rarity === 'starting' ? 'common' : girl.rarity; // Starting girl use common scrolls
                         skilledGirlsScrolls[girlRarity][girl.id_girl+""] = totalScrolls;
                     }
                     if (debugEnabled) logHHAuto("Found skilled girls: ", skilledGirlsScrolls);
@@ -402,7 +385,7 @@ export class Harem {
 
                     if (debugEnabled) logHHAuto('Finished getting scrolls, go to first girl');
 
-                    let nextGirlId = team.girlIds[0] || -1;
+                    const nextGirlId = team.girlIds[0] || -1;
                     if (nextGirlId >= 0) {
                         if (debugEnabled) logHHAuto('Go to first team girl (' + nextGirlId + ') remaining ' + (team.girlIds.length - 1) + ' girls');
                         gotoPage('/girl/' + nextGirlId, { resource: (HaremGirl.EQUIPMENT_TYPE) }, randomInterval(1500, 2500));
@@ -413,20 +396,21 @@ export class Harem {
                 }
             }
 
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const errName = err instanceof Error ? err.name : 'Error';
             logHHAuto(`ERROR: run harem auto: ${errName}, ${message}`);
             console.error(message);
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
             Harem.clearHaremToolVariables();
-        } finally {
-            return false;
         }
+        return false;
     }
 
     static scrollToLastGirl() {
         try {
             $('.girls_list')[0].scrollTop = $('.girls_list')[0].scrollHeight;
-        } catch (err) { }
+        } catch { }
     }
     
     static resetGirlSkills(girlId: number): Promise<boolean> {
@@ -456,7 +440,7 @@ export class Harem {
         const menuIDXp = "haremGiveXP";
         const menuIDGifts = "haremGiveGifts";
 
-        let menuHidden = `<div style="visibility:hidden" id="${menuIDXp}"></div>`;
+        const menuHidden = `<div style="visibility:hidden" id="${menuIDXp}"></div>`;
         if (document.getElementById(menuIDXp) === null)
         {
             // Avoid looping on add menu item
@@ -479,14 +463,10 @@ export class Harem {
     }
 
     static fillCurrentGirlItem(haremItem, payLast=false){
-        let filteredGirlsList = Harem.getFilteredGirlList();
-        const displayedGirl = $('#harem_right .opened').attr('girl'); // unsafeWindow.harem.preselectedGirlId
+        const filteredGirlsList = Harem.getFilteredGirlList();
 
         if (filteredGirlsList && filteredGirlsList.length > 0) {
-            let girlToGoTo = filteredGirlsList[0];
-            // if(displayedGirl && filteredGirlsList.indexOf(""+displayedGirl) >=0) {
-            //     girlToGoTo = displayedGirl;
-            // }
+            const girlToGoTo = filteredGirlsList[0];
             logHHAuto("Go to " + girlToGoTo);
             gotoPage('/girl/'+girlToGoTo,{resource:haremItem});
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
@@ -508,7 +488,7 @@ export class Harem {
         if($('#'+goToGirlPageButtonId).length > 0) return;
 
         const displayedGirl = $('#harem_right .opened').attr('girl') || ''; // unsafeWindow.harem.preselectedGirlId
-        const girlOwned = displayedGirl != '' && $('#harem_right .opened .avatar-box:visible').length > 0;
+        const girlOwned = displayedGirl !== '' && $('#harem_right .opened .avatar-box:visible').length > 0;
 
         //GM_addStyle('#harem_right>div[girl] .middle_part div.avatar-box img.avatar { height: 365px; margin-bottom: 30px;}');
         //GM_addStyle('#harem_right>div[girl] .middle_part div.avatar-box canvas.animated-girl-display { height: 59rem; top: -18rem;}');
@@ -533,7 +513,7 @@ export class Harem {
         if ($('.hhava').length > 0) return;
         try{
             const displayedGirl = $('#harem_right .opened').attr('girl') || ''; // unsafeWindow.harem.preselectedGirlId
-            const girlOwned = displayedGirl != '' && $('#harem_right .opened .avatar-box:visible').length > 0;
+            const girlOwned = displayedGirl !== '' && $('#harem_right .opened .avatar-box:visible').length > 0;
             const girl = Harem.getGirlData(Number(displayedGirl));
             console.log('Girl : ' + girl?.name);
 
@@ -547,7 +527,8 @@ export class Harem {
                     $('#harem_right .opened .middle_part').append(avatar);
                 }
             }
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR in display DP rewards: ${message}`);
         }
     }
@@ -606,12 +587,6 @@ export class Harem {
             +         '<div style="padding:10px">' + menuIDSkillsButton + '</div>'
             +       '</div>'
             +    '</div>'
-            // +    '<div class="optionsBoxWithTitle">' // TODO fixme
-            // +       '<div class="optionsBoxTitle"><img class="iconImg" src="'+imgPath+'/design_v2/affstar_upgrade.png"><span class="optionsBoxTitle">'+getTextForUI("upradable","elementText")+'</span></div>'
-            // +       '<div class="optionsBox">'
-            // +         '<div style="padding:10px">'+menuNextUpgradButton+'</div>'
-            // +       '</div>'
-            // +    '</div>'
             +  '</div>';
             fillHHPopUp("GirlListMenu",getTextForUI("girlListMenu","elementText"), girlListMenu);
             $('#'+menuIDXp+'Button').on("click", function() { Harem.fillCurrentGirlItem('experience');});
@@ -659,10 +634,10 @@ export class Harem {
         const rarityFactors = [1, 2, 6, 14, 20, 50];
         const gradeFactors = [1, 2.5, 2.5, 2, 2, 2];
         const cost11 = 36000;
-        let calculatedCosts = {};
+        const calculatedCosts = {};
         for (let i = 0;i <rarity.length; i++)
         {
-            let currentRarityCosts = {};
+            const currentRarityCosts = {};
             for (let j = 0;j < 6;j++)
             {
                 let currentCost;
