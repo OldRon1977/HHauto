@@ -24,8 +24,11 @@ describe("HaremGirl", function () {
 
     describe("canAwakeGirl", function () {
         it("default", function () {
+            // No girl set -> getCurrentGirl() is undefined -> caught, falsy.
             expect(HaremGirl.canAwakeGirl()).toBeFalsy();
-            mockGirl();
+            // Real girl needing gems but with no player_gems_amount data loaded:
+            // the hardened gems read yields 0, so 0 >= awakening_costs is false.
+            mockGirl(1, 1, 123, 'fire');
             expect(HaremGirl.canAwakeGirl()).toBeFalsy();
         });
 

@@ -19,6 +19,8 @@ const tampermonkeyGlobals = {
   GM_addStyle: 'readonly',
   GM_info: 'readonly',
   GM_setClipboard: 'readonly',
+  GM_registerMenuCommand: 'readonly',
+  JQuery: 'readonly',
 };
 
 export default [
