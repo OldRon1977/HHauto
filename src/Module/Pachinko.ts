@@ -35,6 +35,10 @@ export class Pachinko {
     static stopFirstGirlChecked: boolean;
     static debugEnabled: boolean;
     static retry: number = 0;
+    // Authoritative remaining orb count for the selected type, taken from the
+    // server play-response. Preferred over the DOM counter, which can lag during
+    // fast runs and cause over-consumption past the requested amount (issue 1745).
+    static serverOrbsLeft: number | undefined = undefined;
 
     static getGreatPachinko(): Promise<boolean> {
         return Pachinko.getFreePachinko('great','nextPachinkoTime','great-timer');
@@ -293,6 +297,12 @@ export class Pachinko {
             Pachinko.bindPachinkoAjaxReturn();
         }
 
+        // Reset per-run state so the run is self-contained: no stale server count
+        // from a previous run, and a fresh retry budget.
+        Pachinko.serverOrbsLeft = undefined;
+        Pachinko.retry = 0;
+        logHHAuto(`Pachinko run starting: ${selectedOption.text}, target ${Pachinko.orbsToGo}, available ${Pachinko.orbLeftOnAutoStart}.`);
+
         Pachinko.autoPachinkoRunning = true;
         setTimeout(Pachinko.playXPachinko_func, randomInterval(500, 1500));
     }
@@ -338,9 +348,13 @@ export class Pachinko {
             }
         }
 
-        const currentOrbsLeft = Pachinko.getNumberOfOrbsLeft(buttonSelector);
+        const domOrbsLeft = Pachinko.getNumberOfOrbsLeft(buttonSelector);
+        // Prefer the server-reported remaining count over the DOM. The DOM value
+        // (span[total_orbs]) can lag behind the server during fast runs, which made
+        // the run continue past orbsToGo and over-consume orbs (issue 1745).
+        const currentOrbsLeft = Pachinko.resolveStopOrbsLeft(Pachinko.serverOrbsLeft, domOrbsLeft);
         const spendedOrbs = Number(Pachinko.orbLeftOnAutoStart - currentOrbsLeft);
-        //if (debugEnabled) logHHAuto('orbsLeft: ' + Pachinko.orbLeftOnAutoStart + ", currentOrbsLeft: " + currentOrbsLeft + ', spendedOrbs: ' + spendedOrbs + '/orbsToGo: ' + orbsToGo);
+        if (Pachinko.debugEnabled) logHHAuto(`Pachinko progress: spent ${spendedOrbs}/${Pachinko.orbsToGo} (orbsLeft server=${Pachinko.serverOrbsLeft ?? 'n/a'} dom=${domOrbsLeft}).`);
         if (Pachinko.stopFirstGirlChecked && $('#rewards_popup #reward_holder .shards_wrapper:visible').length > 0) {
             logHHAuto("Girl in reward, stopping...");
             maskHHPopUp();
@@ -355,10 +369,12 @@ export class Pachinko {
                 continuePachinkoSelectedButton.trigger('click');
             }
             else {
-                if(RewardHelper.closeRewardPopupIfAny(false)) {
-                    await TimeHelper.sleep(randomInterval(500, 1000));
-                    RewardHelper.closeGirlRewardPopupIfAny(true);
-                }
+                // Close any reward popup before the next pull. When a girl is won the
+                // game shows a popup whose purple Claim button (#ok_button_pachinko)
+                // can appear a moment after the popup opens. The previous single-shot
+                // check raced that animation: if the button was not yet :visible the
+                // popup stayed open and the run hung (issue 1745). Poll briefly instead.
+                await Pachinko.closePachinkoRewardPopup();
                 pachinkoSelectedButton.click();
 
                 Pachinko.failureTimeoutId = setTimeout(() => {
@@ -372,7 +388,7 @@ export class Pachinko {
         }
         else {
             RewardHelper.closeRewardPopupIfAny(false);
-            logHHAuto("All spent, going back to Selector.");
+            logHHAuto(`Pachinko run finished: spent ${spendedOrbs}/${Pachinko.orbsToGo} orbs, ${currentOrbsLeft} left.`);
             maskHHPopUp();
             Pachinko.buildPachinkoSelectPopUp(spendedOrbs);
             return;
@@ -396,10 +412,16 @@ export class Pachinko {
                     return;
                 }
 
-                if (response.rewards?.heroChangesUpdate?.orbs) {
-                    //const orbs = response.rewards?.heroChangesUpdate?.orbs;
-                    // o_g10 / o_g1 / o_eq2
-                    //const orbLeftFromResponse = orbs.o_g10;
+                const orbs = response.rewards?.heroChangesUpdate?.orbs;
+                if (orbs) {
+                    // The play-response carries the authoritative remaining count for
+                    // the selected orb type (e.g. orbs.o_g10). Capture it so the stop
+                    // logic no longer depends on the lag-prone DOM counter (issue 1745).
+                    const selectedOrbName = Pachinko.getSelectedOrbName();
+                    const remaining = orbs[selectedOrbName];
+                    if (typeof remaining === 'number') {
+                        Pachinko.serverOrbsLeft = remaining;
+                    }
                     if (Pachinko.failureTimeoutId) clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
                     if (Pachinko.autoPachinkoRunning) {
                         setTimeout(Pachinko.playXPachinko_func, randomInterval(200, 500));
@@ -410,6 +432,60 @@ export class Pachinko {
                 else Pachinko.stopXPachinkoFailure();
             }
         });
+    }
+
+    // Resolves the orb_name of the currently selected pachinko option (e.g. "o_g10").
+    // Used to read the matching remaining count from the server play-response.
+    static getSelectedOrbName(): string {
+        try {
+            if (!Pachinko.pachinkoSelector) return 'unknown';
+            const opt = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
+            return opt?.value ?? 'unknown';
+        } catch (e) {
+            return 'unknown';
+        }
+    }
+
+    // Closes any reward popup shown between pulls (a normal reward, or the
+    // popup shown after winning a girl). The won-girl popup exposes a blue
+    // "redirect-to-harem" button; the actual dismiss action is the purple Claim
+    // button (#ok_button_pachinko) inside #rewards_popup, which can become
+    // :visible a moment after the popup opens. RewardHelper.closeRewardPopupIfAny
+    // checks once and returns false while the button is still animating in, which
+    // left the run hanging (issue 1745). This retries for a short window: each
+    // iteration delegates to the shared close helpers, and only keeps waiting
+    // while a popup is actually open but not yet closeable.
+    static async closePachinkoRewardPopup(maxWaitMs: number = 3000): Promise<void> {
+        const popupButtonsVisible = () =>
+            $('#rewards_popup button.blue_button_L:visible, #rewards_popup button.purple_button_L:visible').length > 0;
+        const deadline = Date.now() + maxWaitMs;
+        while (true) {
+            if (RewardHelper.closeRewardPopupIfAny(false)) {
+                // A reward (or the girl redirect) was handled. A girl popup can
+                // follow a normal reward, so give it a moment and claim it too.
+                await TimeHelper.sleep(randomInterval(500, 1000));
+                RewardHelper.closeGirlRewardPopupIfAny(true);
+                return;
+            }
+            // Nothing was closeable this tick. Either there is no popup (the common
+            // case, proceed immediately) or a won-girl popup is still animating in
+            // and its purple Claim button is not :visible yet (the race).
+            if (!popupButtonsVisible() || Date.now() >= deadline) {
+                return;
+            }
+            await TimeHelper.sleep(randomInterval(150, 300));
+        }
+    }
+
+    // Chooses which remaining-orb count drives the stop decision. The server value
+    // (from the play-response) is authoritative and lag-free; the DOM value is only
+    // a fallback for the first tick (before any pull) or when the server key is
+    // missing. See issue 1745 for the over-consumption this prevents.
+    static resolveStopOrbsLeft(serverOrbsLeft: number | undefined, domOrbsLeft: number): number {
+        if (typeof serverOrbsLeft === 'number' && serverOrbsLeft >= 0) {
+            return serverOrbsLeft;
+        }
+        return domOrbsLeft;
     }
 
     static getHumanPachinkoFromOrbName(orb_name: string): string
