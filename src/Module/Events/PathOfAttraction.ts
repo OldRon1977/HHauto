@@ -138,7 +138,8 @@ export class PathOfAttraction {
                 const rewardCountByType = PathOfAttraction.getNotClaimedRewards();
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
-        } catch({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR in display POA rewards: ${message}`);
         }
     }

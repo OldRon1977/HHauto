@@ -117,9 +117,22 @@ export interface HandlerConfig {
  * migration. v7.37.0 will replace it with a scheduler-internal multi-step
  * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
  */
+/**
+ * True when the bot is currently on a quest or side-quest page. Used to let
+ * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
+ * away from a quest mid-completion -- handleQuest needs several reload cycles
+ * to act, and lastActionPerformed is reset on the idle tick in between
+ * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
+ * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
+ */
+function isOnQuestPage(ctx: AutoLoopContext): boolean {
+  return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
+    || ctx.currentPage === 'side-quests';
+}
+
 export function fromDescriptor(
   descriptor: ModuleHandlerDescriptor,
-  opts: { minIntervalMs: number; atomic?: boolean; handlerName?: string },
+  opts: { minIntervalMs: number; atomic?: boolean; handlerName?: string; extraPrecondition?: (ctx: AutoLoopContext) => boolean },
 ): HandlerConfig {
   const atomic = opts.atomic ?? false;
   // The HandlerConfig.name is the technical identifier used as map key in
@@ -136,16 +149,23 @@ export function fromDescriptor(
     minIntervalMs: opts.minIntervalMs,
     atomic,
     interruptible: atomic ? 'never' : 'always',
-    precondition: (ctx) => shouldRunStandardHandler({
-      ctxBusy: ctx.busy,
-      autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
-      competitionActive: ctx.canCollectCompetitionActive,
-      lastActionPerformed: ctx.lastActionPerformed,
-      requiresAutoLoop: descriptor.requiresAutoLoop,
-      requiresCompetition: descriptor.requiresCompetition,
-      handlerAction: descriptor.action,
-      isReady: descriptor.isReady(),
-    }),
+    precondition: (ctx) => {
+      // Optional handler-specific gate evaluated BEFORE the standard guard.
+      // Used e.g. to make navigating handlers yield while the bot is mid-way
+      // through another module's multi-reload action (issue: handleMissions
+      // navigating away from the quest page kept restarting handleQuest).
+      if (opts.extraPrecondition && !opts.extraPrecondition(ctx)) return false;
+      return shouldRunStandardHandler({
+        ctxBusy: ctx.busy,
+        autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
+        competitionActive: ctx.canCollectCompetitionActive,
+        lastActionPerformed: ctx.lastActionPerformed,
+        requiresAutoLoop: descriptor.requiresAutoLoop,
+        requiresCompetition: descriptor.requiresCompetition,
+        handlerAction: descriptor.action,
+        isReady: descriptor.isReady(),
+      });
+    },
     steps: [{
       name: descriptor.action,
       fn: async (ctx): Promise<StepResult> => {
@@ -169,12 +189,34 @@ export function fromDescriptor(
 //  Wraps: EventModule.parseEventPage()
 // ---------------------------------------------------------------------------
 
+/**
+ * Event ids the home-page scan (parsePageForEventId, stored on ctx.eventIDs)
+ * found but that are NOT yet in the registry. These are freshly started
+ * events on their first visit: getStaleEventIDs() is registry-only and would
+ * miss them, so without this the event page is never visited and event-parse
+ * side effects (e.g. eventMythicGoing for the mythic fight) never run until
+ * the user opens the page manually. Once parsed, the entry is registered and
+ * the normal stale path takes over.
+ */
+function getEventIDsToVisit(ctx: AutoLoopContext): string[] {
+  const ids = ctx.eventIDs || [];
+  if (ids.length === 0) return [];
+  try {
+    const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+    const eventList = storedList ? JSON.parse(storedList) : {};
+    return ids.filter(id => !Object.prototype.hasOwnProperty.call(eventList, id));
+  } catch {
+    // Unreadable registry: treat every discovered id as needing a visit.
+    return ids;
+  }
+}
+
 const handleEventParsing: HandlerConfig = {
   name: 'handleEventParsing',
   minIntervalMs: 2_000,
   atomic: false,
   interruptible: 'always',
-  precondition: () => {
+  precondition: (ctx) => {
     // Events feature must be enabled
     if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true) return false;
 
@@ -185,29 +227,37 @@ const handleEventParsing: HandlerConfig = {
     // loop between event.html and leagues.html.
     if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true') return false;
 
-    // Trigger only if at least one stale event exists. Otherwise the handler
-    // would navigate to the event page on every tick even though the event
-    // data is still fresh, which collided with handleLeague (and any other
-    // navigation-triggering handler) and produced a ping-pong loop between
-    // the leagues and the event pages (issue #1598, #1673).
-    return getStaleEventIDs().length > 0;
+    // Trigger if at least one stale registry event exists, OR if the
+    // home-page scan (EventModule.parsePageForEventId -> ctx.eventIDs)
+    // found an enabled event that is not yet in the registry. The latter
+    // is the FIRST visit of a freshly started event: it has no registry
+    // entry yet, so getStaleEventIDs() (registry-only) returns nothing and
+    // the event page would never be visited -- which is exactly why a
+    // live mythic event did not start fighting until the user opened the
+    // event page manually (it sets eventMythicGoing, the timer the mythic
+    // fight in handleTrollBattle gates on). ctx.eventIDs only contains
+    // ids for which EventModule.checkEvent() is true (enabled + stale or
+    // brand-new), so once parsed the entry lands in the registry and the
+    // normal stale mechanism takes over -- no per-tick ping-pong.
+    if (getStaleEventIDs().length > 0) return true;
+    return getEventIDsToVisit(ctx).length > 0;
   },
   steps: [
     {
       name: 'parseEvents',
-      fn: async (): Promise<StepResult> => {
+      fn: async (ctx): Promise<StepResult> => {
         try {
-          // Parse the first stale event. precondition + fn must agree on the
-          // selection: parsing any non-stale event would leave the original
-          // stale event untouched, so the precondition would keep firing on
-          // the next tick (issue #1673 -- a stale Path of Attraction entry
-          // kept the loop alive while a fresh Plus Event was being reparsed
-          // every tick).
+          // precondition + fn must agree on the selection: parsing any
+          // non-stale event would leave the original stale event untouched,
+          // so the precondition would keep firing on the next tick (issue
+          // #1673). Prefer a stale registry event; fall back to a freshly
+          // discovered (not-yet-registered) event id from the home-page scan.
           const staleIDs = getStaleEventIDs();
-          if (staleIDs.length === 0) {
+          const target = staleIDs.length > 0 ? staleIDs[0] : getEventIDsToVisit(ctx)[0];
+          if (!target) {
             return { ok: true }; // nothing to parse
           }
-          await EventModule.parseEventPage(staleIDs[0]);
+          await EventModule.parseEventPage(target);
           return { ok: true };
         } catch (err) {
           return { ok: false, reason: String(err), retryable: true };
@@ -509,7 +559,23 @@ const handleMissions = fromDescriptor({
     && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
     && checkTimer('nextMissionTime'),
   execute: () => Missions.run(),
-}, { minIntervalMs: 5_000, handlerName: "handleMissions" });
+}, {
+  minIntervalMs: 5_000,
+  handlerName: "handleMissions",
+  // Yield while the bot is on a quest page and auto-quest is enabled.
+  // handleMissions sits early in the pipeline and would otherwise navigate
+  // missions<-quest every other tick, restarting handleQuest before it can
+  // act (the quest needs multiple reloads; lastActionPerformed='quest' is
+  // reset on the idle tick in between). Only blocks when there is a quest to
+  // do -- if auto-quest is off, missions runs normally even on a quest page.
+  extraPrecondition: (ctx) => {
+    if (!isOnQuestPage(ctx)) return true;
+    const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
+    const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
+      && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
+    return !(autoQuest || autoSideQuest);
+  },
+});
 
 const handleChampion = fromDescriptor({
   name: "Time to check on champions!",
@@ -1048,6 +1114,18 @@ const handleQuest: HandlerConfig = {
               ctx.busy = true;
               QuestHelper.run();
             }
+          }
+          // Idle/home guard: when there is nothing left to do on the quest
+          // page (energy below threshold, or the main/side attempt timers
+          // are still running) the handler above does nothing and the bot
+          // is stranded on /quest.html -- handleQuest keeps ticking empty
+          // every ~2s while other modules (e.g. salary) never run because
+          // the bot never navigates away. If we did not act and we are on
+          // the quest page, route back home so the normal loop resumes.
+          const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+          if (!ctx.busy && onQuestPage) {
+            logHHAuto('Nothing to do on quest page, returning home.');
+            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
           }
         } else {
           setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');

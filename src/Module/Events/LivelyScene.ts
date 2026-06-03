@@ -131,7 +131,8 @@ export class LivelyScene {
                 //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 return false;
             }
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
             setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
         }

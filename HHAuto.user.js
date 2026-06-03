@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.62
+// @version      7.35.63
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -4323,6 +4323,7 @@ class LoveRaidManager {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLoveRaid")) {
             try {
                 const raids = LoveRaidManager.parseRaids();
+                LoveRaidManager.backfillGirlGrades(raids);
                 LoveRaidManager.saveLoveRaids(raids);
                 const firstEndingRaid = LoveRaidManager.getFirstEndingRaid(raids);
                 const firstRaidToStart = LoveRaidManager.getFirstRaidToStart();
@@ -4335,8 +4336,15 @@ class LoveRaidManager {
                 else {
                     setTimer('nextLoveRaidTime', randomInterval(3600, 4000));
                 }
+                // Parsing the raid page only refreshes timers, it does not
+                // navigate or consume an action. Return false so the pipeline
+                // does not treat this tick as "busy" (fromDescriptor maps a
+                // non-boolean return to busy=true, which would block every
+                // later handler this tick).
+                return false;
             }
-            catch ({ errName, message }) {
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
                 LogUtils_logHHAuto(`ERROR during Love raid run: ${message}, retry in 1h`);
                 setTimer('nextLoveRaidTime', randomInterval(3600, 4000));
                 return false;
@@ -4352,10 +4360,21 @@ class LoveRaidManager {
         return raids.sort((a, b) => (a.seconds_until_event_end - b.seconds_until_event_end))[0] || null;
     }
     static getAllRaids() {
+        // Pure read. Normalization (girlGrade backfill) happens once on the
+        // write side in parse() via backfillGirlGrades, so the persisted
+        // shape is already correct and this hot-path reader (called by
+        // getTrollRaids/getChampionRaids/getSeasonRaids, multiple times per
+        // tick) no longer mutates the objects it returns.
+        return getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
+    }
+    /**
+     * Backfill girlGrade for raids that lack it. Runs once per parse on the
+     * write path (not per read). Old event_name format from before v7.32.2:
+     * "GirlName <Graded>" e.g. "Luna 5" or "Luna 3★". Also defaults mythic
+     * raids with a missing nb_grades to grade 6.
+     */
+    static backfillGirlGrades(raids) {
         var _a;
-        let raids = getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
-        // Backfill girlGrade for raids stored before v7.32.2
-        // Old event_name format: "GirlName <Graded>" e.g. "Luna 5" or "Luna 3★"
         for (const raid of raids) {
             if (raid.girlGrade === undefined || raid.girlGrade === 0) {
                 const trailingMatch = (_a = raid.event_name) === null || _a === void 0 ? void 0 : _a.match(/(\d+)\s*★?\s*$/);
@@ -4368,7 +4387,6 @@ class LoveRaidManager {
                 }
             }
         }
-        return raids;
     }
     static getTrollRaids() {
         return LoveRaidManager.getAllRaids().filter(raid => raid.trollId !== undefined);
@@ -4463,13 +4481,15 @@ class LoveRaidManager {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const raids = [];
+        // eslint-disable-next-line eqeqeq -- intentional loose != to catch both null and undefined from the game global
         const kkRaids = love_raids != undefined ? love_raids : [];
         for (let index = 0; index < kkRaids.length; index++) {
             const kkRaid = kkRaids[index];
             try {
-                if ((kkRaid.status == 'ongoing' && !raidNotStarted) || (raidNotStarted && kkRaid.status == 'upcoming')) {
+                if ((kkRaid.status === 'ongoing' && !raidNotStarted) || (raidNotStarted && kkRaid.status === 'upcoming')) {
                     if (debugEnabled)
                         LogUtils_logHHAuto(`parsing raid ${kkRaid.status} ${kkRaid.event_name} module ${kkRaid.raid_module_type}`);
+                    // eslint-disable-next-line eqeqeq -- game field may be a truthy non-boolean; loose == true is intentional
                     if (kkRaid.all_is_owned == true) {
                         if (debugEnabled)
                             LogUtils_logHHAuto(`nothing to win, ignoring raid`);
@@ -4494,11 +4514,11 @@ class LoveRaidManager {
                     raid.start_datetime = kkRaid.start_datetime;
                     raid.end_datetime = kkRaid.end_datetime;
                     raid.shards_left = Number(kkRaid.tranche_data.shards_left);
-                    if (kkRaid.status == 'ongoing' && (((_j = (_h = (_g = kkRaid.girl_data) === null || _g === void 0 ? void 0 : _g.source) === null || _h === void 0 ? void 0 : _h.anchor_source) === null || _j === void 0 ? void 0 : _j.disabled) || ((_m = (_l = (_k = kkRaid.girl_data) === null || _k === void 0 ? void 0 : _k.source) === null || _l === void 0 ? void 0 : _l.anchor_win_from) === null || _m === void 0 ? void 0 : _m.disabled))) {
+                    if (kkRaid.status === 'ongoing' && (((_j = (_h = (_g = kkRaid.girl_data) === null || _g === void 0 ? void 0 : _g.source) === null || _h === void 0 ? void 0 : _h.anchor_source) === null || _j === void 0 ? void 0 : _j.disabled) || ((_m = (_l = (_k = kkRaid.girl_data) === null || _k === void 0 ? void 0 : _k.source) === null || _l === void 0 ? void 0 : _l.anchor_win_from) === null || _m === void 0 ? void 0 : _m.disabled))) {
                         LogUtils_logHHAuto(`Raid source display disabled, still parsing raid (${(_p = (_o = kkRaid.girl_data) === null || _o === void 0 ? void 0 : _o.source) === null || _p === void 0 ? void 0 : _p.sentence})`);
                     }
                     if ($('.raid-card')[index].classList.contains('multiple-girl')) {
-                        let girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);
+                        const girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);
                         raid.skin_to_win = girlSkinShards < 33;
                         raid.girl_skin_shards = girlSkinShards; // owned
                     }
@@ -4511,7 +4531,7 @@ class LoveRaidManager {
                             break;
                         case 'season':
                             // Find ongoing season raid, clear nextSeasonTime timer
-                            if (kkRaid.status == 'ongoing' && raid.shards_left > 0 && !checkTimer('nextSeasonTime'))
+                            if (kkRaid.status === 'ongoing' && raid.shards_left > 0 && !checkTimer('nextSeasonTime'))
                                 clearTimer('nextSeasonTime');
                             break;
                         default:
@@ -4539,7 +4559,7 @@ class LoveRaidManager {
         return raids.length > 0 ? raids.sort((a, b) => (a.seconds_until_event_start - b.seconds_until_event_start))[0] : undefined;
     }
     static getRaidGirls() {
-        let raidsGirls = getStoredJSON(HHStoredVarPrefixKey + TK.raidGirls, []);
+        const raidsGirls = getStoredJSON(HHStoredVarPrefixKey + TK.raidGirls, []);
         return raidsGirls;
     }
     static isEnabled() {
@@ -5410,8 +5430,11 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 class Season {
     static getRemainingTime() {
         const seasonTimer = unsafeWindow.season_sec_untill_event_end;
+        // eslint-disable-next-line eqeqeq -- intentional loose != to catch both null and undefined from the game global
         if (seasonTimer != undefined && (getSecondsLeft("SeasonRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.SeasonEndDate) === undefined)) {
             setTimer("SeasonRemainingTime", seasonTimer);
+            // SeasonEndDate is a SECONDS epoch. EventModule.displayGenericRemainingTime
+            // relies on this unit (see its UNIT CONTRACT JSDoc) -- do not switch to ms.
             setStoredValue(HHStoredVarPrefixKey + TK.SeasonEndDate, Math.ceil(new Date().getTime() / 1000) + seasonTimer);
         }
     }
@@ -5491,10 +5514,19 @@ class Season {
             const hero_data = unsafeWindow.hero_data;
             const opponentDatas = unsafeWindow.opponents;
             let doDisplay = false;
-            let seasonOpponents = [];
+            const seasonOpponents = [];
+            // The simulation loop iterates a fixed 0..2 over opponentDatas. If the
+            // game served fewer than 3 opponents (season end, partial render, API
+            // drift), opponentDatas[index].player throws and the whole mode fails
+            // with an opaque "Could not display season score" message every tick.
+            // Guard up front with a clear log instead.
+            if (!Array.isArray(opponentDatas) || opponentDatas.length < 3) {
+                LogUtils_logHHAuto(`Season : expected 3 opponents but got ${Array.isArray(opponentDatas) ? opponentDatas.length : 'none'}, skipping simulation.`);
+                return -1;
+            }
             try {
                 // TODO update
-                if ($("div.matchRatingNew img#powerLevelScouter").length != 3) {
+                if ($("div.matchRatingNew img#powerLevelScouter").length !== 3) {
                     doDisplay = true;
                 }
                 const powerCalcImages = ConfigHelper.getHHScriptVars("powerCalcImages");
@@ -5536,7 +5568,7 @@ class Season {
                         $('.matchRatingNew #powerLevelScouterNonChosen', opponentBlock).remove();
                         $('div.matchRatingNew', opponentBlock).append(`<img id="powerLevelScouterChosen" src=${ConfigHelper.getHHScriptVars("powerCalcImages").chosen}>`);
                     }
-                    catch (err) {
+                    catch (_d) {
                         LogUtils_logHHAuto('Error when dispaly chosen opponent');
                     }
                 }
@@ -5584,58 +5616,58 @@ class Season {
             }
             //logHHAuto({OppoName:nameOppo[index],OppoFlag:currentFlag,OppoScore:currentScore,OppoMojo:currentMojo});
             //not chosen or better flag
-            if (chosenRating == -1 || chosenFlag < currentFlag) {
+            if (chosenRating === -1 || chosenFlag < currentFlag) {
                 //logHHAuto('first');
                 isBetter = true;
                 currentGains = currentAff + currentExp;
             }
             //same orange flag but better score
-            else if (chosenFlag == currentFlag && currentFlag == 0 && chosenRating < currentScore) {
+            else if (chosenFlag === currentFlag && currentFlag === 0 && chosenRating < currentScore) {
                 //logHHAuto('second');
                 isBetter = true;
             }
-            else if (chosenFlag == currentFlag && currentFlag == -1) {
+            else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
                 if (chosenMojo < currentMojo) {
                     //logHHAuto('second');
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
-                else if (chosenMojo == currentMojo && currentScore > chosenRating) {
+                else if (chosenMojo === currentMojo && currentScore > chosenRating) {
                     //logHHAuto('second');
                     isBetter = true;
                 }
             }
-            else if (chosenFlag == currentFlag && currentFlag == 1 && !seasonEnded) {
+            else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
                 if (chosenMojo < currentMojo) {
                     //logHHAuto('third');
                     isBetter = true;
                 }
                 //same green flag same mojo but better gains
-                else if (chosenMojo == currentMojo && currentGains < currentAff + currentExp) {
+                else if (chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
                 //same green flag same mojo same gains but better score
-                else if (chosenMojo == currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
+                else if (chosenMojo === currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
                     //logHHAuto('third');
                     isBetter = true;
                 }
             }
-            else if (chosenFlag == currentFlag && currentFlag == 1) {
+            else if (chosenFlag === currentFlag && currentFlag === 1) {
                 // End season
                 if (currentScore > chosenRating) {
                     //logHHAuto('third');
                     isBetter = true;
                 }
-                else if (currentScore == chosenRating && chosenMojo < currentMojo) {
+                else if (currentScore === chosenRating && chosenMojo < currentMojo) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
-                else if (currentScore == chosenRating && chosenMojo == currentMojo && currentGains < currentAff + currentExp) {
+                else if (currentScore === chosenRating && chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
@@ -5723,7 +5755,7 @@ class Season {
                         setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, "true");
                     }
                     const toGoTo = $(".opponent_perform_button_container :first-child", opponentBlock).first().attr('href') || '';
-                    if (toGoTo == '') {
+                    if (toGoTo === '') {
                         LogUtils_logHHAuto('Season : Error getting opponent location');
                         setTimer('nextSeasonTime', randomInterval(30 * 60, 35 * 60));
                         return false;
@@ -5747,7 +5779,7 @@ class Season {
                 }
                 else {
                     let next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts');
-                    if (next_refresh == 0) {
+                    if (next_refresh === 0) {
                         next_refresh = 15 * 60;
                     }
                     setTimer('nextSeasonTime', randomInterval(next_refresh + 10, next_refresh + 180));
@@ -5766,8 +5798,10 @@ class Season {
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
         }
-        catch ({ errName, message }) {
-            LogUtils_logHHAuto(`ERROR in display Season rewards: ${message}`);
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const errName = err instanceof Error ? err.name : 'Error';
+            LogUtils_logHHAuto(`ERROR in display Season rewards: ${errName}, ${message}`);
         }
     }
     static getNotClaimedRewards() {
@@ -5808,7 +5842,7 @@ class Season {
                 if ($("div#gsp_btn_holder:visible").length) {
                     limitClassPass = ".free_reward"; // without season pass
                 }
-                let buttonsToCollect = [];
+                const buttonsToCollect = [];
                 const listSeasonTiersToClaim = $("#seasons_tab_container .rewards_pair .reward_wrapper.reward_is_claimable" + limitClassPass);
                 LogUtils_logHHAuto('Found ' + listSeasonTiersToClaim.length + ' rewards available for collection before filtering');
                 for (let currentReward = 0; currentReward < listSeasonTiersToClaim.length; currentReward++) {
@@ -14963,7 +14997,8 @@ class LivelyScene {
                     return false;
                 }
             }
-            catch ({ errName, message }) {
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
                 LogUtils_logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
                 setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
             }
@@ -15153,7 +15188,8 @@ class PathOfAttraction {
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             LogUtils_logHHAuto(`ERROR in display POA rewards: ${message}`);
         }
     }
@@ -15658,7 +15694,7 @@ class SeasonalEvent {
                         LogUtils_logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
                     LogUtils_logHHAuto("setting autoloop to false");
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    let buttonsToCollect = [];
+                    const buttonsToCollect = [];
                     const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
                     const freeSlotQuery = isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
                     const paidSlotQuery = isMegaSeasonalEvent ? megaSeasonalPaidSlotQuery : seasonalPaidSlotQuery;
@@ -15722,7 +15758,9 @@ class SeasonalEvent {
                     }
                 }
             }
-            catch ({ errName, message }) {
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                const errName = err instanceof Error ? err.name : 'Error';
                 LogUtils_logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
                 setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
             }
@@ -15760,10 +15798,17 @@ class SeasonalEvent {
     static maskReward() {
         var arrayz;
         let modified = false;
-        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-        const seasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        const megaSeasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        arrayz = $((isMegaSeasonalEvent ? megaSeasonalTierQuery : seasonalTierQuery) + ':not([style*="display:none"]):not([style*="display: none"])');
+        // Both the mega and non-mega masking selectors were identical
+        // (.mega-progress-bar-tiers .mega-tier-container), so the
+        // isMegaSeasonalEvent ternary was a no-op and the flag was only
+        // computed to feed it. Collapsed to a single selector (no
+        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
+        // selector here (.mega-progress-bar-section ...). Whether the
+        // mega masking selector should likewise differ is unverified --
+        // not changed on suspicion (would alter masking for mega events
+        // without evidence the current behaviour is wrong).
+        const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
+        arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
         var obj;
         if (arrayz.length > 0) {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
@@ -15775,7 +15820,7 @@ class SeasonalEvent {
             }
         }
         if (modified) {
-            let divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
+            const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
             if (divToModify.length > 0) {
                 //(divToModify as any).getNiceScroll().resize();
                 const width_px = 152.1;
@@ -15790,7 +15835,7 @@ class SeasonalEvent {
         }
     }
     static displayCollectAllButton() {
-        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length === 0) {
             const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
             const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
             divTooltip.append(button);
@@ -15810,7 +15855,12 @@ class SeasonalEvent {
         }
     }
     static removeCollectAllButtonIfNeeded() {
-        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+        // Remove the collect-all button when there is nothing left to claim
+        // AND the button is still in the DOM. The previous condition required
+        // length == 0 before calling .remove(), so it could never remove an
+        // existing button -- the button lingered after a bot collect-all run.
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
+            $('#SeasonalCollectAll').parent('.tooltipHH').remove();
             $('#SeasonalCollectAll').remove();
         }
     }
@@ -15818,7 +15868,7 @@ class SeasonalEvent {
         if ($('.HHGirlMilestone').length > 0)
             return;
         const $playerPoints = $('.player-shards .mega-event-currency');
-        if ($playerPoints.length == 0) {
+        if ($playerPoints.length === 0) {
             LogUtils_logHHAuto("ERROR: Can't find player points");
         }
         const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
@@ -15915,7 +15965,6 @@ class SeasonalEvent {
             }
             else {
                 if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
-                    const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
                     const cardTabs = $('#mega-event-tabs #cards_tab');
                     if (cardTabs.length > 0) {
                         LogUtils_logHHAuto('Collect free cards from Seasonal Event');
@@ -19999,6 +20048,18 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
  * migration. v7.37.0 will replace it with a scheduler-internal multi-step
  * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
  */
+/**
+ * True when the bot is currently on a quest or side-quest page. Used to let
+ * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
+ * away from a quest mid-completion -- handleQuest needs several reload cycles
+ * to act, and lastActionPerformed is reset on the idle tick in between
+ * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
+ * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
+ */
+function isOnQuestPage(ctx) {
+    return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
+        || ctx.currentPage === 'side-quests';
+}
 function fromDescriptor(descriptor, opts) {
     var _a, _b;
     const atomic = (_a = opts.atomic) !== null && _a !== void 0 ? _a : false;
@@ -20016,16 +20077,24 @@ function fromDescriptor(descriptor, opts) {
         minIntervalMs: opts.minIntervalMs,
         atomic,
         interruptible: atomic ? 'never' : 'always',
-        precondition: (ctx) => shouldRunStandardHandler({
-            ctxBusy: ctx.busy,
-            autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
-            competitionActive: ctx.canCollectCompetitionActive,
-            lastActionPerformed: ctx.lastActionPerformed,
-            requiresAutoLoop: descriptor.requiresAutoLoop,
-            requiresCompetition: descriptor.requiresCompetition,
-            handlerAction: descriptor.action,
-            isReady: descriptor.isReady(),
-        }),
+        precondition: (ctx) => {
+            // Optional handler-specific gate evaluated BEFORE the standard guard.
+            // Used e.g. to make navigating handlers yield while the bot is mid-way
+            // through another module's multi-reload action (issue: handleMissions
+            // navigating away from the quest page kept restarting handleQuest).
+            if (opts.extraPrecondition && !opts.extraPrecondition(ctx))
+                return false;
+            return shouldRunStandardHandler({
+                ctxBusy: ctx.busy,
+                autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
+                competitionActive: ctx.canCollectCompetitionActive,
+                lastActionPerformed: ctx.lastActionPerformed,
+                requiresAutoLoop: descriptor.requiresAutoLoop,
+                requiresCompetition: descriptor.requiresCompetition,
+                handlerAction: descriptor.action,
+                isReady: descriptor.isReady(),
+            });
+        },
         steps: [{
                 name: descriptor.action,
                 fn: (ctx) => Pipeline_config_awaiter(this, void 0, void 0, function* () {
@@ -20048,12 +20117,35 @@ function fromDescriptor(descriptor, opts) {
 //  Non-atomic, always interruptible.
 //  Wraps: EventModule.parseEventPage()
 // ---------------------------------------------------------------------------
+/**
+ * Event ids the home-page scan (parsePageForEventId, stored on ctx.eventIDs)
+ * found but that are NOT yet in the registry. These are freshly started
+ * events on their first visit: getStaleEventIDs() is registry-only and would
+ * miss them, so without this the event page is never visited and event-parse
+ * side effects (e.g. eventMythicGoing for the mythic fight) never run until
+ * the user opens the page manually. Once parsed, the entry is registered and
+ * the normal stale path takes over.
+ */
+function getEventIDsToVisit(ctx) {
+    const ids = ctx.eventIDs || [];
+    if (ids.length === 0)
+        return [];
+    try {
+        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        const eventList = storedList ? JSON.parse(storedList) : {};
+        return ids.filter(id => !Object.prototype.hasOwnProperty.call(eventList, id));
+    }
+    catch (_a) {
+        // Unreadable registry: treat every discovered id as needing a visit.
+        return ids;
+    }
+}
 const handleEventParsing = {
     name: 'handleEventParsing',
     minIntervalMs: 2000,
     atomic: false,
     interruptible: 'always',
-    precondition: () => {
+    precondition: (ctx) => {
         // Events feature must be enabled
         if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true)
             return false;
@@ -20064,29 +20156,38 @@ const handleEventParsing = {
         // loop between event.html and leagues.html.
         if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true')
             return false;
-        // Trigger only if at least one stale event exists. Otherwise the handler
-        // would navigate to the event page on every tick even though the event
-        // data is still fresh, which collided with handleLeague (and any other
-        // navigation-triggering handler) and produced a ping-pong loop between
-        // the leagues and the event pages (issue #1598, #1673).
-        return getStaleEventIDs().length > 0;
+        // Trigger if at least one stale registry event exists, OR if the
+        // home-page scan (EventModule.parsePageForEventId -> ctx.eventIDs)
+        // found an enabled event that is not yet in the registry. The latter
+        // is the FIRST visit of a freshly started event: it has no registry
+        // entry yet, so getStaleEventIDs() (registry-only) returns nothing and
+        // the event page would never be visited -- which is exactly why a
+        // live mythic event did not start fighting until the user opened the
+        // event page manually (it sets eventMythicGoing, the timer the mythic
+        // fight in handleTrollBattle gates on). ctx.eventIDs only contains
+        // ids for which EventModule.checkEvent() is true (enabled + stale or
+        // brand-new), so once parsed the entry lands in the registry and the
+        // normal stale mechanism takes over -- no per-tick ping-pong.
+        if (getStaleEventIDs().length > 0)
+            return true;
+        return getEventIDsToVisit(ctx).length > 0;
     },
     steps: [
         {
             name: 'parseEvents',
-            fn: () => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
                 try {
-                    // Parse the first stale event. precondition + fn must agree on the
-                    // selection: parsing any non-stale event would leave the original
-                    // stale event untouched, so the precondition would keep firing on
-                    // the next tick (issue #1673 -- a stale Path of Attraction entry
-                    // kept the loop alive while a fresh Plus Event was being reparsed
-                    // every tick).
+                    // precondition + fn must agree on the selection: parsing any
+                    // non-stale event would leave the original stale event untouched,
+                    // so the precondition would keep firing on the next tick (issue
+                    // #1673). Prefer a stale registry event; fall back to a freshly
+                    // discovered (not-yet-registered) event id from the home-page scan.
                     const staleIDs = getStaleEventIDs();
-                    if (staleIDs.length === 0) {
+                    const target = staleIDs.length > 0 ? staleIDs[0] : getEventIDsToVisit(ctx)[0];
+                    if (!target) {
                         return { ok: true }; // nothing to parse
                     }
-                    yield EventModule.parseEventPage(staleIDs[0]);
+                    yield EventModule.parseEventPage(target);
                     return { ok: true };
                 }
                 catch (err) {
@@ -20397,7 +20498,24 @@ const handleMissions = fromDescriptor({
         && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
         && checkTimer('nextMissionTime'),
     execute: () => Missions.run(),
-}, { minIntervalMs: 5000, handlerName: "handleMissions" });
+}, {
+    minIntervalMs: 5000,
+    handlerName: "handleMissions",
+    // Yield while the bot is on a quest page and auto-quest is enabled.
+    // handleMissions sits early in the pipeline and would otherwise navigate
+    // missions<-quest every other tick, restarting handleQuest before it can
+    // act (the quest needs multiple reloads; lastActionPerformed='quest' is
+    // reset on the idle tick in between). Only blocks when there is a quest to
+    // do -- if auto-quest is off, missions runs normally even on a quest page.
+    extraPrecondition: (ctx) => {
+        if (!isOnQuestPage(ctx))
+            return true;
+        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
+        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
+        return !(autoQuest || autoSideQuest);
+    },
+});
 const handleChampion = fromDescriptor({
     name: "Time to check on champions!",
     action: "champion",
@@ -20949,6 +21067,18 @@ const handleQuest = {
                                 ctx.busy = true;
                                 QuestHelper.run();
                             }
+                        }
+                        // Idle/home guard: when there is nothing left to do on the quest
+                        // page (energy below threshold, or the main/side attempt timers
+                        // are still running) the handler above does nothing and the bot
+                        // is stranded on /quest.html -- handleQuest keeps ticking empty
+                        // every ~2s while other modules (e.g. salary) never run because
+                        // the bot never navigates away. If we did not act and we are on
+                        // the quest page, route back home so the normal loop resumes.
+                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+                        if (!ctx.busy && onQuestPage) {
+                            LogUtils_logHHAuto('Nothing to do on quest page, returning home.');
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
                         }
                     }
                     else {
@@ -22506,7 +22636,8 @@ class DoublePenetration {
             }
             return true;
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             LogUtils_logHHAuto(`ERROR during collect DP rewards: ${message}`);
         }
         return false;
@@ -22543,7 +22674,8 @@ class DoublePenetration {
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             LogUtils_logHHAuto(`ERROR in display DP rewards: ${message}`);
         }
     }
@@ -22935,15 +23067,23 @@ class EventModule {
         //clearTimer('eventMythicNextWave');
         //clearTimer('eventRefreshExpiration');
         //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        let eventGirl = EventModule.getEventGirl();
-        let eventMythicGirl = EventModule.getEventMythicGirl();
+        const eventGirl = EventModule.getEventGirl();
+        const eventMythicGirl = EventModule.getEventMythicGirl();
         let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
         let hasMythic = false;
         let hasEvent = false;
-        for (let prop of Object.keys(eventList)) {
-            if (eventList[prop]["seconds_before_end"] < new Date()
+        for (const prop of Object.keys(eventList)) {
+            // seconds_before_end is stored as a millisecond epoch (see the
+            // sub-event modules: new Date().getTime() + X*1000), despite the
+            // "seconds" name. Coerce explicitly and compare against Date.now()
+            // instead of relying on number<Date valueOf() coercion, which a
+            // refactor or an undefined field can silently break. A non-finite
+            // value is treated as "not yet expired" here (left in place),
+            // matching pruneExpiredEvents -- parseEventPage cleans those up.
+            const secondsBeforeEnd = Number(eventList[prop]["seconds_before_end"]);
+            if ((Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd < Date.now())
                 ||
                     (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) !== "true")
                 ||
@@ -23019,12 +23159,12 @@ class EventModule {
         }
     }
     static getDisplayedIdEventPage(logging = true) {
-        let eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
+        const eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
         if (!eventHref && logging) {
             LogUtils_logHHAuto('Error href not found for current event');
         }
         if (eventHref) {
-            let parsedURL = new URL(eventHref, window.location.origin);
+            const parsedURL = new URL(eventHref, window.location.origin);
             return queryStringGetParam(parsedURL.search, 'tab') || '';
         }
         return '';
@@ -23039,7 +23179,7 @@ class EventModule {
                         + `<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted', "tooltip")}" />`
                         + `</div>`);
                     const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                    for (let eventID of Object.keys(eventList)) {
+                    for (const eventID of Object.keys(eventList)) {
                         if (eventList[eventID]["isCompleted"]) {
                             const eventTimer = $(`#contains_all #homepage .event-widget a[href*="${eventID}"] .timer p`);
                             eventTimer.append(img.clone());
@@ -23053,15 +23193,15 @@ class EventModule {
                 }
             }
         }
-        catch (error) { /* ignore errors */ }
+        catch ( /* ignore errors */_a) { /* ignore errors */ }
     }
     static parseEventPage() {
         return EventModule_awaiter(this, arguments, void 0, function* (inTab = "global") {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-                let queryEventTabCheck = $("#contains_all #events");
+                const queryEventTabCheck = $("#contains_all #events");
                 const eventID = EventModule.getDisplayedIdEventPage();
                 if (inTab !== "global" && inTab !== eventID) {
-                    if (eventID == '') {
+                    if (eventID === '') {
                         LogUtils_logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
                         EventModule.clearEventData(inTab);
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -23091,10 +23231,10 @@ class EventModule {
                 LogUtils_logHHAuto(`On event page : ${eventID} (${(hhEventData === null || hhEventData === void 0 ? void 0 : hhEventData.event_name) || ''})`);
                 EventModule.clearEventData(eventID);
                 //let eventsGirlz=[];
-                let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
                 let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-                let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-                let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+                const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+                const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
                 if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
                     LogUtils_logHHAuto("Error getting current event Data from HH.");
                 }
@@ -23208,7 +23348,7 @@ class EventModule {
                             return true;
                         }
                     }
-                    catch (e) { /* fall through to normal navigation */ }
+                    catch ( /* fall through to normal navigation */_a) { /* fall through to normal navigation */ }
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
                 }
                 else {
@@ -23287,9 +23427,9 @@ class EventModule {
         };
     }
     static getEventIDsByType(inType) {
-        let eventIDs = [];
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        for (let eventID of Object.keys(eventList)) {
+        const eventIDs = [];
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        for (const eventID of Object.keys(eventList)) {
             if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
                 eventIDs.push(eventID);
             }
@@ -23297,14 +23437,18 @@ class EventModule {
         return eventIDs;
     }
     static isEventActive(inEventID) {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
-            return eventList[inEventID]["seconds_before_end"] > new Date();
+            // seconds_before_end is a millisecond epoch (see clearEventData):
+            // compare explicitly against Date.now(). A non-finite value means
+            // the entry has no known end and is not considered active.
+            const secondsBeforeEnd = Number(eventList[inEventID]["seconds_before_end"]);
+            return Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd > Date.now();
         }
         return false;
     }
     static checkEvent(inEventID) {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         const hhEvent = EventModule.getEvent(inEventID);
         if (!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled) {
             return false;
@@ -23330,15 +23474,15 @@ class EventModule {
         }
     }
     static displayPrioInDailyMissionGirl(baseQuery) {
-        let allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
+        const allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
         if (!allEventGirlz)
             return;
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
+            const girlData = allEventGirlz[currIndex];
             if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
-                let query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
+                const query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
                 if ($(query).length > 0) {
-                    let currentGirl = $(query).parent()[0];
+                    const currentGirl = $(query).parent()[0];
                     $(query).prepend('<div class="HHEventPriority" title="' + getTextForUI('dailyMissionGirlTitle', 'elementText') + '">DM</div>');
                     $(query).css('position', 'relative');
                     $($(query)).parent().parent()[0].prepend(currentGirl);
@@ -23359,18 +23503,17 @@ class EventModule {
         }
         const baseQuery = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
         EventModule.displayPrioInDailyMissionGirl(baseQuery);
-        let eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        const eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+        const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
         //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
         if (eventGirlz.length > 0 || eventChamps.length > 0) {
             var girl;
-            var prio;
             var idArray;
             var currentGirl;
             for (var ec = eventChamps.length; ec > 0; ec--) {
                 idArray = Number(ec) - 1;
                 girl = Number(eventChamps[idArray].girl_id);
-                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
                 if ($(query).length > 0) {
                     currentGirl = $(query).parent()[0];
                     $(query).prepend('<div class="HHEventPriority">C' + eventChamps[idArray].champ_id + '</div>');
@@ -23381,7 +23524,7 @@ class EventModule {
             for (var e = eventGirlz.length; e > 0; e--) {
                 idArray = Number(e) - 1;
                 girl = Number(eventGirlz[idArray].girl_id);
-                let query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
                 if ($(query).length > 0) {
                     currentGirl = $(query).parent()[0];
                     $(query).prepend('<div class="HHEventPriority">' + e + '</div>');
@@ -23392,6 +23535,23 @@ class EventModule {
             }
         }
     }
+    /**
+     * Render a homepage notif-badge timer and, when no HH timer exists yet,
+     * initialise it from a stored end-date.
+     *
+     * UNIT CONTRACT: timerEndDateName MUST reference a storage key holding a
+     * SECONDS epoch (Math.ceil(Date.now()/1000) + remainingSeconds), because
+     * the init path computes the remaining time as
+     * `getStoredValue(timerEndDateName) - Date.now()/1000`. Callers that store
+     * a millisecond epoch there would arm a wildly wrong timer. Season's
+     * SeasonEndDate is written this way (see Season.getRemainingTime).
+     *
+     * @param scriptId          jQuery selector that, when present, suppresses the badge
+     * @param aRel              rel attribute of the homepage anchor to attach to
+     * @param hhtimerId         id for the injected badge span
+     * @param timerName         HH timer name read via getTimeLeft/getTimer
+     * @param timerEndDateName  storage key holding a SECONDS epoch end-date
+     */
     static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName) {
         const displayTimer = $(scriptId).length === 0;
         if (getTimer(timerName) !== -1) {
@@ -23453,7 +23613,7 @@ class EventModule {
             }
         }
         if (modified) {
-            let divToModify = $('.potions-paths-progress-bar-section');
+            const divToModify = $('.potions-paths-progress-bar-section');
             if (divToModify.length > 0) {
                 $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
             }
@@ -23479,22 +23639,20 @@ class EventModule {
         const dpEventQuery = getEventQuery("dp_event");
         const livelySceneEventQuery = getEventQuery("lively_scene_event");
         const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
-        const povEventQuery = '#contains_all #homepage .event-container a[rel="path-of-valor"]';
-        const pogEventQuery = '#contains_all #homepage .event-container a[rel="path-of-glory"]';
         const poaEventQuery = getEventQuery("path_event");
-        let eventIDs = [];
-        let ongoingEventIDs = [];
-        let bossBangEventIDs = [];
+        const eventIDs = [];
+        const ongoingEventIDs = [];
+        const bossBangEventIDs = [];
         const currentPage = getPage();
         function parseForEventId(query, eventList) {
             let parsedURL;
             let eventId;
-            let queryResults = $(query);
+            const queryResults = $(query);
             for (let index = 0; index < queryResults.length; index++) {
                 parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
                 eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
                 const eventName = $(queryResults[index]).children().first().text();
-                if (!eventName || eventName == '') {
+                if (!eventName || eventName === '') {
                     LogUtils_logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
                     continue;
                 }
@@ -23513,8 +23671,8 @@ class EventModule {
             }
             let parsedURL;
             let eventId;
-            let eventsQuery = '.events-list a.event-title:not(.active)';
-            let queryResults = $(eventsQuery);
+            const eventsQuery = '.events-list a.event-title:not(.active)';
+            const queryResults = $(eventsQuery);
             for (let index = 0; index < queryResults.length; index++) {
                 parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
                 eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
@@ -23524,7 +23682,6 @@ class EventModule {
             }
         }
         else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            let queryResults;
             parseForEventId(eventQuery, eventIDs);
             parseForEventId(mythicEventQuery, eventIDs);
             parseForEventId(poaEventQuery, eventIDs);
@@ -23537,18 +23694,18 @@ class EventModule {
                 clearTimer("eventSultryMysteryShopRefresh");
             }
             parseForEventId(dpEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length == 0) {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0) {
                 LogUtils_logHHAuto("No double penetration event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
             }
             // LivelyScene
             parseForEventId(livelySceneEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length == 0) {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0) {
                 LogUtils_logHHAuto("No Lively Scene event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
             }
-            queryResults = $(seasonalEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length == 0) {
+            const queryResults = $(seasonalEventQuery);
+            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0) {
                 LogUtils_logHHAuto("No seasonal event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
                 setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
@@ -28432,7 +28589,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.62";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.63";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

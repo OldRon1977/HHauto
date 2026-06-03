@@ -80,6 +80,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     autoEquipBoosters: 'Setting_autoEquipBoosters',
     autoQuest: 'Setting_autoQuest',
     autoSideQuest: 'Setting_autoSideQuest',
+    autoMission: 'Setting_autoMission',
   },
   TK: {
     eventsList: 'Temp_eventsList',
@@ -93,6 +94,11 @@ jest.mock('../../src/config/StorageKeys', () => ({
 
 jest.mock('../../src/Utils/LogUtils', () => ({
   logHHAuto: jest.fn(),
+}));
+
+jest.mock('../../src/Service/PageNavigationService', () => ({
+  gotoPage: jest.fn().mockReturnValue(true),
+  safeReload: jest.fn(),
 }));
 
 import { pipeline, getStaleEventIDs, pruneExpiredEvents } from '../../src/Service/Pipeline.config';
@@ -283,6 +289,38 @@ describe('Pipeline.config', () => {
         return undefined;
       });
       expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('handleEventParsing triggers on a freshly discovered event not yet in the registry (mythic first-visit)', () => {
+      // Symptom 3: a live mythic event the bot never parsed has no registry
+      // entry, so getStaleEventIDs (registry-only) is empty. The home-page
+      // scan still reports it on ctx.eventIDs, and the handler must visit it
+      // so MythicEvent.parse runs and sets eventMythicGoing (the timer the
+      // mythic fight gates on). Without the fix the page was only parsed
+      // after a manual visit.
+      const handler = pipeline.find(h => h.name === 'handleEventParsing')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'false';
+        if (key.endsWith('Temp_eventsList')) return JSON.stringify({}); // empty registry
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx({ eventIDs: ['mythic_event_42'] }))).toBe(true);
+    });
+
+    it('handleEventParsing does NOT re-trigger via ctx.eventIDs for an already-registered fresh event', () => {
+      // Once parsed, the event is in the registry. If it is not stale
+      // (next_refresh in the future) and ctx.eventIDs still lists it, the
+      // handler must not keep firing -- getEventIDsToVisit filters out ids
+      // already present in the registry, so there is no per-tick ping-pong.
+      const handler = pipeline.find(h => h.name === 'handleEventParsing')!;
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_trollWaitForEnergy')) return 'false';
+        if (key.endsWith('Temp_eventsList')) return JSON.stringify({
+          mythic_event_42: { id: 'mythic_event_42', isCompleted: false, next_refresh: 9_999_999_999_999 },
+        });
+        return undefined;
+      });
+      expect(handler.precondition(makeCtx({ eventIDs: ['mythic_event_42'] }))).toBe(false);
     });
 
     it('handleLeague precondition is NOT blocked by trollWaitForEnergy=true', () => {
@@ -739,6 +777,62 @@ describe('Pipeline.config', () => {
 
       jest.restoreAllMocks();
     });
+
+    it('routes home when nothing to do on the quest page (questRequirement none, no energy)', async () => {
+      // Regression: after spending quest energy the marker is reset to
+      // 'none'. With energy below threshold and the attempt timers idle,
+      // the handler does nothing and the bot is stranded on /quest.html,
+      // ticking empty every ~2s while other modules never run. The idle
+      // guard must route back home.
+      const gotoPageMock = jest.requireMock('../../src/Service/PageNavigationService').gotoPage as jest.Mock;
+      const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+      const QuestHelperMock = jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+      const checkTimerMock = jest.requireMock('../../src/Helper/TimerHelper').checkTimer as jest.Mock;
+      const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+      gotoPageMock.mockClear();
+      // Echo page-id keys so currentPage can match pagesIDQuest exactly.
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      // Attempt timers idle so QuestHelper.run() is NOT triggered.
+      checkTimerMock.mockReturnValue(false);
+      QuestHelperMock.getEnergy.mockReturnValue(0);
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return 'none';
+        return undefined;
+      });
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDQuest' });
+      await handler.steps[0].fn(ctx);
+
+      expect(gotoPageMock).toHaveBeenCalledWith('pagesIDHome');
+      expect(QuestHelperMock.run).not.toHaveBeenCalled();
+
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+      checkTimerMock.mockReturnValue(false);
+      QuestHelperMock.getEnergy.mockReturnValue(0);
+    });
+
+    it('does NOT route home when not on the quest page (questRequirement none)', async () => {
+      const gotoPageMock = jest.requireMock('../../src/Service/PageNavigationService').gotoPage as jest.Mock;
+      const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+      const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+      gotoPageMock.mockClear();
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return 'none';
+        return undefined;
+      });
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDHome' });
+      await handler.steps[0].fn(ctx);
+
+      expect(gotoPageMock).not.toHaveBeenCalled();
+
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+    });
   });
 
   describe('battle-result page guard (issue #1740)', () => {
@@ -802,6 +896,64 @@ describe('Pipeline.config', () => {
     ])('handleTrollBattle yields battle-result page %s', (page) => {
       const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: page });
       expect(trollHandler.precondition(ctx)).toBe(false);
+    });
+  });
+
+  describe('handleMissions quest-page yield (issue: quest restart loop)', () => {
+    const missionsHandler = pipeline.find(h => h.name === 'handleMissions')!;
+    const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+    const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+    const checkTimerMock = jest.requireMock('../../src/Helper/TimerHelper').checkTimer as jest.Mock;
+
+    beforeEach(() => {
+      getStoredValueMock.mockReset();
+      // Echo page-id keys so currentPage can match pagesIDQuest exactly,
+      // and return true for the boolean feature flags (isEnabledMission etc.).
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      // nextMissionTime expired so handleMissions.isReady() is satisfied;
+      // the test then isolates the extraPrecondition quest-page gate.
+      checkTimerMock.mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      getStoredValueMock.mockReset();
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+      checkTimerMock.mockReturnValue(false);
+    });
+
+    it('yields (precondition false) on the quest page while autoQuest is on', () => {
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_autoLoop')) return 'true';
+        if (key.endsWith('Setting_autoMission')) return 'true';
+        if (key.endsWith('Setting_autoQuest')) return 'true';
+        return undefined;
+      });
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDQuest' });
+      expect(missionsHandler.precondition(ctx)).toBe(false);
+    });
+
+    it('still runs on a non-quest page even with autoQuest on', () => {
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_autoLoop')) return 'true';
+        if (key.endsWith('Setting_autoMission')) return 'true';
+        if (key.endsWith('Setting_autoQuest')) return 'true';
+        return undefined;
+      });
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDHome' });
+      expect(missionsHandler.precondition(ctx)).toBe(true);
+    });
+
+    it('still runs on the quest page when both auto-quest flags are off', () => {
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('Temp_autoLoop')) return 'true';
+        if (key.endsWith('Setting_autoMission')) return 'true';
+        if (key.endsWith('Setting_autoQuest')) return 'false';
+        if (key.endsWith('Setting_autoSideQuest')) return 'false';
+        return undefined;
+      });
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDQuest' });
+      expect(missionsHandler.precondition(ctx)).toBe(true);
     });
   });
 });

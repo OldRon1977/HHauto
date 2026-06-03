@@ -143,7 +143,8 @@ export class DoublePenetration {
                 }
             }
             return true;
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR during collect DP rewards: ${message}`);
         }
         return false;
@@ -183,7 +184,8 @@ export class DoublePenetration {
                 const rewardCountByType = DoublePenetration.getNotClaimedRewards();
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
-        } catch({ errName, message }) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR in display DP rewards: ${message}`);
         }
     }
