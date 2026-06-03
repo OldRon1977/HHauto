@@ -15,7 +15,6 @@ import { randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer, getTimeLeft, clearTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { EventGirl } from "../../model/EventGirl";
@@ -27,6 +26,7 @@ export class LoveRaidManager {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLoveRaid")) {
             try{
                 const raids: LoveRaid[] = LoveRaidManager.parseRaids();
+                LoveRaidManager.backfillGirlGrades(raids);
                 LoveRaidManager.saveLoveRaids(raids);
 
                 const firstEndingRaid = LoveRaidManager.getFirstEndingRaid(raids);
@@ -40,7 +40,14 @@ export class LoveRaidManager {
                 } else {
                     setTimer('nextLoveRaidTime', randomInterval(3600, 4000));
                 }
-            } catch ({ errName, message }) {
+                // Parsing the raid page only refreshes timers, it does not
+                // navigate or consume an action. Return false so the pipeline
+                // does not treat this tick as "busy" (fromDescriptor maps a
+                // non-boolean return to busy=true, which would block every
+                // later handler this tick).
+                return false;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
                 logHHAuto(`ERROR during Love raid run: ${message}, retry in 1h`);
                 setTimer('nextLoveRaidTime', randomInterval(3600, 4000));
                 return false;
@@ -56,9 +63,20 @@ export class LoveRaidManager {
         return raids.sort((a, b) => (a.seconds_until_event_end - b.seconds_until_event_end))[0] || null;
     }
     static getAllRaids(): LoveRaid[] {
-        let raids: LoveRaid[] = getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
-        // Backfill girlGrade for raids stored before v7.32.2
-        // Old event_name format: "GirlName <Graded>" e.g. "Luna 5" or "Luna 3★"
+        // Pure read. Normalization (girlGrade backfill) happens once on the
+        // write side in parse() via backfillGirlGrades, so the persisted
+        // shape is already correct and this hot-path reader (called by
+        // getTrollRaids/getChampionRaids/getSeasonRaids, multiple times per
+        // tick) no longer mutates the objects it returns.
+        return getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
+    }
+    /**
+     * Backfill girlGrade for raids that lack it. Runs once per parse on the
+     * write path (not per read). Old event_name format from before v7.32.2:
+     * "GirlName <Graded>" e.g. "Luna 5" or "Luna 3★". Also defaults mythic
+     * raids with a missing nb_grades to grade 6.
+     */
+    static backfillGirlGrades(raids: LoveRaid[]): void {
         for (const raid of raids) {
             if (raid.girlGrade === undefined || raid.girlGrade === 0) {
                 const trailingMatch = raid.event_name?.match(/(\d+)\s*★?\s*$/);
@@ -70,7 +88,6 @@ export class LoveRaidManager {
                 }
             }
         }
-        return raids;
     }
     static getTrollRaids(): LoveRaid[]{
         return LoveRaidManager.getAllRaids().filter(raid => raid.trollId !== undefined);
@@ -161,13 +178,15 @@ export class LoveRaidManager {
     static parseRaids(raidNotStarted = false): LoveRaid[] {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const raids: LoveRaid[] = [];
+        // eslint-disable-next-line eqeqeq -- intentional loose != to catch both null and undefined from the game global
         const kkRaids: KKLoveRaid[] = love_raids != undefined ? love_raids : [];
 
         for (let index = 0; index < kkRaids.length; index++) {
             const kkRaid = kkRaids[index];
             try {
-                if ((kkRaid.status == 'ongoing' && !raidNotStarted) || (raidNotStarted && kkRaid.status == 'upcoming')) {
+                if ((kkRaid.status === 'ongoing' && !raidNotStarted) || (raidNotStarted && kkRaid.status === 'upcoming')) {
                     if (debugEnabled) logHHAuto(`parsing raid ${kkRaid.status} ${kkRaid.event_name} module ${kkRaid.raid_module_type}`);
+                    // eslint-disable-next-line eqeqeq -- game field may be a truthy non-boolean; loose == true is intentional
                     if (kkRaid.all_is_owned == true) {
                         if (debugEnabled) logHHAuto(`nothing to win, ignoring raid`);
                         continue;
@@ -192,12 +211,12 @@ export class LoveRaidManager {
                     raid.end_datetime = kkRaid.end_datetime;
                     raid.shards_left = Number(kkRaid.tranche_data.shards_left);
 
-                    if (kkRaid.status == 'ongoing' && (kkRaid.girl_data?.source?.anchor_source?.disabled || kkRaid.girl_data?.source?.anchor_win_from?.disabled)) {
+                    if (kkRaid.status === 'ongoing' && (kkRaid.girl_data?.source?.anchor_source?.disabled || kkRaid.girl_data?.source?.anchor_win_from?.disabled)) {
                         logHHAuto(`Raid source display disabled, still parsing raid (${kkRaid.girl_data?.source?.sentence})`);
                     }
 
                     if ($('.raid-card')[index].classList.contains('multiple-girl')) {
-                        let girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);
+                        const girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);
                         raid.skin_to_win = girlSkinShards < 33;
                         raid.girl_skin_shards = girlSkinShards; // owned
                     }
@@ -211,7 +230,7 @@ export class LoveRaidManager {
                             break;
                         case 'season':
                             // Find ongoing season raid, clear nextSeasonTime timer
-                            if (kkRaid.status == 'ongoing' && raid.shards_left > 0 && !checkTimer('nextSeasonTime')) clearTimer('nextSeasonTime');
+                            if (kkRaid.status === 'ongoing' && raid.shards_left > 0 && !checkTimer('nextSeasonTime')) clearTimer('nextSeasonTime');
                             break;
                         default:
                             if (debugEnabled) logHHAuto('Unknown raid type, ingoring raid');
@@ -238,7 +257,7 @@ export class LoveRaidManager {
         return raids.length > 0 ? raids.sort((a, b) => (a.seconds_until_event_start - b.seconds_until_event_start))[0] : undefined;
     }
     static getRaidGirls(): EventGirl[]{
-        let raidsGirls: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.raidGirls, []);
+        const raidsGirls: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.raidGirls, []);
         return raidsGirls;
     }
     static isEnabled(){

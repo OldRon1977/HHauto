@@ -19,12 +19,12 @@ import { NumberHelper } from "../../Helper/NumberHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
-import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
+import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
 import { addNutakuSession, gotoPage, safeNavigateHref, safeReload } from "../../Service/PageNavigationService";
 import { ParanoiaService } from "../../Service/ParanoiaService";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { getHHAjax, isJSON } from "../../Utils/Utils";
+import { getHHAjax } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { SeasonOpponent } from "../../model/SeasonOpponent";
@@ -37,9 +37,12 @@ export class Season {
     static getRemainingTime(){
         const seasonTimer = unsafeWindow.season_sec_untill_event_end;
 
+        // eslint-disable-next-line eqeqeq -- intentional loose != to catch both null and undefined from the game global
         if ( seasonTimer != undefined && (getSecondsLeft("SeasonRemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.SeasonEndDate) === undefined) )
         {
             setTimer("SeasonRemainingTime",seasonTimer);
+            // SeasonEndDate is a SECONDS epoch. EventModule.displayGenericRemainingTime
+            // relies on this unit (see its UNIT CONTRACT JSDoc) -- do not switch to ms.
             setStoredValue(HHStoredVarPrefixKey+TK.SeasonEndDate,Math.ceil(new Date().getTime()/1000)+seasonTimer);
         }
     }
@@ -125,11 +128,20 @@ export class Season {
         const hero_data = unsafeWindow.hero_data;
         const opponentDatas = unsafeWindow.opponents;
         let doDisplay=false;
-        let seasonOpponents:SeasonOpponent[]=[];
+        const seasonOpponents:SeasonOpponent[]=[];
+        // The simulation loop iterates a fixed 0..2 over opponentDatas. If the
+        // game served fewer than 3 opponents (season end, partial render, API
+        // drift), opponentDatas[index].player throws and the whole mode fails
+        // with an opaque "Could not display season score" message every tick.
+        // Guard up front with a clear log instead.
+        if (!Array.isArray(opponentDatas) || opponentDatas.length < 3) {
+            logHHAuto(`Season : expected 3 opponents but got ${Array.isArray(opponentDatas) ? opponentDatas.length : 'none'}, skipping simulation.`);
+            return -1;
+        }
         try
         {
             // TODO update
-            if ($("div.matchRatingNew img#powerLevelScouter").length != 3)
+            if ($("div.matchRatingNew img#powerLevelScouter").length !== 3)
             {
                 doDisplay=true;
             }
@@ -192,7 +204,7 @@ export class Season {
                     const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
                     $('.matchRatingNew #powerLevelScouterNonChosen', opponentBlock).remove();
                     $('div.matchRatingNew', opponentBlock).append(`<img id="powerLevelScouterChosen" src=${ConfigHelper.getHHScriptVars("powerCalcImages").chosen}>`);
-                }catch(err){
+                }catch{
                     logHHAuto('Error when dispaly chosen opponent');
                 }
             }
@@ -243,30 +255,30 @@ export class Season {
             }
             //logHHAuto({OppoName:nameOppo[index],OppoFlag:currentFlag,OppoScore:currentScore,OppoMojo:currentMojo});
             //not chosen or better flag
-            if (chosenRating == -1 || chosenFlag < currentFlag) {
+            if (chosenRating === -1 || chosenFlag < currentFlag) {
                 //logHHAuto('first');
                 isBetter = true;
                 currentGains = currentAff + currentExp;
             }
 
             //same orange flag but better score
-            else if (chosenFlag == currentFlag && currentFlag == 0 && chosenRating < currentScore) {
+            else if (chosenFlag === currentFlag && currentFlag === 0 && chosenRating < currentScore) {
                 //logHHAuto('second');
                 isBetter = true;
             }
-            else if (chosenFlag == currentFlag && currentFlag == -1) {
+            else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
                 if (chosenMojo < currentMojo) {
                     //logHHAuto('second');
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
-                else if (chosenMojo == currentMojo && currentScore > chosenRating) {
+                else if (chosenMojo === currentMojo && currentScore > chosenRating) {
                     //logHHAuto('second');
                     isBetter = true;
                 }
             }
-            else if (chosenFlag == currentFlag && currentFlag == 1 && !seasonEnded) {
+            else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
                 if (chosenMojo < currentMojo) {
                     //logHHAuto('third');
@@ -274,32 +286,32 @@ export class Season {
                 }
 
                 //same green flag same mojo but better gains
-                else if (chosenMojo == currentMojo && currentGains < currentAff + currentExp) {
+                else if (chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
 
                 //same green flag same mojo same gains but better score
-                else if (chosenMojo == currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
+                else if (chosenMojo === currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
                     //logHHAuto('third');
                     isBetter = true;
                 }
             }
-            else if (chosenFlag == currentFlag && currentFlag == 1) {
+            else if (chosenFlag === currentFlag && currentFlag === 1) {
                 // End season
                 if (currentScore > chosenRating) {
                     //logHHAuto('third');
                     isBetter = true;
                 }
 
-                else if (currentScore == chosenRating && chosenMojo < currentMojo) {
+                else if (currentScore === chosenRating && chosenMojo < currentMojo) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
 
-                else if (currentScore == chosenRating && chosenMojo == currentMojo && currentGains < currentAff + currentExp) {
+                else if (currentScore === chosenRating && chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
                     //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
@@ -395,7 +407,7 @@ export class Season {
                     setStoredValue(HHStoredVarPrefixKey+TK.SeasonHumanLikeRun, "true");
                 }
                 const toGoTo: string = $(".opponent_perform_button_container :first-child", opponentBlock).first().attr('href') || ''
-                if(toGoTo=='') {
+                if(toGoTo==='') {
                     logHHAuto('Season : Error getting opponent location');
                     setTimer('nextSeasonTime',randomInterval(30*60, 35*60));
                     return false;
@@ -422,7 +434,7 @@ export class Season {
             else
             {
                 let next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts')
-                if (next_refresh == 0) {
+                if (next_refresh === 0) {
                     next_refresh = 15*60;
                 }
                 setTimer('nextSeasonTime', randomInterval(next_refresh+10, next_refresh + 180));
@@ -440,8 +452,10 @@ export class Season {
                 const rewardCountByType = Season.getNotClaimedRewards();
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
-        } catch({ errName, message }) {
-            logHHAuto(`ERROR in display Season rewards: ${message}`);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const errName = err instanceof Error ? err.name : 'Error';
+            logHHAuto(`ERROR in display Season rewards: ${errName}, ${message}`);
         }
     }
 
@@ -495,7 +509,7 @@ export class Season {
                     limitClassPass = ".free_reward"; // without season pass
                 }
 
-                let buttonsToCollect:{reward: string; button: HTMLElement; tier: string; paid: boolean}[] = [];
+                const buttonsToCollect:{reward: string; button: HTMLElement; tier: string; paid: boolean}[] = [];
                 const listSeasonTiersToClaim = $("#seasons_tab_container .rewards_pair .reward_wrapper.reward_is_claimable"+limitClassPass);
                 logHHAuto('Found ' + listSeasonTiersToClaim.length + ' rewards available for collection before filtering');
                 for (let currentReward = 0 ; currentReward < listSeasonTiersToClaim.length ; currentReward++)

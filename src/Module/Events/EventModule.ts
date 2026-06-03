@@ -2,8 +2,7 @@ import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { getStoredJSON, getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
-import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } from "../../Helper/TimeHelper";
-import { checkTimer, checkTimerMustExist, clearTimer, getSecondsLeft, getTimeLeft, getTimer, setTimer } from "../../Helper/TimerHelper";
+import { checkTimerMustExist, clearTimer, getTimeLeft, getTimer, setTimer } from "../../Helper/TimerHelper";
 import { queryStringGetParam } from "../../Helper/UrlHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -33,17 +32,25 @@ export class EventModule {
         //clearTimer('eventMythicNextWave');
         //clearTimer('eventRefreshExpiration');
         //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
-        let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
         let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
-        let eventGirl = EventModule.getEventGirl();
-        let eventMythicGirl = EventModule.getEventMythicGirl();
+        const eventGirl = EventModule.getEventGirl();
+        const eventMythicGirl = EventModule.getEventMythicGirl();
         let eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
         let hasMythic = false;
         let hasEvent = false;
-        for (let prop of Object.keys(eventList))
+        for (const prop of Object.keys(eventList))
         {
+            // seconds_before_end is stored as a millisecond epoch (see the
+            // sub-event modules: new Date().getTime() + X*1000), despite the
+            // "seconds" name. Coerce explicitly and compare against Date.now()
+            // instead of relying on number<Date valueOf() coercion, which a
+            // refactor or an undefined field can silently break. A non-finite
+            // value is treated as "not yet expired" here (left in place),
+            // matching pruneExpiredEvents -- parseEventPage cleans those up.
+            const secondsBeforeEnd = Number(eventList[prop]["seconds_before_end"]);
             if (
-                eventList[prop]["seconds_before_end"]<new Date()
+                (Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd < Date.now())
                 ||
                 (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) !=="true")
                 ||
@@ -147,12 +154,12 @@ export class EventModule {
     }
 
     static getDisplayedIdEventPage(logging=true):string {
-        let eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
+        const eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
         if (!eventHref && logging) {
             logHHAuto('Error href not found for current event');
         }
         if (eventHref) {
-            let parsedURL = new URL(eventHref,window.location.origin);
+            const parsedURL = new URL(eventHref,window.location.origin);
             return queryStringGetParam(parsedURL.search,'tab') || '';
         }
         return '';
@@ -169,7 +176,7 @@ export class EventModule {
                                 +`</div>`);
 
                     const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
-                    for (let eventID of Object.keys(eventList))
+                    for (const eventID of Object.keys(eventList))
                     {
                         if (eventList[eventID]["isCompleted"])
                         {
@@ -184,18 +191,18 @@ export class EventModule {
                     eventTimer.append($(`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['minus']} class="eventCompleted" style="display:none" />`));
                 }
             }
-        } catch (error) { /* ignore errors */}
+        } catch { /* ignore errors */ }
     }
 
     static async parseEventPage(inTab="global")
     {
         if(getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") )
         {
-            let queryEventTabCheck=$("#contains_all #events");
+            const queryEventTabCheck=$("#contains_all #events");
             const eventID:string = EventModule.getDisplayedIdEventPage();
             if (inTab !== "global" && inTab !== eventID)
             {
-                if(eventID == '') {
+                if(eventID === '') {
                     logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
                     EventModule.clearEventData(inTab);
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -229,10 +236,10 @@ export class EventModule {
             logHHAuto(`On event page : ${eventID} (${hhEventData?.event_name || ''})`);
             EventModule.clearEventData(eventID);
             //let eventsGirlz=[];
-            let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+            const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
             let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
-            let eventChamps: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
-            let Priority: string[] =(getStoredValue(HHStoredVarPrefixKey+SK.eventTrollOrder) || '').split(";");
+            const eventChamps: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
+            const Priority: string[] =(getStoredValue(HHStoredVarPrefixKey+SK.eventTrollOrder) || '').split(";");
             if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
                 logHHAuto("Error getting current event Data from HH.");
             }
@@ -372,7 +379,7 @@ export class EventModule {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                         return true;
                     }
-                } catch (e) { /* fall through to normal navigation */ }
+                } catch { /* fall through to normal navigation */ }
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"),{tab:inTab});
             }
             else
@@ -447,9 +454,9 @@ export class EventModule {
     }
 
     static getEventIDsByType(inType:string):string[] {
-        let eventIDs:string[] = [];
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        for (let eventID of Object.keys(eventList))
+        const eventIDs:string[] = [];
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        for (const eventID of Object.keys(eventList))
         {
             if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
                 eventIDs.push(eventID);
@@ -460,16 +467,20 @@ export class EventModule {
 
     static isEventActive(inEventID:string)
     {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
         if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
-            return eventList[inEventID]["seconds_before_end"]>new Date()
+            // seconds_before_end is a millisecond epoch (see clearEventData):
+            // compare explicitly against Date.now(). A non-finite value means
+            // the entry has no known end and is not considered active.
+            const secondsBeforeEnd = Number(eventList[inEventID]["seconds_before_end"]);
+            return Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd > Date.now();
         }
         return false;
     }
 
     static checkEvent(inEventID:string)
     {
-        let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+        const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
         const hhEvent = EventModule.getEvent(inEventID);
         if(!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled)
         {
@@ -503,17 +514,17 @@ export class EventModule {
     }
 
     static displayPrioInDailyMissionGirl(baseQuery:string){
-        let allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
+        const allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
         if(!allEventGirlz) return;
         for (let currIndex = 0;currIndex<allEventGirlz.length;currIndex++)
         {
-            let girlData:KKEventGirl = allEventGirlz[currIndex];
+            const girlData:KKEventGirl = allEventGirlz[currIndex];
             if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
 
-                let query=baseQuery+"[data-select-girl-id="+girlData.id_girl+"]";
+                const query=baseQuery+"[data-select-girl-id="+girlData.id_girl+"]";
                 if ($(query).length >0 )
                 {
-                    let currentGirl=$(query).parent()[0];
+                    const currentGirl=$(query).parent()[0];
                     $(query).prepend('<div class="HHEventPriority" title="'+getTextForUI('dailyMissionGirlTitle','elementText')+'">DM</div>');
                     $(query).css('position','relative');
                     $($(query)).parent().parent()[0].prepend(currentGirl);
@@ -537,20 +548,19 @@ export class EventModule {
         const baseQuery:string = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
         EventModule.displayPrioInDailyMissionGirl(baseQuery);
 
-        let eventGirlz:EventGirl[]=getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
-        let eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
+        const eventGirlz:EventGirl[]=getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
+        const eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
         //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
         if ( eventGirlz.length >0 || eventChamps.length >0)
         {
             var girl;
-            var prio;
             var idArray;
             var currentGirl;
             for ( var ec=eventChamps.length;ec>0;ec--)
             {
                 idArray = Number(ec)-1;
                 girl = Number(eventChamps[idArray].girl_id);
-                let query=baseQuery+"[data-select-girl-id="+girl+"]";
+                const query=baseQuery+"[data-select-girl-id="+girl+"]";
                 if ($(query).length >0 )
                 {
                     currentGirl=$(query).parent()[0];
@@ -563,7 +573,7 @@ export class EventModule {
             {
                 idArray = Number(e)-1;
                 girl = Number(eventGirlz[idArray].girl_id);
-                let query=baseQuery+"[data-select-girl-id="+girl+"]";
+                const query=baseQuery+"[data-select-girl-id="+girl+"]";
                 if ($(query).length >0 )
                 {
                     currentGirl=$(query).parent()[0];
@@ -577,6 +587,23 @@ export class EventModule {
     }
 
     
+    /**
+     * Render a homepage notif-badge timer and, when no HH timer exists yet,
+     * initialise it from a stored end-date.
+     *
+     * UNIT CONTRACT: timerEndDateName MUST reference a storage key holding a
+     * SECONDS epoch (Math.ceil(Date.now()/1000) + remainingSeconds), because
+     * the init path computes the remaining time as
+     * `getStoredValue(timerEndDateName) - Date.now()/1000`. Callers that store
+     * a millisecond epoch there would arm a wildly wrong timer. Season's
+     * SeasonEndDate is written this way (see Season.getRemainingTime).
+     *
+     * @param scriptId          jQuery selector that, when present, suppresses the badge
+     * @param aRel              rel attribute of the homepage anchor to attach to
+     * @param hhtimerId         id for the injected badge span
+     * @param timerName         HH timer name read via getTimeLeft/getTimer
+     * @param timerEndDateName  storage key holding a SECONDS epoch end-date
+     */
     static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName)
     {
         const displayTimer = $(scriptId).length === 0;
@@ -655,7 +682,7 @@ export class EventModule {
 
         if (modified)
         {
-            let divToModify = $('.potions-paths-progress-bar-section');
+            const divToModify = $('.potions-paths-progress-bar-section');
             if (divToModify.length > 0)
             {
                 $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
@@ -685,24 +712,22 @@ export class EventModule {
         const dpEventQuery = getEventQuery("dp_event");
         const livelySceneEventQuery = getEventQuery("lively_scene_event");
         const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
-        const povEventQuery = '#contains_all #homepage .event-container a[rel="path-of-valor"]';
-        const pogEventQuery = '#contains_all #homepage .event-container a[rel="path-of-glory"]';
         const poaEventQuery = getEventQuery("path_event");
-        let eventIDs:string[] =[];
-        let ongoingEventIDs:string[] =[];
-        let bossBangEventIDs:string[]=[];
+        const eventIDs:string[] =[];
+        const ongoingEventIDs:string[] =[];
+        const bossBangEventIDs:string[]=[];
         const currentPage = getPage();
 
         function parseForEventId(query:string, eventList:string[]){
             let parsedURL:URL;
             let eventId:string;
-            let queryResults=$(query);
+            const queryResults=$(query);
             for(let index = 0;index < queryResults.length;index++)
             {
                 parsedURL = new URL(queryResults[index].getAttribute("href")||'',window.location.origin);
                 eventId = queryStringGetParam(parsedURL.search,'tab') || '';
                 const eventName = $(queryResults[index]).children().first().text();
-                if (!eventName || eventName == '') {
+                if (!eventName || eventName === '') {
                     logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
                     continue;
                 }
@@ -724,8 +749,8 @@ export class EventModule {
 
             let parsedURL:URL;
             let eventId:string;
-            let eventsQuery = '.events-list a.event-title:not(.active)';
-            let queryResults=$(eventsQuery);
+            const eventsQuery = '.events-list a.event-title:not(.active)';
+            const queryResults=$(eventsQuery);
             for(let index = 0;index < queryResults.length;index++)
             {
                 parsedURL = new URL(queryResults[index].getAttribute("href")||'',window.location.origin);
@@ -738,7 +763,6 @@ export class EventModule {
         }
         else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome"))
         {
-            let queryResults:any;
             parseForEventId(eventQuery,eventIDs);
             parseForEventId(mythicEventQuery,eventIDs);
             parseForEventId(poaEventQuery,eventIDs);
@@ -753,7 +777,7 @@ export class EventModule {
             }
             parseForEventId(dpEventQuery,eventIDs);
 
-            if(getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true" && $(dpEventQuery).length == 0)
+            if(getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0)
             {
                 logHHAuto("No double penetration event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect, "false");
@@ -761,13 +785,13 @@ export class EventModule {
             // LivelyScene
             parseForEventId(livelySceneEventQuery,eventIDs);
 
-            if (getStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length == 0)
+            if (getStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0)
             {
                 logHHAuto("No Lively Scene event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect, "false");
             }
-            queryResults=$(seasonalEventQuery);
-            if((getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true") && queryResults.length == 0)
+            const queryResults=$(seasonalEventQuery);
+            if((getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0)
             {
                 logHHAuto("No seasonal event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect, "false");

@@ -20,7 +20,16 @@ const tampermonkeyGlobals = {
   GM_info: 'readonly',
   GM_setClipboard: 'readonly',
   GM_registerMenuCommand: 'readonly',
+  GM_unregisterMenuCommand: 'readonly',
   JQuery: 'readonly',
+};
+
+// Game-side globals injected by the Hentai Heroes / Comix Harem page into
+// the window scope (not declared by us). Read-only from the userscript's
+// perspective. Add new ones here when a `no-undef` error surfaces for a
+// genuine game global rather than a typo.
+const gameGlobals = {
+  love_raids: 'readonly',
 };
 
 export default [
@@ -48,6 +57,7 @@ export default [
         ...globals.es2022,
         ...globals.jquery,
         ...tampermonkeyGlobals,
+        ...gameGlobals,
       },
     },
     plugins: {

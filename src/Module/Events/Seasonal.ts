@@ -17,7 +17,6 @@ import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } f
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 
@@ -101,7 +100,7 @@ export class SeasonalEvent {
                 if (manualCollectAll) logHHAuto("Going to collect all SeasonalEvent rewards after collect all button usage.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-                let buttonsToCollect:HTMLElement[] = [];
+                const buttonsToCollect:HTMLElement[] = [];
 
                 const listSeasonalEventTiersToClaim = isMegaSeasonalEvent ? $(megaSeasonalTierQuery) : $(seasonalTierQuery);
                 const freeSlotQuery =  isMegaSeasonalEvent ? megaSeasonalFreeSlotQuery : seasonalFreeSlotQuery;
@@ -176,7 +175,9 @@ export class SeasonalEvent {
                     return false;
                 }
             }
-            } catch ({ errName, message }) {
+            } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                const errName = err instanceof Error ? err.name : 'Error';
                 logHHAuto(`ERROR: Can't collect rewards retry later: ${errName}, ${message}`);
                 setTimer('nextSeasonalEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
             }
@@ -224,11 +225,18 @@ export class SeasonalEvent {
         var arrayz;
         let modified = false;
         
-        const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
-        const seasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
-        const megaSeasonalTierQuery = ".mega-progress-bar-tiers .mega-tier-container";
+        // Both the mega and non-mega masking selectors were identical
+        // (.mega-progress-bar-tiers .mega-tier-container), so the
+        // isMegaSeasonalEvent ternary was a no-op and the flag was only
+        // computed to feed it. Collapsed to a single selector (no
+        // behaviour change). FYI: goAndCollect uses a DISTINCT mega
+        // selector here (.mega-progress-bar-section ...). Whether the
+        // mega masking selector should likewise differ is unverified --
+        // not changed on suspicion (would alter masking for mega events
+        // without evidence the current behaviour is wrong).
+        const tierQuery = ".mega-progress-bar-tiers .mega-tier-container";
 
-        arrayz = $((isMegaSeasonalEvent ? megaSeasonalTierQuery : seasonalTierQuery) + ':not([style*="display:none"]):not([style*="display: none"])');
+        arrayz = $(tierQuery + ':not([style*="display:none"]):not([style*="display: none"])');
         var obj;
         if (arrayz.length > 0)
         {
@@ -245,7 +253,7 @@ export class SeasonalEvent {
     
         if (modified)
         {
-            let divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
+            const divToModify = $('.seasonal-progress-bar-section, .mega-progress-bar-section');
             if (divToModify.length > 0)
             {
                 //(divToModify as any).getNiceScroll().resize();
@@ -263,7 +271,7 @@ export class SeasonalEvent {
         }
     }
     static displayCollectAllButton(){
-        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+        if (SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length === 0) {
             const button = $(`<button class="purple_button_L" id="SeasonalCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
             const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 260px;width: 110px;font-size: small;"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
             divTooltip.append(button);
@@ -284,14 +292,19 @@ export class SeasonalEvent {
         }
     }
     static removeCollectAllButtonIfNeeded(){
-        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length == 0) {
+        // Remove the collect-all button when there is nothing left to claim
+        // AND the button is still in the DOM. The previous condition required
+        // length == 0 before calling .remove(), so it could never remove an
+        // existing button -- the button lingered after a bot collect-all run.
+        if (!SeasonalEvent.hasUnclaimedRewards() && $('#SeasonalCollectAll').length > 0) {
+            $('#SeasonalCollectAll').parent('.tooltipHH').remove();
             $('#SeasonalCollectAll').remove();
         }
     }
     static displayGirlsMileStones() {
         if($('.HHGirlMilestone').length > 0) return;
         const $playerPoints = $('.player-shards .mega-event-currency');
-        if($playerPoints.length == 0) {
+        if($playerPoints.length === 0) {
             logHHAuto("ERROR: Can't find player points");
         }
         const playerPoints = $playerPoints.length ? Number($playerPoints.text()) : 0;
@@ -388,7 +401,6 @@ export class SeasonalEvent {
         } else {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"))
             {
-                const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
                 const cardTabs = $('#mega-event-tabs #cards_tab');
                 if(cardTabs.length > 0) {
                     logHHAuto('Collect free cards from Seasonal Event');
