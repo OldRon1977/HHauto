@@ -15,7 +15,7 @@ import { getHHVars, setHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
-import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { checkTimer, clearTimer, getSecondsLeft } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { gotoPage } from "../Service/PageNavigationService";
@@ -28,7 +28,6 @@ import {
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
 import { logHHAuto } from "../Utils/LogUtils";
-import { isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
@@ -55,12 +54,12 @@ export class Troll {
         const trollWithGirls:number[] = [];
     
         if (girlDictionary) {
-            for (var tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
+            for (let tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
                 trollWithGirls[tIdx] = 0;
-                for (var pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
-                    for (var gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
-                        var idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
-                        if (idGirl != 0 && (girlDictionary.get(""+idGirl) == undefined || girlDictionary.get(""+idGirl).shards < 100)) {
+                for (let pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
+                    for (let gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
+                        const idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
+                        if (idGirl !== 0 && (girlDictionary.get(""+idGirl) === undefined || girlDictionary.get(""+idGirl).shards < 100)) {
                             trollWithGirls[tIdx] += 1;
                         }
                     }
@@ -68,12 +67,12 @@ export class Troll {
             }
 
             if (Object.keys(sideTrollGirlsID).length > 0) {
-                for (let tIdx of Object.keys(sideTrollGirlsID)) {
+                for (const tIdx of Object.keys(sideTrollGirlsID)) {
                     trollWithGirls[Number(tIdx)-1] = 0;
-                    for (var pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
-                        for (var gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
-                            var idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
-                            if (idGirl != 0 && (girlDictionary.get("" + idGirl) == undefined || girlDictionary.get("" + idGirl).shards < 100)) {
+                    for (let pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
+                        for (let gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
+                            const idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
+                            if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
                                 trollWithGirls[Number(tIdx) -1] += 1;
                             }
                         }
@@ -117,7 +116,7 @@ export class Troll {
     }
 
     static getLastTrollIdAvailable(logging = false, id_world: number = undefined): number {
-        const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
+        const isMainAdventure = Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
         if (!id_world) {
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         } else if (id_world <= 0) {
@@ -166,14 +165,13 @@ export class Troll {
         return autoTrollSelectedIndex;
     }
 
-    static getTrollIdToFight(logging=true): number {
+    static getTrollIdToFight(logging=true, allowSideEffects=true): number {
 
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey+TK.trollWithGirls, []);
         const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
 
         let TTF: number = 0;
-        // const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
         const lastTrollIdAvailable = Troll.getLastTrollIdAvailable(logging);
         const eventGirl = EventModule.getEventGirl();
         const eventMythicGirl = EventModule.getEventMythicGirl();
@@ -208,11 +206,12 @@ export class Troll {
                 trollWithGirls = Troll.getTrollWithGirls();
                 if (trollWithGirls.length === 0) {
                     if (logging) logHHAuto("Need girls list, going to Waifu page to get them");
+                    if (!allowSideEffects) return 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
                     return -1;
                 }
-                setStoredValue(HHStoredVarPrefixKey+TK.trollWithGirls, JSON.stringify(trollWithGirls));
+                if (allowSideEffects) setStoredValue(HHStoredVarPrefixKey+TK.trollWithGirls, JSON.stringify(trollWithGirls));
             }
 
             if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
@@ -247,7 +246,7 @@ export class Troll {
                 }
             } else if(getPage()!==ConfigHelper.getHHScriptVars("pagesIDHome")) {
                 if (logging) logHHAuto("Can't get troll with girls, going to home page to get girl list.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                if (allowSideEffects) gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             } else {
                 if (logging) logHHAuto("Can't get troll with girls, going to last troll.");
                 TTF=lastTrollIdAvailable;
@@ -281,20 +280,19 @@ export class Troll {
         }
 
         if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-            && getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && logging)
+            && getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true")
         {
             TTF = lastTrollIdAvailable;
-            logHHAuto("Last troll fight for quest item: " + TTF);
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "false");
-            setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
+            if (logging) logHHAuto("Last troll fight for quest item: " + TTF);
+            if (allowSideEffects) setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
         }
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
 
         // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
         if (TTF > 0 && TTF > lastTrollIdAvailable) {
-            logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
-            setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+            if (logging) logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
+            if (allowSideEffects) setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
             TTF = 0;
         }
 
@@ -322,7 +320,7 @@ export class Troll {
     }
 
     static debugNextTrollToFight() {
-        let TTF = Troll.getTrollIdToFight(false);
+        const TTF = Troll.getTrollIdToFight(false, false);
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         return `Next troll: ${trollz[Number(TTF)] ? trollz[Number(TTF)] : sideTrollz[Number(TTF)]} (${TTF})`;
@@ -341,17 +339,16 @@ export class Troll {
             const loveRaid: LoveRaid = LoveRaidManager.isActivated()
                 ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
                 : undefined;
-            //logHHAuto("No power for battle.");
             if (
-                !Troll.canBuyFight(eventGirl).canBuy && !Troll.canBuyFight(eventMythicGirl).canBuy &&
-                !Troll.canBuyFightForRaid(loveRaid).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid).canBuy)
+                !Troll.canBuyFight(eventGirl, false).canBuy && !Troll.canBuyFight(eventMythicGirl, false).canBuy &&
+                !Troll.canBuyFightForRaid(loveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
             {
                 return false;
             }
         }
 
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-        if (runThreshold > 0 && currentPower == runThreshold) {
+        if (runThreshold > 0 && currentPower === runThreshold) {
             setStoredValue(HHStoredVarPrefixKey+TK.TrollHumanLikeRun, "true");
         }
 
@@ -379,22 +376,23 @@ export class Troll {
             }
         }
 
+        // Valid troll resolved: clear the one-shot invalid-retry guard so a future
+        // invalid target can retry once again (the flag was never reset before).
+        if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
+            setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
+        }
+
         const needSW = Booster.needSandalWoodEquipped(TTF);
-        logHHAuto(`[SW-DEBUG] Troll fight entry: TTF=${TTF}, needSandalWoodEquipped=${needSW}, currentPage=${currentPage}`);
         if (needSW)
         {
             if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                logHHAuto('[SW-DEBUG] Go to Shop page to update booster status');
+                logHHAuto('Sandalwood needed: going to Shop page to update booster status');
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                 return true;
             } else {
-                logHHAuto('[SW-DEBUG] On shop page, collecting boosters from market');
                 Booster.collectBoostersFromMarket();
-                logHHAuto('[SW-DEBUG] Attempting to equip Sandalwood...');
                 const equipped = await Booster.equipeSandalWoodIfNeeded(TTF);
-                logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded returned: ${equipped}`);
                 if(equipped) {
-                    logHHAuto('[SW-DEBUG] Sandalwood newly equipped, refreshing booster status from market');
                     Booster.collectBoostersFromMarket();
                 }
             }
@@ -429,22 +427,22 @@ export class Troll {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
             // On battle page.
             logHHAuto("On Pre battle page.");
-            let TTF:number = Number(queryStringGetParam(window.location.search,'id_opponent'));
+            const TTF:number = Number(queryStringGetParam(window.location.search,'id_opponent'));
             const trollz = ConfigHelper.getHHScriptVars("trollzList");
 
-            let battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
-            let battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
-            let battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
-            let battleButtonX10Price = Number(battleButtonX10.attr('price'));
-            let battleButtonX50Price = Number(battleButtonX50.attr('price'));
+            const battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
+            const battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
+            const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
+            const battleButtonX10Price = Number(battleButtonX10.attr('price'));
+            const battleButtonX50Price = Number(battleButtonX50.attr('price'));
             // let Hero=getHero();
-            let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
-            let previousPower = getStoredValue(HHStoredVarPrefixKey+TK.trollPoints) ?? 0;
-            let currentPower = Troll.getEnergy();
+            const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+            const previousPower = Number(getStoredValue(HHStoredVarPrefixKey+TK.trollPoints)) || 0;
+            const currentPower = Troll.getEnergy();
 
             var checkPreviousFightDone = function(){
                 // The goal of this function is to detect slow server response to avoid loop without fight
-                if(previousPower > 0 && previousPower == currentPower) {
+                if(previousPower > 0 && previousPower === currentPower) {
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                     logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
                 }
@@ -482,11 +480,11 @@ export class Troll {
                 if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99))
                 {
                     logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
-                    let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+                    const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
                     trollWithGirls[TTF - 1] = 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                     const newTroll = Troll.getTrollIdToFight();
-                    if (newTroll > 0 && TTF != newTroll) {
+                    if (newTroll > 0 && TTF !== newTroll) {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
                         return true;
                     } else {
@@ -495,7 +493,7 @@ export class Troll {
                         return;
                     }
                 }
-                let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
+                const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
                 if (
                     (canBuyFightsResult.canBuy && currentPower === 0)
                     ||
@@ -542,7 +540,7 @@ export class Troll {
                             && canBuyFightsResultLoveRaid.max === 50
                             && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
                             && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
-                            && TTF === loveRaid?.id_girl
+                            && TTF === loveRaid?.trollId
                         )
                         ||
                         (
@@ -551,7 +549,7 @@ export class Troll {
                             && canBuyFightsResultLoveRaid.max === 20
                             && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
                             && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
-                            && TTF === loveRaid?.id_girl
+                            && TTF === loveRaid?.trollId
                         )
                     )
                     {
@@ -574,7 +572,7 @@ export class Troll {
                     const remainingEventShards: number = eventTrollGirl ? Number(100 - eventTrollGirl?.shards): 0;
                     const remainingLoveRaidShards: number = loveRaid ? Number(100 - loveRaid?.girl_shards) : 0;
                     const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
-                    let bypassThreshold = (
+                    const bypassThreshold = (
                         (eventTrollGirl?.is_mythic
                         && canBuyFightsResult.canBuy
                         ) // eventGirl available and buy comb true
@@ -612,9 +610,7 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
-                        logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
                         await Booster.waitForBattleResponse();
-                        logHHAuto('[SW-DEBUG] x50: battle response received, done');
                         const x50Idle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         const x50Duration = Date.now() - x50Start;
                         releasePostMutex();
@@ -658,9 +654,7 @@ export class Troll {
                             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "none");
                         }
                         RewardHelper.ObserveAndGetGirlRewards();
-                        logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
                         await Booster.waitForBattleResponse();
-                        logHHAuto('[SW-DEBUG] x10: battle response received, done');
                         const x10Idle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                         const x10Duration = Date.now() - x10Start;
                         releasePostMutex();
@@ -770,7 +764,7 @@ export class Troll {
         if (canBuyResult.canBuy)
         {
             logHHAuto('Recharging '+canBuyResult.toBuy+' fights for '+canBuyResult.price+' kobans.');
-            let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+            const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
             setHHVars('Hero.infos.hc_confirm',true);
             // We have the power.
             //replaceCheatClick();
@@ -785,8 +779,8 @@ export class Troll {
     static canBuyFight(eventGirl:EventGirl, logging=true)
     {
         const type="fight";
-        let hero=getHero();
-        let result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
+        const hero=getHero();
+        const result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
         const MAX_BUY = 200;
         let maxx50 = 50;
         let maxx20 = 20;
@@ -801,7 +795,7 @@ export class Troll {
         {
             if (
                 (
-                    getStoredValue(HHStoredVarPrefixKey+SK.buyCombat) =="true"
+                    getStoredValue(HHStoredVarPrefixKey+SK.buyCombat) ==="true"
                     && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true"
                     && getSecondsLeft("eventGoing") !== 0
                     && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) * 3600)
@@ -871,8 +865,8 @@ export class Troll {
     static canBuyFightForRaid(raid:LoveRaid, logging=true)
     {
         const type="fight";
-        let hero=getHero();
-        let result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
+        const hero=getHero();
+        const result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
         const MAX_BUY = 200;
         const maxx20 = 20;
         const currentFight = Troll.getEnergy();
@@ -885,7 +879,7 @@ export class Troll {
         if (Number.isInteger(raid?.girl_shards) && currentFight === 0 && raid.girl_shards < 100)
         {
             if (
-                    getStoredValue(HHStoredVarPrefixKey +SK.buyLoveRaidCombat) =="true"
+                    getStoredValue(HHStoredVarPrefixKey +SK.buyLoveRaidCombat) ==="true"
                     && LoveRaidManager.isAnyActivated()
                     && raid.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
                     && raid.id_girl

@@ -9,7 +9,6 @@
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";
-import { getHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
@@ -46,19 +45,19 @@ export class Shop {
             var assB:Record<string, unknown>[]=[];
             var assG:Record<string, unknown>[]=[];
             var assP:Record<string, unknown>[]=[];
-            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assA.push(JSON.parse(this.dataset.d));});
-            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assB.push(JSON.parse(this.dataset.d));});
-            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assG.push(JSON.parse(this.dataset.d));});
-            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d)assP.push(JSON.parse(this.dataset.d));});
+            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assA.push(d);}});
+            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assB.push(d);}});
+            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assG.push(d);}});
+            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assP.push(d);}});
     
             var HaveAff=0;
             var HaveExp=0;
             var HaveBooster={};
-            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveAff+=d.quantity*d.item.value;}});
-            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveExp+=d.quantity*d.item.value;}});
+            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d)HaveAff+=d.quantity*d.item.value;}});
+            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d)HaveExp+=d.quantity*d.item.value;}});
     
             var BoosterIdMap={};
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { var d=JSON.parse(this.dataset.d); HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}});
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d){ HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}}});
     
             setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
@@ -76,23 +75,16 @@ export class Shop {
             setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify([assA,assB,assG,assP]));
             setStoredValue(HHStoredVarPrefixKey+TK.charLevel, HeroHelper.getLevel());
     
-            var nshop;
-            let shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
-            if (nshop === undefined && shopFrozenTimer.length > 0)
+            let nshop;
+            const shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
+            if (shopFrozenTimer.length > 0)
             {
                 nshop = convertTimeToInt(shopFrozenTimer);
             }
             let shopTimer=60;
             if(nshop !== undefined && nshop !== 0)
             {
-                // if (Number(nshop)+1 > 2*60*60)
-                // {
-                //     shopTimer=2*60*60;
-                // }
-                // else
-                // {
-                    shopTimer=Number(nshop)+1;
-                // }
+                shopTimer=Number(nshop)+1;
             }
             setTimer('nextShopTime',shopTimer + randomInterval(60,180));
             if (isJSON(getStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled))
@@ -142,26 +134,26 @@ export class Shop {
                             +'.tItemsTdItems[itemsLockStatus="someLocked"] {color: #FFA500}');
             }
     
-            let itemsCaracsNb=16;
-            let itemsCaracs:(number | string)[]=[];
+            const itemsCaracsNb=16;
+            const itemsCaracs:(number | string)[]=[];
             for (let i=1;i<itemsCaracsNb+1;i++)
             {
                 itemsCaracs.push(i);
             }
             itemsCaracs.push('mythic'); // Needed for mythic equipement, can't use generic method for them
     
-            let itemsRarity=["common", "rare", "epic", "legendary", "mythic"];
-            let itemsLockedStatus=["not_locked","locked"];
+            const itemsRarity=["common", "rare", "epic", "legendary", "mythic"];
+            const itemsLockedStatus=["not_locked","locked"];
     
-            let itemsTypeNb=6;
-            let itemsType:number[]=[];
+            const itemsTypeNb=6;
+            const itemsType:number[]=[];
             for (let i=1;i<itemsTypeNb+1;i++)
             {
                 itemsType.push(i);
             }
     
-            let itemsList={};
-            for (let c of itemsCaracs)
+            const itemsList={};
+            for (const c of itemsCaracs)
             {
                 let filteredCarac;
                 if(c === 'mythic') {
@@ -171,17 +163,17 @@ export class Shop {
                 }
     
                 itemsList[c] = {};
-                for (let t of itemsType)
+                for (const t of itemsType)
                 {
-                    let filteredType = filteredCarac.filter('[data-d*=\'"subtype":'+t+'\']');
+                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":'+t+'\']');
                     itemsList[c][t] = {};
-                    for (let r of itemsRarity)
+                    for (const r of itemsRarity)
                     {
-                        let filteredRarity = filteredType.filter('[data-d*=\'"rarity":"'+r+'"\']');
+                        const filteredRarity = filteredType.filter('[data-d*=\'"rarity":"'+r+'"\']');
                         itemsList[c][t][r] = {};
-                        for (let l of itemsLockedStatus)
+                        for (const l of itemsLockedStatus)
                         {
-                            let filteredStatus = filteredRarity.filter(l==="locked"?'[menuSellLocked]':':not([menuSellLocked])');
+                            const filteredStatus = filteredRarity.filter(l==="locked"?'[menuSellLocked]':':not([menuSellLocked])');
                             itemsList[c][t][r][l]=filteredStatus.length;
                         }
                     }
@@ -219,7 +211,7 @@ export class Shop {
             +'  <tr>'
             +'   <th class="tItemsTh2">'+getTextForUI("equipementCaracs","elementText")+'/'+getTextForUI("equipementType","elementText")+'</th>';
     
-            for (let r of itemsRarity)
+            for (const r of itemsRarity)
             {
                 itemsListMenu+='   <th class="tItemsTh2" menuSellFilter="c:*;t:'+itemsType[0]+';r:'+r+'">'+getTextForUI("equipementHead","elementText")+'</th>'
                     +'   <th class="tItemsTh2" menuSellFilter="c:*;t:'+itemsType[1]+';r:'+r+'">'+getTextForUI("equipementBody","elementText")+'</th>'
@@ -233,23 +225,23 @@ export class Shop {
                 +' </thead>'
                 +' <tbody class="tItemsTBody">';
     
-            for (let c of itemsCaracs)
+            for (const c of itemsCaracs)
             {
                 if(c === 'mythic') {
                     itemsListMenu +='  <tr>'
                         +'   <td class="type" menuSellFilter="c:'+c+';t:*;r:*">'+getTextForUI("RarityMythic","elementText")+'</td>';
                 } else {
-                    let ext= (c === 16)?"svg":"png";
+                    const ext= (c === 16)?"svg":"png";
                     itemsListMenu +='  <tr>'
                         +'   <td class="type" menuSellFilter="c:'+c+';t:*;r:*"><img style="height:20px;width:20px" src="'+ConfigHelper.getHHScriptVars("baseImgPath")+'/pictures/misc/items_icons/'+c+'.'+ext+'"></td>';
                 }
     
-                for (let r of itemsRarity)
+                for (const r of itemsRarity)
                 {
-                    for (let t of itemsType)
+                    for (const t of itemsType)
                     {
-                        let allItems = itemsList[c][t][r];
-                        let total = allItems[itemsLockedStatus[0]]+allItems[itemsLockedStatus[1]];
+                        const allItems = itemsList[c][t][r];
+                        const total = allItems[itemsLockedStatus[0]]+allItems[itemsLockedStatus[1]];
                         let displayNb = allItems[itemsLockedStatus[0]]+'/'+total;
                         let itemsLockStatus;
                         if (total === 0)
@@ -333,12 +325,12 @@ export class Shop {
             $('table.tItems [menuSellFilter] ').each(function(){
                 this.addEventListener("click", function(){
                     const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
-                    let toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
-                    let c=menuSellFilter[0].split(":")[1];
-                    let t=menuSellFilter[1].split(":")[1];
-                    let r=menuSellFilter[2].split(":")[1];
+                    const toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
+                    const c=menuSellFilter[0].split(":")[1];
+                    const t=menuSellFilter[1].split(":")[1];
+                    const r=menuSellFilter[2].split(":")[1];
                     AllLockUnlock(setSlotFilter(c,t,r,!toLock),toLock);
-                    let newLockStatus = toLock?"allLocked":"noneLocked";
+                    const newLockStatus = toLock?"allLocked":"noneLocked";
                     $(setCellsFilter(c,t,r)).each(function(){
                         this.setAttribute("itemsLockStatus",newLockStatus);
                     });
@@ -364,34 +356,16 @@ export class Shop {
             }
         }
     
-        function lockUnlock(inFilter)
-        {
-            if ($(inFilter).length >0)
-            {
-                let currentLock = $(inFilter)[0].getAttribute("menuSellLocked");
-                if (currentLock === null )
-                {
-                    $(inFilter)[0].setAttribute("menuSellLocked", "");
-                    $(inFilter).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
-                }
-                else
-                {
-                    $(inFilter)[0].removeAttribute("menuSellLocked");
-                    $(inFilter+" img.menuSellLocked")[0].remove();
-                }
-            }
-        }
-    
         let menuSellStop = false;
         var allLoaded = false;
         var menuSellMaxItems:string | number = "all";
         let fetchStarted = false;
         //ugly hack
-        let loadingAnimationStart = unsafeWindow.shared?.animations?.loadingAnimation?.start;
-        let loadingAnimationStop = unsafeWindow.shared?.animations?.loadingAnimation?.stop;
+        const loadingAnimationStart = unsafeWindow.shared?.animations?.loadingAnimation?.start;
+        const loadingAnimationStop = unsafeWindow.shared?.animations?.loadingAnimation?.stop;
         function appendMenuSell()
         {
-            let menuID = "SellDialog"
+            const menuID = "SellDialog"
             if (getShopType() !== "armor")
             {
                 if (document.getElementById(menuID) !== null)
@@ -399,7 +373,7 @@ export class Shop {
                     try
                     {
                         $(document).off('ajaxComplete',checkAjaxComplete);
-                        for (let menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"])
+                        for (const menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"])
                         {
                             const GMMenuID = GM_registerMenuCommand(getTextForUI(menu,"elementText"), function(){});
                             $("#"+menu).remove();
@@ -546,17 +520,17 @@ export class Shop {
             }
             function launchMenuSellLock()
             {
-                let filterText = "#player-inventory.armor .slot.selected";
+                const filterText = "#player-inventory.armor .slot.selected";
                 if ($(filterText).length >0)
                 {
-                    let toLock=$(filterText)[0].getAttribute("menuSellLocked") === null;
+                    const toLock=$(filterText)[0].getAttribute("menuSellLocked") === null;
                     AllLockUnlock(filterText,toLock);
                 }
             }
         }
     
         function checkAjaxComplete(event,request,settings){
-            let match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
+            const match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null) return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
             if (fetchStarted)
@@ -567,14 +541,15 @@ export class Shop {
     
         function fetchAllArmorItems()
         {
-            let oldCount = $(itemsQuery).length;
+          try {
+            const oldCount = $(itemsQuery).length;
             $("#menuSellCurrentCount").html(oldCount +'');
             if (allLoaded) {
                 logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
             }else{
                 logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
             }
-            let scroll = $("#player-inventory.armor")[0];
+            const scroll = $("#player-inventory.armor")[0];
             const SellDialog = <HTMLDialogElement>document.getElementById("SellDialog");
             if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open)
             {
@@ -595,6 +570,13 @@ export class Shop {
                 return;
             }
             scroll.scrollTop = scroll.scrollHeight-scroll.offsetHeight;
+          } catch (err) {
+                logHHAuto('Error during armor item fetch, restoring animations: ' + err);
+                unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
+                unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
+                fetchStarted = false;
+                $("#menuSellStop").css("display","none");
+          }
         }
 
         function sellArmorEnded() {
@@ -626,7 +608,7 @@ export class Shop {
             var itemsToSell = Number((<HTMLInputElement>(<HTMLInputElement>document.getElementById("menuSellNumber"))).value);
             $("#menuSoldCurrentCount").html("0/"+itemsToSell);
             $("#menuSoldMessage").html("");
-            let PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
+            const PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
             function sellingEnd(message:string){
                 $("#menuSoldMessage").html(message);
                 menuSellListItems();
@@ -647,8 +629,8 @@ export class Shop {
                     sellArmorEnded();
                     return;
                 }
-                let availebleItems = $(itemsQuery);
-                let currentNumberOfItems = availebleItems.length;
+                const availebleItems = $(itemsQuery);
+                const currentNumberOfItems = availebleItems.length;
                 if (currentNumberOfItems === 0)
                 {
                     logHHAuto('no more items for sale');
@@ -679,7 +661,7 @@ export class Shop {
                     if (can_sell)
                     {
                         $('#shops .menu-switch-tab-content.active button.green_text_button[rel=sell]').click();
-                        let currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) +1);
+                        const currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) +1);
                         $("#menuSoldCurrentCount").html( currSellNumber+"/"+itemsToSell );
                         $("#menuSellCurrentCount").html($(itemsQuery).length+'');
                         setTimeout(selling_func, randomInterval(300,700));
@@ -697,39 +679,30 @@ export class Shop {
                 }
                 else if (availebleItems.filter(':not(.selected)').length > 0)
                 {
-                    let typesOfSets = ['EQ-LE-06','EQ-LE-05','EQ-LE-04','EQ-LE-0' + PlayerClass];
-                    let caracsOfSets = ['carac' + PlayerClass,'chance','endurance','carac' + PlayerClass];
+                    const typesOfSets = ['EQ-LE-06','EQ-LE-05','EQ-LE-04','EQ-LE-0' + PlayerClass];
+                    const caracsOfSets = ['carac' + PlayerClass,'chance','endurance','carac' + PlayerClass];
                     //[MaxCarac,Index]
-                    let arraysOfSets = [
+                    const arraysOfSets = [
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],//'EQ-LE-06'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],//'EQ-LE-05'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]],//'EQ-LE-04'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]]//'EQ-LE-0'+ PlayerClass
                     ];
-                    /*//Take equipped items into account
-                    for (let indexType = 0; indexType < typesOfSets.length; indexType++)
-                    {
-                        let equipedArray = $('#equiped .armor .slot[data-d*=' + typesOfSets[indexType] + ']');
-                        for (let i5 = 0; i5 < equipedArray.length; i5++) {
-                            let equipedObj = JSON.parse($(equipedArray[i5]).attr('data-d'));
-                            arraysOfSets[indexType][equipedObj.subtype][0] = equipedObj[caracsOfSets[indexType]];
-                        }
-                    }*/
-    
                     for (let i4 = 0; i4 < availebleItems.length; i4++)
                     {
-                        let sellableItemObj = JSON.parse($(availebleItems[i4]).attr('data-d') || '');
-                        let indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
+                        const sellableItemObj = safeJsonParse($(availebleItems[i4]).attr('data-d'), null);
+                        if (!sellableItemObj) { continue; }
+                        const indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
     
-                        if (indexType == -1)
+                        if (indexType === -1)
                         {
                             //console.log('can_sell2');
                             availebleItems[i4].setAttribute('canBeSold', '');
                         }
                         else
                         {
-                            let currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
-                            let itemCarac = sellableItemObj[caracsOfSets[indexType]];
+                            const currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
+                            const itemCarac = sellableItemObj[caracsOfSets[indexType]];
                             //checking best gear in inventory based on best class stat
                             if (currentBest[0] < itemCarac)
                             {
@@ -746,7 +719,7 @@ export class Shop {
                             }
                         }
                     }
-                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length == 0)
+                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length === 0)
                     {
                         logHHAuto('no more items for sale');
                         sellingEnd(getTextForUI("menuSoldMessageReachNB","elementText"));
