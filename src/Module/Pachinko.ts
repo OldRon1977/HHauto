@@ -15,7 +15,6 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { setTimer } from "../Helper/TimerHelper";
-import { autoLoop } from "../Service/AutoLoop";
 import { gotoPage } from "../Service/PageNavigationService";
 import { isDisplayedHHPopUp, fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -23,6 +22,16 @@ import { safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { HHAuto_inputPattern } from "../config/InputPattern";
 import { TK } from "../config/StorageKeys";
+
+// Decoupled autoLoop kick (see lesson zirkulaerer-import-tdz-crash). Pachinko
+// must restart the loop after a run -- it sets autoLoop="false" during the
+// pulls, which stops AutoLoop's self-reschedule. Importing autoLoop directly
+// put Pachinko in a Module->Service import cycle; the entry point (index.ts)
+// injects it via setPachinkoAutoLoopKick instead.
+let autoLoopKick: (() => void) | null = null;
+export function setPachinkoAutoLoopKick(cb: (() => void) | null): void {
+    autoLoopKick = cb;
+}
 
 export class Pachinko {
     static ajaxBindingDone = false;
@@ -75,7 +84,7 @@ export class Pachinko {
                     await TimeHelper.sleep(randomInterval(400,600));
                 }
                 await selectPachinko(pachinkoType);
-                if ($(equipementSection).attr('type-panel') != pachinkoType) {
+                if ($(equipementSection).attr('type-panel') !== pachinkoType) {
                     logHHAuto(`Error pachinko ${pachinkoType} not loaded after click, retry`);
                     await selectPachinko(pachinkoType);
                 }
@@ -105,7 +114,7 @@ export class Pachinko {
                     RewardHelper.closeRewardPopupIfAny();
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop,randomInterval(500,800));
+                    if (autoLoopKick) setTimeout(autoLoopKick,randomInterval(500,800));
                 },randomInterval(300,600));
             }
             return true;
@@ -123,7 +132,7 @@ export class Pachinko {
         if (girlsRewards.length > 0) {
             try {
                 numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
-            } catch (exp) { }
+            } catch (exp) { logHHAuto('Could not count pachinko girls to win: ' + exp); }
         }
         return numberOfGirlsToWin;
     }
@@ -143,7 +152,7 @@ export class Pachinko {
     static buildPachinkoSelectPopUp(orbsPlayed: number = -1) {
         Pachinko.autoPachinkoRunning = false;
         if (Pachinko.failureTimeoutId) clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        let PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
+        const PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
             + '<div style="display:flex;flex-direction:row">'
             + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoSelector", "tooltip") + '</span><select id="PachinkoSelector"></select></div>'
             + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoLeft", "tooltip") + '</span><span id="PachinkoLeft"></span></div>'
@@ -168,7 +177,7 @@ export class Pachinko {
         fillHHPopUp("PachinkoMenu", getTextForUI("PachinkoButton", "elementText"), PachinkoMenu);
 
         function updateOrbsNumber(orbsLeft) {
-            let fillAllOrbs = (<HTMLInputElement>document.getElementById("PachinkoFillOrbs")).checked;
+            const fillAllOrbs = (<HTMLInputElement>document.getElementById("PachinkoFillOrbs")).checked;
 
             if (fillAllOrbs && orbsLeft.length > 0) {
                 (<HTMLInputElement>document.getElementById("PachinkoXTimes")).value = orbsLeft[0].innerText;
@@ -180,13 +189,13 @@ export class Pachinko {
 
         $("#PachinkoPlayX").on("click", Pachinko.pachinkoPlayXTimes);
         $(document).on('change', "#PachinkoSelector", function () {
-            let pachinkoSelector: HTMLSelectElement = <HTMLSelectElement>document.getElementById("PachinkoSelector");
-            let selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
+            const pachinkoSelector: HTMLSelectElement = <HTMLSelectElement>document.getElementById("PachinkoSelector");
+            const selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
             if (selectorText === getTextForUI("PachinkoSelectorNoButtons", "elementText")) {
                 $("#PachinkoLeft").text("");
                 return;
             }
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
+            const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
 
             if (orbsLeft.length > 0) {
                 $("#PachinkoLeft").text(orbsLeft[0].innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
@@ -197,38 +206,39 @@ export class Pachinko {
             updateOrbsNumber(orbsLeft);
         });
         $(document).on('change', "#PachinkoFillOrbs", function () {
-            let timerSelector = <HTMLSelectElement>document.getElementById("PachinkoSelector");
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
+            const timerSelector = <HTMLSelectElement>document.getElementById("PachinkoSelector");
+            const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
 
             updateOrbsNumber(orbsLeft);
         });
 
         // Add options //changed
-        let pachinkoOptions = <HTMLSelectElement>document.getElementById("PachinkoSelector");
+        const pachinkoOptions = <HTMLSelectElement>document.getElementById("PachinkoSelector");
         let countTimers = 0;
-        let PachinkoType = $("div.playing-zone #playzone-replace-info div.cover h2")[0].innerText;
+        const pachinkoTypeEl = $("div.playing-zone #playzone-replace-info div.cover h2")[0];
+        const PachinkoType = pachinkoTypeEl ? pachinkoTypeEl.innerText : '';
 
         $("div.playing-zone div.btns-section button.blue_button_L").each(function () {
-            let optionElement = <HTMLOptionElement>document.createElement("option");
-            let orbName = $(this).attr('orb_name') || '';
+            const optionElement = <HTMLOptionElement>document.createElement("option");
+            const orbName = $(this).attr('orb_name') || '';
             optionElement.value = orbName;
             countTimers++;
             optionElement.text = `${PachinkoType} x${Pachinko.getHumanPachinkoFromOrbName(orbName)}`;
             pachinkoOptions.add(optionElement);
 
             if (countTimers === 1) {
-                let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
-                $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
+                const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
+                if (orbsLeft) $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
             }
         });
 
-        let numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
+        const numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
         $("#girls_to_win").text(numberOfGirlsToWin + " girls to win"); // TODO translate
         $('#PachinkoStopFirstGirl').parent().parent().parent().toggle(numberOfGirlsToWin > 0);
 
 
         if (countTimers === 0) {
-            let optionElement = <HTMLOptionElement>document.createElement("option");
+            const optionElement = <HTMLOptionElement>document.createElement("option");
             optionElement.value = countTimers + '';
             optionElement.text = getTextForUI("PachinkoSelectorNoButtons", "elementText");
             pachinkoOptions.add(optionElement);
@@ -238,7 +248,7 @@ export class Pachinko {
     static modulePachinko() {
         Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const menuID = "PachinkoButton";
-        let PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("PachinkoButton","tooltip")+'</span><label style="font-size:small" class="myButton" id="PachinkoButton">'+getTextForUI("PachinkoButton","elementText")+'</label></div>'
+        const PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("PachinkoButton","tooltip")+'</span><label style="font-size:small" class="myButton" id="PachinkoButton">'+getTextForUI("PachinkoButton","elementText")+'</label></div>'
     
         if (document.getElementById(menuID) === null)
         {
@@ -265,7 +275,7 @@ export class Pachinko {
         Pachinko.ByPassNoGirlChecked = (<HTMLInputElement>document.getElementById("PachinkoByPassNoGirls")).checked;
         Pachinko.stopFirstGirlChecked = (<HTMLInputElement>document.getElementById("PachinkoStopFirstGirl")).checked;
         const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
-        let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+        const buttonSelector = Pachinko.getSelectedOptionButtonSelector();
         Pachinko.orbsToGo = Number((<HTMLInputElement>document.getElementById("PachinkoXTimes")).value);
 
         Pachinko.orbLeftOnAutoStart = Pachinko.getNumberOfOrbsLeft(buttonSelector);
@@ -280,7 +290,7 @@ export class Pachinko {
             $("#PachinkoError").text(getTextForUI("PachinkoInvalidOrbsNb", "elementText") + " : " + Pachinko.orbsToGo);
             return;
         }
-        let PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
+        const PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
             + '<p>' + selectedOption.text + ' : </p>'
             + '<p id="PachinkoPlayedTimes" style="padding:0 10px">0/' + Pachinko.orbsToGo + '</p>'
             + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
@@ -327,13 +337,13 @@ export class Pachinko {
     }
 
     static async playXPachinko_func() {
-        let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+        const buttonSelector = Pachinko.getSelectedOptionButtonSelector();
         const buttonContinueSelector = '.popup_buttons #play_again:visible';
         if (!isDisplayedHHPopUp()) {
             Pachinko.autoPachinkoRunning = false;
             logHHAuto("PopUp closed, cancelling interval, restart autoloop.");
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+            if (autoLoopKick) setTimeout(autoLoopKick, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
             return;
         }
         const confirmPachinko = document.getElementById("confirm_pachinko");
@@ -402,7 +412,7 @@ export class Pachinko {
             if (!xhr.responseText.length) return;
 
             const searchParams = new URLSearchParams(opt.data)
-            if (searchParams.get('action') == 'play' && searchParams.get('class') == 'Pachinko') {
+            if (searchParams.get('action') === 'play' && searchParams.get('class') === 'Pachinko') {
 
                 const response = safeJsonParse(xhr.responseText, null);
 
@@ -441,7 +451,7 @@ export class Pachinko {
             if (!Pachinko.pachinkoSelector) return 'unknown';
             const opt = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
             return opt?.value ?? 'unknown';
-        } catch (e) {
+        } catch {
             return 'unknown';
         }
     }

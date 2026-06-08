@@ -35,11 +35,21 @@ export class LabyrinthAuto {
         this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
     }
 
-    async run(): Promise<boolean> {
+    async run(depth: number = 0): Promise<boolean> {
+        // I4: run() recurses (reward-popup loops, edit-team retry). A
+        // degenerate DOM (popup never closes / team never reaches 7) could
+        // recurse without bound. Cap the depth so a pathological tick backs
+        // off instead of overflowing the stack. Full continuation model is
+        // tracked for the step-17 multi-step scheduler.
+        if (depth > 10) {
+            logHHAuto('Labyrinth: max recursion depth reached this tick, backing off.');
+            setTimer('nextLabyrinthTime', randomInterval(60, 120));
+            return false;
+        }
         const page = getPage();
         if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinthEntrance")) {
             const difficultyButton = $('.difficulty-button:not([disabled])');
-            if (difficultyButton.length == 1) {
+            if (difficultyButton.length === 1) {
                 logHHAuto(`On Labyrinth entrance page, only one difficulty available, ${difficultyButton.text().trim()}, select it.`);
                 difficultyButton.trigger('click');
                 await TimeHelper.sleep(randomInterval(200, 400));
@@ -51,7 +61,7 @@ export class LabyrinthAuto {
                 const difficultyToSelect = LabyrinthAuto.LABYRINTH_SELECTOR[parseInt(chooseDifficulty)];
                 const buttonToSelect = $(`.difficulty-button.difficulty-${difficultyToSelect}:not([disabled])`);
 
-                if (buttonToSelect.length == 1) {
+                if (buttonToSelect.length === 1) {
                     logHHAuto(`On Labyrinth entrance page, selecting ${difficultyToSelect} difficulty.`);
                     buttonToSelect.trigger('click');
                     await TimeHelper.sleep(randomInterval(200, 400));
@@ -105,7 +115,7 @@ export class LabyrinthAuto {
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             if (this.debugEnabled) logHHAuto("setting autoloop to false");
 
-            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) == "true";
+            const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
 
             const sweepFloorButton = $('#sweeping-floor:not([disabled])');
             if (autoLabySweep && sweepFloorButton.length > 0) {
@@ -116,20 +126,20 @@ export class LabyrinthAuto {
                 $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L").trigger('click');
                 await TimeHelper.sleep(randomInterval(1500, 2000));
                 // Close reward popup or wait until it opens
-                for (var i = 0; i < 3; i++) {
+                for (let i = 0; i < 3; i++) {
                     if (this.debugEnabled) logHHAuto("Close seep reward popup.");
                     const popupOpened = this.closeRewards();
                     await TimeHelper.sleep(randomInterval(800, 1300));
-                    if (popupOpened) return this.run();
+                    if (popupOpened) return this.run(depth + 1);
                 }
             }else {
                 $('.labChosen').trigger('click');
                 await TimeHelper.sleep(randomInterval(500, 800));
                 // Close reward popup or wait until it opens
-                for (var i = 0; i < 3; i++) {
+                for (let i = 0; i < 3; i++) {
                     const popupOpened = this.closeRewards();
                     await TimeHelper.sleep(randomInterval(800, 1300));
-                    if (popupOpened) return this.run();
+                    if (popupOpened) return this.run(depth + 1);
                 }
             }
             return true;
@@ -137,9 +147,9 @@ export class LabyrinthAuto {
         else if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinthPreBattle")) {
             logHHAuto("On labyrinth-pre-battle page.");
             if (this.getNumberSelectedGirl() === 7) {
-                let templeID = queryStringGetParam(window.location.search, 'id_opponent');
+                const templeID = queryStringGetParam(window.location.search, 'id_opponent');
                 logHHAuto("Go and fight labyrinth :" + templeID);
-                let labyrinthBattleButton = $("#pre-battle .buttons-container .blue_button_L");
+                const labyrinthBattleButton = $("#pre-battle .buttons-container .blue_button_L");
                 if (labyrinthBattleButton.length > 0) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     logHHAuto("setting autoloop to false");
@@ -154,7 +164,7 @@ export class LabyrinthAuto {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDEditLabyrinthTeam"));
             } else {
                 logHHAuto("Error in parsing, disable laby.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth, false);
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth, "false");
             }
             return true;
         }
@@ -163,7 +173,7 @@ export class LabyrinthAuto {
             const numberOfGirlsRemaining = Labyrinth.getRemainingNumberOfGirl();
             logHHAuto(`Number of girls remaining: ${numberOfGirlsRemaining}`);
             if (numberOfGirlsRemaining >= 7) {
-                const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
+                const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) === "true";
                 if (customTeamBuilder) {
                     Labyrinth.moduleBuildTeam();
                     await TimeHelper.sleep(randomInterval(200, 400));
@@ -177,12 +187,12 @@ export class LabyrinthAuto {
                     await TimeHelper.sleep(randomInterval(400, 800));
                 }
 
-                if (this.getNumberSelectedGirl() == 7) {
+                if (this.getNumberSelectedGirl() === 7) {
                     $('#validate-team:enabled').trigger('click');
                     await TimeHelper.sleep(randomInterval(200, 400));
                 } else {
                     if (this.debugEnabled) logHHAuto('Not enough girl selected, retry...');
-                    return this.run();
+                    return this.run(depth + 1);
                 }
             } else {
                 logHHAuto('Not enough girl to continue. Stopping');
@@ -192,15 +202,10 @@ export class LabyrinthAuto {
             }
             return true;
         }
-        // else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
-        //     logHHAuto("Go back to Labyrinth after fight.");
-        //     gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
-        // }
         else {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
             return true;
         }
-        return false;
     }
 
     closeRewards(): boolean{

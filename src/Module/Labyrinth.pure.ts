@@ -235,9 +235,9 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
     if (
         !chooseMoreReward
         && floor < 3
-        && options.filter((option) => option.opponentDifficulty == 1).length > 0
+        && options.filter((option) => option.opponentDifficulty === 1).length > 0
     ) {
-        options = options.filter((option) => option.opponentDifficulty == 1);
+        options = options.filter((option) => option.opponentDifficulty === 1);
     }
 
     let chosenOption: T | null = null;
@@ -250,7 +250,7 @@ export function decideBetterOption<T extends LabyrinthOpponentLite>(
                 if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
                     isBetter = true;
                 } else if (
-                    chosenOption.opponentDifficulty == option.opponentDifficulty
+                    chosenOption.opponentDifficulty === option.opponentDifficulty
                     && chosenOption.power > option.power
                 ) {
                     isBetter = true;

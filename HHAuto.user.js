@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.63
+// @version      7.35.64
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3016,8 +3016,8 @@ function decideBetterOption(state) {
     }
     if (!chooseMoreReward
         && floor < 3
-        && options.filter((option) => option.opponentDifficulty == 1).length > 0) {
-        options = options.filter((option) => option.opponentDifficulty == 1);
+        && options.filter((option) => option.opponentDifficulty === 1).length > 0) {
+        options = options.filter((option) => option.opponentDifficulty === 1);
     }
     let chosenOption = null;
     options.forEach((option) => {
@@ -3030,7 +3030,7 @@ function decideBetterOption(state) {
                 if (chosenOption.opponentDifficulty < option.opponentDifficulty) {
                     isBetter = true;
                 }
-                else if (chosenOption.opponentDifficulty == option.opponentDifficulty
+                else if (chosenOption.opponentDifficulty === option.opponentDifficulty
                     && chosenOption.power > option.power) {
                     isBetter = true;
                 }
@@ -3262,15 +3262,15 @@ class Labyrinth {
         return $('.harem-panel-girls .harem-girl-container').length;
     }
     static moduleBuildTeam() {
-        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
-        if (customTeamBuilder && $(`.${Labyrinth.BUILD_BUTTON_ID}`).length == 0) {
+        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) === "true";
+        if (customTeamBuilder && $(`.${Labyrinth.BUILD_BUTTON_ID}`).length === 0) {
             const divButtons = $('<div style="position:absolute;left:-55px;top:-310px;width:150%;display:flex;gap:4px;z-index:1"></div>');
             const options = '<option value="1">Tank</option><option value="2">Mage</option><option value="3">Attack</option>';
-            ['Back', 'Mid', 'Front'].forEach((value, index) => {
+            ['Back', 'Mid', 'Front'].forEach((value) => {
                 const select = hhMenuSelect('autoLabyrinthBuild' + value, '', options);
                 divButtons.append(select);
             });
-            ['Team' /*, 'Tank', 'Mage', 'Attack'*/].forEach((value, index) => {
+            ['Team' /*, 'Tank', 'Mage', 'Attack'*/].forEach((value) => {
                 const button = $(`<button id="${Labyrinth.BUILD_BUTTON_ID + value}" class="blue_button_L ${Labyrinth.BUILD_BUTTON_ID}" style="padding: 5px;flex-grow: 1;"></button>`);
                 button.text(getTextForUI("autoLabyrinthBuild" + value, "elementText"));
                 button.on('click', Labyrinth._buildTeam);
@@ -3296,7 +3296,7 @@ class Labyrinth {
                         yield TimeHelper.sleep(randomInterval(400, 700));
                     }
                 }
-                catch (err) {
+                catch (_a) {
                     LogUtils_logHHAuto('Error during changing low power girls');
                 }
             }
@@ -3313,7 +3313,7 @@ class Labyrinth {
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             LogUtils_logHHAuto("setting autoloop to false");
             $(`.${Labyrinth.BUILD_BUTTON_ID}`).attr('disabled', 'disabled');
-            if ($(Labyrinth.HAREM_SELECTED_GIRLS).length == 0) {
+            if ($(Labyrinth.HAREM_SELECTED_GIRLS).length === 0) {
                 $('#auto-fill-team:not([disabled])').trigger('click');
                 yield TimeHelper.sleep(randomInterval(200, 500));
             }
@@ -3330,7 +3330,7 @@ class Labyrinth {
                 yield Labyrinth._selectGirl(3, frontGirls[frontGirlIndex++]);
             const girlClassMid = Number($('#autoLabyrinthBuildMid').val());
             const midGirls = Labyrinth.getHaremGirl(girlClassMid, false, 5);
-            let midGirlIndex = girlClassMid == girlClassFront ? frontGirlIndex : 0;
+            let midGirlIndex = girlClassMid === girlClassFront ? frontGirlIndex : 0;
             if (midGirls.length >= (midGirlIndex + 1))
                 yield Labyrinth._selectGirl(1, midGirls[midGirlIndex++]);
             if (midGirls.length >= (midGirlIndex + 1))
@@ -3339,7 +3339,7 @@ class Labyrinth {
                 yield Labyrinth._selectGirl(4, midGirls[midGirlIndex++]);
             const girlClassBack = Number($('#autoLabyrinthBuildBack').val());
             const backGirls = Labyrinth.getHaremGirl(girlClassBack, false, 7);
-            let backGirlIndex = girlClassBack == girlClassMid ? midGirlIndex : girlClassBack == girlClassFront ? frontGirlIndex : 0;
+            let backGirlIndex = girlClassBack === girlClassMid ? midGirlIndex : girlClassBack === girlClassFront ? frontGirlIndex : 0;
             if (backGirls.length >= (backGirlIndex + 2)) {
                 //await Labyrinth._buildTwoGirlsRow(5, 6, backGirls[backGirlIndex++], backGirls[backGirlIndex++]);
             }
@@ -3363,7 +3363,7 @@ class Labyrinth {
     static _selectGirl(girlPosition, girlToBeSelected) {
         return Labyrinth_awaiter(this, void 0, void 0, function* () {
             const girl = $('.team-hexagon .team-member-container.selectable[data-team-member-position="' + girlPosition + '"]');
-            if (girl.attr('data-girl-id') != girlToBeSelected.attr('id_girl')) {
+            if (girl.attr('data-girl-id') !== girlToBeSelected.attr('id_girl')) {
                 girl.trigger('click');
                 yield TimeHelper.sleep(randomInterval(400, 700));
                 girlToBeSelected.trigger('click');
@@ -3389,10 +3389,10 @@ class Labyrinth {
     static getHaremGirl(girlClass = 0, excludeSelected = false, numberOfGirls = 2) {
         const haremGirlSelector = '.harem-panel-girls .harem-girl-container' + (excludeSelected ? ':not(.selected)' : '');
         const hardCoreGirls = [];
-        let girls = $(haremGirlSelector);
+        const girls = $(haremGirlSelector);
         for (let i = 0; i < girls.length && hardCoreGirls.length <= numberOfGirls; i++) {
             const tooltipData = $('.girl_img', $(girls[i])).attr(ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
-            if (tooltipData == '') {
+            if (tooltipData === '') {
                 LogUtils_logHHAuto('ERROR, no girl information found');
                 continue;
             }
@@ -3402,7 +3402,7 @@ class Labyrinth {
                 continue;
             }
             const remainingEgo = Number($('.ego-bar-container span', $(girls[i])).text().replace('%', ''));
-            if ((girlClass == 0 || obj.class == girlClass) && remainingEgo > 50) {
+            if ((girlClass === 0 || obj.class === girlClass) && remainingEgo > 50) {
                 hardCoreGirls.push($(girls[i]));
             }
         }
@@ -3411,7 +3411,7 @@ class Labyrinth {
     static getLowPowerTeamMember() {
         const teamGirlSelector = '.team-hexagon .team-member-container';
         const lowPowerGirls = [];
-        let haremGirls = $(Labyrinth.HAREM_SELECTED_GIRLS);
+        const haremGirls = $(Labyrinth.HAREM_SELECTED_GIRLS);
         for (let i = 0; i < haremGirls.length; i++) {
             const id_girl = $(haremGirls[i]).attr('id_girl');
             const remainingEgo = Number($('.ego-bar-container span', $(haremGirls[i])).text().replace('%', ''));
@@ -3424,7 +3424,7 @@ class Labyrinth {
     }
     static sim() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinth")) {
-            if ($('#labyrinth_reward_popup .relic-container').length > 0 && $('.relicChosen').length == 0) {
+            if ($('#labyrinth_reward_popup .relic-container').length > 0 && $('.relicChosen').length === 0) {
                 /* Reward to be selected */
                 const relicManager = new RelicManager();
                 const relics = relicManager.parseRelics();
@@ -3490,17 +3490,15 @@ class Labyrinth {
                 });
             }
         }
-        // remove first empty rows
-        //matrix.shift();
         let paths = Labyrinth.createPathFromMatrix(matrix);
-        let pathsWithTreasuer = Labyrinth.filterPathWithNoTreasue(paths);
+        const pathsWithTreasuer = Labyrinth.keepPathsWithTreasure(paths);
         if (pathsWithTreasuer.length > 0) {
             paths = pathsWithTreasuer;
         }
         paths = Labyrinth.sortPathsByDifficulty(paths);
         return paths;
     }
-    static filterPathWithNoTreasue(paths) {
+    static keepPathsWithTreasure(paths) {
         return filterPathsWithTreasure(paths);
     }
     static sortPathsByDifficulty(paths) {
@@ -3520,8 +3518,8 @@ class Labyrinth {
         return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
     }
     static findBetter(options) {
-        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) == "true";
-        const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0;
+        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
+        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter(girl => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
             LogUtils_logHHAuto("Options " + JSON.stringify(options));
@@ -3577,7 +3575,7 @@ class Labyrinth {
             isTreasure: type.indexOf('treasure') >= 0,
             isShrine: type.indexOf('shrine') >= 0,
             isNext: type.indexOf('upcoming-hex') < 0,
-            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power'))
+            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0
         };
     }
 }
@@ -3622,11 +3620,21 @@ class LabyrinthAuto {
         this.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
     }
     run() {
-        return LabyrinthAuto_awaiter(this, void 0, void 0, function* () {
+        return LabyrinthAuto_awaiter(this, arguments, void 0, function* (depth = 0) {
+            // I4: run() recurses (reward-popup loops, edit-team retry). A
+            // degenerate DOM (popup never closes / team never reaches 7) could
+            // recurse without bound. Cap the depth so a pathological tick backs
+            // off instead of overflowing the stack. Full continuation model is
+            // tracked for the step-17 multi-step scheduler.
+            if (depth > 10) {
+                LogUtils_logHHAuto('Labyrinth: max recursion depth reached this tick, backing off.');
+                setTimer('nextLabyrinthTime', randomInterval(60, 120));
+                return false;
+            }
             const page = getPage();
             if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinthEntrance")) {
                 const difficultyButton = $('.difficulty-button:not([disabled])');
-                if (difficultyButton.length == 1) {
+                if (difficultyButton.length === 1) {
                     LogUtils_logHHAuto(`On Labyrinth entrance page, only one difficulty available, ${difficultyButton.text().trim()}, select it.`);
                     difficultyButton.trigger('click');
                     yield TimeHelper.sleep(randomInterval(200, 400));
@@ -3638,7 +3646,7 @@ class LabyrinthAuto {
                     const chooseDifficulty = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex) || LabyrinthAuto.EASY;
                     const difficultyToSelect = LabyrinthAuto.LABYRINTH_SELECTOR[parseInt(chooseDifficulty)];
                     const buttonToSelect = $(`.difficulty-button.difficulty-${difficultyToSelect}:not([disabled])`);
-                    if (buttonToSelect.length == 1) {
+                    if (buttonToSelect.length === 1) {
                         LogUtils_logHHAuto(`On Labyrinth entrance page, selecting ${difficultyToSelect} difficulty.`);
                         buttonToSelect.trigger('click');
                         yield TimeHelper.sleep(randomInterval(200, 400));
@@ -3690,7 +3698,7 @@ class LabyrinthAuto {
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 if (this.debugEnabled)
                     LogUtils_logHHAuto("setting autoloop to false");
-                const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) == "true";
+                const autoLabySweep = getStoredValue(HHStoredVarPrefixKey + SK.autoLabySweep) === "true";
                 const sweepFloorButton = $('#sweeping-floor:not([disabled])');
                 if (autoLabySweep && sweepFloorButton.length > 0) {
                     LogUtils_logHHAuto("Auto laby sweep enabled, triggering sweep.");
@@ -3701,24 +3709,24 @@ class LabyrinthAuto {
                     $("#labyrinth_sweeping_preview_popup #popup_confirm.blue_button_L").trigger('click');
                     yield TimeHelper.sleep(randomInterval(1500, 2000));
                     // Close reward popup or wait until it opens
-                    for (var i = 0; i < 3; i++) {
+                    for (let i = 0; i < 3; i++) {
                         if (this.debugEnabled)
                             LogUtils_logHHAuto("Close seep reward popup.");
                         const popupOpened = this.closeRewards();
                         yield TimeHelper.sleep(randomInterval(800, 1300));
                         if (popupOpened)
-                            return this.run();
+                            return this.run(depth + 1);
                     }
                 }
                 else {
                     $('.labChosen').trigger('click');
                     yield TimeHelper.sleep(randomInterval(500, 800));
                     // Close reward popup or wait until it opens
-                    for (var i = 0; i < 3; i++) {
+                    for (let i = 0; i < 3; i++) {
                         const popupOpened = this.closeRewards();
                         yield TimeHelper.sleep(randomInterval(800, 1300));
                         if (popupOpened)
-                            return this.run();
+                            return this.run(depth + 1);
                     }
                 }
                 return true;
@@ -3726,9 +3734,9 @@ class LabyrinthAuto {
             else if (page === ConfigHelper.getHHScriptVars("pagesIDLabyrinthPreBattle")) {
                 LogUtils_logHHAuto("On labyrinth-pre-battle page.");
                 if (this.getNumberSelectedGirl() === 7) {
-                    let templeID = queryStringGetParam(window.location.search, 'id_opponent');
+                    const templeID = queryStringGetParam(window.location.search, 'id_opponent');
                     LogUtils_logHHAuto("Go and fight labyrinth :" + templeID);
-                    let labyrinthBattleButton = $("#pre-battle .buttons-container .blue_button_L");
+                    const labyrinthBattleButton = $("#pre-battle .buttons-container .blue_button_L");
                     if (labyrinthBattleButton.length > 0) {
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                         LogUtils_logHHAuto("setting autoloop to false");
@@ -3745,7 +3753,7 @@ class LabyrinthAuto {
                 }
                 else {
                     LogUtils_logHHAuto("Error in parsing, disable laby.");
-                    setStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth, false);
+                    setStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth, "false");
                 }
                 return true;
             }
@@ -3754,7 +3762,7 @@ class LabyrinthAuto {
                 const numberOfGirlsRemaining = Labyrinth.getRemainingNumberOfGirl();
                 LogUtils_logHHAuto(`Number of girls remaining: ${numberOfGirlsRemaining}`);
                 if (numberOfGirlsRemaining >= 7) {
-                    const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
+                    const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) === "true";
                     if (customTeamBuilder) {
                         Labyrinth.moduleBuildTeam();
                         yield TimeHelper.sleep(randomInterval(200, 400));
@@ -3767,14 +3775,14 @@ class LabyrinthAuto {
                         $('#auto-fill-team:enabled').trigger('click');
                         yield TimeHelper.sleep(randomInterval(400, 800));
                     }
-                    if (this.getNumberSelectedGirl() == 7) {
+                    if (this.getNumberSelectedGirl() === 7) {
                         $('#validate-team:enabled').trigger('click');
                         yield TimeHelper.sleep(randomInterval(200, 400));
                     }
                     else {
                         if (this.debugEnabled)
                             LogUtils_logHHAuto('Not enough girl selected, retry...');
-                        return this.run();
+                        return this.run(depth + 1);
                     }
                 }
                 else {
@@ -3785,15 +3793,10 @@ class LabyrinthAuto {
                 }
                 return true;
             }
-            // else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
-            //     logHHAuto("Go back to Labyrinth after fight.");
-            //     gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
-            // }
             else {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"));
                 return true;
             }
-            return false;
         });
     }
     closeRewards() {
@@ -8640,24 +8643,24 @@ class Troll {
         const sideTrollGirlsID = ConfigHelper.getHHScriptVars("sideTrollGirlsID");
         const trollWithGirls = [];
         if (girlDictionary) {
-            for (var tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
+            for (let tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
                 trollWithGirls[tIdx] = 0;
-                for (var pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
-                    for (var gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
-                        var idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
-                        if (idGirl != 0 && (girlDictionary.get("" + idGirl) == undefined || girlDictionary.get("" + idGirl).shards < 100)) {
+                for (let pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
+                    for (let gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
+                        const idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
+                        if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
                             trollWithGirls[tIdx] += 1;
                         }
                     }
                 }
             }
             if (Object.keys(sideTrollGirlsID).length > 0) {
-                for (let tIdx of Object.keys(sideTrollGirlsID)) {
+                for (const tIdx of Object.keys(sideTrollGirlsID)) {
                     trollWithGirls[Number(tIdx) - 1] = 0;
-                    for (var pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
-                        for (var gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
-                            var idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
-                            if (idGirl != 0 && (girlDictionary.get("" + idGirl) == undefined || girlDictionary.get("" + idGirl).shards < 100)) {
+                    for (let pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
+                        for (let gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
+                            const idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
+                            if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
                                 trollWithGirls[Number(tIdx) - 1] += 1;
                             }
                         }
@@ -8695,7 +8698,7 @@ class Troll {
                 || LoveRaidManager.isAnyActivated());
     }
     static getLastTrollIdAvailable(logging = false, id_world = undefined) {
-        const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
+        const isMainAdventure = Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
         if (!id_world) {
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         }
@@ -8747,12 +8750,11 @@ class Troll {
         }
         return autoTrollSelectedIndex;
     }
-    static getTrollIdToFight(logging = true) {
+    static getTrollIdToFight(logging = true, allowSideEffects = true) {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
         const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
         let TTF = 0;
-        // const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
         const lastTrollIdAvailable = Troll.getLastTrollIdAvailable(logging);
         const eventGirl = EventModule.getEventGirl();
         const eventMythicGirl = EventModule.getEventMythicGirl();
@@ -8791,11 +8793,14 @@ class Troll {
                 if (trollWithGirls.length === 0) {
                     if (logging)
                         LogUtils_logHHAuto("Need girls list, going to Waifu page to get them");
+                    if (!allowSideEffects)
+                        return 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
                     return -1;
                 }
-                setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
+                if (allowSideEffects)
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
             }
             if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
                 if (autoTrollSelectedIndex === 98) {
@@ -8837,7 +8842,8 @@ class Troll {
             else if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")) {
                 if (logging)
                     LogUtils_logHHAuto("Can't get troll with girls, going to home page to get girl list.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                if (allowSideEffects)
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
             else {
                 if (logging)
@@ -8873,18 +8879,21 @@ class Troll {
                 LogUtils_logHHAuto("Last troll fight: " + TTF);
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-            && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && logging) {
+            && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true") {
             TTF = lastTrollIdAvailable;
-            LogUtils_logHHAuto("Last troll fight for quest item: " + TTF);
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "false");
-            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+            if (logging)
+                LogUtils_logHHAuto("Last troll fight for quest item: " + TTF);
+            if (allowSideEffects)
+                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
         }
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
         if (TTF > 0 && TTF > lastTrollIdAvailable) {
-            LogUtils_logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
-            setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+            if (logging)
+                LogUtils_logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
+            if (allowSideEffects)
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
             TTF = 0;
         }
         if (TTF <= 0) {
@@ -8915,7 +8924,7 @@ class Troll {
         return TTF;
     }
     static debugNextTrollToFight() {
-        let TTF = Troll.getTrollIdToFight(false);
+        const TTF = Troll.getTrollIdToFight(false, false);
         const trollz = ConfigHelper.getHHScriptVars("trollzList");
         const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
         return `Next troll: ${trollz[Number(TTF)] ? trollz[Number(TTF)] : sideTrollz[Number(TTF)]} (${TTF})`;
@@ -8932,14 +8941,13 @@ class Troll {
                 const loveRaid = LoveRaidManager.isActivated()
                     ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
                     : undefined;
-                //logHHAuto("No power for battle.");
-                if (!Troll.canBuyFight(eventGirl).canBuy && !Troll.canBuyFight(eventMythicGirl).canBuy &&
-                    !Troll.canBuyFightForRaid(loveRaid).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid).canBuy) {
+                if (!Troll.canBuyFight(eventGirl, false).canBuy && !Troll.canBuyFight(eventMythicGirl, false).canBuy &&
+                    !Troll.canBuyFightForRaid(loveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy) {
                     return false;
                 }
             }
             const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-            if (runThreshold > 0 && currentPower == runThreshold) {
+            if (runThreshold > 0 && currentPower === runThreshold) {
                 setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "true");
             }
             let TTF = Troll.getTrollIdToFight();
@@ -8966,22 +8974,22 @@ class Troll {
                     return false;
                 }
             }
+            // Valid troll resolved: clear the one-shot invalid-retry guard so a future
+            // invalid target can retry once again (the flag was never reset before).
+            if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
+                setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
+            }
             const needSW = Booster.needSandalWoodEquipped(TTF);
-            LogUtils_logHHAuto(`[SW-DEBUG] Troll fight entry: TTF=${TTF}, needSandalWoodEquipped=${needSW}, currentPage=${currentPage}`);
             if (needSW) {
                 if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                    LogUtils_logHHAuto('[SW-DEBUG] Go to Shop page to update booster status');
+                    LogUtils_logHHAuto('Sandalwood needed: going to Shop page to update booster status');
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
                     return true;
                 }
                 else {
-                    LogUtils_logHHAuto('[SW-DEBUG] On shop page, collecting boosters from market');
                     Booster.collectBoostersFromMarket();
-                    LogUtils_logHHAuto('[SW-DEBUG] Attempting to equip Sandalwood...');
                     const equipped = yield Booster.equipeSandalWoodIfNeeded(TTF);
-                    LogUtils_logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded returned: ${equipped}`);
                     if (equipped) {
-                        LogUtils_logHHAuto('[SW-DEBUG] Sandalwood newly equipped, refreshing booster status from market');
                         Booster.collectBoostersFromMarket();
                     }
                 }
@@ -9009,24 +9017,23 @@ class Troll {
     }
     static CrushThemFights() {
         return Troll_awaiter(this, void 0, void 0, function* () {
-            var _a;
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
                 // On battle page.
                 LogUtils_logHHAuto("On Pre battle page.");
-                let TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
+                const TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
                 const trollz = ConfigHelper.getHHScriptVars("trollzList");
-                let battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
-                let battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
-                let battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
-                let battleButtonX10Price = Number(battleButtonX10.attr('price'));
-                let battleButtonX50Price = Number(battleButtonX50.attr('price'));
+                const battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
+                const battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
+                const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
+                const battleButtonX10Price = Number(battleButtonX10.attr('price'));
+                const battleButtonX50Price = Number(battleButtonX50.attr('price'));
                 // let Hero=getHero();
-                let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
-                let previousPower = (_a = getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) !== null && _a !== void 0 ? _a : 0;
-                let currentPower = Troll.getEnergy();
+                const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+                const previousPower = Number(getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) || 0;
+                const currentPower = Troll.getEnergy();
                 var checkPreviousFightDone = function () {
                     // The goal of this function is to detect slow server response to avoid loop without fight
-                    if (previousPower > 0 && previousPower == currentPower) {
+                    if (previousPower > 0 && previousPower === currentPower) {
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                         LogUtils_logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
                     }
@@ -9058,11 +9065,11 @@ class Troll {
                     }
                     if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
                         LogUtils_logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
-                        let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+                        const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
                         trollWithGirls[TTF - 1] = 0;
                         setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                         const newTroll = Troll.getTrollIdToFight();
-                        if (newTroll > 0 && TTF != newTroll) {
+                        if (newTroll > 0 && TTF !== newTroll) {
                             gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
                             return true;
                         }
@@ -9072,7 +9079,7 @@ class Troll {
                             return;
                         }
                     }
-                    let canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
+                    const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
                     if ((canBuyFightsResult.canBuy && currentPower === 0)
                         ||
                             (canBuyFightsResult.canBuy
@@ -9109,14 +9116,14 @@ class Troll {
                                     && canBuyFightsResultLoveRaid.max === 50
                                     && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
                                     && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
-                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))
                             ||
                                 (canBuyFightsResultLoveRaid.canBuy
                                     && currentPower < 10
                                     && canBuyFightsResultLoveRaid.max === 20
                                     && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
                                     && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
-                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))) {
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))) {
                             Troll.RechargeCombat(canBuyFightsResultLoveRaid);
                             gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
                             return true;
@@ -9129,7 +9136,7 @@ class Troll {
                         const remainingEventShards = eventTrollGirl ? Number(100 - (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards)) : 0;
                         const remainingLoveRaidShards = loveRaid ? Number(100 - (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_shards)) : 0;
                         const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
-                        let bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
+                        const bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
                             && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
                             || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
                             || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
@@ -9157,9 +9164,7 @@ class Troll {
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
-                            LogUtils_logHHAuto('[SW-DEBUG] x50: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
-                            LogUtils_logHHAuto('[SW-DEBUG] x50: battle response received, done');
                             const x50Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                             const x50Duration = Date.now() - x50Start;
                             releasePostMutex();
@@ -9198,9 +9203,7 @@ class Troll {
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
                             }
                             RewardHelper.ObserveAndGetGirlRewards();
-                            LogUtils_logHHAuto('[SW-DEBUG] x10: waiting for battle response...');
                             yield Booster.waitForBattleResponse();
-                            LogUtils_logHHAuto('[SW-DEBUG] x10: battle response received, done');
                             const x10Idle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
                             const x10Duration = Date.now() - x10Start;
                             releasePostMutex();
@@ -9298,7 +9301,7 @@ class Troll {
         //let canBuyResult = Troll.canBuyFight(eventTrollGirl);
         if (canBuyResult.canBuy) {
             LogUtils_logHHAuto('Recharging ' + canBuyResult.toBuy + ' fights for ' + canBuyResult.price + ' kobans.');
-            let hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+            const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
             setHHVars('Hero.infos.hc_confirm', true);
             // We have the power.
             //replaceCheatClick();
@@ -9310,8 +9313,8 @@ class Troll {
     }
     static canBuyFight(eventGirl, logging = true) {
         const type = "fight";
-        let hero = getHero();
-        let result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: type };
+        const hero = getHero();
+        const result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: type };
         const MAX_BUY = 200;
         let maxx50 = 50;
         let maxx20 = 20;
@@ -9322,7 +9325,7 @@ class Troll {
         let remainingShards;
         // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
         if (Number.isInteger(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.shards) && currentFight === 0 && eventGirl.shards < 100) {
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) == "true"
+            if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) === "true"
                 && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
                 && getSecondsLeft("eventGoing") !== 0
                 && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) * 3600)
@@ -9372,8 +9375,8 @@ class Troll {
     }
     static canBuyFightForRaid(raid, logging = true) {
         const type = "fight";
-        let hero = getHero();
-        let result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: type };
+        const hero = getHero();
+        const result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: type };
         const MAX_BUY = 200;
         const maxx20 = 20;
         const currentFight = Troll.getEnergy();
@@ -9383,7 +9386,7 @@ class Troll {
         let remainingShards;
         // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
         if (Number.isInteger(raid === null || raid === void 0 ? void 0 : raid.girl_shards) && currentFight === 0 && raid.girl_shards < 100) {
-            if (getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) == "true"
+            if (getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
                 && LoveRaidManager.isAnyActivated()
                 && raid.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
                 && raid.id_girl) {
@@ -11605,9 +11608,9 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 class PentaDrill {
     static getRemainingTime() {
-        var _a;
-        const pentaDrillTimer = (_a = unsafeWindow.penta_drill_data.cycle_data) === null || _a === void 0 ? void 0 : _a.seconds_until_event_end;
-        if (pentaDrillTimer != undefined && getSecondsLeft("pentaDrillRemainingTime") === 0) {
+        var _a, _b;
+        const pentaDrillTimer = (_b = (_a = unsafeWindow.penta_drill_data) === null || _a === void 0 ? void 0 : _a.cycle_data) === null || _b === void 0 ? void 0 : _b.seconds_until_event_end;
+        if (pentaDrillTimer !== undefined && getSecondsLeft("pentaDrillRemainingTime") === 0) {
             setTimer("pentaDrillRemainingTime", pentaDrillTimer);
         }
     }
@@ -11650,7 +11653,7 @@ class PentaDrill {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
         const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun) === "true";
-        const energyAboveThreshold = humanLikeRun && PentaDrill.getEnergy() > threshold || PentaDrill.getEnergy() > Math.max(threshold, runThreshold - 1);
+        const energyAboveThreshold = (humanLikeRun && PentaDrill.getEnergy() > threshold) || PentaDrill.getEnergy() > Math.max(threshold, runThreshold - 1);
         const paranoiaSpending = PentaDrill.getEnergy() > 0 && ParanoiaService.checkParanoiaSpendings('drill') > 0;
         const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillBoostedOnly) === "true";
         const haveBoosterEquiped = Booster.haveBoosterEquiped();
@@ -11664,7 +11667,11 @@ class PentaDrill {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         try {
             const opponents = unsafeWindow.opponents_list;
-            const lowestPowerOpponent = opponents.sort((a, b) => a.player.total_power - b.player.total_power)[0];
+            if (!opponents || opponents.length === 0) {
+                LogUtils_logHHAuto("PentaDrill : no opponents available to choose from.");
+                return undefined;
+            }
+            const lowestPowerOpponent = [...opponents].sort((a, b) => a.player.total_power - b.player.total_power)[0];
             if (debugEnabled) {
                 LogUtils_logHHAuto(`Lowest Penta drill opponent is ${lowestPowerOpponent.player.nickname} with power ${lowestPowerOpponent.player.total_power}`);
             }
@@ -11675,7 +11682,7 @@ class PentaDrill {
             return lowestPowerOpponent;
         }
         catch (err) {
-            LogUtils_logHHAuto("Catched error : Could not display season score : " + err);
+            LogUtils_logHHAuto("Catched error : Could not choose Penta drill opponent : " + err);
         }
         return undefined;
     }
@@ -11684,13 +11691,14 @@ class PentaDrill {
             LogUtils_logHHAuto("Performing auto PentaDrill.");
             // Confirm if on correct screen.
             //const Hero = getHero();
-            var page = getPage();
+            const page = getPage();
             if (page === ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena")) {
                 LogUtils_logHHAuto("On PentaDrill arena page.");
                 const chosenOpponent = PentaDrill.moduleSimPentaDrillBattle();
                 if (chosenOpponent === undefined) {
                     LogUtils_logHHAuto("PentaDrill : was not able to choose opponent.");
                     setTimer('nextPentaDrillTime', randomInterval(30 * 60, 35 * 60));
+                    return false;
                 }
                 else {
                     const chosenID = chosenOpponent.player.id_fighter;
@@ -11700,7 +11708,7 @@ class PentaDrill {
                         setStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun, "true");
                     }
                     const toGoTo = opponentButton.attr('href') || '';
-                    if (toGoTo == '') {
+                    if (toGoTo === '') {
                         LogUtils_logHHAuto('PentaDrill : Error getting opponent location');
                         setTimer('nextPentaDrillTime', randomInterval(30 * 60, 35 * 60));
                         return false;
@@ -11718,7 +11726,7 @@ class PentaDrill {
             else if (page === ConfigHelper.getHHScriptVars("pagesIDPentaDrillPreBattle")) {
                 LogUtils_logHHAuto("On PentaDrill pre battle page.");
                 const performButton = $('#perform_opponent:not([disabled])');
-                if (performButton.length == 0) {
+                if (performButton.length === 0) {
                     LogUtils_logHHAuto('PentaDrill : Perform button is disabled, can\'t fight now.');
                     setTimer('nextPentaDrillTime', randomInterval(30 * 60, 35 * 60));
                     return false;
@@ -11740,13 +11748,13 @@ class PentaDrill {
                 }
                 else {
                     let next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts');
-                    if (next_refresh == 0) {
+                    if (Number(next_refresh) === 0) {
                         next_refresh = 15 * 60;
                     }
                     setTimer('nextPentaDrillTime', randomInterval(next_refresh + 10, next_refresh + 180));
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                 }
-                return;
+                return false;
             }
         });
     }
@@ -11759,7 +11767,8 @@ class PentaDrill {
                 RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
             }
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             LogUtils_logHHAuto(`ERROR in display PentaDrill rewards: ${message}`);
         }
     }
@@ -11800,7 +11809,7 @@ class PentaDrill {
                 const isPassPaid = $("#get_penta_pass_btn:visible").length === 0;
                 const freeSlotQuery = ".free_reward .slot";
                 const paidSlotQuery = ".pass_reward .slot";
-                let buttonsToCollect = [];
+                const buttonsToCollect = [];
                 const listPentaDrillTiersToClaim = $(".rewards_container_penta_drill .rewards_pair:has(.btn_claim)");
                 LogUtils_logHHAuto('Found ' + listPentaDrillTiersToClaim.length + ' rewards available for collection before filtering');
                 for (let currentTier = 0; currentTier < listPentaDrillTiersToClaim.length; currentTier++) {
@@ -11836,9 +11845,9 @@ class PentaDrill {
                         if (buttonsToCollect.length > 0) {
                             function closeRewardAndCollectagain() {
                                 RewardHelper.closeRewardPopupIfAny(false);
-                                setTimeout(collectPentaDrillRewards, randomInterval(300, 500));
+                                setTimeout(collectNextTier, randomInterval(300, 500));
                             }
-                            function collectPentaDrillRewards() {
+                            function collectNextTier() {
                                 if (buttonsToCollect.length > 0) {
                                     LogUtils_logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
                                     buttonsToCollect[0].click();
@@ -11848,7 +11857,7 @@ class PentaDrill {
                                 else
                                     collectionFinished();
                             }
-                            collectPentaDrillRewards();
+                            collectNextTier();
                             return true;
                         }
                         else
@@ -11892,8 +11901,6 @@ class PentaDrill {
         // TODO maksk all claimed rewards in PentaDrill
     }
 }
-PentaDrill.LAST_PentaDrill_LEVEL = 63;
-PentaDrill.MIN_MOJO_FIGHT = 8;
 
 ;// CONCATENATED MODULE: ./src/Module/Contest.ts
 // Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
@@ -16038,7 +16045,15 @@ var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-
+// Decoupled autoLoop kick (see lesson zirkulaerer-import-tdz-crash). Pachinko
+// must restart the loop after a run -- it sets autoLoop="false" during the
+// pulls, which stops AutoLoop's self-reschedule. Importing autoLoop directly
+// put Pachinko in a Module->Service import cycle; the entry point (index.ts)
+// injects it via setPachinkoAutoLoopKick instead.
+let autoLoopKick = null;
+function setPachinkoAutoLoopKick(cb) {
+    autoLoopKick = cb;
+}
 class Pachinko {
     static getGreatPachinko() {
         return Pachinko.getFreePachinko('great', 'nextPachinkoTime', 'great-timer');
@@ -16073,7 +16088,7 @@ class Pachinko {
                         });
                     }
                     yield selectPachinko(pachinkoType);
-                    if ($(equipementSection).attr('type-panel') != pachinkoType) {
+                    if ($(equipementSection).attr('type-panel') !== pachinkoType) {
                         LogUtils_logHHAuto(`Error pachinko ${pachinkoType} not loaded after click, retry`);
                         yield selectPachinko(pachinkoType);
                     }
@@ -16096,7 +16111,8 @@ class Pachinko {
                         RewardHelper.closeRewardPopupIfAny();
                         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                         LogUtils_logHHAuto("setting autoloop to true");
-                        setTimeout(autoLoop, randomInterval(500, 800));
+                        if (autoLoopKick)
+                            setTimeout(autoLoopKick, randomInterval(500, 800));
                     }, randomInterval(300, 600));
                 }
                 return true;
@@ -16115,7 +16131,9 @@ class Pachinko {
             try {
                 numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
             }
-            catch (exp) { }
+            catch (exp) {
+                LogUtils_logHHAuto('Could not count pachinko girls to win: ' + exp);
+            }
         }
         return numberOfGirlsToWin;
     }
@@ -16134,7 +16152,7 @@ class Pachinko {
         Pachinko.autoPachinkoRunning = false;
         if (Pachinko.failureTimeoutId)
             clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        let PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
+        const PachinkoMenu = '<div style="padding:50px; display:flex;flex-direction:column;font-size:15px;" class="HHAutoScriptMenu">'
             + '<div style="display:flex;flex-direction:row">'
             + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoSelector", "tooltip") + '</span><select id="PachinkoSelector"></select></div>'
             + '<div style="padding:10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoLeft", "tooltip") + '</span><span id="PachinkoLeft"></span></div>'
@@ -16158,7 +16176,7 @@ class Pachinko {
             + '</div>';
         fillHHPopUp("PachinkoMenu", getTextForUI("PachinkoButton", "elementText"), PachinkoMenu);
         function updateOrbsNumber(orbsLeft) {
-            let fillAllOrbs = document.getElementById("PachinkoFillOrbs").checked;
+            const fillAllOrbs = document.getElementById("PachinkoFillOrbs").checked;
             if (fillAllOrbs && orbsLeft.length > 0) {
                 document.getElementById("PachinkoXTimes").value = orbsLeft[0].innerText;
             }
@@ -16168,13 +16186,13 @@ class Pachinko {
         }
         $("#PachinkoPlayX").on("click", Pachinko.pachinkoPlayXTimes);
         $(document).on('change', "#PachinkoSelector", function () {
-            let pachinkoSelector = document.getElementById("PachinkoSelector");
-            let selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
+            const pachinkoSelector = document.getElementById("PachinkoSelector");
+            const selectorText = pachinkoSelector.options[pachinkoSelector.selectedIndex].text;
             if (selectorText === getTextForUI("PachinkoSelectorNoButtons", "elementText")) {
                 $("#PachinkoLeft").text("");
                 return;
             }
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
+            const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + pachinkoSelector.options[pachinkoSelector.selectedIndex].value + "] span[total_orbs]");
             if (orbsLeft.length > 0) {
                 $("#PachinkoLeft").text(orbsLeft[0].innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
             }
@@ -16184,31 +16202,33 @@ class Pachinko {
             updateOrbsNumber(orbsLeft);
         });
         $(document).on('change', "#PachinkoFillOrbs", function () {
-            let timerSelector = document.getElementById("PachinkoSelector");
-            let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
+            const timerSelector = document.getElementById("PachinkoSelector");
+            const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + timerSelector.options[timerSelector.selectedIndex].value + "] span[total_orbs]");
             updateOrbsNumber(orbsLeft);
         });
         // Add options //changed
-        let pachinkoOptions = document.getElementById("PachinkoSelector");
+        const pachinkoOptions = document.getElementById("PachinkoSelector");
         let countTimers = 0;
-        let PachinkoType = $("div.playing-zone #playzone-replace-info div.cover h2")[0].innerText;
+        const pachinkoTypeEl = $("div.playing-zone #playzone-replace-info div.cover h2")[0];
+        const PachinkoType = pachinkoTypeEl ? pachinkoTypeEl.innerText : '';
         $("div.playing-zone div.btns-section button.blue_button_L").each(function () {
-            let optionElement = document.createElement("option");
-            let orbName = $(this).attr('orb_name') || '';
+            const optionElement = document.createElement("option");
+            const orbName = $(this).attr('orb_name') || '';
             optionElement.value = orbName;
             countTimers++;
             optionElement.text = `${PachinkoType} x${Pachinko.getHumanPachinkoFromOrbName(orbName)}`;
             pachinkoOptions.add(optionElement);
             if (countTimers === 1) {
-                let orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
-                $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
+                const orbsLeft = $("div.playing-zone div.btns-section button.blue_button_L[orb_name=" + orbName + "] span[total_orbs]")[0];
+                if (orbsLeft)
+                    $("#PachinkoLeft").text(orbsLeft.innerText + getTextForUI("PachinkoOrbsLeft", "elementText"));
             }
         });
-        let numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
+        const numberOfGirlsToWin = Pachinko.getNumberOfGirlToWinPatchinko();
         $("#girls_to_win").text(numberOfGirlsToWin + " girls to win"); // TODO translate
         $('#PachinkoStopFirstGirl').parent().parent().parent().toggle(numberOfGirlsToWin > 0);
         if (countTimers === 0) {
-            let optionElement = document.createElement("option");
+            const optionElement = document.createElement("option");
             optionElement.value = countTimers + '';
             optionElement.text = getTextForUI("PachinkoSelectorNoButtons", "elementText");
             pachinkoOptions.add(optionElement);
@@ -16217,7 +16237,7 @@ class Pachinko {
     static modulePachinko() {
         Pachinko.debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const menuID = "PachinkoButton";
-        let PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoButton", "tooltip") + '</span><label style="font-size:small" class="myButton" id="PachinkoButton">' + getTextForUI("PachinkoButton", "elementText") + '</label></div>';
+        const PachinkoButton = '<div style="position: absolute;left: 52%;top: 100px;width:60px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("PachinkoButton", "tooltip") + '</span><label style="font-size:small" class="myButton" id="PachinkoButton">' + getTextForUI("PachinkoButton", "elementText") + '</label></div>';
         if (document.getElementById(menuID) === null) {
             $("#contains_all section").prepend(PachinkoButton);
             $("#PachinkoButton").on("click", () => { Pachinko.buildPachinkoSelectPopUp(-1); });
@@ -16238,7 +16258,7 @@ class Pachinko {
         Pachinko.ByPassNoGirlChecked = document.getElementById("PachinkoByPassNoGirls").checked;
         Pachinko.stopFirstGirlChecked = document.getElementById("PachinkoStopFirstGirl").checked;
         const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
-        let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+        const buttonSelector = Pachinko.getSelectedOptionButtonSelector();
         Pachinko.orbsToGo = Number(document.getElementById("PachinkoXTimes").value);
         Pachinko.orbLeftOnAutoStart = Pachinko.getNumberOfOrbsLeft(buttonSelector);
         if (Pachinko.orbLeftOnAutoStart <= 0) {
@@ -16251,7 +16271,7 @@ class Pachinko {
             $("#PachinkoError").text(getTextForUI("PachinkoInvalidOrbsNb", "elementText") + " : " + Pachinko.orbsToGo);
             return;
         }
-        let PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
+        const PachinkoPlay = '<div style="padding:20px 50px; display:flex;flex-direction:column">'
             + '<p>' + selectedOption.text + ' : </p>'
             + '<p id="PachinkoPlayedTimes" style="padding:0 10px">0/' + Pachinko.orbsToGo + '</p>'
             + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
@@ -16297,13 +16317,14 @@ class Pachinko {
     static playXPachinko_func() {
         return Pachinko_awaiter(this, void 0, void 0, function* () {
             var _a;
-            let buttonSelector = Pachinko.getSelectedOptionButtonSelector();
+            const buttonSelector = Pachinko.getSelectedOptionButtonSelector();
             const buttonContinueSelector = '.popup_buttons #play_again:visible';
             if (!isDisplayedHHPopUp()) {
                 Pachinko.autoPachinkoRunning = false;
                 LogUtils_logHHAuto("PopUp closed, cancelling interval, restart autoloop.");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                if (autoLoopKick)
+                    setTimeout(autoLoopKick, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 return;
             }
             const confirmPachinko = document.getElementById("confirm_pachinko");
@@ -16372,7 +16393,7 @@ class Pachinko {
             if (!xhr.responseText.length)
                 return;
             const searchParams = new URLSearchParams(opt.data);
-            if (searchParams.get('action') == 'play' && searchParams.get('class') == 'Pachinko') {
+            if (searchParams.get('action') === 'play' && searchParams.get('class') === 'Pachinko') {
                 const response = safeJsonParse(xhr.responseText, null);
                 if (!response || !response.success) {
                     if (Pachinko.debugEnabled)
@@ -16414,7 +16435,7 @@ class Pachinko {
             const opt = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
             return (_a = opt === null || opt === void 0 ? void 0 : opt.value) !== null && _a !== void 0 ? _a : 'unknown';
         }
-        catch (e) {
+        catch (_b) {
             return 'unknown';
         }
     }
@@ -16531,31 +16552,47 @@ class Shop {
             var assB = [];
             var assG = [];
             var assP = [];
-            $('#shops div.armor.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assA.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.booster.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assB.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.gift.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assG.push(JSON.parse(this.dataset.d)); });
-            $('#shops div.potion.merchant-inventory-item .slot').each(function () { if (this.dataset.d)
-                assP.push(JSON.parse(this.dataset.d)); });
+            $('#shops div.armor.merchant-inventory-item .slot').each(function () { if (this.dataset.d) {
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    assA.push(d);
+            } });
+            $('#shops div.booster.merchant-inventory-item .slot').each(function () { if (this.dataset.d) {
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    assB.push(d);
+            } });
+            $('#shops div.gift.merchant-inventory-item .slot').each(function () { if (this.dataset.d) {
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    assG.push(d);
+            } });
+            $('#shops div.potion.merchant-inventory-item .slot').each(function () { if (this.dataset.d) {
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    assP.push(d);
+            } });
             var HaveAff = 0;
             var HaveExp = 0;
             var HaveBooster = {};
             $('#shops div.gift.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveAff += d.quantity * d.item.value;
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    HaveAff += d.quantity * d.item.value;
             } });
             $('#shops div.potion.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveExp += d.quantity * d.item.value;
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d)
+                    HaveExp += d.quantity * d.item.value;
             } });
             var BoosterIdMap = {};
             $('#shops div.booster.player-inventory-content .slot').each(function () { if (this.dataset.d) {
-                var d = JSON.parse(this.dataset.d);
-                HaveBooster[d.item.identifier] = d.quantity;
-                if (d.item.id_item)
-                    BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };
+                const d = safeJsonParse(this.dataset.d, null);
+                if (d) {
+                    HaveBooster[d.item.identifier] = d.quantity;
+                    if (d.item.id_item)
+                        BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };
+                }
             } });
             setStoredValue(HHStoredVarPrefixKey + TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey + TK.haveExp, HaveExp);
@@ -16570,21 +16607,14 @@ class Shop {
             }
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
-            var nshop;
-            let shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
-            if (nshop === undefined && shopFrozenTimer.length > 0) {
+            let nshop;
+            const shopFrozenTimer = $('.shop div.shop_count span[rel="expires"]').first().text();
+            if (shopFrozenTimer.length > 0) {
                 nshop = convertTimeToInt(shopFrozenTimer);
             }
             let shopTimer = 60;
             if (nshop !== undefined && nshop !== 0) {
-                // if (Number(nshop)+1 > 2*60*60)
-                // {
-                //     shopTimer=2*60*60;
-                // }
-                // else
-                // {
                 shopTimer = Number(nshop) + 1;
-                // }
             }
             setTimer('nextShopTime', shopTimer + randomInterval(60, 180));
             if (isJSON(getStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled))
@@ -16624,21 +16654,21 @@ class Shop {
                     + '.tItemsTdItems[itemsLockStatus="noneLocked"] {color: #1B4F72}'
                     + '.tItemsTdItems[itemsLockStatus="someLocked"] {color: #FFA500}');
             }
-            let itemsCaracsNb = 16;
-            let itemsCaracs = [];
+            const itemsCaracsNb = 16;
+            const itemsCaracs = [];
             for (let i = 1; i < itemsCaracsNb + 1; i++) {
                 itemsCaracs.push(i);
             }
             itemsCaracs.push('mythic'); // Needed for mythic equipement, can't use generic method for them
-            let itemsRarity = ["common", "rare", "epic", "legendary", "mythic"];
-            let itemsLockedStatus = ["not_locked", "locked"];
-            let itemsTypeNb = 6;
-            let itemsType = [];
+            const itemsRarity = ["common", "rare", "epic", "legendary", "mythic"];
+            const itemsLockedStatus = ["not_locked", "locked"];
+            const itemsTypeNb = 6;
+            const itemsType = [];
             for (let i = 1; i < itemsTypeNb + 1; i++) {
                 itemsType.push(i);
             }
-            let itemsList = {};
-            for (let c of itemsCaracs) {
+            const itemsList = {};
+            for (const c of itemsCaracs) {
                 let filteredCarac;
                 if (c === 'mythic') {
                     filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"rarity":"mythic"\']');
@@ -16647,14 +16677,14 @@ class Shop {
                     filteredCarac = $('#player-inventory.armor .slot:not(.empty)[data-d*=\'"name_add":' + c + '\']');
                 }
                 itemsList[c] = {};
-                for (let t of itemsType) {
-                    let filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + '\']');
+                for (const t of itemsType) {
+                    const filteredType = filteredCarac.filter('[data-d*=\'"subtype":' + t + '\']');
                     itemsList[c][t] = {};
-                    for (let r of itemsRarity) {
-                        let filteredRarity = filteredType.filter('[data-d*=\'"rarity":"' + r + '"\']');
+                    for (const r of itemsRarity) {
+                        const filteredRarity = filteredType.filter('[data-d*=\'"rarity":"' + r + '"\']');
                         itemsList[c][t][r] = {};
-                        for (let l of itemsLockedStatus) {
-                            let filteredStatus = filteredRarity.filter(l === "locked" ? '[menuSellLocked]' : ':not([menuSellLocked])');
+                        for (const l of itemsLockedStatus) {
+                            const filteredStatus = filteredRarity.filter(l === "locked" ? '[menuSellLocked]' : ':not([menuSellLocked])');
                             itemsList[c][t][r][l] = filteredStatus.length;
                         }
                     }
@@ -16690,7 +16720,7 @@ class Shop {
                 + '  </tr>'
                 + '  <tr>'
                 + '   <th class="tItemsTh2">' + getTextForUI("equipementCaracs", "elementText") + '/' + getTextForUI("equipementType", "elementText") + '</th>';
-            for (let r of itemsRarity) {
+            for (const r of itemsRarity) {
                 itemsListMenu += '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[0] + ';r:' + r + '">' + getTextForUI("equipementHead", "elementText") + '</th>'
                     + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[1] + ';r:' + r + '">' + getTextForUI("equipementBody", "elementText") + '</th>'
                     + '   <th class="tItemsTh2" menuSellFilter="c:*;t:' + itemsType[2] + ';r:' + r + '">' + getTextForUI("equipementLegs", "elementText") + '</th>'
@@ -16701,20 +16731,20 @@ class Shop {
             itemsListMenu += '  </tr>'
                 + ' </thead>'
                 + ' <tbody class="tItemsTBody">';
-            for (let c of itemsCaracs) {
+            for (const c of itemsCaracs) {
                 if (c === 'mythic') {
                     itemsListMenu += '  <tr>'
                         + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*">' + getTextForUI("RarityMythic", "elementText") + '</td>';
                 }
                 else {
-                    let ext = (c === 16) ? "svg" : "png";
+                    const ext = (c === 16) ? "svg" : "png";
                     itemsListMenu += '  <tr>'
                         + '   <td class="type" menuSellFilter="c:' + c + ';t:*;r:*"><img style="height:20px;width:20px" src="' + ConfigHelper.getHHScriptVars("baseImgPath") + '/pictures/misc/items_icons/' + c + '.' + ext + '"></td>';
                 }
-                for (let r of itemsRarity) {
-                    for (let t of itemsType) {
-                        let allItems = itemsList[c][t][r];
-                        let total = allItems[itemsLockedStatus[0]] + allItems[itemsLockedStatus[1]];
+                for (const r of itemsRarity) {
+                    for (const t of itemsType) {
+                        const allItems = itemsList[c][t][r];
+                        const total = allItems[itemsLockedStatus[0]] + allItems[itemsLockedStatus[1]];
                         let displayNb = allItems[itemsLockedStatus[0]] + '/' + total;
                         let itemsLockStatus;
                         if (total === 0) {
@@ -16776,12 +16806,12 @@ class Shop {
             $('table.tItems [menuSellFilter] ').each(function () {
                 this.addEventListener("click", function () {
                     const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
-                    let toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
-                    let c = menuSellFilter[0].split(":")[1];
-                    let t = menuSellFilter[1].split(":")[1];
-                    let r = menuSellFilter[2].split(":")[1];
+                    const toLock = !(this.getAttribute("itemsLockStatus") === "allLocked");
+                    const c = menuSellFilter[0].split(":")[1];
+                    const t = menuSellFilter[1].split(":")[1];
+                    const r = menuSellFilter[2].split(":")[1];
                     AllLockUnlock(setSlotFilter(c, t, r, !toLock), toLock);
-                    let newLockStatus = toLock ? "allLocked" : "noneLocked";
+                    const newLockStatus = toLock ? "allLocked" : "noneLocked";
                     $(setCellsFilter(c, t, r)).each(function () {
                         this.setAttribute("itemsLockStatus", newLockStatus);
                     });
@@ -16802,33 +16832,20 @@ class Shop {
                 });
             }
         }
-        function lockUnlock(inFilter) {
-            if ($(inFilter).length > 0) {
-                let currentLock = $(inFilter)[0].getAttribute("menuSellLocked");
-                if (currentLock === null) {
-                    $(inFilter)[0].setAttribute("menuSellLocked", "");
-                    $(inFilter).prepend('<img class="menuSellLocked" style="position:absolute;width:32px;height:32px" src="https://i.postimg.cc/PxgxrBVB/Opponent-red.png">');
-                }
-                else {
-                    $(inFilter)[0].removeAttribute("menuSellLocked");
-                    $(inFilter + " img.menuSellLocked")[0].remove();
-                }
-            }
-        }
         let menuSellStop = false;
         var allLoaded = false;
         var menuSellMaxItems = "all";
         let fetchStarted = false;
         //ugly hack
-        let loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
-        let loadingAnimationStop = (_f = (_e = (_d = unsafeWindow.shared) === null || _d === void 0 ? void 0 : _d.animations) === null || _e === void 0 ? void 0 : _e.loadingAnimation) === null || _f === void 0 ? void 0 : _f.stop;
+        const loadingAnimationStart = (_c = (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) === null || _c === void 0 ? void 0 : _c.start;
+        const loadingAnimationStop = (_f = (_e = (_d = unsafeWindow.shared) === null || _d === void 0 ? void 0 : _d.animations) === null || _e === void 0 ? void 0 : _e.loadingAnimation) === null || _f === void 0 ? void 0 : _f.stop;
         function appendMenuSell() {
-            let menuID = "SellDialog";
+            const menuID = "SellDialog";
             if (getShopType() !== "armor") {
                 if (document.getElementById(menuID) !== null) {
                     try {
                         $(document).off('ajaxComplete', checkAjaxComplete);
-                        for (let menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"]) {
+                        for (const menu of ["menuSell", "menuSellLock", "menuSellMaskLocked"]) {
                             const GMMenuID = GM_registerMenuCommand(getTextForUI(menu, "elementText"), function () { });
                             $("#" + menu).remove();
                             GM_unregisterMenuCommand(GMMenuID);
@@ -16949,15 +16966,15 @@ class Shop {
                 $("#menuSellLock").on("click", launchMenuSellLock);
             }
             function launchMenuSellLock() {
-                let filterText = "#player-inventory.armor .slot.selected";
+                const filterText = "#player-inventory.armor .slot.selected";
                 if ($(filterText).length > 0) {
-                    let toLock = $(filterText)[0].getAttribute("menuSellLocked") === null;
+                    const toLock = $(filterText)[0].getAttribute("menuSellLocked") === null;
                     AllLockUnlock(filterText, toLock);
                 }
             }
         }
         function checkAjaxComplete(event, request, settings) {
-            let match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
+            const match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null)
                 return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
@@ -16966,32 +16983,41 @@ class Shop {
             }
         }
         function fetchAllArmorItems() {
-            let oldCount = $(itemsQuery).length;
-            $("#menuSellCurrentCount").html(oldCount + '');
-            if (allLoaded) {
-                LogUtils_logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
+            try {
+                const oldCount = $(itemsQuery).length;
+                $("#menuSellCurrentCount").html(oldCount + '');
+                if (allLoaded) {
+                    LogUtils_logHHAuto(`No more items to load, currently: ${oldCount}/${menuSellMaxItems}`);
+                }
+                else {
+                    LogUtils_logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
+                }
+                const scroll = $("#player-inventory.armor")[0];
+                const SellDialog = document.getElementById("SellDialog");
+                if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open) {
+                    $("#menuSellStop").css("display", "none");
+                    unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
+                    unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
+                    fetchStarted = false;
+                    scroll.scrollTop = 0;
+                    if (SellDialog.open) {
+                        $("#menuSellHide").css("display", "block");
+                        menuSellListItems();
+                    }
+                    else {
+                        LogUtils_logHHAuto('Sell Dialog closed, stopping');
+                    }
+                    return;
+                }
+                scroll.scrollTop = scroll.scrollHeight - scroll.offsetHeight;
             }
-            else {
-                LogUtils_logHHAuto(`Loading items, currently: ${oldCount}/${menuSellMaxItems}`);
-            }
-            let scroll = $("#player-inventory.armor")[0];
-            const SellDialog = document.getElementById("SellDialog");
-            if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open) {
-                $("#menuSellStop").css("display", "none");
+            catch (err) {
+                LogUtils_logHHAuto('Error during armor item fetch, restoring animations: ' + err);
                 unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
                 unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
                 fetchStarted = false;
-                scroll.scrollTop = 0;
-                if (SellDialog.open) {
-                    $("#menuSellHide").css("display", "block");
-                    menuSellListItems();
-                }
-                else {
-                    LogUtils_logHHAuto('Sell Dialog closed, stopping');
-                }
-                return;
+                $("#menuSellStop").css("display", "none");
             }
-            scroll.scrollTop = scroll.scrollHeight - scroll.offsetHeight;
         }
         function sellArmorEnded() {
             $("#menuSellHide").css("display", "block");
@@ -17018,7 +17044,7 @@ class Shop {
             var itemsToSell = Number(document.getElementById("menuSellNumber").value);
             $("#menuSoldCurrentCount").html("0/" + itemsToSell);
             $("#menuSoldMessage").html("");
-            let PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
+            const PlayerClass = HeroHelper.getClass() === null ? $('#equiped > div.icon.class_change_btn').attr('carac') : HeroHelper.getClass();
             function sellingEnd(message) {
                 $("#menuSoldMessage").html(message);
                 menuSellListItems();
@@ -17036,8 +17062,8 @@ class Shop {
                     sellArmorEnded();
                     return;
                 }
-                let availebleItems = $(itemsQuery);
-                let currentNumberOfItems = availebleItems.length;
+                const availebleItems = $(itemsQuery);
+                const currentNumberOfItems = availebleItems.length;
                 if (currentNumberOfItems === 0) {
                     LogUtils_logHHAuto('no more items for sale');
                     sellingEnd(getTextForUI("menuSoldMessageNoMore", "elementText"));
@@ -17064,7 +17090,7 @@ class Shop {
                     LogUtils_logHHAuto('can be sold ' + can_sell + ' : ' + availebleItems.filter('.selected')[0].getAttribute('data-d'));
                     if (can_sell) {
                         $('#shops .menu-switch-tab-content.active button.green_text_button[rel=sell]').click();
-                        let currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) + 1);
+                        const currSellNumber = Number((initialNumberOfItems - currentNumberOfItems) + 1);
                         $("#menuSoldCurrentCount").html(currSellNumber + "/" + itemsToSell);
                         $("#menuSellCurrentCount").html($(itemsQuery).length + '');
                         setTimeout(selling_func, randomInterval(300, 700));
@@ -17080,34 +17106,28 @@ class Shop {
                     return;
                 }
                 else if (availebleItems.filter(':not(.selected)').length > 0) {
-                    let typesOfSets = ['EQ-LE-06', 'EQ-LE-05', 'EQ-LE-04', 'EQ-LE-0' + PlayerClass];
-                    let caracsOfSets = ['carac' + PlayerClass, 'chance', 'endurance', 'carac' + PlayerClass];
+                    const typesOfSets = ['EQ-LE-06', 'EQ-LE-05', 'EQ-LE-04', 'EQ-LE-0' + PlayerClass];
+                    const caracsOfSets = ['carac' + PlayerClass, 'chance', 'endurance', 'carac' + PlayerClass];
                     //[MaxCarac,Index]
-                    let arraysOfSets = [
+                    const arraysOfSets = [
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-06'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-05'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]], //'EQ-LE-04'
                         [[-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] //'EQ-LE-0'+ PlayerClass
                     ];
-                    /*//Take equipped items into account
-                    for (let indexType = 0; indexType < typesOfSets.length; indexType++)
-                    {
-                        let equipedArray = $('#equiped .armor .slot[data-d*=' + typesOfSets[indexType] + ']');
-                        for (let i5 = 0; i5 < equipedArray.length; i5++) {
-                            let equipedObj = JSON.parse($(equipedArray[i5]).attr('data-d'));
-                            arraysOfSets[indexType][equipedObj.subtype][0] = equipedObj[caracsOfSets[indexType]];
-                        }
-                    }*/
                     for (let i4 = 0; i4 < availebleItems.length; i4++) {
-                        let sellableItemObj = JSON.parse($(availebleItems[i4]).attr('data-d') || '');
-                        let indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
-                        if (indexType == -1) {
+                        const sellableItemObj = safeJsonParse($(availebleItems[i4]).attr('data-d'), null);
+                        if (!sellableItemObj) {
+                            continue;
+                        }
+                        const indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
+                        if (indexType === -1) {
                             //console.log('can_sell2');
                             availebleItems[i4].setAttribute('canBeSold', '');
                         }
                         else {
-                            let currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
-                            let itemCarac = sellableItemObj[caracsOfSets[indexType]];
+                            const currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
+                            const itemCarac = sellableItemObj[caracsOfSets[indexType]];
                             //checking best gear in inventory based on best class stat
                             if (currentBest[0] < itemCarac) {
                                 currentBest[0] = itemCarac;
@@ -17121,7 +17141,7 @@ class Shop {
                             }
                         }
                     }
-                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length == 0) {
+                    if ($('#player-inventory.armor [canBeSold]:not([menuSellLocked]):not(.mythic)').length === 0) {
                         LogUtils_logHHAuto('no more items for sale');
                         sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
                         return;
@@ -20943,6 +20963,22 @@ const handleQuest = {
                         setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
                     }
                     const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+                    // Interim guard (full fix tracked for the step-17 multi-step scheduler):
+                    // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
+                    // without navigating. Without this the bot strands on /quest.html and
+                    // handleQuest ticks empty every ~2s while other modules (salary, ...)
+                    // never run. Route home so the normal loop resumes; auto-quest navigates
+                    // back once the resource is available. The 'none' branch keeps its own
+                    // equivalent guard; the manual-action branches (unknownQuestButton /
+                    // outfit / errorInAutoBattle) intentionally stay on the quest screen and
+                    // must NOT call this.
+                    const routeHomeIfWaitingOnQuest = () => {
+                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+                        if (!ctx.busy && onQuestPage) {
+                            LogUtils_logHHAuto('Quest waiting for resources, returning home.');
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                        }
+                    };
                     if (questRequirement === 'battle') {
                         if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
                             LogUtils_logHHAuto('Quest requires battle.');
@@ -20969,6 +21005,7 @@ const handleQuest = {
                             }
                             ctx.busy = false;
                         }
+                        routeHomeIfWaitingOnQuest();
                     }
                     else if (questRequirement[0] === '*') {
                         const energyNeeded = Number(questRequirement.substr(1));
@@ -20988,6 +21025,7 @@ const handleQuest = {
                             setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
                             ctx.busy = false;
                         }
+                        routeHomeIfWaitingOnQuest();
                     }
                     else if (questRequirement[0] === 'P') {
                         const neededPower = Number(questRequirement.substr(1));
@@ -21002,6 +21040,7 @@ const handleQuest = {
                             QuestHelper.run();
                             ctx.busy = true;
                         }
+                        routeHomeIfWaitingOnQuest();
                     }
                     else if (questRequirement === 'unknownQuestButton') {
                         setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
@@ -29654,6 +29693,11 @@ function start() {
 // error pages, and delegates to start() which sets up the full menu,
 // timers, and auto-loop.
 
+
+
+// Inject the autoLoop kick into Pachinko so it can restart the loop after a
+// run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
+setPachinkoAutoLoopKick(autoLoop);
 hardened_start();
 
 /******/ })()

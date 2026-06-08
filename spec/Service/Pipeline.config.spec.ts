@@ -833,6 +833,58 @@ describe('Pipeline.config', () => {
 
       ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
     });
+
+    it('routes home when waiting for quest energy on the quest page (questRequirement *23)', async () => {
+      // Energy-wait interim guard: questRequirement '*23' with current energy
+      // below the needed amount must route home instead of stranding the bot
+      // on /quest.html (where handleQuest would tick empty every ~2s).
+      const gotoPageMock = jest.requireMock('../../src/Service/PageNavigationService').gotoPage as jest.Mock;
+      const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+      const QuestHelperMock = jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+      const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+      gotoPageMock.mockClear();
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      QuestHelperMock.getEnergy.mockReturnValue(0); // below the 23 needed
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return '*23';
+        return undefined;
+      });
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDQuest' });
+      await handler.steps[0].fn(ctx);
+
+      expect(gotoPageMock).toHaveBeenCalledWith('pagesIDHome');
+      expect(QuestHelperMock.run).not.toHaveBeenCalled();
+
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+      QuestHelperMock.getEnergy.mockReturnValue(0);
+    });
+
+    it('does NOT route home for the energy-wait state when off the quest page (questRequirement *23)', async () => {
+      const gotoPageMock = jest.requireMock('../../src/Service/PageNavigationService').gotoPage as jest.Mock;
+      const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+      const QuestHelperMock = jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+      const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+      gotoPageMock.mockClear();
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      QuestHelperMock.getEnergy.mockReturnValue(0);
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return '*23';
+        return undefined;
+      });
+
+      const ctx = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDHome' });
+      await handler.steps[0].fn(ctx);
+
+      expect(gotoPageMock).not.toHaveBeenCalled();
+
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+      QuestHelperMock.getEnergy.mockReturnValue(0);
+    });
   });
 
   describe('battle-result page guard (issue #1740)', () => {

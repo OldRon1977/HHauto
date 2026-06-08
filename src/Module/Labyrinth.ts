@@ -74,18 +74,18 @@ export class Labyrinth {
     }
 
     static moduleBuildTeam():void{
-        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) == "true";
-        if (customTeamBuilder && $(`.${Labyrinth.BUILD_BUTTON_ID}`).length == 0) {
+        const customTeamBuilder = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyCustomTeamBuilder) === "true";
+        if (customTeamBuilder && $(`.${Labyrinth.BUILD_BUTTON_ID}`).length === 0) {
             const divButtons = $('<div style="position:absolute;left:-55px;top:-310px;width:150%;display:flex;gap:4px;z-index:1"></div>');
 
 
             const options = '<option value="1">Tank</option><option value="2">Mage</option><option value="3">Attack</option>';
-            ['Back', 'Mid', 'Front'].forEach((value, index) => {
+            ['Back', 'Mid', 'Front'].forEach((value) => {
                 const select = hhMenuSelect('autoLabyrinthBuild' + value, '', options);
                 divButtons.append(select);
             });
 
-            ['Team'/*, 'Tank', 'Mage', 'Attack'*/].forEach((value, index) => {
+            ['Team'/*, 'Tank', 'Mage', 'Attack'*/].forEach((value) => {
                 const button = $(`<button id="${Labyrinth.BUILD_BUTTON_ID + value}" class="blue_button_L ${Labyrinth.BUILD_BUTTON_ID}" style="padding: 5px;flex-grow: 1;"></button>`);
                 button.text(getTextForUI("autoLabyrinthBuild" + value, "elementText"));
                 button.on('click', Labyrinth._buildTeam);
@@ -114,7 +114,7 @@ export class Labyrinth {
                     freeGirls[i].trigger('click');
                     await TimeHelper.sleep(randomInterval(400, 700));
                 }
-            } catch (err) {
+            } catch {
                 logHHAuto('Error during changing low power girls');
             }
         }
@@ -132,7 +132,7 @@ export class Labyrinth {
         logHHAuto("setting autoloop to false");
 
         $(`.${Labyrinth.BUILD_BUTTON_ID}`).attr('disabled','disabled');
-        if ($(Labyrinth.HAREM_SELECTED_GIRLS).length == 0) {
+        if ($(Labyrinth.HAREM_SELECTED_GIRLS).length === 0) {
             $('#auto-fill-team:not([disabled])').trigger('click');
             await TimeHelper.sleep(randomInterval(200, 500));
         }
@@ -150,14 +150,14 @@ export class Labyrinth {
 
         const girlClassMid = Number($('#autoLabyrinthBuildMid').val());
         const midGirls = Labyrinth.getHaremGirl(girlClassMid, false, 5);
-        let midGirlIndex = girlClassMid == girlClassFront ? frontGirlIndex : 0;
+        let midGirlIndex = girlClassMid === girlClassFront ? frontGirlIndex : 0;
         if (midGirls.length >= (midGirlIndex + 1)) await Labyrinth._selectGirl(1, midGirls[midGirlIndex++]);
         if (midGirls.length >= (midGirlIndex + 1)) await Labyrinth._selectGirl(0, midGirls[midGirlIndex++]);
         if (midGirls.length >= (midGirlIndex + 1)) await Labyrinth._selectGirl(4, midGirls[midGirlIndex++]);
 
         const girlClassBack = Number($('#autoLabyrinthBuildBack').val());
         const backGirls = Labyrinth.getHaremGirl(girlClassBack, false, 7);
-        let backGirlIndex = girlClassBack == girlClassMid ? midGirlIndex : girlClassBack == girlClassFront ? frontGirlIndex : 0;
+        let backGirlIndex = girlClassBack === girlClassMid ? midGirlIndex : girlClassBack === girlClassFront ? frontGirlIndex : 0;
         if (backGirls.length >= (backGirlIndex+2)) {
             //await Labyrinth._buildTwoGirlsRow(5, 6, backGirls[backGirlIndex++], backGirls[backGirlIndex++]);
         }
@@ -180,7 +180,7 @@ export class Labyrinth {
 
     static async _selectGirl(girlPosition: number, girlToBeSelected: JQuery<HTMLElement>) {
         const girl = $('.team-hexagon .team-member-container.selectable[data-team-member-position="' + girlPosition + '"]');
-        if (girl.attr('data-girl-id') != girlToBeSelected.attr('id_girl')) {
+        if (girl.attr('data-girl-id') !== girlToBeSelected.attr('id_girl')) {
             girl.trigger('click');
             await TimeHelper.sleep(randomInterval(400, 700));
             girlToBeSelected.trigger('click');
@@ -204,10 +204,10 @@ export class Labyrinth {
         const haremGirlSelector = '.harem-panel-girls .harem-girl-container' + (excludeSelected ? ':not(.selected)' : '');
         const hardCoreGirls = [];
 
-        let girls = $(haremGirlSelector);
+        const girls = $(haremGirlSelector);
         for (let i = 0; i < girls.length && hardCoreGirls.length <= numberOfGirls; i++) {
             const tooltipData = $('.girl_img', $(girls[i])).attr(<string>ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
-            if (tooltipData == '') {
+            if (tooltipData === '') {
                 logHHAuto('ERROR, no girl information found');
                 continue;
             }
@@ -217,7 +217,7 @@ export class Labyrinth {
                 continue;
             }
             const remainingEgo = Number($('.ego-bar-container span', $(girls[i])).text().replace('%', ''))
-            if ((girlClass == 0 || obj.class == girlClass) && remainingEgo > 50) {
+            if ((girlClass === 0 || obj.class === girlClass) && remainingEgo > 50) {
                 hardCoreGirls.push($(girls[i]));
             }
         }
@@ -228,7 +228,7 @@ export class Labyrinth {
         const teamGirlSelector = '.team-hexagon .team-member-container';
         const lowPowerGirls = [];
 
-        let haremGirls = $(Labyrinth.HAREM_SELECTED_GIRLS);
+        const haremGirls = $(Labyrinth.HAREM_SELECTED_GIRLS);
         for (let i = 0; i < haremGirls.length; i++) {
             const id_girl = $(haremGirls[i]).attr('id_girl');
 
@@ -244,7 +244,7 @@ export class Labyrinth {
     static sim(){
         if(getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinth"))
         {
-            if ($('#labyrinth_reward_popup .relic-container').length > 0 && $('.relicChosen').length == 0) {
+            if ($('#labyrinth_reward_popup .relic-container').length > 0 && $('.relicChosen').length === 0) {
                 /* Reward to be selected */
                 const relicManager = new RelicManager();
 
@@ -323,13 +323,11 @@ export class Labyrinth {
                 });
             }
         }
-        // remove first empty rows
-        //matrix.shift();
         
 
 
         let paths: LabyrinthOpponent[][] = Labyrinth.createPathFromMatrix(matrix);
-        let pathsWithTreasuer: LabyrinthOpponent[][] = Labyrinth.filterPathWithNoTreasue(paths);
+        const pathsWithTreasuer: LabyrinthOpponent[][] = Labyrinth.keepPathsWithTreasure(paths);
         if(pathsWithTreasuer.length > 0) {
             paths = pathsWithTreasuer;
         }
@@ -337,7 +335,7 @@ export class Labyrinth {
         return paths;
     }
 
-    static filterPathWithNoTreasue(paths: LabyrinthOpponent[][]): LabyrinthOpponent[][] {
+    static keepPathsWithTreasure(paths: LabyrinthOpponent[][]): LabyrinthOpponent[][] {
         return filterPathsWithTreasure(paths);
     }
 
@@ -362,8 +360,8 @@ export class Labyrinth {
     }
 
     static findBetter(options: LabyrinthOpponent[]): LabyrinthOpponent{
-        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) == "true";
-        const haveGirlWounded = unsafeWindow.girl_squad.filter(girl => girl.remaining_ego_percent < 100).length > 0;
+        const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
+        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter(girl => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled) logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled) logHHAuto("haveGirlWounded " + haveGirlWounded);
@@ -420,7 +418,7 @@ export class Labyrinth {
             isTreasure: type.indexOf('treasure') >= 0,
             isShrine: type.indexOf('shrine') >= 0,
             isNext: type.indexOf('upcoming-hex') < 0,
-            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power'))
+            power: Number($('.opponent-power .opponent-power-text', hex).attr('data-power')) || 0
         };
     }
 }

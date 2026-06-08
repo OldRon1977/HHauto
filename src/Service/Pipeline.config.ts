@@ -1001,6 +1001,22 @@ const handleQuest: HandlerConfig = {
           setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
         }
         const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) as string;
+        // Interim guard (full fix tracked for the step-17 multi-step scheduler):
+        // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
+        // without navigating. Without this the bot strands on /quest.html and
+        // handleQuest ticks empty every ~2s while other modules (salary, ...)
+        // never run. Route home so the normal loop resumes; auto-quest navigates
+        // back once the resource is available. The 'none' branch keeps its own
+        // equivalent guard; the manual-action branches (unknownQuestButton /
+        // outfit / errorInAutoBattle) intentionally stay on the quest screen and
+        // must NOT call this.
+        const routeHomeIfWaitingOnQuest = () => {
+          const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+          if (!ctx.busy && onQuestPage) {
+            logHHAuto('Quest waiting for resources, returning home.');
+            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+          }
+        };
         if (questRequirement === 'battle') {
           if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
             logHHAuto('Quest requires battle.');
@@ -1025,6 +1041,7 @@ const handleQuest: HandlerConfig = {
             }
             ctx.busy = false;
           }
+          routeHomeIfWaitingOnQuest();
         } else if (questRequirement[0] === '*') {
           const energyNeeded = Number(questRequirement.substr(1));
           const energyCurrent = QuestHelper.getEnergy();
@@ -1041,6 +1058,7 @@ const handleQuest: HandlerConfig = {
             setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
             ctx.busy = false;
           }
+          routeHomeIfWaitingOnQuest();
         } else if (questRequirement[0] === 'P') {
           const neededPower = Number(questRequirement.substr(1));
           if (ctx.currentPower < neededPower) {
@@ -1053,6 +1071,7 @@ const handleQuest: HandlerConfig = {
             QuestHelper.run();
             ctx.busy = true;
           }
+          routeHomeIfWaitingOnQuest();
         } else if (questRequirement === 'unknownQuestButton') {
           setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
           if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {

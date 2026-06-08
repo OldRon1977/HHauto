@@ -14,6 +14,8 @@
 // timers, and auto-loop.
 
 import { hardened_start } from "./Service/StartService";
+import { autoLoop } from "./Service/AutoLoop";
+import { setPachinkoAutoLoopKick } from "./Module/Pachinko";
 import { KKLoveRaid } from "./model/KK/KKLoveRaid";
 import { KKPentaDrillOpponents } from "./model/KK/KKPentaDrillOpponents";
 import { KKHero } from "./model/KK/KKHero";
@@ -84,5 +86,9 @@ declare global {
         love_raids:KKLoveRaid[]|undefined;
     }
 }
+
+// Inject the autoLoop kick into Pachinko so it can restart the loop after a
+// run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
+setPachinkoAutoLoopKick(autoLoop);
 
 hardened_start();
