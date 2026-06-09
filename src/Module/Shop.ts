@@ -97,6 +97,63 @@ export class Shop {
         return false;
     }
 
+    /**
+     * Build a jQuery selector for armor inventory slots matching the given
+     * carac/type/rarity/lock filter. Pure string builder extracted from
+     * moduleShopActions (Shop review I4) so it can be unit-tested. "*" means
+     * "any" for carac/type/rarity; inLockedValue true/"locked" selects locked
+     * slots, anything else selects unlocked.
+     */
+    private static buildSlotFilter(inCaracsValue: string, inTypeValue: string, inRarityValue: string, inLockedValue: string | boolean): string
+    {
+        let filter='#player-inventory.armor .slot:not(.empty)';
+        if (inCaracsValue !== "*" )
+        {
+            filter+='[data-d*=\'"name_add":"'+inCaracsValue+'"\']';
+        }
+        if (inTypeValue !== "*" )
+        {
+            filter+='[data-d*=\'"subtype":"'+inTypeValue+'"\']';
+        }
+        if (inRarityValue !== "*" )
+        {
+            filter+='[data-d*=\'"rarity":"'+inRarityValue+'"\']';
+        }
+        if (inLockedValue === "locked" || inLockedValue === true)
+        {
+            filter+='[menuSellLocked]';
+        }
+        else
+        {
+            filter+=':not([menuSellLocked])';
+        }
+        return filter;
+    }
+
+    /**
+     * Build a jQuery selector for the sell-menu table cells matching the given
+     * carac/type/rarity filter. Pure string builder extracted from
+     * moduleShopActions (Shop review I4) for unit-testing. "*" means "any".
+     */
+    private static buildCellsFilter(inCaracsValue: string, inTypeValue: string, inRarityValue: string): string
+    {
+        let filter='table.tItems [menuSellFilter*="';
+        if (inCaracsValue !== "*" )
+        {
+            filter+='c:'+inCaracsValue+';';
+        }
+        if (inTypeValue !== "*" )
+        {
+            filter+='t:'+inTypeValue+';';
+        }
+        if (inRarityValue !== "*" )
+        {
+            filter+='r:'+inRarityValue;
+        }
+        filter+='"]';
+        return filter;
+    }
+
     static moduleShopActions()
     {
         const itemsQuery = '#player-inventory.armor .slot:not(.empty):not([menuSellLocked]):not(.mythic)';
@@ -277,51 +334,6 @@ export class Shop {
                 +'</table>';
             $("#menuSellList").html(itemsListMenu);
     
-            function setSlotFilter(inCaracsValue,inTypeValue,inRarityValue,inLockedValue)
-            {
-                let filter='#player-inventory.armor .slot:not(.empty)';
-                if (inCaracsValue !== "*" )
-                {
-                    filter+='[data-d*=\'"name_add":"'+inCaracsValue+'"\']';
-                }
-                if (inTypeValue !== "*" )
-                {
-                    filter+='[data-d*=\'"subtype":"'+inTypeValue+'"\']';
-                }
-                if (inRarityValue !== "*" )
-                {
-                    filter+='[data-d*=\'"rarity":"'+inRarityValue+'"\']';
-                }
-                if (inLockedValue === "locked" || inLockedValue === true)
-                {
-                    filter+='[menuSellLocked]';
-                }
-                else
-                {
-                    filter+=':not([menuSellLocked])';
-                }
-                return filter;
-            }
-    
-            function setCellsFilter(inCaracsValue,inTypeValue,inRarityValue)
-            {
-                let filter='table.tItems [menuSellFilter*="';
-                if (inCaracsValue !== "*" )
-                {
-                    filter+='c:'+inCaracsValue+';';
-                }
-                if (inTypeValue !== "*" )
-                {
-                    filter+='t:'+inTypeValue+';';
-                }
-                if (inRarityValue !== "*" )
-                {
-                    filter+='r:'+inRarityValue;
-                }
-                filter+='"]';
-                return filter;
-            }
-    
             $('table.tItems [menuSellFilter] ').each(function(){
                 this.addEventListener("click", function(){
                     const menuSellFilter = (this.getAttribute("menuSellFilter") || '').split(";");
@@ -329,9 +341,9 @@ export class Shop {
                     const c=menuSellFilter[0].split(":")[1];
                     const t=menuSellFilter[1].split(":")[1];
                     const r=menuSellFilter[2].split(":")[1];
-                    AllLockUnlock(setSlotFilter(c,t,r,!toLock),toLock);
+                    AllLockUnlock(Shop.buildSlotFilter(c,t,r,!toLock),toLock);
                     const newLockStatus = toLock?"allLocked":"noneLocked";
-                    $(setCellsFilter(c,t,r)).each(function(){
+                    $(Shop.buildCellsFilter(c,t,r)).each(function(){
                         this.setAttribute("itemsLockStatus",newLockStatus);
                     });
                 });

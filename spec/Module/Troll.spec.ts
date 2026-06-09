@@ -88,6 +88,28 @@ describe("Troll module", function () {
                 expect(canBuy.max).toBe(50);
                 expect(canBuy.toBuy).toBe(50);
             });
+
+            it("blocks x50 for a non-mythic girl when AllowNormalEvent is off, falling back to x20", function () {
+                localStorage.setItem(HHStoredVarPrefixKey + SK.spendKobans0, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.buyCombat, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.plusEvent, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.buyCombTimer, '1');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.useX50Fights, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.minShardsX50, '20');
+                // useX50FightsAllowNormalEvent intentionally NOT set.
+                localStorage.setItem(HHStoredVarPrefixKey + SK.kobanBank, '0');
+                setTimer('eventGoing', 1000);
+                unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
+                unsafeWindow.shared.Hero.energies.fight.amount = 0;
+
+                const eventGirl = { girl_id: 1, is_mythic: false, shards: 0, troll_id: 1 } as EventGirl;
+                const canBuy = Troll.canBuyFight(eventGirl);
+
+                // x50 gate fails (non-mythic + AllowNormalEvent off) -> x20 fallback.
+                expect(canBuy.canBuy).toBeTruthy();
+                expect(canBuy.max).toBe(20);
+                expect(canBuy.toBuy).toBe(20);
+            });
         });
         describe("Mythic event girl", function () {
             it("allows buying 20 fights for mythic event girl", function () {
@@ -107,6 +129,28 @@ describe("Troll module", function () {
                 expect(canBuy.event_mythic).toBe("true");
                 expect(canBuy.max).toBe(20);
                 expect(canBuy.toBuy).toBe(20);
+            });
+
+            it("allows x50 for a mythic girl without AllowNormalEvent set", function () {
+                localStorage.setItem(HHStoredVarPrefixKey + SK.spendKobans0, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.plusEventMythic, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.buyMythicCombat, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.buyMythicCombTimer, '1');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.useX50Fights, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.minShardsX50, '20');
+                // useX50FightsAllowNormalEvent NOT set: mythic must bypass that gate.
+                localStorage.setItem(HHStoredVarPrefixKey + SK.kobanBank, '0');
+                setTimer('eventMythicGoing', 1000);
+                unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
+                unsafeWindow.shared.Hero.energies.fight.amount = 0;
+
+                const eventGirl = { girl_id: 1, is_mythic: true, shards: 0, troll_id: 3 } as EventGirl;
+                const canBuy = Troll.canBuyFight(eventGirl);
+
+                expect(canBuy.canBuy).toBeTruthy();
+                expect(canBuy.event_mythic).toBe("true");
+                expect(canBuy.max).toBe(50);
+                expect(canBuy.toBuy).toBe(50);
             });
         });
         describe("Mythic + event girl", function () {
@@ -128,10 +172,99 @@ describe("Troll module", function () {
     });
 
     describe("canBuyFightForRaid", function () {
+        // pricePerFight = seconds_per_point (1800, from beforeEach) *
+        // (hh_prices.fight_cost_per_minute (0.36) / 60) = 10.8 per fight.
+        // All buy-gated (kobanUsing) settings are inert unless the master
+        // Setting_spendKobans0 switch is "true" (see StorageHelper.getStoredValue).
+        function baseRaid(overrides: Partial<LoveRaid> = {}): LoveRaid {
+            return {
+                id_girl: 5,
+                trollId: 1,
+                girl_shards: 0,
+                seconds_until_event_end: 1000,
+                ...overrides,
+            } as LoveRaid;
+        }
+
+        function enableRaidBuying() {
+            jest.spyOn(LoveRaidManager, "isAnyActivated").mockReturnValue(true);
+            localStorage.setItem(HHStoredVarPrefixKey + SK.spendKobans0, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.buyLoveRaidCombat, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.kobanBank, '0');
+            unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
+            unsafeWindow.shared.Hero.energies.fight.amount = 0;
+        }
+
         it("default", function () {
             const canBuy = Troll.canBuyFightForRaid({} as LoveRaid);
             expect(canBuy.canBuy).toBeFalsy();
             expect(canBuy.type).toBe("fight");
+        });
+
+        it("returns false when buyLoveRaidCombat is not enabled", function () {
+            jest.spyOn(LoveRaidManager, "isAnyActivated").mockReturnValue(true);
+            localStorage.setItem(HHStoredVarPrefixKey + SK.spendKobans0, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.kobanBank, '0');
+            unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
+            unsafeWindow.shared.Hero.energies.fight.amount = 0;
+
+            const canBuy = Troll.canBuyFightForRaid(baseRaid(), false);
+            expect(canBuy.canBuy).toBeFalsy();
+        });
+
+        it("returns false when no raid mode is activated", function () {
+            jest.spyOn(LoveRaidManager, "isAnyActivated").mockReturnValue(false);
+            localStorage.setItem(HHStoredVarPrefixKey + SK.spendKobans0, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.buyLoveRaidCombat, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.kobanBank, '0');
+            unsafeWindow.shared.Hero.currencies = { hard_currency: 1000 };
+            unsafeWindow.shared.Hero.energies.fight.amount = 0;
+
+            const canBuy = Troll.canBuyFightForRaid(baseRaid(), false);
+            expect(canBuy.canBuy).toBeFalsy();
+        });
+
+        it("allows buying 50 fights when min shards and x50 settings are enabled", function () {
+            enableRaidBuying();
+            localStorage.setItem(HHStoredVarPrefixKey + SK.useX50Fights, 'true');
+            localStorage.setItem(HHStoredVarPrefixKey + SK.minShardsX50, '20');
+
+            // girl_shards 0 -> remainingShards 100 >= minShardsX50; the raid x50
+            // path needs no AllowNormalEvent gate (unlike canBuyFight).
+            const canBuy = Troll.canBuyFightForRaid(baseRaid({ girl_shards: 0 }));
+            expect(canBuy.canBuy).toBeTruthy();
+            expect(canBuy.max).toBe(50);
+            expect(canBuy.toBuy).toBe(50);
+        });
+
+        it("falls back to the x20 path and preserves the max/toBuy mismatch quirk", function () {
+            enableRaidBuying();
+            // x50 disabled -> fallback path. autoBuy 30 drives eventAutoBuy=30.
+            localStorage.setItem(HHStoredVarPrefixKey + SK.autoBuyLoveRaidTrollNumber, '30');
+
+            const canBuy = Troll.canBuyFightForRaid(baseRaid({ girl_shards: 0 }));
+            expect(canBuy.canBuy).toBeTruthy();
+            // Documented quirk (Troll review I5/F2): max stays the 20 constant
+            // while toBuy/price use eventAutoBuy (30). Pinned so the I5 refactor
+            // preserves it byte-for-byte.
+            expect(canBuy.max).toBe(20);
+            expect(canBuy.toBuy).toBe(30);
+            expect(canBuy.price).toBeCloseTo(10.8 * 30, 5);
+        });
+
+        it("returns false when kobans are insufficient", function () {
+            enableRaidBuying();
+            unsafeWindow.shared.Hero.currencies = { hard_currency: 1 };
+
+            const canBuy = Troll.canBuyFightForRaid(baseRaid({ girl_shards: 0 }));
+            expect(canBuy.canBuy).toBeFalsy();
+        });
+
+        it("returns false when the girl is already won (shards >= 100)", function () {
+            enableRaidBuying();
+
+            const canBuy = Troll.canBuyFightForRaid(baseRaid({ girl_shards: 100 }), false);
+            expect(canBuy.canBuy).toBeFalsy();
         });
     });
 

@@ -776,85 +776,72 @@ export class Troll {
     }
 
     
-    static canBuyFight(eventGirl:EventGirl, logging=true)
+    /**
+     * Shared core for canBuyFight / canBuyFightForRaid (Troll review I5).
+     * Each public wrapper computes its strategy-specific buy amounts, the
+     * activation predicate and the x50 gate, then delegates the common
+     * shard/energy gate, x50-vs-x20 decision, koban check, logging and result
+     * assembly here. Behavior-preserving: the raid path keeps its historical
+     * max(=20)/toBuy(=eventAutoBuy) mismatch through separate maxx20 and
+     * x20BuyAmount params.
+     */
+    private static evaluateFightPurchase(p: {
+        shards: number | undefined;
+        currentFight: number;
+        pricePerFight: number;
+        activated: boolean;
+        eventMythic: string;
+        maxx50: number;
+        maxx20: number;
+        x20BuyAmount: number;
+        x50Allowed: boolean;
+        logging: boolean;
+    })
     {
-        const type="fight";
-        const hero=getHero();
-        const result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
-        const MAX_BUY = 200;
-        let maxx50 = 50;
-        let maxx20 = 20;
-        const currentFight = Troll.getEnergy();
-        const eventAutoBuy =  Math.min(Number(getStoredValue(HHStoredVarPrefixKey+SK.autoBuyTrollNumber))       || maxx20, MAX_BUY-currentFight);
-        const mythicAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey+SK.autoBuyMythicTrollNumber)) || maxx20, MAX_BUY-currentFight);
-        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
-        let remainingShards:number;
+        const result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:"fight"};
 
         // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
-        if (Number.isInteger(eventGirl?.shards) && currentFight === 0 && eventGirl.shards < 100)
+        if (Number.isInteger(p.shards) && p.currentFight === 0 && (p.shards as number) < 100)
         {
-            if (
-                (
-                    getStoredValue(HHStoredVarPrefixKey+SK.buyCombat) ==="true"
-                    && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true"
-                    && getSecondsLeft("eventGoing") !== 0
-                    && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) * 3600)
-                    && eventGirl.girl_id && !eventGirl.is_mythic
-                )
-                ||
-                (
-                    getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true"
-                    && getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true"
-                    && getSecondsLeft("eventMythicGoing") !== 0
-                    && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) * 3600)
-                    && eventGirl.is_mythic
-                )
-            )
-            {
-                result.event_mythic = eventGirl.is_mythic.toString();
-            }
-            else
+            if (!p.activated)
             {
                 return result;
             }
+            result.event_mythic = p.eventMythic;
 
-            maxx50 = result.event_mythic === "true" ? Math.max(maxx50, mythicAutoBuy) : Math.max(maxx50, eventAutoBuy);
-            maxx20 = result.event_mythic === "true" ? mythicAutoBuy : eventAutoBuy;
-
-            //console.log(result);
-            remainingShards = Number(100 - eventGirl.shards);
+            const remainingShards = Number(100 - (p.shards as number));
             const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
             if
                 (
                     minShardsx50 !== undefined && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
-                    && HeroHelper.getKoban()>= (pricePerFight * maxx50)+Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank))
+                    && HeroHelper.getKoban()>= (p.pricePerFight * p.maxx50)+Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank))
                     && getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true"
-                    && currentFight < maxx50
-                    && ( result.event_mythic === "true" || getStoredValue(HHStoredVarPrefixKey+SK.useX50FightsAllowNormalEvent) === "true")
+                    && p.currentFight < p.maxx50
+                    && p.x50Allowed
                 )
             {
-                result.max = maxx50;
+                result.max = p.maxx50;
                 result.canBuy = true;
-                result.price = pricePerFight * maxx50;
-                result.toBuy = maxx50;
+                result.price = p.pricePerFight * p.maxx50;
+                result.toBuy = p.maxx50;
             }
             else
             {
 
-                if (logging && getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true")
+                if (p.logging && getStoredValue(HHStoredVarPrefixKey+SK.useX50Fights) === "true")
                 {
-                    logHHAuto(`Unable to recharge up to ${maxx50} for ${pricePerFight * maxx50} kobans : current energy : ${currentFight}, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                    logHHAuto(`Unable to recharge up to ${p.maxx50} for ${p.pricePerFight * p.maxx50} kobans : current energy : ${p.currentFight}, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
                 }
-                if (HeroHelper.getKoban()>=(pricePerFight * maxx20)+Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank)))
+                if (HeroHelper.getKoban()>=(p.pricePerFight * p.x20BuyAmount)+Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank)))
                 {
-                    result.max = maxx20;
+                    result.max = p.maxx20;
                     result.canBuy = true;
-                    result.price = pricePerFight * maxx20;
-                    result.toBuy = maxx20;
+                    result.price = p.pricePerFight * p.x20BuyAmount;
+                    result.toBuy = p.x20BuyAmount;
                 }
-                else if (logging)
+                else if (p.logging)
                 {
-                    logHHAuto(`Unable to recharge up to ${maxx20} for ${pricePerFight * maxx20} kobans : current energy : ${currentFight}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                    logHHAuto(`Unable to recharge up to ${p.x20BuyAmount} for ${p.pricePerFight * p.x20BuyAmount} kobans : current energy : ${p.currentFight}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
                 }
             }
         }
@@ -862,69 +849,86 @@ export class Troll {
         return result;
     }
 
+    static canBuyFight(eventGirl:EventGirl, logging=true)
+    {
+        const type="fight";
+        const hero=getHero();
+        const MAX_BUY = 200;
+        const currentFight = Troll.getEnergy();
+        const eventAutoBuy =  Math.min(Number(getStoredValue(HHStoredVarPrefixKey+SK.autoBuyTrollNumber))       || 20, MAX_BUY-currentFight);
+        const mythicAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey+SK.autoBuyMythicTrollNumber)) || 20, MAX_BUY-currentFight);
+        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
+
+        let activated = false;
+        let eventMythic = "false";
+        if (
+            (
+                getStoredValue(HHStoredVarPrefixKey+SK.buyCombat) ==="true"
+                && getStoredValue(HHStoredVarPrefixKey+SK.plusEvent) ==="true"
+                && getSecondsLeft("eventGoing") !== 0
+                && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyCombTimer)) * 3600)
+                && eventGirl?.girl_id && !eventGirl?.is_mythic
+            )
+            ||
+            (
+                getStoredValue(HHStoredVarPrefixKey+SK.plusEventMythic) ==="true"
+                && getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true"
+                && getSecondsLeft("eventMythicGoing") !== 0
+                && (Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombTimer)) * 3600)
+                && eventGirl?.is_mythic
+            )
+        )
+        {
+            activated = true;
+            eventMythic = eventGirl.is_mythic.toString();
+        }
+
+        const maxx50 = eventMythic === "true" ? Math.max(50, mythicAutoBuy) : Math.max(50, eventAutoBuy);
+        const maxx20 = eventMythic === "true" ? mythicAutoBuy : eventAutoBuy;
+
+        return Troll.evaluateFightPurchase({
+            shards: eventGirl?.shards,
+            currentFight,
+            pricePerFight,
+            activated,
+            eventMythic,
+            maxx50,
+            maxx20,
+            x20BuyAmount: maxx20,
+            x50Allowed: (eventMythic === "true" || getStoredValue(HHStoredVarPrefixKey+SK.useX50FightsAllowNormalEvent) === "true"),
+            logging,
+        });
+    }
+
     static canBuyFightForRaid(raid:LoveRaid, logging=true)
     {
         const type="fight";
         const hero=getHero();
-        const result = {canBuy:false, price:0, max:0, toBuy:0, event_mythic:"false", type:type};
         const MAX_BUY = 200;
         const maxx20 = 20;
         const currentFight = Troll.getEnergy();
         const eventAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyLoveRaidTrollNumber)) || maxx20, MAX_BUY - currentFight);
         const maxx50 = Math.max(50, eventAutoBuy);
         const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
-        let remainingShards:number;
 
-        // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
-        if (Number.isInteger(raid?.girl_shards) && currentFight === 0 && raid.girl_shards < 100)
-        {
-            if (
-                    getStoredValue(HHStoredVarPrefixKey +SK.buyLoveRaidCombat) ==="true"
-                    && LoveRaidManager.isAnyActivated()
-                    && raid.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
-                    && raid.id_girl
-                )
-            {
-                //
-            }
-            else
-            {
-                return result;
-            }
+        const activated = !!(
+            getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
+            && LoveRaidManager.isAnyActivated()
+            && raid?.seconds_until_event_end > 0 // new Date() < new Date(raid.end_datetime)
+            && raid?.id_girl
+        );
 
-            //console.log(result);
-            remainingShards = Number(100 - raid.girl_shards);
-            const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
-            if (
-                minShardsx50 !== undefined && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
-                && HeroHelper.getKoban() >= (pricePerFight * maxx50) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))
-                && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                && currentFight < maxx50
-                //&& (result.event_mythic === "true" || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
-            ) {
-                result.max = maxx50;
-                result.canBuy = true;
-                result.price = pricePerFight * maxx50;
-                result.toBuy = maxx50;
-            }
-            else {
-
-                if (logging && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                    logHHAuto(`Unable to recharge up to ${maxx50} for ${pricePerFight * maxx50} kobans : current energy : ${currentFight}, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                }
-                if (HeroHelper.getKoban() >= (pricePerFight * eventAutoBuy) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
-                {
-                    result.max = maxx20;
-                    result.canBuy = true;
-                    result.price = pricePerFight * eventAutoBuy;
-                    result.toBuy = eventAutoBuy;
-                }
-                else if (logging) {
-                    logHHAuto(`Unable to recharge up to ${eventAutoBuy} for ${pricePerFight * eventAutoBuy} kobans : current energy : ${currentFight}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                }
-            }
-        }
-
-        return result;
+        return Troll.evaluateFightPurchase({
+            shards: raid?.girl_shards,
+            currentFight,
+            pricePerFight,
+            activated,
+            eventMythic: "false",
+            maxx50,
+            maxx20,
+            x20BuyAmount: eventAutoBuy,
+            x50Allowed: true,
+            logging,
+        });
     }
 }
