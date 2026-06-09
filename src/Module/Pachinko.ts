@@ -374,7 +374,7 @@ export class Pachinko {
         const pachinkoSelectedButton = $(buttonSelector)[0];
         const continuePachinkoSelectedButton = $(buttonContinueSelector);
         $("#PachinkoPlayedTimes").text(spendedOrbs + "/" + Pachinko.orbsToGo);
-        if (spendedOrbs < Pachinko.orbsToGo && currentOrbsLeft > 0) {
+        if (Pachinko.shouldContinuePachinkoRun(Pachinko.orbLeftOnAutoStart, currentOrbsLeft, Pachinko.orbsToGo)) {
             if (continuePachinkoSelectedButton.length > 0) {
                 continuePachinkoSelectedButton.trigger('click');
             }
@@ -496,6 +496,17 @@ export class Pachinko {
             return serverOrbsLeft;
         }
         return domOrbsLeft;
+    }
+
+    // Decides whether the X-times pachinko run should fire another pull. Pure
+    // counterpart to the stop logic in playXPachinko_func (issue 1745): the run
+    // continues only while fewer than orbsToGo orbs have been spent AND at least
+    // one orb remains. currentOrbsLeft is the resolveStopOrbsLeft() result
+    // (server-authoritative when available). Extracted to unit-test the
+    // over-consumption boundary (Pachinko review I4, Option A).
+    static shouldContinuePachinkoRun(orbLeftOnAutoStart: number, currentOrbsLeft: number, orbsToGo: number): boolean {
+        const spendedOrbs = Number(orbLeftOnAutoStart - currentOrbsLeft);
+        return spendedOrbs < orbsToGo && currentOrbsLeft > 0;
     }
 
     static getHumanPachinkoFromOrbName(orb_name: string): string

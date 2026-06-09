@@ -18,6 +18,7 @@ Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
 - IIFE ruft `hardened_start()` direkt beim Skript-Load auf
 - Fallback `setTimeout(hardened_start, 5000)` falls das Game-JS noch nicht geladen ist
 - Erweitert das globale `Window`-Interface um spielspezifische Properties (`championData`, `harem`, `hero_data`, `love_raids`, etc.) -- gelesen via `unsafeWindow`
+- Injiziert den AutoLoop-Kick in Pachinko via `setPachinkoAutoLoopKick(autoLoop)` (seit 7.35.64). Pachinko muss den Loop nach einem Run neu anstossen, importiert `autoLoop` aber nicht mehr statisch (Module->Service-Cycle vermieden, Lesson `zirkulaerer-import-tdz-crash`). Der Entry-Point ist der einzige Ort, der die Abhaengigkeit verdrahtet.
 
 ---
 
