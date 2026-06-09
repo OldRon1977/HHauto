@@ -44,3 +44,6 @@ docs-internal/REVIEW_*.md
 # Webpack bundle analyzer stats
 stats.json
 docs-internal/HANDOVER_*.md
+# Lokale Live-Test-Tracking- und Prompt-Notizen (nicht syncen)
+docs-internal/PENDING_*.md
+docs-internal/PROMPT_*.md
