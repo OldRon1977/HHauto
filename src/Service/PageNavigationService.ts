@@ -47,6 +47,11 @@ const REGEX_PASSTHROUGH: ReadonlyArray<RegExp> = [
     /^\/characters\/\d+$/,
     /^\/girl\/\d+$/,
     /^\/quest\/\d+(\?.*)?$/,
+    // Side-quests page (issue #1751): Quest.run navigates here via
+    // QuestHelper.SITE_QUEST_PAGE. The page id `side-quests` is not in the
+    // resolver map, so without this passthrough gotoPage rejects the URL and
+    // side quests never run (regression from the default-branch tightening).
+    /^\/side-quests\.html$/,
 ];
 
 // Page-ID -> URL resolver. Map lookup replaces the ~30-case switch.

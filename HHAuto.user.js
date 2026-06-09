@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.65
+// @version      7.35.66
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2253,6 +2253,11 @@ const REGEX_PASSTHROUGH = [
     /^\/characters\/\d+$/,
     /^\/girl\/\d+$/,
     /^\/quest\/\d+(\?.*)?$/,
+    // Side-quests page (issue #1751): Quest.run navigates here via
+    // QuestHelper.SITE_QUEST_PAGE. The page id `side-quests` is not in the
+    // resolver map, so without this passthrough gotoPage rejects the URL and
+    // side quests never run (regression from the default-branch tightening).
+    /^\/side-quests\.html$/,
 ];
 function buildResolverMap() {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8;
@@ -6545,9 +6550,10 @@ class QuestHelper {
         let doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
         if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
+            let navOk;
             if (quests.length > 0) {
                 LogUtils_logHHAuto("Navigating to side quest.");
-                gotoPage(quests.attr('href'));
+                navOk = gotoPage(quests.attr('href'));
             }
             else {
                 LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
@@ -6560,9 +6566,9 @@ class QuestHelper {
                 // pagesKnownList, so subsequent autoLoop iterations would keep
                 // running handlers (e.g. handleChampionTicket) on the
                 // unrecognized page and cause issue #1672's energy-burn loop.
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                navOk = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            return;
+            return navOk;
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
             // Resolve the next quest URL ourselves; the navigation service
@@ -6570,17 +6576,18 @@ class QuestHelper {
             // the page-nav refactor). When all quests are done, fall back
             // to the home page and arm the back-off timer.
             const nextQuestUrl = QuestHelper.getNextQuestLink();
+            let navOk;
             if (nextQuestUrl !== undefined) {
-                gotoPage(nextQuestUrl);
+                navOk = gotoPage(nextQuestUrl);
             }
             else {
                 LogUtils_logHHAuto("All quests finished, setting timer to check back later!");
                 if (checkTimer('nextMainQuestAttempt')) {
                     setTimer('nextMainQuestAttempt', 604800); // 1 week delay
                 }
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                navOk = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            return;
+            return navOk;
         }
         $("#popup_message close").trigger('click');
         $("#level_up close").trigger('click');
@@ -6598,11 +6605,11 @@ class QuestHelper {
         //console.log("DebugQuest proceedType : "+proceedType);
         if (proceedButtonMatch.length === 0) {
             LogUtils_logHHAuto("Could not find resume button.");
-            return;
+            return true;
         }
         else if (proceedButtonMatch.attr('disabled') && proceedType != "end_play") {
             LogUtils_logHHAuto("Button is disabled for animation wait a bit.");
-            return;
+            return true;
         }
         if (proceedType === "free") {
             LogUtils_logHHAuto("Proceeding for free.");
@@ -6627,7 +6634,7 @@ class QuestHelper {
                 else {
                     LogUtils_logHHAuto("Quest requires " + proceedCost + " Energy to proceed.");
                     setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "*" + proceedCost);
-                    return;
+                    return true;
                 }
             }
             else {
@@ -6639,7 +6646,7 @@ class QuestHelper {
                 else {
                     LogUtils_logHHAuto("Need " + proceedCost + " Money to proceed.");
                     setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "$" + proceedCost);
-                    return;
+                    return true;
                 }
             }
             //proceedButtonMatch.click();
@@ -6674,7 +6681,7 @@ class QuestHelper {
             if (proceedButtonMatch.attr('disabled') && rewards.length > 0) {
                 LogUtils_logHHAuto("Reached end of current archive. Claim reward.");
                 rewards.click();
-                return;
+                return true;
             }
             LogUtils_logHHAuto("Reached end of current play. Proceeding to next play.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
@@ -6689,7 +6696,7 @@ class QuestHelper {
         else {
             LogUtils_logHHAuto("Could not identify given resume button.");
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "unknownQuestButton");
-            return;
+            return true;
         }
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         LogUtils_logHHAuto("setting autoloop to false");
@@ -6700,6 +6707,7 @@ class QuestHelper {
             setTimeout(autoLoop, randomInterval(800, 1200));
         }, randomInterval(500, 800));
         //setTimeout(function () {location.reload();},randomInterval(800,1500));
+        return true;
     }
 }
 QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
@@ -21011,8 +21019,7 @@ const handleQuest = {
                         if (Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
                             LogUtils_logHHAuto('Continuing quest, required money obtained.');
                             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                            QuestHelper.run();
-                            ctx.busy = true;
+                            ctx.busy = QuestHelper.run();
                         }
                         else {
                             setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
@@ -21032,8 +21039,7 @@ const handleQuest = {
                             if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
                                 LogUtils_logHHAuto('Continuing quest, required energy obtained.');
                                 setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                                QuestHelper.run();
-                                ctx.busy = true;
+                                ctx.busy = QuestHelper.run();
                             }
                             else {
                                 ctx.busy = false;
@@ -21055,8 +21061,7 @@ const handleQuest = {
                         else {
                             LogUtils_logHHAuto('Battle Power obtained, resuming quest...');
                             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                            QuestHelper.run();
-                            ctx.busy = true;
+                            ctx.busy = QuestHelper.run();
                         }
                         routeHomeIfWaitingOnQuest();
                     }
@@ -21121,8 +21126,7 @@ const handleQuest = {
                     else if (questRequirement === 'none') {
                         if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
                             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-                                ctx.busy = true;
-                                QuestHelper.run();
+                                ctx.busy = QuestHelper.run();
                             }
                         }
                         // Idle/home guard: when there is nothing left to do on the quest

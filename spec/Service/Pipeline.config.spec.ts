@@ -885,6 +885,47 @@ describe('Pipeline.config', () => {
       ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
       QuestHelperMock.getEnergy.mockReturnValue(0);
     });
+
+    it('derives busy from QuestHelper.run() so a failed nav does not starve later handlers (issue #1752)', async () => {
+      // none-branch: handleQuest used to set ctx.busy=true optimistically before
+      // QuestHelper.run(). When run() navigated to an unreachable URL (e.g.
+      // /side-quests.html before #1751) the nav silently failed but busy stayed
+      // true, blocking every handler after handleQuest (Pantheon/PentaDrill/
+      // Labyrinth) -> their pInfo timers never set ("No timer"). busy must now
+      // reflect run()'s actual navigation result.
+      const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+      const QuestHelperMock = jest.requireMock('../../src/Module/Quest').QuestHelper as Record<string, jest.Mock>;
+      const checkTimerMock = jest.requireMock('../../src/Helper/TimerHelper').checkTimer as jest.Mock;
+      const ParanoiaServiceMock = jest.requireMock('../../src/Service/ParanoiaService').ParanoiaService as { checkParanoiaSpendings: jest.Mock };
+      const originalGetHHScriptVars = ConfigHelperMock.getHHScriptVars.getMockImplementation();
+
+      QuestHelperMock.run.mockReset();
+      checkTimerMock.mockReturnValue(true);             // main/side attempt timers idle
+      ParanoiaServiceMock.checkParanoiaSpendings.mockReturnValue(1); // satisfies the energy/paranoia gate
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);
+      getStoredValueMock.mockImplementation((key: string) => {
+        if (key.endsWith('autoTrollBattleSaveQuest')) return 'false';
+        if (key.endsWith('Temp_questRequirement')) return 'none';
+        return undefined;
+      });
+
+      // Off the quest page so the idle-home guard does not fire; busy is purely run()'s result.
+      QuestHelperMock.run.mockReturnValueOnce(false);
+      const ctxFail = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDHome' });
+      await handler.steps[0].fn(ctxFail);
+      expect(QuestHelperMock.run).toHaveBeenCalled();
+      expect(ctxFail.busy).toBe(false);
+
+      QuestHelperMock.run.mockReturnValueOnce(true);
+      const ctxOk = makeCtx({ canCollectCompetitionActive: true, currentPage: 'pagesIDHome' });
+      await handler.steps[0].fn(ctxOk);
+      expect(ctxOk.busy).toBe(true);
+
+      ConfigHelperMock.getHHScriptVars.mockImplementation(originalGetHHScriptVars ?? (() => true));
+      QuestHelperMock.run.mockReset();
+      checkTimerMock.mockReturnValue(false);
+      ParanoiaServiceMock.checkParanoiaSpendings.mockReturnValue(0);
+    });
   });
 
   describe('battle-result page guard (issue #1740)', () => {

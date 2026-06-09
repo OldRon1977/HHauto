@@ -1030,8 +1030,7 @@ const handleQuest: HandlerConfig = {
           if (Number(questRequirement.substr(1)) < (getHHVars('Hero.currencies.soft_currency') as number)) {
             logHHAuto('Continuing quest, required money obtained.');
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-            QuestHelper.run();
-            ctx.busy = true;
+            ctx.busy = QuestHelper.run();
           } else {
             setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
             if (isNaN(Number(questRequirement.substr(1)))) {
@@ -1049,8 +1048,7 @@ const handleQuest: HandlerConfig = {
             if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
               logHHAuto('Continuing quest, required energy obtained.');
               setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-              QuestHelper.run();
-              ctx.busy = true;
+              ctx.busy = QuestHelper.run();
             } else {
               ctx.busy = false;
             }
@@ -1068,8 +1066,7 @@ const handleQuest: HandlerConfig = {
           } else {
             logHHAuto('Battle Power obtained, resuming quest...');
             setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-            QuestHelper.run();
-            ctx.busy = true;
+            ctx.busy = QuestHelper.run();
           }
           routeHomeIfWaitingOnQuest();
         } else if (questRequirement === 'unknownQuestButton') {
@@ -1130,8 +1127,7 @@ const handleQuest: HandlerConfig = {
         } else if (questRequirement === 'none') {
           if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
             if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-              ctx.busy = true;
-              QuestHelper.run();
+              ctx.busy = QuestHelper.run();
             }
           }
           // Idle/home guard: when there is nothing left to do on the quest

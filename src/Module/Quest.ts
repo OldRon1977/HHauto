@@ -61,7 +61,7 @@ export class QuestHelper {
         }
         return mainQuestUrl;
     }
-    static run(){
+    static run(): boolean {
         //logHHAuto("Starting auto quest.");
         // Check if at correct page.
         let page = getPage();
@@ -69,9 +69,10 @@ export class QuestHelper {
         let doMainQuest = getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
         if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true") {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
+            let navOk: boolean;
             if (quests.length > 0) {
                 logHHAuto("Navigating to side quest.");
-                gotoPage(quests.attr('href'));
+                navOk = gotoPage(quests.attr('href'));
             }
             else {
                 logHHAuto("All quests finished, setting timer to check back later!");
@@ -82,9 +83,9 @@ export class QuestHelper {
                 // pagesKnownList, so subsequent autoLoop iterations would keep
                 // running handlers (e.g. handleChampionTicket) on the
                 // unrecognized page and cause issue #1672's energy-burn loop.
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                navOk = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            return;
+            return navOk;
         }
         if (page !== ConfigHelper.getHHScriptVars("pagesIDQuest") || (doMainQuest && mainQuestUrl.split("?")[0] != window.location.pathname)) {
             // Resolve the next quest URL ourselves; the navigation service
@@ -92,16 +93,17 @@ export class QuestHelper {
             // the page-nav refactor). When all quests are done, fall back
             // to the home page and arm the back-off timer.
             const nextQuestUrl = QuestHelper.getNextQuestLink();
+            let navOk: boolean;
             if (nextQuestUrl !== undefined) {
-                gotoPage(nextQuestUrl);
+                navOk = gotoPage(nextQuestUrl);
             } else {
                 logHHAuto("All quests finished, setting timer to check back later!");
                 if (checkTimer('nextMainQuestAttempt')) {
                     setTimer('nextMainQuestAttempt', 604800); // 1 week delay
                 }
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                navOk = gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            return;
+            return navOk;
         }
         $("#popup_message close").trigger('click');
         $("#level_up close").trigger('click');
@@ -122,11 +124,11 @@ export class QuestHelper {
         if (proceedButtonMatch.length === 0)
         {
             logHHAuto("Could not find resume button.");
-            return;
+            return true;
         }
         else if(proceedButtonMatch.attr('disabled') && proceedType != "end_play") {
             logHHAuto("Button is disabled for animation wait a bit.");
-            return;
+            return true;
         }
         
         if (proceedType === "free") {
@@ -155,7 +157,7 @@ export class QuestHelper {
                 {
                     logHHAuto("Quest requires "+proceedCost+" Energy to proceed.");
                     setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "*"+proceedCost);
-                    return;
+                    return true;
                 }
             }
             else
@@ -170,7 +172,7 @@ export class QuestHelper {
                 {
                     logHHAuto("Need "+proceedCost+" Money to proceed.");
                     setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "$"+proceedCost);
-                    return;
+                    return true;
                 }
             }
             //proceedButtonMatch.click();
@@ -205,7 +207,7 @@ export class QuestHelper {
             if (proceedButtonMatch.attr('disabled') && rewards.length>0){
                 logHHAuto("Reached end of current archive. Claim reward.");
                 rewards.click();
-                return;
+                return true;
             }
             logHHAuto("Reached end of current play. Proceeding to next play.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
@@ -220,7 +222,7 @@ export class QuestHelper {
         else {
             logHHAuto("Could not identify given resume button.");
             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "unknownQuestButton");
-            return;
+            return true;
         }
         setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
@@ -232,6 +234,6 @@ export class QuestHelper {
             setTimeout(autoLoop,randomInterval(800,1200));
         },randomInterval(500,800));
         //setTimeout(function () {location.reload();},randomInterval(800,1500));
-        
+        return true;
     }
 }
