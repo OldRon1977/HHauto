@@ -207,6 +207,13 @@ describe("PageNavigationService", function () {
             const result = gotoPage("/quest/100?foo=bar");
             expect(result).not.toBe(false);
         });
+
+        it("accepts the side-quests page (issue #1751)", function () {
+            // QuestHelper.SITE_QUEST_PAGE navigates here; without the
+            // passthrough gotoPage rejected it and side quests never ran.
+            const result = gotoPage("/side-quests.html");
+            expect(result).not.toBe(false);
+        });
     });
 
     describe("default branch and return value (I1 / I2 / N7)", function () {
