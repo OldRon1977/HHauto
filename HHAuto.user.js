@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.66
+// @version      7.35.67
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -25361,7 +25361,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesPrecision] =
         getMenu: true,
         setMenu: true,
         menuType: "checked",
-        kobanUsing: false,
+        kobanUsing: false
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesInverted] =
     {
@@ -25372,7 +25372,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesInverted] =
         getMenu: true,
         setMenu: true,
         menuType: "checked",
-        kobanUsing: false,
+        kobanUsing: false
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesWaitMax] =
     {
@@ -25383,7 +25383,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesWaitMax] =
         getMenu: true,
         setMenu: true,
         menuType: "checked",
-        kobanUsing: false,
+        kobanUsing: false
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter] =
     {
@@ -25588,7 +25588,8 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb] =
         valueType: "Small Integer",
         getMenu: true,
         setMenu: true,
-        menuType: "value"
+        menuType: "value",
+        kobanUsing: false
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
     {
@@ -25751,7 +25752,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollSelectedIndex] =
         menuType: "value",
         kobanUsing: false,
         customMenuID: "autoTrollSelector",
-        isValid: /^[0-9]|1[0-5]|98|99$/
+        isValid: /^([0-9]|[1-9][0-9])$/
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollThreshold] =
     {
@@ -25910,7 +25911,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.collectAllTimer] =
         getMenu: true,
         setMenu: true,
         menuType: "value",
-        isValid: /^[1-9][0-9]|[1-9]$/
+        isValid: /^([1-9][0-9]|[1-9])$/
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.eventTrollOrder] =
     {
@@ -26655,9 +26656,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoLabyDifficultyIndex] =
         menuType: "selectedIndex",
         kobanUsing: false,
         customMenuID: "autoLabyDifficulty",
-        isValid: /^[0-9]$/,
-        newValueFunction: function () {
-        }
+        isValid: /^[0-9]$/
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalEventCollect] =
     {
@@ -26812,10 +26811,7 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.autoDailyGoals] =
         getMenu: true,
         setMenu: true,
         menuType: "checked",
-        kobanUsing: false,
-        newValueFunction: function () {
-            //clearTimer('nextLabyrinthTime');
-        }
+        kobanUsing: false
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.compactDailyGoals] =
     {
@@ -26877,18 +26873,6 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.dailyGoalsList] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey + TK.leaguesTarget] =
-    {
-    default:"9",
-    storage:"sessionStorage",
-    HHType:"Temp",
-    valueType:"Small Integer",
-    getMenu:true,
-    setMenu:false,
-    menuType:"value",
-    kobanUsing:false,
-    customMenuID:"autoLeaguesSelector"
-};*/
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.lastActionPerformed] =
     {
         default: "none",
@@ -26901,12 +26885,6 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.questRequirement] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey + TK.userLink] =
-    {
-    default:"none",
-    storage:"sessionStorage",
-    HHType:"Temp"
-};*/
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoLoopTimeMili] =
     {
         default: "1000",
@@ -26931,17 +26909,6 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.Debug] =
         valueType: "Boolean",
         HHType: "Temp"
     };
-/*HHStoredVars[HHStoredVarPrefixKey + TK.trollToFight] =
-    {
-    storage:"sessionStorage",
-    HHType:"Temp",
-    valueType:"Small Integer",
-    getMenu:true,
-    setMenu:false,
-    menuType:"value",
-    kobanUsing:false,
-    customMenuID:"autoTrollSelector"
-};*/
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest] =
     {
         storage: "sessionStorage",
@@ -27038,7 +27005,6 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.autoChampsEventGirls] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
-        //isValid:/^\[({"girl_id":"(\d)+","champ_id":"(\d)+","girl_shards":"(\d)+","girl_name":"([^"])+","event_id":"([^"])+"},?)+\]$/
     };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.raidGirls] =
     {
@@ -27090,16 +27056,8 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.hideBeatenOppo] =
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.LeagueOpponentList] =
     {
         storage: "sessionStorage",
-        HHType: "Temp",
-        //isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
+        HHType: "Temp"
     };
-/*
-HHStoredVars[HHStoredVarPrefixKey + TK.LeagueTempOpponentList] =
-    {
-    storage:"sessionStorage",
-    HHType:"Temp",
-    isValid:/^{"expirationDate":\d+,"opponentsList":{("\d+":{((("(win|loss|avgTurns|expectedValue)":\d*[.,]?\d+)|("scoreClass":"(minus|plus|close)")|("points":{("\d{1,3}":\d*[.,]?\d+,?)+})),?)+},?)+}}$/
-};*/
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked] =
     {
         storage: "sessionStorage",
