@@ -1,6 +1,6 @@
 {
   "name": "hhauto",
-  "version": "7.35.67",
+  "version": "7.35.68",
   "description": "[English](https://github.com/OldRon1977/HHauto/wiki/English)",
   "main": "HHAuto.user.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "lint": "eslint \"src/**/*.ts\" \"spec/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "typecheck:strict:check": "node scripts/check-strict-ts.mjs",
     "deps:graph": "madge --extensions ts src",
     "deps:circular": "madge --circular --extensions ts src",
     "deps:circular:check": "node scripts/check-circular-deps.mjs",

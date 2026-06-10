@@ -33,12 +33,12 @@ export class BDSMHelper {
      * provides a different combat bonus (crit damage, crit chance, defense
      * reduction, or heal-on-hit).
      */
-    static fightBonues(team){
+    static fightBonues(team: any){
         return {
-            critDamage: team.synergies.find(({element: {type}})=>type==='fire').bonus_multiplier,
-            critChance: team.synergies.find(({element: {type}})=>type==='stone').bonus_multiplier,
-            defReduce: team.synergies.find(({element: {type}})=>type==='sun').bonus_multiplier,
-            healOnHit: team.synergies.find(({element: {type}})=>type==='water').bonus_multiplier
+            critDamage: team.synergies.find(({element: {type}}: any)=>type==='fire').bonus_multiplier,
+            critChance: team.synergies.find(({element: {type}}: any)=>type==='stone').bonus_multiplier,
+            defReduce: team.synergies.find(({element: {type}}: any)=>type==='sun').bonus_multiplier,
+            healOnHit: team.synergies.find(({element: {type}}: any)=>type==='water').bonus_multiplier
         }
     }
         
@@ -51,7 +51,7 @@ export class BDSMHelper {
      * @returns Object with `player`, `opponent` BDSMPlayer instances
      *          and the computed `dominanceBonuses`.
      */
-    static getBdsmPlayersData(inHeroData, opponentData, inLeague=false)
+    static getBdsmPlayersData(inHeroData: any, opponentData: any, inLeague=false)
     {
         // player stats
         const playerAtk = inHeroData.damage;
@@ -60,7 +60,7 @@ export class BDSMHelper {
         const playerCrit = inHeroData.chance;
         
         let playerElements:string[] = [];
-        inHeroData.team.theme_elements.forEach((el) => playerElements.push(el.type));
+        inHeroData.team.theme_elements.forEach((el: any) => playerElements.push(el.type));
         const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
     
         const opponentAtk = opponentData.damage;
@@ -69,7 +69,7 @@ export class BDSMHelper {
         const opponentCrit = opponentData.chance;
     
         let opponentElements:string[] = [];
-        opponentData.team.theme_elements.forEach((el) => opponentElements.push(el.type));
+        opponentData.team.theme_elements.forEach((el: any) => opponentElements.push(el.type));
         
         const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
         const dominanceBonuses = calculateDominationBonuses(playerElements, opponentElements);
@@ -100,7 +100,7 @@ export class BDSMHelper {
 
 let _player: BDSMPlayer;
 let _opponent: BDSMPlayer;
-let _runs;
+let _runs: any;
 let _cache;
 
 /**
@@ -130,7 +130,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     //_cache = {};
     _runs = 0;
 
-    const setup = (x) => {
+    const setup = (x: any) => {
         x.critMultiplier = 2 + x.bonuses.critDamage;
         x.hp = Math.ceil(x.hp);
     }
@@ -153,7 +153,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     try {
         // start simulation from player's turn
         ret = playerTurn(_player.hp, _opponent.hp, _player.playerShield, _opponent.opponentShield, _player.stunned, _opponent.stunned, _player.reflect, _opponent.reflect, 1);
-    } catch ({ errName, message }) {
+    } catch ({ errName, message }: any) {
         logHHAuto(`An error occurred during the simulation against ${_opponent.name}`, errName, message);
         return {} as BDSMSimu;
     }
@@ -185,7 +185,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     }
 
     function mergeResult(x: BDSMSimu, xProbability: number, y: BDSMSimu, yProbability: number): BDSMSimu {
-        const points = {};
+        const points: Record<string, any> = {};
         Object.entries(x.points).map(([point, probability]) => [point, probability * xProbability])
             .concat(Object.entries(y.points).map(([point, probability]) => [point, probability * yProbability]))
             .forEach(([point, probability]) => {
@@ -198,7 +198,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         return {points, win, loss} as BDSMSimu;
     }
 
-    function playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns): BDSMSimu {
+    function playerTurn(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, turns: any): BDSMSimu {
         //Avoid a stack overflow
         const maxAllowedTurns = 50;
         if (turns > maxAllowedTurns) throw new Error();
@@ -223,7 +223,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         return mergedResult;
     }
 
-    function playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns): BDSMSimu {
+    function playerAttack(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, attack: any, turns: any): BDSMSimu {
         //Player stunned
         if (playerStunned > 0) {
             playerStunned -= 1;
@@ -265,7 +265,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         }
     }
 
-    function opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns): BDSMSimu {
+    function opponentTurn(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, turns: any): BDSMSimu {
         if (turns == 1) {
             playerStunned = (_opponent.tier5.id == 11) ? 2 : 0;
             opponentShield = (_opponent.tier5.id == 12) ? (_opponent.tier5.value * _opponent.hp) : 0;
@@ -282,7 +282,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         return mergedResult;
     }
 
-    function opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns): BDSMSimu {
+    function opponentAttack(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, attack: any, turns: any): BDSMSimu {
         //Opponent stunned
         if (opponentStunned > 0) {
             opponentStunned -= 1;
@@ -341,10 +341,10 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
  * The exact skill data is not always available from the API, so we estimate
  * based on the number of skill points invested (0.2% per point for damage).
  */
-function estimateTier4SkillValue(teamGirlsArray): { dmg: number, def: number } {
+function estimateTier4SkillValue(teamGirlsArray: any): { dmg: number, def: number } {
     let skill_tier_4 = { dmg: 0, def: 0 };
 
-    teamGirlsArray.forEach((girl) => {
+    teamGirlsArray.forEach((girl: any) => {
             if (girl.skill_tiers_info[4]) skill_tier_4.dmg += girl.skill_tiers_info[4].skill_points_used * 0.002;
         })
     return skill_tier_4;
@@ -373,7 +373,7 @@ function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number }
  *   - fire/water    -> Execute (id 14)
  * Values are estimated from skill points invested since exact data may be unavailable.
  */
-function estimateTier5SkillValue(teamGirlsArray): { id: number, value: number } {
+function estimateTier5SkillValue(teamGirlsArray: any): { id: number, value: number } {
     let skill_tier_5 = { id: 0, value: 0 };
     const girl = teamGirlsArray[0];
 
@@ -436,8 +436,8 @@ by ConfigHelper.getHHScriptVars("ELEMENTS")
  * grants +10% ego, +10% attack, or +20% crit chance depending on the
  * advantage type (egoDamage vs. chance).
  */
-export function calculateDominationBonuses(playerElements, opponentElements) {
-    const bonuses = {
+export function calculateDominationBonuses(playerElements: any, opponentElements: any) {
+    const bonuses: Record<string, { ego: number; attack: number; chance: number }> = {
         player: {
             ego: 0,
             attack: 0,
@@ -454,12 +454,12 @@ export function calculateDominationBonuses(playerElements, opponentElements) {
         {a: playerElements, b: opponentElements, k: 'player'},
         {a: opponentElements, b: playerElements, k: 'opponent'}
     ].forEach(({a,b,k})=>{
-        a.forEach(element => {
-            if (BDSMHelper.ELEMENTS.egoDamage[element] && b.includes(BDSMHelper.ELEMENTS.egoDamage[element])) {
+        a.forEach((element: any) => {
+            if ((BDSMHelper.ELEMENTS.egoDamage as any)[element] && b.includes((BDSMHelper.ELEMENTS.egoDamage as any)[element])) {
                 bonuses[k].ego += 0.1
                 bonuses[k].attack += 0.1
             }
-            if (BDSMHelper.ELEMENTS.chance[element] && b.includes(BDSMHelper.ELEMENTS.chance[element])) {
+            if ((BDSMHelper.ELEMENTS.chance as any)[element] && b.includes((BDSMHelper.ELEMENTS.chance as any)[element])) {
                 bonuses[k].chance += 0.2
             }
         })
@@ -472,7 +472,7 @@ export function calculateDominationBonuses(playerElements, opponentElements) {
  * Calculate the base crit chance from the harmony stat ratio.
  * Crit chance is 30% of the player's share of total harmony.
  */
-export function calculateCritChanceShare(ownHarmony, otherHarmony)
+export function calculateCritChanceShare(ownHarmony: any, otherHarmony: any)
 {
     return 0.3*ownHarmony/(ownHarmony+otherHarmony)
 }
@@ -481,6 +481,6 @@ export function calculateCritChanceShare(ownHarmony, otherHarmony)
  * Sum a specific skill's percentage_value across all girls in a team.
  * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
  */
-export function getSkillPercentage(team, id) {
-    return 1 + (team.girls.map(e => e.skills[id]?.skill.percentage_value ?? 0).reduce((a, b) => a + b, 0) / 100);
+export function getSkillPercentage(team: any, id: any) {
+    return 1 + (team.girls.map((e: any) => e.skills[id]?.skill.percentage_value ?? 0).reduce((a: any, b: any) => a + b, 0) / 100);
 }

@@ -46,7 +46,7 @@ export class GenericBattle {
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle") )
             {
                 const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
-                let troll_id:string = queryStringGetParam(window.location.search,'id_opponent');
+                let troll_id:string = queryStringGetParam(window.location.search,'id_opponent') as string;
                 //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
                 if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable))
                 {
@@ -66,7 +66,7 @@ export class GenericBattle {
                 }
                 else
                 {
-                    LoveRaidManager.getTrollRaids().forEach(raid => {
+                    LoveRaidManager.getTrollRaids().forEach((raid): any => {
                         if(raid.trollId === Number(troll_id))
                         {
                             logHHAuto("Event ongoing search for girl rewards in popup.");

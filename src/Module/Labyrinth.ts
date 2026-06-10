@@ -190,12 +190,12 @@ export class Labyrinth {
 
     static async _buildTwoGirlsRow(posOne: number, posTwo: number, girlOne: JQuery<HTMLElement>, girlTwo: JQuery<HTMLElement>){
         const girlOneId = girlOne.attr('id_girl');
-        if (!Labyrinth.isSelectedGirl(girlOneId)) {
+        if (!Labyrinth.isSelectedGirl(girlOneId as string)) {
             await Labyrinth._selectGirl(posOne, girlOne);
             await Labyrinth._selectGirl(posTwo, girlTwo);
-        } else if (Labyrinth.isSelectedGirl(girlOneId, posOne)) {
+        } else if (Labyrinth.isSelectedGirl(girlOneId as string, posOne)) {
             await Labyrinth._selectGirl(posTwo, girlTwo);
-        } else if (Labyrinth.isSelectedGirl(girlOneId, posTwo)) {
+        } else if (Labyrinth.isSelectedGirl(girlOneId as string, posTwo)) {
             await Labyrinth._selectGirl(posOne, girlTwo);
         }
     }
@@ -211,7 +211,7 @@ export class Labyrinth {
                 logHHAuto('ERROR, no girl information found');
                 continue;
             }
-            const obj = safeJsonParse(tooltipData, null);
+            const obj = safeJsonParse<any>(tooltipData, null);
             if (obj === null) {
                 logHHAuto('ERROR, failed to parse girl information');
                 continue;
@@ -300,7 +300,7 @@ export class Labyrinth {
     static showPath(path: LabyrinthOpponent[]){
         if(getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinth")) {
             path.forEach((opponent) => {
-                if (!opponent.cell.hasClass('hero')) opponent.cell.addClass('pathChosen');
+                if (!opponent.cell!.hasClass('hero')) opponent.cell!.addClass('pathChosen');
             });
         }
     }
@@ -361,7 +361,7 @@ export class Labyrinth {
 
     static findBetter(options: LabyrinthOpponent[]): LabyrinthOpponent{
         const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
-        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter(girl => girl.remaining_ego_percent < 100).length > 0;
+        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter((girl: any) => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled) logHHAuto("Options " + JSON.stringify(options));
         if (debugEnabled) logHHAuto("haveGirlWounded " + haveGirlWounded);
@@ -387,11 +387,11 @@ export class Labyrinth {
         return chosen === null ? null as unknown as LabyrinthOpponent : (chosen as { __orig: LabyrinthOpponent }).__orig;
     }
 
-    static appendChoosenTag(option){
+    static appendChoosenTag(option: any){
         option.button.append(`<img class="labChosen" src=${ConfigHelper.getHHScriptVars("powerCalcImages").chosen}>`);
     }
 
-    static parseHex(hexIndex,hex): LabyrinthOpponent
+    static parseHex(hexIndex: number, hex: any): LabyrinthOpponent
     {
         // opponent_super_easy / opponent_easy / opponent_medium  / opponent_hard / opponent_boss  
         // shrine / treasure

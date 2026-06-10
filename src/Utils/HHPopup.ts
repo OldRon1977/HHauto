@@ -116,7 +116,7 @@ export function isDisplayedHHPopUp()
 }
 
 /** Make the HHAuto popup visible (un-hide it). */
-export function displayHHPopUp()
+export function displayHHPopUp(): any
 {
     const popupGlobal = document.getElementById("HHAutoPopupGlobal");
     if (popupGlobal === null)
@@ -146,7 +146,7 @@ export function maskHHPopUp()
  *
  * @param inBurst - If true, close the popup even when the tab is not focused.
  */
-export function checkAndClosePopup(inBurst)
+export function checkAndClosePopup(inBurst: any)
 {
     const popUp = $('#popup_message[style*="display: block"]');
     if ((inBurst || isFocused()) && popUp.length > 0)

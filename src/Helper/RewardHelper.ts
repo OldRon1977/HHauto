@@ -35,7 +35,7 @@ import { TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 
 export class RewardHelper {
-    static getRewardTypeBySlot(inSlot): string
+    static getRewardTypeBySlot(inSlot: any): string
     {
         let reward = "undetected";
         if (inSlot && inSlot.className?.indexOf('slot') >= 0)
@@ -125,7 +125,7 @@ export class RewardHelper {
         return reward;
     }
 
-    static getRewardQuantityByType(rewardType:string, inSlot):number {
+    static getRewardQuantityByType(rewardType:string, inSlot: any):number {
         // TODO update logic for potion / gift to be more accurate
         switch(rewardType)
         {
@@ -159,13 +159,13 @@ export class RewardHelper {
 
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
-    static computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors):Map<string,number> {
+    static computeRewardsCount(arrayz: any, freeSlotSelectors: string, paidSlotSelectors: string):Map<string,number> {
         const rewardCountByType:Map<string,number> = new Map();
         var rewardType:string, rewardSlot:any, rewardAmount:number;
 
 // data-d='{"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary","price":"500000","currency":"sc","value":"2500","carac1":"0","carac2":"0","carac3":"0","endurance":"0","chance":"0.00","ego":"0","damage":"0","duration":"0","skin":"hentai,gay,sexy","name":"Spell book","ico":"https://hh.hh-content.com/pictures/items/XP4.png","display_price":500000},"quantity":"1"}'
 
-        rewardCountByType['all'] = arrayz.length; 
+        (rewardCountByType as any)['all'] = arrayz.length; 
         if (arrayz.length > 0)
         {
             for (var slotIndex = arrayz.length - 1; slotIndex >= 0; slotIndex--)
@@ -176,9 +176,9 @@ export class RewardHelper {
                         rewardType = RewardHelper.getRewardTypeBySlot(rewardSlot[0]);
                         rewardAmount = RewardHelper.getRewardQuantityByType(rewardType, rewardSlot[0]);
                         if(rewardCountByType.hasOwnProperty(rewardType)) {
-                            rewardCountByType[rewardType] = rewardCountByType[rewardType] + rewardAmount;
+                            (rewardCountByType as any)[rewardType] = (rewardCountByType as any)[rewardType] + rewardAmount;
                         }else{
-                            rewardCountByType[rewardType] = rewardAmount;
+                            (rewardCountByType as any)[rewardType] = rewardAmount;
                         }
                     }
                 });
@@ -191,7 +191,7 @@ export class RewardHelper {
         if(rewardCountByType)
         //for (const [rewardType, rewardCount] of rewardCountByType.entries()) {
         for (const rewardType in rewardCountByType) {
-            const rewardCount = rewardCountByType[rewardType];
+            const rewardCount = (rewardCountByType as any)[rewardType];
             switch(rewardType)
             {
                 // case 'girl_shards' :    return Number($('.shards', inSlot).attr('shards'));
@@ -238,11 +238,11 @@ export class RewardHelper {
         }
         return html;
     }
-    static displayRewardsDiv(target,hhRewardId, rewardCountByType:Map<string,number> ) {
+    static displayRewardsDiv(target: any, hhRewardId: string, rewardCountByType:Map<string,number> ) {
         const emptyRewardDiv = $('<div id='+hhRewardId+' style="display:none;"></div>');
         try{
             if($('#' + hhRewardId).length <= 0) {
-                if (rewardCountByType['all'] > 0) {
+                if ((rewardCountByType as any)['all'] > 0) {
                     const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
                     if(rewardsHtml && rewardsHtml != '') {
                         target.append($('<div id='+hhRewardId+' class="HHRewardNotCollected"><h1 style="font-size: small;">'+getTextForUI('rewardsToCollectTitle',"elementText")+'</h1>' + rewardsHtml + '</div>'));
@@ -254,7 +254,7 @@ export class RewardHelper {
                 }
             }
         } catch(err) {
-            logHHAuto("ERROR:", err.message);
+            logHHAuto("ERROR:", (err as any).message);
             target.append(emptyRewardDiv);
         }
     }
@@ -370,7 +370,7 @@ export class RewardHelper {
                 else if(loveRaid.some(raid => raid.id_girl === girlId)) {
                     needLoveRaidUpdate = true;
                     const raid = loveRaid.find(raid => raid.id_girl === girlId);
-                    raid.girl_shards = girlShards;
+                    raid!.girl_shards = girlShards;
                     if (girlShards === 100) {
                         loveRaidGirlWon = true;
                     }
@@ -445,7 +445,7 @@ export class RewardHelper {
                             {
                 let querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0
-                    && $(querySkip)[0].style.display!=="block"
+                    || $(querySkip)[0].style.display!=="block"
                 )
                 {
                     return;

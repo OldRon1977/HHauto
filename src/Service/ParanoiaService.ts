@@ -83,11 +83,11 @@ export class ParanoiaService {
         deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
     }
 
-    static updatedParanoiaSpendings(inSpendingFunction, inSpent) {
+    static updatedParanoiaSpendings(inSpendingFunction: string, inSpent: number) {
         var currentPSpendings = new Map<string, number>([]);
         // not set
         if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
-            return -1;
+            return;
         }
         else {
             currentPSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
@@ -221,15 +221,15 @@ export class ParanoiaService {
 
         var Setting = getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSettings);
 
-        var S1 = Setting.split('/').map(s => s.split('|').map(s => s.split(':')));
+        var S1 = Setting.split('/').map((s: string) => s.split('|').map((s: string) => s.split(':')));
 
         var toNextSwitch;
-        var period;
+        var period: any;
         var n = new Date().getHours();
-        S1[2].some(x => { if (n < x[0]) { period = x[1]; return true; } });
+        S1[2].some((x: any) => { if (n < x[0]) { period = x[1]; return true; } return false; });
 
         if (burst) {
-            var periods = Object.assign({}, ...S1[1].map((d) => ({ [d[0]]: d[1].split('-') })));
+            var periods = Object.assign({}, ...S1[1].map((d: any) => ({ [d[0]]: d[1].split('-') })));
 
             const nextSwitchVal = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
             toNextSwitch = nextSwitchVal ? Number((Number(nextSwitchVal) - new Date().getTime()) / 1000) : randomInterval(Number(periods[period][0]), Number(periods[period][1]));
@@ -343,7 +343,7 @@ export class ParanoiaService {
 }
 
 
-function replacerMap(key, value) {
+function replacerMap(this: any, key: string, value: any) {
     const originalObject = this[key];
     if(originalObject instanceof Map) {
         return {
@@ -355,7 +355,7 @@ function replacerMap(key, value) {
     }
 }
 
-function reviverMap(key, value) {
+function reviverMap(key: string, value: any) {
     if(typeof value === 'object' && value !== null) {
         if (value.dataType === 'Map') {
             return new Map(value.value);

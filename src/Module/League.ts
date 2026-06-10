@@ -57,8 +57,8 @@ export class LeagueHelper {
         const forceOneFight = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesForceOneFight) === 'true';
         if(forceOneFight) return 1;
         // remove match_history after w32 update
-        const matchs = opponent.match_history ? opponent.match_history[opponent.player.id_fighter]: opponent.match_history_sorting[opponent.player.id_fighter];
-        return matchs ? matchs.filter(match=>match == null).length : 0
+        const matchs = opponent.match_history ? opponent.match_history[opponent.player.id_fighter]: (opponent.match_history_sorting as any)[opponent.player.id_fighter];
+        return matchs ? matchs.filter((match: any)=>match == null).length : 0
     }
     static getLeagueCurrentLevel()
     {
@@ -129,7 +129,7 @@ export class LeagueHelper {
         );
     }
 
-    static getSimPowerOpponent(heroFighter, opponents): BDSMSimu {
+    static getSimPowerOpponent(heroFighter: any, opponents: KKLeagueOpponent): BDSMSimu {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         let leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
         let simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
@@ -282,11 +282,11 @@ export class LeagueHelper {
             logHHAuto('ERROR: Can\'t find opponent list');
             return;
         } else {
-            const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
+            const heroFighter = opponents_list.find((el: any) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
 
-            const containsSimuScore = function(opponents) { return $('a[href*="id_opponent='+opponents.player.id_fighter+'"] .matchRatingNew').length > 0;}
-            const containsOcdScore = function(opponents) { return $('.matchRating', $('a[href*="id_opponent='+opponents.player.id_fighter+'"]').parent()).length > 0;}
-            const opponentsToSimulate = opponents_list.filter(opponents => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
+            const containsSimuScore = function(opponents: any) { return $('a[href*="id_opponent='+opponents.player.id_fighter+'"] .matchRatingNew').length > 0;}
+            const containsOcdScore = function(opponents: any) { return $('.matchRating', $('a[href*="id_opponent='+opponents.player.id_fighter+'"]').parent()).length > 0;}
+            const opponentsToSimulate = opponents_list.filter((opponents: any) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
 
             let SimPower = async function()
             {
@@ -308,7 +308,7 @@ export class LeagueHelper {
                     if (debugEnabled) logHHAuto(`Simulating opponent ${opponentIndex+1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
                     if(opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
                         try{
-                            leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponents.player.id_fighter);
+                            leagueOpponent = opponentsPowerList.opponentsList.find((el: any) => el.opponent_id == opponents.player.id_fighter);
                             if(leagueOpponent) simu = leagueOpponent.simu;
                         }catch(error){
                             logHHAuto("Error when getting oppo " + opponents.player.id_fighter +"from storage");
@@ -404,7 +404,8 @@ export class LeagueHelper {
             });
         }
 
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const { errName, message } = (err ?? {}) as any;
             logHHAuto(`Error module Sim League: ${errName}, ${message}`);
         }
     }
@@ -523,9 +524,9 @@ export class LeagueHelper {
     static getLeagueOpponentListData(isFirstCall = true): LeagueOpponent[]
     { 
         let Data:LeagueOpponent[] = [];
-        let opponent_id;
+        let opponent_id: any;
         let fightButton;
-        let opponentsPowerList;
+        let opponentsPowerList: any;
 
         const sortMode:string = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSortIndex);
         let usePowerCalc = sortMode === LeagueHelper.SORT_POWERCALC;
@@ -550,12 +551,12 @@ export class LeagueHelper {
         logHHAuto('Number of player in league:' + tableRow.length + '. Number of opponent not fought in league:' + $('.data-list .data-row.body-row a').length);
 
         const opponents_list = getHHVars("opponents_list");
-        let heroFighter;
+        let heroFighter: any;
         if (usePowerCalc) {
             opponentsPowerList = LeagueHelper._getTempLeagueOpponentList()
 
             try {
-                heroFighter = opponents_list?.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player
+                heroFighter = opponents_list?.find((el: any) => el.player.id_fighter == HeroHelper.getPlayerId()).player
             } catch (error) {
                 logHHAuto('Error, falback to not use powercalc');
                 if(debugEnabled) logHHAuto(error);
@@ -569,19 +570,19 @@ export class LeagueHelper {
         {
             fightButton = $('a', $(this));
             if(fightButton.length > 0) {
-                opponent_id = queryStringGetParam(new URL(fightButton.attr("href"),window.location.origin).search, 'id_opponent');
+                opponent_id = queryStringGetParam(new URL(fightButton.attr("href") as string,window.location.origin).search, 'id_opponent');
 
                 let leagueOpponent;
                 if(opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
                     try{
-                        leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponent_id);
+                        leagueOpponent = opponentsPowerList.opponentsList.find((el: any) => el.opponent_id == opponent_id);
                     }catch(error){
                         logHHAuto("Error when getting oppo " + opponent_id +" from storage");
                     }
                 }
                 if(!leagueOpponent) {
                     let expectedPoints = 0;
-                    const opponents: KKLeagueOpponent = opponents_list.find((el) => el.player.id_fighter == opponent_id)
+                    const opponents: KKLeagueOpponent = opponents_list.find((el: any) => el.player.id_fighter == opponent_id)
                     let simu:BDSMSimu = {} as any;
                     if(canUseSimu) {
                         try{
@@ -712,7 +713,7 @@ export class LeagueHelper {
             {
                 var getPlayerCurrentLevel = LeagueHelper.getLeagueCurrentLevel();
 
-                if (isNaN(getPlayerCurrentLevel))
+                if (isNaN(getPlayerCurrentLevel as number))
                 {
                     logHHAuto("Could not get current Rank, stopping League.");
                     //prevent paranoia to wait for league
@@ -817,7 +818,7 @@ export class LeagueHelper {
                 }
                 const nextOpponent: LeagueOpponent = Data[0];
                 const opponents_list = getHHVars("opponents_list");
-                const opponentDataFromList: KKLeagueOpponent = opponents_list?.find(obj => obj.player.id_fighter == nextOpponent.opponent_id);
+                const opponentDataFromList: KKLeagueOpponent = opponents_list?.find((obj: any) => obj.player.id_fighter == nextOpponent.opponent_id);
                 if (debugEnabled && opponentDataFromList) logHHAuto("opponentDataFromList ", JSON.stringify(opponentDataFromList));
                 if (!opponentDataFromList) logHHAuto(`ERROR opponent ${nextOpponent.opponent_id} not found in JS list`);
 
@@ -885,7 +886,7 @@ export class LeagueHelper {
                         number_of_battles: numberOfBattle
                     };
                     params1 = addNutakuSession(params1) as Record<string, unknown>;
-                    getHHAjax()(params1, function(data) {
+                    getHHAjax()!(params1, function(data: any) {
                         // change referer
                         window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaderboard")) as string);
 
@@ -924,14 +925,15 @@ export class LeagueHelper {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
             return;
         }
-        } catch ({ errName, message }) {
+        } catch (err) {
+            const { errName, message } = (err ?? {}) as any;
             logHHAuto(`Error do League: ${errName}, ${message}`);
             setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
     }
 
-    static LeagueDisplayGetOpponentPopup(numberDone,remainingTime)
+    static LeagueDisplayGetOpponentPopup(numberDone: number | string, remainingTime: number | string)
     {
         $("#leagues #leagues_middle").prepend('<div id="popup_message_league" class="HHpopup_message" name="popup_message_league" ><a id="popup_message_league_close" class="close">&times;</a>'+getTextForUI("OpponentListBuilding","elementText")+' : <br>'+numberDone+' '+getTextForUI("OpponentParsed","elementText")+' ('+remainingTime+')</div>');
         $("#popup_message_league_close").on("click", () => { safeReload(); });
@@ -942,7 +944,7 @@ export class LeagueHelper {
         $("#popup_message_league").each(function(){this.remove();});
     }
 
-    static LeagueUpdateGetOpponentPopup(numberDone,remainingTime)
+    static LeagueUpdateGetOpponentPopup(numberDone: number | string, remainingTime: number | string)
     {
         LeagueHelper.LeagueClearDisplayGetOpponentPopup();
         LeagueHelper.LeagueDisplayGetOpponentPopup(numberDone,remainingTime);

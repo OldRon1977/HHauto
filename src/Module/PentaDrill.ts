@@ -125,7 +125,7 @@ export class PentaDrill {
         {
             logHHAuto("On PentaDrill arena page.");
     
-            const chosenOpponent:KKPentaDrillOpponents = PentaDrill.moduleSimPentaDrillBattle();
+            const chosenOpponent:KKPentaDrillOpponents | undefined = PentaDrill.moduleSimPentaDrillBattle();
             if (chosenOpponent === undefined )
             {
                 logHHAuto("PentaDrill : was not able to choose opponent.");
@@ -222,7 +222,7 @@ export class PentaDrill {
 
     static goAndCollect()
     {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoPentaDrillCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoPentaDrillCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrill"))
         {
@@ -286,7 +286,7 @@ export class PentaDrill {
 
                 if (buttonsToCollect.length >0)
                 {
-                    function collectPentaDrillRewards()
+                    function collectPentaDrillRewards(): any
                     {
                         function collectionFinished() {
                             logHHAuto("PentaDrill collection finished.");

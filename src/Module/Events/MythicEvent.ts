@@ -36,7 +36,7 @@ export class MythicEvent {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        let allEventGirlz = hhEventData ? hhEventData.girls as any[] : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
             let girlData: KKEventGirl = allEventGirlz[currIndex];
             let ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';

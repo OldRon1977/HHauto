@@ -216,7 +216,7 @@ export class LoveRaidManager {
                     }
 
                     if ($('.raid-card')[index].classList.contains('multiple-girl')) {
-                        const girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard'), 10);
+                        const girlSkinShards = parseInt($($($('.raid-card')[index].getElementsByClassName('shards'))[1]).attr('skins-shard')!, 10);
                         raid.skin_to_win = girlSkinShards < 33;
                         raid.girl_skin_shards = girlSkinShards; // owned
                     }

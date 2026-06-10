@@ -7,9 +7,9 @@ export class ConfigHelper {
     static getEnvironnement()
     {
         let environnement = "global";
-        if (HHKnownEnvironnements[window.location.hostname] !== undefined)
+        if ((HHKnownEnvironnements as any)[window.location.hostname] !== undefined)
         {
-            environnement= HHKnownEnvironnements[window.location.hostname].name;
+            environnement= (HHKnownEnvironnements as any)[window.location.hostname].name;
         }
         else
         {
@@ -26,15 +26,15 @@ export class ConfigHelper {
     static getHHScriptVars(id:string, logNotFound = true): any
     {
         const environnement = ConfigHelper.getEnvironnement();
-        if (HHEnvVariables[environnement] !== undefined && HHEnvVariables[environnement][id] !== undefined)
+        if ((HHEnvVariables as any)[environnement] !== undefined && (HHEnvVariables as any)[environnement][id] !== undefined)
         {
-            return HHEnvVariables[environnement][id];
+            return (HHEnvVariables as any)[environnement][id];
         }
         else
         {
-            if (HHEnvVariables["global"] !== undefined && HHEnvVariables["global"][id] !== undefined )
+            if ((HHEnvVariables as any)["global"] !== undefined && (HHEnvVariables as any)["global"][id] !== undefined )
             {
-                return HHEnvVariables["global"][id];
+                return (HHEnvVariables as any)["global"][id];
             }
             else
             {

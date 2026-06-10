@@ -57,11 +57,11 @@ export function cleanLogsInStorage() {
  * When the stored log exceeds MAX_LINES, the oldest entries are removed.
  * Duplicate keys within the same millisecond get a numeric suffix.
  */
-export function logHHAuto(...args)
+export function logHHAuto(...args: any[])
 {
 
     const stackTrace = (new Error()).stack || '';
-    let match
+    let match: any
     const regExps = [/at Object\.([\w_.]+) \((\S+)\)/, /\n([\w_.]+)@(\S+)/, /\)\n    at ([\w_.]+) \((\S+)\)/];
     regExps.forEach(element => {
         if(!(match && match.length >= 2)) match = stackTrace.match(element);
@@ -80,7 +80,7 @@ export function logHHAuto(...args)
     // "Converting circular structure to JSON" errors.
     const getCircularReplacer = () => {
         const seen = new WeakSet();
-        return (key, value) => {
+        return (key: string, value: any) => {
             if (typeof value === 'object' && value !== null) {
                 if (seen.has(value)) {
                     return;
@@ -153,7 +153,7 @@ export function logHHAuto(...args)
  */
 export function saveHHDebugLog()
 {
-    var dataToSave={}
+    var dataToSave: Record<string, any> = {}
 
     var name='HH_DebugLog_'+Date.now()+'.log';
     dataToSave['HHAuto_browserVersion']=getBrowserData(window.navigator || navigator);

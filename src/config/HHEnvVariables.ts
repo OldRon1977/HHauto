@@ -24,18 +24,18 @@ const supportedGames = [
     TransPornstarHarem
 ];
 
-export const HHKnownEnvironnements = {};
+export const HHKnownEnvironnements: Record<string, any> = {};
 supportedGames.forEach(game => {
     if (game.hasOwnProperty('getEnv')) {
         for (var key in game.getEnv()) {
-            HHKnownEnvironnements[key] = game.getEnv()[key];
+            HHKnownEnvironnements[key] = (game.getEnv() as any)[key];
         }
     }
 });
 HHKnownEnvironnements["www.hornyheroes.com"] = {name:"SH_prod",id:"hh_sexy"};
 
 
-export const HHEnvVariables = {};
+export const HHEnvVariables: Record<string, any> = {};
 HHEnvVariables["global"] = {};
 for (let i in HHKnownEnvironnements)
 {
@@ -145,7 +145,7 @@ switch (getLanguageCode())
         break;
 }
 
-function compareOwnFirst(a, b, final_comparaison)
+function compareOwnFirst(a: any, b: any, final_comparaison: any)
 {
     if (a.is_owned && !b.is_owned) {
         return -1
@@ -157,7 +157,7 @@ function compareOwnFirst(a, b, final_comparaison)
 
 HHEnvVariables["global"].haremSortingFunctions = {};
 HHEnvVariables["global"].haremSortingFunctions.date_recruited =
-HHEnvVariables["global"].haremSortingFunctions.DateAcquired = function (a, b)
+HHEnvVariables["global"].haremSortingFunctions.DateAcquired = function (a: any, b: any)
 {
     if (a.gData.is_owned && b.gData.is_owned) {
         var dateA = new Date(a.gData.date_added).getTime();
@@ -170,7 +170,7 @@ HHEnvVariables["global"].haremSortingFunctions.DateAcquired = function (a, b)
     else
         return b.shards - a.shards
 };
-HHEnvVariables["global"].haremSortingFunctions.Name = function sortByName(a, b)
+HHEnvVariables["global"].haremSortingFunctions.Name = function sortByName(a: any, b: any): any
 {
     var nameA = a.gData.name.toUpperCase();
     var nameB = b.gData.name.toUpperCase();
@@ -185,19 +185,19 @@ HHEnvVariables["global"].haremSortingFunctions.Name = function sortByName(a, b)
     else if (!a.gData.is_owned && b.gData.is_owned)
         return 1
 };
-HHEnvVariables["global"].haremSortingFunctions.Grade = function sortByGrade(a, b)
+HHEnvVariables["global"].haremSortingFunctions.Grade = function sortByGrade(a: any, b: any)
 {
     return compareOwnFirst(a.gData, b.gData, b.gData.graded - a.gData.graded)
 };
-HHEnvVariables["global"].haremSortingFunctions.Level = function sortByLevel(a, b)
+HHEnvVariables["global"].haremSortingFunctions.Level = function sortByLevel(a: any, b: any)
 {
     return compareOwnFirst(a.gData, b.gData, b.gData.level - a.gData.level)
 };
-HHEnvVariables["global"].haremSortingFunctions.Power = function sortByPower(a, b)
+HHEnvVariables["global"].haremSortingFunctions.Power = function sortByPower(a: any, b: any)
 {
     return compareOwnFirst(a.gData, b.gData, b.gData.caracs.carac1 + b.gData.caracs.carac2 + b.gData.caracs.carac3 - a.gData.caracs.carac1 - a.gData.caracs.carac2 - a.gData.caracs.carac3)
 }
-HHEnvVariables["global"].haremSortingFunctions.upgrade_cost = function sortByUpgradeCost(a, b)
+HHEnvVariables["global"].haremSortingFunctions.upgrade_cost = function sortByUpgradeCost(a: any, b: any)
 {
     const aCost = (Number(a.gData.nb_grades) === Number(a.gData.graded) || !a.gData.is_owned ) ? 0 : Harem.getGirlUpgradeCost(a.gData.rarity, a.gData.graded + 1);
     const bCost = (Number(b.gData.nb_grades) === Number(b.gData.graded) || !b.gData.is_owned ) ? 0 : Harem.getGirlUpgradeCost(b.gData.rarity, b.gData.graded + 1);
@@ -452,7 +452,7 @@ HHEnvVariables["HH_test"].isEnabledFreeBundles = false;// to remove if bundles a
 
 
 for (var key in HentaiHeroes.getEnv()) {
-    const element = HentaiHeroes.getEnv()[key].name;
+    const element = (HentaiHeroes.getEnv() as any)[key].name;
     HHEnvVariables[element].spreadsheet = HentaiHeroes.spreadsheet;
     HHEnvVariables[element].trollIdMapping = HentaiHeroes.trollIdMapping;
     HHEnvVariables[element].sideTrollIdMapping = HentaiHeroes.sideTrollIdMapping;
@@ -462,7 +462,7 @@ for (var key in HentaiHeroes.getEnv()) {
 }
 
 for (var key in GayHarem.getEnv()) {
-    const element = GayHarem.getEnv()[key].name;
+    const element = (GayHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = GayHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = GayHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = GayHarem.trollIdMapping;
@@ -470,7 +470,7 @@ for (var key in GayHarem.getEnv()) {
 };
 
 for (var key in ComixHarem.getEnv()) {
-    const element = ComixHarem.getEnv()[key].name;
+    const element = (ComixHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = ComixHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = ComixHarem.getTrollGirlsId();
     HHEnvVariables[element].trollIdMapping = ComixHarem.trollIdMapping;
@@ -492,7 +492,7 @@ HHEnvVariables["SH_prod"].isEnabledPoG = false;// to remove when PoG arrives in 
 HHEnvVariables["SH_prod"].lastQuestId = -1; //  TODO update when new quest comes
 
 for (var key in MangaRpg.getEnv()) {
-    const element = MangaRpg.getEnv()[key].name;
+    const element = (MangaRpg.getEnv() as any)[key].name;
     HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = MangaRpg.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollGirlsID = MangaRpg.getTrollGirlsId();
@@ -502,7 +502,7 @@ for (var key in MangaRpg.getEnv()) {
 };
 
 for (var key in AmourAgent.getEnv()) {
-    const element = AmourAgent.getEnv()[key].name;
+    const element = (AmourAgent.getEnv() as any)[key].name;
     HHEnvVariables[element].lastQuestId = -1; //  TODO update when new quest comes
     HHEnvVariables[element].trollzList = AmourAgent.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = AmourAgent.trollIdMapping;
@@ -511,7 +511,7 @@ for (var key in AmourAgent.getEnv()) {
 };
 
 for (var key in PornstarHarem.getEnv()) {
-    const element = PornstarHarem.getEnv()[key].name;
+    const element = (PornstarHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = PornstarHarem.getTrolls(getLanguageCode());
     HHEnvVariables[element].trollIdMapping = PornstarHarem.trollIdMapping;
     HHEnvVariables[element].lastQuestId = PornstarHarem.lastQuestId;
@@ -520,7 +520,7 @@ for (var key in PornstarHarem.getEnv()) {
 };
 
 for (var key in TransPornstarHarem.getEnv()) {
-    const element = TransPornstarHarem.getEnv()[key].name;
+    const element = (TransPornstarHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = TransPornstarHarem.getTrolls(getLanguageCode());
     TransPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = TransPornstarHarem.getTrollGirlsId();
@@ -530,7 +530,7 @@ for (var key in TransPornstarHarem.getEnv()) {
 };
 
 for (var key in GayPornstarHarem.getEnv()) {
-    const element = GayPornstarHarem.getEnv()[key].name;
+    const element = (GayPornstarHarem.getEnv() as any)[key].name;
     HHEnvVariables[element].trollzList = GayPornstarHarem.getTrolls(getLanguageCode());
     GayPornstarHarem.updateFeatures(HHEnvVariables[element]);
     HHEnvVariables[element].trollGirlsID = GayPornstarHarem.getTrollGirlsId();

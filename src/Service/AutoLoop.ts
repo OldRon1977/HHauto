@@ -69,8 +69,8 @@ export function getBurst()
 
 export function CheckSpentPoints()
 {
-    const oldValues=getStoredJSON(HHStoredVarPrefixKey+TK.CheckSpentPoints, -1);
-    const newValues={};
+    const oldValues=getStoredJSON<any>(HHStoredVarPrefixKey+TK.CheckSpentPoints, -1);
+    const newValues: Record<string, number> = {};
     if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle',false))
     {
         newValues['fight']=Troll.getEnergy();
@@ -98,7 +98,7 @@ export function CheckSpentPoints()
 
     if ( oldValues !== -1)
     {
-        const spent = {};
+        const spent: Record<string, number> = {};
 
         for (const i of Object.keys(newValues))
         {

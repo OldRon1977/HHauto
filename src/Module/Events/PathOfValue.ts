@@ -42,7 +42,7 @@ export class PathOfValue {
         return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
     }
     static getRewardButtonToCollect(): HTMLElement[] {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
 
         let buttonsToCollect: HTMLElement[] = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");

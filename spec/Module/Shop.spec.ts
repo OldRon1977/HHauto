@@ -65,7 +65,7 @@ describe("Shop.updateShop", function () {
         // real root id ("hh_hentai") that getPage() reads the page attr from.
         MockHelper.mockDomain("www.hentaiheroes.com");
         gotoPageMock.mockClear();
-        unsafeWindow.shared.Hero = { infos: { level: 321 } } as any;
+        unsafeWindow.shared!.Hero = { infos: { level: 321 } } as any;
     });
 
     afterEach(() => {

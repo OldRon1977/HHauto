@@ -34,7 +34,7 @@ import { QuestHelper } from "./Quest";
 
 export class Champion {
 
-    static ChampDisplayAutoTeamPopup(numberDone,numberEnd,remainingTime)
+    static ChampDisplayAutoTeamPopup(numberDone: number | string, numberEnd: number, remainingTime: number)
     {
         $(".champions-top__inner-wrapper").prepend('<div id="popup_message_champ" class="HHpopup_message" name="popup_message_champ" style="margin:0px;width:400px" ><a id="popup_message_champ_close" class="close">&times;</a>'
                         +getTextForUI("autoChampsTeamLoop","elementText")+' : <br>'+numberDone+'/'+numberEnd+' ('+remainingTime+'sec)</div>');
@@ -45,7 +45,7 @@ export class Champion {
         $("#popup_message_champ").each(function(){this.remove();});
     }
 
-    static ChamppUpdateAutoTeamPopup(numberDone,numberEnd,remainingTime)
+    static ChamppUpdateAutoTeamPopup(numberDone: number | string, numberEnd: number, remainingTime: number)
     {
         Champion.ChampClearAutoTeamPopup();
         Champion.ChampDisplayAutoTeamPopup(numberDone,numberEnd,remainingTime);
@@ -57,9 +57,9 @@ export class Champion {
             return;
         }
 
-        var getPoses = function($images){
+        var getPoses = function($images: JQuery<HTMLElement>){
             var poses:string[]=[];
-            $images.each(function(idx,pose){
+            $images.each(function(idx: number, pose: HTMLElement){
                 var imgSrc = $(pose).attr('src') || '';
                 var poseNumber = imgSrc.substring(imgSrc.lastIndexOf('/')+1).replace(/\D/g, '');
                 poses.push(poseNumber);
@@ -103,7 +103,7 @@ export class Champion {
 
         var indicateBestTeam = function() {
             const girlBoxes = $(girlBoxesQuery);
-            var girlsPerPose={};
+            var girlsPerPose: Record<string, any[]>={};
             var girls:any[]=[];
             $(".hhgirlOrder").remove();
 
@@ -119,9 +119,9 @@ export class Champion {
                 const poseNumber = girlData.figure;
                 if(!girlsPerPose[poseNumber]) {girlsPerPose[poseNumber] = [];}
                 girlsPerPose[poseNumber].push({data:girlData,htmlDom:$girl});
-                girlsPerPose[poseNumber].sort((a,b) => b.data.damage - a.data.damage);
+                girlsPerPose[poseNumber].sort((a: any, b: any) => b.data.damage - a.data.damage);
                 girls.push({data:girlData,htmlDom:$girl});
-                girls.sort((a,b) => a.data.damage - b.data.damage);
+                girls.sort((a: any, b: any) => a.data.damage - b.data.damage);
             });
 
             for(var i=0;i<10;i++) {
@@ -142,7 +142,7 @@ export class Champion {
         $(document).on('click', newDraftButtonQuery, indicateBestTeam);
         $(document).on('click', confirmDraftButtonQuery, indicateBestTeam);
 
-        var checkAjaxCompleteOnChampionPage = function(event,request,settings) {
+        var checkAjaxCompleteOnChampionPage = function(event: any, request: any, settings: any) {
             let match = settings.data.match(/action=champion_team_draft/);
             if (match === null) return;
             champTeam = request.responseJSON.teamArray;
@@ -155,7 +155,7 @@ export class Champion {
             Champion.ChamppUpdateAutoTeamPopup(counterLoop+1,maxLoops, (maxLoops-counterLoop) * 5);
             $('#updateChampTeamButton').text( 'Loop ' + (counterLoop+1) + '/' + maxLoops);
             const girlBoxes = $(".champions-middle__girl-selection.champions-animation .girl-selection__girl-box");
-            var girlsPerPose={};
+            var girlsPerPose: Record<string, any[]>={};
             var girls:any[]=[];
             var teamGirls:any[]=[];
             var girlsClicked = false;
@@ -172,9 +172,9 @@ export class Champion {
                 const poseNumber = girlData.figure;
                 if(!girlsPerPose[poseNumber]) {girlsPerPose[poseNumber] = [];}
                 girlsPerPose[poseNumber].push({data:girlData,htmlDom:$girl});
-                girlsPerPose[poseNumber].sort((a,b) => b.data.damage - a.data.damage);
+                girlsPerPose[poseNumber].sort((a: any, b: any) => b.data.damage - a.data.damage);
                 girls.push({data:girlData,htmlDom:$girl});
-                girls.sort((a,b) => a.data.damage - b.data.damage);
+                girls.sort((a: any, b: any) => a.data.damage - b.data.damage);
             });
 
             const hero_damage = Number(getHHVars('championData.hero_damage'));
@@ -204,7 +204,7 @@ export class Champion {
             }
             logHHAuto('Team of girls ' + teamGirls);
 
-            var toggleSelectGirl = function(girlId, girlDraggable, timer = 1000){
+            var toggleSelectGirl = function(girlId: any, girlDraggable: JQuery<HTMLElement>, timer: number = 1000){
                 setTimeout(function() {
                     console.log("click " + girlId, girlDraggable);
                     girlDraggable.click();
@@ -315,11 +315,11 @@ export class Champion {
     }
 
     static getChampionListFromMap(): ChampionModel[] {
-        const Filter = (getStoredValue(HHStoredVarPrefixKey+SK.autoChampsFilter)||'').split(';').map(s=>Number(s));
+        const Filter = (getStoredValue(HHStoredVarPrefixKey+SK.autoChampsFilter)||'').split(';').map((s: string)=>Number(s));
         const championMap: ChampionModel[] = [];
         // const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
         const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStartEventGirl) === "true";
-        const autoChampsEventGirls = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        const autoChampsEventGirls = getStoredJSON<any[]>(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
         const championWithEventGirl = autoChampsEventGirls.map(a => Number(a.champ_id));
         $('span.stage-bar-tier').each(function(i, tier){    
             const champion = new ChampionModel(i, (tier.getAttribute("hh_title")||'').split('/')[0].replace(/[^0-9]/gi, ''), Filter.includes(i+1));
@@ -340,7 +340,7 @@ export class Champion {
         return championMap;
     }
 
-    static async orderTeam(champTeamArg = undefined) {
+    static async orderTeam(champTeamArg: any = undefined) {
         var champTeam = champTeamArg || getHHVars('championData.team');
         const champTeamId = Number(getHHVars('championData.champion.id'));
         $("#orderTeam").attr('disabled', 'disabled');
@@ -359,12 +359,12 @@ export class Champion {
                     id_champion: champTeamId,
                     champion_type: isClub ? "club_champion" : "champion"
                 };
-                getHHAjax()(params, function (data: any) {
+                getHHAjax()!(params, function (data: any) {
                     if(data.success == false) {
                         logHHAuto('Error occured during champion team reorder', data);
                     }
                     resolve(data.success || true);
-                }, function (err) {
+                }, function (err: any) {
                     logHHAuto('Error occured during champion team reorder', err);
                     resolve(false);
                 });
@@ -375,7 +375,7 @@ export class Champion {
             return result;
         };
 
-        let currentGirlOrder = [...champTeam.map(g => g.id_girl)]; // To be stored as string
+        let currentGirlOrder = [...champTeam.map((g: any) => g.id_girl)]; // To be stored as string
         logHHAuto('Ordering champion team', currentGirlOrder);
         let oneGirlSwitched = false;
 
@@ -511,7 +511,7 @@ export class Champion {
 
             const championMap = Champion.getChampionListFromMap();
             const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStartEventGirl) === "true";
-            const autoChampsEventGirls = getStoredJSON(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
+            const autoChampsEventGirls = getStoredJSON<any[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
             const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStart) === "true";
 
             for (let i=0;i<championMap.length;i++)
@@ -537,7 +537,7 @@ export class Champion {
                     if ( autoChampGirlInEvent && $(firstLockedLevelOfChampRequest).length > 0 )
                     {
                         let firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
-                        let parsedFirstLockedLevelOfChamp = safeJsonParse(firstLockedLevelOfChamp, null);
+                        let parsedFirstLockedLevelOfChamp = safeJsonParse<any>(firstLockedLevelOfChamp, null);
                         if
                             (
                                 parsedFirstLockedLevelOfChamp !== null
@@ -591,7 +591,7 @@ export class Champion {
         }
     }
 
-    static findNextChamptionTime(championMap: ChampionModel[]=undefined) {
+    static findNextChamptionTime(championMap: ChampionModel[] | undefined = undefined) {
         if (getPage() == ConfigHelper.getHHScriptVars("pagesIDChampionsMap")) {
             const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey+SK.autoChampsForceStart) === "true";
 

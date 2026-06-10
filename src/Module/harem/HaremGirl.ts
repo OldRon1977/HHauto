@@ -351,7 +351,7 @@ export class HaremGirl {
         const girlMenuButtonId = 'girlMenu';
         if($('#'+girlMenuButtonId).length > 0) return;
 
-        var createMenuButton = function(menuId, disabled=false){
+        var createMenuButton = function(menuId: string, disabled=false){
             return '<div class="tooltipHH">'
             +    '<span class="tooltipHHtext">'+getTextForUI(menuId,"tooltip")+'</span>'
             +    '<label style="font-size: initial;" class="myButton" '+(disabled?'disabled="disabled"':'')+' id="'+menuId+'Button">'+getTextForUI(menuId,"elementText")
@@ -467,7 +467,7 @@ export class HaremGirl {
         $("#menuExpText").html(selectedGirl.name+" "+selectedGirl.Xp.cur+"xp, level "+selectedGirl.level+"<br>"+getTextForUI("menuExpInfo","elementText")+"<br>");
         (<HTMLInputElement>document.getElementById("menuExpMode")).value = haremItem;
 
-        var KeyUpExp = function(evt)
+        var KeyUpExp = function(evt: any)
         {
             if (evt.key === 'Enter')
             {
@@ -554,7 +554,7 @@ export class HaremGirl {
 
             $('.hhsingleskill').on("click", function () {
                 const skillId = $(this).parents('.skill-upgrade-row').attr('skill-id');
-                HaremGirl.singleSkillsUpgrade(skillId);
+                HaremGirl.singleSkillsUpgrade(skillId as string);
             });
 
             $(HaremGirl.SKILL_BUTTON_SELECTOR).on("click", function () {
@@ -623,13 +623,13 @@ export class HaremGirl {
                 let girlListProgress = '';
                 const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
 
-                const filteredGirlsList = getStoredJSON(HHStoredVarPrefixKey + TK.filteredGirlsList, []);
+                const filteredGirlsList = getStoredJSON<string[]>(HHStoredVarPrefixKey + TK.filteredGirlsList, []);
                 logHHAuto("filteredGirlsList", filteredGirlsList);
                 if (filteredGirlsList && filteredGirlsList.length > 0) {
                     girlPosInList = filteredGirlsList.indexOf("" + girl.id_girl);
                     if (girlPosInList >= 0 && filteredGirlsList.length > (girlPosInList + 1)) {
                         remainingGirls = filteredGirlsList.length - girlPosInList - 1;
-                        nextGirlId = filteredGirlsList[girlPosInList + 1];
+                        nextGirlId = filteredGirlsList[girlPosInList + 1] as any;
                         girlListProgress = (girlPosInList + 1) + '/' + filteredGirlsList.length;
                     }
                 } else {
@@ -751,7 +751,7 @@ export class HaremGirl {
         return false;
     }
 
-    static async singleSkillsUpgrade(skillId: string) {
+    static async singleSkillsUpgrade(skillId: string): Promise<void> {
         logHHAuto('Upgrade skill ' + skillId);
         try {
             const skillButton = $(`#skills .skill-upgrade .skill-upgrade-row[skill-id='${skillId}'] button.blue_button_L:not([disabled])`).first();
@@ -767,7 +767,7 @@ export class HaremGirl {
         return Promise.resolve();
     }
 
-    static async fullSkillsUpgrade(maxTier=5) {
+    static async fullSkillsUpgrade(maxTier=5): Promise<void> {
         try {
             let skillButton:JQuery<HTMLElement> | null = null;
             for(let i=0; i< HaremGirl.SKILL_ORDER_PRIO.length; i++) {
@@ -794,7 +794,7 @@ export class HaremGirl {
         return Promise.resolve();
     }
 
-    static HaremDisplayGirlPopup(haremItem,haremText,remainingTime, cost=0)
+    static HaremDisplayGirlPopup(haremItem: any, haremText: any, remainingTime: any, cost=0)
     {
         $(".girl-leveler-panel .girl-section, .waifu-page-container .girl-display, #harem_right .avatar-box").prepend(
             `<div id="popup_message_harem" class="HHpopup_message" name="popup_message_harem" style="" ><a id="popup_message_harem_close" class="close">&times;</a>

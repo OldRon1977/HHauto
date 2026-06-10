@@ -56,7 +56,7 @@ export class DoublePenetration {
     static goAndCollect(dpRemainingTime: number, manualCollectAll = false)
     {
         try {
-            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autodpEventCollectablesList, []);
+            const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autodpEventCollectablesList, []);
 
             const needToCollectAll =  dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollectAll) === "true";
             const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true");

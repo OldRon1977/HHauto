@@ -85,7 +85,7 @@ export class DailyGoals {
     }
     static goAndCollect(): boolean
     {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList, []);
         //console.log(rewardsToCollect.length);
         if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true")
         {

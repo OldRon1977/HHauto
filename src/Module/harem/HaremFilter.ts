@@ -49,7 +49,7 @@ export class HaremFilter {
             6: 4
         };
         if (starsMapping.hasOwnProperty(stars)) {
-            await this.selectOption('girl-max-grade-dropdown', starsMapping[stars]);
+            await this.selectOption('girl-max-grade-dropdown', (starsMapping as any)[stars]);
         } else {
             logHHAuto(`Error unkown GirlAffectionCategory ${stars}, selecting all`);
             await this.selectOption('girl-max-grade-dropdown', 0);

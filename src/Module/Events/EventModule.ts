@@ -32,7 +32,7 @@ export class EventModule {
         //clearTimer('eventMythicNextWave');
         //clearTimer('eventRefreshExpiration');
         //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
-        const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+        const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
         let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
         const eventGirl = EventModule.getEventGirl();
         const eventMythicGirl = EventModule.getEventMythicGirl();
@@ -175,7 +175,7 @@ export class EventModule {
                                     +`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted',"tooltip")}" />`
                                 +`</div>`);
 
-                    const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+                    const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
                     for (const eventID of Object.keys(eventList))
                     {
                         if (eventList[eventID]["isCompleted"])
@@ -236,7 +236,7 @@ export class EventModule {
             logHHAuto(`On event page : ${eventID} (${hhEventData?.event_name || ''})`);
             EventModule.clearEventData(eventID);
             //let eventsGirlz=[];
-            const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+            const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
             let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
             const eventChamps: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
             const Priority: string[] =(getStoredValue(HHStoredVarPrefixKey+SK.eventTrollOrder) || '').split(";");
@@ -370,7 +370,7 @@ export class EventModule {
                 // before the trigger fires; this branch is the
                 // belt-and-braces guard for direct callers.
                 try {
-                    const evList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                    const evList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
                     const ev = (evList as Record<string, any>)[inTab];
                     const end = Number(ev?.seconds_before_end);
                     if (Number.isFinite(end) && end <= Date.now()) {
@@ -455,7 +455,7 @@ export class EventModule {
 
     static getEventIDsByType(inType:string):string[] {
         const eventIDs:string[] = [];
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
         for (const eventID of Object.keys(eventList))
         {
             if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
@@ -467,7 +467,7 @@ export class EventModule {
 
     static isEventActive(inEventID:string)
     {
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
         if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
             // seconds_before_end is a millisecond epoch (see clearEventData):
             // compare explicitly against Date.now(). A non-finite value means
@@ -480,7 +480,7 @@ export class EventModule {
 
     static checkEvent(inEventID:string)
     {
-        const eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
+        const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
         const hhEvent = EventModule.getEvent(inEventID);
         if(!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled)
         {
@@ -604,7 +604,7 @@ export class EventModule {
      * @param timerName         HH timer name read via getTimeLeft/getTimer
      * @param timerEndDateName  storage key holding a SECONDS epoch end-date
      */
-    static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName)
+    static displayGenericRemainingTime(scriptId: string, aRel: string, hhtimerId: string, timerName: string, timerEndDateName: string)
     {
         const displayTimer = $(scriptId).length === 0;
         if(getTimer(timerName) !== -1)
@@ -649,7 +649,7 @@ export class EventModule {
             }
         }
     }
-    static moduleSimPoVPogMaskReward(containerId)
+    static moduleSimPoVPogMaskReward(containerId: string)
     {
         var arrayz;
         var nbReward;

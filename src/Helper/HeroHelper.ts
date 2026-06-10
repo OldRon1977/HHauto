@@ -72,7 +72,7 @@ export function doStatUpgrades()
                     action: "hero_update_stats",
                     nb: mult
                 };
-                getHHAjax()(params, function(data) {
+                getHHAjax()!(params, function(data: any) {
                     Hero.update("soft_currency", 0 - price, true);
                 });
                 setTimeout(doStatUpgrades, randomInterval(300,500));
@@ -107,7 +107,7 @@ export class HeroHelper {
     }
 
     static haveBoosterInInventory(idBooster:string) {
-        const HaveBooster=getStoredJSON(HHStoredVarPrefixKey+TK.haveBooster, {});
+        const HaveBooster=getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.haveBooster, {});
         const boosterOwned = HaveBooster.hasOwnProperty(idBooster) ? Number(HaveBooster[idBooster]) : 0;
         return boosterOwned > 0
     }
@@ -161,7 +161,7 @@ export class HeroHelper {
                 settle(false);
             }, 15000);
 
-            getHHAjax()(params, function(data) {
+            getHHAjax()!(params, function(data: any) {
                 logHHAuto(`equipBooster: AJAX success callback, data.success=${data.success}, full response=${JSON.stringify(data)}`);
                 if (data.success) {
                     logHHAuto('equipBooster: Booster equipped successfully');
@@ -176,7 +176,7 @@ export class HeroHelper {
                 }
                 logHHAuto(`equipBooster: resolving with ${data.success}`);
                 settle(!!data.success);
-            }, function (err){
+            }, function (err: any){
                 logHHAuto('equipBooster: AJAX error callback - ' + err);
                 // Network/server error also implies our cached state may be wrong — invalidate.
                 deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);

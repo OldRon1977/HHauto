@@ -128,7 +128,7 @@ export class PlaceOfPower {
             popStyles();
         }
     }
-    static addPopToUnableToStart(popIndex,message){
+    static addPopToUnableToStart(popIndex: any, message: string){
         var popUnableToStart = getStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart) ?? "";
         logHHAuto(message);
         if (popUnableToStart === "")
@@ -364,7 +364,7 @@ export class PlaceOfPower {
     static girlPower(powerRemaining:number, girlList:{id: number; power: number}[], selectedGirls:{id: number; power: number}[]):{id: number; power: number}[] {
         let subList = girlList;
         if (subList.length>0){
-            let currentGirl = subList.pop();
+            let currentGirl = subList.pop()!;
             if(currentGirl.power <= powerRemaining) {
                 selectedGirls.push(currentGirl);
                 powerRemaining -= currentGirl.power;
@@ -375,7 +375,7 @@ export class PlaceOfPower {
     }
 
     // returns boolean to set busy
-    static async doPowerPlacesStuff(index)
+    static async doPowerPlacesStuff(index: any)
     {
         if(getPage() !== "powerplace"+index)
         {
@@ -533,8 +533,8 @@ export class PlaceOfPower {
             let availGirls = document.querySelectorAll('[girl]');
             availGirls.forEach(girl=>{
                 const girlObj = {
-                    id : parseInt(girl.attributes["girl"].value),
-                    power : parseInt(girl.attributes["skill"].value)
+                    id : parseInt((girl.attributes as any)["girl"].value),
+                    power : parseInt((girl.attributes as any)["skill"].value)
                 }
                 girlsList.push(girlObj);
 
@@ -547,7 +547,7 @@ export class PlaceOfPower {
             availGirls.forEach(availGirlElement => {
                 const availGirl = <HTMLElement> availGirlElement;
                 chosenTeam.forEach(chosenGirl => {
-                    if (parseInt(availGirl.attributes["girl"].value) == chosenGirl.id) {
+                    if (parseInt((availGirl.attributes as any)["girl"].value) == chosenGirl.id) {
                         availGirl.click();
                     };
                 });

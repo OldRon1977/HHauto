@@ -724,7 +724,7 @@ const handlePlaceOfPower: HandlerConfig = {
         }
         popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
         for (const index of indexes) {
-          if (ctx.busy === false && popToStart.includes(Number(index))) {
+          if (ctx.busy === false && (popToStart as number[]).includes(Number(index))) {
             logHHAuto('Time to do PowerPlace' + index + '.');
             ctx.busy = await PlaceOfPower.doPowerPlacesStuff(index);
             ctx.lastActionPerformed = 'pop';
@@ -835,10 +835,10 @@ const handleTrollBattle: HandlerConfig = {
         const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
         const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
         const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-        const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+        const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered) as LoveRaid;
         const loveRaid: LoveRaid = LoveRaidManager.isActivated()
           ? LoveRaidManager.getRaidToFight(allTrollRaids)
-          : undefined;
+          : undefined as any;
 
         const shouldFight =
           (
@@ -1321,8 +1321,8 @@ const handleChampionTicket: HandlerConfig = {
             amount: '1',
           };
           logHHAuto('Buying ticket with energy');
-          getHHAjax()(params, function (data: { hero_changes: Record<string, unknown> }) {
-            Hero.updates(data.hero_changes);
+          getHHAjax()!(params, function (data: { hero_changes: Record<string, unknown> }) {
+            Hero!.updates(data.hero_changes);
             // Route the post-purchase reload through safeReload so any
             // in-flight game AJAX gets to finish before the URL change.
             safeReload();

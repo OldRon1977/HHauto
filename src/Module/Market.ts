@@ -45,7 +45,7 @@ export class Market {
                 setStoredValue(HHStoredVarPrefixKey+TK.charLevel, 0);
                 return;
             }
-            var shop=getStoredJSON(HHStoredVarPrefixKey+TK.storeContents, {});
+            var shop=getStoredJSON<any>(HHStoredVarPrefixKey+TK.storeContents, {});
 
             var Exp=Number(getStoredValue(HHStoredVarPrefixKey+SK.autoExp));
             var Aff=Number(getStoredValue(HHStoredVarPrefixKey+SK.autoAff));
@@ -53,7 +53,7 @@ export class Market {
             var MaxExp=Number(getStoredValue(HHStoredVarPrefixKey+SK.maxExp)); if (MaxExp === 0) MaxExp = Infinity;
             var HaveAff=Number(getStoredValue(HHStoredVarPrefixKey+TK.haveAff));
             var HaveExp=Number(getStoredValue(HHStoredVarPrefixKey+TK.haveExp));
-            var HaveBooster=getStoredJSON(HHStoredVarPrefixKey+TK.haveBooster, {});
+            var HaveBooster=getStoredJSON<any>(HHStoredVarPrefixKey+TK.haveBooster, {});
             var MaxBooster=Number(getStoredValue(HHStoredVarPrefixKey+SK.maxBooster)); if (MaxBooster === 0) MaxBooster = Infinity;
             let Was;
 
@@ -82,7 +82,7 @@ export class Market {
                                     id_item: shop[1][n1].id_item,
                                     type: "booster"
                                 };
-                                getHHAjax()(params1, function(data:any) {
+                                getHHAjax()!(params1, function(data:any) {
                                     Hero.updates(data.changes, false);
                                     if (data.success === false)
                                     {
@@ -130,7 +130,7 @@ export class Market {
                         action: "market_auto_buy",
                         type: "gift"
                     };
-                    getHHAjax()(params2, function(data) {
+                    getHHAjax()!(params2, function(data: any) {
                         Hero.updates(data.changes, false);
                         if (data.success === false)
                         {
@@ -163,7 +163,7 @@ export class Market {
                                 id_item: shop[2][n2].id_item,
                                 type: "gift"
                             };
-                            getHHAjax()(params4, function(data) {
+                            getHHAjax()!(params4, function(data: any) {
                                 Hero.updates(data.changes, false);
                                 if (data.success === false)
                                 {
@@ -205,7 +205,7 @@ export class Market {
                         action: "market_auto_buy",
                         type: "potion"
                     };
-                    getHHAjax()(params3, function(data) {
+                    getHHAjax()!(params3, function(data: any) {
                         Hero.updates(data.changes, false);
                         if (data.success === false)
                         {
@@ -238,7 +238,7 @@ export class Market {
                                 id_item: shop[3][n3].id_item,
                                 type: "potion"
                             };
-                            getHHAjax()(params5, function(data) {
+                            getHHAjax()!(params5, function(data: any) {
                                 Hero.updates(data.changes, false);
                                 if (data.success === false)
                                 {

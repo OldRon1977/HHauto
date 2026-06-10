@@ -49,13 +49,13 @@ export class LabyrinthRelic {
         }
 
         try {
-            this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))[0]);
+            this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))![0]);
         } catch (err) {
             // logHHAuto('ERROR: Can\'t find reward value');
         }
         try {
             const classes = slot.find('.team-relic-icon').children().first().attr('class');
-            this.element = classes.substring(0, classes.indexOf('_element_relic_icn'));
+            this.element = classes!.substring(0, classes!.indexOf('_element_relic_icn'));
         } catch (err) {
             // logHHAuto('ERROR: Can\'t find reward element');
         }
@@ -81,7 +81,7 @@ export class RelicManager {
     }
 
     chooseRelic(relics: LabyrinthRelic[]): LabyrinthRelic {
-        let chosenRelic:LabyrinthRelic;
+        let chosenRelic!: LabyrinthRelic;
         for (let i = 0; i < relics.length; i++) {
             const relic = relics[i];
             if (!chosenRelic && !relic.isGirl && relic.element === '') chosenRelic = relic;
@@ -111,7 +111,7 @@ export class RelicManager {
             const relic = this.chooseRelic(relics);
             if (this.debugEnabled) logHHAuto('Selecting', relic);
 
-            $($('#labyrinth_reward_popup #reward_holder .relic-card-buttons .claim-relic-btn').get(relic.index)).trigger('click');
+            $($('#labyrinth_reward_popup #reward_holder .relic-card-buttons .claim-relic-btn').get(relic.index) as HTMLElement).trigger('click');
         } catch (err) {
             logHHAuto('Error selecting relics, select first no girl relic');
             $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').first().trigger('click');

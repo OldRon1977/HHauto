@@ -163,7 +163,7 @@ export class PathOfAttraction {
             const currentRewardTierNb = listPoATiersToClaim[currentTier].getAttribute("data-nc-reward-id");
             const slotElement = $('.slot',listPoATiersToClaim[currentTier]);
             const slotType = RewardHelper.getRewardTypeBySlot(slotElement[0]);
-            rewards[currentRewardTierNb] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
+            rewards[currentRewardTierNb as any] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
         }
         return rewards;
     }
@@ -204,7 +204,7 @@ export class PathOfAttraction {
 
         if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll)
         {
-            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoPoACollectablesList, []);
+            const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoPoACollectablesList, []);
     
             logHHAuto("Checking Path of Attraction for collectable rewards.");
             

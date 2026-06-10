@@ -33,7 +33,7 @@ import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { EventModule } from "./EventModule";
 
 export class BossBang {
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData): any {
         const eventID = hhEvent.eventId;
         let refreshTimer = randomInterval(3600, 4000);
 
@@ -153,7 +153,7 @@ export class BossBang {
                 // before the URL change. Direct location.href = ... cancels
                 // open XHRs with NS_BINDING_ABORTED, which can trigger the
                 // server-side Forbidden race (issue #1598).
-                const href = addNutakuSession(bangButton.attr('href')) as string;
+                const href = addNutakuSession(bangButton.attr('href')!) as string;
                 safeNavigateHref(href);
                 await TimeHelper.sleep(randomInterval(3000, 5000));
                 return true;

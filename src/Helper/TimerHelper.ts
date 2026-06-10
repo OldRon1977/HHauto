@@ -21,13 +21,13 @@ import { TK } from "../config/StorageKeys";
 import { setStoredValue } from "./StorageHelper";
 import { TimeHelper } from "./TimeHelper";
 
-export let Timers = {};
+export let Timers: Record<string, any> = {};
 
-export function setTimers(timer) {
+export function setTimers(timer: any) {
     Timers = timer;
 }
 
-export function setTimer(name, seconds)
+export function setTimer(name: string, seconds: number)
 {
     var ND=new Date().getTime() + seconds * 1000;
     Timers[name]=ND;
@@ -69,7 +69,7 @@ export function getTimer(name: string)
     return Timers[name];
 }
 
-export function getSecondsLeft(name)
+export function getSecondsLeft(name: string)
 {
     if (!Timers[name])
     {
@@ -86,7 +86,7 @@ export function getSecondsLeft(name)
     }
 }
 
-export function getTimeLeft(name)
+export function getTimeLeft(name: string)
 {
     const timerWaitingCompet = ['nextPachinkoTime','nextPachinko2Time','nextPachinkoEquipTime','nextSeasonTime','nextLeaguesTime','nextChampionTime','nextClubChampionTime','nextLabyrinthTime','nextPentaDrillTime','nextPantheonTime'];
     if (!Timers[name])

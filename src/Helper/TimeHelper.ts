@@ -40,7 +40,7 @@ export class TimeHelper {
         return getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" || !((getSecondsLeft('contestRemainingTime')-safeTime) < 0 && getSecondsLeft('nextContestTime') > 0);
     }
 
-    static toHHMMSS(secs): string  {
+    static toHHMMSS(secs: any): string  {
         var sec_num = parseInt(secs, 10);
         var days = Math.floor(sec_num / 86400);
         var hours = Math.floor(sec_num / 3600) % 24;
@@ -89,7 +89,7 @@ export class TimeHelper {
                 action();
             }
 
-            var checkAjaxCompleteOnStartPop = function (event, request, settings) {
+            var checkAjaxCompleteOnStartPop = function (event: any, request: any, settings: any) {
                 let match = settings.data.match(ajaxPattern);
                 if (match === null) return;
 
@@ -108,7 +108,7 @@ export function convertTimeToInt(remainingTimer: string, failSafe=true): number 
         try{
             let splittedTime = remainingTimer.trim().split(' ');
             for (let i = 0; i < splittedTime.length; i++) {
-                let timerSymbol = splittedTime[i].match(/[^0-9]+/)[0];
+                let timerSymbol = splittedTime[i].match(/[^0-9]+/)![0];
                 switch (timerSymbol) {
                     case timerDefinitions[hhTimerLocale].days:
                         newTimer += parseInt(splittedTime[i])*86400;
@@ -126,7 +126,7 @@ export function convertTimeToInt(remainingTimer: string, failSafe=true): number 
                         logHHAuto('Timer symbol not recognized: ' + timerSymbol);
                 }
             }
-        } catch ({ errName, message }) {
+        } catch ({ errName, message }: any) {
             if (failSafe) {
                 logHHAuto(`ERROR: occured, reset to 15min: ${errName}, ${message}`);
                 newTimer = randomInterval(15 * 60, 17 * 60);

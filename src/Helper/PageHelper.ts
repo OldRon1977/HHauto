@@ -206,7 +206,7 @@ export function getPage(checkUnknown = false): string
     }
     const activitiesMainPage = ConfigHelper.getHHScriptVars("pagesIDActivities");
     const tab = queryStringGetParam(window.location.search, 'tab');
-    const p: string = ob.getAttribute('page');
+    const p: string = ob.getAttribute('page') as string;
     let page = p;
     if (p === activitiesMainPage)
     {
@@ -225,7 +225,7 @@ export function getPage(checkUnknown = false): string
         }
         if (!isKnown && page)
         {
-            const unknownPageList = getStoredJSON(HHStoredVarPrefixKey + TK.unknownPagesList, {});
+            const unknownPageList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.unknownPagesList, {});
             // Idempotent write: skip the JSON.stringify+setStoredValue round-trip
             // when this page was already recorded with the same pathname (avoids
             // a write per AutoLoop tick on long-running unknown pages).

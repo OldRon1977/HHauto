@@ -15,15 +15,15 @@ describe("HeroHelper", function() {
 
   describe("getHero", function() {
     it("No Hero", function() {
-      unsafeWindow.shared.Hero = undefined;
+      unsafeWindow.shared!.Hero = undefined;
       expect(getHero()).toBeUndefined();
     });
     it("Test with string", function() {
-        unsafeWindow.shared.Hero = "TOTO";
+        unsafeWindow.shared!.Hero = "TOTO";
       expect(getHero()).toBe("TOTO");
     });
     it("Test with object", function() {
-        unsafeWindow.shared.Hero = {
+        unsafeWindow.shared!.Hero = {
             name:"TOTO"
         };
       expect(getHero()).toBeDefined();
@@ -104,14 +104,14 @@ describe("HeroHelper", function() {
   describe("equipBooster", function() {
     beforeEach(() => {
       MockHelper.mockDomain();
-        unsafeWindow.shared.general.hh_ajax = jest.fn();
+        unsafeWindow.shared!.general!.hh_ajax = jest.fn();
         sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{}');
         sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodFailure", '0');
     });
 
     // Fixed mock: hh_ajax(params, successCb, errorCb) must invoke the callback
     function mockEquipeResponse(success:boolean) {
-      unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
+      unsafeWindow.shared!.general!.hh_ajax = jest.fn((params, successCb, errorCb) => {
             const fakeResponse = {
                 success: success
             };
@@ -120,7 +120,7 @@ describe("HeroHelper", function() {
     }
 
     function mockEquipeError() {
-      unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
+      unsafeWindow.shared!.general!.hh_ajax = jest.fn((params, successCb, errorCb) => {
             errorCb(new Error('AJAX network error'));
         });
     }
@@ -186,7 +186,7 @@ describe("HeroHelper", function() {
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
       await HeroHelper.equipBooster(TEST_SANDALWOOD);
-      expect(unsafeWindow.shared.general.hh_ajax).toHaveBeenCalledWith(
+      expect(unsafeWindow.shared!.general!.hh_ajax).toHaveBeenCalledWith(
         {action: "market_equip_booster", id_item: 632, type: "booster"},
         expect.any(Function),
         expect.any(Function)

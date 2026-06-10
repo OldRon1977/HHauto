@@ -74,7 +74,7 @@ describe("ParanoiaService", function () {
     });
 });
 
-function replacerMap(key, value) {
+function replacerMap(this: any, key: any, value: any) {
     const originalObject = this[key];
     if (originalObject instanceof Map) {
         return {

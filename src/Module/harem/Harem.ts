@@ -104,7 +104,7 @@ export class Harem {
             // The game returns girlsDataList as either an Array (legacy)
             // or a plain Object keyed by girl id (current). forEach only
             // exists on the Array form -- normalise via Object.values().
-            const entries = Array.isArray(girlsDataList)
+            const entries: any[] = Array.isArray(girlsDataList)
                 ? girlsDataList
                 : (typeof girlsDataList === 'object' ? Object.values(girlsDataList) : []);
             entries.forEach((data: any) => {
@@ -117,10 +117,10 @@ export class Harem {
         return girlsDataList;
     }
 
-    static getHaremGirlsFromOcdIfExist(): Map<string, any> {
+    static getHaremGirlsFromOcdIfExist(): Map<string, any> | null {
         if (localStorage.getItem('HHS.HHPNMap') !== null) {
             try {
-                const girlsArray = JSON.parse(localStorage.getItem('HHS.HHPNMap'));
+                const girlsArray = JSON.parse(localStorage.getItem('HHS.HHPNMap') as string);
                 const girlNameDictionary = new Map();
                 girlsArray.forEach((data:any) => {
                     girlNameDictionary.set(data[0]+"", data[1]);
@@ -141,7 +141,7 @@ export class Harem {
             //logHHAuto("Girls Map was undefined...! Error, cannot export girls.");
         }
         else {
-            return Object.values(gMap).find((girl:KKHaremGirl) => Number(girl.id_girl) === Number(girlId)) as KKHaremGirl;
+            return Object.values(gMap).find((girl: any) => Number(girl.id_girl) === Number(girlId)) as KKHaremGirl;
         }
         return null;
     }
@@ -232,17 +232,17 @@ export class Harem {
         const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
 
         if (girlListDisplayed) {
-            Object.values(girlListDisplayed).forEach((girl: KKHaremSalaryGirl) => {
+            Object.values(girlListDisplayed).forEach((girl: any) => {
                 if (girl.gData.shards >= 100) filteredGirlsList.push("" + girl.gId);
             });
         }
         else if (girlsListLoaded) {
-            Object.values(girlsListLoaded).forEach((girl: KKHaremGirl) => {
+            Object.values(girlsListLoaded).forEach((girl: any) => {
                 if (girl.shards >= 100) filteredGirlsList.push("" + girl.id_girl);
             });
         }
         else if (girlsListSec && girlsListSec.length > 0) {
-            girlsListSec.forEach((girl) => {
+            girlsListSec.forEach((girl: any) => {
                 if (girl.gData.shards >= 100) filteredGirlsList.push(""+girl.gId);
             });
         }
@@ -277,7 +277,7 @@ export class Harem {
                     HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "Get scrolls", 1, 0);
                     if (debugEnabled) logHHAuto("Waifu page detected, get girls with skills");
                     const girlDictionary = getHHVars("girls_data_list");
-                    const skilledGirls = Object.values(girlDictionary).filter((girl: KKHaremGirl) => {
+                    const skilledGirls = Object.values(girlDictionary).filter((girl: any) => {
                         const skills: any[] = Object.values(girl.skill_tiers_info);
                         return Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0)) > 0;
                     });
@@ -304,9 +304,9 @@ export class Harem {
                 if (!!haremItem && haremGirlMode === 'team') {
                     const team: TeamData = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, {} as TeamData);
                     const teamSettings = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeamSettings, {}) as any;
-                    const skilledGirlsScrolls = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeamScrolls, []);
+                    const skilledGirlsScrolls = getStoredJSON<any>(HHStoredVarPrefixKey + TK.haremTeamScrolls, []);
                     const userFilter = false; // TODO add user filter to only display
-                    let girlListDisplayed: KKHaremSalaryGirl[];
+                    let girlListDisplayed: any[];
                     let heroMoney = HeroHelper.getMoney();
 
                     if (userFilter && (team.scrolls_mythic > 0 || team.scrolls_legendary > 0 || team.scrolls_epic > 0 || team.scrolls_rare > 0 || team.scrolls_common > 0)) {
@@ -334,7 +334,7 @@ export class Harem {
 
                     const getScrolls = async (rarity: string) => {
                         HaremGirl.HaremDisplayGirlPopup(HaremGirl.SKILLS_TYPE, "resetting " + rarity, 7, 0);
-                        logHHAuto('Get ' + rarity + ' scrolls needed: ' + team['scrolls_' + rarity]);
+                        logHHAuto('Get ' + rarity + ' scrolls needed: ' + (team as any)['scrolls_' + rarity]);
                         let scrollGot = 0;
                         //await haremFilter.selectGirlFilters('6');
                         //const mythicGirls: KKHaremSalaryGirl[] = girlListDisplayed.filter((girl: KKHaremSalaryGirl) => girl.gData.rarity == 'mythic');
@@ -362,7 +362,7 @@ export class Harem {
                             }
                             // logHHAuto(`Simulate reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost/1000000}M. Player money: ${heroMoney}`);
                             // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
-                            if (scrollGot >= team['scrolls_' + rarity]) {
+                            if (scrollGot >= (team as any)['scrolls_' + rarity]) {
                                 if (debugEnabled) logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
                                 break;
                             }
@@ -371,7 +371,7 @@ export class Harem {
                     };
 
                     for (const rarity of ['mythic', 'legendary', 'epic', 'rare', 'common']) {
-                        const needScrolls = team['scrolls_' + rarity] > 0;
+                        const needScrolls = (team as any)['scrolls_' + rarity] > 0;
                         const haveAlreadySkilledGirls = skilledGirlsScrolls[rarity] && Object.keys(skilledGirlsScrolls[rarity]).length > 0;
                         const userSelectedResetScrolls = teamSettings['reset' + rarity.charAt(0).toUpperCase() + rarity.slice(1) + 'Girls'] === true;
                         if (debugEnabled) logHHAuto(`For rarity ${rarity}, needScrolls: ${needScrolls}, haveAlreadySkilledGirls: ${haveAlreadySkilledGirls}, userSelectedResetScrolls: ${userSelectedResetScrolls}`);
@@ -423,12 +423,12 @@ export class Harem {
                 action: "girl_skills_reset",
                 id_girl: girlId
             };
-            getHHAjax()(params1, function (data: any) {
+            getHHAjax()!(params1, function (data: any) {
                 // change referer
                 //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
                 resolve(data.success || true);
-            }, function (err) {
+            }, function (err: any) {
                 logHHAuto('Error occured during girl skills reset', err);
                 resolve(false);
             });
@@ -462,7 +462,7 @@ export class Harem {
         }
     }
 
-    static fillCurrentGirlItem(haremItem, payLast=false){
+    static fillCurrentGirlItem(haremItem: string, payLast=false){
         const filteredGirlsList = Harem.getFilteredGirlList();
 
         if (filteredGirlsList && filteredGirlsList.length > 0) {
@@ -522,7 +522,7 @@ export class Harem {
                 GM_addStyle('#harem_right > div[girl] .middle_part {flex: 0 0 282px;}');
                 $('#harem_right .opened .avatar').hide();
 
-                for (let index = 0; index < girl?.images?.ava?.length; index++) {
+                for (let index = 0; index < (girl?.images?.ava?.length ?? 0); index++) {
                     const avatar = $(`<img src="${girl?.images?.ava[index]}" class="avatar hhava" />`);
                     $('#harem_right .opened .middle_part').append(avatar);
                 }
@@ -537,7 +537,7 @@ export class Harem {
         const girlListMenuButtonId = 'girlListMenu';
         if($('#'+girlListMenuButtonId).length > 0) return;
 
-        var createMenuButton = function(menuId, disabled=false){
+        var createMenuButton = function(menuId: string, disabled=false){
             return '<div class="tooltipHH">'
             +    '<span class="tooltipHHtext">'+getTextForUI(menuId,"tooltip")+'</span>'
             +    '<label style="font-size: initial;" class="myButton" '+(disabled?'disabled="disabled"':'')+' id="'+menuId+'Button">'+getTextForUI(menuId,"elementText")
@@ -613,7 +613,7 @@ export class Harem {
         $('#'+girlListMenuButtonId).on("click", openGirlMenu);
     }
    
-    static HaremSizeNeedsRefresh(inCustomExpi)
+    static HaremSizeNeedsRefresh(inCustomExpi: number)
     {
         return getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count_date: 0 }).count_date < (new Date().getTime() - inCustomExpi * 1000);
     }
@@ -628,16 +628,16 @@ export class Harem {
         }
     }
 
-    static getGirlUpgradeCost(inRarity, inTargetGrade)
+    static getGirlUpgradeCost(inRarity: string, inTargetGrade: number)
     {
         const rarity = ["starting", "common", "rare", "epic", "legendary", "mythic"];
         const rarityFactors = [1, 2, 6, 14, 20, 50];
         const gradeFactors = [1, 2.5, 2.5, 2, 2, 2];
         const cost11 = 36000;
-        const calculatedCosts = {};
+        const calculatedCosts: Record<string, any> = {};
         for (let i = 0;i <rarity.length; i++)
         {
-            const currentRarityCosts = {};
+            const currentRarityCosts: Record<number, any> = {};
             for (let j = 0;j < 6;j++)
             {
                 let currentCost;
