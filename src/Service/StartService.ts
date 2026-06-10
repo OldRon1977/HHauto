@@ -125,21 +125,21 @@ export function setDefaults(force = false)
 {
     for (let i of Object.keys(HHStoredVars))
     {
-        if (HHStoredVars[i].storage !== undefined )
+        if ((HHStoredVars as any)[i].storage !== undefined )
         {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
+            let storageItem = getStorageItem((HHStoredVars as any)[i].storage);
             let isInvalid = false;
             //console.log(storageItem[i], storageItem[i] !== undefined);
-            if (HHStoredVars[i].isValid !== undefined && storageItem[i] !== undefined)
+            if ((HHStoredVars as any)[i].isValid !== undefined && storageItem[i] !== undefined)
             {
-                isInvalid = !HHStoredVars[i].isValid.test(storageItem[i]);
+                isInvalid = !(HHStoredVars as any)[i].isValid.test(storageItem[i]);
                 if (isInvalid)
                 {
                     logHHAuto("HHStoredVar "+i+" is invalid, reseting.");
                     logHHAuto("HHStoredVar "+i+" current value : "+storageItem[i]);
                 }
             }
-            if (HHStoredVars[i].default !== undefined )
+            if ((HHStoredVars as any)[i].default !== undefined )
             {
                 if (storageItem[i] === undefined || force || isInvalid)
                 {

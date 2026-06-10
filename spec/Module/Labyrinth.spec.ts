@@ -13,7 +13,7 @@ describe("Labyrinth", function () {
         isShrine: false,
         isNext: true,
         power: null
-    }
+    } as any
     const LABY_TRESURE = Object.assign({}, LABY_EMPTY, { isTreasure: true });
     const LABY_SHRINE = Object.assign({}, LABY_EMPTY, { isShrine: true});
     const LABY_SUPER_EASY = Object.assign({}, LABY_EMPTY, { opponentDifficulty: 0, isOpponent: true, power:1 });

@@ -74,7 +74,7 @@ export class SeasonalEvent {
     }
     static goAndCollect(manualCollectAll = false)
     {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"))
         {
@@ -319,7 +319,7 @@ export class SeasonalEvent {
             }
         });
     }
-    static getGirlMileStonesDiv(playerPoints, girlPointsTarget, girlIndex) {
+    static getGirlMileStonesDiv(playerPoints: number, girlPointsTarget: number, girlIndex: number) {
         const greeNitckHtml = '<img class="nc-claimed-reward-check" src="'+ConfigHelper.getHHScriptVars("baseImgPath")+'/clubs/ic_Tick.png">';
         const girlDiv = $('<div class="HHGirlMilestone girl-img-'+girlIndex+'"><div>Girl '+girlIndex+':'+playerPoints+'/'+girlPointsTarget+'</div></div>');
         if(playerPoints >= girlPointsTarget) {
@@ -336,7 +336,7 @@ export class SeasonalEvent {
             if($('#' + hhRewardId).length <= 0) {
                 const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
                 logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
-                if (rewardCountByType['all'] > 0) {
+                if ((rewardCountByType as any)['all'] > 0) {
                     // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container { height: 5rem; margin-top: 0;}'); 
                     // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container a { height: 2rem;}'); 
 
@@ -350,7 +350,7 @@ export class SeasonalEvent {
                     target.append($('<div id='+hhRewardId+' style="display:none;"></div>'));
                 }
             }
-        } catch(err) {
+        } catch(err: any) {
             logHHAuto("ERROR:", err.message);
             target.append($('<div id='+hhRewardId+' style="display:none;"></div>'));
         }

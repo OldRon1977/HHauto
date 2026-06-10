@@ -139,13 +139,13 @@ export class LivelyScene {
         return false;
     }
 
-    static _makeSVG(tag, attrs) {
+    static _makeSVG(tag: string, attrs: any) {
         var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
         for (var k in attrs)
             el.setAttribute(k, attrs[k]);
         return el;
     }
-    static _makeSVGImage($puzzlePiece, iconHref) {
+    static _makeSVGImage($puzzlePiece: any, iconHref: any) {
         const tresorImage = $('image', $puzzlePiece);
         return LivelyScene._makeSVG('image', {
             height: 18,
@@ -174,7 +174,7 @@ export class LivelyScene {
 
                         if ($puzzlePiece.length > 0 && iconHref) {
                             const image = LivelyScene._makeSVGImage($puzzlePiece, iconHref);
-                            document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`).appendChild(image);
+                            document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`)!.appendChild(image);
                             
                             logHHAuto(`Add icon for ${rewardType} to #puzzle_piece_${puzzlePiece.id_piece}`);
                         }

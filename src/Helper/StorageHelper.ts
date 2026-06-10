@@ -66,23 +66,23 @@ export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: s
  * is supposed to start fresh -- but it is not currently surfaced to
  * the user in the menu UI.
  */
-export function getStorage()
+export function getStorage(): Storage
 {
     return getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true" ? sessionStorage : localStorage;
 }
 
-export function getStoredValue(inVarName: string)
+export function getStoredValue(inVarName: string): any
 {
     if (!HHStoredVars.hasOwnProperty(inVarName)) return undefined;
-    const storedValue = getStorageItem(HHStoredVars[inVarName].storage)[inVarName];
-    if (!HHStoredVars[inVarName].kobanUsing) return storedValue;
+    const storedValue = getStorageItem((HHStoredVars as any)[inVarName].storage)[inVarName];
+    if (!(HHStoredVars as any)[inVarName].kobanUsing) return storedValue;
     // Check main switch for spending Koban via a direct storage read,
     // NOT recursion via getStoredValue, to avoid an infinite call stack
     // if Setting_spendKobans0 itself were ever (accidentally) registered
     // with kobanUsing: true. The master switch is itself a Storage()
     // entry so we route through getStorageItem with its registered type.
     const masterKey = HHStoredVarPrefixKey + SK.spendKobans0;
-    const masterEntry = HHStoredVars[masterKey];
+    const masterEntry = (HHStoredVars as any)[masterKey];
     const masterValue = masterEntry ? getStorageItem(masterEntry.storage)[masterKey] : undefined;
     return masterValue === "true" ? storedValue : "false";
 }
@@ -91,7 +91,7 @@ export function deleteStoredValue(inVarName: string)
 {
     if (HHStoredVars.hasOwnProperty(inVarName))
     {
-        getStorageItem(HHStoredVars[inVarName].storage).removeItem(inVarName);
+        getStorageItem((HHStoredVars as any)[inVarName].storage).removeItem(inVarName);
     }
 }
 
@@ -99,7 +99,7 @@ export function setStoredValue(inVarName: string, inValue: any, retry: boolean=f
 {
     if (!HHStoredVars.hasOwnProperty(inVarName)) return;
     try {
-        getStorageItem(HHStoredVars[inVarName].storage)[inVarName] = inValue;
+        getStorageItem((HHStoredVars as any)[inVarName].storage)[inVarName] = inValue;
     } catch (e) {
         // Robust catch: destructuring `{ errName, message }` from a
         // non-Error throw (primitive, plain object missing those keys)
@@ -114,14 +114,14 @@ export function setStoredValue(inVarName: string, inValue: any, retry: boolean=f
 }
 
 
-export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,extractSettings=true)
+export function extractHHVars(dataToSave: Record<string, any>,extractLog = false,extractTemp=true,extractSettings=true)
 {
     const currentStorageName = getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true" ? "sessionStorage" : "localStorage";
     for (const i of Object.keys(HHStoredVars))
     {
-        const varType = HHStoredVars[i].HHType;
+        const varType = (HHStoredVars as any)[i].HHType;
         if (!((varType === "Setting" && extractSettings) || (varType === "Temp" && extractTemp))) continue;
-        const storageType = HHStoredVars[i].storage;
+        const storageType = (HHStoredVars as any)[i].storage;
         const storageName = storageType === 'Storage()' ? currentStorageName : storageType;
         if (i !== HHStoredVarPrefixKey + TK.Logging)
         {
@@ -136,7 +136,7 @@ export function extractHHVars(dataToSave,extractLog = false,extractTemp=true,ext
 }
 
 export function saveHHVarsSettingsAsJSON() {
-    const dataToSave = {};
+    const dataToSave: Record<string, any> = {};
     extractHHVars(dataToSave, false, false, true);
     const name = 'HH_SaveSettings_' + Date.now() + '.json';
     const a = document.createElement('a');
@@ -145,7 +145,7 @@ export function saveHHVarsSettingsAsJSON() {
     a.click();
 }
 
-export function getStorageItem(inStorageType)
+export function getStorageItem(inStorageType: string): Storage
 {
     switch (inStorageType)
     {
@@ -155,6 +155,8 @@ export function getStorageItem(inStorageType)
             return sessionStorage;
         case 'Storage()':
             return getStorage();
+        default:
+            return localStorage;
     }
 }
 
@@ -182,7 +184,7 @@ export function migrateHHVars()
     for (const newKey of Object.keys(HHStoredVars))
     {
         const oldKeys = newKey.replace(HHStoredVarPrefixKey, 'HHAuto_');
-        const storageItem = getStorageItem(HHStoredVars[newKey].storage);
+        const storageItem = getStorageItem((HHStoredVars as any)[newKey].storage);
         const itemValue = storageItem[oldKeys];
         storageItem.removeItem(oldKeys);
         // Preserve the value if it is set at all -- including the empty
@@ -202,9 +204,9 @@ function haveHHAutoSettings() {
     return have;
 }
 
-export function getUserHHStoredVarDefault(inVarName)
+export function getUserHHStoredVarDefault(inVarName: string)
 {
-    const currentDefaults = getStoredJSON(HHStoredVarPrefixKey+SK.saveDefaults, null);
+    const currentDefaults = getStoredJSON<any>(HHStoredVarPrefixKey+SK.saveDefaults, null);
     if (currentDefaults !== null && currentDefaults[inVarName] !== undefined)
     {
         return currentDefaults[inVarName];
@@ -214,14 +216,14 @@ export function getUserHHStoredVarDefault(inVarName)
 
 export function saveHHStoredVarsDefaults()
 {
-    const dataToSave = {};
+    const dataToSave: Record<string, any> = {};
     getMenuValues();
     extractHHVars(dataToSave, false, false, true);
-    const savedHHStoredVars = {};
+    const savedHHStoredVars: Record<string, any> = {};
     for (const i of Object.keys(dataToSave))
     {
         const variableName = i.split(".")[1];
-        if (variableName !== HHStoredVarPrefixKey+SK.saveDefaults && HHStoredVars[variableName].default !== dataToSave[i])
+        if (variableName !== HHStoredVarPrefixKey+SK.saveDefaults && (HHStoredVars as any)[variableName].default !== dataToSave[i])
         {
             savedHHStoredVars[variableName] = dataToSave[i];
         }
@@ -230,9 +232,9 @@ export function saveHHStoredVarsDefaults()
     logHHAuto("HHStoredVar defaults saved !");
 }
 
-export function setHHStoredVarToDefault(inVarName)
+export function setHHStoredVarToDefault(inVarName: string)
 {
-    const entry = HHStoredVars[inVarName];
+    const entry = (HHStoredVars as any)[inVarName];
     if (entry === undefined)
     {
         logHHAuto("HHStoredVar "+inVarName+" doesn't exist.");
@@ -264,13 +266,13 @@ export function setHHStoredVarToDefault(inVarName)
     }
 }
 
-export function getHHStoredVarDefault(inVarName)
+export function getHHStoredVarDefault(inVarName: string)
 {
-    if (HHStoredVars[inVarName] !== undefined)
+    if ((HHStoredVars as any)[inVarName] !== undefined)
     {
-        if (HHStoredVars[inVarName].default !== undefined)
+        if ((HHStoredVars as any)[inVarName].default !== undefined)
         {
-            return HHStoredVars[inVarName].default;
+            return (HHStoredVars as any)[inVarName].default;
         }
         else
         {
@@ -312,7 +314,7 @@ export function debugDeleteTempVars()
     // bucket (which would write into the wrong storage), we restore
     // each value via setStoredValue, which routes through the registry
     // and respects the post-reset settPerTab automatically.
-    const dataToSave = {};
+    const dataToSave: Record<string, any> = {};
     extractHHVars(dataToSave, false, false, true);
 
     debugDeleteAllVars();
@@ -327,7 +329,7 @@ export function debugDeleteTempVars()
 }
 
 
-export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("menuCollectableText","elementText"))
+export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = getTextForUI("menuCollectableText","elementText"))
 {
     createPopUpCollectables();
     function createPopUpCollectables()
@@ -337,7 +339,7 @@ export function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextFo
         +    '<div style="display:flex;">'
         let count = 0;
         const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
-        const rewardsToCollect = getStoredJSON(inVarName, []);
+        const rewardsToCollect = getStoredJSON<string[]>(inVarName, []);
         for (const currentItem of Object.keys(possibleRewards))
         {
             //console.log(currentItem,possibleRewards[currentItem]);

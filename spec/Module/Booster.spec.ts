@@ -12,7 +12,7 @@ const TEST_SANDALWOOD = {id_item: "632", identifier: "MB1", name: "Sandalwood pe
 
 /** Sets up boosterIdMap in sessionStorage so getBoosterByIdentifier can resolve boosters */
 function setupBoosterIdMap(boosters: any[] = [TEST_GINSENG, TEST_SANDALWOOD]) {
-    const map = {};
+    const map: Record<string, any> = {};
     for (const b of boosters) {
         map[b.identifier] = { id_item: b.id_item, identifier: b.identifier, name: b.name, rarity: b.rarity };
     }
@@ -245,7 +245,7 @@ describe("Booster", function() {
     beforeEach(function() {
       MockHelper.mockDomain();
       // Fixed mock: hh_ajax(params, successCb, errorCb) must invoke the callback
-      unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
+      unsafeWindow.shared!.general!.hh_ajax = jest.fn((params, successCb, errorCb) => {
           const fakeResponse = { success: true };
           successCb(fakeResponse);
       });
@@ -324,7 +324,7 @@ describe("Booster", function() {
 
       beforeEach(function() {
         // Mock failure case: server returns success:false
-        unsafeWindow.shared.general.hh_ajax = jest.fn((params, successCb, errorCb) => {
+        unsafeWindow.shared!.general!.hh_ajax = jest.fn((params, successCb, errorCb) => {
             const fakeResponse = { success: false };
             successCb(fakeResponse);
         });
@@ -375,7 +375,7 @@ describe("Booster", function() {
         const result = await Booster.equipeSandalWoodIfNeeded(99);
         expect(result).toBeFalsy();
         // hh_ajax should NOT have been called
-        expect(unsafeWindow.shared.general.hh_ajax).not.toHaveBeenCalled();
+        expect(unsafeWindow.shared!.general!.hh_ajax).not.toHaveBeenCalled();
       });
     });
   });

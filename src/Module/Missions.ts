@@ -142,7 +142,7 @@ export class Missions {
                     } else 
                         setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1,5));
                 }
-            } catch ({ errName, message }) {
+            } catch ({ errName, message }: any) {
                 logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
                 setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
             }
@@ -152,7 +152,7 @@ export class Missions {
     }
 
     static parseMissions(canCollect:boolean) {
-        var missionOngoing:Mission = null;
+        var missionOngoing:Mission = null as any;
         var missions:Mission[] = [];
         var lastMissionData:Mission = {} as any;
         var allGood = true;

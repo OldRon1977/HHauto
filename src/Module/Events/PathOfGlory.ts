@@ -42,7 +42,7 @@ export class PathOfGlory {
         return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
     }
     static getRewardButtonToCollect(): HTMLElement[] {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
 
         let buttonsToCollect: HTMLElement[] = [];
         const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");

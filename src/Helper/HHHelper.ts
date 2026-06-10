@@ -37,7 +37,7 @@ export function getHHVars(infoSearched:string, logging = true): any
     return returnValue;
 }
 
-export function setHHVars(infoSearched,newValue)
+export function setHHVars(infoSearched: any, newValue: any): any
 {
     let returnValue:any = unsafeWindow;
     if (ConfigHelper.getHHScriptVars(infoSearched,false) !== null)

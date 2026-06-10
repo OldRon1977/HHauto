@@ -72,7 +72,7 @@ export class QuestHelper {
             let navOk: boolean;
             if (quests.length > 0) {
                 logHHAuto("Navigating to side quest.");
-                navOk = gotoPage(quests.attr('href'));
+                navOk = gotoPage(quests.attr('href')!);
             }
             else {
                 logHHAuto("All quests finished, setting timer to check back later!");

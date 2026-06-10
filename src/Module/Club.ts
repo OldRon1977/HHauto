@@ -31,7 +31,7 @@ export class Club {
         }
         if (chatVars === null || chatVars === false)
         {
-            HHEnvVariables[ConfigHelper.getHHScriptVars("HHGameName")].isEnabledClubChamp = false;
+            (HHEnvVariables as any)[ConfigHelper.getHHScriptVars("HHGameName")].isEnabledClubChamp = false;
         }
     }
 }

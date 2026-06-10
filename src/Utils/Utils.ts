@@ -5,7 +5,7 @@ import { getStorageItem } from "../Helper/StorageHelper";
 import { safeReload } from "../Service/PageNavigationService";
 import { logHHAuto } from "./LogUtils";
 
-export function callItOnce(fn) {
+export function callItOnce(fn: () => any) {
     var called = false;
     return function() {
         if (!called) {
@@ -23,7 +23,7 @@ export function getLoadingAnimation() {
     return window.shared?.animations?.loadingAnimation || { start: () => { }, stop: ()=>{}};
 }
 
-export function onAjaxResponse(pattern, callback) {
+export function onAjaxResponse(pattern: any, callback: (response: any, opt: any, xhr: any, evt: any) => any) {
     $(document).ajaxComplete((evt, xhr, opt) => {
         if (opt && opt.data && opt.data.search && ~opt.data.search(pattern)) {
             if (!xhr || !xhr.responseText || !xhr.responseText.length) {
@@ -56,15 +56,15 @@ export function getCallerCallerFunction()
     let match
     try {
         match = stackTrace.match(/at Object\.(\w+) \((\S+)\)/);
-        match[1] // throw error if match is null
+        match![1] // throw error if match is null
     } catch {
         // Firefox
         match = stackTrace.match(/\n(\w+)@(\S+)/);
     }
-    let [callerName, callerPlace] = [match[1], match[2]]
+    let [callerName, callerPlace] = [match![1], match![2]]
 
     try{
-    console.log('Function ' + match[3] + ' at ' + match[4])
+    console.log('Function ' + match![3] + ' at ' + match![4])
     }catch(err){}
     /*
     var callerName;
@@ -134,7 +134,7 @@ export function waitForKeyElements (selectorTxt,maxMilliWaitTime)
 }*/
 
 
-export function myfileLoad_onChange(event)
+export function myfileLoad_onChange(event: any)
 {
     $('#LoadConfError')[0].innerText =' ';
     if (event.target.files.length == 0) {return}
@@ -145,7 +145,7 @@ export function myfileLoad_onChange(event)
 
 
 
-export function myfileLoad_onReaderLoad(event){
+export function myfileLoad_onReaderLoad(event: any){
     var text = event.target.result;
     var storageType;
     var storageItem;

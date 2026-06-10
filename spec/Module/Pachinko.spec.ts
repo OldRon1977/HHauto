@@ -24,8 +24,8 @@ const gotoPageMock = gotoPage as jest.Mock;
 describe("Pachinko", function() {
   describe("getHumanPachinkoFromOrbName", function() {
     it("default", function() {
-      expect(Pachinko.getHumanPachinkoFromOrbName(null)).toBe('Unknown');
-      expect(Pachinko.getHumanPachinkoFromOrbName(undefined)).toBe('Unknown');
+      expect(Pachinko.getHumanPachinkoFromOrbName(null as any)).toBe('Unknown');
+      expect(Pachinko.getHumanPachinkoFromOrbName(undefined as any)).toBe('Unknown');
       expect(Pachinko.getHumanPachinkoFromOrbName('')).toBe('Unknown');
     });
     it("Unknown", function() {

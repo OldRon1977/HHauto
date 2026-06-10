@@ -101,7 +101,7 @@ export class Bundles {
                     }
                 }
 
-                function switchToBundleTabs() {
+                function switchToBundleTabs(): any {
                     const bundleTabs = $(bundleTabsListQuery, $(bundleTabsContainerQuery));
                     if(bundleTabs.length > 0) {
                         let freeBundleFound = false;
@@ -134,7 +134,7 @@ export class Bundles {
                 setTimeout(switchToBundleTabs,randomInterval(1400, 1800));
 
                 return true;
-            } catch ({ errName, message }) {
+            } catch ({ errName, message }: any) {
                 logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
                 setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
                 return false;

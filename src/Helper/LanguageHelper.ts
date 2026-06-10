@@ -63,12 +63,12 @@ export function getLanguageCode()
  1: version a is greater than b
 -1: version b is greater than a
 */
-function cmpVersions(a, b)
+function cmpVersions(a: string, b: string)
 {
     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }) ;
 }
 
-export function getTextForUI(id,type)
+export function getTextForUI(id: string, type: string)
 {
     let HHAuto_Lang = getLanguageCode();
     let defaultLanguageText = null;

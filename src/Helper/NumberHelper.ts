@@ -13,7 +13,7 @@
 //          display), InfoService (player info panel)
 
 /** Event handler for menu inputs that auto-formats with thousands separators. */
-export function add1000sSeparator1()
+export function add1000sSeparator1(this: any)
 {
     var nToFormat = this.value;
     this.value = NumberHelper.add1000sSeparator(nToFormat);
@@ -31,7 +31,7 @@ export class NumberHelper {
         return Number(nToFormat.replace(/\D/g, ''));
     }
 
-    static nThousand(x) {
+    static nThousand(x: any) {
         if (typeof x != 'number') {
             x = 0;
         }
@@ -39,7 +39,7 @@ export class NumberHelper {
     }
 
     // Numbers: rounding to K, M, G and T
-    static nRounding(num:number, digits:number, updown:number) {
+    static nRounding(num:number, digits:number, updown:number): any {
         var power = [
             { value: 1, symbol: '' },
             { value: 1E3, symbol: 'K' },

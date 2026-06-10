@@ -128,7 +128,7 @@ export class HHMenu {
                 }
             }
             
-        } catch ({ errName, message }) {
+        } catch ({ errName, message }: any) {
             trollOptions.add(this._createHtmlSeparator('Error!'));
             logHHAuto(`Error filling trolls: ${errName}, ${message}`);
         }
@@ -153,7 +153,7 @@ export class HHMenu {
                 loveRaidOptions.add(option);
             });
             
-        } catch ({ errName, message }) {
+        } catch ({ errName, message }: any) {
             loveRaidOptions.add(this._createHtmlSeparator('Error!'));
             logHHAuto(`Error filling love raids: ${errName}, ${message}`);
         }
@@ -167,7 +167,7 @@ export class HHMenu {
             for (var j in leagues) {
                 leaguesOptions.add(this._createHtmlOption((Number(j) + 1) + '', leagues[j]));
             };
-        } catch ({ errName, message }) {
+        } catch ({ errName, message }: any) {
             leaguesOptions.add(this._createHtmlOption('0', 'Error!'));
             logHHAuto(`Error filling leagues: ${errName}, ${message}`);
         }
@@ -219,14 +219,14 @@ export function maskInactiveMenus()
     }
 }
 
-export function hhButton(textKeyId, buttonId, mainStyle='', labelSyle=''){
+export function hhButton(textKeyId: string, buttonId: string, mainStyle='', labelSyle=''){
     return `<div ${mainStyle ? 'style="' + mainStyle + '"' : '' } class="tooltipHH" >`
                 +`<span class="tooltipHHtext">${getTextForUI(textKeyId,"tooltip")}</span>`
                 + `<label ${labelSyle ? 'style="' + labelSyle + '"' : '' } class="myButton" id="${buttonId}">${getTextForUI(textKeyId,"elementText")}</label>`
             +`</div>`;
 }
 
-export function hhMenuSwitch(textKeyAndInputId, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false){
+export function hhMenuSwitch(textKeyAndInputId: string, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false){
     return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
@@ -236,7 +236,7 @@ export function hhMenuSwitch(textKeyAndInputId, isEnabledDivId='', isKobanSwitch
     +`</div>`;
 }
 
-export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=false) {
+export function hhMenuSwitchWithImg(textKeyAndInputId: string, imgPath: string, isKobanSwitch=false) {
     return `<div class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="imgAndObjectRow">`
@@ -251,7 +251,7 @@ export function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch=fa
     +`</div>`;
 }
 
-export function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
+export function hhMenuSelect(textKeyAndInputId: string, inputStyle = '', options = '') {
     return `<div class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
@@ -261,7 +261,7 @@ export function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
     +`</div>`;
 }
 
-export function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle='', inputClass='', inputMode='text') {
+export function hhMenuInput(textKeyAndInputId: string, inputPattern: string, inputStyle='', inputClass='', inputMode='text') {
     return `<div class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
@@ -271,7 +271,7 @@ export function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle='', inpu
     +`</div>`;
 }
 
-export function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode='text') {
+export function hhMenuInputWithImg(textKeyAndInputId: string, inputPattern: string, inputStyle: string, imgPath: string, inputMode='text') {
     let htmlRet = `<div class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="imgAndObjectRow">`;
@@ -292,20 +292,20 @@ export function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, 
     return htmlRet;
 }
 
-export function switchHHMenuButton(isActive)
+export function switchHHMenuButton(isActive: boolean)
 {
     var element = document.getElementById("sMenuButton");
     if(element !== null)
     {
         if (getStoredValue(HHStoredVarPrefixKey+SK.master) === "false")
         {
-            element.style["background-color"] = "red";
-            element.style["background-image"] = "none";
+            (element.style as any)["background-color"] = "red";
+            (element.style as any)["background-image"] = "none";
         }
         else if (isActive)
         {
-            element.style["background-color"] = "green";
-            element.style["background-image"] = "none";
+            (element.style as any)["background-color"] = "green";
+            (element.style as any)["background-image"] = "none";
         }
         else
         {
@@ -350,7 +350,7 @@ export function setMenuValues()
                         break;
                 }
                 //console.log(menuID,HHStoredVars[i].menuType,itemValue);
-                menuElement[HHStoredVars[i].menuType] = itemValue;
+                (menuElement as any)[HHStoredVars[i].menuType] = itemValue;
             } else if(menuElement == null) {
                 // logHHAuto('ERROR: Element with ID "'+menuID+'" not found');
             }
@@ -388,7 +388,7 @@ export function getMenuValues()
             )
             {
                 let currentValue = storageItem[i];
-                let menuValue = String(menuElement[HHStoredVars[i].menuType]);
+                let menuValue = String((menuElement as any)[HHStoredVars[i].menuType]);
                 switch (HHStoredVars[i].valueType)
                 {
                     case "Long Integer":
@@ -414,7 +414,7 @@ export function getMenuValues()
 }
 
 
-export function preventKobanUsingSwitchUnauthorized()
+export function preventKobanUsingSwitchUnauthorized(this: any)
 {
 
     if (this.checked && !(<HTMLInputElement>document.getElementById("spendKobans0")).checked)

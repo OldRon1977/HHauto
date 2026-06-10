@@ -36,7 +36,7 @@ export function getBrowserData(nav: Navigator) {
     else if (browserMatch[1] === 'safari') {
         var safariVersionMatch = ua.match(/version\/([\d\.]+)/i);
         name = 'safari';
-        version = safariVersionMatch[1];
+        version = safariVersionMatch![1];
     }
     else {
         name = browserMatch[1];

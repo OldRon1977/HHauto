@@ -57,7 +57,7 @@ export class MockHelper{
 
     static mockHeroLevel(heroLevel: number) {
         if (!unsafeWindow.shared) unsafeWindow.shared = {} as any;
-        unsafeWindow.shared.Hero = {
+        unsafeWindow.shared!.Hero = {
             name: "TOTO",
             infos: {
                 level: heroLevel
@@ -67,42 +67,42 @@ export class MockHelper{
     }
     
     static mockEnergiesFight(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.fight = {
+        unsafeWindow.shared!.Hero.energies.fight = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesChallenge(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.challenge = {
+        unsafeWindow.shared!.Hero.energies.challenge = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesKiss(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.kiss = {
+        unsafeWindow.shared!.Hero.energies.kiss = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesQuest(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.quest = {
+        unsafeWindow.shared!.Hero.energies.quest = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesWorship(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.worship = {
+        unsafeWindow.shared!.Hero.energies.worship = {
             amount: amount,
             max_regen_amount: max
         };
     }
 
     static mockEnergiesDrill(amount: number, max: number) {
-        unsafeWindow.shared.Hero.energies.drill = {
+        unsafeWindow.shared!.Hero.energies.drill = {
             amount: amount,
             max_regen_amount: max
         };
@@ -176,8 +176,8 @@ export class MockHelper{
      */
     static mockAjaxSuccess(response: any) {
         if (!unsafeWindow.shared) unsafeWindow.shared = {} as any;
-        if (!unsafeWindow.shared.general) unsafeWindow.shared.general = {} as any;
-        unsafeWindow.shared.general.hh_ajax = (_params: any, successCb: (data: any) => void) => {
+        if (!unsafeWindow.shared!.general) unsafeWindow.shared!.general = {} as any;
+        unsafeWindow.shared!.general!.hh_ajax = (_params: any, successCb: (data: any) => void) => {
             successCb(response);
         };
     }
@@ -191,8 +191,8 @@ export class MockHelper{
      */
     static mockAjaxError(error: Error) {
         if (!unsafeWindow.shared) unsafeWindow.shared = {} as any;
-        if (!unsafeWindow.shared.general) unsafeWindow.shared.general = {} as any;
-        unsafeWindow.shared.general.hh_ajax = () => {
+        if (!unsafeWindow.shared!.general) unsafeWindow.shared!.general = {} as any;
+        unsafeWindow.shared!.general!.hh_ajax = () => {
             throw error;
         };
     }

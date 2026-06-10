@@ -103,7 +103,7 @@ export class TeamModule {
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
             };
-            getHHAjax()(params1, function(data:any) {
+            getHHAjax()!(params1, function(data:any) {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
                 //logHHAuto('change referer back to ' + currentPage);
@@ -129,7 +129,7 @@ export class TeamModule {
         },100);
     }
 
-    static createSkillScrollTooltip(teamGirls: KKTeamGirl[]=null, displayTooltip: boolean=true): TeamData {
+    static createSkillScrollTooltip(teamGirls: KKTeamGirl[] = null as any, displayTooltip: boolean=true): TeamData {
         const teamGirlWithoutMain = teamGirls.slice(1);
         const heroCurrencies = getHero().currencies;
         let scrollTooltipDetail = '';
@@ -190,11 +190,11 @@ export class TeamModule {
         const heroCurrencies = getHero().currencies;
 
         const displayScrollSwitch = function(rarity:string){
-            const showToggle = team['scrolls_' + rarity.toLowerCase()] > heroCurrencies['scrolls_' + rarity.toLowerCase()];
+            const showToggle = (team as any)['scrolls_' + rarity.toLowerCase()] > (heroCurrencies as any)['scrolls_' + rarity.toLowerCase()];
             return `<span><span class="scrolls_${rarity.toLowerCase()}_icn" style="width: 25px;height: 25px;" title="${rarity} bulbs"></span>${rarity} bulbs:</span> 
             <div ${showToggle ? '' : 'style="display:none;"'}> ${hhMenuSwitch('stuffTeamReset' + rarity + 'Girls')} </div>
             <div ${!showToggle ? '' : 'style="display:none;"'}>${getTextForUI("enoughBulbsOwned", "elementText")}</div>
-            <span>Needed: ${team['scrolls_' + rarity.toLowerCase()]}/Owned: ${heroCurrencies['scrolls_'+rarity.toLowerCase()]} <span><br/>`;
+            <span>Needed: ${(team as any)['scrolls_' + rarity.toLowerCase()]}/Owned: ${(heroCurrencies as any)['scrolls_'+rarity.toLowerCase()]} <span><br/>`;
         };
 
         const estimatedCost = 5 * ((team.scrolls_mythic || 0) + (team.scrolls_legendary || 0) + (team.scrolls_epic || 0) + (team.scrolls_rare || 0) + (team.scrolls_common || 0));
@@ -289,10 +289,10 @@ export class TeamModule {
             const skills: any[] = Object.values(girl.skill_tiers_info);
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
-        let fullNeededScrolls = girls.length * HaremGirl.SCROLLS_NEED_4[rarity + '_' + nbGrades];
+        let fullNeededScrolls = girls.length * (HaremGirl.SCROLLS_NEED_4 as any)[rarity + '_' + nbGrades];
 
         if (mainGirl.girl.rarity === rarity && mainGirl.girl.nb_grades == nbGrades) {
-            fullNeededScrolls += HaremGirl.SCROLLS_NEED_5[rarity + '_' + nbGrades];
+            fullNeededScrolls += (HaremGirl.SCROLLS_NEED_5 as any)[rarity + '_' + nbGrades];
             const skills: any[] = Object.values(mainGirl.skill_tiers_info);
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
@@ -327,7 +327,7 @@ export class TeamModule {
                     action: "girl_equipment_equip_all",
                     id_girl: girlId
                 };
-                getHHAjax()(params1, function (data: any) {
+                getHHAjax()!(params1, function (data: any) {
                     $('.team-member-container').removeClass('selected');
                     if (data && data.success){
                         logHHAuto(`Successfully equip girl ${girlId}`);
@@ -367,7 +367,7 @@ export class TeamModule {
             logHHAuto('Error: can\'t get selected team index, cancel action');
             return [];
         }
-        const girlIds = [...unsafeWindow.teams_data[selectedTeam].girls_ids];
+        const girlIds = [...unsafeWindow.teams_data[selectedTeam!].girls_ids];
         if (girlIds.length != 7) {
             logHHAuto('Error: can\'t get all team members, cancel action');
             return [];
@@ -382,7 +382,7 @@ export class TeamModule {
             logHHAuto('Error: can\'t get selected team index, cancel action');
             return [];
         }
-        const girls = [...unsafeWindow.teams_data[selectedTeam].girls];
+        const girls = [...unsafeWindow.teams_data[selectedTeam!].girls];
         if (girls.length != 7) {
             logHHAuto('Error: can\'t get all team members, cancel action');
             return [];
@@ -394,7 +394,7 @@ export class TeamModule {
     static assignTopTeam() {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
-        function selectFromHaremBest(i, best) {
+        function selectFromHaremBest(i: number, best: boolean) {
             let girlToSelect = best ? i : i + 7;
             //console.log(i,girlToSelect,best);
             let selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');

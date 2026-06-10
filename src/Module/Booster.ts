@@ -14,7 +14,7 @@ import { LoveRaid } from '../model/LoveRaid';
 import { EventModule } from "./Events/EventModule";
 import { LoveRaidManager } from "./Events/LoveRaidManager";
 
-const DEFAULT_BOOSTERS = {normal: [], mythic:[]};
+const DEFAULT_BOOSTERS: { normal: any[]; mythic: any[] } = {normal: [], mythic:[]};
 
 /**
  * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
@@ -81,7 +81,7 @@ export class Booster {
 
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses () {
-        onAjaxResponse(/(action|class)/, (response, opt, xhr, evt) => {
+        onAjaxResponse(/(action|class)/, (response: any, opt: any, xhr: any, evt: any) => {
                 (async function() {
                     const boosterStatus = Booster.getBoosterFromStorage();
 
@@ -132,7 +132,7 @@ export class Booster {
                     let mythicUpdated = false
                     let sandalwoodEnded = false;
 
-                    let sandalwood, allMastery, leagueMastery, seasonMastery, headband, watch, cinnamon, perfume;
+                    let sandalwood: any, allMastery: any, leagueMastery: any, seasonMastery: any, headband: any, watch: any, cinnamon: any, perfume: any;
                     boosterStatus.mythic.forEach(booster => {
                         switch (booster.item.identifier){
                             case 'MB1':
@@ -170,7 +170,7 @@ export class Booster {
                         const {rewards} = response
                         if (rewards && rewards.data && rewards.data.shards) {
                             let dosesConsumed = 0
-                            rewards.data.shards.forEach(({previous_value, value}, idx) => {
+                            rewards.data.shards.forEach(({previous_value, value}: { previous_value: number; value: number }, idx: number) => {
                                 const shardsDropped = value - previous_value;
                                 logHHAuto(`[SW-DEBUG] shard drop[${idx}]: previous=${previous_value}, value=${value}, shardsDropped=${shardsDropped}`);
                                 if (isMultibattle) {
@@ -348,7 +348,7 @@ export class Booster {
      */
     static getBoosterByIdentifier(identifier: string): any {
         // Try to resolve from shop merchant inventory (storeContents)
-        const storeData = getStoredJSON(HHStoredVarPrefixKey + TK.storeContents, null);
+        const storeData = getStoredJSON<any>(HHStoredVarPrefixKey + TK.storeContents, null);
         if (storeData && Array.isArray(storeData[1])) {
             const shopBooster = storeData[1].find(
                 (b: any) => b.item && b.item.identifier === identifier
@@ -366,7 +366,7 @@ export class Booster {
         }
 
         // Try to resolve from player's booster inventory (boosterIdMap — now stores full item data)
-        const boosterIdMap = getStoredJSON(HHStoredVarPrefixKey + TK.boosterIdMap, {});
+        const boosterIdMap = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.boosterIdMap, {});
         const entry = boosterIdMap[identifier];
         if (entry) {
             // boosterIdMap now stores { id_item, identifier, name, rarity }
@@ -388,8 +388,8 @@ export class Booster {
     static parseEquipSlotConfig(): string[] {
         const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoostersSlots) || "B1;B1;B2;B4";
         const normalized = raw.replace(/,/g, ';');
-        const slots = normalized.split(';').map(s => s.trim().toUpperCase());
-        if (slots.length < 1 || slots.length > 4 || !slots.every(s => /^B[1-4]$/.test(s))) {
+        const slots = normalized.split(';').map((s: string) => s.trim().toUpperCase());
+        if (slots.length < 1 || slots.length > 4 || !slots.every((s: string) => /^B[1-4]$/.test(s))) {
             logHHAuto("Auto-equip booster config invalid: " + raw + ", falling back to B1;B1;B2;B4");
             return ['B1', 'B1', 'B2', 'B4'];
         }
@@ -555,7 +555,7 @@ export class Booster {
         return Booster.getBoosterByIdentifier(Booster.SANDALWOOD_IDENTIFIER);
     }
 
-    static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl=null, loveRaid: LoveRaid=null): boolean {
+    static needSandalWoodEquipped(nextTrollChoosen: number, eventMythicGirl: EventGirl = null as any, loveRaid: LoveRaid = null as any): boolean {
         const activatedEvent = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
@@ -591,7 +591,7 @@ export class Booster {
         }
         if(activatedLoveRaid) {
             if(!loveRaid) {
-                loveRaid = LoveRaidManager.getRaidToFight();
+                loveRaid = LoveRaidManager.getRaidToFight() as LoveRaid;
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
         }
@@ -674,7 +674,7 @@ export class Booster {
         return Number(getStoredValue(HHStoredVarPrefixKey + SK.sandalwoodMinShardsThreshold)) || 0;
     }
 
-    static needSandalWoodEvent(nextTrollChoosen: number, eventGirl: EventGirl = null): boolean {
+    static needSandalWoodEvent(nextTrollChoosen: number, eventGirl: EventGirl = null as any): boolean {
         if (!eventGirl) {
             eventGirl = EventModule.getEventGirl();
         }
@@ -690,7 +690,7 @@ export class Booster {
         return activated && correctTrollTargetted && remainingShards > threshold;
     }
 
-    static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null): boolean {
+    static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null as any): boolean {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
         const remainingShards = Number(100 - Number(eventMythicGirl.shards));
@@ -701,7 +701,7 @@ export class Booster {
 
         return activated && correctTrollTargetted && remainingShards > threshold;
     }
-    static needSandalWoodLoveRaid(nextTrollChoosen: number, loveRaid: LoveRaid = null): boolean {
+    static needSandalWoodLoveRaid(nextTrollChoosen: number, loveRaid: LoveRaid = null as any): boolean {
         if (!loveRaid) return false;
         const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
@@ -720,7 +720,7 @@ export class Booster {
         const activatedMythic = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
         const activatedLoveRaid = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         logHHAuto(`[SW-DEBUG] equipeSandalWoodIfNeeded: activatedEvent=${activatedEvent}, activatedMythic=${activatedMythic}, activatedLoveRaid=${activatedLoveRaid}`);
-        let eventMythicGirl: EventGirl = null, loveRaid: LoveRaid = null;
+        let eventMythicGirl: EventGirl = null as any, loveRaid: LoveRaid = null as any;
         let needForEvent = false, needForMythic = false, needForLoveRaid = false;
         if (activatedEvent) {
             needForEvent = Booster.needSandalWoodEvent(nextTrollChoosen);
@@ -739,7 +739,7 @@ export class Booster {
         }
         if (activatedLoveRaid) {
             if (!loveRaid) {
-                loveRaid = LoveRaidManager.getRaidToFight();
+                loveRaid = LoveRaidManager.getRaidToFight() as LoveRaid;
             }
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
             if (needForLoveRaid && !needForMythic && !needForEvent) {

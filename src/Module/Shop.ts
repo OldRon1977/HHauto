@@ -45,19 +45,19 @@ export class Shop {
             var assB:Record<string, unknown>[]=[];
             var assG:Record<string, unknown>[]=[];
             var assP:Record<string, unknown>[]=[];
-            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assA.push(d);}});
-            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assB.push(d);}});
-            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assG.push(d);}});
-            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse(this.dataset.d,null);if(d)assP.push(d);}});
+            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assA.push(d);}});
+            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assB.push(d);}});
+            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assG.push(d);}});
+            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assP.push(d);}});
     
             var HaveAff=0;
             var HaveExp=0;
-            var HaveBooster={};
-            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d)HaveAff+=d.quantity*d.item.value;}});
-            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d)HaveExp+=d.quantity*d.item.value;}});
+            var HaveBooster: Record<string, number>={};
+            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d)HaveAff+=d.quantity*d.item.value;}});
+            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d)HaveExp+=d.quantity*d.item.value;}});
     
-            var BoosterIdMap={};
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { const d=safeJsonParse(this.dataset.d,null); if(d){ HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}}});
+            var BoosterIdMap: Record<string, { id_item: string; identifier: string; name: string; rarity: string }>={};
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d){ HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}}});
     
             setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
@@ -209,7 +209,7 @@ export class Shop {
                 itemsType.push(i);
             }
     
-            const itemsList={};
+            const itemsList: Record<string, any> = {};
             for (const c of itemsCaracs)
             {
                 let filteredCarac;
@@ -350,7 +350,7 @@ export class Shop {
             });
         }
     
-        function AllLockUnlock(inFilter,lock)
+        function AllLockUnlock(inFilter: string, lock: boolean)
         {
             if (lock)
             {
@@ -363,7 +363,7 @@ export class Shop {
             {
                 $(inFilter).each(function(){
                     this.removeAttribute("menuSellLocked");
-                    this.querySelector("img.menuSellLocked").remove();
+                    this.querySelector("img.menuSellLocked")!.remove();
                 });
             }
         }
@@ -500,8 +500,8 @@ export class Shop {
 
                     menuSellStop = false;
                     fetchStarted = true;
-                    unsafeWindow.shared.animations.loadingAnimation.start = function () { };
-                    unsafeWindow.shared.animations.loadingAnimation.stop = function () { };
+                    unsafeWindow.shared!.animations!.loadingAnimation!.start = function () { };
+                    unsafeWindow.shared!.animations!.loadingAnimation!.stop = function () { };
                     if ($('#menuSellList>.tItems').length === 0)
                     {
                         menuSellListItems();
@@ -541,7 +541,7 @@ export class Shop {
             }
         }
     
-        function checkAjaxComplete(event,request,settings){
+        function checkAjaxComplete(event: any, request: any, settings: any){
             const match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null) return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
@@ -566,8 +566,8 @@ export class Shop {
             if (menuSellStop || allLoaded || oldCount >= Number(menuSellMaxItems) || !SellDialog.open)
             {
                 $("#menuSellStop").css("display","none");
-                unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
-                unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
+                unsafeWindow.shared!.animations!.loadingAnimation!.start = loadingAnimationStart as () => void;
+                unsafeWindow.shared!.animations!.loadingAnimation!.stop = loadingAnimationStop as () => void;
                 fetchStarted = false;
                 scroll.scrollTop = 0;
                 if (SellDialog.open)
@@ -584,8 +584,8 @@ export class Shop {
             scroll.scrollTop = scroll.scrollHeight-scroll.offsetHeight;
           } catch (err) {
                 logHHAuto('Error during armor item fetch, restoring animations: ' + err);
-                unsafeWindow.shared.animations.loadingAnimation.start = loadingAnimationStart;
-                unsafeWindow.shared.animations.loadingAnimation.stop = loadingAnimationStop;
+                unsafeWindow.shared!.animations!.loadingAnimation!.start = loadingAnimationStart as () => void;
+                unsafeWindow.shared!.animations!.loadingAnimation!.stop = loadingAnimationStop as () => void;
                 fetchStarted = false;
                 $("#menuSellStop").css("display","none");
           }
@@ -702,7 +702,7 @@ export class Shop {
                     ];
                     for (let i4 = 0; i4 < availebleItems.length; i4++)
                     {
-                        const sellableItemObj = safeJsonParse($(availebleItems[i4]).attr('data-d'), null);
+                        const sellableItemObj = safeJsonParse<any>($(availebleItems[i4]).attr('data-d'), null);
                         if (!sellableItemObj) { continue; }
                         const indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
     

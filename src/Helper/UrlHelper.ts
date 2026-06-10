@@ -8,13 +8,13 @@
 //          PageNavigationService (building navigation URLs)
 
 /** Extracts a single query parameter value from a query string. */
-export function queryStringGetParam(inQueryString, inParam)
+export function queryStringGetParam(inQueryString: string, inParam: string)
 {
     let urlParams = new URLSearchParams(inQueryString);
     return urlParams.get(inParam);
 }
 
-export function url_add_param(url, param, value) {
+export function url_add_param(url: string, param: string, value: any) {
     if (url.indexOf('?') === -1) url += '?';
     else url += '&';
     return url+param+"="+value;

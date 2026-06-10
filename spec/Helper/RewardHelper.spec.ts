@@ -142,8 +142,8 @@ describe("RewardHelper", function() {
 
     describe("getRewardQuantityByType", function() {
         it("default", function() {
-          expect(RewardHelper.getRewardQuantityByType(undefined, undefined)).toBe(0);
-          expect(RewardHelper.getRewardQuantityByType(null, {})).toBe(0);
+          expect(RewardHelper.getRewardQuantityByType(undefined as any, undefined as any)).toBe(0);
+          expect(RewardHelper.getRewardQuantityByType(null as any, {})).toBe(0);
           expect(RewardHelper.getRewardQuantityByType('', {})).toBe(0);
         });
         it("mythic equipment", function() {

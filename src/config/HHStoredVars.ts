@@ -7,7 +7,7 @@ import { clearTimer } from "../Helper/TimerHelper";
 import { PlaceOfPower } from "../Module/PlaceOfPower";
 import { SK, TK } from './StorageKeys';
 
-export const HHStoredVars = {};
+export const HHStoredVars: Record<string, any> = {};
 //Settings Vars
 export const HHStoredVarPrefixKey: string = "HHAuto_"; // default HHAuto_
 //Do not move, has to be first one
@@ -692,7 +692,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -844,7 +844,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrillCollect] =
     menuType: "checked",
     kobanUsing: false,
     events: {
-        "change": function () {
+        "change": function (this: any) {
             if (this.checked) {
                 getAndStoreCollectPreferences(HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList);
                 clearTimer('nextPentaDrillCollectTime');
@@ -1047,7 +1047,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoFreeBundlesCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1436,7 +1436,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autodpEventCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1474,7 +1474,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1880,7 +1880,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonalEventCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1918,7 +1918,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoPoVCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1956,7 +1956,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoPoGCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -1994,7 +1994,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoPoACollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {
@@ -2054,7 +2054,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoDailyGoalsCollect] =
     setMenu:true,
     menuType:"checked",
     kobanUsing:false,
-    events:{"change":function()
+    events:{"change":function(this: any)
             {
                 if (this.checked)
                 {

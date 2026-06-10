@@ -83,7 +83,7 @@ export class Troll {
         return trollWithGirls;
     }
 
-    static getPinfo(contest) {
+    static getPinfo(contest: string) {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
 
@@ -115,7 +115,7 @@ export class Troll {
         )
     }
 
-    static getLastTrollIdAvailable(logging = false, id_world: number = undefined): number {
+    static getLastTrollIdAvailable(logging = false, id_world: number = undefined as any): number {
         const isMainAdventure = Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
         if (!id_world) {
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
@@ -123,7 +123,7 @@ export class Troll {
             logHHAuto(`id_world given ${id_world} must be wrong, default to current world`);
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         }
-        let trollIdMapping = [];
+        let trollIdMapping: any = [];
 
         if (isMainAdventure) {
             trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
@@ -168,7 +168,7 @@ export class Troll {
     static getTrollIdToFight(logging=true, allowSideEffects=true): number {
 
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey+TK.trollWithGirls, []);
+        let trollWithGirls = getStoredJSON<number[]>(HHStoredVarPrefixKey+TK.trollWithGirls, []);
         const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
 
         let TTF: number = 0;
@@ -335,13 +335,13 @@ export class Troll {
             const eventMythicGirl = EventModule.getEventMythicGirl();
             const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
             const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-            const raidStarsRaid: LoveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-            const loveRaid: LoveRaid = LoveRaidManager.isActivated()
+            const raidStarsRaid: LoveRaid | undefined = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+            const loveRaid: LoveRaid | undefined = LoveRaidManager.isActivated()
                 ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
                 : undefined;
             if (
                 !Troll.canBuyFight(eventGirl, false).canBuy && !Troll.canBuyFight(eventMythicGirl, false).canBuy &&
-                !Troll.canBuyFightForRaid(loveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+                !Troll.canBuyFightForRaid(loveRaid as LoveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid as LoveRaid, false).canBuy)
             {
                 return false;
             }
@@ -451,10 +451,10 @@ export class Troll {
             //check if girl still available at troll in case of event
             if (TTF !== null)
             {
-                let eventTrollGirl:EventGirl;
+                let eventTrollGirl: EventGirl | undefined;
                 const eventGirl = EventModule.getEventGirl();
                 const eventMythicGirl = EventModule.getEventMythicGirl();
-                let loveRaid: LoveRaid = null;
+                let loveRaid: LoveRaid | null | undefined = null;
                 const rewardGirlz = $("#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]");
                 const trollGirlRewards = rewardGirlz.attr('data-rewards') || '';
                 const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
@@ -480,7 +480,7 @@ export class Troll {
                 if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99))
                 {
                     logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
-                    const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+                    const trollWithGirls = getStoredJSON<number[]>(HHStoredVarPrefixKey + TK.trollWithGirls, []);
                     trollWithGirls[TTF - 1] = 0;
                     setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
                     const newTroll = Troll.getTrollIdToFight();
@@ -493,7 +493,7 @@ export class Troll {
                         return;
                     }
                 }
-                const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
+                const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl as EventGirl);
                 if (
                     (canBuyFightsResult.canBuy && currentPower === 0)
                     ||
@@ -530,7 +530,7 @@ export class Troll {
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
                         return true;
                     }
-                    const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid);
+                    const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid as LoveRaid);
                     if (
                         (canBuyFightsResultLoveRaid.canBuy && currentPower === 0)
                         ||

@@ -14,7 +14,7 @@ import { SK } from "../config/StorageKeys";
 
 export let mouseBusy:boolean = false;
 export let mouseBusyTimeout:ReturnType<typeof setTimeout> | number = 0;
-export function makeMouseBusy(ms) {
+export function makeMouseBusy(ms: number) {
     clearTimeout(mouseBusyTimeout);
     //logHHAuto('mouseBusy' + mouseBusy + ' ' + ms);
     mouseBusy = true;

@@ -92,7 +92,7 @@ export class SurveyService {
         // Iterate all SK keys (user settings only)
         for (const keyName of Object.keys(SK)) {
             const storageKey = HHStoredVarPrefixKey + (SK as Record<string, string>)[keyName];
-            const varDef = HHStoredVars[storageKey];
+            const varDef = (HHStoredVars as any)[storageKey];
             if (!varDef || varDef.HHType !== "Setting") continue;
 
             const currentValue = getStoredValue(storageKey);

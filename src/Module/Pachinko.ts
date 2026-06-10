@@ -38,8 +38,8 @@ export class Pachinko {
     static orbLeftOnAutoStart = 0;
     static orbsToGo = 0;
     static autoPachinkoRunning = false;
-    static failureTimeoutId = undefined;
-    static pachinkoSelector = undefined;
+    static failureTimeoutId: ReturnType<typeof setTimeout> | undefined = undefined;
+    static pachinkoSelector: HTMLSelectElement | undefined = undefined;
     static ByPassNoGirlChecked: boolean;
     static stopFirstGirlChecked: boolean;
     static debugEnabled: boolean;
@@ -176,7 +176,7 @@ export class Pachinko {
             + '</div>'
         fillHHPopUp("PachinkoMenu", getTextForUI("PachinkoButton", "elementText"), PachinkoMenu);
 
-        function updateOrbsNumber(orbsLeft) {
+        function updateOrbsNumber(orbsLeft: JQuery<HTMLElement>) {
             const fillAllOrbs = (<HTMLInputElement>document.getElementById("PachinkoFillOrbs")).checked;
 
             if (fillAllOrbs && orbsLeft.length > 0) {
@@ -264,7 +264,7 @@ export class Pachinko {
     }
 
     static getSelectedOptionButtonSelector() {
-        const selectedOption = Pachinko.pachinkoSelector.options[Pachinko.pachinkoSelector.selectedIndex];
+        const selectedOption = Pachinko.pachinkoSelector!.options[Pachinko.pachinkoSelector!.selectedIndex];
         return "div.playing-zone div.btns-section button.blue_button_L[orb_name=" + selectedOption.value + "]";
     }
 
@@ -414,7 +414,7 @@ export class Pachinko {
             const searchParams = new URLSearchParams(opt.data)
             if (searchParams.get('action') === 'play' && searchParams.get('class') === 'Pachinko') {
 
-                const response = safeJsonParse(xhr.responseText, null);
+                const response = safeJsonParse<any>(xhr.responseText, null);
 
                 if (!response || !response.success) {
                     if (Pachinko.debugEnabled) logHHAuto("Not response success");

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.35.67
+// @version      7.35.68
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3524,7 +3524,7 @@ class Labyrinth {
     }
     static findBetter(options) {
         const chooseMoreReward = getStoredValue(HHStoredVarPrefixKey + SK.autoLabyHard) === "true";
-        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter(girl => girl.remaining_ego_percent < 100).length > 0;
+        const haveGirlWounded = (unsafeWindow.girl_squad || []).filter((girl) => girl.remaining_ego_percent < 100).length > 0;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
             LogUtils_logHHAuto("Options " + JSON.stringify(options));
@@ -4220,7 +4220,7 @@ function calculateDominationBonuses(playerElements, opponentElements) {
         { a: playerElements, b: opponentElements, k: 'player' },
         { a: opponentElements, b: playerElements, k: 'opponent' }
     ].forEach(({ a, b, k }) => {
-        a.forEach(element => {
+        a.forEach((element) => {
             if (BDSMHelper.ELEMENTS.egoDamage[element] && b.includes(BDSMHelper.ELEMENTS.egoDamage[element])) {
                 bonuses[k].ego += 0.1;
                 bonuses[k].attack += 0.1;
@@ -4244,7 +4244,7 @@ function calculateCritChanceShare(ownHarmony, otherHarmony) {
  * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
  */
 function getSkillPercentage(team, id) {
-    return 1 + (team.girls.map(e => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
+    return 1 + (team.girls.map((e) => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
 }
 
 ;// CONCATENATED MODULE: ./src/Module/League.pure.ts
@@ -4994,8 +4994,8 @@ class Booster {
     static parseEquipSlotConfig() {
         const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoostersSlots) || "B1;B1;B2;B4";
         const normalized = raw.replace(/,/g, ';');
-        const slots = normalized.split(';').map(s => s.trim().toUpperCase());
-        if (slots.length < 1 || slots.length > 4 || !slots.every(s => /^B[1-4]$/.test(s))) {
+        const slots = normalized.split(';').map((s) => s.trim().toUpperCase());
+        if (slots.length < 1 || slots.length > 4 || !slots.every((s) => /^B[1-4]$/.test(s))) {
             LogUtils_logHHAuto("Auto-equip booster config invalid: " + raw + ", falling back to B1;B1;B2;B4");
             return ['B1', 'B1', 'B2', 'B4'];
         }
@@ -8461,7 +8461,7 @@ class Harem {
         }
     }
     static addGirlImages() {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         if ($('.hhava').length > 0)
             return;
         try {
@@ -8473,8 +8473,8 @@ class Harem {
                 GM_addStyle('.hhava {height: 14.6rem;}');
                 GM_addStyle('#harem_right > div[girl] .middle_part {flex: 0 0 282px;}');
                 $('#harem_right .opened .avatar').hide();
-                for (let index = 0; index < ((_b = (_a = girl === null || girl === void 0 ? void 0 : girl.images) === null || _a === void 0 ? void 0 : _a.ava) === null || _b === void 0 ? void 0 : _b.length); index++) {
-                    const avatar = $(`<img src="${(_c = girl === null || girl === void 0 ? void 0 : girl.images) === null || _c === void 0 ? void 0 : _c.ava[index]}" class="avatar hhava" />`);
+                for (let index = 0; index < ((_c = (_b = (_a = girl === null || girl === void 0 ? void 0 : girl.images) === null || _a === void 0 ? void 0 : _a.ava) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0); index++) {
+                    const avatar = $(`<img src="${(_d = girl === null || girl === void 0 ? void 0 : girl.images) === null || _d === void 0 ? void 0 : _d.ava[index]}" class="avatar hhava" />`);
                     $('#harem_right .opened .middle_part').append(avatar);
                 }
             }
@@ -9502,7 +9502,7 @@ class ParanoiaService {
         var currentPSpendings = new Map([]);
         // not set
         if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
-            return -1;
+            return;
         }
         else {
             currentPSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
@@ -9629,14 +9629,14 @@ class ParanoiaService {
     static flipParanoia() {
         var burst = getBurst();
         var Setting = getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSettings);
-        var S1 = Setting.split('/').map(s => s.split('|').map(s => s.split(':')));
+        var S1 = Setting.split('/').map((s) => s.split('|').map((s) => s.split(':')));
         var toNextSwitch;
         var period;
         var n = new Date().getHours();
-        S1[2].some(x => { if (n < x[0]) {
+        S1[2].some((x) => { if (n < x[0]) {
             period = x[1];
             return true;
-        } });
+        } return false; });
         if (burst) {
             var periods = Object.assign({}, ...S1[1].map((d) => ({ [d[0]]: d[1].split('-') })));
             const nextSwitchVal = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
@@ -9853,7 +9853,7 @@ class LeagueHelper {
             return 1;
         // remove match_history after w32 update
         const matchs = opponent.match_history ? opponent.match_history[opponent.player.id_fighter] : opponent.match_history_sorting[opponent.player.id_fighter];
-        return matchs ? matchs.filter(match => match == null).length : 0;
+        return matchs ? matchs.filter((match) => match == null).length : 0;
     }
     static getLeagueCurrentLevel() {
         if (unsafeWindow.current_tier_number === undefined) {
@@ -10040,7 +10040,7 @@ class LeagueHelper {
                 const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
                 const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
                 const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
-                const opponentsToSimulate = opponents_list.filter(opponents => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
+                const opponentsToSimulate = opponents_list.filter((opponents) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
                 let SimPower = function () {
                     return League_awaiter(this, void 0, void 0, function* () {
                         if (allOpponentsSimDisplayed) {
@@ -10142,7 +10142,8 @@ class LeagueHelper {
                 });
             }
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const { errName, message } = (err !== null && err !== void 0 ? err : {});
             LogUtils_logHHAuto(`Error module Sim League: ${errName}, ${message}`);
         }
     }
@@ -10509,7 +10510,7 @@ class LeagueHelper {
                     }
                     const nextOpponent = Data[0];
                     const opponents_list = getHHVars("opponents_list");
-                    const opponentDataFromList = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find(obj => obj.player.id_fighter == nextOpponent.opponent_id);
+                    const opponentDataFromList = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find((obj) => obj.player.id_fighter == nextOpponent.opponent_id);
                     if (debugEnabled && opponentDataFromList)
                         LogUtils_logHHAuto("opponentDataFromList ", JSON.stringify(opponentDataFromList));
                     if (!opponentDataFromList)
@@ -10616,7 +10617,8 @@ class LeagueHelper {
                 return;
             }
         }
-        catch ({ errName, message }) {
+        catch (err) {
+            const { errName, message } = (err !== null && err !== void 0 ? err : {});
             LogUtils_logHHAuto(`Error do League: ${errName}, ${message}`);
             setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
@@ -13258,7 +13260,7 @@ class Champion {
         }
     }
     static getChampionListFromMap() {
-        const Filter = (getStoredValue(HHStoredVarPrefixKey + SK.autoChampsFilter) || '').split(';').map(s => Number(s));
+        const Filter = (getStoredValue(HHStoredVarPrefixKey + SK.autoChampsFilter) || '').split(';').map((s) => Number(s));
         const championMap = [];
         // const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
         const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStartEventGirl) === "true";
@@ -13317,7 +13319,7 @@ class Champion {
                     return result;
                 });
             };
-            let currentGirlOrder = [...champTeam.map(g => g.id_girl)]; // To be stored as string
+            let currentGirlOrder = [...champTeam.map((g) => g.id_girl)]; // To be stored as string
             LogUtils_logHHAuto('Ordering champion team', currentGirlOrder);
             let oneGirlSwitched = false;
             const getGirlId = (position) => {
@@ -19978,7 +19980,7 @@ class GenericBattle {
                     RewardHelper.ObserveAndGetGirlRewards();
                 }
                 else {
-                    LoveRaidManager.getTrollRaids().forEach(raid => {
+                    LoveRaidManager.getTrollRaids().forEach((raid) => {
                         if (raid.trollId === Number(troll_id)) {
                             LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
                             RewardHelper.ObserveAndGetGirlRewards();
@@ -24232,7 +24234,7 @@ class RewardHelper {
             mutations.forEach(function (mutation) {
                 let querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0
-                    && $(querySkip)[0].style.display !== "block") {
+                    || $(querySkip)[0].style.display !== "block") {
                     return;
                 }
                 else {
@@ -27651,6 +27653,8 @@ function getStorageItem(inStorageType) {
             return sessionStorage;
         case 'Storage()':
             return getStorage();
+        default:
+            return localStorage;
     }
 }
 function migrateHHVars() {
@@ -28608,7 +28612,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.35.63";
+const FEATURE_POPUP_TITLE = "HHAuto v7.35.68";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

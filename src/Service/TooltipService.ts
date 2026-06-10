@@ -47,7 +47,7 @@ export function enableToolTipsDisplay(important=false)
             const tooltip_rect = tooltip[0].getBoundingClientRect();
             if (tooltip_rect.y < 0) {// Out on the top
                 tipY = -tooltip_rect.y;
-                tipX = $(event.currentTarget).outerWidth() + 5;
+                tipX = $(event.currentTarget).outerWidth()! + 5;
             }
             if ((tooltip_rect.x + tooltip_rect.width) > $('#sMenu')[0].getBoundingClientRect().width) // Out on the right
                 tipX = -150;

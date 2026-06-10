@@ -37,10 +37,10 @@ describe("Time Helper", function () {
             let newTime = convertTimeToInt('');
             expect(newTime).toBeGreaterThanOrEqual(15 * 60);
             expect(newTime).toBeLessThanOrEqual(17 * 60);
-            newTime = convertTimeToInt(undefined);
+            newTime = convertTimeToInt(undefined as any);
             expect(newTime).toBeGreaterThanOrEqual(15 * 60);
             expect(newTime).toBeLessThanOrEqual(17 * 60);
-            newTime = convertTimeToInt(null);
+            newTime = convertTimeToInt(null as any);
             expect(newTime).toBeGreaterThanOrEqual(15 * 60);
             expect(newTime).toBeLessThanOrEqual(17 * 60);
             newTime = convertTimeToInt(' ');

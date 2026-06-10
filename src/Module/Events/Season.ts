@@ -226,11 +226,11 @@ export class Season {
         var chosenMojo = -1;
         let currentExp:number;
         let currentAff:number;
-        var currentFlag;
+        var currentFlag: any;
         var currentScore:number;
         var currentMojo:number;
         var numberOfReds = 0;
-        let currentGains;
+        let currentGains: any;
         //let oppoName;
         const seasonEnded = Season.getTierLevel() > Season.LAST_SEASON_LEVEL;
 
@@ -331,7 +331,7 @@ export class Season {
         return { numberOfReds, chosenIndex };
     }
 
-    static async run(){
+    static async run(): Promise<any>{
         logHHAuto("Performing auto Season.");
         // Confirm if on correct screen.
         const Hero = getHero();
@@ -367,7 +367,7 @@ export class Season {
                         action: 'arena_reload'
                     };
                     logHHAuto("Three red opponents, paying for refresh.");
-                    getHHAjax()(params, function(data){
+                    getHHAjax()!(params, function(data: any){
                         Hero.update("hard_currency", data.hard_currency, false);
                         // C1: route through safeReload so any in-flight
                         // AJAX gets to settle before the URL change.
@@ -472,7 +472,7 @@ export class Season {
 
     static goAndCollect()
     {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey+SK.autoSeasonCollectablesList, []);
+        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoSeasonCollectablesList, []);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeason"))
         {
