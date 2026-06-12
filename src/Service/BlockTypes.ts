@@ -47,6 +47,13 @@ export interface Step {
   stateChanging?: boolean;
   /** Per-step timeout override in ms (R5.1). */
   timeoutMs?: number;
+  /**
+   * After a reload, checks that the expected page/state is present before this
+   * step runs (R4.6). Returning false makes the scheduler abort the run instead
+   * of executing the step in the wrong state. Absent = always valid (the step
+   * guards itself).
+   */
+  resumeValid?: (ctx: AutoLoopContext, run: BlockRun) => boolean;
 }
 
 /**
