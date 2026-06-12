@@ -68,7 +68,7 @@ export interface PoolStats {
 }
 
 export interface BlessingSummary {
-    kind: string;
+    kind: 'eyeColor' | 'hairColor' | 'zodiac' | 'position' | 'element' | 'rarity';
     value: string;
     percent: number;
     pool_size: number;
@@ -95,6 +95,12 @@ export interface TeamResult {
     mythicAudit: MythicAuditEntry[];
     slotInfo: TeamSlotInfo[];
     poolStats: PoolStats;
+    // UI-display fields stashed by TeamModule.setTopTeamV2 for the info panel.
+    modesIdentical?: boolean;
+    previousMainSumSameMode?: number;
+    previousMainSumOtherMode?: number;
+    currentModeName?: string;
+    otherModeName?: string;
 }
 
 const TEAM_SIZE = 7;
@@ -157,7 +163,7 @@ export class TeamBuilderService {
             );
         }
 
-        const blessings = BlessingService.detectActiveBlessings(allGirls as any);
+        const blessings = BlessingService.detectActiveBlessings(allGirls);
         const summaries: BlessingSummary[] = blessings.map(b => ({
             kind: b.kind, value: b.value, percent: b.percent, pool_size: b.pool_size,
         }));
@@ -237,10 +243,10 @@ export class TeamBuilderService {
      * than 1 (so she is actually blessed by something).
      */
     private static matchesBlessing(girl: GirlData, bless: BlessingSummary): boolean {
-        if (BlessingService.getEffectiveMultiplier(girl as any) <= 1) return false;
+        if (BlessingService.getEffectiveMultiplier(girl) <= 1) return false;
         // Field resolution is shared with BlessingService.detectActiveBlessings
         // via resolveTraitField (single source of truth, lesson mapping-fix).
-        const value = BlessingService.resolveTraitField(girl as any, bless.kind as any);
+        const value = BlessingService.resolveTraitField(girl, bless.kind);
         return String(value ?? '') === bless.value;
     }
 
@@ -635,8 +641,8 @@ export class TeamBuilderService {
             if (vA !== vB) return vA - vB;
 
             // 5. Blessed vs unblessed
-            const bA = BlessingService.getEffectiveMultiplier(a as any) > 1 ? 0 : 1;
-            const bB = BlessingService.getEffectiveMultiplier(b as any) > 1 ? 0 : 1;
+            const bA = BlessingService.getEffectiveMultiplier(a) > 1 ? 0 : 1;
+            const bB = BlessingService.getEffectiveMultiplier(b) > 1 ? 0 : 1;
             if (bA !== bB) return bA - bB;
 
             // 6. caracs_sum descending (mode-aware)
@@ -731,7 +737,7 @@ export class TeamBuilderService {
             leader, leaderTier5, eligible, traitCategory, traitValue,
         );
 
-        const blessedGirlCount = eligible.filter(g => BlessingService.getEffectiveMultiplier(g as any) > 1).length;
+        const blessedGirlCount = eligible.filter(g => BlessingService.getEffectiveMultiplier(g) > 1).length;
 
         const slotInfo: TeamSlotInfo[] = team.map(g => ({
             id_girl: g.id_girl,
@@ -744,7 +750,7 @@ export class TeamBuilderService {
             nb_grades: g.nb_grades,
             currentMain: TeamScoringService.caracsSum(g),
             score: slotScore(g),
-            blessingPercents: BlessingService.getActivePercents(g as any),
+            blessingPercents: BlessingService.getActivePercents(g),
             traitValue: TeamScoringService.getTraitValue(g),
             inCluster: clusterElements.includes(g.element),
         }));
@@ -822,8 +828,8 @@ export class TeamBuilderService {
         for (const girl of eligible) {
             if (girl.rarity !== 'mythic') continue;
             const mainCarac = TeamScoringService.caracsSum(girl);
-            const blessingPercents = BlessingService.getActivePercents(girl as any);
-            const blessingMultiplier = BlessingService.getEffectiveMultiplier(girl as any);
+            const blessingPercents = BlessingService.getActivePercents(girl);
+            const blessingMultiplier = BlessingService.getEffectiveMultiplier(girl);
             const pos = teamPositions.get(girl.id_girl);
             if (pos === 1) {
                 entries.push({ id_girl: girl.id_girl, name: girl.name, element: girl.element,
@@ -865,7 +871,7 @@ export class TeamBuilderService {
         const ownClassGirls = eligible.filter(g => typeof g.class !== 'number' || g.class === playerClass);
         const ownMythics = ownClassGirls.filter(g => g.rarity === 'mythic');
         const ownMythicsAtCap = ownMythics.filter(g => (g.level || 0) >= 750).length;
-        const ownMythicsBlessed = ownMythics.filter(g => BlessingService.getEffectiveMultiplier(g as any) > 1).length;
+        const ownMythicsBlessed = ownMythics.filter(g => BlessingService.getEffectiveMultiplier(g) > 1).length;
         const otherClass: { [c: number]: number } = {};
         for (const g of eligible) {
             if (typeof g.class !== 'number' || g.class === playerClass) continue;

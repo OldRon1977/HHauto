@@ -7,6 +7,20 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.36.0 - codebase review & hardening pass (interim milestone)
+
+#### Changed
+
+- **Internal review and hardening across the whole script, with no visible change to day-to-day behaviour.** The action scheduler and the high-risk modules were reviewed and consolidated, and the entire codebase now compiles under strict type-checking. This is an interim checkpoint ahead of the upcoming scheduling rework.
+
+#### Fixed
+
+- The battle-animation auto-skip no longer throws an error when the skip button is not present on the page.
+
+#### Removed
+
+- Dropped an unused, dead test toolchain (no user impact).
+
 ### v7.35.62 - pachinko orb over-consumption fix
 
 #### Fixed

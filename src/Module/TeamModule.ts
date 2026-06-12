@@ -18,7 +18,7 @@ import { setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { addNutakuSession, gotoPage, safeReload } from '../Service/PageNavigationService';
 import { TeamBuilderService, ScoringMode, TeamResult } from '../Service/TeamBuilderService';
-import { GirlData, ElementType, PlayerClass } from '../Service/TeamScoringService';
+import { GirlData, ElementType, RarityType, PlayerClass } from '../Service/TeamScoringService';
 import { TraitMappings } from '../Service/TraitMappings';
 import { fillHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -289,10 +289,10 @@ export class TeamModule {
             const skills: any[] = Object.values(girl.skill_tiers_info);
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
-        let fullNeededScrolls = girls.length * (HaremGirl.SCROLLS_NEED_4 as any)[rarity + '_' + nbGrades];
+        let fullNeededScrolls = girls.length * (HaremGirl.SCROLLS_NEED_4 as Record<string, number>)[rarity + '_' + nbGrades];
 
         if (mainGirl.girl.rarity === rarity && mainGirl.girl.nb_grades == nbGrades) {
-            fullNeededScrolls += (HaremGirl.SCROLLS_NEED_5 as any)[rarity + '_' + nbGrades];
+            fullNeededScrolls += (HaremGirl.SCROLLS_NEED_5 as Record<string, number>)[rarity + '_' + nbGrades];
             const skills: any[] = Object.values(mainGirl.skill_tiers_info);
             usedScrolls += Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
         }
@@ -462,7 +462,7 @@ export class TeamModule {
             level: Number(g.level || 1),
             class: typeof g.class === 'number' ? g.class : undefined,
             element: (g.element_data?.type || g.element || 'fire') as ElementType,
-            rarity: (g.rarity || 'common') as any,
+            rarity: (g.rarity || 'common') as RarityType,
             graded: Number(g.graded || 0),
             nb_grades: Number(g.nb_grades || 0),
             caracs: g.caracs ? {
@@ -515,7 +515,7 @@ export class TeamModule {
             const ids2 = new Set(resultMode2.girls.map(g => g.id_girl));
             modesIdentical = ids1.size === ids2.size && [...ids1].every(id => ids2.has(id));
         }
-        (result as any).modesIdentical = modesIdentical;
+        result.modesIdentical = modesIdentical;
 
         // Remember main sum per mode so the info box can show a
         // mode-vs-mode delta (Current Best vs Best Possible). The
@@ -524,10 +524,10 @@ export class TeamModule {
         const previousMainSumSameMode = TeamModule.lastMainSum[mode];
         TeamModule.lastMainSum[mode] = result.mainSum;
         // Stash delta context on the result so updateTeamUI can render it.
-        (result as any).previousMainSumSameMode = previousMainSumSameMode;
-        (result as any).previousMainSumOtherMode = previousMainSumOtherMode;
-        (result as any).currentModeName = mode === 1 ? 'Current Best' : 'Best Possible';
-        (result as any).otherModeName = mode === 1 ? 'Best Possible' : 'Current Best';
+        result.previousMainSumSameMode = previousMainSumSameMode;
+        result.previousMainSumOtherMode = previousMainSumOtherMode;
+        result.currentModeName = mode === 1 ? 'Current Best' : 'Best Possible';
+        result.otherModeName = mode === 1 ? 'Best Possible' : 'Current Best';
 
         // poolStats is built by TeamBuilderService and exposed on the
         // result. Read it for the info box (no recomputation here).
@@ -785,10 +785,10 @@ export class TeamModule {
             const colour = diff >= 0 ? '#7f7' : '#f77';
             return `<span style="color:${colour}; font-size:10px;"> (${sign}${diff.toLocaleString()}, ${sign}${pct.toFixed(1)}%)</span>`;
         };
-        const prevSame = (teamResult as any).previousMainSumSameMode as number | undefined;
-        const prevOther = (teamResult as any).previousMainSumOtherMode as number | undefined;
-        const currentModeName = (teamResult as any).currentModeName as string | undefined;
-        const otherModeName = (teamResult as any).otherModeName as string | undefined;
+        const prevSame = teamResult.previousMainSumSameMode;
+        const prevOther = teamResult.previousMainSumOtherMode;
+        const currentModeName = teamResult.currentModeName;
+        const otherModeName = teamResult.otherModeName;
         let mainSumDeltaHtml = '';
         if (prevSame && prevSame !== teamResult.mainSum && currentModeName) {
             mainSumDeltaHtml += ' ' + fmtPct(teamResult.mainSum, prevSame) + ` vs previous ${currentModeName}`;
