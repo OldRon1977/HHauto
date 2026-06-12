@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.36.0
+// @version      7.36.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1347,6 +1347,13 @@ const TK = {
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
+    // Pipeline-block architecture (v7.37.0, ADR-001)
+    activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress (R4.4/R4.12)
+    blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts} (R4.10/R5.2)
+    blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
+    blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
+    pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
+    pipelineLogContext: "Temp_pipelineLogContext", // local: non-rotating log context block (R6.16)
     // Troll wait-marker (issue #1708): set when handleTrollBattle is
     // waiting for energy refill but a battle path WOULD fire if power
     // were available. Read by handleEventParsing and handleLeague to
@@ -27293,6 +27300,37 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
+// Pipeline-block architecture (v7.37.0, ADR-001)
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockFailureCount] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineOrder] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLogContext] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
 /**
@@ -28612,7 +28650,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.36.0";
+const FEATURE_POPUP_TITLE = "HHAuto v7.36.1";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

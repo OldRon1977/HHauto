@@ -387,6 +387,14 @@ export const TK = {
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
 
+    // Pipeline-block architecture (v7.37.0, ADR-001)
+    activeBlockRun: "Temp_activeBlockRun",          // session: BlockRun progress (R4.4/R4.12)
+    blockCooldownUntil: "Temp_blockCooldownUntil",  // session: {blockId: ts} (R4.10/R5.2)
+    blockAutoDisabled: "Temp_blockAutoDisabled",    // local: {blockId:{reason,sinceVersion}} (R5.5)
+    blockFailureCount: "Temp_blockFailureCount",    // local: {signature: count} (R5.3)
+    pipelineOrder: "Temp_pipelineOrder",            // local: effective block-id order (R2.5/R7.1)
+    pipelineLogContext: "Temp_pipelineLogContext",  // local: non-rotating log context block (R6.16)
+
     // Troll wait-marker (issue #1708): set when handleTrollBattle is
     // waiting for energy refill but a battle path WOULD fire if power
     // were available. Read by handleEventParsing and handleLeague to
