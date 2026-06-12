@@ -14,7 +14,8 @@
 // timers, and auto-loop.
 
 import { hardened_start } from "./Service/StartService";
-import { autoLoop } from "./Service/AutoLoop";
+import { autoLoop, setBlockTick } from "./Service/AutoLoop";
+import { getBlockScheduler } from "./Service/BlockPipeline";
 import { setPachinkoAutoLoopKick } from "./Module/Pachinko";
 import { KKLoveRaid } from "./model/KK/KKLoveRaid";
 import { KKPentaDrillOpponents } from "./model/KK/KKPentaDrillOpponents";
@@ -90,5 +91,10 @@ declare global {
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
 // run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
 setPachinkoAutoLoopKick(autoLoop);
+
+// Inject the block-scheduler tick into AutoLoop from the boot path (instead of
+// a static AutoLoop->BlockPipeline import) to avoid an import cycle / TDZ
+// (lesson zirkulaerer-import-tdz-crash).
+setBlockTick((ctx) => getBlockScheduler().tick(ctx));
 
 hardened_start();
