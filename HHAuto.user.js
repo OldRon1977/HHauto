@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.36.6
+// @version      7.36.7
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26189,7 +26189,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.36.6";
+const FEATURE_POPUP_TITLE = "HHAuto v7.36.7";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27377,6 +27377,19 @@ class BlockScheduler {
                 else {
                     this.emit({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });
                 }
+            }
+            // gate-hold-return (ADR-002): a held run continues only while the block
+            // still WANTS to run. Re-check the precondition on every continuation; once
+            // it no longer holds (e.g. a navigate-only block such as HaremSize has
+            // reached its target page, so its precondition page-guard flips false),
+            // release the slot instead of re-running the step -- otherwise the slot-hold
+            // re-runs gotoPage(sameTarget) forever (the waifu->waifu loop). On a fresh
+            // start the precondition was just verified true by findNext, so this is a
+            // no-op there.
+            if (!block.precondition(ctx)) {
+                this.emit({ ev: "done", block: block.id, detail: "precondition no longer holds; releasing slot" });
+                this.complete(block, run);
+                return;
             }
             yield this.executeStep(ctx, block, run);
         });

@@ -234,6 +234,37 @@ describe("BlockScheduler -- selection gating", () => {
     });
 });
 
+describe("BlockScheduler -- gate-hold-return precondition recheck (ADR-002)", () => {
+    it("releases a held run once the block's precondition no longer holds (navigate-only)", async () => {
+        // Simulate handleHaremSize: precondition true off-target, false on-target.
+        // The step navigates (busy) and would repeat forever without the recheck.
+        let onTarget = false;
+        const A: Block = {
+            id: "HaremSize",
+            precondition: () => !onTarget,
+            steps: [{
+                name: "gotoTarget",
+                fn: async (ctx) => { ctx.busy = true; onTarget = true; return { ok: true, repeat: true }; },
+            }],
+            userMovable: false,
+            minIntervalMs: 0,
+        };
+        // fresh start: precondition true -> step runs, navigates (busy), repeat (held)
+        const h1 = makePorts();
+        const s1 = new BlockScheduler(reg(A), ["HaremSize"], h1.ports);
+        await s1.tick({} as AutoLoopContext);
+        expect(h1.state.run).not.toBeNull();        // held
+        expect(onTarget).toBe(true);
+        // simulate reload: new scheduler restores the held run; precondition now false
+        const h2 = makePorts();
+        h2.state.run = h1.state.run;                // carry the persisted run
+        const s2 = new BlockScheduler(reg(A), ["HaremSize"], h2.ports);
+        await s2.tick({} as AutoLoopContext);
+        expect(s2.getActiveRun()).toBeNull();        // released, did NOT re-run the nav
+        expect(h2.routeHome).not.toHaveBeenCalled(); // normal completion, not abort
+    });
+});
+
 describe("BlockScheduler -- auto-disable reset", () => {
     it("clears stale auto-disable on a script version change (one retry)", async () => {
         const h = makePorts();

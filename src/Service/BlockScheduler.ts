@@ -175,6 +175,20 @@ export class BlockScheduler {
       }
     }
 
+    // gate-hold-return (ADR-002): a held run continues only while the block
+    // still WANTS to run. Re-check the precondition on every continuation; once
+    // it no longer holds (e.g. a navigate-only block such as HaremSize has
+    // reached its target page, so its precondition page-guard flips false),
+    // release the slot instead of re-running the step -- otherwise the slot-hold
+    // re-runs gotoPage(sameTarget) forever (the waifu->waifu loop). On a fresh
+    // start the precondition was just verified true by findNext, so this is a
+    // no-op there.
+    if (!block.precondition(ctx)) {
+      this.emit({ ev: "done", block: block.id, detail: "precondition no longer holds; releasing slot" });
+      this.complete(block, run);
+      return;
+    }
+
     await this.executeStep(ctx, block, run);
   }
 
