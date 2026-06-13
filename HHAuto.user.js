@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.36.5
+// @version      7.36.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26189,7 +26189,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.36.5";
+const FEATURE_POPUP_TITLE = "HHAuto v7.36.6";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -29968,6 +29968,15 @@ const pipeline = [
 ];
 
 ;// CONCATENATED MODULE: ./src/Service/BlockPipeline.ts
+var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 // BlockPipeline.ts -- wiring of the v7.37.0 block scheduler into the running
 // script (ADR-001, Roadmap step 17 task 6).
 //
@@ -29994,6 +30003,21 @@ const pipeline = [
 
 
 
+/**
+ * Slot-hold decision (ADR-002, gate-hold-return). After a handler step:
+ *  - failure -> pass through (watchdog aborts).
+ *  - the handler acted (ctx.busy, typically navigated away) -> repeat: keep the
+ *    BlockRun active so the same block re-enters after the reload and finishes
+ *    its excursion uninterrupted (no other block can grab the slot, the
+ *    lastActionPerformed reset becomes irrelevant).
+ *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
+ *    done: release the slot.
+ */
+function applySlotHold(r, busy) {
+    if (!r.ok)
+        return r;
+    return busy ? { ok: true, repeat: true } : { ok: true };
+}
 /** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
 function toBlock(c) {
     return {
@@ -30001,8 +30025,9 @@ function toBlock(c) {
         precondition: c.precondition,
         steps: c.steps.map(s => ({
             name: s.name,
-            // ChainStep.fn(ctx) returns StepResult, assignable to BlockStepResult.
-            fn: (ctx) => s.fn(ctx),
+            // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
+            // navigating handler holds the run until it goes idle (ADR-002).
+            fn: (ctx) => BlockPipeline_awaiter(this, void 0, void 0, function* () { return applySlotHold(yield s.fn(ctx), ctx.busy); }),
             timeoutMs: s.timeoutMs,
         })),
         userMovable: false, // real flags assigned in the constraints task
@@ -30064,7 +30089,9 @@ function buildScheduler() {
         disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
         diagnose: isDiagnose(),
     });
-    return new BlockScheduler(registry, resolved.order, blockPorts);
+    // Held excursions (e.g. PoP collecting many places over reloads) can run
+    // for a while; give the run-total watchdog generous headroom (ADR-002).
+    return new BlockScheduler(registry, resolved.order, blockPorts, { totalTimeoutMs: 180000 });
 }
 // Lazy singleton: built on first tick from the boot path, NOT at module eval,
 // so reading the `pipeline` array cannot hit a TDZ if the cyclic module graph

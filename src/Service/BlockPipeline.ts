@@ -19,12 +19,27 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { logHHAuto } from "../Utils/LogUtils";
 import { BlockScheduler, DisabledEntry, SchedulerPorts } from "./BlockScheduler";
-import { Block, BlockOrder, BlockRegistry, BlockRun } from "./BlockTypes";
+import { Block, BlockOrder, BlockRegistry, BlockRun, BlockStepResult } from "./BlockTypes";
 import { gotoPage } from "./PageNavigationService";
 import { resolveOrder } from "./OrderResolver";
 import { loadBlockRun, saveBlockRun, clearBlockRun } from "./BlockRunStore";
 import { logEvent, writeLogContext, isDiagnose, PipeFields } from "./PipeLogger";
 import { HandlerConfig, pipeline } from "./Pipeline.config";
+
+/**
+ * Slot-hold decision (ADR-002, gate-hold-return). After a handler step:
+ *  - failure -> pass through (watchdog aborts).
+ *  - the handler acted (ctx.busy, typically navigated away) -> repeat: keep the
+ *    BlockRun active so the same block re-enters after the reload and finishes
+ *    its excursion uninterrupted (no other block can grab the slot, the
+ *    lastActionPerformed reset becomes irrelevant).
+ *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
+ *    done: release the slot.
+ */
+export function applySlotHold(r: BlockStepResult, busy: boolean): BlockStepResult {
+  if (!r.ok) return r;
+  return busy ? { ok: true, repeat: true } : { ok: true };
+}
 
 /** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
 function toBlock(c: HandlerConfig): Block {
@@ -33,8 +48,9 @@ function toBlock(c: HandlerConfig): Block {
     precondition: c.precondition,
     steps: c.steps.map(s => ({
       name: s.name,
-      // ChainStep.fn(ctx) returns StepResult, assignable to BlockStepResult.
-      fn: (ctx: Parameters<typeof s.fn>[0]) => s.fn(ctx),
+      // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
+      // navigating handler holds the run until it goes idle (ADR-002).
+      fn: async (ctx: Parameters<typeof s.fn>[0]) => applySlotHold(await s.fn(ctx), ctx.busy),
       timeoutMs: s.timeoutMs,
     })),
     userMovable: false,            // real flags assigned in the constraints task
@@ -100,7 +116,9 @@ function buildScheduler(): BlockScheduler {
     disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
     diagnose: isDiagnose(),
   });
-  return new BlockScheduler(registry, resolved.order, blockPorts);
+  // Held excursions (e.g. PoP collecting many places over reloads) can run
+  // for a while; give the run-total watchdog generous headroom (ADR-002).
+  return new BlockScheduler(registry, resolved.order, blockPorts, { totalTimeoutMs: 180_000 });
 }
 
 // Lazy singleton: built on first tick from the boot path, NOT at module eval,
