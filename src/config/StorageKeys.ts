@@ -247,6 +247,7 @@ export const SK = {
     compactPowerPlace: "Setting_compactPowerPlace",
     invertMissions: "Setting_invertMissions",
     saveDefaults: "Setting_saveDefaults",
+    pipelineDiagnose: "Setting_pipelineDiagnose",  // [PIPE] verbose diagnostic logging toggle (R6.14)
 
     // Reward Masks
     AllMaskRewards: "Setting_AllMaskRewards",

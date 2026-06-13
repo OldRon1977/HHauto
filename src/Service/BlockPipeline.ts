@@ -23,6 +23,7 @@ import { Block, BlockOrder, BlockRegistry, BlockRun } from "./BlockTypes";
 import { gotoPage } from "./PageNavigationService";
 import { resolveOrder } from "./OrderResolver";
 import { loadBlockRun, saveBlockRun, clearBlockRun } from "./BlockRunStore";
+import { logEvent, writeLogContext, isDiagnose, PipeFields } from "./PipeLogger";
 import { HandlerConfig, pipeline } from "./Pipeline.config";
 
 /** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
@@ -80,17 +81,8 @@ export const blockPorts: SchedulerPorts = {
   setAutoDisabled: (v) => saveMap(TK.blockAutoDisabled, v),
   getLastRunAt: () => loadMap<number>(TK.pipelineLastRunAt),
   setLastRunAt: (v) => saveMap(TK.pipelineLastRunAt, v),
-  // Legacy-compatible 2-line log so the live test stays comparable to v7.36.x.
-  // Structured [PIPE] logging replaces this in the logging task.
-  log: (e: Record<string, unknown>) => {
-    const ev = e.ev;
-    const block = e.block;
-    if (ev === "start") logHHAuto(`[Scheduler] Starting chain '${block}'`);
-    else if (ev === "done" && e.detail === "run complete") logHHAuto(`[Scheduler] Chain '${block}' completed`);
-    else if (ev === "abort" || ev === "timeout" || ev === "error") logHHAuto(`[Scheduler] ${ev} '${block}': ${e.detail}`);
-    // per-step done / resume / dispatch / reset are suppressed in this interim
-    // adapter (single-step blocks do not exercise them); see the logging task.
-  },
+  // Structured [PIPE] logging through the existing log pipeline (task 7).
+  log: (e: Record<string, unknown>) => logEvent(e as unknown as PipeFields),
 };
 
 function buildScheduler(): BlockScheduler {
@@ -98,6 +90,16 @@ function buildScheduler(): BlockScheduler {
   const stored = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null) as BlockOrder | null;
   const resolved = resolveOrder(stored, registry, defaultOrder);
   for (const w of resolved.warnings) logHHAuto(`[Scheduler] order: ${w.message}`);
+  // Refresh the non-rotating log context block (R6.16): version/platform/order/
+  // disabled blocks/diagnose flag, prepended to the user debug export.
+  const disabledMap = blockPorts.getAutoDisabled();
+  writeLogContext({
+    version: blockPorts.scriptVersion(),
+    platform: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "unknown",
+    effectiveOrder: resolved.order,
+    disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
+    diagnose: isDiagnose(),
+  });
   return new BlockScheduler(registry, resolved.order, blockPorts);
 }
 

@@ -61,6 +61,7 @@ function shortSig(reason: string): string {
 export class BlockScheduler {
   private run: BlockRun | null = null;
   private restoredFromStore = false;
+  private tickCount = 0;  // R6.3 correlation: incremented once per tick()
   private readonly cfg: SchedulerConfig;
 
   constructor(
@@ -92,7 +93,7 @@ export class BlockScheduler {
         delete disabled[id];
         this.resetFailureCounts(id);
         changed = true;
-        this.ports.log({ ev: "reset", block: id, detail: "auto-disable cleared on version change" });
+        this.emit({ ev: "reset", block: id, detail: "auto-disable cleared on version change" });
       }
     }
     if (changed) this.ports.setAutoDisabled(disabled);
@@ -106,7 +107,7 @@ export class BlockScheduler {
       this.ports.setAutoDisabled(disabled);
     }
     this.resetFailureCounts(blockId);
-    this.ports.log({ ev: "reset", block: blockId, detail: "block reactivated" });
+    this.emit({ ev: "reset", block: blockId, detail: "block reactivated" });
   }
 
   private resetFailureCounts(blockId: string): void {
@@ -119,10 +120,11 @@ export class BlockScheduler {
   }
 
   async tick(ctx: AutoLoopContext): Promise<void> {
+    this.tickCount++;
     // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
     if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
       if (this.run) {
-        this.ports.log({ ev: "abort", block: this.run.blockId, detail: "master-off" });
+        this.emit({ ev: "abort", block: this.run.blockId, detail: "master-off" });
         this.run = null;
         this.ports.clearRun();
       }
@@ -158,18 +160,18 @@ export class BlockScheduler {
       this.restoredFromStore = false;
       const next: Step | undefined = block.steps[run.stepIdx];
       if (next?.resumeValid && !next.resumeValid(ctx, run)) {
-        this.ports.log({ ev: "resume", block: block.id, step: next.name, detail: "invalid" });
+        this.emit({ ev: "resume", block: block.id, step: next.name, detail: "invalid" });
         await this.abort(run, "resume-invalid"); return;
       }
       if (run.dispatched) {
-        this.ports.log({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
+        this.emit({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
         run.stepIdx++;
         run.dispatched = false;
         run.stepStartedAt = this.ports.now();
         this.ports.saveRun(run);
         if (run.stepIdx >= block.steps.length) { this.complete(block, run); return; }
       } else {
-        this.ports.log({ ev: "resume", block: block.id, step: next?.name, detail: "valid" });
+        this.emit({ ev: "resume", block: block.id, step: next?.name, detail: "valid" });
       }
     }
 
@@ -190,7 +192,7 @@ export class BlockScheduler {
       // persist-before-act (R6.13): the dispatch marker survives the reload.
       run.dispatched = true;
       this.ports.saveRun(run);
-      this.ports.log({ ev: "dispatch", block: block.id, step: step.name });
+      this.emit({ ev: "dispatch", block: block.id, step: step.name });
     }
 
     let result;
@@ -205,13 +207,13 @@ export class BlockScheduler {
       if (result.repeat) {
         run.stepStartedAt = this.ports.now();
         this.ports.saveRun(run);
-        this.ports.log({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
+        this.emit({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
         return;
       }
       run.stepIdx++;
       run.stepStartedAt = this.ports.now();
       this.ports.saveRun(run);
-      this.ports.log({ ev: "done", block: block.id, step: step.name });
+      this.emit({ ev: "done", block: block.id, step: step.name });
       if (result.done || run.stepIdx >= block.steps.length) this.complete(block, run);
     } else {
       await this.abort(run, "fail:" + step.name + ":" + result.reason);
@@ -230,11 +232,11 @@ export class BlockScheduler {
     };
     this.restoredFromStore = false;
     this.ports.saveRun(this.run);
-    this.ports.log({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
+    this.emit({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
   }
 
   private complete(block: Block, run: BlockRun): void {
-    this.ports.log({ ev: "done", block: block.id, detail: "run complete" });
+    this.emit({ ev: "done", block: block.id, detail: "run complete" });
     const last = this.ports.getLastRunAt();
     last[block.id] = this.ports.now();
     this.ports.setLastRunAt(last);
@@ -246,7 +248,7 @@ export class BlockScheduler {
   /** Abort path (R4.10): clear run, count failure, cool-down, route home. */
   private async abort(run: BlockRun, reason: string): Promise<void> {
     const blockId = run.blockId;
-    this.ports.log({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
+    this.emit({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
 
     // Persistent per-signature failure counter (R5.3).
     const counts = this.ports.getFailureCounts();
@@ -260,7 +262,7 @@ export class BlockScheduler {
       const disabled = this.ports.getAutoDisabled();
       disabled[blockId] = { reason, sinceVersion: this.ports.scriptVersion() };
       this.ports.setAutoDisabled(disabled);
-      this.ports.log({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
+      this.emit({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
     }
 
     // Cool-down (R4.10/R5.2).
@@ -289,6 +291,15 @@ export class BlockScheduler {
       return block;
     }
     return null;
+  }
+
+  /** Emit a structured log event with tick + run correlation (R6.3). */
+  private emit(fields: Record<string, unknown>): void {
+    this.ports.log({
+      tick: this.tickCount,
+      run: this.run ? this.run.blockId + "@" + this.run.startedAt : undefined,
+      ...fields,
+    });
   }
 
   private withTimeout<T>(fn: () => Promise<T>, ms: number, label: string): Promise<T> {

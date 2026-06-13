@@ -2545,3 +2545,9 @@ HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLogContext] =
     storage:"localStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.pipelineDiagnose] =
+    {
+    default: "false",
+    storage:"localStorage",
+    HHType:"Setting"
+};

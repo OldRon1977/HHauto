@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.36.4
+// @version      7.36.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1228,6 +1228,7 @@ const SK = {
     compactPowerPlace: "Setting_compactPowerPlace",
     invertMissions: "Setting_invertMissions",
     saveDefaults: "Setting_saveDefaults",
+    pipelineDiagnose: "Setting_pipelineDiagnose", // [PIPE] verbose diagnostic logging toggle (R6.14)
     // Reward Masks
     AllMaskRewards: "Setting_AllMaskRewards",
     PoAMaskRewards: "Setting_PoAMaskRewards",
@@ -24539,6 +24540,12 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLogContext] =
         storage: "localStorage",
         HHType: "Temp"
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.pipelineDiagnose] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Setting"
+    };
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
 /**
@@ -26182,7 +26189,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.36.4";
+const FEATURE_POPUP_TITLE = "HHAuto v7.36.5";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27258,6 +27265,7 @@ class BlockScheduler {
         this.ports = ports;
         this.run = null;
         this.restoredFromStore = false;
+        this.tickCount = 0; // R6.3 correlation: incremented once per tick()
         this.cfg = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
         // Restore a run that survived a reload (R4.4) and reconcile version-gated
         // auto-disable (R5.5: one retry after a script update).
@@ -27278,7 +27286,7 @@ class BlockScheduler {
                 delete disabled[id];
                 this.resetFailureCounts(id);
                 changed = true;
-                this.ports.log({ ev: "reset", block: id, detail: "auto-disable cleared on version change" });
+                this.emit({ ev: "reset", block: id, detail: "auto-disable cleared on version change" });
             }
         }
         if (changed)
@@ -27292,7 +27300,7 @@ class BlockScheduler {
             this.ports.setAutoDisabled(disabled);
         }
         this.resetFailureCounts(blockId);
-        this.ports.log({ ev: "reset", block: blockId, detail: "block reactivated" });
+        this.emit({ ev: "reset", block: blockId, detail: "block reactivated" });
     }
     resetFailureCounts(blockId) {
         const counts = this.ports.getFailureCounts();
@@ -27308,10 +27316,11 @@ class BlockScheduler {
     }
     tick(ctx) {
         return BlockScheduler_awaiter(this, void 0, void 0, function* () {
+            this.tickCount++;
             // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
             if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
                 if (this.run) {
-                    this.ports.log({ ev: "abort", block: this.run.blockId, detail: "master-off" });
+                    this.emit({ ev: "abort", block: this.run.blockId, detail: "master-off" });
                     this.run = null;
                     this.ports.clearRun();
                 }
@@ -27350,12 +27359,12 @@ class BlockScheduler {
                 this.restoredFromStore = false;
                 const next = block.steps[run.stepIdx];
                 if ((next === null || next === void 0 ? void 0 : next.resumeValid) && !next.resumeValid(ctx, run)) {
-                    this.ports.log({ ev: "resume", block: block.id, step: next.name, detail: "invalid" });
+                    this.emit({ ev: "resume", block: block.id, step: next.name, detail: "invalid" });
                     yield this.abort(run, "resume-invalid");
                     return;
                 }
                 if (run.dispatched) {
-                    this.ports.log({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
+                    this.emit({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
                     run.stepIdx++;
                     run.dispatched = false;
                     run.stepStartedAt = this.ports.now();
@@ -27366,7 +27375,7 @@ class BlockScheduler {
                     }
                 }
                 else {
-                    this.ports.log({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });
+                    this.emit({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });
                 }
             }
             yield this.executeStep(ctx, block, run);
@@ -27390,7 +27399,7 @@ class BlockScheduler {
                 // persist-before-act (R6.13): the dispatch marker survives the reload.
                 run.dispatched = true;
                 this.ports.saveRun(run);
-                this.ports.log({ ev: "dispatch", block: block.id, step: step.name });
+                this.emit({ ev: "dispatch", block: block.id, step: step.name });
             }
             let result;
             try {
@@ -27405,13 +27414,13 @@ class BlockScheduler {
                 if (result.repeat) {
                     run.stepStartedAt = this.ports.now();
                     this.ports.saveRun(run);
-                    this.ports.log({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
+                    this.emit({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
                     return;
                 }
                 run.stepIdx++;
                 run.stepStartedAt = this.ports.now();
                 this.ports.saveRun(run);
-                this.ports.log({ ev: "done", block: block.id, step: step.name });
+                this.emit({ ev: "done", block: block.id, step: step.name });
                 if (result.done || run.stepIdx >= block.steps.length)
                     this.complete(block, run);
             }
@@ -27432,10 +27441,10 @@ class BlockScheduler {
         };
         this.restoredFromStore = false;
         this.ports.saveRun(this.run);
-        this.ports.log({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
+        this.emit({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
     }
     complete(block, run) {
-        this.ports.log({ ev: "done", block: block.id, detail: "run complete" });
+        this.emit({ ev: "done", block: block.id, detail: "run complete" });
         const last = this.ports.getLastRunAt();
         last[block.id] = this.ports.now();
         this.ports.setLastRunAt(last);
@@ -27448,7 +27457,7 @@ class BlockScheduler {
         return BlockScheduler_awaiter(this, void 0, void 0, function* () {
             var _a;
             const blockId = run.blockId;
-            this.ports.log({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
+            this.emit({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
             // Persistent per-signature failure counter (R5.3).
             const counts = this.ports.getFailureCounts();
             const sig = blockId + ":" + shortSig(reason);
@@ -27460,7 +27469,7 @@ class BlockScheduler {
                 const disabled = this.ports.getAutoDisabled();
                 disabled[blockId] = { reason, sinceVersion: this.ports.scriptVersion() };
                 this.ports.setAutoDisabled(disabled);
-                this.ports.log({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
+                this.emit({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
             }
             // Cool-down (R4.10/R5.2).
             const cooldowns = this.ports.getCooldowns();
@@ -27493,6 +27502,10 @@ class BlockScheduler {
             return block;
         }
         return null;
+    }
+    /** Emit a structured log event with tick + run correlation (R6.3). */
+    emit(fields) {
+        this.ports.log(Object.assign({ tick: this.tickCount, run: this.run ? this.run.blockId + "@" + this.run.startedAt : undefined }, fields));
     }
     withTimeout(fn, ms, label) {
         return new Promise((resolve, reject) => {
@@ -27756,6 +27769,82 @@ function loadBlockRun() {
 /** Drop the active BlockRun (run finished, aborted, or master-off). */
 function clearBlockRun() {
     deleteStoredValue(KEY);
+}
+
+;// CONCATENATED MODULE: ./src/Service/PipeLogger.ts
+// PipeLogger.ts -- structured [PIPE] logging for the block scheduler
+// (v7.37.0 pipeline-block architecture, ADR-001, task 7).
+//
+// One event per line, key=value, parseable, tagged [PIPE], emitted through the
+// existing logHHAuto pipeline (single system, R6.11) so the lines land in the
+// same persisted/rotated buffer and the user debug export. A non-rotating
+// context block (version, platform, effective order, disabled blocks, diagnose
+// flag) is stored separately and travels with the export. Lean events are
+// always emitted; per-step detail only when the diagnose toggle is on. Skip
+// events are change-deduplicated so a block parked on one reason logs once, not
+// every ~2s tick.
+//
+// Requirements: 6.1-6.14, 6.16, 6.17, 6.18
+
+
+
+
+// Fixed field order for a stable, parseable line (R6.10).
+const FIELD_ORDER = ["tick", "run", "block", "step", "page", "ev", "result", "detail"];
+/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract (R6.10/R6.18). */
+function sanitize(v) {
+    return String(v).replace(/\s+/g, " ").trim();
+}
+/** Format a [PIPE] line. Pure -- unit-testable (R6.10). */
+function formatPipeLine(fields) {
+    const parts = ["[PIPE]", "t=" + new Date().toISOString()];
+    for (const key of FIELD_ORDER) {
+        const val = fields[key];
+        if (val === undefined || val === null || val === "")
+            continue;
+        parts.push(key + "=" + sanitize(val));
+    }
+    return parts.join(" ");
+}
+/** Whether verbose diagnostic logging is enabled (R6.14). */
+function isDiagnose() {
+    return getStoredValue(HHStoredVarPrefixKey + SK.pipelineDiagnose) === "true";
+}
+// Skip-dedup state: last skip detail per block (R6.17 lean budget).
+const lastSkipDetail = {};
+/** Reset dedup state (tests / cache clear). */
+function _resetPipeLoggerForTests() {
+    for (const k of Object.keys(lastSkipDetail))
+        delete lastSkipDetail[k];
+}
+/**
+ * Emit a structured event through the existing log pipeline.
+ *  - skip: only when the reason changed for that block (change-dedup).
+ *  - per-step done (ev=done without detail "run complete"): diagnose only.
+ *  - everything else: always (lean lifecycle).
+ */
+function logEvent(fields) {
+    var _a, _b;
+    const ev = fields.ev;
+    if (ev === "skip") {
+        const key = (_a = fields.block) !== null && _a !== void 0 ? _a : "?";
+        const detail = (_b = fields.detail) !== null && _b !== void 0 ? _b : "";
+        if (lastSkipDetail[key] === detail)
+            return; // unchanged -> suppress
+        lastSkipDetail[key] = detail;
+    }
+    else if (fields.block) {
+        // a block that did something clears its skip-dedup memory
+        delete lastSkipDetail[fields.block];
+    }
+    // Per-step "done" is verbose; the run-complete "done" is lean.
+    if (ev === "done" && fields.detail !== "run complete" && !isDiagnose())
+        return;
+    LogUtils_logHHAuto(formatPipeLine(fields));
+}
+/** Write/refresh the non-rotating context block (R6.16). Prepended to the export via storage. */
+function writeLogContext(ctx) {
+    setStoredValue(HHStoredVarPrefixKey + TK.pipelineLogContext, JSON.stringify(ctx));
 }
 
 ;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
@@ -29904,6 +29993,7 @@ const pipeline = [
 
 
 
+
 /** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
 function toBlock(c) {
     return {
@@ -29955,20 +30045,8 @@ const blockPorts = {
     setAutoDisabled: (v) => saveMap(TK.blockAutoDisabled, v),
     getLastRunAt: () => loadMap(TK.pipelineLastRunAt),
     setLastRunAt: (v) => saveMap(TK.pipelineLastRunAt, v),
-    // Legacy-compatible 2-line log so the live test stays comparable to v7.36.x.
-    // Structured [PIPE] logging replaces this in the logging task.
-    log: (e) => {
-        const ev = e.ev;
-        const block = e.block;
-        if (ev === "start")
-            LogUtils_logHHAuto(`[Scheduler] Starting chain '${block}'`);
-        else if (ev === "done" && e.detail === "run complete")
-            LogUtils_logHHAuto(`[Scheduler] Chain '${block}' completed`);
-        else if (ev === "abort" || ev === "timeout" || ev === "error")
-            LogUtils_logHHAuto(`[Scheduler] ${ev} '${block}': ${e.detail}`);
-        // per-step done / resume / dispatch / reset are suppressed in this interim
-        // adapter (single-step blocks do not exercise them); see the logging task.
-    },
+    // Structured [PIPE] logging through the existing log pipeline (task 7).
+    log: (e) => logEvent(e),
 };
 function buildScheduler() {
     const { registry, defaultOrder } = buildRegistryAndOrder();
@@ -29976,6 +30054,16 @@ function buildScheduler() {
     const resolved = resolveOrder(stored, registry, defaultOrder);
     for (const w of resolved.warnings)
         LogUtils_logHHAuto(`[Scheduler] order: ${w.message}`);
+    // Refresh the non-rotating log context block (R6.16): version/platform/order/
+    // disabled blocks/diagnose flag, prepended to the user debug export.
+    const disabledMap = blockPorts.getAutoDisabled();
+    writeLogContext({
+        version: blockPorts.scriptVersion(),
+        platform: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "unknown",
+        effectiveOrder: resolved.order,
+        disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
+        diagnose: isDiagnose(),
+    });
     return new BlockScheduler(registry, resolved.order, blockPorts);
 }
 // Lazy singleton: built on first tick from the boot path, NOT at module eval,
