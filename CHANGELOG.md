@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.1 - new Pornstar Harem boss
+
+#### Added
+
+- **New boss "Marie McCray"** added to Pornstar Harem (world 28), including her three reward girls so the troll fighter recognises and tracks them.
+
 ### v7.37.0 - block-based pipeline + block reordering
 
 #### Added
