@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.2 - Pornstar Harem boss mapping fix
+
+#### Fixed
+
+- **Caty Campbell (Pornstar Harem world 27)** is now recognised by the troll fighter. Her world had no ID mapping and resolved to the wrong opponent.
+
 ### v7.37.1 - new Pornstar Harem boss
 
 #### Added

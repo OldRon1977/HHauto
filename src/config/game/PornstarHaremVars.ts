@@ -3,7 +3,7 @@
 // and quest data specific to the Pornstar Harem game variant.
 
 export class PornstarHarem {
-    static trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17, 28: 19 }; // under 10 id as usual
+    static trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17, 27: 18, 28: 19 }; // under 10 id as usual
     static lastQuestId = 16100; //  TODO update when new quest comes
     static getEnv() {
         return {
