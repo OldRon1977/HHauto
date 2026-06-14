@@ -3,7 +3,7 @@
 // and quest data specific to the Pornstar Harem game variant.
 
 export class PornstarHarem {
-    static trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17 }; // under 10 id as usual
+    static trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17, 28: 19 }; // under 10 id as usual
     static lastQuestId = 16100; //  TODO update when new quest comes
     static getEnv() {
         return {
@@ -31,7 +31,8 @@ export class PornstarHarem {
                     'The Hooded Heroine',
                     'EMPTY',
                     'Monica Mattos',
-                    'Caty Campbell'];
+                    'Caty Campbell',
+                    'Marie McCray'];
 
         switch (languageCode) {
             case "fr":
@@ -62,6 +63,7 @@ export class PornstarHarem {
             [[0], [0], [0]],
             [['409433993', '438706084', '673600948'], [0], [0]],
             [['248370930', '257485641', '381828319'], [0], [0]],
+            [['409136518', '330443174', '958834753'], [0], [0]],   // Marie McCray (world 28)
         ];
     }
 

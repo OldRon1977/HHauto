@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.0
+// @version      7.37.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -14015,7 +14015,8 @@ class PornstarHarem {
             'The Hooded Heroine',
             'EMPTY',
             'Monica Mattos',
-            'Caty Campbell'];
+            'Caty Campbell',
+            'Marie McCray'];
         switch (languageCode) {
             case "fr":
                 trollList[1] = 'Directrice Asa Akira';
@@ -14044,13 +14045,14 @@ class PornstarHarem {
             [[0], [0], [0]],
             [['409433993', '438706084', '673600948'], [0], [0]],
             [['248370930', '257485641', '381828319'], [0], [0]],
+            [['409136518', '330443174', '958834753'], [0], [0]], // Marie McCray (world 28)
         ];
     }
     static updateFeatures(envVariables) {
         envVariables.isEnabledSpreadsheets = false;
     }
 }
-PornstarHarem.trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17 }; // under 10 id as usual
+PornstarHarem.trollIdMapping = { 10: 9, 14: 11, 16: 12, 18: 13, 20: 14, 23: 15, 26: 17, 28: 19 }; // under 10 id as usual
 PornstarHarem.lastQuestId = 16100; //  TODO update when new quest comes
 
 ;// CONCATENATED MODULE: ./src/config/game/TransPornstarHaremVars.ts
@@ -26264,7 +26266,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.0";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.1";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
