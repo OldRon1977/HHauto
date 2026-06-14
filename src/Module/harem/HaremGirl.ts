@@ -910,7 +910,7 @@ export class HaremGirl {
             const slot = equipmentSlots.eq(i);
             slot.trigger('click');
             // Short wait so the game kicks off its inventory request for this slot
-            await TimeHelper.sleep(randomInterval(100, 200));
+            await TimeHelper.sleep(randomInterval(500, 700));
 
             // Force game to render all lazy-loaded inventory items into the DOM
             await HaremGirl.forceLoadAllInventoryItems();
@@ -1013,7 +1013,7 @@ export class HaremGirl {
                     } else {
                         bestInventory.el.trigger('click');
                     }
-                    await TimeHelper.sleep(randomInterval(100, 200));
+                    await TimeHelper.sleep(randomInterval(500, 700));
 
                     // Click the Equip confirm button (revealed after item selection)
                     let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
@@ -1028,7 +1028,7 @@ export class HaremGirl {
                         const btnRaw = $equipBtn.get(0) as HTMLElement | undefined;
                         if (btnRaw && typeof btnRaw.click === 'function') btnRaw.click();
                         else $equipBtn.trigger('click');
-                        await TimeHelper.sleep(randomInterval(200, 300));
+                        await TimeHelper.sleep(randomInterval(500, 700));
                         logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
                     } else {
                         logHHAuto(`Slot ${i}: #girl-equipment-equip not found (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);

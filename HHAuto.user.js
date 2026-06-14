@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.2
+// @version      7.37.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -5063,15 +5063,15 @@ class Booster {
         return Math.max(0, Math.floor(longest));
     }
     /**
-     * Generates a random delay between 5 minutes and 2 hours (in seconds).
+     * Generates a random delay between 15 and 45 minutes (in seconds).
      * Added to booster expiry time to make auto-equip timing look human.
      */
     static getRandomEquipDelay() {
-        return randomInterval(5 * 60, 2 * 60 * 60);
+        return randomInterval(15 * 60, 45 * 60);
     }
     /**
      * Schedules the next auto-equip check based on the longest-running active booster
-     * plus a random delay (5 min - 2 h). If no boosters are active, schedules immediately
+     * plus a random delay (15-45 min). If no boosters are active, schedules immediately
      * with just the random delay.
      */
     static scheduleNextEquipCheck() {
@@ -7808,7 +7808,7 @@ class HaremGirl {
                 const slot = equipmentSlots.eq(i);
                 slot.trigger('click');
                 // Short wait so the game kicks off its inventory request for this slot
-                yield TimeHelper.sleep(randomInterval(100, 200));
+                yield TimeHelper.sleep(randomInterval(500, 700));
                 // Force game to render all lazy-loaded inventory items into the DOM
                 yield HaremGirl.forceLoadAllInventoryItems();
                 const equippedEl = slot.find('.slot[data-d]');
@@ -7912,7 +7912,7 @@ class HaremGirl {
                         else {
                             bestInventory.el.trigger('click');
                         }
-                        yield TimeHelper.sleep(randomInterval(100, 200));
+                        yield TimeHelper.sleep(randomInterval(500, 700));
                         // Click the Equip confirm button (revealed after item selection)
                         let $equipBtn = $('#girl-equipment-equip').removeClass('hidden').removeAttr('hidden');
                         // Wait up to ~500ms for the button to become enabled
@@ -7927,7 +7927,7 @@ class HaremGirl {
                                 btnRaw.click();
                             else
                                 $equipBtn.trigger('click');
-                            yield TimeHelper.sleep(randomInterval(200, 300));
+                            yield TimeHelper.sleep(randomInterval(500, 700));
                             LogUtils_logHHAuto(`Slot ${i}: equip button clicked (attempt ${attempt}/${MAX_EQUIP_ATTEMPTS})`);
                         }
                         else {
@@ -11752,7 +11752,7 @@ class PentaDrill {
                 performButton.trigger('click');
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 LogUtils_logHHAuto("setting autoloop to false");
-                yield TimeHelper.sleep(randomInterval(5000, 8000));
+                yield TimeHelper.sleep(randomInterval(6000, 9000));
                 //setTimer('nextPentaDrillTime',10);
                 return true;
             }
@@ -26266,7 +26266,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.2";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.3";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

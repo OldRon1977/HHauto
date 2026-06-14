@@ -455,16 +455,16 @@ export class Booster {
     }
 
     /**
-     * Generates a random delay between 5 minutes and 2 hours (in seconds).
+     * Generates a random delay between 15 and 45 minutes (in seconds).
      * Added to booster expiry time to make auto-equip timing look human.
      */
     static getRandomEquipDelay(): number {
-        return randomInterval(5 * 60, 2 * 60 * 60);
+        return randomInterval(15 * 60, 45 * 60);
     }
 
     /**
      * Schedules the next auto-equip check based on the longest-running active booster
-     * plus a random delay (5 min - 2 h). If no boosters are active, schedules immediately
+     * plus a random delay (15-45 min). If no boosters are active, schedules immediately
      * with just the random delay.
      */
     static scheduleNextEquipCheck(): void {
