@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.3 - timing tweaks
+
+#### Changed
+
+- **Penta Drill** now waits longer after starting a fight, avoiding the occasional blank screen when the next step was clicked before the server had responded.
+- **Stuff Team** paces the equipment clicks more slowly (about half a second between clicks) for steadier, more human-like equipping.
+- **Auto-equip boosters** re-check on a tighter randomized schedule (15-45 minutes) instead of up to 2 hours.
+
 ### v7.37.2 - Pornstar Harem boss mapping fix
 
 #### Fixed
