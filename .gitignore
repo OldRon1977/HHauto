@@ -49,3 +49,5 @@ docs-internal/PENDING_*.md
 docs-internal/PROMPT_*.md
 docs-internal/SESSION_HANDOVER_*.md
 docs-internal/RELEASE_RUNBOOK_*.md
+# Lokales Archiv abgeschlossener Notizen (nicht syncen)
+docs-internal/_archive/
