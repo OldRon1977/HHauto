@@ -19,7 +19,7 @@
 // Anti-spam: a hash of the settings data is stored after each
 // successful send. Duplicate submissions are silently skipped
 // (the "Thank you" popup still appears to avoid revealing the check).
-import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
@@ -115,6 +115,10 @@ export class SurveyService {
 
             lines.push(`${keyName}: ${status}`);
         }
+
+        // Block order (R8.6): the user-defined pipeline order, or DEFAULT.
+        const pipelineOrder = getStoredJSON<string[] | null>(HHStoredVarPrefixKey + TK.pipelineOrder, null);
+        lines.push(`PipelineOrder: ${pipelineOrder && pipelineOrder.length > 0 ? pipelineOrder.join(',') : "DEFAULT"}`);
 
         return lines.join('\n');
     }

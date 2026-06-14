@@ -32,6 +32,7 @@ import { Troll } from "../Module/Troll";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
+import { getAutoDisabledBlocks, reactivateBlock } from "./BlockDisabledState";
 
 export function createPInfo():JQuery<HTMLElement> {
     const pInfo = $('<div id="pInfo" ></div>');
@@ -48,6 +49,15 @@ export function createPInfo():JQuery<HTMLElement> {
                 masterSwitch.checked = true;
                 //console.log("Master switch on");
             }
+        });
+        // Reactivate an auto-disabled block when the user clicks its [reactivate]
+        // affordance in the pInfo ERROR section (R5.6). Delegated so it survives
+        // the innerHTML refresh in updateData; stopPropagation keeps the panel
+        // dblclick (master toggle) unaffected.
+        pInfo.on("click", "[data-reactivate-block]", function(e) {
+            e.stopPropagation();
+            const id = $(this).attr("data-reactivate-block");
+            if (id) reactivateBlock(id);
         });
     }
     
@@ -99,6 +109,17 @@ export function updateData() {
         //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
         //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
         Tegzd += '<ul>';
+        // Watchdog ERROR markers: auto-disabled blocks (R5.6). Shown red with an
+        // <ERROR> prefix, the failure reason in the tooltip plus a request for a
+        // logfile, and a clickable [reactivate] affordance.
+        const disabledBlocks = getAutoDisabledBlocks();
+        for (const blockId of Object.keys(disabledBlocks)) {
+            const label = blockId.replace(/^handle/, '');
+            const tip = (disabledBlocks[blockId].reason + ' -- please share a debug logfile to report this.')
+                .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            Tegzd += '<li style="color:red" title="' + tip + '">&lt;ERROR&gt; ' + label
+                + ' <span data-reactivate-block="' + blockId + '" style="cursor:pointer;text-decoration:underline">[reactivate]</span></li>';
+        }
         if (getStoredValue(HHStoredVarPrefixKey+SK.paranoia) === "true")
         {
             Tegzd += '<li>'+getStoredValue(HHStoredVarPrefixKey+TK.pinfo)+': '+getTimeLeft('paranoiaSwitch')+'</li>';

@@ -89,6 +89,9 @@ jobs:
       - name: Circular dependency baseline (blocking)
         run: npm run deps:circular:check
 
+      - name: Top-level storage-key TDZ guard (blocking)
+        run: npm run deps:toplevel-key
+
       - name: Knip dead exports (advisory)
         continue-on-error: true
         run: npm run deps:dead

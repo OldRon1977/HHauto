@@ -50,6 +50,7 @@ import { autoLoop, getBurst } from "./AutoLoop";
 import { createPInfo } from "./InfoService";
 import { FeaturePopupService } from "./FeaturePopupService";
 import { SurveyService } from "./SurveyService";
+import { PipelineOrderService } from "./PipelineOrderService";
 import {
     bindMouseEvents
 } from "./MouseService";
@@ -555,6 +556,11 @@ export function start() {
     // Manual survey button
     $("#settingsSurvey").on("click", function() {
         SurveyService.showSurveyPopup();
+    });
+
+    // Block order (pipeline reorder) button
+    $("#blockOrder").on("click", function() {
+        PipelineOrderService.showPopup();
     });
 
     GM_registerMenuCommand(getTextForUI("translate","elementText"),manageTranslationPopUp);

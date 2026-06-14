@@ -486,6 +486,7 @@ export function getMenu() {
                 +`<div class="internalOptionsRow" style="padding:3px">`
                     + hhButton('saveDefaults', 'saveDefaults')
                     + hhButton('settingsSurvey', 'settingsSurvey')
+                    + hhButton('blockOrder', 'blockOrder')
                 +`</div>`
             +`</div>`
             +`<div class="optionsBoxWithTitle">`
@@ -526,6 +527,7 @@ export function getMenu() {
                             +`</div>`
                         +`</div>`
                         + hhMenuSwitch('settPerTab')
+                        + hhMenuSwitch('pipelineDiagnose')
                         + hhMenuSwitch('paranoiaSpendsBefore')
                         + hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
                         + hhMenuSwitch('collectEventChest')

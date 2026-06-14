@@ -47,7 +47,7 @@ import {
 } from './AutoLoopActions';
 import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
-import { scheduler } from './Scheduler';
+
 
 export function getBurst()
 {
@@ -143,6 +143,15 @@ export function isAutoLoopActive(): boolean{
     return getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true";
 }
 
+// Block-scheduler tick is injected from the boot path (index.ts) instead of a
+// static import, to avoid an AutoLoop->BlockPipeline->Pipeline.config->...->
+// AutoLoop import cycle (lesson zirkulaerer-import-tdz-crash). Same pattern as
+// setPachinkoAutoLoopKick.
+let blockTick: ((ctx: AutoLoopContext) => Promise<void>) | null = null;
+export function setBlockTick(fn: (ctx: AutoLoopContext) => Promise<void>): void {
+    blockTick = fn;
+}
+
 export async function autoLoop()
 {
     updateData();
@@ -224,8 +233,8 @@ export async function autoLoop()
         // resulting gotoPage / safeReload call. The gate also prevents
         // lastRunAt from being bumped on a tick where no real work was
         // possible, which kept the cool-down counting from a wasted run.
-        if (!ctx.busy) {
-            await scheduler.tick(ctx);
+        if (!ctx.busy && blockTick) {
+            await blockTick(ctx);
         }
         }
     }
