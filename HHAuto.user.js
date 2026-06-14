@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.36.0
+// @version      7.37.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -422,6 +422,8 @@ HHAuto_ToolTips.en['autoFreeBundlesCollect'] = { version: "5.16.0", elementText:
 HHAuto_ToolTips.en['mousePause'] = { version: "5.6.135", elementText: "Mouse Pause", tooltip: "Pause script activity for 5 seconds when mouse movement is detected. Helps stop script from interrupting manual actions. (in ms, 5000ms=5s)" };
 HHAuto_ToolTips.en['saveDefaults'] = { version: "5.6.24", elementText: "Save defaults", tooltip: "Save your own defaults values for new tabs." };
 HHAuto_ToolTips.en['settingsSurvey'] = { version: "7.33.1", elementText: "Settings Survey", tooltip: "Share your settings anonymously to help us identify unused features." };
+HHAuto_ToolTips.en['blockOrder'] = { version: "7.36.13", elementText: "Block Order", tooltip: "Reorder the script's blocks (drag or up/down arrows). Greyed-out blocks are fixed." };
+HHAuto_ToolTips.en['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline Diagnostics", tooltip: "Log extra per-step [PIPE] detail to the console for debugging. Off by default; the basic pipeline trace is always logged." };
 HHAuto_ToolTips.en['autoGiveAff'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Aff to girls in order ( you can use OCD script to filter )." };
 HHAuto_ToolTips.en['autoGiveExp'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Exp to girls in order ( you can use OCD script to filter )." };
 HHAuto_ToolTips.en['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pantheon", tooltip: "" };
@@ -1228,6 +1230,7 @@ const SK = {
     compactPowerPlace: "Setting_compactPowerPlace",
     invertMissions: "Setting_invertMissions",
     saveDefaults: "Setting_saveDefaults",
+    pipelineDiagnose: "Setting_pipelineDiagnose", // [PIPE] verbose diagnostic logging toggle (R6.14)
     // Reward Masks
     AllMaskRewards: "Setting_AllMaskRewards",
     PoAMaskRewards: "Setting_PoAMaskRewards",
@@ -1347,6 +1350,13 @@ const TK = {
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
+    // Pipeline-block architecture (v7.37.0, ADR-001)
+    activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress (R4.4/R4.12)
+    blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts} (R4.10/R5.2)
+    blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
+    blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
+    pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
+    pipelineLogContext: "Temp_pipelineLogContext", // local: non-rotating log context block (R6.16)
     // Troll wait-marker (issue #1708): set when handleTrollBattle is
     // waiting for energy refill but a battle path WOULD fire if power
     // were available. Read by handleEventParsing and handleLeague to
@@ -11055,6 +11065,7 @@ function getMenu() {
             + `<div class="internalOptionsRow" style="padding:3px">`
             + hhButton('saveDefaults', 'saveDefaults')
             + hhButton('settingsSurvey', 'settingsSurvey')
+            + hhButton('blockOrder', 'blockOrder')
             + `</div>`
             + `</div>`
             + `<div class="optionsBoxWithTitle">`
@@ -11095,6 +11106,7 @@ function getMenu() {
             + `</div>`
             + `</div>`
             + hhMenuSwitch('settPerTab')
+            + hhMenuSwitch('pipelineDiagnose')
             + hhMenuSwitch('paranoiaSpendsBefore')
             + hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
             + hhMenuSwitch('collectEventChest')
@@ -12053,6 +12065,51 @@ class Contest {
     }
 }
 
+;// CONCATENATED MODULE: ./src/Service/BlockDisabledState.ts
+// BlockDisabledState.ts -- read/clear the watchdog auto-disable + failure-count
+// state of the block scheduler (v7.37.0, ADR-001 R5.6).
+//
+// Leaf module (storage only, no scheduler import) so the pInfo UI can show
+// auto-disabled blocks and offer reactivation without an InfoService ->
+// BlockPipeline import cycle. The BlockScheduler reads the same keys fresh on
+// every findNext, so clearing them here takes effect on the next tick.
+
+
+
+// NOTE: the storage keys are computed inside the functions, NOT at module
+// top level. A top-level `const X = HHStoredVarPrefixKey + ...` is evaluated at
+// module load and throws a TDZ ReferenceError ("Cannot access
+// 'HHStoredVarPrefixKey' before initialization") if this module is evaluated
+// inside the import cycle before config/HHStoredVars finished initializing
+// (lesson zirkulaerer-import-tdz-crash). This module is reachable early via
+// InfoService, so it must stay TDZ-safe.
+/** All blocks the watchdog has auto-disabled, keyed by block id (R5.4/R5.6). */
+function getAutoDisabledBlocks() {
+    const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockAutoDisabled, {});
+    return (v && typeof v === "object") ? v : {};
+}
+/**
+ * Reactivate a block: drop its auto-disable entry and reset its failure
+ * counters (R5.7). The next scheduler tick will consider the block again.
+ */
+function reactivateBlock(blockId) {
+    const disabled = getAutoDisabledBlocks();
+    if (disabled[blockId]) {
+        delete disabled[blockId];
+        setStoredValue(HHStoredVarPrefixKey + TK.blockAutoDisabled, JSON.stringify(disabled));
+    }
+    const counts = getStoredJSON(HHStoredVarPrefixKey + TK.blockFailureCount, {});
+    let changed = false;
+    for (const sig of Object.keys(counts)) {
+        if (sig.startsWith(blockId + ":")) {
+            delete counts[sig];
+            changed = true;
+        }
+    }
+    if (changed)
+        setStoredValue(HHStoredVarPrefixKey + TK.blockFailureCount, JSON.stringify(counts));
+}
+
 ;// CONCATENATED MODULE: ./src/Service/InfoService.ts
 // InfoService.ts
 //
@@ -12088,6 +12145,7 @@ class Contest {
 
 
 
+
 function createPInfo() {
     const pInfo = $('<div id="pInfo" ></div>');
     if (pInfo != null) {
@@ -12103,6 +12161,16 @@ function createPInfo() {
                 masterSwitch.checked = true;
                 //console.log("Master switch on");
             }
+        });
+        // Reactivate an auto-disabled block when the user clicks its [reactivate]
+        // affordance in the pInfo ERROR section (R5.6). Delegated so it survives
+        // the innerHTML refresh in updateData; stopPropagation keeps the panel
+        // dblclick (master toggle) unaffected.
+        pInfo.on("click", "[data-reactivate-block]", function (e) {
+            e.stopPropagation();
+            const id = $(this).attr("data-reactivate-block");
+            if (id)
+                reactivateBlock(id);
         });
     }
     if (getPage() == ConfigHelper.getHHScriptVars("pagesIDHome")) {
@@ -12150,6 +12218,17 @@ function updateData() {
         //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
         //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
         Tegzd += '<ul>';
+        // Watchdog ERROR markers: auto-disabled blocks (R5.6). Shown red with an
+        // <ERROR> prefix, the failure reason in the tooltip plus a request for a
+        // logfile, and a clickable [reactivate] affordance.
+        const disabledBlocks = getAutoDisabledBlocks();
+        for (const blockId of Object.keys(disabledBlocks)) {
+            const label = blockId.replace(/^handle/, '');
+            const tip = (disabledBlocks[blockId].reason + ' -- please share a debug logfile to report this.')
+                .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            Tegzd += '<li style="color:red" title="' + tip + '">&lt;ERROR&gt; ' + label
+                + ' <span data-reactivate-block="' + blockId + '" style="cursor:pointer;text-decoration:underline">[reactivate]</span></li>';
+        }
         if (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true") {
             Tegzd += '<li>' + getStoredValue(HHStoredVarPrefixKey + TK.pinfo) + ': ' + getTimeLeft('paranoiaSwitch') + '</li>';
         }
@@ -19348,2805 +19427,6 @@ function handlePageSpecific(ctx) {
     });
 }
 
-;// CONCATENATED MODULE: ./src/model/Mission.ts
-// Models for in-game missions and their rewards.
-// Mission holds the cost, duration, remaining time, completion state,
-// and a reference to the DOM element. MissionRewards describes each reward entry.
-class Mission {
-    constructor() {
-        this.finished = false;
-    }
-}
-class MissionRewards {
-    constructor() {
-        this.type = '';
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Missions.ts
-// Missions.ts -- Automates missions: collects completed missions and starts new ones.
-//
-// Missions are time-based tasks that yield rewards. This module checks for
-// completed missions, collects their rewards, and starts the next available
-// mission automatically. Tracks mission durations and schedules collection
-// at the right time.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-class Missions {
-    /**
-    * Recieves a list of mission objects and returns the mission object to use.
-    * A mission object looks similar to this :-
-    * Eg 1:   {"id_member_mission":"256160093","id_mission":"23","duration":"53","cost":"1","remaining_time":"-83057","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"slot_SC"},"type":"money","data":277}]}
-    * Eg 2:   {"id_member_mission":"256160095","id_mission":"10","duration":"53","cost":"1","remaining_time":"-81330","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"rare"},"type":"item","data":{"id_item":"23","type":"gift","subtype":"0","identifier":"K3","rarity":"rare","value":"80","carac1":0,"carac2":0,"carac3":0,"endurance":0,"chance":0,"ego":0,"damage":0,"duration":0,"level_mini":"1","name":"Bracelet","Name":"Bracelet","ico":"https://content.haremheroes.com/pictures/items/K3.png","price_sell":5561,"count":1,"id_m_i":[]}}]}
-    * Eg 3:   {"id_member_mission":"256822795","id_mission":"337","duration":"17172","cost":"144","remaining_time":null,"remaining_cost":"144","rewards":[{"classList":{"0":"slot","1":"slot_HC"},"type":"koban","data":11}]}
-    * Eg 1 has mission rewards of xp and money.
-    * Eg 2 has mission rewards of xp and item.
-    * Eg 3 has mission rewards of koban/hard_currency.
-    * cost is the koban price for instant complete.
-    */
-    static getSuitableMission(missionsList) {
-        var msn = missionsList[0];
-        const kFirst = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionKFirst) === "true";
-        const invertOrder = getStoredValue(HHStoredVarPrefixKey + SK.invertMissions) === "true";
-        try {
-            for (var m in missionsList) {
-                if (JSON.stringify(missionsList[m].rewards).includes("koban") && kFirst) {
-                    return missionsList[m];
-                }
-                if (Number(msn.duration) > Number(missionsList[m].duration) && !invertOrder) {
-                    msn = missionsList[m];
-                }
-                else if (Number(msn.duration) < Number(missionsList[m].duration) && invertOrder) {
-                    msn = missionsList[m];
-                }
-            }
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Something went wrong, starting first mission in the list ", error);
-            msn = missionsList[0];
-        }
-        return msn;
-    }
-    static run() {
-        // returns boolean to set busy
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDMissions")) {
-            LogUtils_logHHAuto("Navigating to missions page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"));
-            // return busy
-            return true;
-        }
-        else {
-            try {
-                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-                LogUtils_logHHAuto("On missions page.");
-                if (RewardHelper.closeRewardPopupIfAny()) {
-                    return true;
-                }
-                let canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
-                var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
-                if (debugEnabled)
-                    LogUtils_logHHAuto("Missions parsed, mission list is:", missions);
-                if (debugEnabled && missionOngoing != null)
-                    LogUtils_logHHAuto("Mission missionOngoing:", missionOngoing);
-                if (!allGood && checkTimer('nextMissionTime')) {
-                    LogUtils_logHHAuto("Something went wrong, need to retry in 15secs.");
-                    setTimer('nextMissionTime', randomInterval(15, 30));
-                    return true;
-                }
-                if (missions.length > 0 && missionOngoing == null) {
-                    var mission = Missions.getSuitableMission(missions);
-                    LogUtils_logHHAuto(`Selected mission to be started (duration: ${mission.duration}sec):`);
-                    if (debugEnabled)
-                        LogUtils_logHHAuto(mission);
-                    var missionButton = $(mission.missionObject).find("button:visible[rel='mission_start']").first();
-                    if (missionButton.length > 0) {
-                        missionButton.trigger('click');
-                        missionOngoing = mission;
-                        missionOngoing.remaining_time = Number(mission.duration);
-                    }
-                    else {
-                        LogUtils_logHHAuto("Something went wrong, no start button");
-                        setTimer('nextMissionTime', randomInterval(15, 30));
-                        return true;
-                    }
-                }
-                if (canCollect) {
-                    LogUtils_logHHAuto("Collecting finished mission's reward.");
-                    $(".mission_button button:visible[rel='claim']").first().trigger('click');
-                    return true;
-                }
-                if (missionOngoing != null) {
-                    LogUtils_logHHAuto("Mission ongoing waiting it ends.");
-                    if (checkTimer('nextMissionTime'))
-                        setTimer('nextMissionTime', missionOngoing.remaining_time + randomInterval(10, 20));
-                    return true;
-                }
-                if (missions.length == 0 && missionOngoing == null) {
-                    LogUtils_logHHAuto("No missions detected...!");
-                    // get gift
-                    const isAfterGift = $("#missions .end_gift:visible").length > 0;
-                    if (isAfterGift) {
-                        const buttonAfterGift = $("#missions .end_gift button:visible");
-                        if (buttonAfterGift.length > 0) {
-                            LogUtils_logHHAuto("Collecting gift.");
-                            buttonAfterGift.trigger('click');
-                        }
-                        else {
-                            LogUtils_logHHAuto("Refreshing to collect gift...");
-                            // C1: safeReload waits for any in-flight game
-                            // AJAX before the reload, so an open POST is
-                            // not cancelled (issue #1598).
-                            safeReload();
-                            return true;
-                        }
-                    }
-                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
-                    if (time === undefined || time === null || time.length === 0) {
-                        LogUtils_logHHAuto("New mission time was undefined... Setting it manually to 10min.");
-                        setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
-                    }
-                    else
-                        setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1, 5));
-                }
-            }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
-                setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
-            }
-            // not busy
-            return false;
-        }
-    }
-    static parseMissions(canCollect) {
-        var missionOngoing = null;
-        var missions = [];
-        var lastMissionData = {};
-        var allGood = true;
-        // parse missions
-        const allMissions = $(".mission_object");
-        LogUtils_logHHAuto("Found " + allMissions.length + " missions to be parsed.");
-        try {
-            allMissions.each((idx, missionObject) => {
-                var data = $.data(missionObject).d;
-                lastMissionData = data;
-                // Do not list completed missions
-                var toAdd = true;
-                if (data.remaining_time !== null) {
-                    // This is not a fresh mission (ongoing)
-                    if (data.remaining_time > 0) {
-                        // allGood = false;
-                        if ($('.finish_in_bar[style*="display:none;"], .finish_in_bar[style*="display: none;"]', missionObject).length === 0) {
-                            LogUtils_logHHAuto("Unfinished mission detected...(" + data.remaining_time + "sec. remaining)");
-                            missionOngoing = data;
-                            data.finished = false;
-                        }
-                        else {
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"), {}, randomInterval(300, 800));
-                            allGood = false; // Need refresh
-                        }
-                    }
-                    else {
-                        data.finished = true;
-                        toAdd = false;
-                    }
-                    return;
-                }
-                else if (data.remaining_cost === null) {
-                    // Finished missioned
-                    data.finished = true;
-                    data.remaining_time = 0;
-                    toAdd = false;
-                }
-                data.missionObject = missionObject;
-                var rewards = Missions.getMissionRewards(missionObject);
-                data.rewards = rewards;
-                if (toAdd)
-                    missions.push(data);
-            });
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Catched error : Couldn't parse missions (try again in 15min) : " + error);
-            LogUtils_logHHAuto("Last mission parsed : " + JSON.stringify(lastMissionData));
-            setTimer('nextMissionTime', randomInterval(15 * 60, 20 * 60));
-            allGood = false;
-        }
-        return { allGood, missions, missionOngoing };
-    }
-    static getMissionRewards(missionObject) {
-        var rewards = [];
-        // set rewards
-        try {
-            // get Reward slots
-            var slots = missionObject.querySelectorAll(".slot");
-            // traverse slots
-            $.each(slots, function (idx, slotDiv) {
-                var reward = new MissionRewards();
-                // get slot class list
-                reward.classList = slotDiv.classList;
-                // set reward type
-                if (reward.classList.contains("slot_xp"))
-                    reward.type = "xp";
-                else if (reward.classList.contains("slot_soft_currency"))
-                    reward.type = "money";
-                else if (reward.classList.contains("slot_hard_currency"))
-                    reward.type = "koban";
-                else
-                    reward.type = "item";
-                // set value if xp
-                if (reward.type === "xp" || reward.type === "money" || reward.type === "koban") {
-                    // remove all non numbers and HTML tags
-                    try {
-                        reward.data = Number(slotDiv.innerHTML.replace(/<.*?>/g, '').replace(/\D/g, ''));
-                    }
-                    catch (e) {
-                        LogUtils_logHHAuto("Catched error : Couldn't parse xp/money data : " + e);
-                        LogUtils_logHHAuto(slotDiv);
-                    }
-                }
-                // set item details if item
-                else if (reward.type === "item") {
-                    try {
-                        reward.data = $.data(slotDiv).d;
-                    }
-                    catch (e) {
-                        LogUtils_logHHAuto("Catched error : Couldn't parse item reward slot details : " + e);
-                        LogUtils_logHHAuto(slotDiv);
-                        reward.type = "unknown";
-                    }
-                }
-                rewards.push(reward);
-            });
-        }
-        catch (error) {
-            LogUtils_logHHAuto("Catched error : Couldn't parse rewards for missions : " + error);
-        }
-        return rewards;
-    }
-    static styles() {
-        if ($("#missions #ad_activities").length) {
-            $("#missions .missions_wrap").removeClass('height-for-ad').removeClass('height-with-ad');
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.compactMissions) === "true") {
-            GM_addStyle('#missions .missions_wrap  {'
-                + 'display:flex;'
-                + 'flex-wrap: wrap;'
-                + 'align-content: baseline;'
-                + '}');
-            const missionsContainerPath = '#missions .missions_wrap .mission_object.mission_entry';
-            GM_addStyle(missionsContainerPath + ' {'
-                + 'height: 56px;'
-                + 'margin-right:3px;'
-                + 'width: 49%;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_reward {'
-                + 'width: 110px;'
-                + 'padding-left: 5px;'
-                + 'padding-top: 5px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_image {'
-                + 'height: 50px;'
-                + 'width: 50px;'
-                + 'margin-top: 0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_details {'
-                + 'display:none;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button {'
-                + 'display:flex;'
-                + 'flex-direction:inherit;'
-                + 'width:245px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button .duration {'
-                + 'top:5px;'
-                + 'left:5px;'
-                + 'width: auto;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button {'
-                + 'margin:0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="finish"] {'
-                + 'height: 50px;'
-                + 'top:0;'
-                + 'left: 2rem;'
-                + 'padding: 4px 4px;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="claim"] {'
-                + 'left:0;'
-                + '}');
-            GM_addStyle(missionsContainerPath + ' .mission_button .hh_bar {'
-                + 'left:5px;'
-                + '}');
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
-// Bundles.pure.ts -- Pure decision logic for the free-bundle collector.
-//
-// Extracted from Bundles.getExpiryTime so the 24-hour threshold check
-// can be unit-tested without DOM access, jQuery, or randomInterval.
-//
-// The impure adapter Bundles.getExpiryTime scrapes the popup timer
-// from the DOM and falls back to maxCollectionDelay + jitter when the
-// timer is missing or claims to be more than a day in the future
-// (which happens with stale or malformed DOM state). This pure
-// function captures only the threshold decision; the fallback value
-// itself is computed by the adapter and passed in.
-/**
- * Reproduce Bundles.getExpiryTime bit by bit:
- *
- *   if scrapedSeconds === null            -> fallbackSeconds
- *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
- *   otherwise                              -> scrapedSeconds
- *
- * The 24-hour boundary is strict (<): the original code reads
- * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
- * exactly 24 * 3600 falls through to the fallback branch.
- */
-function decideExpiryTime(state) {
-    if (state.scrapedSeconds === null)
-        return state.fallbackSeconds;
-    if (state.scrapedSeconds >= 24 * 3600)
-        return state.fallbackSeconds;
-    return state.scrapedSeconds;
-}
-
-;// CONCATENATED MODULE: ./src/Module/Bundles.ts
-// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
-//
-// The game periodically offers free bundle rewards in a popup. This module
-// detects available bundles, navigates to the shop page, and claims them
-// automatically on a timer-based schedule.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-class Bundles {
-    static getExpiryTime() {
-        const timerRequest = `#popup-payment-container .period_deal .shop-timer span[rel=expires]`;
-        let scrapedSeconds = null;
-        if ($(timerRequest).length > 0) {
-            scrapedSeconds = Number(convertTimeToInt($(timerRequest).text()));
-            LogUtils_logHHAuto('freeBundleTimer', scrapedSeconds);
-        }
-        const fallbackSeconds = ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
-        const decision = decideExpiryTime({ scrapedSeconds, fallbackSeconds });
-        if (scrapedSeconds === null || scrapedSeconds >= 24 * 3600) {
-            LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
-        }
-        return decision;
-    }
-    static goAndCollectFreeBundles() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            try {
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) !== "true") {
-                    LogUtils_logHHAuto("Error autoFreeBundlesCollect not activated.");
-                    return;
-                }
-                const plusButton = $("header .currency .reversed_tooltip");
-                if (plusButton.length > 0) {
-                    LogUtils_logHHAuto("click button for popup.");
-                    plusButton.trigger('click');
-                }
-                else {
-                    LogUtils_logHHAuto("No button for popup. Try again in 5h.");
-                    setTimer('nextFreeBundlesCollectTime', randomInterval(4 * 60 * 60, 6 * 60 * 60));
-                    return false;
-                }
-                LogUtils_logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
-                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
-                const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
-                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
-                function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
-                    LogUtils_logHHAuto(message);
-                    setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
-                    $("#common-popups .close_cross").trigger('click'); // Close popup
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    LogUtils_logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                }
-                function parseAndCollectFreeBundles() {
-                    const freeBundlesNumber = $(freeButtonBundleQuery).length;
-                    if (freeBundlesNumber > 0) {
-                        LogUtils_logHHAuto("Free Bundles found: " + freeBundlesNumber);
-                        let buttonsToCollect = [];
-                        for (let currentBundle = 0; currentBundle < freeBundlesNumber; currentBundle++) {
-                            buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);
-                        }
-                        function collectFreeBundle() {
-                            if (buttonsToCollect.length > 0) {
-                                LogUtils_logHHAuto("Collecting bundle n°" + buttonsToCollect[0].getAttribute('product'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(500, 800));
-                                setTimeout(switchToBundleTabs, randomInterval(1500, 2500));
-                            }
-                        }
-                        collectFreeBundle();
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                }
-                function switchToBundleTabs() {
-                    const bundleTabs = $(bundleTabsListQuery, $(bundleTabsContainerQuery));
-                    if (bundleTabs.length > 0) {
-                        let freeBundleFound = false;
-                        for (let bundleIndex = 0; bundleIndex < bundleTabs.length && !freeBundleFound; bundleIndex++) {
-                            bundleTabs[bundleIndex].click();
-                            LogUtils_logHHAuto("Looking in tabs '" + $(bundleTabs[bundleIndex]).attr('type') + "'.");
-                            freeBundleFound = parseAndCollectFreeBundles();
-                            if (!freeBundleFound && $(subTabsQuery).length > 0) {
-                                const subTabs = $(subTabsQuery);
-                                LogUtils_logHHAuto("Sub tabs found, switching to next one");
-                                for (let subTabIndex = 1; subTabIndex < subTabs.length && !freeBundleFound; subTabIndex++) {
-                                    subTabs[subTabIndex].click();
-                                    LogUtils_logHHAuto("Looking in sub tabs '" + $(subTabs[subTabIndex]).attr('period_deal') + "'.");
-                                    freeBundleFound = parseAndCollectFreeBundles();
-                                }
-                            }
-                        }
-                        if (!freeBundleFound)
-                            collectFreeBundlesFinished("Free bundle collection finished.", Bundles.getExpiryTime() + randomInterval(3600, 4000));
-                    }
-                    else {
-                        collectFreeBundlesFinished("No bundle tabs in popup, wait one hour.", 60 * 60);
-                        return false;
-                    }
-                }
-                // Wait popup is opened
-                setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
-                return true;
-            }
-            catch ({ errName, message }) {
-                LogUtils_logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
-                setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
-                return false;
-            }
-        }
-        else {
-            LogUtils_logHHAuto("Navigating to home page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            // return busy
-            return true;
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
-var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
-//
-// Harem girls generate soft currency (salary) over time. This module
-// periodically navigates to the harem page and collects accumulated salary
-// earnings, tracking collection timers to avoid unnecessary page loads.
-//
-// Used by: Service/index.ts (main automation loop)
-//
-
-
-
-
-
-
-
-
-
-class HaremSalary {
-    static getSalaryButton() {
-        return $("#collect_all_container button[id='collect_all']");
-    }
-    static getSalarySumTag() {
-        const salaryButton = HaremSalary.getSalaryButton();
-        let salarySumTag = NaN;
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
-            salarySumTag = Number($('[rel="next_salary"]', salaryButton)[0].innerText.replace(/[^0-9]/gi, ''));
-        }
-        else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            salarySumTag = Number(getHHVars("salary_collect"));
-        }
-        return salarySumTag;
-    }
-    static getSalary() {
-        return HaremSalary_awaiter(this, void 0, void 0, function* () {
-            try {
-                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-                    const salaryButton = HaremSalary.getSalaryButton();
-                    const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style") === "display: none;");
-                    if (!salaryToCollect) {
-                        //logHHAuto("No salary to collect");
-                        setTimer('nextSalaryTime', randomInterval(60, 180));
-                    }
-                    else {
-                        const salarySumTag = HaremSalary.getSalarySumTag();
-                        const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSalaryMinSalary) || 20000);
-                        if (enoughSalaryToCollect) {
-                            const getButtonClass = salaryButton.attr("class") || '';
-                            if (getButtonClass.indexOf("blue_button_L") !== -1 || getButtonClass.indexOf("round_blue_button") !== -1) {
-                                LogUtils_logHHAuto('Collected all salary');
-                                salaryButton.trigger('click');
-                                yield TimeHelper.sleep(randomInterval(200, 400));
-                                setTimer('nextSalaryTime', randomInterval(60, 180));
-                                return false;
-                            }
-                            else {
-                                LogUtils_logHHAuto("Unknown salary button color : " + getButtonClass);
-                                setTimer('nextSalaryTime', randomInterval(60, 180));
-                            }
-                        }
-                        else {
-                            LogUtils_logHHAuto("Not enough salary to collect, wait");
-                            setTimer('nextSalaryTime', randomInterval(60, 180));
-                        }
-                    }
-                }
-            }
-            catch (ex) {
-                LogUtils_logHHAuto("Catched error : Could not collect salary... " + ex);
-                setTimer('nextSalaryTime', randomInterval(60, 180));
-                // return not busy
-                return false;
-            }
-            return false;
-        });
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Module/GenericBattle.ts
-// GenericBattle.ts -- Handles the battle result page UI across all fight types.
-//
-// When a battle completes (troll, event, league, etc.), this module manages
-// the result page: adds skip buttons, auto-skips fight animations, and parses
-// reward drops. It acts as a shared handler for all battle outcomes rather
-// than being specific to one game mode.
-//
-// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
-//          and other fight modules that navigate to battle pages
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class GenericBattle {
-    static doBattle() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
-            || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
-            LogUtils_logHHAuto("On battle page.");
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true") {
-                LogUtils_logHHAuto("Reloading after league fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"), {}, randomInterval(4000, 5000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
-                const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
-                let troll_id = queryStringGetParam(window.location.search, 'id_opponent');
-                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
-                if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
-                }
-                const eventGirl = EventModule.getEventGirl();
-                const eventMythicGirl = EventModule.getEventMythicGirl();
-                if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic)
-                    ||
-                        getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic)) {
-                    LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
-                    RewardHelper.ObserveAndGetGirlRewards();
-                }
-                else {
-                    LoveRaidManager.getTrollRaids().forEach((raid) => {
-                        if (raid.trollId === Number(troll_id)) {
-                            LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
-                            RewardHelper.ObserveAndGetGirlRewards();
-                            return true;
-                        }
-                    });
-                    if (troll_id !== null) {
-                        LogUtils_logHHAuto("Go back to Troll after Troll fight.");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: troll_id }, randomInterval(2000, 4000));
-                    }
-                    else {
-                        LogUtils_logHHAuto("Go to home after unknown troll fight.");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"), {}, randomInterval(2000, 4000));
-                    }
-                }
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
-                LogUtils_logHHAuto("Go back to Season arena after Season fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonArena"), {}, randomInterval(2000, 4000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true") {
-                LogUtils_logHHAuto("Go back to Penta drill arena after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(5000, 8000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())) {
-                LogUtils_logHHAuto("Go back to Pantheon arena after Pantheon temple.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPantheon"), {}, randomInterval(2000, 4000));
-            }
-            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true") {
-                LogUtils_logHHAuto("Go back to Labyrinth after fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
-            }
-            return true;
-        }
-        else {
-            LogUtils_logHHAuto('Unable to identify page.');
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            return;
-        }
-    }
-}
-
-;// CONCATENATED MODULE: ./src/Service/Pipeline.config.ts
-var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
-//
-// Defines the types and interfaces for handler configurations,
-// plus concrete handler entries for migrated handlers.
-//
-// Order of handler execution is given by the position in the `pipeline`
-// array below: first element runs first. Reordering = move a line.
-//
-// Used by: Scheduler.ts
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * Build a HandlerConfig from a legacy ModuleHandlerDescriptor. Used to migrate
- * handlers that already wrap a uniform `name + action + isReady + execute`
- * shape (the descriptors used by `runStandardHandler` in AutoLoopActions.ts).
- *
- * The returned config is single-step, non-atomic, always-interruptible, and
- * mirrors the cascade in `runStandardHandler`:
- *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
- *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
- *
- * The `lastActionPerformed` continuation is preserved during the v7.36.0
- * migration. v7.37.0 will replace it with a scheduler-internal multi-step
- * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
- */
-/**
- * True when the bot is currently on a quest or side-quest page. Used to let
- * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
- * away from a quest mid-completion -- handleQuest needs several reload cycles
- * to act, and lastActionPerformed is reset on the idle tick in between
- * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
- * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
- */
-function isOnQuestPage(ctx) {
-    return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
-        || ctx.currentPage === 'side-quests';
-}
-function fromDescriptor(descriptor, opts) {
-    var _a, _b;
-    const atomic = (_a = opts.atomic) !== null && _a !== void 0 ? _a : false;
-    // The HandlerConfig.name is the technical identifier used as map key in
-    // Scheduler.lastRunAt, Scheduler.states, sessionStorage TK.pipelineLastRunAt
-    // and the [Scheduler] Starting chain '...' log line. Keep it short and
-    // identifier-like (e.g. 'handleMissions'). It must NOT collide with the
-    // descriptor.name, which is a user-facing log message ('Time to do
-    // missions.'). The user message is logged inside step.fn via descriptor.name.
-    // If opts.handlerName is omitted we fall back to descriptor.action so older
-    // call sites keep a stable, dot-free key.
-    const handlerName = (_b = opts.handlerName) !== null && _b !== void 0 ? _b : descriptor.action;
-    return {
-        name: handlerName,
-        minIntervalMs: opts.minIntervalMs,
-        atomic,
-        interruptible: atomic ? 'never' : 'always',
-        precondition: (ctx) => {
-            // Optional handler-specific gate evaluated BEFORE the standard guard.
-            // Used e.g. to make navigating handlers yield while the bot is mid-way
-            // through another module's multi-reload action (issue: handleMissions
-            // navigating away from the quest page kept restarting handleQuest).
-            if (opts.extraPrecondition && !opts.extraPrecondition(ctx))
-                return false;
-            return shouldRunStandardHandler({
-                ctxBusy: ctx.busy,
-                autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
-                competitionActive: ctx.canCollectCompetitionActive,
-                lastActionPerformed: ctx.lastActionPerformed,
-                requiresAutoLoop: descriptor.requiresAutoLoop,
-                requiresCompetition: descriptor.requiresCompetition,
-                handlerAction: descriptor.action,
-                isReady: descriptor.isReady(),
-            });
-        },
-        steps: [{
-                name: descriptor.action,
-                fn: (ctx) => Pipeline_config_awaiter(this, void 0, void 0, function* () {
-                    try {
-                        LogUtils_logHHAuto(descriptor.name);
-                        const result = yield descriptor.execute();
-                        ctx.busy = typeof result === 'boolean' ? result : true;
-                        ctx.lastActionPerformed = descriptor.action;
-                        return { ok: true };
-                    }
-                    catch (err) {
-                        return { ok: false, reason: String(err), retryable: true };
-                    }
-                }),
-            }],
-    };
-}
-// ---------------------------------------------------------------------------
-//  Handler: handleEventParsing
-//  Non-atomic, always interruptible.
-//  Wraps: EventModule.parseEventPage()
-// ---------------------------------------------------------------------------
-/**
- * Event ids the home-page scan (parsePageForEventId, stored on ctx.eventIDs)
- * found but that are NOT yet in the registry. These are freshly started
- * events on their first visit: getStaleEventIDs() is registry-only and would
- * miss them, so without this the event page is never visited and event-parse
- * side effects (e.g. eventMythicGoing for the mythic fight) never run until
- * the user opens the page manually. Once parsed, the entry is registered and
- * the normal stale path takes over.
- */
-function getEventIDsToVisit(ctx) {
-    const ids = ctx.eventIDs || [];
-    if (ids.length === 0)
-        return [];
-    try {
-        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
-        const eventList = storedList ? JSON.parse(storedList) : {};
-        return ids.filter(id => !Object.prototype.hasOwnProperty.call(eventList, id));
-    }
-    catch (_a) {
-        // Unreadable registry: treat every discovered id as needing a visit.
-        return ids;
-    }
-}
-const handleEventParsing = {
-    name: 'handleEventParsing',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        // Events feature must be enabled
-        if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true)
-            return false;
-        // Suppress event-page navigation while handleTrollBattle is waiting
-        // for an energy refill on a path that needs the same event data
-        // (issue #1700, #1708). Re-evaluating the event page every tick in
-        // that state collided with handleLeague and produced the ping-pong
-        // loop between event.html and leagues.html.
-        if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true')
-            return false;
-        // Trigger if at least one stale registry event exists, OR if the
-        // home-page scan (EventModule.parsePageForEventId -> ctx.eventIDs)
-        // found an enabled event that is not yet in the registry. The latter
-        // is the FIRST visit of a freshly started event: it has no registry
-        // entry yet, so getStaleEventIDs() (registry-only) returns nothing and
-        // the event page would never be visited -- which is exactly why a
-        // live mythic event did not start fighting until the user opened the
-        // event page manually (it sets eventMythicGoing, the timer the mythic
-        // fight in handleTrollBattle gates on). ctx.eventIDs only contains
-        // ids for which EventModule.checkEvent() is true (enabled + stale or
-        // brand-new), so once parsed the entry lands in the registry and the
-        // normal stale mechanism takes over -- no per-tick ping-pong.
-        if (getStaleEventIDs().length > 0)
-            return true;
-        return getEventIDsToVisit(ctx).length > 0;
-    },
-    steps: [
-        {
-            name: 'parseEvents',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    // precondition + fn must agree on the selection: parsing any
-                    // non-stale event would leave the original stale event untouched,
-                    // so the precondition would keep firing on the next tick (issue
-                    // #1673). Prefer a stale registry event; fall back to a freshly
-                    // discovered (not-yet-registered) event id from the home-page scan.
-                    const staleIDs = getStaleEventIDs();
-                    const target = staleIDs.length > 0 ? staleIDs[0] : getEventIDsToVisit(ctx)[0];
-                    if (!target) {
-                        return { ok: true }; // nothing to parse
-                    }
-                    yield EventModule.parseEventPage(target);
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-            timeoutMs: 15000,
-        },
-    ],
-    totalTimeoutMs: 20000,
-};
-/**
- * Return the IDs of all unfinished events whose `next_refresh` is missing,
- * non-finite, or already in the past. Exported for direct unit testing in
- * Pipeline.config.spec.ts.
- *
- * On unexpected storage shape this returns a single sentinel ID so that the
- * caller still triggers a parse cycle (preserves the previous fallback
- * behaviour where the precondition returned true on parse errors).
- *
- * Expired-event side effect: entries whose `seconds_before_end` is in the
- * past are events the game no longer hosts. parseEventPage cannot refresh
- * them (the in-game tab has been replaced by a successor or removed
- * entirely), so they would stay stale forever and drive
- * handleEventParsing into a permanent reload loop (issue #1738 -- a
- * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
- * the user gave up). pruneExpiredEvents() removes them from the registry
- * BEFORE this filter runs so the loop terminates and storage stays
- * bounded.
- */
-function getStaleEventIDs(now = Date.now()) {
-    try {
-        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
-        const eventList = storedList ? JSON.parse(storedList) : {};
-        pruneExpiredEvents(eventList, now);
-        return Object.keys(eventList).filter(id => {
-            const ev = eventList[id];
-            if (!ev || ev.isCompleted)
-                return false;
-            const nextRefresh = Number(ev.next_refresh);
-            return !Number.isFinite(nextRefresh) || nextRefresh <= now;
-        });
-    }
-    catch (_a) {
-        // Unexpected storage shape: pretend a parse is needed so we don't
-        // accidentally skip a refresh cycle. The actual parseEventPage call
-        // tolerates an empty/garbage tab via its own "global" fallback.
-        return ['__parse_error__'];
-    }
-}
-/**
- * Drop event registry entries whose game-side end has already passed
- * (`seconds_before_end <= now`). Such entries cannot be refreshed by
- * parseEventPage (the in-game tab is gone), so leaving them in the
- * registry would keep handleEventParsing.precondition firing forever
- * (issue #1738).
- *
- * Mutates the input map AND persists the pruned shape so the next
- * read sees the cleaned state. Exported for direct unit testing in
- * Pipeline.config.spec.ts.
- *
- * Defensive: an entry without `seconds_before_end`, or with a
- * non-finite value, is left in place. parseEventPage handles those
- * via its existing "ERROR: No event Id found" path on the next visit.
- */
-function pruneExpiredEvents(eventList, now) {
-    let mutated = false;
-    for (const id of Object.keys(eventList)) {
-        const ev = eventList[id];
-        if (!ev)
-            continue;
-        const end = Number(ev.seconds_before_end);
-        if (Number.isFinite(end) && end <= now) {
-            delete eventList[id];
-            mutated = true;
-        }
-    }
-    if (mutated) {
-        if (Object.keys(eventList).length === 0) {
-            deleteStoredValue(HHStoredVarPrefixKey + TK.eventsList);
-        }
-        else {
-            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
-        }
-    }
-}
-// ---------------------------------------------------------------------------
-//  Handler: handleLeague
-//  Atomic (fight sequence must not be interrupted).
-//  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
-// ---------------------------------------------------------------------------
-const handleLeague = {
-    name: 'handleLeague',
-    // Aligned with the short setTimer('nextLeaguesTime') value used in
-    // LeagueHelper.doLeagueBattle when energy remains after a batch.
-    // A larger Scheduler cool-down would silently extend the gap and
-    // defeat the purpose of the short setTimer (the user wants the bot
-    // to chain through all 15 battles, like a human emptying the league
-    // tab in one sitting).
-    minIntervalMs: 2000,
-    atomic: true,
-    interruptible: 'never',
-    precondition: (ctx) => {
-        // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
-        //
-        //   1. League auto-mode active and feature enabled at all?
-        //   2. Bot not currently mid-action on a different module
-        //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
-        //      out of step.fn so the chain doesn't fire just to log a skip).
-        //   3. Either ready to fight (energy + threshold + booster check) OR
-        //      the cool-down timer has expired and we still need to refresh
-        //      the pInfo display with a default timer value (issue raised
-        //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
-        //      false because the only setTimer paths live behind a fight).
-        //
-        // Note (issue #1708 follow-up): handleLeague is intentionally NOT
-        // gated on trollWaitForEnergy. League uses a separate energy pool
-        // (challenge tokens) that is unrelated to troll combativity (fight
-        // tokens). LeagueHelper.isTimeToFight() already checks challenge
-        // energy, and the minIntervalMs caps re-entry. Blocking league
-        // while troll waits for combativity (as v7.35.45 did) keeps league
-        // fights from happening even though the user has the energy to do
-        // them. handleEventParsing is gated separately because it ran every
-        // 2 s and was the actual ping-pong driver in #1700.
-        if (!LeagueHelper.isAutoLeagueActivated())
-            return false;
-        const lastAction = ctx.lastActionPerformed;
-        if (lastAction !== 'none' && lastAction !== 'league')
-            return false;
-        return LeagueHelper.isTimeToFight() || checkTimer('nextLeaguesTime');
-    },
-    steps: [
-        {
-            name: 'doLeagueBattleOrTimer',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (LeagueHelper.isTimeToFight()) {
-                        LeagueHelper.doLeagueBattle();
-                        ctx.lastActionPerformed = 'league';
-                        return { ok: true };
-                    }
-                    // Fight not possible right now (energy below threshold,
-                    // booster missing, etc.). Refresh the cool-down timer so the
-                    // pInfo display can show the next refresh time instead of
-                    // 'No timer'. Default fallback when the game has not yet
-                    // reported a next_refresh_ts is the same 15-17 min window
-                    // doLeagueBattle uses for similar idle paths.
-                    const next_refresh = Number(getHHVars('Hero.energies.challenge.next_refresh_ts'));
-                    if (Number.isFinite(next_refresh) && next_refresh > 0) {
-                        setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                    }
-                    else {
-                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-            timeoutMs: 25000,
-        },
-    ],
-    onFailure: (_ctx, failedStep, reason) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-        LogUtils_logHHAuto('[Pipeline] handleLeague failed at ' + failedStep + ': ' + reason);
-    }),
-    totalTimeoutMs: 30000,
-};
-// ---------------------------------------------------------------------------
-//  Handler: handleShop
-//  Migrated from AutoLoopActions.handleShop in 3.2.G.a.
-//  Non-atomic, always interruptible. Logs and updates the shop only when
-//  the inner trigger matches the legacy implementation: either the shop
-//  cool-down timer has elapsed, or the cached character level is below the
-//  current hero level (signals a level-up that should refresh shop offers).
-// ---------------------------------------------------------------------------
-const handleShop = {
-    name: 'handleShop',
-    // Cool-down for the pipeline scheduler. The Shop module also keeps its
-    // own internal nextShopTime timer; both must elapse before a real shop
-    // navigation happens. 5_000 ms keeps the handler responsive without
-    // burning a tick slot every second.
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true)
-            return false;
-        if (!Shop.isTimeToCheckShop())
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        // Legacy lastActionPerformed continuation gate. v7.37.0 will replace
-        // this with a scheduler-internal multi-step model; see
-        // docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md.
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
-            return false;
-        // Inner trigger -- belongs in precondition, not the step. The legacy
-        // handler had a two-stage gate (outer if + inner if) inside one tick,
-        // so a precondition-true / inner-false combination was a no-op.
-        // In the pipeline model the scheduler logs "Starting" and bumps the
-        // cool-down on every step.fn call, even silent ones. That bursts the
-        // scheduler into a 5-second spam loop while Shop.isTimeToCheckShop()
-        // stays true (updateMarket / needBoosterStatusFromStore flags persist
-        // until the shop is actually scraped). Lesson: when migrating a
-        // multi-stage if cascade, every gate must move to the precondition.
-        // Initialise the cached level on first call -- mirrors the legacy
-        // handler. Without this, getLevel-vs-stored comparison below would
-        // always fire on a fresh install.
-        if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
-            setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
-        }
-        const timerReady = checkTimer('nextShopTime');
-        const levelChanged = getStoredValue(HHStoredVarPrefixKey + TK.charLevel) < getHHVars('Hero.infos.level');
-        if (!timerReady && !levelChanged)
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'updateShop',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to check shop.');
-                    const result = Shop.updateShop();
-                    ctx.busy = result === true;
-                    ctx.lastActionPerformed = 'shop';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-// ---------------------------------------------------------------------------
-//  Handler: handleAutoEquipBoosters
-//  Migrated from AutoLoopActions.handleAutoEquipBoosters in 3.2.G.a.
-//  Non-atomic, always interruptible. Auto-equips legendary boosters when
-//  slots are empty/expired and the user opted in.
-// ---------------------------------------------------------------------------
-const handleAutoEquipBoosters = {
-    name: 'handleAutoEquipBoosters',
-    // Boosters can expire mid-session; keep the scheduler cool-down short so
-    // the next eligible tick reacts quickly. The internal Booster timer (and
-    // the freshness stamp introduced in cluster Z) handles longer waits.
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) !== 'true')
-            return false;
-        if (!checkTimer('nextAutoEquipBoosterTime'))
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        // No lastActionPerformed gate in the legacy handler.
-        return true;
-    },
-    steps: [{
-            name: 'autoEquipBoosters',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    const equipped = yield Booster.autoEquipBoosters();
-                    if (equipped) {
-                        ctx.busy = true;
-                        ctx.lastActionPerformed = 'autoEquipBoosters';
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-// ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.b via fromDescriptor.
-//  Each one is a one-step wrapper around the legacy ModuleHandlerDescriptor.
-//  isReady captures both outer and inner trigger -- the lesson
-//  pipeline-inner-trigger-in-precondition warns against splitting them
-//  between precondition and step.fn.
-//  All eleven handlers are non-atomic, always interruptible, and use
-//  minIntervalMs sized to match the legacy tick frequency for that module.
-// ---------------------------------------------------------------------------
-const handleLoveRaid = fromDescriptor({
-    name: "Time to go and check raids.",
-    action: "loveraid",
-    requiresCompetition: true,
-    isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
-    execute: () => LoveRaidManager.parse(),
-}, { minIntervalMs: 5000, handlerName: "handleLoveRaid" });
-const handleContest = fromDescriptor({
-    name: "Time to get contest rewards.",
-    action: "contest",
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledContest", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) === "true"
-        && (checkTimer('nextContestCollectTime') || unsafeWindow.has_contests_datas || Contest.getClaimsButton().length > 0),
-    execute: () => Contest.run(),
-}, { minIntervalMs: 5000, handlerName: "handleContest" });
-const handleMissions = fromDescriptor({
-    name: "Time to do missions.",
-    action: "mission",
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledMission", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
-        && checkTimer('nextMissionTime'),
-    execute: () => Missions.run(),
-}, {
-    minIntervalMs: 5000,
-    handlerName: "handleMissions",
-    // Yield while the bot is on a quest page and auto-quest is enabled.
-    // handleMissions sits early in the pipeline and would otherwise navigate
-    // missions<-quest every other tick, restarting handleQuest before it can
-    // act (the quest needs multiple reloads; lastActionPerformed='quest' is
-    // reset on the idle tick in between). Only blocks when there is a quest to
-    // do -- if auto-quest is off, missions runs normally even on a quest page.
-    extraPrecondition: (ctx) => {
-        if (!isOnQuestPage(ctx))
-            return true;
-        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
-        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
-        return !(autoQuest || autoSideQuest);
-    },
-});
-const handleChampion = fromDescriptor({
-    name: "Time to check on champions!",
-    action: "champion",
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledChamps", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true"
-        && checkTimer('nextChampionTime'),
-    execute: () => Champion.doChampionStuff(),
-}, { minIntervalMs: 5000, handlerName: "handleChampion" });
-const handleClubChampion = fromDescriptor({
-    name: "Time to check on club champion!",
-    action: "clubChampion",
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true"
-        && checkTimer('nextClubChampionTime'),
-    execute: () => ClubChampion.doClubChampionStuff(),
-}, { minIntervalMs: 5000, handlerName: "handleClubChampion" });
-const handleSeasonalFreeCard = fromDescriptor({
-    name: "Time to go and check SeasonalEvent to buy free card.",
-    action: "seasonal",
-    requiresCompetition: true,
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard) === "true"
-        && checkTimer('nextSeasonalCardCollectTime'),
-    execute: () => SeasonalEvent.goAndCollectFreeCard(),
-}, { minIntervalMs: 5000, handlerName: "handleSeasonalFreeCard" });
-const handleSeasonalRankCollect = fromDescriptor({
-    name: "Time to go and check SeasonalEvent for collecting rank reward.",
-    action: "seasonal",
-    requiresCompetition: true,
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true"
-        && checkTimer('nextMegaEventRankCollectTime'),
-    execute: () => SeasonalEvent.goAndCollectMegaEventRankRewards(),
-}, { minIntervalMs: 5000, handlerName: "handleSeasonalRankCollect" });
-const handleFreeBundles = fromDescriptor({
-    name: "Time to go and check Free Bundles for collecting reward.",
-    action: "bundle",
-    requiresCompetition: true,
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true"
-        && checkTimer('nextFreeBundlesCollectTime'),
-    execute: () => { Bundles.goAndCollectFreeBundles(); },
-}, { minIntervalMs: 5000, handlerName: "handleFreeBundles" });
-const handleDailyGoals = fromDescriptor({
-    name: "Time to go and check daily Goals for collecting reward.",
-    action: "dailyGoals",
-    requiresCompetition: true,
-    isReady: () => ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false)
-        && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true"
-        && checkTimer('nextDailyGoalsCollectTime'),
-    execute: () => DailyGoals.goAndCollect(),
-}, { minIntervalMs: 5000, handlerName: "handleDailyGoals" });
-const handleLabyrinth = fromDescriptor({
-    name: "Time to check on labyrinth.",
-    action: "labyrinth",
-    requiresCompetition: true,
-    isReady: () => getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true"
-        && Labyrinth.isEnabled()
-        && checkTimer('nextLabyrinthTime'),
-    execute: () => (new LabyrinthAuto).run(),
-}, { minIntervalMs: 5000, handlerName: "handleLabyrinth" });
-// ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.complete (the remaining classic handlers).
-//
-//  These are the handlers that did not fit the runStandardHandler descriptor
-//  shape used in 3.2.G.b. Each one keeps its full legacy logic in step.fn,
-//  with all gates lifted into precondition (lesson
-//  pipeline-inner-trigger-in-precondition).
-//
-//  handleMythicWave is intentionally NOT migrated. Its only effect was
-//  setting ctx.lastActionPerformed = "troll" in the same tick to grant
-//  handleTrollBattle the slot reservation. In the pipeline model the
-//  scheduler picks one handler per tick, so the reservation has no
-//  destination -- and handleTrollBattle's own gate already accepts
-//  lastActionPerformed = "none" anyway. The function is kept in
-//  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
-//  is removed.
-// ---------------------------------------------------------------------------
-const handleHaremSize = {
-    name: 'handleHaremSize',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs')))
-            return false;
-        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDWaifu'))
-            return false;
-        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEditTeam'))
-            return false;
-        if (ctx.lastActionPerformed !== 'none')
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'gotoWaifu',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDWaifu'));
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePlaceOfPower = {
-    name: 'handlePlaceOfPower',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (!PlaceOfPower.isActivated())
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pop')
-            return false;
-        const popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-        if (popToStart.length === 0 && !checkTimer('minPowerPlacesTime'))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'doPoP',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    let popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                    const popToStartExist = getStoredValue(HHStoredVarPrefixKey + TK.PopToStart) ? true : false;
-                    if (!popToStartExist) {
-                        LogUtils_logHHAuto('Go and collect pop');
-                        ctx.busy = yield PlaceOfPower.collectAndUpdate();
-                    }
-                    const indexes = getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter).split(';');
-                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                    for (const pop of popToStart) {
-                        if (ctx.busy === false && !indexes.includes(String(pop))) {
-                            LogUtils_logHHAuto('PoP is no longer in list :' + pop + ' removing it from start list.');
-                            PlaceOfPower.removePopFromPopToStart(pop);
-                        }
-                    }
-                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                    for (const index of indexes) {
-                        if (ctx.busy === false && popToStart.includes(Number(index))) {
-                            LogUtils_logHHAuto('Time to do PowerPlace' + index + '.');
-                            ctx.busy = yield PlaceOfPower.doPowerPlacesStuff(index);
-                            ctx.lastActionPerformed = 'pop';
-                        }
-                    }
-                    if (ctx.busy === false) {
-                        popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
-                        if (popToStart.length === 0) {
-                            deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
-                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
-                        }
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-/**
- * Battle-result pages handled by handleGenericBattle (GenericBattle.doBattle).
- * On these pages the post-fight reward popup must be parsed
- * (RewardHelper.ObserveAndGetGirlRewards) so girl/raid shard progress is written
- * back to storage. handleTrollBattle runs earlier in the pipeline and has no
- * page guard, so it must explicitly yield these pages -- otherwise doBossBattle()
- * navigates away ("Navigating to chosen Troll") before the reward is read, the
- * raid girl's shard count never reaches 100, and getRaidToFight never clears the
- * selector: an endless troll fight loop on an already-won raid girl (issue #1740).
- */
-function isGenericBattleResultPage(currentPage) {
-    const battlePages = [
-        ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
-        ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
-        ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
-        ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
-        ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
-        ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
-    ];
-    return battlePages.includes(currentPage);
-}
-const handleGenericBattle = {
-    name: 'handleGenericBattle',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        return isGenericBattleResultPage(ctx.currentPage);
-    },
-    steps: [{
-            name: 'doBattle',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    ctx.busy = true;
-                    GenericBattle.doBattle();
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleTrollBattle = {
-    name: 'handleTrollBattle',
-    // 7.35.61 live test on PH ran 75 [Scheduler] Starting chain 'handleTrollBattle'
-    // logs in 30 minutes for 28 actual fights. The remaining 47 ticks were
-    // legitimate skips (currentPower below threshold, no event girl, no raid):
-    // the precondition matched but step.fn fell through. In the classic
-    // implementation these were silent no-ops; the pipeline still emits
-    // Starting/completed pairs which adds log noise. Doubling the cool-down
-    // to 4 s halves the polling rate without affecting fight responsiveness
-    // (the inner Troll battle sequence holds the autoLoop flag for several
-    // seconds between fights anyway).
-    minIntervalMs: 4000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (!Troll.isTrollFightActivated())
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        // Yield battle-result pages to handleGenericBattle so the post-fight reward
-        // popup is parsed and raid girl shards are written back (issue #1740).
-        if (isGenericBattleResultPage(ctx.currentPage))
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest')
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'trollBattleOrWait',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    // Always clear the troll wait-marker up-front (issue #1708 / #1700).
-                    // Only the wait-branch below sets it back to "true" when this tick
-                    // decides to wait for an energy refill. Doing the clear unconditionally
-                    // avoids a stale marker when the user disables auto-troll mid-wait.
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'false');
-                    const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-                    const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
-                    const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
-                    const eventGirl = EventModule.getEventGirl();
-                    const eventMythicGirl = EventModule.getEventMythicGirl();
-                    const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-                    const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-                    const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-                    const loveRaid = LoveRaidManager.isActivated()
-                        ? LoveRaidManager.getRaidToFight(allTrollRaids)
-                        : undefined;
-                    const shouldFight = (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
-                        && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
-                        && ctx.currentPower > 0
-                        && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true'))
-                        || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
-                        || ((eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
-                            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy))
-                        || ((raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
-                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
-                        || ((eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
-                            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy))
-                        || ((LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
-                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
-                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
-                                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)));
-                    if (shouldFight) {
-                        LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
-                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, '0');
-                        ctx.busy = true;
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) !== 'true' || getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)[0] !== 'P') {
-                            ctx.busy = yield Troll.doBossBattle();
-                            if (ctx.busy)
-                                ctx.lastActionPerformed = 'troll';
-                        }
-                        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true') {
-                            LogUtils_logHHAuto('AutoBattle disabled for power collection for AutoQuest.');
-                            document.getElementById('autoTrollBattle').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
-                            ctx.busy = false;
-                        }
-                        else {
-                            ctx.busy = yield Troll.doBossBattle();
-                            if (ctx.busy)
-                                ctx.lastActionPerformed = 'troll';
-                        }
-                    }
-                    else {
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
-                            setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
-                        }
-                        if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
-                            LogUtils_logHHAuto('Troll fight pending: waiting for energy refill.');
-                            setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'true');
-                        }
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-/**
- * Pure helper used by handleTrollBattle. Mirrors the OR-disjunction in the
- * trollBattleOrWait step.fn; if those activation paths drift, the wait-marker
- * either fires too often (blocking event-parsing) or too rarely (issue #1700
- * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
- *
- * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (13 cases)
- *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (5 cases)
- * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
- */
-function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
-    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true';
-    const mythicEventReady = Boolean(eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic) === true
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true';
-    const eventReady = Boolean(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic) !== true
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true';
-    const raidStarsReady = Boolean(raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
-        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === 'true';
-    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl);
-    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
-}
-const handlePachinko = {
-    name: 'handlePachinko',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) !== 'true')
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pachinko')
-            return false;
-        const myth = ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time');
-        const great = ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime');
-        const equip = ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime');
-        return myth || great || equip;
-    },
-    steps: [{
-            name: 'fetchPachinko',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time')) {
-                        LogUtils_logHHAuto('Time to fetch Mythic Pachinko.');
-                        ctx.busy = yield Pachinko.getMythicPachinko();
-                        ctx.lastActionPerformed = 'pachinko';
-                    }
-                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime')) {
-                        LogUtils_logHHAuto('Time to fetch Great Pachinko.');
-                        ctx.busy = yield Pachinko.getGreatPachinko();
-                        ctx.lastActionPerformed = 'pachinko';
-                    }
-                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime')) {
-                        LogUtils_logHHAuto('Time to fetch Equipment Pachinko.');
-                        ctx.busy = yield Pachinko.getEquipmentPachinko();
-                        ctx.lastActionPerformed = 'pachinko';
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleQuest = {
-    name: 'handleQuest',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) !== true)
-            return false;
-        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
-        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
-        if (!autoQuest && !autoSideQuest)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'quest')
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'doQuest',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === undefined) {
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
-                    }
-                    const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
-                    // Interim guard (full fix tracked for the step-17 multi-step scheduler):
-                    // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
-                    // without navigating. Without this the bot strands on /quest.html and
-                    // handleQuest ticks empty every ~2s while other modules (salary, ...)
-                    // never run. Route home so the normal loop resumes; auto-quest navigates
-                    // back once the resource is available. The 'none' branch keeps its own
-                    // equivalent guard; the manual-action branches (unknownQuestButton /
-                    // outfit / errorInAutoBattle) intentionally stay on the quest screen and
-                    // must NOT call this.
-                    const routeHomeIfWaitingOnQuest = () => {
-                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
-                        if (!ctx.busy && onQuestPage) {
-                            LogUtils_logHHAuto('Quest waiting for resources, returning home.');
-                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
-                        }
-                    };
-                    if (questRequirement === 'battle') {
-                        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
-                            LogUtils_logHHAuto('Quest requires battle.');
-                            LogUtils_logHHAuto('prepare to save one battle for quest');
-                            setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
-                            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') {
-                                ctx.busy = yield Troll.doBossBattle();
-                            }
-                        }
-                    }
-                    else if (questRequirement[0] === '$') {
-                        if (Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
-                            LogUtils_logHHAuto('Continuing quest, required money obtained.');
-                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                            ctx.busy = QuestHelper.run();
-                        }
-                        else {
-                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                            if (isNaN(Number(questRequirement.substr(1)))) {
-                                LogUtils_logHHAuto(questRequirement);
-                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                                LogUtils_logHHAuto('Invalid money in session storage quest requirement !');
-                            }
-                            ctx.busy = false;
-                        }
-                        routeHomeIfWaitingOnQuest();
-                    }
-                    else if (questRequirement[0] === '*') {
-                        const energyNeeded = Number(questRequirement.substr(1));
-                        const energyCurrent = QuestHelper.getEnergy();
-                        if (energyNeeded <= energyCurrent) {
-                            if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-                                LogUtils_logHHAuto('Continuing quest, required energy obtained.');
-                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                                ctx.busy = QuestHelper.run();
-                            }
-                            else {
-                                ctx.busy = false;
-                            }
-                        }
-                        else {
-                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                            ctx.busy = false;
-                        }
-                        routeHomeIfWaitingOnQuest();
-                    }
-                    else if (questRequirement[0] === 'P') {
-                        const neededPower = Number(questRequirement.substr(1));
-                        if (ctx.currentPower < neededPower) {
-                            LogUtils_logHHAuto('Quest requires ' + neededPower + ' Battle Power for advancement. Waiting...');
-                            ctx.busy = false;
-                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                        }
-                        else {
-                            LogUtils_logHHAuto('Battle Power obtained, resuming quest...');
-                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                            ctx.busy = QuestHelper.run();
-                        }
-                        routeHomeIfWaitingOnQuest();
-                    }
-                    else if (questRequirement === 'unknownQuestButton') {
-                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
-                            document.getElementById('autoQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
-                        }
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
-                            document.getElementById('autoSideQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
-                        }
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                        ctx.busy = false;
-                    }
-                    else if (questRequirement === 'errorInAutoBattle') {
-                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
-                            document.getElementById('autoQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
-                        }
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
-                            document.getElementById('autoSideQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
-                        }
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                        ctx.busy = false;
-                    }
-                    else if (questRequirement === 'outfit') {
-                        // Quest step requires an outfit change. Quest.ts:215 writes the
-                        // 'outfit' marker but no else-if matched it before, so the
-                        // pipeline fell through to the catch-all 'Invalid quest
-                        // requirement' branch every tick: the marker was never reset,
-                        // so the bot stayed in an infinite log-spam loop on outfit-
-                        // gated quests until the user manually intervened. Auto-quest
-                        // also stayed enabled (unlike unknownQuestButton), so the
-                        // pInfo gave no hint that the bot was stuck.
-                        //
-                        // Mirror the unknownQuestButton path: disable autoQuest /
-                        // autoSideQuest, log a user-actionable message, reset the
-                        // marker, set paranoiaQuestBlocked so other handlers know not
-                        // to wait for quest progress.
-                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled. The current quest step requires an outfit change. Please manually proceed the current quest screen.');
-                            document.getElementById('autoQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
-                        }
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
-                            LogUtils_logHHAuto('AutoQuest disabled. The current side-quest step requires an outfit change. Please manually proceed the current quest screen.');
-                            document.getElementById('autoSideQuest').checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
-                        }
-                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
-                        ctx.busy = false;
-                    }
-                    else if (questRequirement === 'none') {
-                        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
-                            if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
-                                ctx.busy = QuestHelper.run();
-                            }
-                        }
-                        // Idle/home guard: when there is nothing left to do on the quest
-                        // page (energy below threshold, or the main/side attempt timers
-                        // are still running) the handler above does nothing and the bot
-                        // is stranded on /quest.html -- handleQuest keeps ticking empty
-                        // every ~2s while other modules (e.g. salary) never run because
-                        // the bot never navigates away. If we did not act and we are on
-                        // the quest page, route back home so the normal loop resumes.
-                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
-                        if (!ctx.busy && onQuestPage) {
-                            LogUtils_logHHAuto('Nothing to do on quest page, returning home.');
-                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
-                        }
-                    }
-                    else {
-                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
-                        LogUtils_logHHAuto('Invalid quest requirement : ' + questRequirement);
-                        ctx.busy = false;
-                    }
-                    if (ctx.busy)
-                        ctx.lastActionPerformed = 'quest';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleSeason = {
-    name: 'handleSeason',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) !== 'true')
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
-            return false;
-        if (!Season.isTimeToFight() && !checkTimer('nextSeasonTime'))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'seasonBattleOrTimer',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (Season.isTimeToFight()) {
-                        LogUtils_logHHAuto('Time to fight in Season.');
-                        ctx.busy = yield Season.run();
-                        ctx.lastActionPerformed = 'season';
-                    }
-                    else if (checkTimer('nextSeasonTime')) {
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun) === 'true') {
-                            setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, 'false');
-                        }
-                        if (getHHVars('Hero.energies.kiss.next_refresh_ts') === 0) {
-                            setTimer('nextSeasonTime', randomInterval(15 * 60, 17 * 60));
-                        }
-                        else {
-                            const next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts');
-                            setTimer('nextSeasonTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                        }
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePentaDrill = {
-    name: 'handlePentaDrill',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) !== 'true')
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
-            return false;
-        if (!PentaDrill.isTimeToFight() && !checkTimer('nextPentaDrillTime'))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'pentaDrillBattleOrTimer',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (PentaDrill.isTimeToFight()) {
-                        LogUtils_logHHAuto('Time to fight in PentaDrill.');
-                        PentaDrill.run();
-                        ctx.busy = true;
-                        ctx.lastActionPerformed = 'pentaDrill';
-                    }
-                    else if (checkTimer('nextPentaDrillTime')) {
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun) === 'true') {
-                            setStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun, 'false');
-                        }
-                        if (getHHVars('Hero.energies.drill.next_refresh_ts') === 0) {
-                            setTimer('nextPentaDrillTime', randomInterval(15 * 60, 17 * 60));
-                        }
-                        else {
-                            const next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts');
-                            setTimer('nextPentaDrillTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                        }
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePantheon = {
-    name: 'handlePantheon',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        const autoPantheon = getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === 'true';
-        const dailyPantheon = DailyGoals.isPantheonDailyGoal();
-        if (!autoPantheon && !dailyPantheon)
-            return false;
-        if (!Pantheon.isEnabled())
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pantheon')
-            return false;
-        if (!Pantheon.isTimeToFight() && !checkTimer('nextPantheonTime'))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'pantheonBattleOrTimer',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    if (Pantheon.isTimeToFight()) {
-                        LogUtils_logHHAuto('Time to do Pantheon.');
-                        Pantheon.run();
-                        ctx.busy = true;
-                        ctx.lastActionPerformed = 'pantheon';
-                    }
-                    else if (checkTimer('nextPantheonTime')) {
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun) === 'true') {
-                            setStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun, 'false');
-                        }
-                        if (getHHVars('Hero.energies.worship.next_refresh_ts') === 0) {
-                            setTimer('nextPantheonTime', randomInterval(15 * 60, 17 * 60));
-                        }
-                        else {
-                            const next_refresh = getHHVars('Hero.energies.worship.next_refresh_ts');
-                            setTimer('nextPantheonTime', randomInterval(next_refresh + 10, next_refresh + 180));
-                        }
-                        ctx.lastActionPerformed = 'none';
-                    }
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleChampionTicket = {
-    name: 'handleChampionTicket',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledChamps', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChampsUseEne) !== 'true')
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!ctx.canCollectCompetitionActive)
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'champion')
-            return false;
-        const energy = QuestHelper.getEnergy();
-        const ticketPrice = ConfigHelper.getHHScriptVars('CHAMP_TICKET_PRICE');
-        if (energy < ticketPrice)
-            return false;
-        if (energy <= Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'buyChampionTicket',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                var _a;
-                try {
-                    // Avoid getHero() import: it lives in HeroHelper.ts which imports autoLoop,
-                    // closing a Module->Service->Module cycle (lesson zirkulaerer-import-tdz-crash).
-                    // unsafeWindow.shared?.Hero is the same object getHero() returns.
-                    const Hero = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero;
-                    if (!Hero)
-                        return { ok: false, reason: 'Hero unavailable', retryable: true };
-                    function buyTicket() {
-                        const params = {
-                            action: 'champion_buy_ticket',
-                            currency: 'energy_quest',
-                            amount: '1',
-                        };
-                        LogUtils_logHHAuto('Buying ticket with energy');
-                        getHHAjax()(params, function (data) {
-                            Hero.updates(data.hero_changes);
-                            // Route the post-purchase reload through safeReload so any
-                            // in-flight game AJAX gets to finish before the URL change.
-                            safeReload();
-                        });
-                    }
-                    // Set autoLoop=false BEFORE the setTimeout window so concurrent
-                    // AutoLoop ticks during the 800-1600ms wait cannot start a second
-                    // champion_buy_ticket AJAX. The safeReload() inside the AJAX
-                    // callback later sets autoLoop=false a second time -- the
-                    // second write is idempotent and serves the separate purpose of
-                    // suppressing ticks during the reload itself. See ChampionTicket
-                    // race-window discussion in REVIEW_AutoLoop_Findings.md F1.
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
-                    LogUtils_logHHAuto('setting autoloop to false');
-                    ctx.busy = true;
-                    setTimeout(buyTicket, randomInterval(800, 1600));
-                    ctx.lastActionPerformed = 'champion';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleSeasonCollect = {
-    name: 'handleSeasonCollect',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
-            return false;
-        const collectGate = checkTimer('nextSeasonCollectTime')
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === 'true'
-            && ctx.canCollectCompetitionActive;
-        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === 'true'
-            && checkTimer('nextSeasonCollectAllTime')
-            && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd());
-        return collectGate || collectAllGate;
-    },
-    steps: [{
-            name: 'collectSeason',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to go and check Season for collecting reward.');
-                    ctx.busy = Season.goAndCollect();
-                    ctx.lastActionPerformed = 'season';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePentaDrillCollect = {
-    name: 'handlePentaDrillCollect',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
-            return false;
-        const collectGate = checkTimer('nextPentaDrillCollectTime')
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === 'true'
-            && ctx.canCollectCompetitionActive;
-        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === 'true'
-            && checkTimer('nextPentaDrillCollectAllTime')
-            && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd());
-        return collectGate || collectAllGate;
-    },
-    steps: [{
-            name: 'collectPentaDrill',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to go and check PentaDrill for collecting reward.');
-                    ctx.busy = PentaDrill.goAndCollect();
-                    ctx.lastActionPerformed = 'pentaDrill';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleSeasonalEventCollect = {
-    name: 'handleSeasonalEventCollect',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledSeasonalEvent', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'seasonal')
-            return false;
-        const collectGate = checkTimer('nextSeasonalEventCollectTime')
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === 'true'
-            && ctx.canCollectCompetitionActive;
-        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === 'true'
-            && checkTimer('nextSeasonalEventCollectAllTime')
-            && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd());
-        return collectGate || collectAllGate;
-    },
-    steps: [{
-            name: 'collectSeasonalEvent',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to go and check SeasonalEvent for collecting reward.');
-                    ctx.busy = SeasonalEvent.goAndCollect();
-                    ctx.lastActionPerformed = 'seasonal';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePoVCollect = {
-    name: 'handlePoVCollect',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!PathOfValue.isEnabled())
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pov')
-            return false;
-        const collectGate = checkTimer('nextPoVCollectTime')
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === 'true'
-            && ctx.canCollectCompetitionActive;
-        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === 'true'
-            && checkTimer('nextPoVCollectAllTime')
-            && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd());
-        return collectGate || collectAllGate;
-    },
-    steps: [{
-            name: 'collectPoV',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to go and check Path of Valor for collecting reward.');
-                    ctx.busy = PathOfValue.goAndCollect();
-                    ctx.lastActionPerformed = 'pov';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handlePoGCollect = {
-    name: 'handlePoGCollect',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (!PathOfGlory.isEnabled())
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pog')
-            return false;
-        const collectGate = checkTimer('nextPoGCollectTime')
-            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === 'true'
-            && ctx.canCollectCompetitionActive;
-        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === 'true'
-            && checkTimer('nextPoGCollectAllTime')
-            && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd());
-        return collectGate || collectAllGate;
-    },
-    steps: [{
-            name: 'collectPoG',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Time to go and check Path of Glory for collecting reward.');
-                    ctx.busy = PathOfGlory.goAndCollect();
-                    ctx.lastActionPerformed = 'pog';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleSalary = {
-    name: 'handleSalary',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledSalary', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) !== 'true')
-            return false;
-        if (ctx.currentPage !== ConfigHelper.getHHScriptVars('pagesIDHome'))
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === 'true' && checkTimer('paranoiaSwitch'))
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'salary')
-            return false;
-        if (!checkTimer('nextSalaryTime'))
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'getSalary',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    ctx.busy = yield HaremSalary.getSalary();
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleBossBangParse = {
-    name: 'handleBossBangParse',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'event')
-            return false;
-        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
-        const hasParseTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-        return hasParseTarget || hasIncompleteOnPage;
-    },
-    steps: [{
-            name: 'parseBossBang',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Going to parse boss bang event.');
-                    ctx.busy = yield EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
-                    ctx.lastActionPerformed = 'event';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleBossBangFight = {
-    name: 'handleBossBangFight',
-    minIntervalMs: 5000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
-            return false;
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
-            return false;
-        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'bossBang')
-            return false;
-        if (!checkTimer('nextBossBangTime'))
-            return false;
-        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
-        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
-        const hasFightTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
-        return hasFightTarget || hasIncompleteOnPage;
-    },
-    steps: [{
-            name: 'fightBossBang',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Going to fight boss bang.');
-                    ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
-                    ctx.lastActionPerformed = 'bossBang';
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-const handleGoHome = {
-    name: 'handleGoHome',
-    minIntervalMs: 2000,
-    atomic: false,
-    interruptible: 'always',
-    precondition: (ctx) => {
-        if (ctx.busy)
-            return false;
-        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDHome'))
-            return false;
-        const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
-        if (ctx.currentPage !== lastPageCalled.page)
-            return false;
-        const cooldown = ConfigHelper.getHHScriptVars('minSecsBeforeGoHomeAfterActions');
-        if ((new Date().getTime() - lastPageCalled.dateTime) <= cooldown * 1000)
-            return false;
-        return true;
-    },
-    steps: [{
-            name: 'gotoHome',
-            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
-                try {
-                    LogUtils_logHHAuto('Back to home page at the end of actions');
-                    deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
-                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
-                    return { ok: true };
-                }
-                catch (err) {
-                    return { ok: false, reason: String(err), retryable: true };
-                }
-            }),
-        }],
-};
-// ---------------------------------------------------------------------------
-//  Pipeline: ordered list of all handler configurations.
-//
-//  ORDER MATTERS: position in this array = priority. Earlier elements run
-//  first. To reorder a handler (e.g. move PoP to the end, or place the Mythic
-//  Wave handler at slot 3), move its entry within this array. No priority
-//  numbers to keep in sync.
-//
-//  The Scheduler walks the list once per tick, picks the first ready handler
-//  (precondition true, cool-down elapsed, state IDLE), and runs it.
-//
-//  Migration history: all 33 AutoLoop action handlers now live in this
-//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
-//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
-//
-//  Order is the agreed user-facing priority sequence: high-yield /
-//  low-cost actions (salary, shop, missions) and resource collectors
-//  before the long battle / quest / labyrinth blocks. handleEventParsing
-//  is locked at slot 1 because it populates event/mythic-girl data that
-//  later handlers (handleTrollBattle, the collect handlers) read.
-//
-//  Producer/consumer chain in the upper block (slots 2-5):
-//   - slot 2 handleHaremSize: refreshes the TK.HaremSize cache (girl
-//     count + timestamp) consumed by every battle handler's synergy
-//     and team-power calculation.
-//   - slot 3 handleSalary: cheap one-click action with no dependents,
-//     parked here because it is essentially free.
-//   - slot 4 handleShop: writes the storeContents / charLevel /
-//     boosterStatus / boosterIdMap snapshot.
-//   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
-//     produced by handleShop. Must run after handleShop in the same
-//     tick so equip decisions see fresh inventory.
-//
-//  handleGoHome is locked at the tail because it closes the tick on a
-//  non-home page. handleGenericBattle is kept just before handleGoHome
-//  as a catch-all when the bot has landed on any battle page.
-// ---------------------------------------------------------------------------
-const pipeline = [
-    // handleMythicWave is intentionally not listed: it was a legacy slot
-    // reservation used by the classic handleTrollBattle path and has no
-    // effect in the pipeline model. The mythic girl is fully covered by
-    // handleTrollBattle's activation paths.
-    handleEventParsing,
-    handleHaremSize,
-    handleSalary,
-    handleShop,
-    handleAutoEquipBoosters,
-    handleMissions,
-    handlePachinko,
-    handleSeasonalFreeCard,
-    handleFreeBundles,
-    handleSeasonCollect,
-    handlePentaDrillCollect,
-    handleSeasonalEventCollect,
-    handleSeasonalRankCollect,
-    handlePoVCollect,
-    handlePoGCollect,
-    handleContest,
-    handleDailyGoals,
-    handleChampionTicket,
-    handlePlaceOfPower,
-    handleClubChampion,
-    handleChampion,
-    handleLoveRaid,
-    handleTrollBattle,
-    handleBossBangParse,
-    handleBossBangFight,
-    handleLeague,
-    handleSeason,
-    handleQuest,
-    handlePantheon,
-    handlePentaDrill,
-    handleLabyrinth,
-    handleGenericBattle,
-    handleGoHome,
-];
-
-;// CONCATENATED MODULE: ./src/Service/Scheduler.ts
-// Scheduler.ts -- Declarative pipeline scheduler runtime.
-//
-// Manages handler execution via a state machine. Each tick evaluates
-// which handler should run next based on pipeline order (array position),
-// preconditions, and min-interval constraints. Supports atomic chains
-// (uninterruptible) and SOFT/HARD interrupt semantics.
-//
-// Depends on: Pipeline.config.ts (types), MouseService (SOFT), ParanoiaService (SOFT)
-// Used by: AutoLoop.ts (calls Scheduler.tick(ctx) each iteration)
-var Scheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
-
-
-
-
-
-/** Default watchdog timeout if not specified per handler */
-const DEFAULT_TOTAL_TIMEOUT_MS = 30000;
-/**
- * Pipeline order resolution. Position in the `pipeline` array defines
- * priority: a lower index runs before a higher index. We resolve via
- * `pipeline.indexOf(handler)` so we can keep the API name "priority"
- * inside the comparator without leaking it through HandlerConfig.
- *
- * Handlers that are not in the pipeline (defensive case for tests that
- * synthesise their own configs) get Number.MAX_SAFE_INTEGER so they
- * always sort last.
- */
-function pipelineRank(config) {
-    const idx = pipeline.indexOf(config);
-    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
-}
-/**
- * The Scheduler is a singleton that manages pipeline handler execution.
- * Call `Scheduler.tick(ctx)` once per AutoLoop iteration.
- */
-class Scheduler {
-    constructor() {
-        this.states = new Map();
-        this.lastRunAt = new Map();
-        this.currentChain = null;
-        // Restore lastRunAt from sessionStorage so the minIntervalMs cool-down
-        // survives a page reload. Without this, every gotoPage() rebuilds the
-        // Scheduler singleton with empty lastRunAt and pipeline handlers fire
-        // immediately again (see issue #1700: handleLeague feeling its 60s
-        // cool-down only within a single page session). Persisted format is a
-        // {handlerName: epochMs} object stored under TK.pipelineLastRunAt.
-        try {
-            const persisted = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineLastRunAt, {});
-            if (persisted && typeof persisted === "object") {
-                for (const [name, ts] of Object.entries(persisted)) {
-                    const tsNum = Number(ts);
-                    if (Number.isFinite(tsNum) && tsNum > 0) {
-                        this.lastRunAt.set(name, tsNum);
-                    }
-                }
-            }
-        }
-        catch (_e) {
-            // Best-effort restore; on parse error start with empty cool-downs.
-        }
-    }
-    /**
-     * Persist lastRunAt to sessionStorage. Called after every chain completion
-     * or failure so a page reload does not reset the cool-down.
-     */
-    persistLastRunAt() {
-        try {
-            const obj = {};
-            for (const [name, ts] of this.lastRunAt.entries()) {
-                obj[name] = ts;
-            }
-            setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify(obj));
-        }
-        catch (_e) {
-            // Best-effort persist; on storage error the in-memory state still works
-            // for the current session.
-        }
-    }
-    /**
-     * Main entry point. Called once per AutoLoop iteration with the shared
-     * AutoLoop context. The context is forwarded to every handler precondition
-     * and step.fn invocation.
-     */
-    tick(ctx) {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            // 1. SOFT-Interrupt check (always takes precedence)
-            if (this.shouldSoftAbort()) {
-                if (this.currentChain) {
-                    yield this.abortAtSafePoint();
-                }
-                return;
-            }
-            // 2. Watchdog: kill hung chains
-            if (this.currentChain && this.isHung(this.currentChain)) {
-                LogUtils_logHHAuto(`[Scheduler] Watchdog: chain '${this.currentChain.config.name}' timed out`);
-                yield this.failChain(ctx, 'watchdog timeout');
-            }
-            // 3. If an atomic chain is running, continue it
-            if (this.currentChain) {
-                if (this.currentChain.config.atomic) {
-                    yield this.continueCurrentChain(ctx);
-                    return;
-                }
-                // Non-atomic chain running: check for HARD interrupt
-                const higherPrio = this.findHigherPriorityReady(ctx, this.currentChain.config);
-                if (higherPrio && this.currentChain.config.interruptible === 'always') {
-                    const interruptedName = this.currentChain.config.name;
-                    LogUtils_logHHAuto(`[Scheduler] HARD interrupt: '${higherPrio.name}' preempts '${interruptedName}'`);
-                    this.currentChain = null;
-                    this.states.set(interruptedName, 'IDLE');
-                    yield this.startChain(ctx, higherPrio);
-                    return;
-                }
-                // Continue current non-atomic chain
-                yield this.continueCurrentChain(ctx);
-                return;
-            }
-            // 4. No active chain: find next ready handler
-            const next = this.findNextReady(ctx);
-            if (next) {
-                yield this.startChain(ctx, next);
-            }
-        });
-    }
-    /**
-     * SOFT-interrupt conditions: user activity, master off, paranoia rest,
-     * or autoLoop disabled (e.g. because a previous handler in the same tick
-     * already triggered a navigation). The autoLoop check prevents the
-     * scheduler from starting a second navigation while one is already in
-     * flight, which the game rejects with HTTP Forbidden.
-     * These ALWAYS cause abort, even for atomic chains (at safe point).
-     */
-    shouldSoftAbort() {
-        const masterOff = getStoredValue(HHStoredVarPrefixKey + SK.master) !== 'true';
-        const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true';
-        return masterOff || mouseBusy || autoLoopOff;
-    }
-    /**
-     * Find the highest-priority handler that is ready to run.
-     * Highest priority = lowest pipeline-array index.
-     */
-    findNextReady(ctx) {
-        var _a;
-        return (_a = pipeline
-            .filter(h => this.isIdle(h.name))
-            .filter(h => this.minIntervalElapsed(h))
-            .filter(h => h.precondition(ctx))
-            .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0]) !== null && _a !== void 0 ? _a : null;
-    }
-    /**
-     * Find a ready handler with higher priority than the given handler.
-     * "Higher priority" means earlier in the pipeline array.
-     */
-    findHigherPriorityReady(ctx, current) {
-        var _a;
-        const currentRank = pipelineRank(current);
-        return (_a = pipeline
-            .filter(h => pipelineRank(h) < currentRank)
-            .filter(h => this.isIdle(h.name))
-            .filter(h => this.minIntervalElapsed(h))
-            .filter(h => h.precondition(ctx))
-            .sort((a, b) => pipelineRank(a) - pipelineRank(b))[0]) !== null && _a !== void 0 ? _a : null;
-    }
-    /**
-     * Start executing a handler chain from step 0.
-     */
-    startChain(ctx, config) {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            LogUtils_logHHAuto(`[Scheduler] Starting chain '${config.name}'`);
-            this.states.set(config.name, 'RUNNING');
-            this.currentChain = { config, stepIdx: 0, startedAt: Date.now() };
-            yield this.executeCurrentStep(ctx);
-        });
-    }
-    /**
-     * Continue executing the current chain from where it left off.
-     */
-    continueCurrentChain(ctx) {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            if (!this.currentChain)
-                return;
-            yield this.executeCurrentStep(ctx);
-        });
-    }
-    /**
-     * Execute the current step of the active chain.
-     */
-    executeCurrentStep(ctx) {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            if (!this.currentChain)
-                return;
-            const { config, stepIdx } = this.currentChain;
-            const step = config.steps[stepIdx];
-            if (!step) {
-                // All steps completed
-                this.completeChain();
-                return;
-            }
-            // Execute step with optional per-step timeout
-            const timeoutMs = (_b = (_a = step.timeoutMs) !== null && _a !== void 0 ? _a : config.totalTimeoutMs) !== null && _b !== void 0 ? _b : DEFAULT_TOTAL_TIMEOUT_MS;
-            let result;
-            try {
-                result = yield this.executeWithTimeout(() => step.fn(ctx), timeoutMs);
-            }
-            catch (err) {
-                result = { ok: false, reason: `Exception: ${err}`, retryable: false };
-            }
-            if (result.ok) {
-                // Advance to next step
-                this.currentChain.stepIdx++;
-                if (this.currentChain.stepIdx >= config.steps.length) {
-                    this.completeChain();
-                }
-                // If more steps remain, they execute on the next tick (non-blocking)
-            }
-            else {
-                // Step failed -- cast needed because TS cannot narrow through try/catch reassignment
-                const failure = result;
-                LogUtils_logHHAuto(`[Scheduler] Step '${step.name}' failed in '${config.name}': ${failure.reason}`);
-                yield this.failChain(ctx, failure.reason, step.name);
-            }
-        });
-    }
-    /**
-     * Mark chain as completed, reset state to IDLE.
-     */
-    completeChain() {
-        if (!this.currentChain)
-            return;
-        const name = this.currentChain.config.name;
-        LogUtils_logHHAuto(`[Scheduler] Chain '${name}' completed`);
-        this.states.set(name, 'IDLE');
-        this.lastRunAt.set(name, Date.now());
-        this.currentChain = null;
-        this.persistLastRunAt();
-    }
-    /**
-     * Handle chain failure: call onFailure callback, reset state.
-     */
-    failChain(ctx, reason, failedStep) {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            if (!this.currentChain)
-                return;
-            const { config } = this.currentChain;
-            this.states.set(config.name, 'FAILED');
-            this.currentChain = null;
-            if (config.onFailure && failedStep) {
-                try {
-                    yield config.onFailure(ctx, failedStep, reason);
-                }
-                catch (err) {
-                    LogUtils_logHHAuto(`[Scheduler] onFailure callback threw for '${config.name}': ${err}`);
-                }
-            }
-            // Reset to IDLE so handler can retry on next eligible tick
-            this.states.set(config.name, 'IDLE');
-            this.lastRunAt.set(config.name, Date.now());
-            this.persistLastRunAt();
-        });
-    }
-    /**
-     * Abort at safe point (after current step completes).
-     * Used for SOFT-interrupts on atomic chains.
-     */
-    abortAtSafePoint() {
-        return Scheduler_awaiter(this, void 0, void 0, function* () {
-            if (!this.currentChain)
-                return;
-            const name = this.currentChain.config.name;
-            LogUtils_logHHAuto(`[Scheduler] SOFT abort at safe point for '${name}'`);
-            this.states.set(name, 'INTERRUPTED');
-            this.currentChain = null;
-            // Reset to IDLE for next opportunity
-            this.states.set(name, 'IDLE');
-        });
-    }
-    /**
-     * Check if a chain has exceeded its total timeout.
-     */
-    isHung(chain) {
-        var _a;
-        const timeout = (_a = chain.config.totalTimeoutMs) !== null && _a !== void 0 ? _a : DEFAULT_TOTAL_TIMEOUT_MS;
-        return Date.now() - chain.startedAt > timeout;
-    }
-    /**
-     * Check if enough time has passed since last run.
-     */
-    minIntervalElapsed(config) {
-        const lastRun = this.lastRunAt.get(config.name);
-        if (lastRun === undefined)
-            return true;
-        return Date.now() - lastRun >= config.minIntervalMs;
-    }
-    /**
-     * Check if handler is in IDLE state (or never ran).
-     */
-    isIdle(name) {
-        const state = this.states.get(name);
-        return state === undefined || state === 'IDLE';
-    }
-    /**
-     * Execute a function with a timeout. Rejects if timeout exceeded.
-     */
-    executeWithTimeout(fn, timeoutMs) {
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                reject(new Error(`Step timeout after ${timeoutMs}ms`));
-            }, timeoutMs);
-            fn().then(result => {
-                clearTimeout(timer);
-                resolve(result);
-            }).catch(err => {
-                clearTimeout(timer);
-                reject(err);
-            });
-        });
-    }
-    // --- Public API for testing and debugging ---
-    /** Get current state of a handler */
-    getState(name) {
-        return this.states.get(name);
-    }
-    /** Get the currently active chain (if any) */
-    getActiveChain() {
-        if (!this.currentChain)
-            return null;
-        return { name: this.currentChain.config.name, stepIdx: this.currentChain.stepIdx };
-    }
-    /** Reset all state (for testing) */
-    reset() {
-        this.states.clear();
-        this.lastRunAt.clear();
-        this.currentChain = null;
-        try {
-            setStoredValue(HHStoredVarPrefixKey + TK.pipelineLastRunAt, JSON.stringify({}));
-        }
-        catch (_e) {
-            // ignore
-        }
-    }
-}
-/** Singleton instance */
-const scheduler = new Scheduler();
-
 ;// CONCATENATED MODULE: ./src/Service/AutoLoop.ts
 var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -22177,7 +19457,6 @@ var AutoLoop_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // corresponding cooldown timer.
 //
 // Used by: StartService (initial call), self (recursive setTimeout)
-
 
 
 
@@ -22272,6 +19551,14 @@ function CheckSpentPoints() {
 function isAutoLoopActive() {
     return getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true";
 }
+// Block-scheduler tick is injected from the boot path (index.ts) instead of a
+// static import, to avoid an AutoLoop->BlockPipeline->Pipeline.config->...->
+// AutoLoop import cycle (lesson zirkulaerer-import-tdz-crash). Same pattern as
+// setPachinkoAutoLoopKick.
+let blockTick = null;
+function setBlockTick(fn) {
+    blockTick = fn;
+}
 function autoLoop() {
     return AutoLoop_awaiter(this, void 0, void 0, function* () {
         updateData();
@@ -22342,8 +19629,8 @@ function autoLoop() {
                 // resulting gotoPage / safeReload call. The gate also prevents
                 // lastRunAt from being bumped on a tick where no real work was
                 // possible, which kept the cool-down counting from a wasted run.
-                if (!ctx.busy) {
-                    yield scheduler.tick(ctx);
+                if (!ctx.busy && blockTick) {
+                    yield blockTick(ctx);
                 }
             }
         }
@@ -27293,6 +24580,47 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
+// Pipeline-block architecture (v7.37.0, ADR-001)
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.blockFailureCount] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineOrder] =
+    {
+        storage: "localStorage",
+        HHType: "Setting" // user choice: survive "delete temp vars" (was "Temp")
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLogContext] =
+    {
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + SK.pipelineDiagnose] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked"
+    };
 
 ;// CONCATENATED MODULE: ./src/Utils/BrowserUtils.ts
 /**
@@ -28448,6 +25776,330 @@ class Market {
     }
 }
 
+;// CONCATENATED MODULE: ./src/model/Mission.ts
+// Models for in-game missions and their rewards.
+// Mission holds the cost, duration, remaining time, completion state,
+// and a reference to the DOM element. MissionRewards describes each reward entry.
+class Mission {
+    constructor() {
+        this.finished = false;
+    }
+}
+class MissionRewards {
+    constructor() {
+        this.type = '';
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/Missions.ts
+// Missions.ts -- Automates missions: collects completed missions and starts new ones.
+//
+// Missions are time-based tasks that yield rewards. This module checks for
+// completed missions, collects their rewards, and starts the next available
+// mission automatically. Tracks mission durations and schedules collection
+// at the right time.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+class Missions {
+    /**
+    * Recieves a list of mission objects and returns the mission object to use.
+    * A mission object looks similar to this :-
+    * Eg 1:   {"id_member_mission":"256160093","id_mission":"23","duration":"53","cost":"1","remaining_time":"-83057","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"slot_SC"},"type":"money","data":277}]}
+    * Eg 2:   {"id_member_mission":"256160095","id_mission":"10","duration":"53","cost":"1","remaining_time":"-81330","rewards":[{"classList":{"0":"slot","1":"slot_xp"},"type":"xp","data":28},{"classList":{"0":"slot","1":"rare"},"type":"item","data":{"id_item":"23","type":"gift","subtype":"0","identifier":"K3","rarity":"rare","value":"80","carac1":0,"carac2":0,"carac3":0,"endurance":0,"chance":0,"ego":0,"damage":0,"duration":0,"level_mini":"1","name":"Bracelet","Name":"Bracelet","ico":"https://content.haremheroes.com/pictures/items/K3.png","price_sell":5561,"count":1,"id_m_i":[]}}]}
+    * Eg 3:   {"id_member_mission":"256822795","id_mission":"337","duration":"17172","cost":"144","remaining_time":null,"remaining_cost":"144","rewards":[{"classList":{"0":"slot","1":"slot_HC"},"type":"koban","data":11}]}
+    * Eg 1 has mission rewards of xp and money.
+    * Eg 2 has mission rewards of xp and item.
+    * Eg 3 has mission rewards of koban/hard_currency.
+    * cost is the koban price for instant complete.
+    */
+    static getSuitableMission(missionsList) {
+        var msn = missionsList[0];
+        const kFirst = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionKFirst) === "true";
+        const invertOrder = getStoredValue(HHStoredVarPrefixKey + SK.invertMissions) === "true";
+        try {
+            for (var m in missionsList) {
+                if (JSON.stringify(missionsList[m].rewards).includes("koban") && kFirst) {
+                    return missionsList[m];
+                }
+                if (Number(msn.duration) > Number(missionsList[m].duration) && !invertOrder) {
+                    msn = missionsList[m];
+                }
+                else if (Number(msn.duration) < Number(missionsList[m].duration) && invertOrder) {
+                    msn = missionsList[m];
+                }
+            }
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Something went wrong, starting first mission in the list ", error);
+            msn = missionsList[0];
+        }
+        return msn;
+    }
+    static run() {
+        // returns boolean to set busy
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDMissions")) {
+            LogUtils_logHHAuto("Navigating to missions page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"));
+            // return busy
+            return true;
+        }
+        else {
+            try {
+                const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+                LogUtils_logHHAuto("On missions page.");
+                if (RewardHelper.closeRewardPopupIfAny()) {
+                    return true;
+                }
+                let canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
+                var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
+                if (debugEnabled)
+                    LogUtils_logHHAuto("Missions parsed, mission list is:", missions);
+                if (debugEnabled && missionOngoing != null)
+                    LogUtils_logHHAuto("Mission missionOngoing:", missionOngoing);
+                if (!allGood && checkTimer('nextMissionTime')) {
+                    LogUtils_logHHAuto("Something went wrong, need to retry in 15secs.");
+                    setTimer('nextMissionTime', randomInterval(15, 30));
+                    return true;
+                }
+                if (missions.length > 0 && missionOngoing == null) {
+                    var mission = Missions.getSuitableMission(missions);
+                    LogUtils_logHHAuto(`Selected mission to be started (duration: ${mission.duration}sec):`);
+                    if (debugEnabled)
+                        LogUtils_logHHAuto(mission);
+                    var missionButton = $(mission.missionObject).find("button:visible[rel='mission_start']").first();
+                    if (missionButton.length > 0) {
+                        missionButton.trigger('click');
+                        missionOngoing = mission;
+                        missionOngoing.remaining_time = Number(mission.duration);
+                    }
+                    else {
+                        LogUtils_logHHAuto("Something went wrong, no start button");
+                        setTimer('nextMissionTime', randomInterval(15, 30));
+                        return true;
+                    }
+                }
+                if (canCollect) {
+                    LogUtils_logHHAuto("Collecting finished mission's reward.");
+                    $(".mission_button button:visible[rel='claim']").first().trigger('click');
+                    return true;
+                }
+                if (missionOngoing != null) {
+                    LogUtils_logHHAuto("Mission ongoing waiting it ends.");
+                    if (checkTimer('nextMissionTime'))
+                        setTimer('nextMissionTime', missionOngoing.remaining_time + randomInterval(10, 20));
+                    return true;
+                }
+                if (missions.length == 0 && missionOngoing == null) {
+                    LogUtils_logHHAuto("No missions detected...!");
+                    // get gift
+                    const isAfterGift = $("#missions .end_gift:visible").length > 0;
+                    if (isAfterGift) {
+                        const buttonAfterGift = $("#missions .end_gift button:visible");
+                        if (buttonAfterGift.length > 0) {
+                            LogUtils_logHHAuto("Collecting gift.");
+                            buttonAfterGift.trigger('click');
+                        }
+                        else {
+                            LogUtils_logHHAuto("Refreshing to collect gift...");
+                            // C1: safeReload waits for any in-flight game
+                            // AJAX before the reload, so an open POST is
+                            // not cancelled (issue #1598).
+                            safeReload();
+                            return true;
+                        }
+                    }
+                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
+                    if (time === undefined || time === null || time.length === 0) {
+                        LogUtils_logHHAuto("New mission time was undefined... Setting it manually to 10min.");
+                        setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
+                    }
+                    else
+                        setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1, 5));
+                }
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
+                setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
+            }
+            // not busy
+            return false;
+        }
+    }
+    static parseMissions(canCollect) {
+        var missionOngoing = null;
+        var missions = [];
+        var lastMissionData = {};
+        var allGood = true;
+        // parse missions
+        const allMissions = $(".mission_object");
+        LogUtils_logHHAuto("Found " + allMissions.length + " missions to be parsed.");
+        try {
+            allMissions.each((idx, missionObject) => {
+                var data = $.data(missionObject).d;
+                lastMissionData = data;
+                // Do not list completed missions
+                var toAdd = true;
+                if (data.remaining_time !== null) {
+                    // This is not a fresh mission (ongoing)
+                    if (data.remaining_time > 0) {
+                        // allGood = false;
+                        if ($('.finish_in_bar[style*="display:none;"], .finish_in_bar[style*="display: none;"]', missionObject).length === 0) {
+                            LogUtils_logHHAuto("Unfinished mission detected...(" + data.remaining_time + "sec. remaining)");
+                            missionOngoing = data;
+                            data.finished = false;
+                        }
+                        else {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"), {}, randomInterval(300, 800));
+                            allGood = false; // Need refresh
+                        }
+                    }
+                    else {
+                        data.finished = true;
+                        toAdd = false;
+                    }
+                    return;
+                }
+                else if (data.remaining_cost === null) {
+                    // Finished missioned
+                    data.finished = true;
+                    data.remaining_time = 0;
+                    toAdd = false;
+                }
+                data.missionObject = missionObject;
+                var rewards = Missions.getMissionRewards(missionObject);
+                data.rewards = rewards;
+                if (toAdd)
+                    missions.push(data);
+            });
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Catched error : Couldn't parse missions (try again in 15min) : " + error);
+            LogUtils_logHHAuto("Last mission parsed : " + JSON.stringify(lastMissionData));
+            setTimer('nextMissionTime', randomInterval(15 * 60, 20 * 60));
+            allGood = false;
+        }
+        return { allGood, missions, missionOngoing };
+    }
+    static getMissionRewards(missionObject) {
+        var rewards = [];
+        // set rewards
+        try {
+            // get Reward slots
+            var slots = missionObject.querySelectorAll(".slot");
+            // traverse slots
+            $.each(slots, function (idx, slotDiv) {
+                var reward = new MissionRewards();
+                // get slot class list
+                reward.classList = slotDiv.classList;
+                // set reward type
+                if (reward.classList.contains("slot_xp"))
+                    reward.type = "xp";
+                else if (reward.classList.contains("slot_soft_currency"))
+                    reward.type = "money";
+                else if (reward.classList.contains("slot_hard_currency"))
+                    reward.type = "koban";
+                else
+                    reward.type = "item";
+                // set value if xp
+                if (reward.type === "xp" || reward.type === "money" || reward.type === "koban") {
+                    // remove all non numbers and HTML tags
+                    try {
+                        reward.data = Number(slotDiv.innerHTML.replace(/<.*?>/g, '').replace(/\D/g, ''));
+                    }
+                    catch (e) {
+                        LogUtils_logHHAuto("Catched error : Couldn't parse xp/money data : " + e);
+                        LogUtils_logHHAuto(slotDiv);
+                    }
+                }
+                // set item details if item
+                else if (reward.type === "item") {
+                    try {
+                        reward.data = $.data(slotDiv).d;
+                    }
+                    catch (e) {
+                        LogUtils_logHHAuto("Catched error : Couldn't parse item reward slot details : " + e);
+                        LogUtils_logHHAuto(slotDiv);
+                        reward.type = "unknown";
+                    }
+                }
+                rewards.push(reward);
+            });
+        }
+        catch (error) {
+            LogUtils_logHHAuto("Catched error : Couldn't parse rewards for missions : " + error);
+        }
+        return rewards;
+    }
+    static styles() {
+        if ($("#missions #ad_activities").length) {
+            $("#missions .missions_wrap").removeClass('height-for-ad').removeClass('height-with-ad');
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.compactMissions) === "true") {
+            GM_addStyle('#missions .missions_wrap  {'
+                + 'display:flex;'
+                + 'flex-wrap: wrap;'
+                + 'align-content: baseline;'
+                + '}');
+            const missionsContainerPath = '#missions .missions_wrap .mission_object.mission_entry';
+            GM_addStyle(missionsContainerPath + ' {'
+                + 'height: 56px;'
+                + 'margin-right:3px;'
+                + 'width: 49%;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_reward {'
+                + 'width: 110px;'
+                + 'padding-left: 5px;'
+                + 'padding-top: 5px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_image {'
+                + 'height: 50px;'
+                + 'width: 50px;'
+                + 'margin-top: 0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_details {'
+                + 'display:none;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button {'
+                + 'display:flex;'
+                + 'flex-direction:inherit;'
+                + 'width:245px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button .duration {'
+                + 'top:5px;'
+                + 'left:5px;'
+                + 'width: auto;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button {'
+                + 'margin:0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="finish"] {'
+                + 'height: 50px;'
+                + 'top:0;'
+                + 'left: 2rem;'
+                + 'padding: 4px 4px;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button button[rel="claim"] {'
+                + 'left:0;'
+                + '}');
+            GM_addStyle(missionsContainerPath + ' .mission_button .hh_bar {'
+                + 'left:5px;'
+                + '}');
+        }
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/Module/MonthlyCard.ts
 // MonthlyCard.ts -- Updates input validation patterns for monthly card features
 // based on available energy types.
@@ -28612,7 +26264,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.36.0";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -28827,6 +26479,9 @@ class SurveyService {
             }
             lines.push(`${keyName}: ${status}`);
         }
+        // Block order (R8.6): the user-defined pipeline order, or DEFAULT.
+        const pipelineOrder = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null);
+        lines.push(`PipelineOrder: ${pipelineOrder && pipelineOrder.length > 0 ? pipelineOrder.join(',') : "DEFAULT"}`);
         return lines.join('\n');
     }
     /**
@@ -28976,6 +26631,361 @@ class SurveyService {
         const data = SurveyService.buildSettingsExport();
         $('#surveyErrorCopy').off('click').on('click', function () {
             SurveyService.copyToClipboard(data);
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Service/OrderResolver.ts
+/**
+ * Build the directed hard/soft edges implied by every block's constraints,
+ * restricted to block ids that are actually present in `order`.
+ */
+function buildEdges(order, registry, hard) {
+    const present = new Set(order);
+    const edges = [];
+    for (const id of order) {
+        const block = registry[id];
+        if (!block || !block.constraints)
+            continue;
+        for (const c of block.constraints) {
+            if (c.hard !== hard)
+                continue;
+            if (c.kind === 'runsAfter') {
+                // this block runs after c.block  ->  c.block before this
+                if (present.has(c.block))
+                    edges.push({ from: c.block, to: id });
+            }
+            else if (c.kind === 'runsBefore') {
+                if (present.has(c.block))
+                    edges.push({ from: id, to: c.block });
+            }
+            else if (c.kind === 'beforeAll') {
+                // this block before every other present block
+                for (const other of order)
+                    if (other !== id)
+                        edges.push({ from: id, to: other });
+            }
+            else if (c.kind === 'afterAll') {
+                for (const other of order)
+                    if (other !== id)
+                        edges.push({ from: other, to: id });
+            }
+        }
+    }
+    return edges;
+}
+/** Detect a cycle in the directed hard-edge graph (DFS), restricted to `order`. */
+function hasCycle(order, edges) {
+    const adj = new Map();
+    for (const id of order)
+        adj.set(id, []);
+    for (const e of edges) {
+        if (adj.has(e.from))
+            adj.get(e.from).push(e.to);
+    }
+    const WHITE = 0, GRAY = 1, BLACK = 2;
+    const color = new Map();
+    for (const id of order)
+        color.set(id, WHITE);
+    let found;
+    const stack = [];
+    for (const start of order) {
+        if (color.get(start) !== WHITE)
+            continue;
+        stack.push({ id: start, i: 0 });
+        color.set(start, GRAY);
+        while (stack.length) {
+            const top = stack[stack.length - 1];
+            const neighbors = adj.get(top.id) || [];
+            if (top.i < neighbors.length) {
+                const next = neighbors[top.i++];
+                const nc = color.get(next);
+                if (nc === GRAY) {
+                    found = next;
+                    stack.length = 0;
+                    break;
+                }
+                if (nc === WHITE) {
+                    color.set(next, GRAY);
+                    stack.push({ id: next, i: 0 });
+                }
+            }
+            else {
+                color.set(top.id, BLACK);
+                stack.pop();
+            }
+        }
+        if (found)
+            break;
+    }
+    return found ? { cycle: true, node: found } : { cycle: false };
+}
+/**
+ * Validate an order against the registry's constraints (R3.3/3.4/3.6).
+ * Hard violations / cycles / contradictions -> valid=false. Soft violations ->
+ * advisory list only.
+ */
+function validateOrder(order, registry) {
+    const errors = [];
+    const softViolations = [];
+    const idx = new Map();
+    order.forEach((id, i) => idx.set(id, i));
+    const hardEdges = buildEdges(order, registry, true);
+    // 1. cycle / contradiction (two beforeAll, beforeAll+afterAll on same set, ...)
+    const cyc = hasCycle(order, hardEdges);
+    if (cyc.cycle) {
+        errors.push(`order contains a hard-constraint cycle/contradiction (at '${cyc.node}')`);
+    }
+    // 2. each hard edge must be satisfied by the given order
+    for (const e of hardEdges) {
+        const a = idx.get(e.from);
+        const b = idx.get(e.to);
+        if (a === undefined || b === undefined)
+            continue;
+        if (!(a < b))
+            errors.push(`hard constraint violated: '${e.from}' must run before '${e.to}'`);
+    }
+    // 3. soft edges -> advisory only
+    const softEdges = buildEdges(order, registry, false);
+    for (const e of softEdges) {
+        const a = idx.get(e.from);
+        const b = idx.get(e.to);
+        if (a === undefined || b === undefined)
+            continue;
+        if (!(a < b))
+            softViolations.push(`soft constraint not met: '${e.from}' before '${e.to}'`);
+    }
+    return { valid: errors.length === 0, errors, softViolations };
+}
+/**
+ * Insert each registry block missing from `known` at its default position,
+ * using the "nearest preceding present default neighbour" heuristic (R7.3).
+ */
+function autoInsert(known, missing, defaultOrder) {
+    const result = [...known];
+    for (const id of defaultOrder) {
+        if (!missing.includes(id))
+            continue;
+        const dIdx = defaultOrder.indexOf(id);
+        let insertAfter = -1;
+        for (let i = dIdx - 1; i >= 0; i--) {
+            const pos = result.indexOf(defaultOrder[i]);
+            if (pos >= 0) {
+                insertAfter = pos;
+                break;
+            }
+        }
+        if (insertAfter === -1)
+            result.unshift(id);
+        else
+            result.splice(insertAfter + 1, 0, id);
+    }
+    return result;
+}
+/**
+ * Resolve a (possibly stale/invalid) stored order against the current registry
+ * and code default order. Always returns a valid, executable order (R7.7):
+ *  (b) unknown ids -> dropped + warning (R7.4)
+ *  (a) missing registry blocks -> inserted at default position + warning (R7.3)
+ *  (c) still invalid (cycle/contradiction/hard violation) -> fallback to
+ *      defaultOrder + warning (R7.5)
+ */
+function resolveOrder(stored, registry, defaultOrder) {
+    const warnings = [];
+    const base = (stored && stored.length > 0) ? stored : [...defaultOrder];
+    // (b) drop unknown ids
+    const known = [];
+    for (const id of base) {
+        if (registry[id])
+            known.push(id);
+        else
+            warnings.push({ code: 'dropped', blockId: id, message: `dropped unknown block id '${id}' from stored order` });
+    }
+    // de-duplicate (keep first occurrence) -- a corrupt stored order may repeat ids
+    const seen = new Set();
+    const dedup = known.filter(id => (seen.has(id) ? false : (seen.add(id), true)));
+    // (a) insert registry blocks missing from stored
+    const missing = Object.keys(registry).filter(id => !dedup.includes(id));
+    for (const id of missing) {
+        warnings.push({ code: 'inserted', blockId: id, message: `inserted new block '${id}' at its default position` });
+    }
+    const reconciled = autoInsert(dedup, missing, defaultOrder);
+    // (c) validate; fall back to default on hard failure
+    const res = validateOrder(reconciled, registry);
+    if (!res.valid) {
+        warnings.push({ code: 'fallback', message: `stored order invalid (${res.errors.join('; ')}); falling back to default order` });
+        return { order: [...defaultOrder], warnings };
+    }
+    return { order: reconciled, warnings };
+}
+
+;// CONCATENATED MODULE: ./src/Service/PipelineOrderService.ts
+// PipelineOrderService.ts -- "Block Order" reorder popup (v7.37.0 pipeline-block
+// architecture, ADR-001, Roadmap step 17 task 15).
+//
+// A single menu button ("Block Order") opens a popup where the user drags (or
+// uses up/down arrows) to reorder the user-movable blocks. Infra blocks
+// (EventParsing, GoHome -- userMovable:false) are shown greyed and pinned. On
+// save the proposed order is validated against the hard constraints
+// (OrderResolver.validateOrder); an illegal order is rejected with a message
+// and NOT persisted. A valid order is written to TK.pipelineOrder (localStorage,
+// persistent) and a reload applies it (the scheduler rebuilds the order at boot
+// via resolveOrder).
+//
+// Enable/disable of a block is NOT done here -- that stays the feature switches
+// in the main menu (a block whose feature is off never runs, regardless of
+// position). This popup only reorders.
+
+
+
+
+
+
+
+let registryProvider = null;
+function setPipelineRegistryProvider(p) { registryProvider = p; }
+const POPUP_ID = "pipelineOrderPopup";
+const POPUP_TITLE = "Block Order";
+/** Human label from a block id: "handleSeasonCollect" -> "Season Collect". */
+function blockLabel(id) {
+    const base = id.startsWith("handle") ? id.slice("handle".length) : id;
+    return base.replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim() || id;
+}
+/**
+ * Rebuild a full block order from a new sequence of the MOVABLE blocks, keeping
+ * every non-movable (pinned/infra) block at its current index. Movable slots
+ * are filled in order from newMovableSeq. Pure + unit-tested.
+ */
+function rebuildOrder(effective, registry, newMovableSeq) {
+    var _a;
+    const seq = [...newMovableSeq];
+    const out = [];
+    for (const id of effective) {
+        const b = registry[id];
+        if (b && b.userMovable)
+            out.push((_a = seq.shift()) !== null && _a !== void 0 ? _a : id);
+        else
+            out.push(id);
+    }
+    return out;
+}
+class PipelineOrderService {
+    /** Open the reorder popup with the current effective order. */
+    static showPopup() {
+        if (!registryProvider) {
+            LogUtils_logHHAuto("Block order: registry provider not wired yet.");
+            return;
+        }
+        const { registry, defaultOrder } = registryProvider();
+        const stored = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null);
+        const effective = resolveOrder(stored, registry, defaultOrder).order;
+        fillHHPopUp(POPUP_ID, POPUP_TITLE, PipelineOrderService.buildContent(effective, registry));
+        PipelineOrderService.bindEvents(effective, registry, defaultOrder);
+    }
+    // -- private --
+    static buildContent(effective, registry) {
+        const rows = effective.map((id) => {
+            const movable = !!(registry[id] && registry[id].userMovable);
+            const label = blockLabel(id);
+            if (movable) {
+                return '<div class="pipeOrderRow" data-block-id="' + id + '" data-movable="1" draggable="true"'
+                    + ' style="display:flex; align-items:center; gap:6px; padding:5px 7px; margin:2px 0; background:#f4f4f4; border:1px solid #ccc; border-radius:4px; cursor:grab;">'
+                    + '<span style="flex:0 0 14px; color:#999;">&#x2630;</span>'
+                    + '<span style="flex:1 1 auto;">' + label + '</span>'
+                    + '<span class="pipeUp" title="Up" style="cursor:pointer; padding:0 5px; user-select:none;">&#x25B2;</span>'
+                    + '<span class="pipeDown" title="Down" style="cursor:pointer; padding:0 5px; user-select:none;">&#x25BC;</span>'
+                    + '</div>';
+            }
+            return '<div class="pipeOrderRow" data-block-id="' + id + '" data-movable="0"'
+                + ' style="display:flex; align-items:center; gap:6px; padding:5px 7px; margin:2px 0; background:#e8e8e8; border:1px dashed #bbb; border-radius:4px; color:#999;">'
+                + '<span style="flex:0 0 14px;">&#x1f512;</span>'
+                + '<span style="flex:1 1 auto;">' + label + '</span>'
+                + '</div>';
+        }).join("");
+        return '<div style="padding:10px; max-width:440px; color:#333;">'
+            + '<p style="margin:0 0 8px; font-size:12px;">Drag a row, or use the &#x25B2;/&#x25BC; arrows, to change the order in which the script runs its blocks.</p>'
+            + '<p style="margin:0 0 10px; font-size:11px; color:#888;">Greyed-out rows (&#x1f512;) are fixed and cannot be moved. Turn a block on/off in the main menu, not here.</p>'
+            + '<div id="pipelineOrderList" style="max-height:340px; overflow-y:auto; padding-right:4px;">' + rows + '</div>'
+            + '<div id="pipeOrderError" style="display:none; margin-top:8px; padding:6px; font-size:11px; color:#a00; background:#fdecea; border:1px solid #f5c6cb; border-radius:4px;"></div>'
+            + '<div style="display:flex; justify-content:space-between; gap:8px; margin-top:14px;">'
+            + '<label class="myButton" id="pipeOrderReset" style="cursor:pointer; padding:6px 12px;">Restore default</label>'
+            + '<span style="flex:1 1 auto;"></span>'
+            + '<label class="myButton" id="pipeOrderCancel" style="cursor:pointer; padding:6px 12px;">Cancel</label>'
+            + '<label class="myButton" id="pipeOrderSave" style="cursor:pointer; padding:6px 14px; font-weight:bold;">Save</label>'
+            + '</div>'
+            + '</div>';
+    }
+    static readMovableSeq() {
+        const out = [];
+        $('#pipelineOrderList .pipeOrderRow[data-movable="1"]').each(function () {
+            const id = $(this).attr("data-block-id");
+            if (id)
+                out.push(id);
+        });
+        return out;
+    }
+    static bindEvents(effective, registry, defaultOrder) {
+        const list = $('#pipelineOrderList');
+        // Up/down arrows: swap with the nearest movable neighbour (skip pinned).
+        list.off('click', '.pipeUp').on('click', '.pipeUp', function () {
+            const row = $(this).closest('.pipeOrderRow');
+            const prev = row.prevAll('.pipeOrderRow[data-movable="1"]').first();
+            if (prev.length)
+                row.insertBefore(prev);
+        });
+        list.off('click', '.pipeDown').on('click', '.pipeDown', function () {
+            const row = $(this).closest('.pipeOrderRow');
+            const next = row.nextAll('.pipeOrderRow[data-movable="1"]').first();
+            if (next.length)
+                row.insertAfter(next);
+        });
+        // HTML5 drag-and-drop among movable rows.
+        let dragged = null;
+        list.off('dragstart', '.pipeOrderRow[data-movable="1"]').on('dragstart', '.pipeOrderRow[data-movable="1"]', function (e) {
+            dragged = this;
+            const dt = e.originalEvent.dataTransfer;
+            if (dt)
+                dt.effectAllowed = "move";
+        });
+        list.off('dragover', '.pipeOrderRow[data-movable="1"]').on('dragover', '.pipeOrderRow[data-movable="1"]', function (e) {
+            e.preventDefault();
+            const target = this;
+            if (!dragged || dragged === target)
+                return;
+            const rect = target.getBoundingClientRect();
+            const after = e.originalEvent.clientY > rect.top + rect.height / 2;
+            if (after)
+                $(target).after(dragged);
+            else
+                $(target).before(dragged);
+        });
+        list.off('drop', '.pipeOrderRow[data-movable="1"]').on('drop', '.pipeOrderRow[data-movable="1"]', function (e) {
+            e.preventDefault();
+            dragged = null;
+        });
+        $('#pipeOrderCancel').off('click').on('click', function () { maskHHPopUp(); });
+        $('#pipeOrderReset').off('click').on('click', function () {
+            deleteStoredValue(HHStoredVarPrefixKey + TK.pipelineOrder);
+            LogUtils_logHHAuto("Block order reset to default.");
+            maskHHPopUp();
+            safeReload();
+        });
+        $('#pipeOrderSave').off('click').on('click', function () {
+            const proposed = rebuildOrder(effective, registry, PipelineOrderService.readMovableSeq());
+            const res = validateOrder(proposed, registry);
+            if (!res.valid) {
+                $('#pipeOrderError').css('display', 'block').html('This order is not allowed:<br>' + res.errors.map((x) => '&bull; ' + x).join('<br>'));
+                return;
+            }
+            // No-op if identical to the code default: store nothing, clear any override.
+            const isDefault = proposed.length === defaultOrder.length && proposed.every((id, i) => id === defaultOrder[i]);
+            if (isDefault)
+                deleteStoredValue(HHStoredVarPrefixKey + TK.pipelineOrder);
+            else
+                setStoredValue(HHStoredVarPrefixKey + TK.pipelineOrder, JSON.stringify(proposed));
+            LogUtils_logHHAuto("Block order saved.");
+            maskHHPopUp();
+            safeReload();
         });
     }
 }
@@ -29197,6 +27207,7 @@ function defaultStorage() {
 // against missing jQuery and "Forbidden" error pages.
 //
 // Used by: src/index.ts (entry point)
+
 
 
 
@@ -29657,9 +27668,2718 @@ function start() {
     $("#settingsSurvey").on("click", function () {
         SurveyService.showSurveyPopup();
     });
+    // Block order (pipeline reorder) button
+    $("#blockOrder").on("click", function () {
+        PipelineOrderService.showPopup();
+    });
     GM_registerMenuCommand(getTextForUI("translate", "elementText"), manageTranslationPopUp);
 }
 ;
+
+;// CONCATENATED MODULE: ./src/Service/BlockScheduler.ts
+var BlockScheduler_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+const DEFAULT_CONFIG = {
+    failureThreshold: 3,
+    noProgressMs: 300000, // 5 min without any step progress -> treat as hung
+    cooldownMs: 60000,
+};
+/** Short signature of a failure reason for the per-signature failure counter. */
+function shortSig(reason) {
+    return reason.split(/\s|:/).slice(0, 3).join(":").slice(0, 48);
+}
+class BlockScheduler {
+    constructor(registry, order, ports, cfg = {}) {
+        this.registry = registry;
+        this.order = order;
+        this.ports = ports;
+        this.run = null;
+        this.restoredFromStore = false;
+        this.tickCount = 0; // R6.3 correlation: incremented once per tick()
+        this.cfg = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
+        // Restore a run that survived a reload (R4.4) and reconcile version-gated
+        // auto-disable (R5.5: one retry after a script update).
+        this.reconcileVersionResets();
+        this.run = this.ports.loadRun();
+        this.restoredFromStore = this.run !== null;
+    }
+    /** Update the effective order (e.g. after a settings change). */
+    setOrder(order) { this.order = order; }
+    getActiveRun() { return this.run; }
+    /** R5.5: drop auto-disable entries from a previous script version. */
+    reconcileVersionResets() {
+        const disabled = this.ports.getAutoDisabled();
+        const version = this.ports.scriptVersion();
+        let changed = false;
+        for (const id of Object.keys(disabled)) {
+            if (disabled[id].sinceVersion !== version) {
+                delete disabled[id];
+                this.resetFailureCounts(id);
+                changed = true;
+                this.emit({ ev: "reset", block: id, detail: "auto-disable cleared on version change" });
+            }
+        }
+        if (changed)
+            this.ports.setAutoDisabled(disabled);
+    }
+    /** R5.7: manual (or version) reactivation clears auto-disable + counter. */
+    reactivate(blockId) {
+        const disabled = this.ports.getAutoDisabled();
+        if (disabled[blockId]) {
+            delete disabled[blockId];
+            this.ports.setAutoDisabled(disabled);
+        }
+        this.resetFailureCounts(blockId);
+        this.emit({ ev: "reset", block: blockId, detail: "block reactivated" });
+    }
+    resetFailureCounts(blockId) {
+        const counts = this.ports.getFailureCounts();
+        let changed = false;
+        for (const sig of Object.keys(counts)) {
+            if (sig.startsWith(blockId + ":")) {
+                delete counts[sig];
+                changed = true;
+            }
+        }
+        if (changed)
+            this.ports.setFailureCounts(counts);
+    }
+    tick(ctx) {
+        return BlockScheduler_awaiter(this, void 0, void 0, function* () {
+            this.tickCount++;
+            // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
+            if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
+                if (this.run) {
+                    this.emit({ ev: "abort", block: this.run.blockId, detail: "master-off" });
+                    this.run = null;
+                    this.ports.clearRun();
+                }
+                return;
+            }
+            if (!this.run)
+                this.run = this.ports.loadRun();
+            if (this.run) {
+                yield this.continueRun(ctx);
+                return;
+            }
+            // 4. Idle: pick the next ready block.
+            const block = this.findNext(ctx);
+            if (!block)
+                return;
+            this.startRun(block);
+            yield this.continueRun(ctx);
+        });
+    }
+    continueRun(ctx) {
+        return BlockScheduler_awaiter(this, void 0, void 0, function* () {
+            const run = this.run;
+            const block = this.registry[run.blockId];
+            if (!block) {
+                yield this.abort(run, "block-missing");
+                return;
+            }
+            // No-progress watchdog: abort only if the run has made NO progress (no step
+            // advance/repeat resets stepStartedAt) for noProgressMs. A working block keeps
+            // resetting stepStartedAt, so it never times out; only a genuinely stuck run
+            // (re-entered across ticks without advancing) is aborted + routed home.
+            if (this.ports.now() - run.stepStartedAt > this.cfg.noProgressMs) {
+                yield this.abort(run, "no-progress-timeout");
+                return;
+            }
+            // First handling after a reload: resume validation + at-most-once (R4.6/R4.9).
+            if (this.restoredFromStore) {
+                this.restoredFromStore = false;
+                const next = block.steps[run.stepIdx];
+                if ((next === null || next === void 0 ? void 0 : next.resumeValid) && !next.resumeValid(ctx, run)) {
+                    this.emit({ ev: "resume", block: block.id, step: next.name, detail: "invalid" });
+                    yield this.abort(run, "resume-invalid");
+                    return;
+                }
+                if (run.dispatched) {
+                    this.emit({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
+                    run.stepIdx++;
+                    run.dispatched = false;
+                    run.stepStartedAt = this.ports.now();
+                    this.ports.saveRun(run);
+                    if (run.stepIdx >= block.steps.length) {
+                        this.complete(block, run);
+                        return;
+                    }
+                }
+                else {
+                    // A valid resume after a reload IS progress for reload-based slot-hold
+                    // blocks (PoP: one powerplace per reload; Champion: one draft per reload).
+                    // Their step.fn navigates and triggers a reload, so it never returns
+                    // repeat/advance to the scheduler and the executeStep resets below never
+                    // run. Without bumping the anchor here the no-progress watchdog measures
+                    // from run start and kills legit long work after noProgressMs (observed
+                    // live: PoP killed mid-run at ~5 min, v7.36.10). Reset on every live
+                    // re-entry so the watchdog only fires when the block stops resuming.
+                    run.stepStartedAt = this.ports.now();
+                    this.ports.saveRun(run);
+                    this.emit({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });
+                }
+            }
+            // gate-hold-return (ADR-002): a held run continues only while the block
+            // still WANTS to run. Re-check the precondition on every continuation; once
+            // it no longer holds (e.g. a navigate-only block such as HaremSize has
+            // reached its target page, so its precondition page-guard flips false),
+            // release the slot instead of re-running the step -- otherwise the slot-hold
+            // re-runs gotoPage(sameTarget) forever (the waifu->waifu loop). On a fresh
+            // start the precondition was just verified true by findNext, so this is a
+            // no-op there.
+            if (!block.precondition(ctx)) {
+                this.emit({ ev: "done", block: block.id, detail: "precondition no longer holds; releasing slot" });
+                this.complete(block, run);
+                return;
+            }
+            yield this.executeStep(ctx, block, run);
+        });
+    }
+    executeStep(ctx, block, run) {
+        return BlockScheduler_awaiter(this, void 0, void 0, function* () {
+            const step = block.steps[run.stepIdx];
+            if (!step) {
+                this.complete(block, run);
+                return;
+            }
+            if (step.stateChanging) {
+                // persist-before-act (R6.13): the dispatch marker survives the reload.
+                run.dispatched = true;
+                this.ports.saveRun(run);
+                this.emit({ ev: "dispatch", block: block.id, step: step.name });
+            }
+            let result;
+            try {
+                // No per-invocation timeout: a long-but-legit handler call (e.g. a full
+                // champion team build) must run to completion. A hung call is handled by
+                // master-off/reload, not by aborting legit work.
+                result = yield step.fn(ctx, run);
+            }
+            catch (e) {
+                yield this.abort(run, "error:" + step.name + ":" + this.msg(e));
+                return;
+            }
+            if (result.ok) {
+                run.dispatched = false;
+                if (result.repeat) {
+                    run.stepStartedAt = this.ports.now();
+                    this.ports.saveRun(run);
+                    this.emit({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
+                    return;
+                }
+                run.stepIdx++;
+                run.stepStartedAt = this.ports.now();
+                this.ports.saveRun(run);
+                this.emit({ ev: "done", block: block.id, step: step.name });
+                if (result.done || run.stepIdx >= block.steps.length)
+                    this.complete(block, run);
+            }
+            else {
+                yield this.abort(run, "fail:" + step.name + ":" + result.reason);
+            }
+        });
+    }
+    startRun(block) {
+        const now = this.ports.now();
+        this.run = {
+            blockId: block.id,
+            stepIdx: 0,
+            startedAt: now,
+            stepStartedAt: now,
+            dispatched: false,
+            data: {},
+        };
+        this.restoredFromStore = false;
+        this.ports.saveRun(this.run);
+        this.emit({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
+    }
+    complete(block, run) {
+        this.emit({ ev: "done", block: block.id, detail: "run complete" });
+        const last = this.ports.getLastRunAt();
+        last[block.id] = this.ports.now();
+        this.ports.setLastRunAt(last);
+        this.resetFailureCounts(block.id); // success resets the block's counter
+        this.run = null;
+        this.ports.clearRun();
+    }
+    /** Abort path (R4.10): clear run, count failure, cool-down, route home. */
+    abort(run, reason) {
+        return BlockScheduler_awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const blockId = run.blockId;
+            this.emit({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
+            // Persistent per-signature failure counter (R5.3).
+            const counts = this.ports.getFailureCounts();
+            const sig = blockId + ":" + shortSig(reason);
+            counts[sig] = ((_a = counts[sig]) !== null && _a !== void 0 ? _a : 0) + 1;
+            const count = counts[sig];
+            this.ports.setFailureCounts(counts);
+            // Auto-disable on threshold (R5.4).
+            if (count >= this.cfg.failureThreshold) {
+                const disabled = this.ports.getAutoDisabled();
+                disabled[blockId] = { reason, sinceVersion: this.ports.scriptVersion() };
+                this.ports.setAutoDisabled(disabled);
+                this.emit({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
+            }
+            // Cool-down (R4.10/R5.2).
+            const cooldowns = this.ports.getCooldowns();
+            cooldowns[blockId] = this.ports.now() + this.cfg.cooldownMs;
+            this.ports.setCooldowns(cooldowns);
+            this.run = null;
+            this.ports.clearRun();
+            yield this.ports.routeHome(); // safe ground state (R4.10)
+        });
+    }
+    /** Idle block selection (R4.3): order + enabled + not-disabled + cooldown + min-interval + precondition. */
+    findNext(ctx) {
+        var _a, _b;
+        const now = this.ports.now();
+        const disabled = this.ports.getAutoDisabled();
+        const cooldowns = this.ports.getCooldowns();
+        const last = this.ports.getLastRunAt();
+        for (const id of this.order) {
+            const block = this.registry[id];
+            if (!block)
+                continue;
+            if (disabled[id])
+                continue;
+            if (((_a = cooldowns[id]) !== null && _a !== void 0 ? _a : 0) > now)
+                continue;
+            if (now - ((_b = last[id]) !== null && _b !== void 0 ? _b : 0) < block.minIntervalMs)
+                continue;
+            if (!block.precondition(ctx))
+                continue;
+            return block;
+        }
+        return null;
+    }
+    /** Emit a structured log event with tick + run correlation (R6.3). */
+    emit(fields) {
+        this.ports.log(Object.assign({ tick: this.tickCount, run: this.run ? this.run.blockId + "@" + this.run.startedAt : undefined }, fields));
+    }
+    msg(e) {
+        if (e instanceof Error)
+            return e.message;
+        return String(e);
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Service/BlockRunStore.ts
+// BlockRunStore.ts -- reload-safe persistence of the active BlockRun
+// (v7.37.0 pipeline-block architecture, ADR-001).
+//
+// The BlockRun lives in sessionStorage (TK.activeBlockRun): it survives a
+// page reload in the same tab and is intentionally lost on tab close/crash
+// (R4.12), so a fresh start begins cleanly. Continuity that used to depend on
+// the in-memory ActiveChain + lastActionPerformed now lives here (R4.4).
+//
+// Requirements: 4.4, 4.12
+
+
+
+// Key computed at call-time, never at module top level (TDZ-safety;
+// lesson zirkulaerer-import-tdz-crash).
+function BlockRunStore_key() { return HHStoredVarPrefixKey + TK.activeBlockRun; }
+/** Narrow an unknown parsed value to a structurally valid BlockRun. */
+function isBlockRun(v) {
+    if (typeof v !== "object" || v === null)
+        return false;
+    const o = v;
+    return typeof o.blockId === "string"
+        && typeof o.stepIdx === "number"
+        && typeof o.startedAt === "number"
+        && typeof o.stepStartedAt === "number"
+        && typeof o.dispatched === "boolean"
+        && typeof o.data === "object" && o.data !== null;
+}
+/** Persist the active BlockRun (write-through to sessionStorage). */
+function saveBlockRun(run) {
+    setStoredValue(BlockRunStore_key(), JSON.stringify(run));
+}
+/**
+ * Restore the active BlockRun after a (planned or unplanned) reload. Returns
+ * null when nothing is stored or the stored value is corrupt -- the caller
+ * then starts fresh rather than resuming an invalid run.
+ */
+function loadBlockRun() {
+    const raw = getStoredValue(BlockRunStore_key());
+    if (raw === undefined || raw === null || raw === "")
+        return null;
+    let parsed;
+    try {
+        parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    }
+    catch (_a) {
+        return null;
+    }
+    return isBlockRun(parsed) ? parsed : null;
+}
+/** Drop the active BlockRun (run finished, aborted, or master-off). */
+function clearBlockRun() {
+    deleteStoredValue(BlockRunStore_key());
+}
+
+;// CONCATENATED MODULE: ./src/Service/PipeLogger.ts
+// PipeLogger.ts -- structured [PIPE] logging for the block scheduler
+// (v7.37.0 pipeline-block architecture, ADR-001, task 7).
+//
+// One event per line, key=value, parseable, tagged [PIPE], emitted through the
+// existing logHHAuto pipeline (single system, R6.11) so the lines land in the
+// same persisted/rotated buffer and the user debug export. A non-rotating
+// context block (version, platform, effective order, disabled blocks, diagnose
+// flag) is stored separately and travels with the export. Lean events are
+// always emitted; per-step detail only when the diagnose toggle is on. Skip
+// events are change-deduplicated so a block parked on one reason logs once, not
+// every ~2s tick.
+//
+// Requirements: 6.1-6.14, 6.16, 6.17, 6.18
+
+
+
+
+// Fixed field order for a stable, parseable line (R6.10).
+const FIELD_ORDER = ["tick", "run", "block", "step", "page", "ev", "result", "detail"];
+/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract (R6.10/R6.18). */
+function sanitize(v) {
+    return String(v).replace(/\s+/g, " ").trim();
+}
+/** Format a [PIPE] line. Pure -- unit-testable (R6.10). */
+function formatPipeLine(fields) {
+    const parts = ["[PIPE]", "t=" + new Date().toISOString()];
+    for (const key of FIELD_ORDER) {
+        const val = fields[key];
+        if (val === undefined || val === null || val === "")
+            continue;
+        parts.push(key + "=" + sanitize(val));
+    }
+    return parts.join(" ");
+}
+/** Whether verbose diagnostic logging is enabled (R6.14). */
+function isDiagnose() {
+    return getStoredValue(HHStoredVarPrefixKey + SK.pipelineDiagnose) === "true";
+}
+// Skip-dedup state: last skip detail per block (R6.17 lean budget).
+const lastSkipDetail = {};
+/** Reset dedup state (tests / cache clear). */
+function _resetPipeLoggerForTests() {
+    for (const k of Object.keys(lastSkipDetail))
+        delete lastSkipDetail[k];
+}
+/**
+ * Emit a structured event through the existing log pipeline.
+ *  - skip: only when the reason changed for that block (change-dedup).
+ *  - per-step done (ev=done without detail "run complete"): diagnose only.
+ *  - everything else: always (lean lifecycle).
+ */
+function logEvent(fields) {
+    var _a, _b;
+    const ev = fields.ev;
+    if (ev === "skip") {
+        const key = (_a = fields.block) !== null && _a !== void 0 ? _a : "?";
+        const detail = (_b = fields.detail) !== null && _b !== void 0 ? _b : "";
+        if (lastSkipDetail[key] === detail)
+            return; // unchanged -> suppress
+        lastSkipDetail[key] = detail;
+    }
+    else if (fields.block) {
+        // a block that did something clears its skip-dedup memory
+        delete lastSkipDetail[fields.block];
+    }
+    // Per-step "done" is verbose; the run-complete "done" is lean.
+    if (ev === "done" && fields.detail !== "run complete" && !isDiagnose())
+        return;
+    LogUtils_logHHAuto(formatPipeLine(fields));
+}
+/** Write/refresh the non-rotating context block (R6.16). Prepended to the export via storage. */
+function writeLogContext(ctx) {
+    setStoredValue(HHStoredVarPrefixKey + TK.pipelineLogContext, JSON.stringify(ctx));
+}
+
+;// CONCATENATED MODULE: ./src/Module/Bundles.pure.ts
+// Bundles.pure.ts -- Pure decision logic for the free-bundle collector.
+//
+// Extracted from Bundles.getExpiryTime so the 24-hour threshold check
+// can be unit-tested without DOM access, jQuery, or randomInterval.
+//
+// The impure adapter Bundles.getExpiryTime scrapes the popup timer
+// from the DOM and falls back to maxCollectionDelay + jitter when the
+// timer is missing or claims to be more than a day in the future
+// (which happens with stale or malformed DOM state). This pure
+// function captures only the threshold decision; the fallback value
+// itself is computed by the adapter and passed in.
+/**
+ * Reproduce Bundles.getExpiryTime bit by bit:
+ *
+ *   if scrapedSeconds === null            -> fallbackSeconds
+ *   if scrapedSeconds >= 24 * 3600        -> fallbackSeconds
+ *   otherwise                              -> scrapedSeconds
+ *
+ * The 24-hour boundary is strict (<): the original code reads
+ * `if (freeBundleTimer < 24 * 3600) return freeBundleTimer`, so
+ * exactly 24 * 3600 falls through to the fallback branch.
+ */
+function decideExpiryTime(state) {
+    if (state.scrapedSeconds === null)
+        return state.fallbackSeconds;
+    if (state.scrapedSeconds >= 24 * 3600)
+        return state.fallbackSeconds;
+    return state.scrapedSeconds;
+}
+
+;// CONCATENATED MODULE: ./src/Module/Bundles.ts
+// Bundles.ts -- Collects free daily and periodic bundles from the shop popup.
+//
+// The game periodically offers free bundle rewards in a popup. This module
+// detects available bundles, navigates to the shop page, and claims them
+// automatically on a timer-based schedule.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+class Bundles {
+    static getExpiryTime() {
+        const timerRequest = `#popup-payment-container .period_deal .shop-timer span[rel=expires]`;
+        let scrapedSeconds = null;
+        if ($(timerRequest).length > 0) {
+            scrapedSeconds = Number(convertTimeToInt($(timerRequest).text()));
+            LogUtils_logHHAuto('freeBundleTimer', scrapedSeconds);
+        }
+        const fallbackSeconds = ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+        const decision = decideExpiryTime({ scrapedSeconds, fallbackSeconds });
+        if (scrapedSeconds === null || scrapedSeconds >= 24 * 3600) {
+            LogUtils_logHHAuto('ERROR: can\'t get bundle expiry time, default to maxCollectionDelay');
+        }
+        return decision;
+    }
+    static goAndCollectFreeBundles() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            try {
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) !== "true") {
+                    LogUtils_logHHAuto("Error autoFreeBundlesCollect not activated.");
+                    return;
+                }
+                const plusButton = $("header .currency .reversed_tooltip");
+                if (plusButton.length > 0) {
+                    LogUtils_logHHAuto("click button for popup.");
+                    plusButton.trigger('click');
+                }
+                else {
+                    LogUtils_logHHAuto("No button for popup. Try again in 5h.");
+                    setTimer('nextFreeBundlesCollectTime', randomInterval(4 * 60 * 60, 6 * 60 * 60));
+                    return false;
+                }
+                LogUtils_logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
+                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
+                const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
+                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
+                function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
+                    LogUtils_logHHAuto(message);
+                    setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
+                    $("#common-popups .close_cross").trigger('click'); // Close popup
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    LogUtils_logHHAuto("setting autoloop to true");
+                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                }
+                function parseAndCollectFreeBundles() {
+                    const freeBundlesNumber = $(freeButtonBundleQuery).length;
+                    if (freeBundlesNumber > 0) {
+                        LogUtils_logHHAuto("Free Bundles found: " + freeBundlesNumber);
+                        let buttonsToCollect = [];
+                        for (let currentBundle = 0; currentBundle < freeBundlesNumber; currentBundle++) {
+                            buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);
+                        }
+                        function collectFreeBundle() {
+                            if (buttonsToCollect.length > 0) {
+                                LogUtils_logHHAuto("Collecting bundle n°" + buttonsToCollect[0].getAttribute('product'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(500, 800));
+                                setTimeout(switchToBundleTabs, randomInterval(1500, 2500));
+                            }
+                        }
+                        collectFreeBundle();
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                function switchToBundleTabs() {
+                    const bundleTabs = $(bundleTabsListQuery, $(bundleTabsContainerQuery));
+                    if (bundleTabs.length > 0) {
+                        let freeBundleFound = false;
+                        for (let bundleIndex = 0; bundleIndex < bundleTabs.length && !freeBundleFound; bundleIndex++) {
+                            bundleTabs[bundleIndex].click();
+                            LogUtils_logHHAuto("Looking in tabs '" + $(bundleTabs[bundleIndex]).attr('type') + "'.");
+                            freeBundleFound = parseAndCollectFreeBundles();
+                            if (!freeBundleFound && $(subTabsQuery).length > 0) {
+                                const subTabs = $(subTabsQuery);
+                                LogUtils_logHHAuto("Sub tabs found, switching to next one");
+                                for (let subTabIndex = 1; subTabIndex < subTabs.length && !freeBundleFound; subTabIndex++) {
+                                    subTabs[subTabIndex].click();
+                                    LogUtils_logHHAuto("Looking in sub tabs '" + $(subTabs[subTabIndex]).attr('period_deal') + "'.");
+                                    freeBundleFound = parseAndCollectFreeBundles();
+                                }
+                            }
+                        }
+                        if (!freeBundleFound)
+                            collectFreeBundlesFinished("Free bundle collection finished.", Bundles.getExpiryTime() + randomInterval(3600, 4000));
+                    }
+                    else {
+                        collectFreeBundlesFinished("No bundle tabs in popup, wait one hour.", 60 * 60);
+                        return false;
+                    }
+                }
+                // Wait popup is opened
+                setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
+                return true;
+            }
+            catch ({ errName, message }) {
+                LogUtils_logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
+                setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
+                return false;
+            }
+        }
+        else {
+            LogUtils_logHHAuto("Navigating to home page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            // return busy
+            return true;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/harem/HaremSalary.ts
+var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// HaremSalary.ts -- Salary collection: auto-collects earnings from harem girls.
+//
+// Harem girls generate soft currency (salary) over time. This module
+// periodically navigates to the harem page and collects accumulated salary
+// earnings, tracking collection timers to avoid unnecessary page loads.
+//
+// Used by: Service/index.ts (main automation loop)
+//
+
+
+
+
+
+
+
+
+
+class HaremSalary {
+    static getSalaryButton() {
+        return $("#collect_all_container button[id='collect_all']");
+    }
+    static getSalarySumTag() {
+        const salaryButton = HaremSalary.getSalaryButton();
+        let salarySumTag = NaN;
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHarem")) {
+            salarySumTag = Number($('[rel="next_salary"]', salaryButton)[0].innerText.replace(/[^0-9]/gi, ''));
+        }
+        else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            salarySumTag = Number(getHHVars("salary_collect"));
+        }
+        return salarySumTag;
+    }
+    static getSalary() {
+        return HaremSalary_awaiter(this, void 0, void 0, function* () {
+            try {
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+                    const salaryButton = HaremSalary.getSalaryButton();
+                    const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style") === "display: none;");
+                    if (!salaryToCollect) {
+                        //logHHAuto("No salary to collect");
+                        setTimer('nextSalaryTime', randomInterval(60, 180));
+                    }
+                    else {
+                        const salarySumTag = HaremSalary.getSalarySumTag();
+                        const enoughSalaryToCollect = Number.isNaN(salarySumTag) ? true : salarySumTag > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSalaryMinSalary) || 20000);
+                        if (enoughSalaryToCollect) {
+                            const getButtonClass = salaryButton.attr("class") || '';
+                            if (getButtonClass.indexOf("blue_button_L") !== -1 || getButtonClass.indexOf("round_blue_button") !== -1) {
+                                LogUtils_logHHAuto('Collected all salary');
+                                salaryButton.trigger('click');
+                                yield TimeHelper.sleep(randomInterval(200, 400));
+                                setTimer('nextSalaryTime', randomInterval(60, 180));
+                                return false;
+                            }
+                            else {
+                                LogUtils_logHHAuto("Unknown salary button color : " + getButtonClass);
+                                setTimer('nextSalaryTime', randomInterval(60, 180));
+                            }
+                        }
+                        else {
+                            LogUtils_logHHAuto("Not enough salary to collect, wait");
+                            setTimer('nextSalaryTime', randomInterval(60, 180));
+                        }
+                    }
+                }
+            }
+            catch (ex) {
+                LogUtils_logHHAuto("Catched error : Could not collect salary... " + ex);
+                setTimer('nextSalaryTime', randomInterval(60, 180));
+                // return not busy
+                return false;
+            }
+            return false;
+        });
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Module/GenericBattle.ts
+// GenericBattle.ts -- Handles the battle result page UI across all fight types.
+//
+// When a battle completes (troll, event, league, etc.), this module manages
+// the result page: adds skip buttons, auto-skips fight animations, and parses
+// reward drops. It acts as a shared handler for all battle outcomes rather
+// than being specific to one game mode.
+//
+// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+//          and other fight modules that navigate to battle pages
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class GenericBattle {
+    static doBattle() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle")
+            || getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle")) {
+            LogUtils_logHHAuto("On battle page.");
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true") {
+                LogUtils_logHHAuto("Reloading after league fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"), {}, randomInterval(4000, 5000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
+                const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
+                let troll_id = queryStringGetParam(window.location.search, 'id_opponent');
+                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
+                if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
+                }
+                const eventGirl = EventModule.getEventGirl();
+                const eventMythicGirl = EventModule.getEventMythicGirl();
+                if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic)
+                    ||
+                        getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic)) {
+                    LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
+                    RewardHelper.ObserveAndGetGirlRewards();
+                }
+                else {
+                    LoveRaidManager.getTrollRaids().forEach((raid) => {
+                        if (raid.trollId === Number(troll_id)) {
+                            LogUtils_logHHAuto("Event ongoing search for girl rewards in popup.");
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            return true;
+                        }
+                    });
+                    if (troll_id !== null) {
+                        LogUtils_logHHAuto("Go back to Troll after Troll fight.");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: troll_id }, randomInterval(2000, 4000));
+                    }
+                    else {
+                        LogUtils_logHHAuto("Go to home after unknown troll fight.");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"), {}, randomInterval(2000, 4000));
+                    }
+                }
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
+                LogUtils_logHHAuto("Go back to Season arena after Season fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDSeasonArena"), {}, randomInterval(2000, 4000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrillBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) === "true") {
+                LogUtils_logHHAuto("Go back to Penta drill arena after fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"), {}, randomInterval(5000, 8000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPantheonBattle") && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true" || DailyGoals.isPantheonDailyGoal())) {
+                LogUtils_logHHAuto("Go back to Pantheon arena after Pantheon temple.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDPantheon"), {}, randomInterval(2000, 4000));
+            }
+            else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLabyrinthBattle") && getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true") {
+                LogUtils_logHHAuto("Go back to Labyrinth after fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLabyrinth"), {}, randomInterval(2000, 4000));
+            }
+            return true;
+        }
+        else {
+            LogUtils_logHHAuto('Unable to identify page.');
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            return;
+        }
+    }
+}
+
+;// CONCATENATED MODULE: ./src/Service/Pipeline.config.ts
+var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Pipeline.config.ts -- Declarative pipeline configuration for the Scheduler.
+//
+// Defines the types and interfaces for handler configurations,
+// plus concrete handler entries for migrated handlers.
+//
+// Order of handler execution is given by the position in the `pipeline`
+// array below: first element runs first. Reordering = move a line.
+//
+// Used by: Scheduler.ts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Build a HandlerConfig from a legacy ModuleHandlerDescriptor. Used to migrate
+ * handlers that already wrap a uniform `name + action + isReady + execute`
+ * shape (the descriptors used by `runStandardHandler` in AutoLoopActions.ts).
+ *
+ * The returned config is single-step, non-atomic, always-interruptible, and
+ * mirrors the cascade in `runStandardHandler`:
+ *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
+ *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
+ *
+ * The `lastActionPerformed` continuation is preserved during the v7.36.0
+ * migration. v7.37.0 will replace it with a scheduler-internal multi-step
+ * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
+ */
+/**
+ * True when the bot is currently on a quest or side-quest page. Used to let
+ * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
+ * away from a quest mid-completion -- handleQuest needs several reload cycles
+ * to act, and lastActionPerformed is reset on the idle tick in between
+ * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
+ * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
+ */
+function isOnQuestPage(ctx) {
+    return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
+        || ctx.currentPage === 'side-quests';
+}
+function fromDescriptor(descriptor, opts) {
+    var _a, _b;
+    const atomic = (_a = opts.atomic) !== null && _a !== void 0 ? _a : false;
+    // The HandlerConfig.name is the technical identifier used as map key in
+    // Scheduler.lastRunAt, Scheduler.states, sessionStorage TK.pipelineLastRunAt
+    // and the [Scheduler] Starting chain '...' log line. Keep it short and
+    // identifier-like (e.g. 'handleMissions'). It must NOT collide with the
+    // descriptor.name, which is a user-facing log message ('Time to do
+    // missions.'). The user message is logged inside step.fn via descriptor.name.
+    // If opts.handlerName is omitted we fall back to descriptor.action so older
+    // call sites keep a stable, dot-free key.
+    const handlerName = (_b = opts.handlerName) !== null && _b !== void 0 ? _b : descriptor.action;
+    return {
+        name: handlerName,
+        minIntervalMs: opts.minIntervalMs,
+        atomic,
+        interruptible: atomic ? 'never' : 'always',
+        precondition: (ctx) => {
+            // Optional handler-specific gate evaluated BEFORE the standard guard.
+            // Used e.g. to make navigating handlers yield while the bot is mid-way
+            // through another module's multi-reload action (issue: handleMissions
+            // navigating away from the quest page kept restarting handleQuest).
+            if (opts.extraPrecondition && !opts.extraPrecondition(ctx))
+                return false;
+            return shouldRunStandardHandler({
+                ctxBusy: ctx.busy,
+                autoLoopActive: getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true",
+                competitionActive: ctx.canCollectCompetitionActive,
+                lastActionPerformed: ctx.lastActionPerformed,
+                requiresAutoLoop: descriptor.requiresAutoLoop,
+                requiresCompetition: descriptor.requiresCompetition,
+                handlerAction: descriptor.action,
+                isReady: descriptor.isReady(),
+            });
+        },
+        steps: [{
+                name: descriptor.action,
+                fn: (ctx) => Pipeline_config_awaiter(this, void 0, void 0, function* () {
+                    try {
+                        LogUtils_logHHAuto(descriptor.name);
+                        const result = yield descriptor.execute();
+                        ctx.busy = typeof result === 'boolean' ? result : true;
+                        ctx.lastActionPerformed = descriptor.action;
+                        return { ok: true };
+                    }
+                    catch (err) {
+                        return { ok: false, reason: String(err), retryable: true };
+                    }
+                }),
+            }],
+    };
+}
+// ---------------------------------------------------------------------------
+//  Handler: handleEventParsing
+//  Non-atomic, always interruptible.
+//  Wraps: EventModule.parseEventPage()
+// ---------------------------------------------------------------------------
+/**
+ * Event ids the home-page scan (parsePageForEventId, stored on ctx.eventIDs)
+ * found but that are NOT yet in the registry. These are freshly started
+ * events on their first visit: getStaleEventIDs() is registry-only and would
+ * miss them, so without this the event page is never visited and event-parse
+ * side effects (e.g. eventMythicGoing for the mythic fight) never run until
+ * the user opens the page manually. Once parsed, the entry is registered and
+ * the normal stale path takes over.
+ */
+function getEventIDsToVisit(ctx) {
+    const ids = ctx.eventIDs || [];
+    if (ids.length === 0)
+        return [];
+    try {
+        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        const eventList = storedList ? JSON.parse(storedList) : {};
+        return ids.filter(id => !Object.prototype.hasOwnProperty.call(eventList, id));
+    }
+    catch (_a) {
+        // Unreadable registry: treat every discovered id as needing a visit.
+        return ids;
+    }
+}
+const handleEventParsing = {
+    name: 'handleEventParsing',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        // Events feature must be enabled
+        if (ConfigHelper.getHHScriptVars('isEnabledEvents', false) !== true)
+            return false;
+        // Suppress event-page navigation while handleTrollBattle is waiting
+        // for an energy refill on a path that needs the same event data
+        // (issue #1700, #1708). Re-evaluating the event page every tick in
+        // that state collided with handleLeague and produced the ping-pong
+        // loop between event.html and leagues.html.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy) === 'true')
+            return false;
+        // Trigger if at least one stale registry event exists, OR if the
+        // home-page scan (EventModule.parsePageForEventId -> ctx.eventIDs)
+        // found an enabled event that is not yet in the registry. The latter
+        // is the FIRST visit of a freshly started event: it has no registry
+        // entry yet, so getStaleEventIDs() (registry-only) returns nothing and
+        // the event page would never be visited -- which is exactly why a
+        // live mythic event did not start fighting until the user opened the
+        // event page manually (it sets eventMythicGoing, the timer the mythic
+        // fight in handleTrollBattle gates on). ctx.eventIDs only contains
+        // ids for which EventModule.checkEvent() is true (enabled + stale or
+        // brand-new), so once parsed the entry lands in the registry and the
+        // normal stale mechanism takes over -- no per-tick ping-pong.
+        if (getStaleEventIDs().length > 0)
+            return true;
+        return getEventIDsToVisit(ctx).length > 0;
+    },
+    steps: [
+        {
+            name: 'parseEvents',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    // precondition + fn must agree on the selection: parsing any
+                    // non-stale event would leave the original stale event untouched,
+                    // so the precondition would keep firing on the next tick (issue
+                    // #1673). Prefer a stale registry event; fall back to a freshly
+                    // discovered (not-yet-registered) event id from the home-page scan.
+                    const staleIDs = getStaleEventIDs();
+                    const target = staleIDs.length > 0 ? staleIDs[0] : getEventIDsToVisit(ctx)[0];
+                    if (!target) {
+                        return { ok: true }; // nothing to parse
+                    }
+                    yield EventModule.parseEventPage(target);
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+            timeoutMs: 15000,
+        },
+    ],
+    totalTimeoutMs: 20000,
+};
+/**
+ * Return the IDs of all unfinished events whose `next_refresh` is missing,
+ * non-finite, or already in the past. Exported for direct unit testing in
+ * Pipeline.config.spec.ts.
+ *
+ * On unexpected storage shape this returns a single sentinel ID so that the
+ * caller still triggers a parse cycle (preserves the previous fallback
+ * behaviour where the precondition returned true on parse errors).
+ *
+ * Expired-event side effect: entries whose `seconds_before_end` is in the
+ * past are events the game no longer hosts. parseEventPage cannot refresh
+ * them (the in-game tab has been replaced by a successor or removed
+ * entirely), so they would stay stale forever and drive
+ * handleEventParsing into a permanent reload loop (issue #1738 -- a
+ * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
+ * the user gave up). pruneExpiredEvents() removes them from the registry
+ * BEFORE this filter runs so the loop terminates and storage stays
+ * bounded.
+ */
+function getStaleEventIDs(now = Date.now()) {
+    try {
+        const storedList = getStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        const eventList = storedList ? JSON.parse(storedList) : {};
+        pruneExpiredEvents(eventList, now);
+        return Object.keys(eventList).filter(id => {
+            const ev = eventList[id];
+            if (!ev || ev.isCompleted)
+                return false;
+            const nextRefresh = Number(ev.next_refresh);
+            return !Number.isFinite(nextRefresh) || nextRefresh <= now;
+        });
+    }
+    catch (_a) {
+        // Unexpected storage shape: pretend a parse is needed so we don't
+        // accidentally skip a refresh cycle. The actual parseEventPage call
+        // tolerates an empty/garbage tab via its own "global" fallback.
+        return ['__parse_error__'];
+    }
+}
+/**
+ * Drop event registry entries whose game-side end has already passed
+ * (`seconds_before_end <= now`). Such entries cannot be refreshed by
+ * parseEventPage (the in-game tab is gone), so leaving them in the
+ * registry would keep handleEventParsing.precondition firing forever
+ * (issue #1738).
+ *
+ * Mutates the input map AND persists the pruned shape so the next
+ * read sees the cleaned state. Exported for direct unit testing in
+ * Pipeline.config.spec.ts.
+ *
+ * Defensive: an entry without `seconds_before_end`, or with a
+ * non-finite value, is left in place. parseEventPage handles those
+ * via its existing "ERROR: No event Id found" path on the next visit.
+ */
+function pruneExpiredEvents(eventList, now) {
+    let mutated = false;
+    for (const id of Object.keys(eventList)) {
+        const ev = eventList[id];
+        if (!ev)
+            continue;
+        const end = Number(ev.seconds_before_end);
+        if (Number.isFinite(end) && end <= now) {
+            delete eventList[id];
+            mutated = true;
+        }
+    }
+    if (mutated) {
+        if (Object.keys(eventList).length === 0) {
+            deleteStoredValue(HHStoredVarPrefixKey + TK.eventsList);
+        }
+        else {
+            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+        }
+    }
+}
+// ---------------------------------------------------------------------------
+//  Handler: handleLeague
+//  Atomic (fight sequence must not be interrupted).
+//  Wraps: LeagueHelper.isTimeToFight() + LeagueHelper.doLeagueBattle()
+// ---------------------------------------------------------------------------
+const handleLeague = {
+    name: 'handleLeague',
+    // Aligned with the short setTimer('nextLeaguesTime') value used in
+    // LeagueHelper.doLeagueBattle when energy remains after a batch.
+    // A larger Scheduler cool-down would silently extend the gap and
+    // defeat the purpose of the short setTimer (the user wants the bot
+    // to chain through all 15 battles, like a human emptying the league
+    // tab in one sitting).
+    minIntervalMs: 2000,
+    atomic: true,
+    interruptible: 'never',
+    precondition: (ctx) => {
+        // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
+        //
+        //   1. League auto-mode active and feature enabled at all?
+        //   2. Bot not currently mid-action on a different module
+        //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
+        //      out of step.fn so the chain doesn't fire just to log a skip).
+        //   3. Either ready to fight (energy + threshold + booster check) OR
+        //      the cool-down timer has expired and we still need to refresh
+        //      the pInfo display with a default timer value (issue raised
+        //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
+        //      false because the only setTimer paths live behind a fight).
+        //
+        // Note (issue #1708 follow-up): handleLeague is intentionally NOT
+        // gated on trollWaitForEnergy. League uses a separate energy pool
+        // (challenge tokens) that is unrelated to troll combativity (fight
+        // tokens). LeagueHelper.isTimeToFight() already checks challenge
+        // energy, and the minIntervalMs caps re-entry. Blocking league
+        // while troll waits for combativity (as v7.35.45 did) keeps league
+        // fights from happening even though the user has the energy to do
+        // them. handleEventParsing is gated separately because it ran every
+        // 2 s and was the actual ping-pong driver in #1700.
+        if (!LeagueHelper.isAutoLeagueActivated())
+            return false;
+        const lastAction = ctx.lastActionPerformed;
+        if (lastAction !== 'none' && lastAction !== 'league')
+            return false;
+        return LeagueHelper.isTimeToFight() || checkTimer('nextLeaguesTime');
+    },
+    steps: [
+        {
+            name: 'doLeagueBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (LeagueHelper.isTimeToFight()) {
+                        LeagueHelper.doLeagueBattle();
+                        ctx.lastActionPerformed = 'league';
+                        return { ok: true };
+                    }
+                    // Fight not possible right now (energy below threshold,
+                    // booster missing, etc.). Refresh the cool-down timer so the
+                    // pInfo display can show the next refresh time instead of
+                    // 'No timer'. Default fallback when the game has not yet
+                    // reported a next_refresh_ts is the same 15-17 min window
+                    // doLeagueBattle uses for similar idle paths.
+                    const next_refresh = Number(getHHVars('Hero.energies.challenge.next_refresh_ts'));
+                    if (Number.isFinite(next_refresh) && next_refresh > 0) {
+                        setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                    }
+                    else {
+                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+            timeoutMs: 25000,
+        },
+    ],
+    onFailure: (_ctx, failedStep, reason) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+        LogUtils_logHHAuto('[Pipeline] handleLeague failed at ' + failedStep + ': ' + reason);
+    }),
+    totalTimeoutMs: 30000,
+};
+// ---------------------------------------------------------------------------
+//  Handler: handleShop
+//  Migrated from AutoLoopActions.handleShop in 3.2.G.a.
+//  Non-atomic, always interruptible. Logs and updates the shop only when
+//  the inner trigger matches the legacy implementation: either the shop
+//  cool-down timer has elapsed, or the cached character level is below the
+//  current hero level (signals a level-up that should refresh shop offers).
+// ---------------------------------------------------------------------------
+const handleShop = {
+    name: 'handleShop',
+    // Cool-down for the pipeline scheduler. The Shop module also keeps its
+    // own internal nextShopTime timer; both must elapse before a real shop
+    // navigation happens. 5_000 ms keeps the handler responsive without
+    // burning a tick slot every second.
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true)
+            return false;
+        if (!Shop.isTimeToCheckShop())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        // Legacy lastActionPerformed continuation gate. v7.37.0 will replace
+        // this with a scheduler-internal multi-step model; see
+        // docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md.
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
+            return false;
+        // Inner trigger -- belongs in precondition, not the step. The legacy
+        // handler had a two-stage gate (outer if + inner if) inside one tick,
+        // so a precondition-true / inner-false combination was a no-op.
+        // In the pipeline model the scheduler logs "Starting" and bumps the
+        // cool-down on every step.fn call, even silent ones. That bursts the
+        // scheduler into a 5-second spam loop while Shop.isTimeToCheckShop()
+        // stays true (updateMarket / needBoosterStatusFromStore flags persist
+        // until the shop is actually scraped). Lesson: when migrating a
+        // multi-stage if cascade, every gate must move to the precondition.
+        // Initialise the cached level on first call -- mirrors the legacy
+        // handler. Without this, getLevel-vs-stored comparison below would
+        // always fire on a fresh install.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
+            setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
+        }
+        const timerReady = checkTimer('nextShopTime');
+        const levelChanged = getStoredValue(HHStoredVarPrefixKey + TK.charLevel) < getHHVars('Hero.infos.level');
+        if (!timerReady && !levelChanged)
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'updateShop',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to check shop.');
+                    const result = Shop.updateShop();
+                    ctx.busy = result === true;
+                    ctx.lastActionPerformed = 'shop';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
+//  Handler: handleAutoEquipBoosters
+//  Migrated from AutoLoopActions.handleAutoEquipBoosters in 3.2.G.a.
+//  Non-atomic, always interruptible. Auto-equips legendary boosters when
+//  slots are empty/expired and the user opted in.
+// ---------------------------------------------------------------------------
+const handleAutoEquipBoosters = {
+    name: 'handleAutoEquipBoosters',
+    // Boosters can expire mid-session; keep the scheduler cool-down short so
+    // the next eligible tick reacts quickly. The internal Booster timer (and
+    // the freshness stamp introduced in cluster Z) handles longer waits.
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) !== 'true')
+            return false;
+        if (!checkTimer('nextAutoEquipBoosterTime'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        // No lastActionPerformed gate in the legacy handler.
+        return true;
+    },
+    steps: [{
+            name: 'autoEquipBoosters',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    const equipped = yield Booster.autoEquipBoosters();
+                    if (equipped) {
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'autoEquipBoosters';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
+//  Handlers migrated in 3.2.G.b via fromDescriptor.
+//  Each one is a one-step wrapper around the legacy ModuleHandlerDescriptor.
+//  isReady captures both outer and inner trigger -- the lesson
+//  pipeline-inner-trigger-in-precondition warns against splitting them
+//  between precondition and step.fn.
+//  All eleven handlers are non-atomic, always interruptible, and use
+//  minIntervalMs sized to match the legacy tick frequency for that module.
+// ---------------------------------------------------------------------------
+const handleLoveRaid = fromDescriptor({
+    name: "Time to go and check raids.",
+    action: "loveraid",
+    requiresCompetition: true,
+    isReady: () => LoveRaidManager.isAnyActivated() && checkTimer('nextLoveRaidTime'),
+    execute: () => LoveRaidManager.parse(),
+}, { minIntervalMs: 5000, handlerName: "handleLoveRaid" });
+const handleContest = fromDescriptor({
+    name: "Time to get contest rewards.",
+    action: "contest",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledContest", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) === "true"
+        && (checkTimer('nextContestCollectTime') || unsafeWindow.has_contests_datas || Contest.getClaimsButton().length > 0),
+    execute: () => Contest.run(),
+}, { minIntervalMs: 5000, handlerName: "handleContest" });
+const handleMissions = fromDescriptor({
+    name: "Time to do missions.",
+    action: "mission",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledMission", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) === "true"
+        && checkTimer('nextMissionTime'),
+    execute: () => Missions.run(),
+}, {
+    minIntervalMs: 5000,
+    handlerName: "handleMissions",
+    // Yield while the bot is on a quest page and auto-quest is enabled.
+    // handleMissions sits early in the pipeline and would otherwise navigate
+    // missions<-quest every other tick, restarting handleQuest before it can
+    // act (the quest needs multiple reloads; lastActionPerformed='quest' is
+    // reset on the idle tick in between). Only blocks when there is a quest to
+    // do -- if auto-quest is off, missions runs normally even on a quest page.
+    extraPrecondition: (ctx) => {
+        if (!isOnQuestPage(ctx))
+            return true;
+        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
+        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
+        return !(autoQuest || autoSideQuest);
+    },
+});
+const handleChampion = fromDescriptor({
+    name: "Time to check on champions!",
+    action: "champion",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledChamps", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) === "true"
+        && checkTimer('nextChampionTime'),
+    execute: () => Champion.doChampionStuff(),
+}, { minIntervalMs: 5000, handlerName: "handleChampion" });
+const handleClubChampion = fromDescriptor({
+    name: "Time to check on club champion!",
+    action: "clubChampion",
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) === "true"
+        && checkTimer('nextClubChampionTime'),
+    execute: () => ClubChampion.doClubChampionStuff(),
+}, { minIntervalMs: 5000, handlerName: "handleClubChampion" });
+const handleSeasonalFreeCard = fromDescriptor({
+    name: "Time to go and check SeasonalEvent to buy free card.",
+    action: "seasonal",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalBuyFreeCard) === "true"
+        && checkTimer('nextSeasonalCardCollectTime'),
+    execute: () => SeasonalEvent.goAndCollectFreeCard(),
+}, { minIntervalMs: 5000, handlerName: "handleSeasonalFreeCard" });
+const handleSeasonalRankCollect = fromDescriptor({
+    name: "Time to go and check SeasonalEvent for collecting rank reward.",
+    action: "seasonal",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true"
+        && checkTimer('nextMegaEventRankCollectTime'),
+    execute: () => SeasonalEvent.goAndCollectMegaEventRankRewards(),
+}, { minIntervalMs: 5000, handlerName: "handleSeasonalRankCollect" });
+const handleFreeBundles = fromDescriptor({
+    name: "Time to go and check Free Bundles for collecting reward.",
+    action: "bundle",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true"
+        && checkTimer('nextFreeBundlesCollectTime'),
+    execute: () => { Bundles.goAndCollectFreeBundles(); },
+}, { minIntervalMs: 5000, handlerName: "handleFreeBundles" });
+const handleDailyGoals = fromDescriptor({
+    name: "Time to go and check daily Goals for collecting reward.",
+    action: "dailyGoals",
+    requiresCompetition: true,
+    isReady: () => ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false)
+        && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true"
+        && checkTimer('nextDailyGoalsCollectTime'),
+    execute: () => DailyGoals.goAndCollect(),
+}, { minIntervalMs: 5000, handlerName: "handleDailyGoals" });
+const handleLabyrinth = fromDescriptor({
+    name: "Time to check on labyrinth.",
+    action: "labyrinth",
+    requiresCompetition: true,
+    isReady: () => getStoredValue(HHStoredVarPrefixKey + SK.autoLabyrinth) === "true"
+        && Labyrinth.isEnabled()
+        && checkTimer('nextLabyrinthTime'),
+    execute: () => (new LabyrinthAuto).run(),
+}, { minIntervalMs: 5000, handlerName: "handleLabyrinth" });
+// ---------------------------------------------------------------------------
+//  Handlers migrated in 3.2.G.complete (the remaining classic handlers).
+//
+//  These are the handlers that did not fit the runStandardHandler descriptor
+//  shape used in 3.2.G.b. Each one keeps its full legacy logic in step.fn,
+//  with all gates lifted into precondition (lesson
+//  pipeline-inner-trigger-in-precondition).
+//
+//  handleMythicWave is intentionally NOT migrated. Its only effect was
+//  setting ctx.lastActionPerformed = "troll" in the same tick to grant
+//  handleTrollBattle the slot reservation. In the pipeline model the
+//  scheduler picks one handler per tick, so the reservation has no
+//  destination -- and handleTrollBattle's own gate already accepts
+//  lastActionPerformed = "none" anyway. The function is kept in
+//  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
+//  is removed.
+// ---------------------------------------------------------------------------
+const handleHaremSize = {
+    name: 'handleHaremSize',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs')))
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDWaifu'))
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEditTeam'))
+            return false;
+        if (ctx.lastActionPerformed !== 'none')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'gotoWaifu',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDWaifu'));
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePlaceOfPower = {
+    name: 'handlePlaceOfPower',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!PlaceOfPower.isActivated())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pop')
+            return false;
+        const popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+        if (popToStart.length === 0 && !checkTimer('minPowerPlacesTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'doPoP',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    let popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    const popToStartExist = getStoredValue(HHStoredVarPrefixKey + TK.PopToStart) ? true : false;
+                    if (!popToStartExist) {
+                        LogUtils_logHHAuto('Go and collect pop');
+                        ctx.busy = yield PlaceOfPower.collectAndUpdate();
+                    }
+                    const indexes = getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlacesIndexFilter).split(';');
+                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    for (const pop of popToStart) {
+                        if (ctx.busy === false && !indexes.includes(String(pop))) {
+                            LogUtils_logHHAuto('PoP is no longer in list :' + pop + ' removing it from start list.');
+                            PlaceOfPower.removePopFromPopToStart(pop);
+                        }
+                    }
+                    popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                    for (const index of indexes) {
+                        if (ctx.busy === false && popToStart.includes(Number(index))) {
+                            LogUtils_logHHAuto('Time to do PowerPlace' + index + '.');
+                            ctx.busy = yield PlaceOfPower.doPowerPlacesStuff(index);
+                            ctx.lastActionPerformed = 'pop';
+                        }
+                    }
+                    if (ctx.busy === false) {
+                        popToStart = getStoredJSON(HHStoredVarPrefixKey + TK.PopToStart, []);
+                        if (popToStart.length === 0) {
+                            deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+/**
+ * Battle-result pages handled by handleGenericBattle (GenericBattle.doBattle).
+ * On these pages the post-fight reward popup must be parsed
+ * (RewardHelper.ObserveAndGetGirlRewards) so girl/raid shard progress is written
+ * back to storage. handleTrollBattle runs earlier in the pipeline and has no
+ * page guard, so it must explicitly yield these pages -- otherwise doBossBattle()
+ * navigates away ("Navigating to chosen Troll") before the reward is read, the
+ * raid girl's shard count never reaches 100, and getRaidToFight never clears the
+ * selector: an endless troll fight loop on an already-won raid girl (issue #1740).
+ */
+function isGenericBattleResultPage(currentPage) {
+    const battlePages = [
+        ConfigHelper.getHHScriptVars('pagesIDLeagueBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDTrollBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDSeasonBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDPentaDrillBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDPantheonBattle'),
+        ConfigHelper.getHHScriptVars('pagesIDLabyrinthBattle'),
+    ];
+    return battlePages.includes(currentPage);
+}
+const handleGenericBattle = {
+    name: 'handleGenericBattle',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        return isGenericBattleResultPage(ctx.currentPage);
+    },
+    steps: [{
+            name: 'doBattle',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = true;
+                    GenericBattle.doBattle();
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleTrollBattle = {
+    name: 'handleTrollBattle',
+    // 7.35.61 live test on PH ran 75 [Scheduler] Starting chain 'handleTrollBattle'
+    // logs in 30 minutes for 28 actual fights. The remaining 47 ticks were
+    // legitimate skips (currentPower below threshold, no event girl, no raid):
+    // the precondition matched but step.fn fell through. In the classic
+    // implementation these were silent no-ops; the pipeline still emits
+    // Starting/completed pairs which adds log noise. Doubling the cool-down
+    // to 4 s halves the polling rate without affecting fight responsiveness
+    // (the inner Troll battle sequence holds the autoLoop flag for several
+    // seconds between fights anyway).
+    minIntervalMs: 4000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (!Troll.isTrollFightActivated())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        // Yield battle-result pages to handleGenericBattle so the post-fight reward
+        // popup is parsed and raid girl shards are written back (issue #1740).
+        if (isGenericBattleResultPage(ctx.currentPage))
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'troll' && ctx.lastActionPerformed !== 'quest')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'trollBattleOrWait',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    // Always clear the troll wait-marker up-front (issue #1708 / #1700).
+                    // Only the wait-branch below sets it back to "true" when this tick
+                    // decides to wait for an energy refill. Doing the clear unconditionally
+                    // avoids a stale marker when the user disables auto-troll mid-wait.
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'false');
+                    const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
+                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+                    const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true';
+                    const energyAboveThreshold = humanLikeRun && ctx.currentPower > threshold || ctx.currentPower > Math.max(threshold, runThreshold - 1);
+                    const eventGirl = EventModule.getEventGirl();
+                    const eventMythicGirl = EventModule.getEventMythicGirl();
+                    const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+                    const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+                    const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+                    const loveRaid = LoveRaidManager.isActivated()
+                        ? LoveRaidManager.getRaidToFight(allTrollRaids)
+                        : undefined;
+                    const shouldFight = (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true'
+                        && ctx.currentPower >= Number(getStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired))
+                        && ctx.currentPower > 0
+                        && (energyAboveThreshold || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'true'))
+                        || (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true' && ctx.currentPower > 0 && ParanoiaService.checkParanoiaSpendings('fight') > 0)
+                        || ((eventMythicGirl.girl_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true')
+                            && (ctx.currentPower > 0 || Troll.canBuyFight(eventMythicGirl, false).canBuy))
+                        || ((raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)
+                                : (energyAboveThreshold || Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy)))
+                        || ((eventGirl.girl_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true')
+                            && (energyAboveThreshold || Troll.canBuyFight(eventGirl, false).canBuy))
+                        || ((LoveRaidManager.isActivated() && (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl))
+                            && (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === 'true'
+                                ? (ctx.currentPower > 0 || Troll.canBuyFightForRaid(loveRaid, false).canBuy)
+                                : (energyAboveThreshold || Troll.canBuyFightForRaid(loveRaid, false).canBuy)));
+                    if (shouldFight) {
+                        LogUtils_logHHAuto('Troll:', { threshold: threshold, runThreshold: runThreshold, TrollHumanLikeRun: humanLikeRun });
+                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, '0');
+                        ctx.busy = true;
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) !== 'true' || getStoredValue(HHStoredVarPrefixKey + TK.questRequirement)[0] !== 'P') {
+                            ctx.busy = yield Troll.doBossBattle();
+                            if (ctx.busy)
+                                ctx.lastActionPerformed = 'troll';
+                        }
+                        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true') {
+                            LogUtils_logHHAuto('AutoBattle disabled for power collection for AutoQuest.');
+                            document.getElementById('autoTrollBattle').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
+                            ctx.busy = false;
+                        }
+                        else {
+                            ctx.busy = yield Troll.doBossBattle();
+                            if (ctx.busy)
+                                ctx.lastActionPerformed = 'troll';
+                        }
+                    }
+                    else {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, 'false');
+                        }
+                        if (ctx.currentPower === 0 && wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid)) {
+                            LogUtils_logHHAuto('Troll fight pending: waiting for energy refill.');
+                            setStoredValue(HHStoredVarPrefixKey + TK.trollWaitForEnergy, 'true');
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+/**
+ * Pure helper used by handleTrollBattle. Mirrors the OR-disjunction in the
+ * trollBattleOrWait step.fn; if those activation paths drift, the wait-marker
+ * either fires too often (blocking event-parsing) or too rarely (issue #1700
+ * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
+ *
+ * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (13 cases)
+ *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (5 cases)
+ * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
+ */
+function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
+    const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true';
+    const mythicEventReady = Boolean(eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.is_mythic) === true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true';
+    const eventReady = Boolean(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic) !== true
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true';
+    const raidStarsReady = Boolean(raidStarsRaid === null || raidStarsRaid === void 0 ? void 0 : raidStarsRaid.id_girl)
+        && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === 'true';
+    const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.id_girl);
+    return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
+}
+const handlePachinko = {
+    name: 'handlePachinko',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pachinko')
+            return false;
+        const myth = ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time');
+        const great = ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime');
+        const equip = ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime');
+        return myth || great || equip;
+    },
+    steps: [{
+            name: 'fetchPachinko',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledMythicPachinko', false) && checkTimer('nextPachinko2Time')) {
+                        LogUtils_logHHAuto('Time to fetch Mythic Pachinko.');
+                        ctx.busy = yield Pachinko.getMythicPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledGreatPachinko', false) && checkTimer('nextPachinkoTime')) {
+                        LogUtils_logHHAuto('Time to fetch Great Pachinko.');
+                        ctx.busy = yield Pachinko.getGreatPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    if (ctx.busy === false && ConfigHelper.getHHScriptVars('isEnabledEquipmentPachinko', false) && checkTimer('nextPachinkoEquipTime')) {
+                        LogUtils_logHHAuto('Time to fetch Equipment Pachinko.');
+                        ctx.busy = yield Pachinko.getEquipmentPachinko();
+                        ctx.lastActionPerformed = 'pachinko';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleQuest = {
+    name: 'handleQuest',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) !== true)
+            return false;
+        const autoQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true';
+        const autoSideQuest = ConfigHelper.getHHScriptVars('isEnabledSideQuest', false)
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true';
+        if (!autoQuest && !autoSideQuest)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'quest')
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'doQuest',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === undefined) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
+                    }
+                    const questRequirement = getStoredValue(HHStoredVarPrefixKey + TK.questRequirement);
+                    // Interim guard (full fix tracked for the step-17 multi-step scheduler):
+                    // the resource-wait branches below ('*', '$', 'P') set ctx.busy=false
+                    // without navigating. Without this the bot strands on /quest.html and
+                    // handleQuest ticks empty every ~2s while other modules (salary, ...)
+                    // never run. Route home so the normal loop resumes; auto-quest navigates
+                    // back once the resource is available. The 'none' branch keeps its own
+                    // equivalent guard; the manual-action branches (unknownQuestButton /
+                    // outfit / errorInAutoBattle) intentionally stay on the quest screen and
+                    // must NOT call this.
+                    const routeHomeIfWaitingOnQuest = () => {
+                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+                        if (!ctx.busy && onQuestPage) {
+                            LogUtils_logHHAuto('Quest waiting for resources, returning home.');
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                        }
+                    };
+                    if (questRequirement === 'battle') {
+                        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
+                            LogUtils_logHHAuto('Quest requires battle.');
+                            LogUtils_logHHAuto('prepare to save one battle for quest');
+                            setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') {
+                                ctx.busy = yield Troll.doBossBattle();
+                            }
+                        }
+                    }
+                    else if (questRequirement[0] === '$') {
+                        if (Number(questRequirement.substr(1)) < getHHVars('Hero.currencies.soft_currency')) {
+                            LogUtils_logHHAuto('Continuing quest, required money obtained.');
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                            ctx.busy = QuestHelper.run();
+                        }
+                        else {
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                            if (isNaN(Number(questRequirement.substr(1)))) {
+                                LogUtils_logHHAuto(questRequirement);
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                                LogUtils_logHHAuto('Invalid money in session storage quest requirement !');
+                            }
+                            ctx.busy = false;
+                        }
+                        routeHomeIfWaitingOnQuest();
+                    }
+                    else if (questRequirement[0] === '*') {
+                        const energyNeeded = Number(questRequirement.substr(1));
+                        const energyCurrent = QuestHelper.getEnergy();
+                        if (energyNeeded <= energyCurrent) {
+                            if (Number(energyCurrent) > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
+                                LogUtils_logHHAuto('Continuing quest, required energy obtained.');
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                                ctx.busy = QuestHelper.run();
+                            }
+                            else {
+                                ctx.busy = false;
+                            }
+                        }
+                        else {
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                            ctx.busy = false;
+                        }
+                        routeHomeIfWaitingOnQuest();
+                    }
+                    else if (questRequirement[0] === 'P') {
+                        const neededPower = Number(questRequirement.substr(1));
+                        if (ctx.currentPower < neededPower) {
+                            LogUtils_logHHAuto('Quest requires ' + neededPower + ' Battle Power for advancement. Waiting...');
+                            ctx.busy = false;
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        }
+                        else {
+                            LogUtils_logHHAuto('Battle Power obtained, resuming quest...');
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                            ctx.busy = QuestHelper.run();
+                        }
+                        routeHomeIfWaitingOnQuest();
+                    }
+                    else if (questRequirement === 'unknownQuestButton') {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due to unknown quest button. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
+                    else if (questRequirement === 'errorInAutoBattle') {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_AutoQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled.HHAuto_Setting_autoSideQuest cannot be performed due errors in AutoBattle. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
+                    else if (questRequirement === 'outfit') {
+                        // Quest step requires an outfit change. Quest.ts:215 writes the
+                        // 'outfit' marker but no else-if matched it before, so the
+                        // pipeline fell through to the catch-all 'Invalid quest
+                        // requirement' branch every tick: the marker was never reset,
+                        // so the bot stayed in an infinite log-spam loop on outfit-
+                        // gated quests until the user manually intervened. Auto-quest
+                        // also stayed enabled (unlike unknownQuestButton), so the
+                        // pInfo gave no hint that the bot was stuck.
+                        //
+                        // Mirror the unknownQuestButton path: disable autoQuest /
+                        // autoSideQuest, log a user-actionable message, reset the
+                        // marker, set paranoiaQuestBlocked so other handlers know not
+                        // to wait for quest progress.
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled. The current quest step requires an outfit change. Please manually proceed the current quest screen.');
+                            document.getElementById('autoQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, 'false');
+                        }
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === 'true') {
+                            LogUtils_logHHAuto('AutoQuest disabled. The current side-quest step requires an outfit change. Please manually proceed the current quest screen.');
+                            document.getElementById('autoSideQuest').checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest, 'false');
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, 'none');
+                        ctx.busy = false;
+                    }
+                    else if (questRequirement === 'none') {
+                        if (checkTimer('nextMainQuestAttempt') && checkTimer('nextSideQuestAttempt')) {
+                            if (QuestHelper.getEnergy() > Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)) || ParanoiaService.checkParanoiaSpendings('quest') > 0) {
+                                ctx.busy = QuestHelper.run();
+                            }
+                        }
+                        // Idle/home guard: when there is nothing left to do on the quest
+                        // page (energy below threshold, or the main/side attempt timers
+                        // are still running) the handler above does nothing and the bot
+                        // is stranded on /quest.html -- handleQuest keeps ticking empty
+                        // every ~2s while other modules (e.g. salary) never run because
+                        // the bot never navigates away. If we did not act and we are on
+                        // the quest page, route back home so the normal loop resumes.
+                        const onQuestPage = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest') || ctx.currentPage === 'side-quests';
+                        if (!ctx.busy && onQuestPage) {
+                            LogUtils_logHHAuto('Nothing to do on quest page, returning home.');
+                            ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                        }
+                    }
+                    else {
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked, 'true');
+                        LogUtils_logHHAuto('Invalid quest requirement : ' + questRequirement);
+                        ctx.busy = false;
+                    }
+                    if (ctx.busy)
+                        ctx.lastActionPerformed = 'quest';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeason = {
+    name: 'handleSeason',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
+            return false;
+        if (!Season.isTimeToFight() && !checkTimer('nextSeasonTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'seasonBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (Season.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to fight in Season.');
+                        ctx.busy = yield Season.run();
+                        ctx.lastActionPerformed = 'season';
+                    }
+                    else if (checkTimer('nextSeasonTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.kiss.next_refresh_ts') === 0) {
+                            setTimer('nextSeasonTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.kiss.next_refresh_ts');
+                            setTimer('nextSeasonTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePentaDrill = {
+    name: 'handlePentaDrill',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
+            return false;
+        if (!PentaDrill.isTimeToFight() && !checkTimer('nextPentaDrillTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'pentaDrillBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (PentaDrill.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to fight in PentaDrill.');
+                        PentaDrill.run();
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'pentaDrill';
+                    }
+                    else if (checkTimer('nextPentaDrillTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.PentaDrillHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.drill.next_refresh_ts') === 0) {
+                            setTimer('nextPentaDrillTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.drill.next_refresh_ts');
+                            setTimer('nextPentaDrillTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePantheon = {
+    name: 'handlePantheon',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        const autoPantheon = getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === 'true';
+        const dailyPantheon = DailyGoals.isPantheonDailyGoal();
+        if (!autoPantheon && !dailyPantheon)
+            return false;
+        if (!Pantheon.isEnabled())
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pantheon')
+            return false;
+        if (!Pantheon.isTimeToFight() && !checkTimer('nextPantheonTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'pantheonBattleOrTimer',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    if (Pantheon.isTimeToFight()) {
+                        LogUtils_logHHAuto('Time to do Pantheon.');
+                        Pantheon.run();
+                        ctx.busy = true;
+                        ctx.lastActionPerformed = 'pantheon';
+                    }
+                    else if (checkTimer('nextPantheonTime')) {
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun) === 'true') {
+                            setStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun, 'false');
+                        }
+                        if (getHHVars('Hero.energies.worship.next_refresh_ts') === 0) {
+                            setTimer('nextPantheonTime', randomInterval(15 * 60, 17 * 60));
+                        }
+                        else {
+                            const next_refresh = getHHVars('Hero.energies.worship.next_refresh_ts');
+                            setTimer('nextPantheonTime', randomInterval(next_refresh + 10, next_refresh + 180));
+                        }
+                        ctx.lastActionPerformed = 'none';
+                    }
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleChampionTicket = {
+    name: 'handleChampionTicket',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledChamps', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoChampsUseEne) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!ctx.canCollectCompetitionActive)
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'champion')
+            return false;
+        const energy = QuestHelper.getEnergy();
+        const ticketPrice = ConfigHelper.getHHScriptVars('CHAMP_TICKET_PRICE');
+        if (energy < ticketPrice)
+            return false;
+        if (energy <= Number(getStoredValue(HHStoredVarPrefixKey + SK.autoQuestThreshold)))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'buyChampionTicket',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                var _a;
+                try {
+                    // Avoid getHero() import: it lives in HeroHelper.ts which imports autoLoop,
+                    // closing a Module->Service->Module cycle (lesson zirkulaerer-import-tdz-crash).
+                    // unsafeWindow.shared?.Hero is the same object getHero() returns.
+                    const Hero = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero;
+                    if (!Hero)
+                        return { ok: false, reason: 'Hero unavailable', retryable: true };
+                    function buyTicket() {
+                        const params = {
+                            action: 'champion_buy_ticket',
+                            currency: 'energy_quest',
+                            amount: '1',
+                        };
+                        LogUtils_logHHAuto('Buying ticket with energy');
+                        getHHAjax()(params, function (data) {
+                            Hero.updates(data.hero_changes);
+                            // Route the post-purchase reload through safeReload so any
+                            // in-flight game AJAX gets to finish before the URL change.
+                            safeReload();
+                        });
+                    }
+                    // Set autoLoop=false BEFORE the setTimeout window so concurrent
+                    // AutoLoop ticks during the 800-1600ms wait cannot start a second
+                    // champion_buy_ticket AJAX. The safeReload() inside the AJAX
+                    // callback later sets autoLoop=false a second time -- the
+                    // second write is idempotent and serves the separate purpose of
+                    // suppressing ticks during the reload itself. See ChampionTicket
+                    // race-window discussion in REVIEW_AutoLoop_Findings.md F1.
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
+                    LogUtils_logHHAuto('setting autoloop to false');
+                    ctx.busy = true;
+                    setTimeout(buyTicket, randomInterval(800, 1600));
+                    ctx.lastActionPerformed = 'champion';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeasonCollect = {
+    name: 'handleSeasonCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'season')
+            return false;
+        const collectGate = checkTimer('nextSeasonCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === 'true'
+            && checkTimer('nextSeasonCollectAllTime')
+            && (getTimer('SeasonRemainingTime') === -1 || getSecondsLeft('SeasonRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectSeason',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Season for collecting reward.');
+                    ctx.busy = Season.goAndCollect();
+                    ctx.lastActionPerformed = 'season';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePentaDrillCollect = {
+    name: 'handlePentaDrillCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pentaDrill')
+            return false;
+        const collectGate = checkTimer('nextPentaDrillCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === 'true'
+            && checkTimer('nextPentaDrillCollectAllTime')
+            && (getTimer('pentaDrillRemainingTime') === -1 || getSecondsLeft('pentaDrillRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPentaDrill',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check PentaDrill for collecting reward.');
+                    ctx.busy = PentaDrill.goAndCollect();
+                    ctx.lastActionPerformed = 'pentaDrill';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSeasonalEventCollect = {
+    name: 'handleSeasonalEventCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSeasonalEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'seasonal')
+            return false;
+        const collectGate = checkTimer('nextSeasonalEventCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === 'true'
+            && checkTimer('nextSeasonalEventCollectAllTime')
+            && (getTimer('SeasonalEventRemainingTime') === -1 || getSecondsLeft('SeasonalEventRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectSeasonalEvent',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check SeasonalEvent for collecting reward.');
+                    ctx.busy = SeasonalEvent.goAndCollect();
+                    ctx.lastActionPerformed = 'seasonal';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePoVCollect = {
+    name: 'handlePoVCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!PathOfValue.isEnabled())
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pov')
+            return false;
+        const collectGate = checkTimer('nextPoVCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === 'true'
+            && checkTimer('nextPoVCollectAllTime')
+            && (getTimer('PoVRemainingTime') === -1 || getSecondsLeft('PoVRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPoV',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Path of Valor for collecting reward.');
+                    ctx.busy = PathOfValue.goAndCollect();
+                    ctx.lastActionPerformed = 'pov';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handlePoGCollect = {
+    name: 'handlePoGCollect',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (!PathOfGlory.isEnabled())
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'pog')
+            return false;
+        const collectGate = checkTimer('nextPoGCollectTime')
+            && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollect) === 'true'
+            && ctx.canCollectCompetitionActive;
+        const collectAllGate = getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === 'true'
+            && checkTimer('nextPoGCollectAllTime')
+            && (getTimer('PoGRemainingTime') === -1 || getSecondsLeft('PoGRemainingTime') < getLimitTimeBeforeEnd());
+        return collectGate || collectAllGate;
+    },
+    steps: [{
+            name: 'collectPoG',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Time to go and check Path of Glory for collecting reward.');
+                    ctx.busy = PathOfGlory.goAndCollect();
+                    ctx.lastActionPerformed = 'pog';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleSalary = {
+    name: 'handleSalary',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledSalary', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) !== 'true')
+            return false;
+        if (ctx.currentPage !== ConfigHelper.getHHScriptVars('pagesIDHome'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === 'true' && checkTimer('paranoiaSwitch'))
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'salary')
+            return false;
+        if (!checkTimer('nextSalaryTime'))
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'getSalary',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    ctx.busy = yield HaremSalary.getSalary();
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleBossBangParse = {
+    name: 'handleBossBangParse',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'event')
+            return false;
+        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
+        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
+        const hasParseTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
+        return hasParseTarget || hasIncompleteOnPage;
+    },
+    steps: [{
+            name: 'parseBossBang',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Going to parse boss bang event.');
+                    ctx.busy = yield EventModule.parseEventPage(ctx.bossBangEventIDs[0]);
+                    ctx.lastActionPerformed = 'event';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleBossBangFight = {
+    name: 'handleBossBangFight',
+    minIntervalMs: 5000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ConfigHelper.getHHScriptVars('isEnabledBossBangEvent', false) !== true)
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== 'true')
+            return false;
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
+            return false;
+        if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'bossBang')
+            return false;
+        if (!checkTimer('nextBossBangTime'))
+            return false;
+        const onEvent = ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEvent');
+        const hasIncompleteOnPage = onEvent && $('#contains_all #events #boss_bang .completed-event').length === 0;
+        const hasFightTarget = ctx.bossBangEventIDs.length > 0 && !onEvent;
+        return hasFightTarget || hasIncompleteOnPage;
+    },
+    steps: [{
+            name: 'fightBossBang',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Going to fight boss bang.');
+                    ctx.busy = yield BossBang.goToFightPage(ctx.bossBangEventIDs[0]);
+                    ctx.lastActionPerformed = 'bossBang';
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+const handleGoHome = {
+    name: 'handleGoHome',
+    minIntervalMs: 2000,
+    atomic: false,
+    interruptible: 'always',
+    precondition: (ctx) => {
+        if (ctx.busy)
+            return false;
+        if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDHome'))
+            return false;
+        const lastPageCalled = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 });
+        if (ctx.currentPage !== lastPageCalled.page)
+            return false;
+        const cooldown = ConfigHelper.getHHScriptVars('minSecsBeforeGoHomeAfterActions');
+        if ((new Date().getTime() - lastPageCalled.dateTime) <= cooldown * 1000)
+            return false;
+        return true;
+    },
+    steps: [{
+            name: 'gotoHome',
+            fn: (ctx) => Pipeline_config_awaiter(void 0, void 0, void 0, function* () {
+                try {
+                    LogUtils_logHHAuto('Back to home page at the end of actions');
+                    deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
+                    ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                    return { ok: true };
+                }
+                catch (err) {
+                    return { ok: false, reason: String(err), retryable: true };
+                }
+            }),
+        }],
+};
+// ---------------------------------------------------------------------------
+//  Pipeline: ordered list of all handler configurations.
+//
+//  ORDER MATTERS: position in this array = priority. Earlier elements run
+//  first. To reorder a handler (e.g. move PoP to the end, or place the Mythic
+//  Wave handler at slot 3), move its entry within this array. No priority
+//  numbers to keep in sync.
+//
+//  The Scheduler walks the list once per tick, picks the first ready handler
+//  (precondition true, cool-down elapsed, state IDLE), and runs it.
+//
+//  Migration history: all 33 AutoLoop action handlers now live in this
+//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
+//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
+//
+//  Order is the agreed user-facing priority sequence: high-yield /
+//  low-cost actions (salary, shop, missions) and resource collectors
+//  before the long battle / quest / labyrinth blocks. handleEventParsing
+//  is locked at slot 1 because it populates event/mythic-girl data that
+//  later handlers (handleTrollBattle, the collect handlers) read.
+//
+//  Producer/consumer chain in the upper block (slots 2-5):
+//   - slot 2 handleHaremSize: refreshes the TK.HaremSize cache (girl
+//     count + timestamp) consumed by every battle handler's synergy
+//     and team-power calculation.
+//   - slot 3 handleSalary: cheap one-click action with no dependents,
+//     parked here because it is essentially free.
+//   - slot 4 handleShop: writes the storeContents / charLevel /
+//     boosterStatus / boosterIdMap snapshot.
+//   - slot 5 handleAutoEquipBoosters: reads the booster snapshot
+//     produced by handleShop. Must run after handleShop in the same
+//     tick so equip decisions see fresh inventory.
+//
+//  handleGoHome is locked at the tail because it closes the tick on a
+//  non-home page. handleGenericBattle is kept just before handleGoHome
+//  as a catch-all when the bot has landed on any battle page.
+// ---------------------------------------------------------------------------
+const pipeline = [
+    // handleMythicWave is intentionally not listed: it was a legacy slot
+    // reservation used by the classic handleTrollBattle path and has no
+    // effect in the pipeline model. The mythic girl is fully covered by
+    // handleTrollBattle's activation paths.
+    handleEventParsing,
+    handleHaremSize,
+    handleSalary,
+    handleShop,
+    handleAutoEquipBoosters,
+    handleMissions,
+    handlePachinko,
+    handleSeasonalFreeCard,
+    handleFreeBundles,
+    handleSeasonCollect,
+    handlePentaDrillCollect,
+    handleSeasonalEventCollect,
+    handleSeasonalRankCollect,
+    handlePoVCollect,
+    handlePoGCollect,
+    handleContest,
+    handleDailyGoals,
+    handleChampionTicket,
+    handlePlaceOfPower,
+    handleClubChampion,
+    handleChampion,
+    handleLoveRaid,
+    handleTrollBattle,
+    handleBossBangParse,
+    handleBossBangFight,
+    handleLeague,
+    handleSeason,
+    handleQuest,
+    handlePantheon,
+    handlePentaDrill,
+    handleLabyrinth,
+    handleGenericBattle,
+    handleGoHome,
+];
+
+;// CONCATENATED MODULE: ./src/Service/BlockPipeline.ts
+var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// BlockPipeline.ts -- wiring of the v7.37.0 block scheduler into the running
+// script (ADR-001, Roadmap step 17 task 6).
+//
+// Adapts the existing 33 HandlerConfig entries (Pipeline.config.ts) 1:1 into
+// single-/multi-step Blocks (all current handlers are single-step), builds the
+// default order from the current pipeline array order, and exposes a configured
+// BlockScheduler singleton with real side-effecting ports. This REPLACES the
+// legacy Scheduler in AutoLoop while keeping behaviour identical on the happy
+// path: handler internals (precondition + step fn) are reused unchanged, so
+// lastActionPerformed continuation keeps working (coexistence, R9.3). Block
+// bundling, constraints and reload-safe multi-step decomposition come in later
+// tasks.
+//
+// Requirements: 1.1, 1.2, 1.3, 9.1, 9.3, 9.4, 9.5
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Slot-hold decision (ADR-002, gate-hold-return). After a handler step:
+ *  - failure -> pass through (watchdog aborts).
+ *  - the handler acted (ctx.busy, typically navigated away) -> repeat: keep the
+ *    BlockRun active so the same block re-enters after the reload and finishes
+ *    its excursion uninterrupted (no other block can grab the slot, the
+ *    lastActionPerformed reset becomes irrelevant).
+ *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
+ *    done: release the slot.
+ */
+function applySlotHold(r, busy) {
+    if (!r.ok)
+        return r;
+    return busy ? { ok: true, repeat: true } : { ok: true };
+}
+// Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
+const INFRA_BLOCKS = new Set(["handleEventParsing", "handleGoHome"]);
+// Hard ordering constraints (design.md "Abhaengigkeitsgraph", R3.1), declared on
+// the block; OrderResolver.validateOrder enforces them on any user reorder
+// (task 15). The current defaultOrder already satisfies all of these (build-test
+// R3.6), so adding them changes NO runtime order -- they only constrain future
+// user reorders. BossBang is still two un-bundled blocks here, so the
+// EventParsing-before-consumers edge targets both halves.
+const BLOCK_CONSTRAINTS = {
+    handleAutoEquipBoosters: [
+        { kind: "runsAfter", block: "handleShop", hard: true }, // inventory cache
+        { kind: "runsAfter", block: "handleHaremSize", hard: true }, // synergy cache
+    ],
+    handleGoHome: [{ kind: "afterAll", hard: true }],
+    handleEventParsing: [
+        { kind: "runsBefore", block: "handleTrollBattle", hard: true }, // mythic first-visit
+        { kind: "runsBefore", block: "handleBossBangParse", hard: true },
+        { kind: "runsBefore", block: "handleBossBangFight", hard: true },
+    ],
+};
+/** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
+function toBlock(c) {
+    return {
+        id: c.name,
+        precondition: c.precondition,
+        steps: c.steps.map(s => ({
+            name: s.name,
+            // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
+            // navigating handler holds the run until it goes idle (ADR-002).
+            fn: (ctx) => BlockPipeline_awaiter(this, void 0, void 0, function* () { return applySlotHold(yield s.fn(ctx), ctx.busy); }),
+            timeoutMs: s.timeoutMs,
+        })),
+        userMovable: !INFRA_BLOCKS.has(c.name), // R3.7: infra pinned, rest reorderable
+        constraints: BLOCK_CONSTRAINTS[c.name], // R3.1: hard ordering constraints
+        minIntervalMs: c.minIntervalMs,
+        totalTimeoutMs: c.totalTimeoutMs,
+    };
+}
+function buildRegistryAndOrder() {
+    const registry = {};
+    const defaultOrder = [];
+    for (const c of pipeline) {
+        registry[c.name] = toBlock(c);
+        defaultOrder.push(c.name);
+    }
+    return { registry, defaultOrder };
+}
+// --- real ports -----------------------------------------------------------
+function loadMap(key) {
+    const v = getStoredJSON(HHStoredVarPrefixKey + key, {});
+    return (v && typeof v === "object") ? v : {};
+}
+function saveMap(key, v) {
+    setStoredValue(HHStoredVarPrefixKey + key, JSON.stringify(v));
+}
+const blockPorts = {
+    now: () => Date.now(),
+    getCurrentPage: () => getPage(),
+    isMasterOff: () => getStoredValue(HHStoredVarPrefixKey + SK.master) !== "true",
+    isAutoLoopOff: () => getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== "true",
+    routeHome: () => { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); },
+    scriptVersion: () => { var _a; return String((_a = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion)) !== null && _a !== void 0 ? _a : ""); },
+    loadRun: () => loadBlockRun(),
+    saveRun: (r) => saveBlockRun(r),
+    clearRun: () => clearBlockRun(),
+    getCooldowns: () => loadMap(TK.blockCooldownUntil),
+    setCooldowns: (v) => saveMap(TK.blockCooldownUntil, v),
+    getFailureCounts: () => loadMap(TK.blockFailureCount),
+    setFailureCounts: (v) => saveMap(TK.blockFailureCount, v),
+    getAutoDisabled: () => loadMap(TK.blockAutoDisabled),
+    setAutoDisabled: (v) => saveMap(TK.blockAutoDisabled, v),
+    getLastRunAt: () => loadMap(TK.pipelineLastRunAt),
+    setLastRunAt: (v) => saveMap(TK.pipelineLastRunAt, v),
+    // Structured [PIPE] logging through the existing log pipeline (task 7).
+    log: (e) => logEvent(e),
+};
+function buildScheduler() {
+    const { registry, defaultOrder } = buildRegistryAndOrder();
+    const stored = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null);
+    const resolved = resolveOrder(stored, registry, defaultOrder);
+    for (const w of resolved.warnings)
+        LogUtils_logHHAuto(`[Scheduler] order: ${w.message}`);
+    // Refresh the non-rotating log context block (R6.16): version/platform/order/
+    // disabled blocks/diagnose flag, prepended to the user debug export.
+    const disabledMap = blockPorts.getAutoDisabled();
+    writeLogContext({
+        version: blockPorts.scriptVersion(),
+        platform: (typeof navigator !== "undefined" && navigator.userAgent) ? navigator.userAgent : "unknown",
+        effectiveOrder: resolved.order,
+        disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
+        diagnose: isDiagnose(),
+    });
+    // No-progress watchdog only (ADR-002 follow-up): a block runs ALL its tasks and
+    // sets its own timer before releasing; the watchdog aborts only after 5 min of
+    // NO progress (genuinely hung), never a long-but-working build.
+    return new BlockScheduler(registry, resolved.order, blockPorts, { noProgressMs: 300000 });
+}
+// Lazy singleton: built on first tick from the boot path, NOT at module eval,
+// so reading the `pipeline` array cannot hit a TDZ if the cyclic module graph
+// evaluates BlockPipeline before Pipeline.config (lesson zirkulaerer-import-tdz-crash).
+let _scheduler = null;
+function getBlockScheduler() {
+    if (!_scheduler)
+        _scheduler = buildScheduler();
+    return _scheduler;
+}
 
 ;// CONCATENATED MODULE: ./src/index.ts
 // index.ts - HHAuto entry point
@@ -29679,9 +30399,18 @@ function start() {
 
 
 
+
+
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
 // run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
 setPachinkoAutoLoopKick(autoLoop);
+// Inject the block-scheduler tick into AutoLoop from the boot path (instead of
+// a static AutoLoop->BlockPipeline import) to avoid an import cycle / TDZ
+// (lesson zirkulaerer-import-tdz-crash).
+setBlockTick((ctx) => getBlockScheduler().tick(ctx));
+// Wire the Block-Order popup's registry provider (avoids a static
+// PipelineOrderService->BlockPipeline import cycle).
+setPipelineRegistryProvider(buildRegistryAndOrder);
 hardened_start();
 
 /******/ })()

@@ -7,6 +7,21 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.0 - block-based pipeline + block reordering
+
+#### Added
+
+- **Block Order menu.** A new "Block Order" button opens a popup where you reorder the script's functions by drag or with up/down arrows. A couple of infrastructure blocks are fixed in place and shown greyed out; "Restore default" puts everything back. Your order is saved and survives reloads and sessions.
+- **Pipeline Diagnostics toggle** (menu, off by default) that enables extra per-step logging for bug reports. The basic pipeline trace is always logged.
+
+#### Changed
+
+- **Reworked the run loop into a block-based pipeline with reload-safe run state.** Functions that share a timer (e.g. Season fight/collect, or Place of Power vs Club Champion) no longer ping-pong back and forth without getting work done: a block now holds its turn from start to finish and then hands over.
+
+#### Fixed
+
+- Long-running tasks (a full Place of Power run, a large Champion team build) are no longer cut off partway through.
+
 ### v7.36.0 - codebase review & hardening pass (interim milestone)
 
 #### Changed

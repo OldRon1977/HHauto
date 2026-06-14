@@ -1,6 +1,6 @@
 {
   "name": "hhauto",
-  "version": "7.36.0",
+  "version": "7.37.0",
   "description": "[English](https://github.com/OldRon1977/HHauto/wiki/English)",
   "main": "HHAuto.user.js",
   "scripts": {
@@ -11,6 +11,7 @@
     "deps:graph": "madge --extensions ts src",
     "deps:circular": "madge --circular --extensions ts src",
     "deps:circular:check": "node scripts/check-circular-deps.mjs",
+    "deps:toplevel-key": "node scripts/check-toplevel-storage-key.mjs",
     "deps:dead": "knip",
     "deps:unused": "depcheck --ignores=\"@babel/*,babel-jest,ts-jest,ts-node\"",
     "dup:check": "jscpd src --min-lines 10 --min-tokens 70 --reporters console,html --output ./coverage/jscpd",

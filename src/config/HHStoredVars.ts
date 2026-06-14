@@ -2513,3 +2513,45 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+
+// Pipeline-block architecture (v7.37.0, ADR-001)
+HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
+    {
+    storage:"localStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.blockFailureCount] =
+    {
+    storage:"localStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.pipelineOrder] =
+    {
+    storage:"localStorage",
+    HHType:"Setting"   // user choice: survive "delete temp vars" (was "Temp")
+};
+HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLogContext] =
+    {
+    storage:"localStorage",
+    HHType:"Temp"
+};
+HHStoredVars[HHStoredVarPrefixKey + SK.pipelineDiagnose] =
+    {
+    default: "false",
+    storage:"localStorage",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked"
+};

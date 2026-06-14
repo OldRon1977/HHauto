@@ -1,0 +1,316 @@
+import { BlockScheduler, SchedulerPorts } from "../../src/Service/BlockScheduler";
+import { Block, BlockRun, BlockStepResult, Step } from "../../src/Service/BlockTypes";
+import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
+
+const CTX = {} as AutoLoopContext;
+
+interface Ctl {
+    time: number;
+    masterOff: boolean;
+    autoLoopOff: boolean;
+    version: string;
+    page: string;
+}
+
+function makePorts(initial: Partial<BlockRun> | null = null) {
+    const ctl: Ctl = { time: 1000, masterOff: false, autoLoopOff: false, version: "v1", page: "home" };
+    const state = {
+        run: initial ? ({ blockId: "", stepIdx: 0, startedAt: 0, stepStartedAt: 0, dispatched: false, data: {}, ...initial } as BlockRun) : (null as BlockRun | null),
+        cooldowns: {} as Record<string, number>,
+        failures: {} as Record<string, number>,
+        disabled: {} as Record<string, { reason: string; sinceVersion: string }>,
+        lastRunAt: {} as Record<string, number>,
+    };
+    const logs: Record<string, unknown>[] = [];
+    const routeHome = jest.fn(() => undefined);
+    const ports: SchedulerPorts = {
+        now: () => ctl.time,
+        getCurrentPage: () => ctl.page,
+        isMasterOff: () => ctl.masterOff,
+        isAutoLoopOff: () => ctl.autoLoopOff,
+        routeHome,
+        scriptVersion: () => ctl.version,
+        loadRun: () => (state.run ? JSON.parse(JSON.stringify(state.run)) : null),
+        saveRun: (r) => { state.run = JSON.parse(JSON.stringify(r)); },
+        clearRun: () => { state.run = null; },
+        getCooldowns: () => state.cooldowns, setCooldowns: (v) => { state.cooldowns = v; },
+        getFailureCounts: () => state.failures, setFailureCounts: (v) => { state.failures = v; },
+        getAutoDisabled: () => state.disabled, setAutoDisabled: (v) => { state.disabled = v; },
+        getLastRunAt: () => state.lastRunAt, setLastRunAt: (v) => { state.lastRunAt = v; },
+        log: (e) => logs.push(e),
+    };
+    return { ctl, state, logs, ports, routeHome };
+}
+
+function step(name: string, result: BlockStepResult | (() => BlockStepResult), extra: Partial<Step> = {}): Step {
+    return { name, fn: async () => (typeof result === "function" ? result() : result), ...extra };
+}
+
+function block(id: string, steps: Step[], over: Partial<Block> = {}): Block {
+    return { id, precondition: () => true, steps, userMovable: true, minIntervalMs: 0, ...over };
+}
+
+function reg(...blocks: Block[]): Record<string, Block> {
+    const r: Record<string, Block> = {};
+    for (const b of blocks) r[b.id] = b;
+    return r;
+}
+
+describe("BlockScheduler -- lifecycle", () => {
+    it("runs a single-step block to completion and records lastRunAt", async () => {
+        const h = makePorts();
+        const A = block("A", [step("s1", { ok: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();          // completed -> cleared
+        expect(h.state.lastRunAt["A"]).toBe(1000);
+        expect(h.state.run).toBeNull();
+    });
+
+    it("advances through multiple steps across ticks", async () => {
+        const h = makePorts();
+        const A = block("A", [step("s1", { ok: true }), step("s2", { ok: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);                            // starts + runs s1
+        expect(s.getActiveRun()?.stepIdx).toBe(1);
+        await s.tick(CTX);                            // runs s2 -> complete
+        expect(s.getActiveRun()).toBeNull();
+    });
+
+    it("repeats the same step until it stops repeating", async () => {
+        const h = makePorts();
+        let n = 0;
+        const A = block("A", [step("loop", () => (++n < 3 ? { ok: true, repeat: true } : { ok: true }))]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX); expect(s.getActiveRun()?.stepIdx).toBe(0); // repeat
+        await s.tick(CTX); expect(s.getActiveRun()?.stepIdx).toBe(0); // repeat
+        await s.tick(CTX); expect(s.getActiveRun()).toBeNull();       // done
+        expect(n).toBe(3);
+    });
+
+    it("keeps at most one active run (a second block does not start mid-run)", async () => {
+        const h = makePorts();
+        const A = block("A", [step("a1", { ok: true }), step("a2", { ok: true })]);
+        const B = block("B", [step("b1", { ok: true })]);
+        const s = new BlockScheduler(reg(A, B), ["A", "B"], h.ports);
+        await s.tick(CTX);                            // starts A
+        expect(s.getActiveRun()?.blockId).toBe("A");
+        await s.tick(CTX);                            // continues A (not B)
+        expect(h.state.lastRunAt["B"]).toBeUndefined();
+    });
+});
+
+describe("BlockScheduler -- abort/watchdog", () => {
+    it("aborts on step failure: clears run, sets cool-down, routes home, counts failure", async () => {
+        const h = makePorts();
+        const A = block("A", [step("bad", { ok: false, reason: "boom", retryable: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.routeHome).toHaveBeenCalledTimes(1);
+        expect(h.state.cooldowns["A"]).toBeGreaterThan(1000);
+        expect(Object.values(h.state.failures)[0]).toBe(1);
+    });
+
+    it("auto-disables a block after reaching the failure threshold", async () => {
+        const A = block("A", [step("bad", { ok: false, reason: "boom", retryable: true })]);
+        // three independent runs with the same failure signature
+        const h = makePorts();
+        for (let i = 0; i < 3; i++) {
+            const s = new BlockScheduler(reg(A), ["A"], h.ports, { cooldownMs: 0 });
+            await s.tick(CTX);
+        }
+        expect(h.state.disabled["A"]).toBeDefined();
+        expect(h.state.disabled["A"].sinceVersion).toBe("v1");
+    });
+
+    it("aborts after the no-progress timeout (stuck run), routing home", async () => {
+        // A repeating step that never advances. With progress it keeps resetting
+        // stepStartedAt; we freeze time to simulate NO progress past noProgressMs.
+        const h = makePorts();
+        const A = block("A", [step("loop", { ok: true, repeat: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports, { noProgressMs: 5000 });
+        await s.tick(CTX);                  // starts at t=1000, repeats (stepStartedAt=1000)
+        h.ctl.time = 1000 + 6000;           // 6s without further progress > 5s
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.routeHome).toHaveBeenCalled();
+    });
+
+    it("does NOT abort a long-but-progressing run (no per-invocation cap)", async () => {
+        // Each repeat makes progress (resets stepStartedAt), so even far past
+        // noProgressMs the run keeps going -- a 70-draft build must not be killed.
+        const h = makePorts();
+        const A = block("A", [step("loop", { ok: true, repeat: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports, { noProgressMs: 5000 });
+        for (let i = 0; i < 5; i++) {
+            await s.tick(CTX);
+            h.ctl.time += 4000;            // 4s between progress steps, < 5s each
+        }
+        expect(s.getActiveRun()).not.toBeNull();   // still running, never aborted
+        expect(h.routeHome).not.toHaveBeenCalled();
+    });
+
+    it("resets the no-progress anchor on a valid resume (reload-based block)", async () => {
+        // Reload-based slot-hold blocks (PoP: one powerplace per reload; Champion:
+        // one draft per reload) re-enter via the resume path and never return
+        // repeat/advance. Without bumping stepStartedAt on a valid resume the
+        // no-progress watchdog measures from run start and kills legit long work
+        // (observed live: PoP killed mid-run at ~5 min, v7.36.10). The step must
+        // see the bumped anchor (now), not the original start.
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 1000 });
+        let seen = -1;
+        const A = block("A", [
+            { name: "doWork", fn: async (_ctx, run) => { seen = run.stepStartedAt; return { ok: true, repeat: true }; } },
+        ]);
+        h.ctl.time = 9999;
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);  // restores run -> valid resume
+        await s.tick(CTX);
+        expect(seen).toBe(9999);
+    });
+});
+
+describe("BlockScheduler -- resume / at-most-once", () => {
+    it("aborts when resume validation fails after reload", async () => {
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
+        const A = block("A", [step("s1", { ok: true }, { resumeValid: () => false })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports); // constructor restores run
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.routeHome).toHaveBeenCalled();
+    });
+
+    it("skips a dispatched-but-unconfirmed step on resume (at-most-once)", async () => {
+        const calls: string[] = [];
+        const A = block("A", [
+            { name: "send", stateChanging: true, fn: async () => { calls.push("send"); return { ok: true }; } },
+            { name: "after", fn: async () => { calls.push("after"); return { ok: true }; } },
+        ]);
+        // persisted run as if a reload happened right after dispatching step 0
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900, dispatched: true });
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX); // resume: skip step 0, run step 1
+        expect(calls).toEqual(["after"]);             // "send" was NOT re-run
+    });
+
+    it("persist-before-act: a state-changing step is marked dispatched before fn runs", async () => {
+        const h = makePorts();
+        let dispatchedAtCall = false;
+        const A = block("A", [{
+            name: "send",
+            stateChanging: true,
+            fn: async () => { dispatchedAtCall = h.state.run?.dispatched === true; return { ok: true }; },
+        }]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(dispatchedAtCall).toBe(true);
+    });
+});
+
+describe("BlockScheduler -- selection gating", () => {
+    it("discards the run on master-off without routing home", async () => {
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
+        const A = block("A", [step("s1", { ok: true })]);
+        h.ctl.masterOff = true;
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.state.run).toBeNull();
+        expect(h.routeHome).not.toHaveBeenCalled();
+    });
+
+    it("does not pick a block while it is in cool-down", async () => {
+        const h = makePorts();
+        h.state.cooldowns["A"] = 5000; // future
+        const A = block("A", [step("s1", { ok: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.state.lastRunAt["A"]).toBeUndefined();
+    });
+
+    it("respects minIntervalMs since last run", async () => {
+        const h = makePorts();
+        h.state.lastRunAt["A"] = 1000;
+        const A = block("A", [step("s1", { ok: true })], { minIntervalMs: 5000 });
+        const s = new BlockScheduler(reg(A), ["A"], h.ports); // now=1000, elapsed 0 < 5000
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+    });
+
+    it("skips a block whose precondition is false and picks the next", async () => {
+        const h = makePorts();
+        const A = block("A", [step("a1", { ok: true })], { precondition: () => false });
+        const B = block("B", [step("b1", { ok: true })]);
+        const s = new BlockScheduler(reg(A, B), ["A", "B"], h.ports);
+        await s.tick(CTX);
+        expect(h.state.lastRunAt["B"]).toBe(1000);
+        expect(h.state.lastRunAt["A"]).toBeUndefined();
+    });
+
+    it("does not pick an auto-disabled block", async () => {
+        const h = makePorts();
+        h.state.disabled["A"] = { reason: "x", sinceVersion: "v1" };
+        const A = block("A", [step("a1", { ok: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+    });
+});
+
+describe("BlockScheduler -- gate-hold-return precondition recheck (ADR-002)", () => {
+    it("releases a held run once the block's precondition no longer holds (navigate-only)", async () => {
+        // Simulate handleHaremSize: precondition true off-target, false on-target.
+        // The step navigates (busy) and would repeat forever without the recheck.
+        let onTarget = false;
+        const A: Block = {
+            id: "HaremSize",
+            precondition: () => !onTarget,
+            steps: [{
+                name: "gotoTarget",
+                fn: async (ctx) => { ctx.busy = true; onTarget = true; return { ok: true, repeat: true }; },
+            }],
+            userMovable: false,
+            minIntervalMs: 0,
+        };
+        // fresh start: precondition true -> step runs, navigates (busy), repeat (held)
+        const h1 = makePorts();
+        const s1 = new BlockScheduler(reg(A), ["HaremSize"], h1.ports);
+        await s1.tick({} as AutoLoopContext);
+        expect(h1.state.run).not.toBeNull();        // held
+        expect(onTarget).toBe(true);
+        // simulate reload: new scheduler restores the held run; precondition now false
+        const h2 = makePorts();
+        h2.state.run = h1.state.run;                // carry the persisted run
+        const s2 = new BlockScheduler(reg(A), ["HaremSize"], h2.ports);
+        await s2.tick({} as AutoLoopContext);
+        expect(s2.getActiveRun()).toBeNull();        // released, did NOT re-run the nav
+        expect(h2.routeHome).not.toHaveBeenCalled(); // normal completion, not abort
+    });
+});
+
+describe("BlockScheduler -- auto-disable reset", () => {
+    it("clears stale auto-disable on a script version change (one retry)", async () => {
+        const h = makePorts();
+        h.state.disabled["A"] = { reason: "x", sinceVersion: "v0" };
+        h.state.failures["A:step:x"] = 3;
+        h.ctl.version = "v1";
+        const A = block("A", [step("a1", { ok: true })]);
+        // constructor reconciles version resets
+        // eslint-disable-next-line no-new
+        new BlockScheduler(reg(A), ["A"], h.ports);
+        expect(h.state.disabled["A"]).toBeUndefined();
+        expect(h.state.failures["A:step:x"]).toBeUndefined();
+    });
+
+    it("reactivate() clears auto-disable and the block's failure counts", async () => {
+        const h = makePorts();
+        h.state.disabled["A"] = { reason: "x", sinceVersion: "v1" };
+        h.state.failures["A:step:x"] = 3;
+        const A = block("A", [step("a1", { ok: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        s.reactivate("A");
+        expect(h.state.disabled["A"]).toBeUndefined();
+        expect(h.state.failures["A:step:x"]).toBeUndefined();
+    });
+});
