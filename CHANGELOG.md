@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.4 - longer debug log
+
+#### Changed
+
+- The debug log now keeps up to 5000 entries (was 500), so a Save Debug capture covers a much longer run for troubleshooting.
+
 ### v7.37.3 - timing tweaks
 
 #### Changed

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.3
+// @version      7.37.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -24708,8 +24708,9 @@ function getBrowserData(nav) {
 
 
 
-/** Maximum number of log entries kept in storage before old ones are pruned. */
-const MAX_LINES = 500;
+/** Maximum number of log entries kept in storage before old ones are pruned.
+ * ~132 bytes/entry observed, so 5000 entries is roughly 0.65 MB in sessionStorage. */
+const MAX_LINES = 5000;
 /**
  * Wipe all existing log entries from storage and free up large temp
  * caches. Called from setStoredValue's quota-error catch path, so this
@@ -26266,7 +26267,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.3";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.4";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
