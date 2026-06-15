@@ -19,8 +19,9 @@ import { TK } from "../config/StorageKeys";
 import { getBrowserData } from "./BrowserUtils";
 import { safeJsonParse } from './Utils';
 
-/** Maximum number of log entries kept in storage before old ones are pruned. */
-const MAX_LINES = 500
+/** Maximum number of log entries kept in storage before old ones are pruned.
+ * ~132 bytes/entry observed, so 5000 entries is roughly 0.65 MB in sessionStorage. */
+const MAX_LINES = 5000
 
 /**
  * Wipe all existing log entries from storage and free up large temp
