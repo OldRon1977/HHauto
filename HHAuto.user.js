@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.4
+// @version      7.37.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -5726,6 +5726,15 @@ class Season {
                     LogUtils_logHHAuto(`Max tier reached (${Season.getTierLevel()} >= ${maxTier}) but "Stop if no event girl" enabled, will check for event girls.`);
                 }
                 var chosenID = yield Season.moduleSimSeasonBattle(true);
+                if (chosenID === undefined || chosenID === null) {
+                    // Defensive wall (issue #1722): moduleSimSeasonBattle must return a
+                    // number (opponent id, -1 or -2). A null/undefined result means the
+                    // simulation did not run (e.g. a poisoned callItOnce wrapper). Retry
+                    // shortly instead of arming the 30 min "no opponent" timer.
+                    LogUtils_logHHAuto("Season : opponent simulation returned no result, retrying shortly.");
+                    setTimer('nextSeasonTime', randomInterval(5, 10));
+                    return false;
+                }
                 if (chosenID === -2) {
                     //change opponents and reload
                     function refreshOpponents() {
@@ -19190,6 +19199,11 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 
 
 
+// Tracks whether the read-only Season-arena power-calc preview has already
+// been rendered on the current page load. Reset implicitly on every page
+// navigation (full reload re-initialises the module). Used instead of
+// wrapping Season.moduleSimSeasonBattle in callItOnce -- see issue #1722.
+let seasonArenaPreviewShown = false;
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
         switch (ctx.currentPage) {
@@ -19203,11 +19217,15 @@ function handlePageSpecific(ctx) {
                 break;
             case ConfigHelper.getHHScriptVars("pagesIDSeasonArena"):
                 if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true" && $("div.matchRatingNew img#powerLevelScouter").length < 3) {
-                    if (ctx.lastActionPerformed !== "season") {
-                        // Avoid double call when coming from Season.run()
-                        Season.stylesBattle = callItOnce(Season.stylesBattle);
+                    // Display-only power-calc preview. Do NOT wrap Season.stylesBattle or
+                    // Season.moduleSimSeasonBattle in callItOnce: Season.run() calls the very
+                    // same static methods, and a consumed once-wrapper makes run() receive
+                    // undefined from moduleSimSeasonBattle, which then arms a ~30 min timer and
+                    // stalls Season after a few fights (issue #1722). A module-scoped flag keeps
+                    // this preview to once per page load without poisoning the shared methods.
+                    if (ctx.lastActionPerformed !== "season" && !seasonArenaPreviewShown) {
+                        seasonArenaPreviewShown = true;
                         Season.stylesBattle();
-                        Season.moduleSimSeasonBattle = callItOnce(Season.moduleSimSeasonBattle);
                         Season.moduleSimSeasonBattle();
                     }
                 }
@@ -26267,7 +26285,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.4";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.5";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

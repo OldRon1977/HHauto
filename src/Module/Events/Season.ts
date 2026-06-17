@@ -355,6 +355,16 @@ export class Season {
             }
 
             var chosenID = await Season.moduleSimSeasonBattle(true);
+            if (chosenID === undefined || chosenID === null)
+            {
+                // Defensive wall (issue #1722): moduleSimSeasonBattle must return a
+                // number (opponent id, -1 or -2). A null/undefined result means the
+                // simulation did not run (e.g. a poisoned callItOnce wrapper). Retry
+                // shortly instead of arming the 30 min "no opponent" timer.
+                logHHAuto("Season : opponent simulation returned no result, retrying shortly.");
+                setTimer('nextSeasonTime',randomInterval(5, 10));
+                return false;
+            }
             if (chosenID === -2 )
             {
                 //change opponents and reload

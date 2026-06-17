@@ -1,4 +1,4 @@
-import { setTimer } from "../../../src/Helper/TimerHelper";
+import { getSecondsLeft, setTimer } from "../../../src/Helper/TimerHelper";
 import { Booster } from '../../../src/Module/Booster';
 import { Season } from '../../../src/Module/Events/Season';
 import { ParanoiaService } from "../../../src/Service/ParanoiaService";
@@ -382,6 +382,29 @@ describe("Season event", function () {
             const result = Season.isTimeToFight();
 
             expect(result).toBeTruthy();
+        });
+    });
+
+    describe("run defensive wall (issue #1722)", function () {
+        beforeEach(() => {
+            MockHelper.mockHeroLevel(500);
+            MockHelper.mockPage('season_arena', '<div id="tier_indicator">1</div>');
+            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoSeasonMaxTier", "false");
+            setTimer('nextSeasonTime', -1);
+        });
+
+        it("retries shortly instead of arming the 30 min timer when the sim returns undefined", async () => {
+            jest.spyOn(Season, 'stylesBattle').mockImplementation(() => {});
+            jest.spyOn(Season, 'moduleSimSeasonBattle').mockResolvedValue(undefined as any);
+
+            const result = await Season.run();
+
+            expect(result).toBe(false);
+            const left = getSecondsLeft('nextSeasonTime');
+            expect(left).toBeGreaterThan(0);
+            expect(left).toBeLessThanOrEqual(11);
+
+            jest.restoreAllMocks();
         });
     });
 });
