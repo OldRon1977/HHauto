@@ -52,6 +52,12 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { AdsService } from "./AdsService";
 
+// Tracks whether the read-only Season-arena power-calc preview has already
+// been rendered on the current page load. Reset implicitly on every page
+// navigation (full reload re-initialises the module). Used instead of
+// wrapping Season.moduleSimSeasonBattle in callItOnce -- see issue #1722.
+let seasonArenaPreviewShown = false;
+
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
     switch (ctx.currentPage)
     {
@@ -67,11 +73,15 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
         case ConfigHelper.getHHScriptVars("pagesIDSeasonArena"):
             if (getStoredValue(HHStoredVarPrefixKey+SK.showCalculatePower) === "true" && $("div.matchRatingNew img#powerLevelScouter").length < 3)
             {
-                if (ctx.lastActionPerformed !== "season") {
-                    // Avoid double call when coming from Season.run()
-                    Season.stylesBattle = callItOnce(Season.stylesBattle);
+                // Display-only power-calc preview. Do NOT wrap Season.stylesBattle or
+                // Season.moduleSimSeasonBattle in callItOnce: Season.run() calls the very
+                // same static methods, and a consumed once-wrapper makes run() receive
+                // undefined from moduleSimSeasonBattle, which then arms a ~30 min timer and
+                // stalls Season after a few fights (issue #1722). A module-scoped flag keeps
+                // this preview to once per page load without poisoning the shared methods.
+                if (ctx.lastActionPerformed !== "season" && !seasonArenaPreviewShown) {
+                    seasonArenaPreviewShown = true;
                     Season.stylesBattle();
-                    Season.moduleSimSeasonBattle = callItOnce(Season.moduleSimSeasonBattle);
                     Season.moduleSimSeasonBattle();
                 }
             }
