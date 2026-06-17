@@ -209,8 +209,15 @@ export class LabyrinthAuto {
     }
 
     closeRewards(): boolean{
+        // Issue #1716: the relic-choice popup reuses the #labyrinth_reward_popup
+        // id and its claim buttons carry blue_button_L, so closeRewardPopupIfAny
+        // would click the leftmost claim button (claiming the wrong relic) before
+        // selectRelic runs. Skip closing it while a relic choice is pending; the
+        // relic picker (selectRelic) owns that popup and closes it after the
+        // correct card has been claimed.
+        const isRelicChoice = $('#labyrinth_reward_popup .relic-container .claim-relic-btn').length > 0;
         return RewardHelper.closeRewardPopupIfAny() // laby coin
-            || RewardHelper.closeRewardPopupIfAny(true, 'labyrinth_reward_popup') //sweep floor
+            || (isRelicChoice ? false : RewardHelper.closeRewardPopupIfAny(true, 'labyrinth_reward_popup')) //sweep floor (relic choice handled by selectRelic)
             || RewardHelper.closeRewardPopupIfAny(true, 'confirmation_popup') // no girl to heal
             || RewardHelper.closeRewardPopupIfAny(true, 'heal_girl_labyrinth_popup')
     }

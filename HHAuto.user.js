@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.5
+// @version      7.37.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3189,18 +3189,38 @@ class RelicManager {
     }
     selectRelic() {
         return RelicManager_awaiter(this, void 0, void 0, function* () {
+            var _a;
             try {
-                const relics = this.parseRelics();
+                // Click the claim button INSIDE the card carrying the green arrow
+                // (.relicChosen, set by Labyrinth.sim). The click must follow the
+                // marked card, not a positional index into the flat button list
+                // which can mismatch the marker (issue #1716).
+                let chosenContainer = $('#labyrinth_reward_popup #reward_holder .relic-container')
+                    .filter((_i, el) => $('.relicChosen', el).length > 0).first();
+                if (chosenContainer.length === 0) {
+                    // Marker not present yet: derive the same choice and use its slot.
+                    const relics = this.parseRelics();
+                    if (this.debugEnabled)
+                        LogUtils_logHHAuto('relics', relics);
+                    const relic = this.chooseRelic(relics);
+                    if (this.debugEnabled)
+                        LogUtils_logHHAuto('Selecting', relic);
+                    chosenContainer = relic.slot;
+                }
+                const claimBtn = $('.relic-card-buttons .claim-relic-btn', chosenContainer).first();
+                if (claimBtn.length === 0) {
+                    throw new Error('no claim button in chosen relic container');
+                }
                 if (this.debugEnabled)
-                    LogUtils_logHHAuto('relics', relics);
-                const relic = this.chooseRelic(relics);
-                if (this.debugEnabled)
-                    LogUtils_logHHAuto('Selecting', relic);
-                $($('#labyrinth_reward_popup #reward_holder .relic-card-buttons .claim-relic-btn').get(relic.index)).trigger('click');
+                    LogUtils_logHHAuto('Claiming relic-id', claimBtn.attr('relic-id'));
+                // Native click: a jQuery .trigger('click') does not actuate the
+                // game's per-card claim and the leftmost relic gets claimed instead
+                // (issue #1716). A real DOM click on the marked card's button does.
+                claimBtn[0].click();
             }
             catch (err) {
                 LogUtils_logHHAuto('Error selecting relics, select first no girl relic');
-                $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').first().trigger('click');
+                (_a = $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').get(0)) === null || _a === void 0 ? void 0 : _a.click();
             }
             yield TimeHelper.sleep(randomInterval(800, 1300));
             // Close reward popup or wait until it opens
@@ -3815,8 +3835,15 @@ class LabyrinthAuto {
         });
     }
     closeRewards() {
+        // Issue #1716: the relic-choice popup reuses the #labyrinth_reward_popup
+        // id and its claim buttons carry blue_button_L, so closeRewardPopupIfAny
+        // would click the leftmost claim button (claiming the wrong relic) before
+        // selectRelic runs. Skip closing it while a relic choice is pending; the
+        // relic picker (selectRelic) owns that popup and closes it after the
+        // correct card has been claimed.
+        const isRelicChoice = $('#labyrinth_reward_popup .relic-container .claim-relic-btn').length > 0;
         return RewardHelper.closeRewardPopupIfAny() // laby coin
-            || RewardHelper.closeRewardPopupIfAny(true, 'labyrinth_reward_popup') //sweep floor
+            || (isRelicChoice ? false : RewardHelper.closeRewardPopupIfAny(true, 'labyrinth_reward_popup')) //sweep floor (relic choice handled by selectRelic)
             || RewardHelper.closeRewardPopupIfAny(true, 'confirmation_popup') // no girl to heal
             || RewardHelper.closeRewardPopupIfAny(true, 'heal_girl_labyrinth_popup');
     }
@@ -26285,7 +26312,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.5";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.6";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
