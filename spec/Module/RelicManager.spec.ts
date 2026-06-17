@@ -1,5 +1,7 @@
 import { QuestHelper } from "../../src/Module/Quest";
 import { LabyrinthRelic, RelicManager } from "../../src/Module/RelicManager";
+import { RewardHelper } from "../../src/Helper/RewardHelper";
+import { TimeHelper } from "../../src/Helper/TimeHelper";
 import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("RelicManager", function () {
@@ -185,6 +187,62 @@ describe("RelicManager", function () {
             expect(relicManager.chooseRelic([RARE_RELIC_GIRL, RARE_RELIC_GIRL, RARE_RELIC_ELEMENT])).toBe(RARE_RELIC_ELEMENT);
             expect(relicManager.chooseRelic([RARE_RELIC_GIRL, RARE_RELIC_ELEMENT, RARE_RELIC_GIRL])).toBe(RARE_RELIC_ELEMENT);
             expect(relicManager.chooseRelic([RARE_RELIC_ELEMENT, RARE_RELIC_GIRL, RARE_RELIC_GIRL])).toBe(RARE_RELIC_ELEMENT);
+        });
+    });
+
+    describe("selectRelic clicks the marked card (issue #1716)", function () {
+        beforeEach(() => {
+            jest.spyOn(TimeHelper, "sleep").mockResolvedValue(undefined as never);
+            jest.spyOn(RewardHelper, "closeRewardPopupIfAny").mockReturnValue(true);
+        });
+        afterEach(() => jest.restoreAllMocks());
+
+        function buildPopup(markedIndex: number) {
+            const cards = [0, 1, 2].map(i =>
+                `<div class="relic-container common-relic">`
+                + `<div class="relic-card-buttons"><button class="claim-relic-btn" relic-id="id-${i}">Claim</button></div>`
+                + (i === markedIndex ? `<img class="relicChosen">` : ``)
+                + `</div>`).join("");
+            document.body.innerHTML =
+                `<div id="labyrinth_reward_popup"><div id="reward_holder"><div class="cards-container">${cards}</div></div></div>`;
+        }
+
+        function captureClicks(): string[] {
+            const clicked: string[] = [];
+            $("#labyrinth_reward_popup .claim-relic-btn").each(function () {
+                const id = this.getAttribute("relic-id");
+                $(this).on("click", () => clicked.push(id as string));
+            });
+            return clicked;
+        }
+
+        it("clicks the third card when the green arrow is on the third", async () => {
+            buildPopup(2);
+            const clicked = captureClicks();
+            await new RelicManager().selectRelic();
+            expect(clicked).toEqual(["id-2"]);
+        });
+
+        it("clicks the middle card when the green arrow is on the middle", async () => {
+            buildPopup(1);
+            const clicked = captureClicks();
+            await new RelicManager().selectRelic();
+            expect(clicked).toEqual(["id-1"]);
+        });
+
+        it("falls back to chooseRelic and claims the best card when no marker is set yet", async () => {
+            // Production path on the Labyrinth tick: selectRelic runs before
+            // Labyrinth.sim sets .relicChosen, so no marker exists. The fallback
+            // must claim the chooseRelic winner (the mythic), not the leftmost.
+            document.body.innerHTML =
+                `<div id="labyrinth_reward_popup"><div id="reward_holder"><div class="cards-container">`
+                + `<div class="relic-container common-relic"><div class="relic-card-buttons"><button class="claim-relic-btn" relic-id="id-0">Claim</button></div></div>`
+                + `<div class="relic-container mythic-relic"><div class="relic-card-buttons"><button class="claim-relic-btn" relic-id="id-1">Claim</button></div></div>`
+                + `<div class="relic-container common-relic"><div class="relic-card-buttons"><button class="claim-relic-btn" relic-id="id-2">Claim</button></div></div>`
+                + `</div></div></div>`;
+            const clicked = captureClicks();
+            await new RelicManager().selectRelic();
+            expect(clicked).toEqual(["id-1"]);
         });
     });
 

@@ -106,15 +106,32 @@ export class RelicManager {
 
     async selectRelic() {
         try{
-            const relics = this.parseRelics();
-            if (this.debugEnabled) logHHAuto('relics', relics);
-            const relic = this.chooseRelic(relics);
-            if (this.debugEnabled) logHHAuto('Selecting', relic);
-
-            $($('#labyrinth_reward_popup #reward_holder .relic-card-buttons .claim-relic-btn').get(relic.index) as HTMLElement).trigger('click');
+            // Click the claim button INSIDE the card carrying the green arrow
+            // (.relicChosen, set by Labyrinth.sim). The click must follow the
+            // marked card, not a positional index into the flat button list
+            // which can mismatch the marker (issue #1716).
+            let chosenContainer = $('#labyrinth_reward_popup #reward_holder .relic-container')
+                .filter((_i, el) => $('.relicChosen', el).length > 0).first();
+            if (chosenContainer.length === 0) {
+                // Marker not present yet: derive the same choice and use its slot.
+                const relics = this.parseRelics();
+                if (this.debugEnabled) logHHAuto('relics', relics);
+                const relic = this.chooseRelic(relics);
+                if (this.debugEnabled) logHHAuto('Selecting', relic);
+                chosenContainer = relic.slot;
+            }
+            const claimBtn = $('.relic-card-buttons .claim-relic-btn', chosenContainer).first();
+            if (claimBtn.length === 0) {
+                throw new Error('no claim button in chosen relic container');
+            }
+            if (this.debugEnabled) logHHAuto('Claiming relic-id', claimBtn.attr('relic-id'));
+            // Native click: a jQuery .trigger('click') does not actuate the
+            // game's per-card claim and the leftmost relic gets claimed instead
+            // (issue #1716). A real DOM click on the marked card's button does.
+            claimBtn[0].click();
         } catch (err) {
             logHHAuto('Error selecting relics, select first no girl relic');
-            $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').first().trigger('click');
+            $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').get(0)?.click();
         }
         await TimeHelper.sleep(randomInterval(800, 1300));
 

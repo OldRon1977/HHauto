@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.6 - Labyrinth claims the marked relic
+
+#### Fixed
+
+- **Labyrinth** now claims the relic card it marks with the green arrow. Previously it could claim a different card than the one it highlighted.
+
 ### v7.37.5 - Season no longer stops early
 
 #### Fixed
