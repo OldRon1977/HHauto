@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.7 - Champions stop looping on finished event girls
+
+#### Fixed
+
+- **Champions** no longer get stuck re-opening the champions map every few seconds when a tracked event girl is no longer available on a champion. The bot now schedules the normal cooldown instead of rechecking on a loop.
+
 ### v7.37.6 - Labyrinth claims the marked relic
 
 #### Fixed

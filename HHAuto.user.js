@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.6
+// @version      7.37.7
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -13070,6 +13070,33 @@ function decideNextChampionTime(champions, autoChampsForceStart) {
     }
     return { minTime, minTimeEnded };
 }
+/**
+ * Decide whether an event girl is still obtainable on a champion, given the
+ * parsed "champion-rewards-tooltip" of the champion's first locked stage and
+ * the event girl ids targeted for that champion.
+ *
+ * Mirrors the availability check inside doChampionStuff (autoChampGirlOnChamp):
+ * the girl counts as available only when the first locked stage lists
+ * girl_shards that include one of the targeted girl ids. Used to gate the
+ * timer=0 force in getChampionListFromMap so the timer scan does not flag a
+ * champion as "ready now" when no event-girl fight will actually start.
+ */
+function isEventGirlAvailableOnLockedStage(parsedFirstLockedStage, targetGirlIds) {
+    var _a;
+    if (parsedFirstLockedStage === null) {
+        return false;
+    }
+    const shards = (_a = parsedFirstLockedStage.stage) === null || _a === void 0 ? void 0 : _a.girl_shards;
+    if (!shards || shards.length === 0) {
+        return false;
+    }
+    for (const shard of shards) {
+        if (targetGirlIds.includes(shard.id_girl)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 ;// CONCATENATED MODULE: ./src/Module/Champion.ts
 var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -13389,7 +13416,22 @@ class Champion {
             }
             champion.hasEventGirls = championWithEventGirl.includes(i + 1);
             if (autoChampsForceStartEventGirl && championWithEventGirl.includes(i + 1) && champion.timer < 0) {
-                champion.timer = 0;
+                // Only treat the champion as "ready now" (timer 0) when the
+                // event girl is actually still on the first locked stage.
+                // Otherwise the timer scan flags a phantom-ready champion that
+                // doChampionStuff refuses to fight, re-arming nextChampionTime
+                // every tick (issue #1771 loop). Mirrors the autoChampGirlOnChamp
+                // check in doChampionStuff.
+                const targetGirlIds = autoChampsEventGirls
+                    .filter(a => Number(a.champ_id) === i + 1)
+                    .map(a => Number(a.girl_id));
+                const lockedStage = $('a.champion-lair[href*=' + Number(i + 1) + '] .stage-icon.locked');
+                const parsedLockedStage = lockedStage.length > 0
+                    ? safeJsonParse(lockedStage[0].getAttribute("champion-rewards-tooltip"), null)
+                    : null;
+                if (isEventGirlAvailableOnLockedStage(parsedLockedStage, targetGirlIds)) {
+                    champion.timer = 0;
+                }
             }
             // if (autoChampsForceStart && champion.timer < 0) {
             //     champion.timer = 0;
@@ -26312,7 +26354,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.6";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.7";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
