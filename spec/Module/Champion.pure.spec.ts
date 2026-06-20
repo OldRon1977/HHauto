@@ -1,6 +1,7 @@
 import {
     ChampionTimerEntry,
     decideNextChampionTime,
+    isEventGirlAvailableOnLockedStage,
 } from "../../src/Module/Champion.pure";
 
 /**
@@ -134,5 +135,41 @@ describe("decideNextChampionTime", () => {
             minTime: 0,
             minTimeEnded: -1,
         });
+    });
+});
+
+
+/**
+ * Availability gate for the event-girl timer=0 force in getChampionListFromMap.
+ *
+ * Regression guard for issue #1771: forcing timer=0 for a champion that merely
+ * appears in the event-girl snapshot -- without checking the girl is still on
+ * the first locked stage -- made the timer scan flag a phantom-ready champion.
+ * doChampionStuff then refused the fight and nextChampionTime was re-armed
+ * every tick, producing an endless home<->champions-map navigation loop.
+ */
+describe("isEventGirlAvailableOnLockedStage", () => {
+    it("returns false when the parsed locked stage is null", () => {
+        expect(isEventGirlAvailableOnLockedStage(null, [911527332])).toBe(false);
+    });
+
+    it("returns false when the stage has no girl_shards", () => {
+        expect(isEventGirlAvailableOnLockedStage({ stage: {} }, [911527332])).toBe(false);
+        expect(isEventGirlAvailableOnLockedStage({ stage: { girl_shards: [] } }, [911527332])).toBe(false);
+    });
+
+    it("returns false when none of the shard girls match the targets (issue #1771 loop case)", () => {
+        const parsed = { stage: { girl_shards: [{ id_girl: 123 }, { id_girl: 456 }] } };
+        expect(isEventGirlAvailableOnLockedStage(parsed, [911527332])).toBe(false);
+    });
+
+    it("returns true when a shard girl matches a target id", () => {
+        const parsed = { stage: { girl_shards: [{ id_girl: 123 }, { id_girl: 911527332 }] } };
+        expect(isEventGirlAvailableOnLockedStage(parsed, [911527332])).toBe(true);
+    });
+
+    it("returns false when there are no target girl ids", () => {
+        const parsed = { stage: { girl_shards: [{ id_girl: 911527332 }] } };
+        expect(isEventGirlAvailableOnLockedStage(parsed, [])).toBe(false);
     });
 });

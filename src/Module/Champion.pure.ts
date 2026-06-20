@@ -88,3 +88,42 @@ export function decideNextChampionTime(
 
     return { minTime, minTimeEnded };
 }
+
+
+/**
+ * Parsed shape of a champion locked-stage "champion-rewards-tooltip"
+ * attribute, reduced to the fields the event-girl availability check needs.
+ */
+export type LockedStageRewards = {
+    stage?: { girl_shards?: Array<{ id_girl: number }> };
+} | null;
+
+/**
+ * Decide whether an event girl is still obtainable on a champion, given the
+ * parsed "champion-rewards-tooltip" of the champion's first locked stage and
+ * the event girl ids targeted for that champion.
+ *
+ * Mirrors the availability check inside doChampionStuff (autoChampGirlOnChamp):
+ * the girl counts as available only when the first locked stage lists
+ * girl_shards that include one of the targeted girl ids. Used to gate the
+ * timer=0 force in getChampionListFromMap so the timer scan does not flag a
+ * champion as "ready now" when no event-girl fight will actually start.
+ */
+export function isEventGirlAvailableOnLockedStage(
+    parsedFirstLockedStage: LockedStageRewards,
+    targetGirlIds: number[],
+): boolean {
+    if (parsedFirstLockedStage === null) {
+        return false;
+    }
+    const shards = parsedFirstLockedStage.stage?.girl_shards;
+    if (!shards || shards.length === 0) {
+        return false;
+    }
+    for (const shard of shards) {
+        if (targetGirlIds.includes(shard.id_girl)) {
+            return true;
+        }
+    }
+    return false;
+}

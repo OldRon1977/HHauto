@@ -28,7 +28,7 @@ import { getHHAjax, isJSON, safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { ChampionModel } from "../model/Champion";
-import { decideNextChampionTime } from './Champion.pure';
+import { decideNextChampionTime, isEventGirlAvailableOnLockedStage } from './Champion.pure';
 import { EventModule } from "./Events/EventModule";
 import { QuestHelper } from "./Quest";
 
@@ -330,7 +330,22 @@ export class Champion {
             }
             champion.hasEventGirls = championWithEventGirl.includes(i + 1);
             if (autoChampsForceStartEventGirl && championWithEventGirl.includes(i+1) && champion.timer < 0) {
-                champion.timer = 0;
+                // Only treat the champion as "ready now" (timer 0) when the
+                // event girl is actually still on the first locked stage.
+                // Otherwise the timer scan flags a phantom-ready champion that
+                // doChampionStuff refuses to fight, re-arming nextChampionTime
+                // every tick (issue #1771 loop). Mirrors the autoChampGirlOnChamp
+                // check in doChampionStuff.
+                const targetGirlIds = autoChampsEventGirls
+                    .filter(a => Number(a.champ_id) === i + 1)
+                    .map(a => Number(a.girl_id));
+                const lockedStage = $('a.champion-lair[href*=' + Number(i + 1) + '] .stage-icon.locked');
+                const parsedLockedStage = lockedStage.length > 0
+                    ? safeJsonParse<any>(lockedStage[0].getAttribute("champion-rewards-tooltip"), null)
+                    : null;
+                if (isEventGirlAvailableOnLockedStage(parsedLockedStage, targetGirlIds)) {
+                    champion.timer = 0;
+                }
             }
             // if (autoChampsForceStart && champion.timer < 0) {
             //     champion.timer = 0;
