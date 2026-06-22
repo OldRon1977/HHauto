@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.10 - Stat upgrades no longer freeze the script
+
+#### Fixed
+
+- **Auto stat upgrades** no longer get stuck in an endless loop (for example after an account level-up) when a stat purchase does not register. The script now stops the retry loop instead of freezing, and logs details to help pin down the cause.
+
 ### v7.37.9 - Mouse pause and Pachinko cancel fixes
 
 #### Fixed
