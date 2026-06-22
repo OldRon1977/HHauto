@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.9
+// @version      7.37.10
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -19868,6 +19868,12 @@ function getHero() {
     }
     return (_b = unsafeWindow.shared) === null || _b === void 0 ? void 0 : _b.Hero;
 }
+// Tracks the last stat-buy attempt so a buy that does not advance the
+// shared Hero values (issue #1735: on some pages, e.g. the level-up reward
+// screen, the buy never reflects in shared.Hero) stops the self-rescheduling
+// loop instead of repeating forever. Timestamp-gated so a later, unrelated
+// run on the same page load is not mistaken for no-progress.
+let lastStatAttempt = null;
 function doStatUpgrades() {
     //Stats?
     //logHHAuto('stats');
@@ -19893,6 +19899,18 @@ function doStatUpgrades() {
             }
             //logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' price: '+price);
             if ((stats[carac - 1] + mult) <= Limit && (money - price) > M && (carac == HeroHelper.getClass() || price < mp / 2 || (MainStat + mult) > Limit)) {
+                const nowTs = Date.now();
+                if (lastStatAttempt
+                    && (nowTs - lastStatAttempt.ts) < 3000
+                    && lastStatAttempt.carac === carac
+                    && lastStatAttempt.value === stats[carac - 1]) {
+                    LogUtils_logHHAuto('doStatUpgrades: stat carac' + carac + '=' + stats[carac - 1]
+                        + ' did not advance after the last buy (page=' + location.pathname
+                        + '); stopping to avoid an infinite loop.');
+                    lastStatAttempt = null;
+                    return;
+                }
+                lastStatAttempt = { carac: carac, value: stats[carac - 1], ts: nowTs };
                 count++;
                 LogUtils_logHHAuto('money: ' + money + ' stat' + carac + ': ' + stats[carac - 1] + ' [+' + mult + '] price: ' + price);
                 money -= price;
@@ -19902,6 +19920,11 @@ function doStatUpgrades() {
                     nb: mult
                 };
                 getHHAjax()(params, function (data) {
+                    LogUtils_logHHAuto('doStatUpgrades resp: success=' + !!(data && data.success)
+                        + ' page=' + location.pathname
+                        + ' carac' + carac + '=' + getHHVars('Hero.infos.carac' + carac)
+                        + ' money=' + HeroHelper.getMoney()
+                        + ' data=' + JSON.stringify(data).slice(0, 300));
                     Hero.update("soft_currency", 0 - price, true);
                 });
                 setTimeout(doStatUpgrades, randomInterval(300, 500));
@@ -26434,7 +26457,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.9";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.10";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

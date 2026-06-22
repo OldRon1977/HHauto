@@ -1,4 +1,6 @@
 import { HeroHelper, getHero } from "../../src/Helper/HeroHelper";
+import { setStoredValue } from "../../src/Helper/StorageHelper";
+import { SK } from "../../src/config/StorageKeys";
 import { Booster } from "../../src/Module/Booster";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { MockHelper } from "../testHelpers/MockHelpers";
@@ -193,4 +195,65 @@ describe("HeroHelper", function() {
       );
     });
   });
+
+  describe("doStatUpgrades loop guard (issue #1735)", function() {
+    async function loadDoStatUpgrades() {
+      jest.resetModules();
+      const mod = await import("../../src/Helper/HeroHelper");
+      return mod.doStatUpgrades;
+    }
+
+    function setupHero() {
+      // class 3 -> main stat carac3; carac1/2 already at the limit so only
+      // carac3 is bought first deterministically. Limit = level*30 = 30000.
+      const Hero: any = {
+        infos: { class: 3, level: 1000, carac1: 29999, carac2: 29999, carac3: 100 },
+        currencies: { soft_currency: 1e12 },
+        update: jest.fn(),
+      };
+      unsafeWindow.shared!.Hero = Hero;
+      setStoredValue(HHStoredVarPrefixKey + SK.autoStats, "0");
+      return Hero;
+    }
+
+    beforeEach(() => {
+      MockHelper.mockDomain();
+      jest.useFakeTimers();
+    });
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+
+    it("stops when a stat buy does not advance the shared Hero value", async function() {
+      setupHero();
+      // ajax "succeeds" but never updates shared.Hero -> value stays frozen,
+      // reproducing the issue-1735 condition.
+      const ajax = jest.fn((params: any, cb: any) => cb({ success: true }));
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades(); // first buy issued
+      doStatUpgrades(); // frozen value -> no-progress guard stops, no second buy
+      expect(ajax).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps buying while the stat actually advances", async function() {
+      const Hero = setupHero();
+      // ajax applies the buy so the next read advances -> guard must not trip.
+      const ajax = jest.fn((params: any, cb: any) => {
+        Hero.infos["carac" + params.carac.slice(-1)] += params.nb;
+        cb({ success: true });
+      });
+      unsafeWindow.shared!.general!.hh_ajax = ajax;
+
+      const doStatUpgrades = await loadDoStatUpgrades();
+      doStatUpgrades();
+      doStatUpgrades();
+      expect(ajax).toHaveBeenCalledTimes(2);
+    });
+  });
+
 });

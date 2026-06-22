@@ -34,6 +34,13 @@ export function getHero():KKHero
     return unsafeWindow.shared?.Hero;
 }
 
+// Tracks the last stat-buy attempt so a buy that does not advance the
+// shared Hero values (issue #1735: on some pages, e.g. the level-up reward
+// screen, the buy never reflects in shared.Hero) stops the self-rescheduling
+// loop instead of repeating forever. Timestamp-gated so a later, unrelated
+// run on the same page load is not mistaken for no-progress.
+let lastStatAttempt: { carac: number; value: number; ts: number } | null = null;
+
 export function doStatUpgrades()
 {
     //Stats?
@@ -64,6 +71,18 @@ export function doStatUpgrades()
             //logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' price: '+price);
             if ((stats[carac-1]+mult)<=Limit && (money-price)>M && (carac==HeroHelper.getClass() || price<mp/2 || (MainStat+mult)>Limit))
             {
+                const nowTs = Date.now();
+                if (lastStatAttempt
+                    && (nowTs - lastStatAttempt.ts) < 3000
+                    && lastStatAttempt.carac === carac
+                    && lastStatAttempt.value === stats[carac-1]) {
+                    logHHAuto('doStatUpgrades: stat carac'+carac+'='+stats[carac-1]
+                        +' did not advance after the last buy (page='+location.pathname
+                        +'); stopping to avoid an infinite loop.');
+                    lastStatAttempt = null;
+                    return;
+                }
+                lastStatAttempt = { carac: carac, value: stats[carac-1], ts: nowTs };
                 count++;
                 logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' [+'+mult+'] price: '+price);
                 money-=price;
@@ -73,6 +92,11 @@ export function doStatUpgrades()
                     nb: mult
                 };
                 getHHAjax()!(params, function(data: any) {
+                    logHHAuto('doStatUpgrades resp: success='+!!(data && data.success)
+                        +' page='+location.pathname
+                        +' carac'+carac+'='+getHHVars('Hero.infos.carac'+carac)
+                        +' money='+HeroHelper.getMoney()
+                        +' data='+JSON.stringify(data).slice(0,300));
                     Hero.update("soft_currency", 0 - price, true);
                 });
                 setTimeout(doStatUpgrades, randomInterval(300,500));
