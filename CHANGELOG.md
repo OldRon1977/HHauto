@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.8 - Main/side quest no longer self-disable at the latest quest
+
+#### Fixed
+
+- **Main and side quest** auto-settings no longer switch themselves off when you reach the newest available main quest. The bot now recognizes the latest quest and waits for new content instead of treating its screen as an error.
+
 ### v7.37.7 - Champions stop looping on finished event girls
 
 #### Fixed
