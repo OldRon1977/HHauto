@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.10
+// @version      7.37.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26457,7 +26457,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.10";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.11";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27438,6 +27438,7 @@ var started = false;
 var debugMenuID;
 var heroRetryTimer = null;
 var heroRetryCount = 0;
+var heroRetryFirstAt = 0;
 const HERO_MAX_RETRIES = 15;
 // Persistent Forbidden backoff (issue #1598).
 //
@@ -27585,13 +27586,31 @@ function hardened_start() {
 }
 function start() {
     var _a, _b;
+    // Issue #1735: the userscript also runs in the non-game wrapper frame
+    // whose pathname is "/". The game is always served under a real path
+    // (/home.html, /quest/..., side-quests.html, ...), never bare "/". In that
+    // wrapper frame shared.Hero never appears, so the retry loop below spammed
+    // "no Hero" and gave up after ~75s, looking like a freeze. Skip init there;
+    // the actual game frame (e.g. /home.html) is unaffected and runs normally.
+    if (location.pathname === '/') {
+        LogUtils_logHHAuto('Not a game page (/), skipping init in this frame.');
+        return;
+    }
     if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
+        if (heroRetryCount === 0)
+            heroRetryFirstAt = Date.now();
         heroRetryCount++;
+        // Diagnostics (issue #1735): record which page the init is stuck on and
+        // how long shared.Hero has been missing, so real logs can tell a
+        // slow-loading game page apart from a non-game page where Hero never
+        // comes -- without needing console access (the game globals are not
+        // visible in the DevTools console context).
+        const elapsed = Date.now() - heroRetryFirstAt;
         if (heroRetryCount > HERO_MAX_RETRIES) {
-            LogUtils_logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Giving up. Try reloading the page.');
+            LogUtils_logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Giving up. Try reloading the page. (page=' + location.pathname + ', elapsed=' + elapsed + 'ms)');
             return;
         }
-        LogUtils_logHHAuto('???no Hero??? (attempt ' + heroRetryCount + '/' + HERO_MAX_RETRIES + ')');
+        LogUtils_logHHAuto('???no Hero??? (attempt ' + heroRetryCount + '/' + HERO_MAX_RETRIES + ', page=' + location.pathname + ', elapsed=' + elapsed + 'ms)');
         started = false;
         heroRetryTimer = setTimeout(hardened_start, 5000);
         return;
@@ -27601,7 +27620,18 @@ function start() {
         clearTimeout(heroRetryTimer);
         heroRetryTimer = null;
     }
+    // Positive confirmation (issue #1735): the log only ever recorded the
+    // "no Hero" failures, so a successful load was silent. Emit a one-per-load
+    // line so it is verifiable that shared.Hero was actually found, including
+    // how long it took when there were retries.
+    if (heroRetryCount > 0) {
+        LogUtils_logHHAuto('Hero object available after ' + heroRetryCount + ' retries (elapsed=' + (Date.now() - heroRetryFirstAt) + 'ms, page=' + location.pathname + ').');
+    }
+    else {
+        LogUtils_logHHAuto('Hero object available (page=' + location.pathname + ').');
+    }
     heroRetryCount = 0;
+    heroRetryFirstAt = 0;
     if ($("a[rel='phoenix_member_login']").length > 0) {
         LogUtils_logHHAuto('Not logged in, please login first!');
         return;

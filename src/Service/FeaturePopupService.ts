@@ -42,7 +42,7 @@ const FEATURE_POPUP_VERSION: string = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.10";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.11";
 
 /**
  * HTML content for the feature popup.

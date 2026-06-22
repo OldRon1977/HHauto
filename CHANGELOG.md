@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.11 - Startup no longer hangs on the non-game frame
+
+#### Fixed
+
+- **Startup hang fixed.** The script no longer gets stuck retrying for the game's player data in the page's non-game frame (the bare "/" wrapper), which could look like a freeze. It now skips that frame and runs only where the game actually loads.
+
+#### Changed
+
+- **Startup diagnostics.** The debug log now records the page and wait time while loading, and logs once when the game data has loaded successfully, to help track down startup issues.
+
 ### v7.37.10 - Stat upgrades no longer freeze the script
 
 #### Fixed
