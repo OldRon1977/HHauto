@@ -385,6 +385,9 @@ export const TK = {
     featurePopupShown: "Temp_featurePopupShown",
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
 
+    // Mouse pause activity (issue #1774)
+    mouseLastActivity: "Temp_mouseLastActivity",
+
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
 

@@ -2503,6 +2503,12 @@ HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
     storage: "localStorage",
     HHType: "Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {
     storage:"sessionStorage",

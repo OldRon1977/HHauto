@@ -9,7 +9,7 @@
 // Used by: AutoLoop.ts (calls Scheduler.tick(ctx) each iteration)
 
 import { HandlerConfig, StepResult, pipeline } from './Pipeline.config';
-import { mouseBusy } from './MouseService';
+import { isUserPauseActive } from './MouseService';
 import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -151,7 +151,7 @@ export class Scheduler {
   private shouldSoftAbort(): boolean {
     const masterOff = getStoredValue(HHStoredVarPrefixKey + SK.master) !== 'true';
     const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true';
-    return masterOff || mouseBusy || autoLoopOff;
+    return masterOff || isUserPauseActive() || autoLoopOff;
   }
 
   /**

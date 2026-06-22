@@ -257,6 +257,7 @@ jest.mock('../../src/Helper/StorageHelper', () => ({
 
 jest.mock('../../src/Service/MouseService', () => ({
   get mouseBusy() { return false; },
+  isUserPauseActive: () => false,
 }));
 
 jest.mock('../../src/config/HHStoredVars', () => ({

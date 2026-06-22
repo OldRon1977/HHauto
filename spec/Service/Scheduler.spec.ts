@@ -8,6 +8,7 @@
 const mouseServiceState = { mouseBusy: false };
 jest.mock('../../src/Service/MouseService', () => ({
   get mouseBusy() { return mouseServiceState.mouseBusy; },
+  isUserPauseActive: () => mouseServiceState.mouseBusy,
 }));
 
 // In-memory mock store for sessionStorage-backed values used by the

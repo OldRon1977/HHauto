@@ -296,12 +296,7 @@ export class Pachinko {
             + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
             + '</div>';
         fillHHPopUp("PachinkoPlay", getTextForUI("PachinkoButton", "elementText"), PachinkoPlay);
-        $("#PachinkoPlayCancel").on("click", () => {
-            maskHHPopUp();
-            logHHAuto("Cancel clicked, closing popUp.");
-            Pachinko.autoPachinkoRunning = false;
-            if (Pachinko.failureTimeoutId) clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        });
+        $("#PachinkoPlayCancel").on("click", Pachinko.cancelXPachinkoRun);
 
         if (!Pachinko.ajaxBindingDone) {
             Pachinko.bindPachinkoAjaxReturn();
@@ -317,6 +312,23 @@ export class Pachinko {
         setTimeout(Pachinko.playXPachinko_func, randomInterval(500, 1500));
     }
     
+    // Cancelling an X-run must restore autoLoop. pachinkoPlayXTimes sets it
+    // to false at the start, and only playXPachinko_func's "popup closed"
+    // branch turns it back on. Cancel tears down both re-schedule sources
+    // (autoPachinkoRunning + the failure timeout), so that branch never runs
+    // and the bot stayed frozen on the pachinko page (autoLoop never reset,
+    // because with autoLoop off it can no longer navigate and trigger the
+    // StartService page-load reset). Restore autoLoop here directly.
+    static cancelXPachinkoRun() {
+        maskHHPopUp();
+        logHHAuto("Cancel clicked, closing popUp.");
+        Pachinko.autoPachinkoRunning = false;
+        if (Pachinko.failureTimeoutId) clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+        logHHAuto("setting autoloop to true");
+        if (autoLoopKick) setTimeout(autoLoopKick, randomInterval(500, 800));
+    }
+
     static stopXPachinkoNoGirl() {
         logHHAuto("No more girl on Pachinko, cancelling.");
         maskHHPopUp();

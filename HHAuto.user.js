@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.8
+// @version      7.37.9
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1348,6 +1348,8 @@ const TK = {
     // Feature Popup (What's New)
     featurePopupShown: "Temp_featurePopupShown",
     featurePopupDismissCount: "Temp_featurePopupDismissCount",
+    // Mouse pause activity (issue #1774)
+    mouseLastActivity: "Temp_mouseLastActivity",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture (v7.37.0, ADR-001)
@@ -12367,24 +12369,78 @@ function updateData() {
 // page. Binds mousemove, scroll, and mouseup events that set a
 // "mouseBusy" flag for a configurable timeout (default 5s).
 //
-// While mouseBusy is true, AutoLoop skips all actions to avoid
-// interfering with manual gameplay.
+// The in-memory mouseBusy flag does not survive a page reload. Because
+// the game navigates via full page reloads, manual navigation used to
+// give the bot a clean slate: the first scheduler tick fired before any
+// fresh mouse event re-armed the pause, so the bot navigated away from
+// the page the user had just opened (issue #1774). To fix this the
+// last activity timestamp is persisted in sessionStorage (survives a
+// same-tab reload) and a short startup grace period blocks automation
+// right after every load while mouse-pause is enabled.
 //
-// Used by: StartService (binds events), AutoLoop (checks flag)
+// While the pause is active (isUserPauseActive), AutoLoop and the
+// Scheduler skip all actions to avoid interfering with manual gameplay.
+//
+// Used by: StartService (binds events), AutoLoop + Scheduler (check pause)
 
 
 
+// Timestamp of this script execution. Module evaluation happens once per
+// page load (the userscript runs fresh on every navigation), so this
+// approximates the page-load time and is used for the startup grace.
+const SCRIPT_START_TS = Date.now();
+// Startup grace period: while mouse-pause is enabled, automation is held
+// for this long after each page load so a manual navigation is not
+// immediately undone by the first scheduler tick (issue #1774).
+const STARTUP_GRACE_MS = 2000;
+// Minimum gap between persisted-activity writes. mousemove fires very
+// frequently; without throttling every pixel of movement would hit
+// sessionStorage.
+const ACTIVITY_WRITE_THROTTLE_MS = 500;
+const DEFAULT_MOUSE_TIMEOUT_MS = 5000;
 let mouseBusy = false;
 let mouseBusyTimeout = 0;
+let lastActivityWrite = 0;
+function getMouseTimeout() {
+    const raw = Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout));
+    return Number.isInteger(raw) ? raw : DEFAULT_MOUSE_TIMEOUT_MS;
+}
+function persistActivity(now) {
+    if (now - lastActivityWrite < ACTIVITY_WRITE_THROTTLE_MS)
+        return;
+    lastActivityWrite = now;
+    setStoredValue(HHStoredVarPrefixKey + TK.mouseLastActivity, String(now));
+}
 function makeMouseBusy(ms) {
     clearTimeout(mouseBusyTimeout);
-    //logHHAuto('mouseBusy' + mouseBusy + ' ' + ms);
     mouseBusy = true;
     mouseBusyTimeout = setTimeout(function () { mouseBusy = false; }, ms);
+    persistActivity(Date.now());
 }
 ;
+/**
+ * True while automation must stay paused for user activity. Only active
+ * when the mouse-pause feature is enabled. Combines three signals:
+ *  - the in-memory mouseBusy flag (recent activity on this page),
+ *  - persisted activity from just before a reload (survives navigation),
+ *  - the startup grace period right after a page load.
+ */
+function isUserPauseActive() {
+    if (getStoredValue(HHStoredVarPrefixKey + SK.mousePause) !== "true")
+        return false;
+    if (mouseBusy)
+        return true;
+    const now = Date.now();
+    const lastActivity = Number(getStoredValue(HHStoredVarPrefixKey + TK.mouseLastActivity));
+    if (Number.isFinite(lastActivity) && lastActivity > 0 && now - lastActivity < getMouseTimeout()) {
+        return true;
+    }
+    if (now - SCRIPT_START_TS < STARTUP_GRACE_MS)
+        return true;
+    return false;
+}
 function bindMouseEvents() {
-    const mouseTimeoutVal = Number.isInteger(Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout))) ? Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout)) : 5000;
+    const mouseTimeoutVal = Number.isInteger(Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout))) ? Number(getStoredValue(HHStoredVarPrefixKey + SK.mousePauseTimeout)) : DEFAULT_MOUSE_TIMEOUT_MS;
     document.onmousemove = function () { makeMouseBusy(mouseTimeoutVal); };
     document.onscroll = function () { makeMouseBusy(mouseTimeoutVal); };
     document.onmouseup = function () { makeMouseBusy(mouseTimeoutVal); };
@@ -16442,13 +16498,7 @@ class Pachinko {
             + '<label style="width:80px" class="myButton" id="PachinkoPlayCancel">' + getTextForUI("OptionCancel", "elementText") + '</label>'
             + '</div>';
         fillHHPopUp("PachinkoPlay", getTextForUI("PachinkoButton", "elementText"), PachinkoPlay);
-        $("#PachinkoPlayCancel").on("click", () => {
-            maskHHPopUp();
-            LogUtils_logHHAuto("Cancel clicked, closing popUp.");
-            Pachinko.autoPachinkoRunning = false;
-            if (Pachinko.failureTimeoutId)
-                clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
-        });
+        $("#PachinkoPlayCancel").on("click", Pachinko.cancelXPachinkoRun);
         if (!Pachinko.ajaxBindingDone) {
             Pachinko.bindPachinkoAjaxReturn();
         }
@@ -16459,6 +16509,24 @@ class Pachinko {
         LogUtils_logHHAuto(`Pachinko run starting: ${selectedOption.text}, target ${Pachinko.orbsToGo}, available ${Pachinko.orbLeftOnAutoStart}.`);
         Pachinko.autoPachinkoRunning = true;
         setTimeout(Pachinko.playXPachinko_func, randomInterval(500, 1500));
+    }
+    // Cancelling an X-run must restore autoLoop. pachinkoPlayXTimes sets it
+    // to false at the start, and only playXPachinko_func's "popup closed"
+    // branch turns it back on. Cancel tears down both re-schedule sources
+    // (autoPachinkoRunning + the failure timeout), so that branch never runs
+    // and the bot stayed frozen on the pachinko page (autoLoop never reset,
+    // because with autoLoop off it can no longer navigate and trigger the
+    // StartService page-load reset). Restore autoLoop here directly.
+    static cancelXPachinkoRun() {
+        maskHHPopUp();
+        LogUtils_logHHAuto("Cancel clicked, closing popUp.");
+        Pachinko.autoPachinkoRunning = false;
+        if (Pachinko.failureTimeoutId)
+            clearTimeout(Pachinko.failureTimeoutId); // cancel safe mode
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+        LogUtils_logHHAuto("setting autoloop to true");
+        if (autoLoopKick)
+            setTimeout(autoLoopKick, randomInterval(500, 800));
     }
     static stopXPachinkoNoGirl() {
         LogUtils_logHHAuto("No more girl on Pachinko, cancelling.");
@@ -19648,6 +19716,8 @@ let blockTick = null;
 function setBlockTick(fn) {
     blockTick = fn;
 }
+// Throttle for the mouse-pause log so the polled gate does not flood the log.
+let lastMousePauseLog = 0;
 function autoLoop() {
     return AutoLoop_awaiter(this, void 0, void 0, function* () {
         updateData();
@@ -19673,7 +19743,12 @@ function autoLoop() {
             bossBangEventIDs: [],
             currentPage: getPage(),
         };
-        if (burst && !mouseBusy /*|| checkTimer('nextMissionTime')*/) {
+        const userPaused = isUserPauseActive();
+        if (burst && userPaused && Date.now() - lastMousePauseLog >= 2000) {
+            lastMousePauseLog = Date.now();
+            LogUtils_logHHAuto("Mouse pause active, holding automation.");
+        }
+        if (burst && !userPaused /*|| checkTimer('nextMissionTime')*/) {
             if (!checkTimer("paranoiaSwitch")) {
                 ParanoiaService.clearParanoiaSpendings();
             }
@@ -19725,12 +19800,12 @@ function autoLoop() {
         }
         // --- Page-specific UI handlers ---
         yield handlePageSpecific(ctx);
-        if (ctx.busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+        if (ctx.busy === false && !isUserPauseActive() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
             if (checkTimer("paranoiaSwitch")) {
                 ParanoiaService.flipParanoia();
             }
         }
-        if (ctx.busy === false && burst && !mouseBusy && ctx.lastActionPerformed !== "none") {
+        if (ctx.busy === false && burst && !isUserPauseActive() && ctx.lastActionPerformed !== "none") {
             ctx.lastActionPerformed = "none";
             // logHHAuto("no action performed in this loop, rest lastActionPerformed");
         }
@@ -24659,6 +24734,11 @@ HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.featurePopupDismissCount] =
         storage: "localStorage",
         HHType: "Temp"
     };
+HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.mouseLastActivity] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
 HHStoredVars_HHStoredVars[HHStoredVarPrefixKey + TK.pipelineLastRunAt] =
     {
         storage: "sessionStorage",
@@ -26354,7 +26434,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.8";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.9";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

@@ -38,7 +38,7 @@ import { callItOnce } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { updateData } from "./InfoService";
-import { mouseBusy } from "./MouseService";
+import { isUserPauseActive } from "./MouseService";
 import { isPostInFlight } from './AjaxTracker';
 import { ParanoiaService } from "./ParanoiaService";
 import { setDefaults } from "./StartService";
@@ -152,6 +152,9 @@ export function setBlockTick(fn: (ctx: AutoLoopContext) => Promise<void>): void 
     blockTick = fn;
 }
 
+// Throttle for the mouse-pause log so the polled gate does not flood the log.
+let lastMousePauseLog = 0;
+
 export async function autoLoop()
 {
     updateData();
@@ -183,7 +186,12 @@ export async function autoLoop()
         currentPage: getPage(),
     };
 
-    if (burst && !mouseBusy /*|| checkTimer('nextMissionTime')*/)
+    const userPaused = isUserPauseActive();
+    if (burst && userPaused && Date.now() - lastMousePauseLog >= 2000) {
+        lastMousePauseLog = Date.now();
+        logHHAuto("Mouse pause active, holding automation.");
+    }
+    if (burst && !userPaused /*|| checkTimer('nextMissionTime')*/)
     {
 
         if (!checkTimer("paranoiaSwitch") )
@@ -242,13 +250,13 @@ export async function autoLoop()
     // --- Page-specific UI handlers ---
     await handlePageSpecific(ctx);
 
-    if (ctx.busy === false && !mouseBusy && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
+    if (ctx.busy === false && !isUserPauseActive() && getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.master) === "true" && isAutoLoopActive()) {
         if (checkTimer("paranoiaSwitch")) {
             ParanoiaService.flipParanoia();
         }
     }
 
-    if (ctx.busy === false && burst && !mouseBusy && ctx.lastActionPerformed !== "none") {
+    if (ctx.busy === false && burst && !isUserPauseActive() && ctx.lastActionPerformed !== "none") {
         ctx.lastActionPerformed = "none";
         // logHHAuto("no action performed in this loop, rest lastActionPerformed");
     }
