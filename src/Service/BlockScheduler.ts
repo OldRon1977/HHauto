@@ -51,12 +51,20 @@ export interface SchedulerConfig {
   // reload (user-accepted).
   noProgressMs: number;
   cooldownMs: number;           // R4.10/R5.2 abort cool-down
+  // Dormant-gap threshold: a gap between two ticks larger than this means the
+  // scheduler was not running (mouse pause, frozen/backgrounded tab, OS sleep),
+  // not that the active run made no progress. Used to rebase the no-progress
+  // anchor so the watchdog measures only contiguous active ticking time. Set
+  // well above the normal autoLoop cadence (~1s) so a healthy busy run is never
+  // rebased; only real dormancy crosses it.
+  dormantGapMs: number;
 }
 
 const DEFAULT_CONFIG: SchedulerConfig = {
   failureThreshold: 3,
   noProgressMs: 300_000,   // 5 min without any step progress -> treat as hung
   cooldownMs: 60_000,
+  dormantGapMs: 30_000,    // 30s gap (>>1s cadence) = scheduler was dormant
 };
 
 /** Short signature of a failure reason for the per-signature failure counter. */
@@ -68,6 +76,7 @@ export class BlockScheduler {
   private run: BlockRun | null = null;
   private restoredFromStore = false;
   private tickCount = 0;  // R6.3 correlation: incremented once per tick()
+  private lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
   private readonly cfg: SchedulerConfig;
 
   constructor(
@@ -127,6 +136,16 @@ export class BlockScheduler {
 
   async tick(ctx: AutoLoopContext): Promise<void> {
     this.tickCount++;
+    const now = this.ports.now();
+    // Dormant-gap rebasing: autoLoop reschedules itself via setTimeout(~1s). When
+    // the gap since the previous tick is far larger than that cadence, the
+    // scheduler was dormant (mouse pause holds blockTick, a frozen/backgrounded
+    // tab suspends the timer, the OS slept) -- the wall-clock advanced while no
+    // ticking happened. That gap is not no-progress of the active run. Push the
+    // active run's anchor forward by the gap so the no-progress watchdog measures
+    // only contiguous active ticking time, not dormant wall-clock.
+    const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
+    this.lastTickAt = now;
     // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
     if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
       if (this.run) {
@@ -140,6 +159,11 @@ export class BlockScheduler {
     if (!this.run) this.run = this.ports.loadRun();
 
     if (this.run) {
+      if (gap > this.cfg.dormantGapMs) {
+        this.run.stepStartedAt += gap;
+        this.ports.saveRun(this.run);
+        this.emit({ ev: "rebase", block: this.run.blockId, detail: "dormant-gap:" + gap });
+      }
       await this.continueRun(ctx);
       return;
     }
@@ -155,14 +179,6 @@ export class BlockScheduler {
     const run = this.run!;
     const block = this.registry[run.blockId];
     if (!block) { await this.abort(run, "block-missing"); return; }
-
-    // No-progress watchdog: abort only if the run has made NO progress (no step
-    // advance/repeat resets stepStartedAt) for noProgressMs. A working block keeps
-    // resetting stepStartedAt, so it never times out; only a genuinely stuck run
-    // (re-entered across ticks without advancing) is aborted + routed home.
-    if (this.ports.now() - run.stepStartedAt > this.cfg.noProgressMs) {
-      await this.abort(run, "no-progress-timeout"); return;
-    }
 
     // First handling after a reload: resume validation + at-most-once (R4.6/R4.9).
     if (this.restoredFromStore) {
@@ -192,6 +208,21 @@ export class BlockScheduler {
         this.ports.saveRun(run);
         this.emit({ ev: "resume", block: block.id, step: next?.name, detail: "valid" });
       }
+    }
+
+    // No-progress watchdog (checked AFTER the restore-resume handling above): a
+    // valid resume after a reload IS progress and resets stepStartedAt, so the
+    // watchdog must run after it -- otherwise the first tick after a reload that
+    // followed a long dormant period (frozen/backgrounded tab, OS sleep) would
+    // abort a healthy reload-based run on its stale persisted anchor before the
+    // resume reset could refresh it. That false abort, repeated failureThreshold
+    // times for the same signature, auto-disables the block (observed live as
+    // "ERROR - Champion re-activate", tooltip no-progress-timeout). A working
+    // block keeps resetting stepStartedAt (resume/advance/repeat), so it never
+    // times out; only a genuinely stuck run (re-entered across ticks without
+    // advancing) is aborted + routed home.
+    if (this.ports.now() - run.stepStartedAt > this.cfg.noProgressMs) {
+      await this.abort(run, "no-progress-timeout"); return;
     }
 
     // gate-hold-return (ADR-002): a held run continues only while the block

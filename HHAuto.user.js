@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.11
+// @version      7.37.12
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26457,7 +26457,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.11";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.12";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -27913,6 +27913,7 @@ const DEFAULT_CONFIG = {
     failureThreshold: 3,
     noProgressMs: 300000, // 5 min without any step progress -> treat as hung
     cooldownMs: 60000,
+    dormantGapMs: 30000, // 30s gap (>>1s cadence) = scheduler was dormant
 };
 /** Short signature of a failure reason for the per-signature failure counter. */
 function shortSig(reason) {
@@ -27926,6 +27927,7 @@ class BlockScheduler {
         this.run = null;
         this.restoredFromStore = false;
         this.tickCount = 0; // R6.3 correlation: incremented once per tick()
+        this.lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
         this.cfg = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
         // Restore a run that survived a reload (R4.4) and reconcile version-gated
         // auto-disable (R5.5: one retry after a script update).
@@ -27977,6 +27979,16 @@ class BlockScheduler {
     tick(ctx) {
         return BlockScheduler_awaiter(this, void 0, void 0, function* () {
             this.tickCount++;
+            const now = this.ports.now();
+            // Dormant-gap rebasing: autoLoop reschedules itself via setTimeout(~1s). When
+            // the gap since the previous tick is far larger than that cadence, the
+            // scheduler was dormant (mouse pause holds blockTick, a frozen/backgrounded
+            // tab suspends the timer, the OS slept) -- the wall-clock advanced while no
+            // ticking happened. That gap is not no-progress of the active run. Push the
+            // active run's anchor forward by the gap so the no-progress watchdog measures
+            // only contiguous active ticking time, not dormant wall-clock.
+            const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
+            this.lastTickAt = now;
             // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
             if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
                 if (this.run) {
@@ -27989,6 +28001,11 @@ class BlockScheduler {
             if (!this.run)
                 this.run = this.ports.loadRun();
             if (this.run) {
+                if (gap > this.cfg.dormantGapMs) {
+                    this.run.stepStartedAt += gap;
+                    this.ports.saveRun(this.run);
+                    this.emit({ ev: "rebase", block: this.run.blockId, detail: "dormant-gap:" + gap });
+                }
                 yield this.continueRun(ctx);
                 return;
             }
@@ -28006,14 +28023,6 @@ class BlockScheduler {
             const block = this.registry[run.blockId];
             if (!block) {
                 yield this.abort(run, "block-missing");
-                return;
-            }
-            // No-progress watchdog: abort only if the run has made NO progress (no step
-            // advance/repeat resets stepStartedAt) for noProgressMs. A working block keeps
-            // resetting stepStartedAt, so it never times out; only a genuinely stuck run
-            // (re-entered across ticks without advancing) is aborted + routed home.
-            if (this.ports.now() - run.stepStartedAt > this.cfg.noProgressMs) {
-                yield this.abort(run, "no-progress-timeout");
                 return;
             }
             // First handling after a reload: resume validation + at-most-once (R4.6/R4.9).
@@ -28049,6 +28058,21 @@ class BlockScheduler {
                     this.ports.saveRun(run);
                     this.emit({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });
                 }
+            }
+            // No-progress watchdog (checked AFTER the restore-resume handling above): a
+            // valid resume after a reload IS progress and resets stepStartedAt, so the
+            // watchdog must run after it -- otherwise the first tick after a reload that
+            // followed a long dormant period (frozen/backgrounded tab, OS sleep) would
+            // abort a healthy reload-based run on its stale persisted anchor before the
+            // resume reset could refresh it. That false abort, repeated failureThreshold
+            // times for the same signature, auto-disables the block (observed live as
+            // "ERROR - Champion re-activate", tooltip no-progress-timeout). A working
+            // block keeps resetting stepStartedAt (resume/advance/repeat), so it never
+            // times out; only a genuinely stuck run (re-entered across ticks without
+            // advancing) is aborted + routed home.
+            if (this.ports.now() - run.stepStartedAt > this.cfg.noProgressMs) {
+                yield this.abort(run, "no-progress-timeout");
+                return;
             }
             // gate-hold-return (ADR-002): a held run continues only while the block
             // still WANTS to run. Re-check the precondition on every continuation; once

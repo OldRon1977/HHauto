@@ -170,6 +170,52 @@ describe("BlockScheduler -- abort/watchdog", () => {
     });
 });
 
+describe("BlockScheduler -- dormant-gap rebasing & reload-resume watchdog (no-progress false-positive fix)", () => {
+    it("does NOT abort when the gap since the last tick exceeds the dormant threshold (scheduler paused/frozen)", async () => {
+        // Healthy run, but the scheduler was dormant (mouse pause holds blockTick,
+        // a frozen/backgrounded tab suspends setTimeout) longer than noProgressMs
+        // between two ticks. The dormant gap is not no-progress: the anchor is
+        // rebased by the gap so the run survives instead of being aborted.
+        const h = makePorts();
+        const A = block("A", [step("loop", { ok: true, repeat: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports, { noProgressMs: 5000, dormantGapMs: 3000 });
+        await s.tick(CTX);                  // t=1000: start, repeat, stepStartedAt=1000, lastTickAt=1000
+        h.ctl.time = 1000 + 10000;          // 10s gap (> dormantGapMs 3s AND > noProgressMs 5s)
+        await s.tick(CTX);
+        expect(s.getActiveRun()).not.toBeNull();   // rebased -> not aborted
+        expect(h.routeHome).not.toHaveBeenCalled();
+    });
+
+    it("still aborts a stuck run when ticking continuously (gap below the dormant threshold)", async () => {
+        // Contrast: the scheduler keeps ticking (small inter-tick gap), so no
+        // rebase happens and the watchdog still fires once stepStartedAt is older
+        // than noProgressMs. Pins the dormantGapMs boundary.
+        const h = makePorts();
+        const A = block("A", [step("loop", { ok: true, repeat: true })]);
+        const s = new BlockScheduler(reg(A), ["A"], h.ports, { noProgressMs: 5000, dormantGapMs: 30000 });
+        await s.tick(CTX);                  // t=1000, stepStartedAt=1000
+        h.ctl.time = 1000 + 6000;           // 6s gap < dormantGapMs 30s, but > noProgressMs 5s
+        await s.tick(CTX);
+        expect(s.getActiveRun()).toBeNull();
+        expect(h.routeHome).toHaveBeenCalled();
+    });
+
+    it("does NOT abort a reload-restored run with a stale anchor (valid resume resets before the watchdog)", async () => {
+        // Champion/PoP reload-based case: the run was persisted with stepStartedAt
+        // far in the past (tab frozen/backgrounded across the reload). On the first
+        // tick after the reload the valid resume must reset the anchor BEFORE the
+        // watchdog runs, otherwise the healthy run is aborted on its stale anchor
+        // (3x same signature -> auto-disable, the "ERROR - Champion re-activate").
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 1000 });
+        const A = block("A", [step("loop", { ok: true, repeat: true })]);
+        h.ctl.time = 1000 + 400000;         // 400s since the persisted anchor (> noProgressMs 300s default)
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);  // restores run -> valid resume on first tick
+        await s.tick(CTX);
+        expect(s.getActiveRun()).not.toBeNull();   // resume reset the anchor first -> not aborted
+        expect(h.routeHome).not.toHaveBeenCalled();
+    });
+});
+
 describe("BlockScheduler -- resume / at-most-once", () => {
     it("aborts when resume validation fails after reload", async () => {
         const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
