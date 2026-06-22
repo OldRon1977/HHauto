@@ -5,7 +5,7 @@ import {
 import { ConfigHelper } from '../../src/Helper/ConfigHelper';
 import { RewardHelper } from '../../src/Helper/RewardHelper';
 import { TimeHelper } from '../../src/Helper/TimeHelper';
-import { getStoredValue } from '../../src/Helper/StorageHelper';
+import { getStoredValue, setStoredValue } from '../../src/Helper/StorageHelper';
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 import { TK } from '../../src/config/StorageKeys';
 import { gotoPage } from '../../src/Service/PageNavigationService';
@@ -96,6 +96,39 @@ describe("Pachinko", function() {
       expect(Pachinko.shouldContinuePachinkoRun(100, 0, 50)).toBe(false);
     });
   });
+  describe("cancelXPachinkoRun", function() {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      localStorage.clear();
+      sessionStorage.clear();
+      document.body.innerHTML = "";
+    });
+    afterEach(() => {
+      setPachinkoAutoLoopKick(null);
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+
+    it("re-enables autoLoop and kicks the loop when an X-run is cancelled", function() {
+      const kick = jest.fn();
+      setPachinkoAutoLoopKick(kick);
+      // Simulate a running X-run: pachinkoPlayXTimes had disabled autoLoop.
+      setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+      Pachinko.autoPachinkoRunning = true;
+
+      Pachinko.cancelXPachinkoRun();
+
+      expect(Pachinko.autoPachinkoRunning).toBe(false);
+      expect(getStoredValue(HHStoredVarPrefixKey + TK.autoLoop)).toBe("true");
+      expect(kick).not.toHaveBeenCalled();
+
+      jest.runAllTimers();
+      expect(kick).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("getFreePachinko autoLoop kick (LV-1)", function() {
     const PACHINKO_PAGE = ConfigHelper.getHHScriptVars("pagesIDPachinko");
 

@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.9 - Mouse pause and Pachinko cancel fixes
+
+#### Fixed
+
+- **Mouse pause** is now respected right after you manually open a page. Activity from just before the navigation carries over, and a short pause after each page load stops the bot from immediately navigating away from the page you just opened.
+- **Mouse pause** now also writes a debug-log line while it holds automation, so you can confirm it is working.
+- **Pachinko** no longer leaves the script frozen after you cancel a multi-orb run. Cancelling now resumes normal automation instead of stopping it until you reload the page.
+
 ### v7.37.8 - Main/side quest no longer self-disable at the latest quest
 
 #### Fixed
