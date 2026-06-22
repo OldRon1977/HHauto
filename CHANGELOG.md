@@ -7,6 +7,12 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v7.37.12 - Champions no longer auto-disable after the script idles
+
+#### Fixed
+
+- **Champions stop auto-disabling on their own.** A long stretch where the script was not actively running (a backgrounded or frozen browser tab, the computer asleep, or a manual mouse pause) was wrongly counted as the champion run "making no progress". After enough of those false counts the champion handler disabled itself, showing "ERROR - re-activate" with a no-progress-timeout note. The progress check now ignores idle time and only counts time the script was actually working, so healthy runs survive long idle periods. The same fix protects other multi-step handlers (e.g. Places of Power).
+
 ### v7.37.11 - Startup no longer hangs on the non-game frame
 
 #### Fixed
