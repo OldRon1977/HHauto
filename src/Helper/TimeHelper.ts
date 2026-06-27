@@ -74,32 +74,11 @@ export class TimeHelper {
         });
     }
 
-    /**
-     * Waits for an AJAX request that matches a specified pattern to complete.
-     * It optionally executes a provided action function before starting the wait, 
-     * and returns a Promise that resolves to true when the matching AJAX request finishes.
-     * 
-     * @param action : An optional function to execute before waiting for the AJAX request. If provided and callable, it runs immediately.
-     * @param ajaxPattern : A string pattern (likely a regex or substring) used to match against the AJAX request's data to identify the specific request to wait for.
-     * @returns A Promise that resolves to true when an AJAX request completes whose data matches the ajaxPattern. The promise remains pending until a matching request finishes.
-     */
-    static async waitForAjaxEnd(action: () => void, ajaxPattern: string): Promise<boolean> {
-        return await new Promise((resolve) => {
-            if (typeof action === 'function') {
-                action();
-            }
-
-            var checkAjaxCompleteOnStartPop = function (event: any, request: any, settings: any) {
-                let match = settings.data.match(ajaxPattern);
-                if (match === null) return;
-
-                $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
-                resolve(true);
-            };
-            // check all ajax responses to find the one corresponding to pattern, then resolve the promise to continue the code execution
-            $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
-        });
-    }
+    // waitForAjaxEnd was removed in the issue #1782 fix: it waited forever
+    // for an ajax whose data matched a hardcoded signature and had no
+    // timeout, so a server-side signature change hung the caller. Callers
+    // should use AjaxTracker.waitForAjaxIdle (timeout-bounded, signature-
+    // independent) instead.
 }
 
 export function convertTimeToInt(remainingTimer: string, failSafe=true): number {

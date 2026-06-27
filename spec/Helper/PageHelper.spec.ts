@@ -79,6 +79,26 @@ describe("Page Helper", function () {
             expect(getPage()).toBe('powerplace999');
         });
 
+        it("pop n via pop_id URL param (issue #1782)", function () {
+            // Since the game's 7.x optimization update the single-POP page is
+            // reached via ?tab=pop&pop_id=N. window.pop_index stays 0 and
+            // .pop_thumb_selected is absent, so the URL param is the only
+            // reliable source for the selected POP.
+            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&pop_id=2');
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p></div>`;
+            (unsafeWindow as any).pop_index = 0;
+            expect(getPage()).toBe('powerplace2');
+        });
+
+        it("pop_id URL param: visible main list wins over a stale pop_id", function () {
+            // A locked POP bounces back to the main list; pop_list is visible so
+            // the page must resolve to the main page, not powerplace2, even
+            // though the URL still carries pop_id=2.
+            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&pop_id=2');
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p><div class="pop_list"><div class="pop_thumb" pop_id="1"></div></div></div>`;
+            expect(getPage()).toBe('powerplacemain');
+        });
+
         it("checkUnknown known", function () {
             MockHelper.mockPage('home');
             expect(getPage(true)).toBe('home');
@@ -191,31 +211,25 @@ describe("Page Helper", function () {
             expect(getPopFallbackIndex()).toBeNull();
         });
 
-        it("returns null when pop tab has no index parameter", function () {
+        it("returns null when pop tab has no pop_id parameter", function () {
             MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop');
             MockHelper.mockPage('activities');
             expect(getPopFallbackIndex()).toBeNull();
         });
 
-        it("returns null when a specific POP resolves via popThumb", function () {
-            // Happy path: tab=pop, index in URL, but the page rendered the targeted POP.
-            // No lock signal needed.
-            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&index=999');
-            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p><div class="pop_list" style="display:none"></div><div class="pop_thumb_selected" pop_id="999"></div></div>`;
+        it("returns null when the targeted single POP rendered", function () {
+            // Happy path (issue #1782): tab=pop, pop_id in URL, no visible
+            // pop_list -> resolves to 'specific', so no lock signal.
+            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&pop_id=2');
+            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p></div>`;
             expect(getPopFallbackIndex()).toBeNull();
         });
 
-        it("returns null when the main pop list is rendered", function () {
-            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&index=999');
+        it("returns the pop_id when the game bounced back to the main list (locked-pop signal)", function () {
+            // tab=pop, pop_id in URL, but the main pop list is rendered -- the
+            // game bounced us back because the targeted POP is locked.
+            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&pop_id=42');
             document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p><div class="pop_list"><div class="pop_thumb" pop_id="1"></div></div></div>`;
-            expect(getPopFallbackIndex()).toBeNull();
-        });
-
-        it("returns the URL index when no POP could be resolved (locked-pop signal)", function () {
-            // tab=pop, index in URL, but no popThumb and no pop_list -- the game silently
-            // redirected to a different sub-tab because the targeted POP is locked.
-            MockHelper.mockDomain('www.hentaiheroes.com', 'activities.html', '?tab=pop&index=42');
-            document.body.innerHTML = `<!DOCTYPE html><div id="hh_hentai" page="activities"><p>Hello world</p><div class="pop_list" style="display:none"></div></div>`;
             expect(getPopFallbackIndex()).toBe('42');
         });
     });

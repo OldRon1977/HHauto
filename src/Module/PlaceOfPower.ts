@@ -160,13 +160,14 @@ export class PlaceOfPower {
 
     static async collectAndUpdate()
     {
-        // Detect the "URL targets a POP, but the game silently redirected
-        // to daily_goals because the POP is locked" state. The legacy code
-        // did this inside PageHelper via the checkPop parameter; the
-        // detection has moved to a small read (getPopFallbackIndex) that
-        // returns the index from the URL when the pop tab is loaded but
-        // no specific POP could be resolved. Same lock-list mutation as
-        // before, just owned by the module that knows what to do with it.
+        // Detect the "URL targets a POP (?tab=pop&pop_id=N), but the game
+        // bounced us back to the main list because the POP is locked" state.
+        // The legacy code did this inside PageHelper via the checkPop
+        // parameter; the detection has moved to a small read
+        // (getPopFallbackIndex) that returns the pop_id from the URL when
+        // the pop tab is loaded but the main list is rendered instead of the
+        // targeted POP. Same lock-list mutation as before, just owned by the
+        // module that knows what to do with it.
         const lockedPopIndex = getPopFallbackIndex();
         if (lockedPopIndex !== null)
         {
@@ -394,7 +395,12 @@ export class PlaceOfPower {
                 deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
             } else {
                 logHHAuto("Navigating to powerplace" + index + " page.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", index: index });
+                // Issue #1782: the game's 7.x optimization update renamed the
+                // Place-of-Power query param from `index` to `pop_id`
+                // (/activities.html?tab=pop&pop_id=N). Navigating with the old
+                // `index` param no longer loads the targeted POP, so the second
+                // phase (visit -> auto-assign -> start) never ran.
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", pop_id: index });
                 setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
             }
             // return busy
@@ -483,11 +489,20 @@ export class PlaceOfPower {
                 if ($(querySelectorText).length>0)
                 {
                     logHHAuto("Starting powerplace" + index);
-                    
-                    // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
-                    await TimeHelper.waitForAjaxEnd(() => {
-                        $(querySelectorText).trigger('click');
-                    }, "PlaceOfPower&action=start"); // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
+
+                    // Issue #1782: the old code waited for an ajax whose data
+                    // matched "PlaceOfPower&action=start". The game's 7.x update
+                    // changed the start request signature, so that wait never
+                    // resolved -- the module hung right after starting (autoLoop
+                    // stayed disabled, the next POP was never processed). Wait for
+                    // the ajax channel to go idle instead: the same signature-
+                    // independent, timeout-bounded wait the claim path above uses,
+                    // so a changed signature can never hang the loop again.
+                    $(querySelectorText).trigger('click');
+                    const startIdle = await waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                    if (!startIdle) {
+                        logHHAuto("PoP: start AJAX still busy after " + AJAX_IDLE_TIMEOUT_MS + "ms for powerplace" + index);
+                    }
                 }
                 else if ($("button.blue_button_L[rel='pop_action'][disabled]").length >0 && $("div.grid_view div.pop_selected").length >0)
                 {

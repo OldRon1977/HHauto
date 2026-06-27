@@ -70,6 +70,21 @@ function resolvePopState(): PopState
         return { kind: 'main' };
     }
 
+    // Issue #1782: since the game's 7.x optimization update the specific-POP
+    // view is reached via /activities.html?tab=pop&pop_id=N, and the URL param
+    // is the only reliable source for which POP is shown. The former globals
+    // are gone or stale: window.pop_list no longer exists, window.pop_index
+    // stays 0 regardless of the selected POP, and .pop_thumb_selected[pop_id]
+    // is absent on the single-POP page. The main-list check above runs first,
+    // so a locked POP that the game bounces back to the list still resolves
+    // to 'main' (and the URL's stale pop_id is ignored).
+    const urlPopId = queryStringGetParam(window.location.search, 'pop_id');
+    if (urlPopId !== null)
+    {
+        return { kind: 'specific', popId: urlPopId };
+    }
+
+    // Legacy fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
     // `??` instead of `||`: pop_index = 0 would be a valid index in a
     // 0-based numbering scheme, the previous `||` would have routed it
@@ -83,11 +98,11 @@ function resolvePopState(): PopState
 }
 
 /**
- * If the player is on /activities.html?tab=pop&index=N but the page
- * could not resolve a specific POP (game silently redirects to daily
- * goals when the targeted POP is locked), returns the requested index
- * so callers can mark the POP as locked. Returns null in every other
- * state (happy path, different tab, no index in URL).
+ * If the player is on /activities.html?tab=pop&pop_id=N but the page
+ * could not resolve a specific POP (game silently redirects when the
+ * targeted POP is locked), returns the requested pop_id so callers can
+ * mark the POP as locked. Returns null in every other state (happy
+ * path, different tab, no pop_id in URL).
  *
  * Replaces the legacy `checkPop` parameter on getPage(): the caller
  * (Module/PlaceOfPower) now drives the lock-marking pathway instead
@@ -97,10 +112,18 @@ export function getPopFallbackIndex(): string | null
 {
     const tab = queryStringGetParam(window.location.search, 'tab');
     if (tab !== 'pop') return null;
-    const index = queryStringGetParam(window.location.search, 'index');
-    if (index === null) return null;
-    if (resolvePopState().kind !== 'unresolved') return null;
-    return index;
+    // Issue #1782: the POP query param is `pop_id` since the 7.x update
+    // (was `index`). A locked POP cannot render as a single-POP page; the
+    // game bounces us back to the main list instead. Because the real
+    // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
+    // it never resolves to 'main', so "URL targets a pop_id but the state
+    // is 'main'" is an unambiguous lock signal. (The PopTargeted self-heal
+    // in PlaceOfPower.doPowerPlacesStuff is the backup when a bounce drops
+    // the pop_id from the URL entirely.)
+    const popId = queryStringGetParam(window.location.search, 'pop_id');
+    if (popId === null) return null;
+    if (resolvePopState().kind !== 'main') return null;
+    return popId;
 }
 
 /**

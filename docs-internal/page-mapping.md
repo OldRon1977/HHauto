@@ -191,7 +191,9 @@ Die Activities-Page hostet mehrere Sub-Seiten als Tabs. Sub-Seiten teilen sich U
 | ?tab=daily_goals | DailyGoals | [data-tab="daily_goals"] |
 | ?tab=pop | PlaceOfPower | [data-tab="pop"] |
 
-PoP generiert dynamische IDs: "powerplace" + index. Die Konstante pagesIDPowerplacemain zeigt nur auf die uebergreifende Hauptseite.
+PoP generiert dynamische IDs: "powerplace" + pop_id. Die Konstante pagesIDPowerplacemain zeigt nur auf die uebergreifende Hauptseite.
+
+Einzel-PoP-Seite: `/activities.html?tab=pop&pop_id=N` (seit dem 7.x-Optimierungs-Update des Spiels; vorher `&index=N`, Issue #1782). Die PoP-ID wird aus dem URL-Param `pop_id` gelesen, da die fruehere Globals (`window.pop_list`) entfallen sind und `window.pop_index` konstant 0 bleibt. `resolvePopState()` erkennt die Einzelseite, wenn keine sichtbare `div.pop_list` vorhanden ist; ist die Liste sichtbar trotz `pop_id` in der URL, gilt der PoP als gesperrt (zurueckgeworfen).
 
 ---
 

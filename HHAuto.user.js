@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      7.37.12
+// @version      7.37.13
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1381,15 +1381,6 @@ const TK = {
 //
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
 //          InfoService (display remaining times)
-var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 
 
 
@@ -1441,33 +1432,6 @@ class TimeHelper {
     static sleep(waitTime) {
         return new Promise((resolve) => {
             setTimeout(resolve, waitTime);
-        });
-    }
-    /**
-     * Waits for an AJAX request that matches a specified pattern to complete.
-     * It optionally executes a provided action function before starting the wait,
-     * and returns a Promise that resolves to true when the matching AJAX request finishes.
-     *
-     * @param action : An optional function to execute before waiting for the AJAX request. If provided and callable, it runs immediately.
-     * @param ajaxPattern : A string pattern (likely a regex or substring) used to match against the AJAX request's data to identify the specific request to wait for.
-     * @returns A Promise that resolves to true when an AJAX request completes whose data matches the ajaxPattern. The promise remains pending until a matching request finishes.
-     */
-    static waitForAjaxEnd(action, ajaxPattern) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return yield new Promise((resolve) => {
-                if (typeof action === 'function') {
-                    action();
-                }
-                var checkAjaxCompleteOnStartPop = function (event, request, settings) {
-                    let match = settings.data.match(ajaxPattern);
-                    if (match === null)
-                        return;
-                    $(document).off('ajaxComplete', checkAjaxCompleteOnStartPop); // unbind the event to avoid multiple triggers
-                    resolve(true);
-                };
-                // check all ajax responses to find the one corresponding to pattern, then resolve the promise to continue the code execution
-                $(document).on('ajaxComplete', checkAjaxCompleteOnStartPop);
-            });
         });
     }
 }
@@ -1737,6 +1701,19 @@ function resolvePopState() {
     if (popListDom.length >= 1 || hasPopListGlobal) {
         return { kind: 'main' };
     }
+    // Issue #1782: since the game's 7.x optimization update the specific-POP
+    // view is reached via /activities.html?tab=pop&pop_id=N, and the URL param
+    // is the only reliable source for which POP is shown. The former globals
+    // are gone or stale: window.pop_list no longer exists, window.pop_index
+    // stays 0 regardless of the selected POP, and .pop_thumb_selected[pop_id]
+    // is absent on the single-POP page. The main-list check above runs first,
+    // so a locked POP that the game bounces back to the list still resolves
+    // to 'main' (and the URL's stale pop_id is ignored).
+    const urlPopId = queryStringGetParam(window.location.search, 'pop_id');
+    if (urlPopId !== null) {
+        return { kind: 'specific', popId: urlPopId };
+    }
+    // Legacy fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
     // `??` instead of `||`: pop_index = 0 would be a valid index in a
     // 0-based numbering scheme, the previous `||` would have routed it
@@ -1748,11 +1725,11 @@ function resolvePopState() {
     return { kind: 'unresolved' };
 }
 /**
- * If the player is on /activities.html?tab=pop&index=N but the page
- * could not resolve a specific POP (game silently redirects to daily
- * goals when the targeted POP is locked), returns the requested index
- * so callers can mark the POP as locked. Returns null in every other
- * state (happy path, different tab, no index in URL).
+ * If the player is on /activities.html?tab=pop&pop_id=N but the page
+ * could not resolve a specific POP (game silently redirects when the
+ * targeted POP is locked), returns the requested pop_id so callers can
+ * mark the POP as locked. Returns null in every other state (happy
+ * path, different tab, no pop_id in URL).
  *
  * Replaces the legacy `checkPop` parameter on getPage(): the caller
  * (Module/PlaceOfPower) now drives the lock-marking pathway instead
@@ -1762,12 +1739,20 @@ function getPopFallbackIndex() {
     const tab = queryStringGetParam(window.location.search, 'tab');
     if (tab !== 'pop')
         return null;
-    const index = queryStringGetParam(window.location.search, 'index');
-    if (index === null)
+    // Issue #1782: the POP query param is `pop_id` since the 7.x update
+    // (was `index`). A locked POP cannot render as a single-POP page; the
+    // game bounces us back to the main list instead. Because the real
+    // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
+    // it never resolves to 'main', so "URL targets a pop_id but the state
+    // is 'main'" is an unambiguous lock signal. (The PopTargeted self-heal
+    // in PlaceOfPower.doPowerPlacesStuff is the backup when a bounce drops
+    // the pop_id from the URL entirely.)
+    const popId = queryStringGetParam(window.location.search, 'pop_id');
+    if (popId === null)
         return null;
-    if (resolvePopState().kind !== 'unresolved')
+    if (resolvePopState().kind !== 'main')
         return null;
-    return index;
+    return popId;
 }
 /**
  * Maps each Activities sub-tab to its canonical page-id storage key.
@@ -1884,7 +1869,7 @@ function getPage(checkUnknown = false) {
 }
 
 ;// CONCATENATED MODULE: ./src/Service/AjaxTracker.ts
-var AjaxTracker_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -2095,7 +2080,7 @@ function pendingAjaxCount() {
  * Polls every 50ms. Returns true if idle was reached, false on timeout.
  */
 function waitForAjaxIdle() {
-    return AjaxTracker_awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
+    return __awaiter(this, arguments, void 0, function* (timeoutMs = 8000, settleMs = 250) {
         if (!installed) {
             // Tracker not installed -> behave like immediate idle, just settle.
             yield sleep(settleMs);
@@ -2181,7 +2166,7 @@ function isPostInFlight() {
  * does not have one, pass 0 to get the minimum pause.
  */
 function awaitServerSettleAfterPost(claimXhrDurationMs) {
-    return AjaxTracker_awaiter(this, void 0, void 0, function* () {
+    return __awaiter(this, void 0, void 0, function* () {
         const durationMs = Number.isFinite(claimXhrDurationMs) && claimXhrDurationMs > 0
             ? claimXhrDurationMs
             : 0;
@@ -21871,13 +21856,14 @@ class PlaceOfPower {
     }
     static collectAndUpdate() {
         return PlaceOfPower_awaiter(this, void 0, void 0, function* () {
-            // Detect the "URL targets a POP, but the game silently redirected
-            // to daily_goals because the POP is locked" state. The legacy code
-            // did this inside PageHelper via the checkPop parameter; the
-            // detection has moved to a small read (getPopFallbackIndex) that
-            // returns the index from the URL when the pop tab is loaded but
-            // no specific POP could be resolved. Same lock-list mutation as
-            // before, just owned by the module that knows what to do with it.
+            // Detect the "URL targets a POP (?tab=pop&pop_id=N), but the game
+            // bounced us back to the main list because the POP is locked" state.
+            // The legacy code did this inside PageHelper via the checkPop
+            // parameter; the detection has moved to a small read
+            // (getPopFallbackIndex) that returns the pop_id from the URL when
+            // the pop tab is loaded but the main list is rendered instead of the
+            // targeted POP. Same lock-list mutation as before, just owned by the
+            // module that knows what to do with it.
             const lockedPopIndex = getPopFallbackIndex();
             if (lockedPopIndex !== null) {
                 PlaceOfPower.addPopToUnableToStart(lockedPopIndex, `Unable to go to Pop ${lockedPopIndex} as it is locked.`);
@@ -22073,7 +22059,12 @@ class PlaceOfPower {
                 }
                 else {
                     LogUtils_logHHAuto("Navigating to powerplace" + index + " page.");
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", index: index });
+                    // Issue #1782: the game's 7.x optimization update renamed the
+                    // Place-of-Power query param from `index` to `pop_id`
+                    // (/activities.html?tab=pop&pop_id=N). Navigating with the old
+                    // `index` param no longer loads the targeted POP, so the second
+                    // phase (visit -> auto-assign -> start) never ran.
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", pop_id: index });
                     setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
                 }
                 // return busy
@@ -22157,10 +22148,19 @@ class PlaceOfPower {
                     querySelectorText = "button.blue_button_L[rel='pop_action']:not([disabled])";
                     if ($(querySelectorText).length > 0) {
                         LogUtils_logHHAuto("Starting powerplace" + index);
-                        // check all ajax responses to find the one corresponding to starting the PoP, then resolve the promise to continue the code execution
-                        yield TimeHelper.waitForAjaxEnd(() => {
-                            $(querySelectorText).trigger('click');
-                        }, "PlaceOfPower&action=start"); // namespace=h%5CPlacesOfPower&class=TempPlaceOfPower&action=start&id_place_of_power=00&selected_girls%5B%5D=
+                        // Issue #1782: the old code waited for an ajax whose data
+                        // matched "PlaceOfPower&action=start". The game's 7.x update
+                        // changed the start request signature, so that wait never
+                        // resolved -- the module hung right after starting (autoLoop
+                        // stayed disabled, the next POP was never processed). Wait for
+                        // the ajax channel to go idle instead: the same signature-
+                        // independent, timeout-bounded wait the claim path above uses,
+                        // so a changed signature can never hang the loop again.
+                        $(querySelectorText).trigger('click');
+                        const startIdle = yield waitForAjaxIdle(AJAX_IDLE_TIMEOUT_MS, AJAX_IDLE_SETTLE_MS);
+                        if (!startIdle) {
+                            LogUtils_logHHAuto("PoP: start AJAX still busy after " + AJAX_IDLE_TIMEOUT_MS + "ms for powerplace" + index);
+                        }
                     }
                     else if ($("button.blue_button_L[rel='pop_action'][disabled]").length > 0 && $("div.grid_view div.pop_selected").length > 0) {
                         PlaceOfPower.addPopToUnableToStart(index, "Unable to start Pop " + index + " not enough girls available.");
@@ -26457,7 +26457,7 @@ const FEATURE_POPUP_VERSION = "0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v7.37.12";
+const FEATURE_POPUP_TITLE = "HHAuto v7.37.13";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
