@@ -1,4 +1,4 @@
-import { decideShouldFight, ShouldFightState } from "../../src/Module/League.pure";
+import { decideShouldFight, ShouldFightState, leaguePromotionCutoff } from "../../src/Module/League.pure";
 
 /**
  * Pure-function tests for the league fight decision.
@@ -107,5 +107,37 @@ describe("decideShouldFight", () => {
     it("treats negative timerLeft as expired", () => {
         const state = withState({ energy: 16, timerLeft: -5 });
         expect(decideShouldFight(state)).toBe(true);
+    });
+});
+
+describe("leaguePromotionCutoff", () => {
+    it("returns the top-20 floor for a typical ~100-player bracket (issue #1783)", () => {
+        // 15% of 101 = ~15, lower than 20, so the higher rule wins: top 20.
+        expect(leaguePromotionCutoff(101)).toBe(20);
+        expect(leaguePromotionCutoff(100)).toBe(20);
+    });
+
+    it("uses the top-20 floor for small brackets", () => {
+        expect(leaguePromotionCutoff(60)).toBe(20);
+        expect(leaguePromotionCutoff(20)).toBe(20);
+        expect(leaguePromotionCutoff(1)).toBe(20);
+    });
+
+    it("uses top 15% once it exceeds 20 (large brackets)", () => {
+        expect(leaguePromotionCutoff(200)).toBe(30); // 0.15 * 200 = 30
+        expect(leaguePromotionCutoff(140)).toBe(21); // 0.15 * 140 = 21
+    });
+
+    it("switches from the floor to 15% around the ~134-player crossover", () => {
+        expect(leaguePromotionCutoff(133)).toBe(20); // round(19.95) = 20
+        expect(leaguePromotionCutoff(134)).toBe(20); // round(20.1) = 20
+        expect(leaguePromotionCutoff(137)).toBe(21); // round(20.55) = 21
+    });
+
+    it("falls back to 20 for non-positive or non-finite bracket sizes", () => {
+        expect(leaguePromotionCutoff(0)).toBe(20);
+        expect(leaguePromotionCutoff(-5)).toBe(20);
+        expect(leaguePromotionCutoff(NaN)).toBe(20);
+        expect(leaguePromotionCutoff(Infinity)).toBe(20);
     });
 });

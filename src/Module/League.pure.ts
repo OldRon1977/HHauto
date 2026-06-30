@@ -34,6 +34,23 @@ export type ShouldFightState = {
  * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
  * spending is active.
  */
+/**
+ * Size of the league promotion zone.
+ *
+ * Kinkoid rule (March 2026): a player is promoted if they finish in the
+ * **higher** of the top 15% of the bracket OR the top 20. Hard-coding 20 was
+ * only correct for ~100-player brackets (15% of 100 = 15 < 20); larger
+ * brackets promote more than 20. A non-finite or non-positive bracket size
+ * falls back to the floor of 20.
+ *
+ * @param bracketSize number of players in the league bracket
+ * @returns how many top ranks get promoted (always >= 20)
+ */
+export function leaguePromotionCutoff(bracketSize: number): number {
+    if (!Number.isFinite(bracketSize) || bracketSize <= 0) return 20;
+    return Math.max(Math.round(0.15 * bracketSize), 20);
+}
+
 export function decideShouldFight(state: ShouldFightState): boolean {
     const {
         energy,

@@ -45,6 +45,16 @@ with a few areas made noticeably smarter.
   Max Tier, a more responsive menu, a longer debug log, and new inspector /
   network-sniffer helper scripts for filing better bug reports.
 
+#### Fixed
+
+- **League "stay in target" cutoff follows the game's new promotion rule.**
+  Kinkoid changed promotion (March 2026) so a player is promoted if they finish
+  in the **higher** of the top 15% of the bracket **or** the top 20. The script
+  hard-coded "top 20", which is correct for the usual ~100-player brackets but
+  too cautious in larger ones. The cutoff is now derived from the bracket size,
+  so "stay in target" stops at the right rank for any bracket. (Behaviour is
+  unchanged for ~100-player brackets, where the rule still resolves to top 20.)
+
 For the full, blow-by-blow history see the **v7.30.0 – v7.37.x** entries below.
 
 ### v7.37.12 - Champions no longer auto-disable after the script idles

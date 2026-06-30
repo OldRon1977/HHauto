@@ -23,7 +23,7 @@ import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { queryStringGetParam } from "../Helper/UrlHelper";
-import { decideShouldFight, ShouldFightState } from './League.pure';
+import { decideShouldFight, ShouldFightState, leaguePromotionCutoff } from './League.pure';
 import { autoLoop } from "../Service/AutoLoop";
 import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
@@ -778,12 +778,18 @@ export class LeagueHelper {
 
                 if (leagueTargetValue === Number(getPlayerCurrentLevel) && leagueTargetValue < maxLeague)
                 {
-                    var rankStay = 21;
-                    if (currentRank > 20)
+                    // Promotion zone (Kinkoid rule, March 2026): the higher of
+                    // the top 15% of the bracket or the top 20. Derived from the
+                    // bracket size so it stays correct for larger brackets;
+                    // hard-coding 20 was only right for ~100-player brackets.
+                    const bracketSize = $(".data-list .data-row.body-row").length;
+                    const promotionCount = leaguePromotionCutoff(bracketSize);
+                    var rankStay = promotionCount + 1;
+                    if (currentRank > promotionCount)
                     {
-                        rankStay = 20;
+                        rankStay = promotionCount;
                     }
-                    logHHAuto("Current league is target ("+Number(getPlayerCurrentLevel)+"/"+leagueTargetValue+"), needs to stay. max rank : "+rankStay);
+                    logHHAuto("Current league is target ("+Number(getPlayerCurrentLevel)+"/"+leagueTargetValue+"), needs to stay. Promotion cutoff (higher of 15%/top20): "+promotionCount+", max rank : "+rankStay);
                     let getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankStay+")").filter(function()
                                                                                                             {
                         return Number($(this).text().trim()) === rankStay;

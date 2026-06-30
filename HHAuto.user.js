@@ -4296,6 +4296,23 @@ function getSkillPercentage(team, id) {
  * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
  * spending is active.
  */
+/**
+ * Size of the league promotion zone.
+ *
+ * Kinkoid rule (March 2026): a player is promoted if they finish in the
+ * **higher** of the top 15% of the bracket OR the top 20. Hard-coding 20 was
+ * only correct for ~100-player brackets (15% of 100 = 15 < 20); larger
+ * brackets promote more than 20. A non-finite or non-positive bracket size
+ * falls back to the floor of 20.
+ *
+ * @param bracketSize number of players in the league bracket
+ * @returns how many top ranks get promoted (always >= 20)
+ */
+function leaguePromotionCutoff(bracketSize) {
+    if (!Number.isFinite(bracketSize) || bracketSize <= 0)
+        return 20;
+    return Math.max(Math.round(0.15 * bracketSize), 20);
+}
 function decideShouldFight(state) {
     const { energy, threshold, runThreshold, humanLikeRun, timerLeft, paranoiaSpending, boosterRequired, boosterEquipped, } = state;
     const timerExpired = timerLeft <= 0;
@@ -10510,11 +10527,17 @@ class LeagueHelper {
                         maxLeague = leagues.length;
                     }
                     if (leagueTargetValue === Number(getPlayerCurrentLevel) && leagueTargetValue < maxLeague) {
-                        var rankStay = 21;
-                        if (currentRank > 20) {
-                            rankStay = 20;
+                        // Promotion zone (Kinkoid rule, March 2026): the higher of
+                        // the top 15% of the bracket or the top 20. Derived from the
+                        // bracket size so it stays correct for larger brackets;
+                        // hard-coding 20 was only right for ~100-player brackets.
+                        const bracketSize = $(".data-list .data-row.body-row").length;
+                        const promotionCount = leaguePromotionCutoff(bracketSize);
+                        var rankStay = promotionCount + 1;
+                        if (currentRank > promotionCount) {
+                            rankStay = promotionCount;
                         }
-                        LogUtils_logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. max rank : " + rankStay);
+                        LogUtils_logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Promotion cutoff (higher of 15%/top20): " + promotionCount + ", max rank : " + rankStay);
                         let getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankStay + ")").filter(function () {
                             return Number($(this).text().trim()) === rankStay;
                         });
