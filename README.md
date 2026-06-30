@@ -6,6 +6,27 @@
 
 [Français](https://github.com/OldRon1977/HHauto/wiki/Fran%C3%A7ais)
 
+---
+
+## 🎉 v8.0.0 is here
+
+The first public release since **v7.29.19**. It bundles a large internal
+stability refactor (#1722) with a long run of feature work:
+
+- **Much more stable** — fewer navigation loops, "Forbidden" errors and
+  stuck-script situations, and fewer race conditions.
+- **Smarter team building** — blessing- and synergy-aware League / Edit Team
+  selection.
+- **Better equipment** — optimized "Stuff Team", auto-equip boosters and
+  smarter Sandalwood handling.
+- **More fight control** — independent Troll / Event / Raid clusters and a
+  "+Raid Stars" grade filter.
+- **Quality of life** — reorderable function blocks, Season Max Tier, a snappier
+  menu.
+
+Nothing you rely on was removed and **no settings are reset**. Full details in
+[`CHANGELOG.md`](CHANGELOG.md).
+
 ## Installation instructions
 
 a) Install browser addon TamperMonkey, Greasemonkey or Violentmonkey

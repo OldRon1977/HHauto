@@ -7,6 +7,37 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.0.0 - Major release: stability overhaul and smarter automation
+
+This is the first public release since **v7.29.19**. It bundles a large
+internal refactor (see #1722) together with a long run of feature and
+stability work. Everything you already use keeps working: **no settings are
+reset and no features were removed** — the focus was making the script far
+more stable, with a few areas made noticeably smarter.
+
+#### Highlights since v7.29.19
+
+- **Much more stable.** A central refactor drained whole clusters of bugs: the
+  Place of Power / league / quest navigation loops, recurring "Access
+  forbidden" errors, and "script got stuck" situations after sleep or a
+  backgrounded tab. Fewer race conditions thanks to the new AJAX-mutex
+  handling, and a block-based run pipeline so each task finishes its turn
+  instead of ping-ponging.
+- **Smarter team building.** League and Edit Team selection were rebuilt to be
+  blessing-, trait-, synergy- and leader-aware ("Current Best" / "Possible
+  Best"), instead of just summing raw stats.
+- **Better equipment handling.** Optimized slot-by-slot "Stuff Team" selection,
+  Auto-Equip for legendary boosters, and Sandalwood proactive re-equip with a
+  configurable shard threshold.
+- **More control over fights.** Troll, Event and Raid are now three independent
+  clusters, plus a "+Raid Stars" grade filter and a "+Girl Skins" option — fight
+  only for the girls you actually care about.
+- **Quality of life.** Reorderable function blocks (Block Order menu), Season
+  Max Tier, a more responsive menu, a longer debug log, and new inspector /
+  network-sniffer helper scripts for filing better bug reports.
+
+For the full, blow-by-blow history see the **v7.30.0 – v7.37.x** entries below.
+
 ### v7.37.12 - Champions no longer auto-disable after the script idles
 
 #### Fixed
