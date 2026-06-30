@@ -10,19 +10,28 @@ Older entries below were migrated 1:1 from `README.md`.
 ### v8.0.0 - Major release: stability overhaul and smarter automation
 
 This is the first public release since **v7.29.19**. It bundles a large
-internal refactor (see #1722) together with a long run of feature and
-stability work. Everything you already use keeps working: **no settings are
-reset and no features were removed** — the focus was making the script far
-more stable, with a few areas made noticeably smarter.
+internal refactoring together with a long run of feature and stability work.
+Everything you already use keeps working: **no settings are reset and no
+features were removed** — the focus was making the script far more stable,
+with a few areas made noticeably smarter.
 
 #### Highlights since v7.29.19
 
-- **Much more stable.** A central refactor drained whole clusters of bugs: the
+- **Complete internal refactoring of the script.** Large parts of the codebase
+  were rebuilt for long-term stability:
+  - Strict **TypeScript** type-checking across the whole codebase (compiles
+    with zero type errors)
+  - **ESLint** integrated into the dev workflow to catch problems early
+  - Automated **test suite** expanded to 1000+ tests, run on every build
+  - Old **dependency cycles** (the import-loop tangle behind many crashes)
+    broken up
+  - **Centralized navigation** and an **AJAX-mutex** to prevent race conditions
+  - A new **block-based run pipeline** so each task finishes its turn instead
+    of ping-ponging
+- **Much more stable.** The refactoring drained whole clusters of bugs: the
   Place of Power / league / quest navigation loops, recurring "Access
   forbidden" errors, and "script got stuck" situations after sleep or a
-  backgrounded tab. Fewer race conditions thanks to the new AJAX-mutex
-  handling, and a block-based run pipeline so each task finishes its turn
-  instead of ping-ponging.
+  backgrounded tab.
 - **Smarter team building.** League and Edit Team selection were rebuilt to be
   blessing-, trait-, synergy- and leader-aware ("Current Best" / "Possible
   Best"), instead of just summing raw stats.

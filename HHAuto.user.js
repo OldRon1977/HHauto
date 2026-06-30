@@ -26467,7 +26467,16 @@ const FEATURE_POPUP_CONTENT = `
     <p style="font-size:15px; font-weight:bold; margin-bottom:10px; color:#090;">Welcome to v8.0.0</p>
     <p style="margin-bottom:6px;">First big release since v7.29.19. The headlines:</p>
     <ul style="margin-bottom:10px; font-size:12px;">
-      <li><b>Complete internal refactor</b> (#1722) &mdash; large parts of the codebase rebuilt for stability: centralized navigation, an AJAX-mutex against race conditions, a block-based run pipeline and broken dependency cycles.</li>
+      <li><b>Complete internal refactoring of the script</b> &mdash; large parts of the codebase rebuilt for stability:
+        <ul style="margin:4px 0 0 0;">
+          <li>Strict <b>TypeScript</b> type-checking across the whole codebase (zero type errors)</li>
+          <li><b>ESLint</b> integrated into the dev workflow to catch problems early</li>
+          <li>Automated <b>test suite</b> expanded to 1000+ tests, run on every build</li>
+          <li>Old <b>dependency cycles</b> (the import-loop tangle behind many crashes) broken up</li>
+          <li><b>Centralized navigation</b> and an <b>AJAX-mutex</b> to prevent race conditions</li>
+          <li>New <b>block-based run pipeline</b> so each task finishes its turn instead of ping-ponging</li>
+        </ul>
+      </li>
       <li><b>Much more stable</b> &mdash; fewer navigation loops, "Forbidden" errors and stuck-script situations.</li>
       <li><b>Smarter team building</b> &mdash; blessing- and synergy-aware League / Edit Team selection.</li>
       <li><b>Better equipment</b> &mdash; optimized "Stuff Team", auto-equip boosters and smarter Sandalwood.</li>

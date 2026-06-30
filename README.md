@@ -11,10 +11,18 @@
 ## 🎉 v8.0.0 is here
 
 The first public release since **v7.29.19**. It bundles a large internal
-stability refactor (#1722) with a long run of feature work:
+refactoring with a long run of feature work:
 
+- **Complete internal refactoring of the script** — large parts of the
+  codebase rebuilt for stability:
+  - Strict **TypeScript** type-checking (compiles with zero type errors)
+  - **ESLint** integrated into the dev workflow
+  - Automated **test suite** expanded to 1000+ tests, run on every build
+  - Old **dependency cycles** broken up
+  - **Centralized navigation** and an **AJAX-mutex** against race conditions
+  - New **block-based run pipeline**
 - **Much more stable** — fewer navigation loops, "Forbidden" errors and
-  stuck-script situations, and fewer race conditions.
+  stuck-script situations.
 - **Smarter team building** — blessing- and synergy-aware League / Edit Team
   selection.
 - **Better equipment** — optimized "Stuff Team", auto-equip boosters and
