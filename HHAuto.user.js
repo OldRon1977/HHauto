@@ -26467,6 +26467,7 @@ const FEATURE_POPUP_CONTENT = `
     <p style="font-size:15px; font-weight:bold; margin-bottom:10px; color:#090;">Welcome to v8.0.0</p>
     <p style="margin-bottom:6px;">First big release since v7.29.19. The headlines:</p>
     <ul style="margin-bottom:10px; font-size:12px;">
+      <li><b>Complete internal refactor</b> (#1722) &mdash; large parts of the codebase rebuilt for stability: centralized navigation, an AJAX-mutex against race conditions, a block-based run pipeline and broken dependency cycles.</li>
       <li><b>Much more stable</b> &mdash; fewer navigation loops, "Forbidden" errors and stuck-script situations.</li>
       <li><b>Smarter team building</b> &mdash; blessing- and synergy-aware League / Edit Team selection.</li>
       <li><b>Better equipment</b> &mdash; optimized "Stuff Team", auto-equip boosters and smarter Sandalwood.</li>
