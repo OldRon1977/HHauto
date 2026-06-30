@@ -47,6 +47,31 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ⚠ **Use at your own risk.** As with all automation features, there is always a risk of being banned by Kinkoid. The script uses randomized timing to reduce the risk of detection, but no automation can guarantee safety. By installing and using this script you accept that responsibility.
 
+## Capturing a useful log with Pipeline Diagnostics
+
+If the script gets stuck, loops, or skips a feature, a plain debug log often
+does not show *where* in a run things went wrong. HHAuto runs every feature
+through an internal block-based pipeline, and the **Pipeline Diagnostics**
+toggle makes that pipeline log its work in detail.
+
+**Where to find it:** open the HHAuto menu and look in the **Global options**
+section for the **Pipeline Diagnostics** switch. It is **off by default**.
+
+**What it does:** the script always logs a lean `[PIPE]` trace (which block
+ran, which was skipped and why, and when a run starts and completes). With
+Pipeline Diagnostics **on**, it additionally records per-step detail for every
+block — each individual step, the page it was on, and the decision it made. A
+context header (script version, platform, the effective block order, and any
+disabled blocks) is also attached to the log export.
+
+**Why turn it on before reporting a bug:** loops, navigation problems and
+"script got stuck" situations are exactly the cases where the lean trace is not
+enough. The per-step detail shows the precise block and step the script was on
+and why it chose to wait, skip, or move on — which usually turns a
+hard-to-reproduce report into a quick diagnosis. So if your issue is about the
+script looping, freezing, or not doing something it should: **enable Pipeline
+Diagnostics, reproduce the problem, then save and attach the debug log.**
+
 ## How to file a bug with a dump
 
 Bug reports are easier to investigate with a dump of the actual game state.
