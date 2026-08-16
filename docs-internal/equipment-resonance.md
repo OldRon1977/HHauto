@@ -286,16 +286,18 @@ Account kein nature-Mythic).
 
 ### Material fuer Upgrade Gear
 
-Ein Mythic ist Material, **wenn es fuer seinen Slot verdraengt ist** -- wenn
-es also fuer denselben Slot ein Item hoeherer Prioritaet gibt. Damit fallen
-die urspruenglichen zwei Ausnahmen (Dopplung, richtiges Theme bei falscher
-Klasse) automatisch heraus, ohne Sonderregel. Non-Mythics duerfen ohnehin
-verbraucht werden; im Testinventar liegen 1.169 Legendaries und 341 Epics
-gegenueber 104 Mythics.
+**Mythics sind niemals Material.** Keine Ausnahme fuer Dopplungen, keine fuer
+„richtiges Theme bei falscher Klasse", keine fuer verdraengte Items.
+Verbraucht werden nur Legendaries und Epics -- im Testinventar 1.169 und 341
+Stueck gegenueber 104 Mythics.
 
-Zwei Raender: ein Mythic, das allein seinen Slot bedient, wird nie Material
-(nichts verdraengt es). Und ein Item, das der laufende Plan anlegen will,
-ist im selben Durchlauf tabu.
+Das loest nebenbei den Zielkonflikt aus dem urspruenglichen Prompt auf: Items
+mit richtigem Theme bei falscher Klasse sind jetzt Stufe 3 und werden
+angelegt, statt zugleich Brennstoff sein zu sollen.
+
+Die Sicherheitsregel „nie ein angelegtes Item verbrauchen" bleibt trotzdem
+noetig, nur mit anderem Ziel: Wenn ein Slot kein Mythic hat, legt Stufe 5 ein
+Legendary an -- und genau das darf der Upgrade-Schritt dann nicht einschmelzen.
 
 **Upgrade Gear fehlt noch.** Der Upgrade-Endpunkt ist unbekannt (weder in
 `shop.js` noch in `shared.js`, kein `*equipment-upgrade*`-Bundle). Er muss
