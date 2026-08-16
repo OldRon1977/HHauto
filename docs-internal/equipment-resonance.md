@@ -299,13 +299,70 @@ Die Sicherheitsregel „nie ein angelegtes Item verbrauchen" bleibt trotzdem
 noetig, nur mit anderem Ziel: Wenn ein Slot kein Mythic hat, legt Stufe 5 ein
 Legendary an -- und genau das darf der Upgrade-Schritt dann nicht einschmelzen.
 
-**Upgrade Gear fehlt noch.** Der Upgrade-Endpunkt ist unbekannt (weder in
-`shop.js` noch in `shared.js`, kein `*equipment-upgrade*`-Bundle). Er muss
-live mitgeschnitten werden, zusammen mit: welche Materialien das Spiel
-akzeptiert, wie viele pro Level, und ob Waehrungskosten anfallen. Erst danach
-laesst sich die Materialauswahl bauen (keine Mythics ausser bei Dopplung oder
-richtigem Theme bei falscher Klasse -- und **nie** ein Item, das gerade
-angelegt ist).
+### Der Upgrade-Endpunkt (gemessen 2026-08-17)
+
+Er steckt nicht in `shop.js` oder `shared.js`, weil er auf einer **eigenen
+Seite** liegt:
+
+```
+/mythic-equipment-upgrade.html?id_member_item=<id_member_armor>
+```
+
+Der „Level-up"-Knopf auf `shop.html` navigiert nur dorthin -- er sendet
+nichts. Auf der Zielseite liegen die Globals `item_to_upgrade`,
+`next_level_item`, `materials_items` (100 pro Seite) und
+`upgradeable_item_max_level` (= 20).
+
+**Der Aufruf:**
+
+```
+action=mythic_armor_level_up
+items_data[0][item_ids][]  = <id_member_armor>   (wiederholt, ein Eintrag je Material)
+items_data[0][rarity]      = epic
+id_member_item             = <das Item, das steigen soll>
+is_armor_equipped          = false
+```
+
+Die Gruppierung `items_data[0]` mit eigener `rarity` legt nahe, dass mehrere
+Seltenheitsgruppen in einem Aufruf gehen (`[1]`, `[2]`, ...); gemessen wurde
+nur eine. `is_armor_equipped` zeigt, dass das Spiel auch angelegte Items
+aufwerten laesst.
+
+**Die Antwort:**
+
+```json
+{"hero_updates":{"currency":{"soft_currency": 34299666244}},
+ "next_level_item":{ ...level: 3, caracs, resonance_bonuses... },
+ "success":true}
+```
+
+`next_level_item` ist die *naechste* Stufe, nicht die erreichte. Nach dem
+Aufruf stand das Item auf Level 2 und `next_level_item.level` auf 3.
+
+**Kosten, an einem echten Aufruf gemessen** (Eyepatch, mythic, Level 1 -> 2):
+
+| | |
+|---|---|
+| Geld | 1.000.000 (soft currency), exakt |
+| Kobans | 0 |
+| Material | 7 Items, alle `epic` |
+| Materialbedarf laut UI | „Until lvl.2: 20", danach „Until lvl.3: 23" |
+| Restbedarf bis Level 20 | 1.555 vor dem Schritt, 1.535 danach |
+
+Die 7 Items deckten einen Bedarf von 20 -- Material zaehlt also **nicht nach
+Stueck, sondern nach Gewicht**. Plausibelster Traeger ist `skin.weight`, das
+in der Materialliste Werte 1, 3, 5 und 6 annimmt (*vermutet*, nicht
+nachgerechnet).
+
+**Was das praktisch bedeutet:** Ein Mythic von 1 auf 20 kostet rund 1.555
+Materialpunkte. Der Testaccount besitzt 1.169 Legendaries und 341 Epics --
+also ungefaehr ein komplettes Inventar pro Item. Nicht das Geld ist die
+Schranke (34,3 Mrd. vorhanden), sondern das Material. Ein „Upgrade
+Gear"-Button sollte deshalb vorrechnen, wie weit der Bestand ueberhaupt
+reicht, statt blind zu starten.
+
+Nebenbei live bestaetigt: die Resonanz stieg mit dem Level von 0,1 auf 0,2
+Prozentpunkte, exakt die 0,1 pro Level aus Abschnitt 2.
 
 Das Pagineren des Inventars nutzt `{action:'market_get_armor',
 id_member_armor}` und erwartet `{items: [...], success}`; leere `items`
