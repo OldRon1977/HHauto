@@ -1,5 +1,9 @@
 import {
     ArmorItem,
+    HeroTotals,
+    battleValue,
+    classCarac,
+    parseHeroTotals,
     MYTHIC_MAX_LEVEL,
     activeResonance,
     classMatches,
@@ -10,7 +14,6 @@ import {
     possibleBestTier,
     projectCaracs,
     projectedResonance,
-    rawScore,
     themeFromElementCounts,
     themeFromTeamData,
     themeMatches,
@@ -18,6 +21,12 @@ import {
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
 
 const KNOW_HOW: PlayerClass = 3;
+
+// The account the model was calibrated on: hero 1, class 3, wearing its
+// own six mythics. Measured 2026-08-16 from the equip response.
+const HERO: HeroTotals = {
+    primary: 54843, secondary: 96509, endurance: 331530, chance: 86218,
+};
 
 /** Caracs a mythic really has at the given level (measured curve). */
 function mythicCaracs(level: number) {
@@ -126,7 +135,7 @@ describe('projection to max level', () => {
         const lvl1 = mythic({ slot: 1, level: 1, classId: '3' });
         const { caracs, unreliable } = projectCaracs(lvl1);
         expect(unreliable).toBe(false);
-        expect(rawScore(caracs)).toBeCloseTo(rawScore(mythicCaracs(MYTHIC_MAX_LEVEL)));
+        expect(caracs).toEqual(mythicCaracs(MYTHIC_MAX_LEVEL));
     });
 
     it('leaves non-mythics and maxed mythics untouched', () => {
@@ -155,20 +164,76 @@ describe('mythic-vs-legendary break-even', () => {
         carac1: 3606, carac2: 3619, carac3: 3467, endurance: 3474, chance: 4634.57,
     };
 
-    it('puts the break-even at mythic level 16', () => {
-        const legRaw = rawScore(realLegendary.caracs);
-        const mythicRaw = (lvl: number) => rawScore(mythicCaracs(lvl));
-        expect(mythicRaw(15)).toBeLessThan(legRaw);
-        expect(mythicRaw(16)).toBeGreaterThan(legRaw);
+    it('puts the break-even between mythic level 14 and 15', () => {
+        const base = realLegendary.caracs;
+        const legValue = battleValue(base, base, KNOW_HOW, HERO);
+        const mythicValue = (lvl: number) => battleValue(mythicCaracs(lvl), base, KNOW_HOW, HERO);
+        expect(mythicValue(14)).toBeLessThan(legValue);
+        expect(mythicValue(15)).toBeGreaterThan(legValue);
     });
 
-    it('keeps a level-15 mythic on the bench and fields a level-16 one', () => {
-        for (const [level, expected] of [[15, 'Legendary item'], [16, 'Mythic item']] as const) {
+    it('keeps a level-14 mythic on the bench and fields a level-15 one', () => {
+        for (const [level, expected] of [[14, 'Legendary item'], [15, 'Mythic item']] as const) {
             const m = mythic({ slot: 1, level, classId: '3', themeId: 'nature' });
             const worn = { ...realLegendary, equipped: true, id_member_armor_equipped: 999 };
-            const plan = planCurrentBest([worn, m], KNOW_HOW, 'nature');
+            const plan = planCurrentBest([worn, m], KNOW_HOW, 'nature', HERO);
             expect(plan.picks.find(p => p.slot === 1)!.chosen!.name).toBe(expected);
         }
+    });
+});
+
+// The calibration run itself, replayed as a test. Slot 1 held a level-20
+// mythic; two probe items were equipped in turn and the hero totals read
+// straight out of the equip response. If the transfer factors or the model
+// ever drift, this is what notices.
+describe('battleValue reproduces the measured hero totals', () => {
+    const wornMythic = mythicCaracs(20);
+    const zero = { carac1: 0, carac2: 0, carac3: 0, endurance: 0, chance: 0 };
+
+    // The two factors are not asserted directly -- they are only meaningful
+    // through the totals they predict.
+    const predict = (caracs: typeof zero) => {
+        const value = battleValue(caracs, wornMythic, KNOW_HOW, HERO);
+        // battleValue returns primary x endurance; recover the pair via the
+        // endurance term so both can be checked against the measurement.
+        const endurance = HERO.endurance - 0.5636 * wornMythic.endurance + 0.5636 * caracs.endurance;
+        return { primary: value / endurance, endurance };
+    };
+
+    it('predicts the pure-endurance probe (0 carac, 43301 endurance)', () => {
+        const p = predict({ ...zero, endurance: 43301 });
+        expect(p.primary).toBeCloseTo(50442, -1);   // measured 50442
+        expect(p.endurance).toBeCloseTo(353677, -1); // measured 353677
+    });
+
+    it('predicts the pure-carac probe (5783 carac3, 0 endurance)', () => {
+        const p = predict({ ...zero, carac3: 5783 });
+        expect(p.primary).toBeCloseTo(56804, -1);   // measured 56804
+        expect(p.endurance).toBeCloseTo(329276, -1); // measured 329276
+    });
+
+    it('ranks the pure-carac probe above the mythic above the pure-endurance one', () => {
+        const mono = battleValue({ ...zero, endurance: 43301 }, wornMythic, KNOW_HOW, HERO);
+        const carac = battleValue({ ...zero, carac3: 5783 }, wornMythic, KNOW_HOW, HERO);
+        const worn = battleValue(wornMythic, wornMythic, KNOW_HOW, HERO);
+        expect(carac).toBeGreaterThan(worn);
+        expect(worn).toBeGreaterThan(mono);
+    });
+});
+
+describe('parseHeroTotals', () => {
+    it('reads the equip response block', () => {
+        expect(parseHeroTotals({
+            carac1: 47525, carac2: 48984, carac3: 50442, endurance: 353677,
+            chance: 86218, primary_carac_amount: 50442, secondary_caracs_sum: 96509,
+        })).toEqual({ primary: 50442, secondary: 96509, endurance: 353677, chance: 86218 });
+    });
+
+    it('refuses a block missing either field the ranking needs', () => {
+        expect(parseHeroTotals({ endurance: 353677 })).toBeNull();
+        expect(parseHeroTotals({ primary_carac_amount: 50442 })).toBeNull();
+        expect(parseHeroTotals({ primary_carac_amount: 0, endurance: 1 })).toBeNull();
+        expect(parseHeroTotals(null)).toBeNull();
     });
 });
 
@@ -176,7 +241,7 @@ describe('planCurrentBest', () => {
     it('keeps the legendary when the mythic is below the raw break-even', () => {
         const worn = legendary({ slot: 1, equipped: true });
         const weakMythic = mythic({ slot: 1, level: 1, classId: '3', themeId: 'sun' });
-        const plan = planCurrentBest([worn, weakMythic], KNOW_HOW, 'sun');
+        const plan = planCurrentBest([worn, weakMythic], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
         expect(slot1.chosen).toBe(worn);
         expect(slot1.changed).toBe(false);
@@ -185,17 +250,17 @@ describe('planCurrentBest', () => {
     it('takes the mythic once its raw stats overtake the legendary', () => {
         const worn = legendary({ slot: 1, equipped: true });
         const strongMythic = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '3', themeId: 'sun' });
-        const plan = planCurrentBest([worn, strongMythic], KNOW_HOW, 'sun');
+        const plan = planCurrentBest([worn, strongMythic], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
         expect(slot1.chosen).toBe(strongMythic);
         expect(slot1.changed).toBe(true);
-        expect(slot1.rawDelta).toBeGreaterThan(0);
+        expect(slot1.valuePct).toBeGreaterThan(0);
     });
 
     it('never gives up raw stats for resonance', () => {
         const bigNoResonance = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '1', themeId: 'fire', equipped: true });
         const smallPerfectResonance = mythic({ slot: 1, level: 1, classId: '3', themeId: 'sun' });
-        const plan = planCurrentBest([bigNoResonance, smallPerfectResonance], KNOW_HOW, 'sun');
+        const plan = planCurrentBest([bigNoResonance, smallPerfectResonance], KNOW_HOW, 'sun', HERO);
         expect(plan.picks.find(p => p.slot === 1)!.chosen).toBe(bigNoResonance);
         expect(plan.changes).toHaveLength(0);
     });
@@ -203,15 +268,27 @@ describe('planCurrentBest', () => {
     it('lets resonance decide between two items of equal raw value', () => {
         const dull = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '1', themeId: 'fire', equipped: true });
         const resonant = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '3', themeId: 'sun' });
-        const plan = planCurrentBest([dull, resonant], KNOW_HOW, 'sun');
+        const plan = planCurrentBest([dull, resonant], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
         expect(slot1.chosen).toBe(resonant);
-        expect(slot1.rawDelta).toBeCloseTo(0);
+        expect(slot1.valuePct).toBeCloseTo(0);
         expect(slot1.resonanceDelta).toBeCloseTo(4.0);
     });
 
+    // The bug the flat carac sum shipped with: a legendary carrying 43,301
+    // endurance and nothing else outscored every mythic, so the plan wanted
+    // to strip all six slots for items that add no damage and no crit.
+    it('does not trade a mythic for a legendary that carries only endurance', () => {
+        const worn = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '3', themeId: 'nature', equipped: true });
+        const monoEndurance = legendary({ slot: 1 });
+        monoEndurance.caracs = { carac1: 0, carac2: 0, carac3: 0, endurance: 43301, chance: 0 };
+        const plan = planCurrentBest([worn, monoEndurance], KNOW_HOW, 'nature', HERO);
+        expect(plan.picks.find(p => p.slot === 1)!.chosen).toBe(worn);
+        expect(plan.changes).toHaveLength(0);
+    });
+
     it('reports one pick per slot and no change for empty slots', () => {
-        const plan = planCurrentBest([legendary({ slot: 2, equipped: true })], KNOW_HOW, 'balanced');
+        const plan = planCurrentBest([legendary({ slot: 2, equipped: true })], KNOW_HOW, 'balanced', HERO);
         expect(plan.picks).toHaveLength(6);
         expect(plan.changes).toHaveLength(0);
         expect(plan.picks.find(p => p.slot === 5)!.chosen).toBeNull();
@@ -227,23 +304,23 @@ describe('planPossibleBest', () => {
         expect(possibleBestTier(classOnly, KNOW_HOW, 'sun')).toBe(2);
         expect(possibleBestTier(themeOnly, KNOW_HOW, 'sun')).toBe(3);
 
-        const plan = planPossibleBest([classOnly, themeOnly, both], KNOW_HOW, 'sun');
+        const plan = planPossibleBest([classOnly, themeOnly, both], KNOW_HOW, 'sun', HERO);
         expect(plan.picks.find(p => p.slot === 1)!.chosen).toBe(both);
     });
 
     it('equips the weaker item today and quantifies the gap it opens', () => {
         const worn = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '1', themeId: 'fire', equipped: true });
         const target = mythic({ slot: 1, level: 1, classId: '3', themeId: 'sun' });
-        const plan = planPossibleBest([worn, target], KNOW_HOW, 'sun');
+        const plan = planPossibleBest([worn, target], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
 
         expect(slot1.chosen).toBe(target);
         expect(slot1.tier).toBe(1);
         // Costs raw points now...
-        expect(slot1.rawDelta).toBeLessThan(0);
-        expect(plan.totalRawDelta).toBeLessThan(0);
+        expect(slot1.valuePct).toBeLessThan(0);
+        expect(plan.totalValuePct).toBeLessThan(0);
         // ...and is a pure resonance gain once both sit at max level.
-        expect(slot1.projectedRawDelta).toBeCloseTo(0);
+        expect(slot1.projectedValuePct).toBeCloseTo(0);
         expect(slot1.projectedResonanceDelta).toBeCloseTo(4.0);
         expect(plan.totalProjectedResonanceDelta).toBeCloseTo(4.0);
     });
@@ -251,14 +328,14 @@ describe('planPossibleBest', () => {
     it('does not count a theme match on the wrong class as a hit', () => {
         const themeOnly = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '1', themeId: 'sun' });
         const classOnly = mythic({ slot: 1, level: 1, classId: '3', themeId: 'fire' });
-        const plan = planPossibleBest([themeOnly, classOnly], KNOW_HOW, 'sun');
+        const plan = planPossibleBest([themeOnly, classOnly], KNOW_HOW, 'sun', HERO);
         expect(plan.picks.find(p => p.slot === 1)!.chosen).toBe(classOnly);
     });
 
     it('still equips a theme-only mythic when it is the only mythic for the slot', () => {
         const themeOnly = mythic({ slot: 1, level: 10, classId: '1', themeId: 'sun' });
         const leg = legendary({ slot: 1, equipped: true });
-        const plan = planPossibleBest([themeOnly, leg], KNOW_HOW, 'sun');
+        const plan = planPossibleBest([themeOnly, leg], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
         expect(slot1.chosen).toBe(themeOnly);
         expect(slot1.tier).toBe(3);
@@ -267,7 +344,7 @@ describe('planPossibleBest', () => {
     it('marks the pick when a projection could not be trusted', () => {
         const odd = mythic({ slot: 1, level: 5, classId: '3', themeId: 'sun' });
         odd.caracs.chance = 1;
-        const plan = planPossibleBest([odd], KNOW_HOW, 'sun');
+        const plan = planPossibleBest([odd], KNOW_HOW, 'sun', HERO);
         expect(plan.picks.find(p => p.slot === 1)!.projectionUnreliable).toBe(true);
     });
 });
@@ -342,7 +419,8 @@ describe('parseArmorItem', () => {
         expect(item.id_member_armor_equipped).toBeNull();
         expect(item.classResonance).toEqual({ identifier: '1', resonance: 'damage', bonus: 2 });
         expect(item.themeResonance!.identifier).toBe('stone');
-        expect(rawScore(item.caracs)).toBe(21000);
+        expect(classCarac(item.caracs, KNOW_HOW)).toBe(4000);
+        expect(item.caracs.endurance).toBe(4000);
     });
 
     // An entry under #equiped carries id_member_armor_equipped and has no

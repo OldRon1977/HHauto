@@ -1305,6 +1305,9 @@ const TK = {
     // stays possible. The id changes on every unequip, so it can only come
     // from the equip response.
     gearSwapLog: "Temp_gearSwapLog",
+    // Hero stat totals from the last equip response; the base the gear
+    // ranking measures every candidate against.
+    gearHeroTotals: "Temp_gearHeroTotals",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -3909,6 +3912,12 @@ HHStoredVars[HHStoredVarPrefixKey + TK.teamTheme] =
 HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
     {
         default: "[]",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+HHStoredVars[HHStoredVarPrefixKey + TK.gearHeroTotals] =
+    {
+        default: "",
         storage: "localStorage",
         HHType: "Temp"
     };
@@ -18188,11 +18197,68 @@ const RESONANCE_PER_LEVEL_CHANCE = 0.2;
  *  projection is treated as unreliable. Guards against a game rebalance
  *  silently turning "Possible Best" into nonsense. */
 const PROJECTION_TOLERANCE = 0.05;
-/** Sum of the five stats an armor item carries. The single raw number every
- *  comparison in this file is built on. */
-function rawScore(caracs) {
-    return caracs.carac1 + caracs.carac2 + caracs.carac3
-        + caracs.endurance + caracs.chance;
+// How much of an item's carac reaches the hero. Measured 2026-08-16 by
+// swapping two items of known caracs into slot 1 and reading the equip
+// response: +5783 item carac3 moved primary by +6362, and -43301 item
+// endurance moved endurance by -24401.
+const CLASS_CARAC_TO_HERO = 1.100;
+const ENDURANCE_TO_HERO = 0.5636;
+/**
+ * Stand-in totals for the first run, before any equip response has been
+ * seen. One account (hero 1, level 663, class 3) on 2026-08-16, with
+ * its own gear on. Only the *ratio* endurance/primary matters for the
+ * ordering, and that ratio is a property of the account -- so a plan built
+ * on these numbers is flagged as uncalibrated rather than presented as
+ * measured.
+ */
+const FALLBACK_HERO_TOTALS = {
+    primary: 54843, secondary: 96509, endurance: 331530, chance: 86218,
+};
+/** The item's class carac -- the one the game tracks as
+ *  `primary_carac_amount`. The other two are off-class and feed defense. */
+function classCarac(caracs, playerClass) {
+    return playerClass === 1 ? caracs.carac1
+        : playerClass === 2 ? caracs.carac2
+            : caracs.carac3;
+}
+/** What this item adds to the hero's primary carac and endurance. */
+function contribution(caracs, playerClass) {
+    return {
+        primary: CLASS_CARAC_TO_HERO * classCarac(caracs, playerClass),
+        endurance: ENDURANCE_TO_HERO * caracs.endurance,
+    };
+}
+/**
+ * Battle value of wearing `caracs` in a slot that currently holds
+ * `inSlot`: the hero's primary carac times the hero's endurance.
+ *
+ * Why a product and not a weighted sum. Damage is proportional to the
+ * primary carac and ego to endurance, so damage x ego is
+ * (a x primary) x (b x endurance) = ab x primary x endurance. The two
+ * conversion constants are unknown -- and they cancel, because they scale
+ * every candidate equally and cannot change the ordering. That is the whole
+ * point: this ranking needs no exchange rate between "a point of damage"
+ * and "a point of ego", and no such rate is measurable client-side.
+ *
+ * Why it is computed on hero totals rather than on the item alone: on the
+ * item alone a pure-endurance item scores carac x endurance = 0, and a
+ * pure-carac item scores 0 as well. Against the hero's totals both are
+ * ranked by what they actually move.
+ *
+ * What this deliberately leaves out: the off-class caracs (defense) and
+ * chance (crit). Neither moved in the calibration run, so neither has a
+ * measured factor. An item that only carries those is valued at its effect
+ * on damage and ego, which is nothing -- the known blind spot of this
+ * model.
+ */
+function battleValue(caracs, inSlot, playerClass, hero) {
+    const cand = contribution(caracs, playerClass);
+    const cur = inSlot
+        ? contribution(inSlot, playerClass)
+        : { primary: 0, endurance: 0 };
+    const primary = hero.primary - cur.primary + cand.primary;
+    const endurance = hero.endurance - cur.endurance + cand.endurance;
+    return Math.max(0, primary) * Math.max(0, endurance);
 }
 /** Is this item's class axis active for the given hero class? */
 function classMatches(item, playerClass) {
@@ -18308,36 +18374,59 @@ function bySlot(items) {
     }
     return map;
 }
-/** Compare two numbers with a tolerance, so equal-by-construction raw sums
- *  (two mythics of the same slot and level) really do tie and let the
- *  resonance decide. */
+/** Descending compare with a relative tolerance, so two items that are
+ *  equal by construction (two mythics of the same slot and level) really do
+ *  tie and let the resonance decide. The tolerance is relative because
+ *  battle values run into the tens of billions. */
 function cmp(a, b) {
-    if (Math.abs(a - b) < 0.5)
+    const scale = Math.max(Math.abs(a), Math.abs(b), 1);
+    if (Math.abs(a - b) / scale < 1e-9)
         return 0;
     return a < b ? 1 : -1; // descending
 }
-function buildPick(slot, chosen, current, playerClass, theme) {
-    const currentRaw = current ? rawScore(current.caracs) : 0;
+function buildPick(slot, chosen, current, playerClass, theme, hero) {
+    var _a, _b, _c, _d;
+    const base = current ? current.caracs : null;
+    const currentValue = battleValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, hero);
     const currentRes = current ? activeResonance(current, playerClass, theme) : 0;
+    const chosenContribution = chosen ? contribution(chosen.caracs, playerClass) : null;
+    const currentContribution = current ? contribution(current.caracs, playerClass) : null;
     return {
         slot,
         chosen,
         current,
         changed: chosen !== null && !chosen.equipped,
-        rawDelta: chosen ? rawScore(chosen.caracs) - currentRaw : 0,
+        valuePct: chosen
+            ? pctChange(battleValue(chosen.caracs, base, playerClass, hero), currentValue)
+            : 0,
+        primaryDelta: ((_a = chosenContribution === null || chosenContribution === void 0 ? void 0 : chosenContribution.primary) !== null && _a !== void 0 ? _a : 0) - ((_b = currentContribution === null || currentContribution === void 0 ? void 0 : currentContribution.primary) !== null && _b !== void 0 ? _b : 0),
+        enduranceDelta: ((_c = chosenContribution === null || chosenContribution === void 0 ? void 0 : chosenContribution.endurance) !== null && _c !== void 0 ? _c : 0) - ((_d = currentContribution === null || currentContribution === void 0 ? void 0 : currentContribution.endurance) !== null && _d !== void 0 ? _d : 0),
         resonanceDelta: chosen ? activeResonance(chosen, playerClass, theme) - currentRes : 0,
     };
 }
-function summarise(picks, projected) {
+const ZERO_CARACS = {
+    carac1: 0, carac2: 0, carac3: 0, endurance: 0, chance: 0,
+};
+function pctChange(next, base) {
+    if (base <= 0)
+        return 0;
+    return (next / base - 1) * 100;
+}
+function summarise(picks, projected, uncalibrated) {
     const changes = picks.filter(p => p.changed);
+    // Percentages of the same hero total add up closely enough at these
+    // magnitudes; the alternative is re-ranking every slot against a moving
+    // base, which would make each slot's number depend on the order.
     const plan = {
         picks,
         changes,
-        totalRawDelta: changes.reduce((s, p) => s + p.rawDelta, 0),
+        totalValuePct: changes.reduce((s, p) => s + p.valuePct, 0),
         totalResonanceDelta: changes.reduce((s, p) => s + p.resonanceDelta, 0),
     };
+    if (uncalibrated)
+        plan.uncalibrated = true;
     if (projected) {
-        plan.totalProjectedRawDelta = changes.reduce((s, p) => { var _a; return s + ((_a = p.projectedRawDelta) !== null && _a !== void 0 ? _a : 0); }, 0);
+        plan.totalProjectedValuePct = changes.reduce((s, p) => { var _a; return s + ((_a = p.projectedValuePct) !== null && _a !== void 0 ? _a : 0); }, 0);
         plan.totalProjectedResonanceDelta = changes.reduce((s, p) => { var _a; return s + ((_a = p.projectedResonanceDelta) !== null && _a !== void 0 ? _a : 0); }, 0);
     }
     return plan;
@@ -18345,25 +18434,31 @@ function summarise(picks, projected) {
 /**
  * "Current Best Gear": per slot the item with the highest value *today*.
  *
- * Ordering is raw stats first, active resonance second. This never makes the
- * player weaker and never leaves a slot empty -- a mythic below roughly
- * level 15 loses to a legendary at player level because its raw stats are
- * lower, and that is the correct answer for this button.
+ * Ordering is battle value first, active resonance second. This never makes
+ * the player weaker and never leaves a slot empty.
+ *
+ * The earlier version of this ranked on the plain sum of an item's five
+ * caracs, which valued a point of endurance exactly like a point of damage.
+ * Run against the real inventory it wanted to strip all six mythics for
+ * legendaries carrying 43,301 endurance and nothing else -- items that add
+ * zero damage and zero crit. Hence `battleValue`.
  */
-function planCurrentBest(items, playerClass, theme) {
+function planCurrentBest(items, playerClass, theme, hero) {
     var _a, _b;
+    const totals = hero !== null && hero !== void 0 ? hero : FALLBACK_HERO_TOTALS;
     const picks = [];
     for (const [slot, candidates] of bySlot(items)) {
         const current = (_a = candidates.find(i => i.equipped)) !== null && _a !== void 0 ? _a : null;
+        const base = current ? current.caracs : null;
         const ranked = [...candidates].sort((a, b) => {
-            const raw = cmp(rawScore(a.caracs), rawScore(b.caracs));
-            if (raw !== 0)
-                return raw;
+            const value = cmp(battleValue(a.caracs, base, playerClass, totals), battleValue(b.caracs, base, playerClass, totals));
+            if (value !== 0)
+                return value;
             return cmp(activeResonance(a, playerClass, theme), activeResonance(b, playerClass, theme));
         });
-        picks.push(buildPick(slot, (_b = ranked[0]) !== null && _b !== void 0 ? _b : null, current, playerClass, theme));
+        picks.push(buildPick(slot, (_b = ranked[0]) !== null && _b !== void 0 ? _b : null, current, playerClass, theme, totals));
     }
-    return summarise(picks, false);
+    return summarise(picks, false, hero === null);
 }
 /**
  * "Possible Best Gear": per slot the item that would be strongest once
@@ -18372,40 +18467,44 @@ function planCurrentBest(items, playerClass, theme) {
  * This deliberately equips items that are weaker *today* -- the same
  * behaviour as "Best Possible" on the team page, which fields a level-1
  * girl because she is the better target. The cost of that choice is
- * reported per slot (`rawDelta`) and in the summary, so the player sees the
+ * reported per slot (`valuePct`) and in the summary, so the player sees the
  * gap instead of only having it.
  *
  * A mythic with the right theme but the wrong class is not a hit and lands
- * in tier 3, where it competes on raw stats like anything else. It can
+ * in tier 3, where it competes on battle value like anything else. It can
  * still win that tier -- if it is the only mythic for its slot, wearing it
  * really is the strongest projected option -- and the upgrade step then
  * simply may not consume it, because it is equipped.
  */
-function planPossibleBest(items, playerClass, theme) {
+function planPossibleBest(items, playerClass, theme, hero) {
     var _a, _b;
+    const totals = hero !== null && hero !== void 0 ? hero : FALLBACK_HERO_TOTALS;
     const picks = [];
     for (const [slot, candidates] of bySlot(items)) {
         const current = (_a = candidates.find(i => i.equipped)) !== null && _a !== void 0 ? _a : null;
         const projections = new Map();
         for (const item of candidates)
             projections.set(item, projectCaracs(item));
+        // Both sides projected: the slot's own item will be levelled too, so
+        // comparing a projected candidate against today's worn item would
+        // overstate every swap.
+        const currentProj = current ? projectCaracs(current) : null;
+        const base = currentProj ? currentProj.caracs : null;
         const ranked = [...candidates].sort((a, b) => {
             const tier = possibleBestTier(a, playerClass, theme) - possibleBestTier(b, playerClass, theme);
             if (tier !== 0)
                 return tier;
-            const raw = cmp(rawScore(projections.get(a).caracs), rawScore(projections.get(b).caracs));
-            if (raw !== 0)
-                return raw;
+            const value = cmp(battleValue(projections.get(a).caracs, base, playerClass, totals), battleValue(projections.get(b).caracs, base, playerClass, totals));
+            if (value !== 0)
+                return value;
             return cmp(projectedResonance(a, playerClass, theme), projectedResonance(b, playerClass, theme));
         });
         const chosen = (_b = ranked[0]) !== null && _b !== void 0 ? _b : null;
-        const pick = buildPick(slot, chosen, current, playerClass, theme);
+        const pick = buildPick(slot, chosen, current, playerClass, theme, totals);
         if (chosen) {
             const chosenProj = projections.get(chosen);
-            const currentProj = current ? projectCaracs(current) : null;
             pick.tier = possibleBestTier(chosen, playerClass, theme);
-            pick.projectedRawDelta = rawScore(chosenProj.caracs)
-                - (currentProj ? rawScore(currentProj.caracs) : 0);
+            pick.projectedValuePct = pctChange(battleValue(chosenProj.caracs, base, playerClass, totals), battleValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, totals));
             pick.projectedResonanceDelta = projectedResonance(chosen, playerClass, theme)
                 - (current ? projectedResonance(current, playerClass, theme) : 0);
             if (chosenProj.unreliable || (currentProj === null || currentProj === void 0 ? void 0 : currentProj.unreliable)) {
@@ -18414,7 +18513,7 @@ function planPossibleBest(items, playerClass, theme) {
         }
         picks.push(pick);
     }
-    return summarise(picks, true);
+    return summarise(picks, true, hero === null);
 }
 /**
  * Team theme from the element distribution of the fielded team. Three girls
@@ -18470,6 +18569,29 @@ function parseTheme(value) {
         'sun', 'darkness', 'psychic', 'light',
     ];
     return known.includes(value) ? value : null;
+}
+/**
+ * Hero totals out of an equip response's `caracs` block, or out of the
+ * cached copy of one. Returns null unless both fields the ranking needs are
+ * present and positive -- a half-read total would silently reshape every
+ * ranking instead of falling back visibly.
+ */
+function parseHeroTotals(raw) {
+    var _a, _b;
+    if (!raw || typeof raw !== 'object')
+        return null;
+    const primary = Number((_a = raw.primary_carac_amount) !== null && _a !== void 0 ? _a : raw.primary);
+    const endurance = Number(raw.endurance);
+    if (!Number.isFinite(primary) || primary <= 0)
+        return null;
+    if (!Number.isFinite(endurance) || endurance <= 0)
+        return null;
+    return {
+        primary,
+        secondary: Number((_b = raw.secondary_caracs_sum) !== null && _b !== void 0 ? _b : raw.secondary) || 0,
+        endurance,
+        chance: Number(raw.chance) || 0,
+    };
 }
 function toResonance(raw) {
     if (!raw || typeof raw !== 'object')
@@ -18684,6 +18806,25 @@ class EquipmentGear {
             && t.selected_for_battle_type.length > 0);
         return (_a = themeFromTeamData(fielded)) !== null && _a !== void 0 ? _a : themeFromTeamData(entries.find(t => Array.isArray(t === null || t === void 0 ? void 0 : t.girls) && t.girls.length > 0));
     }
+    /**
+     * The hero's stat totals, cached from the last equip response.
+     *
+     * There is no read-only way to get them: `Hero.infos.carac1..3` are the
+     * base stats without gear or harem, and `Hero.caracs` is a list of field
+     * names, not values. The equip response's `caracs` block is the only
+     * place the real totals appear -- so the first plan on a fresh install
+     * runs on stand-in numbers and says so, and every equip after that
+     * calibrates it.
+     */
+    static readHeroTotals() {
+        return parseHeroTotals(getStoredJSON(HHStoredVarPrefixKey + TK.gearHeroTotals, null));
+    }
+    static storeHeroTotals(responseCaracs) {
+        const totals = parseHeroTotals(responseCaracs);
+        if (!totals)
+            return;
+        setStoredValue(HHStoredVarPrefixKey + TK.gearHeroTotals, JSON.stringify(totals));
+    }
     /** The six items the hero is wearing, read from the equipped panel.
      *  Present and complete on every market tab, so this does not depend on
      *  the armor tab being open. */
@@ -18821,9 +18962,10 @@ class EquipmentGear {
                         byId.set(item.id_member_armor, item);
                 }
                 const all = [...byId.values()];
+                const hero = EquipmentGear.readHeroTotals();
                 const plan = mode === 'current'
-                    ? planCurrentBest(all, playerClass, theme)
-                    : planPossibleBest(all, playerClass, theme);
+                    ? planCurrentBest(all, playerClass, theme, hero)
+                    : planPossibleBest(all, playerClass, theme, hero);
                 EquipmentGear.logPlan(modeName, theme, plan, mode);
                 EquipmentGear.showPlan(modeName, theme, plan, mode);
             }
@@ -18853,24 +18995,29 @@ class EquipmentGear {
             }
             const from = pick.current ? EquipmentGear.describe(pick.current) : 'an empty slot';
             const projected = mode === 'possible'
-                ? ` After the upgrade: ${fmtSigned((_a = pick.projectedRawDelta) !== null && _a !== void 0 ? _a : 0)} raw,`
+                ? ` After the upgrade: ${fmtPct((_a = pick.projectedValuePct) !== null && _a !== void 0 ? _a : 0)} battle value,`
                     + ` ${fmtSignedPct((_b = pick.projectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)} resonance.`
                 : '';
             const warn = pick.projectionUnreliable
                 ? ' (projection unreliable: the item does not follow the known mythic curve)'
                 : '';
             logHHAuto(`  Slot ${pick.slot} (${SLOT_NAMES[pick.slot]}): ${EquipmentGear.describe(pick.chosen)}`
-                + ` replaces ${from}, ${fmtSigned(pick.rawDelta)} carac points today,`
+                + ` replaces ${from}, ${fmtPct(pick.valuePct)} battle value today`
+                + ` (${fmtSigned(pick.primaryDelta)} class carac, ${fmtSigned(pick.enduranceDelta)} endurance),`
                 + ` ${fmtSignedPct(pick.resonanceDelta)} active resonance.${projected}${warn}`);
         }
         if (mode === 'possible') {
-            logHHAuto(`  Total: ${fmtSigned(plan.totalRawDelta)} carac points now,`
-                + ` ${fmtSigned((_c = plan.totalProjectedRawDelta) !== null && _c !== void 0 ? _c : 0)} and`
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value now,`
+                + ` ${fmtPct((_c = plan.totalProjectedValuePct) !== null && _c !== void 0 ? _c : 0)} and`
                 + ` ${fmtSignedPct((_d = plan.totalProjectedResonanceDelta) !== null && _d !== void 0 ? _d : 0)} resonance once everything is at max level.`);
         }
         else {
-            logHHAuto(`  Total: ${fmtSigned(plan.totalRawDelta)} carac points,`
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value,`
                 + ` ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.`);
+        }
+        if (plan.uncalibrated) {
+            logHHAuto('  Ranked on stand-in hero totals -- no equip response has been seen yet,'
+                + ' so the endurance-to-carac ratio is borrowed, not measured on this account.');
         }
     }
     static describe(item) {
@@ -18897,21 +19044,27 @@ class EquipmentGear {
                 ? ' <span style="color:#fc6;" title="Item does not follow the known mythic curve">&#9888;</span>'
                 : '';
             const projected = mode === 'possible'
-                ? `<td class="num">${fmtSigned((_a = pick.projectedRawDelta) !== null && _a !== void 0 ? _a : 0)} / ${fmtSignedPct((_b = pick.projectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)}</td>`
+                ? `<td class="num">${fmtPct((_a = pick.projectedValuePct) !== null && _a !== void 0 ? _a : 0)} / ${fmtSignedPct((_b = pick.projectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)}</td>`
                 : '<td></td>';
             return `<tr><td>${slot}${tier}</td>`
                 + `<td>${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})${warn}</td>`
-                + `<td class="num" style="color:${pick.rawDelta < 0 ? '#f88' : '#7f7'};">${fmtSigned(pick.rawDelta)}</td>`
+                + `<td class="num" style="color:${pick.valuePct < 0 ? '#f88' : '#7f7'};">${fmtPct(pick.valuePct)}`
+                + `<br/><span style="color:#aaa;font-size:10px;">${fmtSigned(pick.primaryDelta)} carac / ${fmtSigned(pick.enduranceDelta)} end</span></td>`
                 + `<td class="num">${fmtSignedPct(pick.resonanceDelta)}</td>`
                 + projected + '</tr>';
         }).join('');
         const summary = mode === 'possible'
-            ? `<p><b>Today this costs ${fmtSigned(plan.totalRawDelta)} carac points.</b>`
-                + ` Once every slot sits at max level it is worth ${fmtSigned((_a = plan.totalProjectedRawDelta) !== null && _a !== void 0 ? _a : 0)}`
-                + ` carac points and ${fmtSignedPct((_b = plan.totalProjectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)} resonance.`
+            ? `<p><b>Today this costs ${fmtPct(plan.totalValuePct)} battle value.</b>`
+                + ` Once every slot sits at max level it is worth ${fmtPct((_a = plan.totalProjectedValuePct) !== null && _a !== void 0 ? _a : 0)}`
+                + ` and ${fmtSignedPct((_b = plan.totalProjectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)} resonance.`
                 + ` The gap is deliberate &mdash; these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtSigned(plan.totalRawDelta)} carac points, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
+            : `<p><b>${fmtPct(plan.totalValuePct)} battle value, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
                 + ` This button never makes you weaker.</p>`;
+        const calibration = plan.uncalibrated
+            ? `<p style="color:#fc6;font-size:11px;">Ranked on stand-in hero totals: no equip response has been`
+                + ` seen on this account yet, so the endurance-to-carac ratio is borrowed rather than measured.`
+                + ` It is recorded the first time you equip anything.</p>`
+            : '';
         const projectedHead = mode === 'possible' ? '<th>at max level</th>' : '<th></th>';
         const button = plan.changes.length === 0
             ? '<p style="color:#7f7;">Nothing to change &mdash; every slot already holds the best item.</p>'
@@ -18920,13 +19073,15 @@ class EquipmentGear {
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranking: raw stats first, resonance as the tiebreak
-               (a resonance bonus is never worth giving up raw stats for).</p>
+               Ranking: battle value (class carac &times; endurance, on your own totals) first,
+               resonance as the tiebreak. Defense and crit are not in this number &mdash;
+               an item carrying only those is valued at zero.</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>caracs now</th><th>resonance now</th>${projectedHead}</tr>
+                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>resonance now</th>${projectedHead}</tr>
                 ${rows}
             </table>
             ${summary}
+            ${calibration}
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             ${button}
         </div>`);
@@ -18971,6 +19126,9 @@ class EquipmentGear {
                         + ` ${done} of ${plan.changes.length} done.`);
                     break;
                 }
+                // The response carries the hero's real totals; keep them so the
+                // next plan ranks on measured numbers instead of stand-ins.
+                EquipmentGear.storeHeroTotals(data === null || data === void 0 ? void 0 : data.caracs);
                 const removedId = (_b = (_a = data === null || data === void 0 ? void 0 : data.unequipped_armor) === null || _a === void 0 ? void 0 : _a.id_member_armor) !== null && _b !== void 0 ? _b : null;
                 swapLog.push({
                     ts: Date.now(),
@@ -19015,6 +19173,9 @@ function esc(value) {
 function fmtSigned(value) {
     const rounded = Math.round(value);
     return (rounded > 0 ? '+' : '') + rounded.toLocaleString();
+}
+function fmtPct(value) {
+    return (value > 0 ? '+' : '') + value.toFixed(2) + '%';
 }
 function fmtSignedPct(value) {
     return (value > 0 ? '+' : '') + value.toFixed(1) + 'pp';

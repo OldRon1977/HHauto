@@ -2330,6 +2330,12 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
     storage:"localStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.gearHeroTotals] =
+    {
+    default:"",
+    storage:"localStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
     storage:"sessionStorage",

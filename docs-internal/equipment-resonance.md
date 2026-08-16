@@ -228,13 +228,55 @@ liess sich zu 4/6 bedienen (Slot 5 fehlt, Slot 2 nur mit Klassenverlust).
 | Current Best Gear | Team 2a | Rohwerte, dann aktive Resonanz |
 | Possible Best Gear | Team 2b | Mythic mit Klasse+Theme > Mythic mit Klasse > staerkstes Item roh; darin projizierte Rohwerte, dann projizierte Resonanz |
 
-Die Rangfolge ist **lexikografisch**, nicht gewichtet: Rohwerte schlagen
-Resonanz immer, Resonanz entscheidet nur bei Gleichstand. Eine Gewichtung
-braeuchte einen Umrechnungskurs zwischen „Prozentpunkten einer Heldenstat"
-und „Carac-Punkten eines Items", und genau der ist nach Abschnitt 4 nicht
-messbar. Damit faellt auch die Gewichtungsfrage aus Abschnitt 1 weg -- die
-Zielgroesse (`damage`/`ego`/`defense`/`chance`) wird pro Item gelesen, aber
-nie gegeneinander verrechnet.
+### Die Wertung: Produkt statt Summe (gemessen 2026-08-16)
+
+Der erste Wurf summierte die fuenf Caracs eines Items gleichgewichtet. Gegen
+das echte Inventar wollte er **alle sechs Mythics abwerfen** zugunsten von
+Legendaries mit 43.301 Endurance und sonst nichts -- Items, die null Schaden
+und null Crit beitragen. Eine flache Summe setzt einen Endurance-Punkt einem
+Schadenspunkt gleich; das ist keine Kalibrierungsfrage, sondern falsch.
+
+Die Equip-Antwort loest das. Ihr `caracs`-Block enthaelt zwei Felder, die im
+Datenmodell oben fehlen:
+
+| Feld | Bedeutung |
+|---|---|
+| `primary_carac_amount` | `carac[Klasse]` |
+| `secondary_caracs_sum` | Summe der beiden Nebencaracs |
+
+Das Spiel trennt den Klassen-Carac also **selbst** von den anderen beiden.
+In `shared.js` kommen die Namen nicht vor -- die Aufteilung ist serverseitig.
+
+Zwei Sonden auf Slot 1 (Item bekannter Caracs anlegen, Antwort lesen,
+zurueckbauen) ergaben die Uebertragungsfaktoren Item -> Held:
+
+```
+Klassen-Carac  x 1,100   (+5.783 Item-carac3  ->  +6.362 primary)
+Endurance      x 0,5636  (-43.301 Item-Endur. -> -24.401 endurance)
+```
+
+Gewertet wird seitdem mit `primary x endurance` auf den **Gesamtwerten des
+Helden**, nicht auf Item-Summen. Der Grund, warum das ohne den fehlenden
+Umrechnungskurs auskommt: Schaden ist proportional zum primary Carac, Ego zur
+Endurance, also ist `Schaden x Ego = a*b x primary x endurance`. Die beiden
+unbekannten Konstanten skalieren jeden Kandidaten gleich und **kuerzen sich
+aus der Reihenfolge heraus**.
+
+Auf Item-Ebene ginge das nicht: dort haette ein reines Endurance-Item
+`carac x endurance = 0`, ein reines Carac-Item ebenso.
+
+**Blinder Fleck:** Defense (Nebencaracs) und Crit (chance) stehen nicht im
+Produkt. Beide bewegten sich in der Kalibrierung nicht, also gibt es fuer
+sie keinen gemessenen Faktor. Ein Item, das nur diese traegt, wird mit null
+bewertet.
+
+**Noch offen:** Die Rangfolge ist weiterhin lexikografisch -- Kampfwert
+zuerst, Resonanz nur bei Gleichstand. Begruendet war das damit, dass
+Rohwertunterschiede gross und Resonanzen klein sind. Seit die Wertung in
+Prozent rechnet, stimmt diese Praemisse nicht mehr: der Live-Lauf zeigt
++2,87 % Kampfwert gegen -4,0 Prozentpunkte Resonanz pro Slot. Beide Groessen
+sind jetzt vergleichbar, und die lexikografische Ordnung vergleicht sie
+trotzdem nicht.
 
 Die Projektion auf Level 20 prueft die Mythic-Kurve erst gegen die
 *aktuellen* Caracs des Items (5 % Toleranz). Passt sie nicht, faellt die

@@ -31,11 +31,13 @@ import {
     GearPlan,
     GearTheme,
     parseArmorItem,
+    parseHeroTotals,
     parseTheme,
     planCurrentBest,
     planPossibleBest,
     themeFromTeamData,
 } from "../Service/EquipmentOptimizerService";
+import type { HeroTotals } from "../Service/EquipmentOptimizerService";
 import type { PlayerClass } from "../Service/TeamScoringService";
 import { fillHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -166,6 +168,26 @@ export class EquipmentGear {
             && t.selected_for_battle_type.length > 0);
         return themeFromTeamData(fielded)
             ?? themeFromTeamData(entries.find(t => Array.isArray(t?.girls) && t.girls.length > 0));
+    }
+
+    /**
+     * The hero's stat totals, cached from the last equip response.
+     *
+     * There is no read-only way to get them: `Hero.infos.carac1..3` are the
+     * base stats without gear or harem, and `Hero.caracs` is a list of field
+     * names, not values. The equip response's `caracs` block is the only
+     * place the real totals appear -- so the first plan on a fresh install
+     * runs on stand-in numbers and says so, and every equip after that
+     * calibrates it.
+     */
+    private static readHeroTotals(): HeroTotals | null {
+        return parseHeroTotals(getStoredJSON<any>(HHStoredVarPrefixKey + TK.gearHeroTotals, null));
+    }
+
+    private static storeHeroTotals(responseCaracs: any): void {
+        const totals = parseHeroTotals(responseCaracs);
+        if (!totals) return;
+        setStoredValue(HHStoredVarPrefixKey + TK.gearHeroTotals, JSON.stringify(totals));
     }
 
     /** The six items the hero is wearing, read from the equipped panel.
@@ -304,9 +326,10 @@ export class EquipmentGear {
             }
             const all = [...byId.values()];
 
+            const hero = EquipmentGear.readHeroTotals();
             const plan = mode === 'current'
-                ? planCurrentBest(all, playerClass, theme)
-                : planPossibleBest(all, playerClass, theme);
+                ? planCurrentBest(all, playerClass, theme, hero)
+                : planPossibleBest(all, playerClass, theme, hero);
 
             EquipmentGear.logPlan(modeName, theme, plan, mode);
             EquipmentGear.showPlan(modeName, theme, plan, mode);
@@ -334,23 +357,28 @@ export class EquipmentGear {
             }
             const from = pick.current ? EquipmentGear.describe(pick.current) : 'an empty slot';
             const projected = mode === 'possible'
-                ? ` After the upgrade: ${fmtSigned(pick.projectedRawDelta ?? 0)} raw,`
+                ? ` After the upgrade: ${fmtPct(pick.projectedValuePct ?? 0)} battle value,`
                   + ` ${fmtSignedPct(pick.projectedResonanceDelta ?? 0)} resonance.`
                 : '';
             const warn = pick.projectionUnreliable
                 ? ' (projection unreliable: the item does not follow the known mythic curve)'
                 : '';
             logHHAuto(`  Slot ${pick.slot} (${SLOT_NAMES[pick.slot]}): ${EquipmentGear.describe(pick.chosen)}`
-                + ` replaces ${from}, ${fmtSigned(pick.rawDelta)} carac points today,`
+                + ` replaces ${from}, ${fmtPct(pick.valuePct)} battle value today`
+                + ` (${fmtSigned(pick.primaryDelta)} class carac, ${fmtSigned(pick.enduranceDelta)} endurance),`
                 + ` ${fmtSignedPct(pick.resonanceDelta)} active resonance.${projected}${warn}`);
         }
         if (mode === 'possible') {
-            logHHAuto(`  Total: ${fmtSigned(plan.totalRawDelta)} carac points now,`
-                + ` ${fmtSigned(plan.totalProjectedRawDelta ?? 0)} and`
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value now,`
+                + ` ${fmtPct(plan.totalProjectedValuePct ?? 0)} and`
                 + ` ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} resonance once everything is at max level.`);
         } else {
-            logHHAuto(`  Total: ${fmtSigned(plan.totalRawDelta)} carac points,`
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value,`
                 + ` ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.`);
+        }
+        if (plan.uncalibrated) {
+            logHHAuto('  Ranked on stand-in hero totals -- no equip response has been seen yet,'
+                + ' so the endurance-to-carac ratio is borrowed, not measured on this account.');
         }
     }
 
@@ -379,22 +407,29 @@ export class EquipmentGear {
                 ? ' <span style="color:#fc6;" title="Item does not follow the known mythic curve">&#9888;</span>'
                 : '';
             const projected = mode === 'possible'
-                ? `<td class="num">${fmtSigned(pick.projectedRawDelta ?? 0)} / ${fmtSignedPct(pick.projectedResonanceDelta ?? 0)}</td>`
+                ? `<td class="num">${fmtPct(pick.projectedValuePct ?? 0)} / ${fmtSignedPct(pick.projectedResonanceDelta ?? 0)}</td>`
                 : '<td></td>';
             return `<tr><td>${slot}${tier}</td>`
                 + `<td>${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})${warn}</td>`
-                + `<td class="num" style="color:${pick.rawDelta < 0 ? '#f88' : '#7f7'};">${fmtSigned(pick.rawDelta)}</td>`
+                + `<td class="num" style="color:${pick.valuePct < 0 ? '#f88' : '#7f7'};">${fmtPct(pick.valuePct)}`
+                + `<br/><span style="color:#aaa;font-size:10px;">${fmtSigned(pick.primaryDelta)} carac / ${fmtSigned(pick.enduranceDelta)} end</span></td>`
                 + `<td class="num">${fmtSignedPct(pick.resonanceDelta)}</td>`
                 + projected + '</tr>';
         }).join('');
 
         const summary = mode === 'possible'
-            ? `<p><b>Today this costs ${fmtSigned(plan.totalRawDelta)} carac points.</b>`
-              + ` Once every slot sits at max level it is worth ${fmtSigned(plan.totalProjectedRawDelta ?? 0)}`
-              + ` carac points and ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} resonance.`
+            ? `<p><b>Today this costs ${fmtPct(plan.totalValuePct)} battle value.</b>`
+              + ` Once every slot sits at max level it is worth ${fmtPct(plan.totalProjectedValuePct ?? 0)}`
+              + ` and ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} resonance.`
               + ` The gap is deliberate &mdash; these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtSigned(plan.totalRawDelta)} carac points, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
+            : `<p><b>${fmtPct(plan.totalValuePct)} battle value, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
               + ` This button never makes you weaker.</p>`;
+
+        const calibration = plan.uncalibrated
+            ? `<p style="color:#fc6;font-size:11px;">Ranked on stand-in hero totals: no equip response has been`
+              + ` seen on this account yet, so the endurance-to-carac ratio is borrowed rather than measured.`
+              + ` It is recorded the first time you equip anything.</p>`
+            : '';
 
         const projectedHead = mode === 'possible' ? '<th>at max level</th>' : '<th></th>';
         const button = plan.changes.length === 0
@@ -405,13 +440,15 @@ export class EquipmentGear {
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranking: raw stats first, resonance as the tiebreak
-               (a resonance bonus is never worth giving up raw stats for).</p>
+               Ranking: battle value (class carac &times; endurance, on your own totals) first,
+               resonance as the tiebreak. Defense and crit are not in this number &mdash;
+               an item carrying only those is valued at zero.</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>caracs now</th><th>resonance now</th>${projectedHead}</tr>
+                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>resonance now</th>${projectedHead}</tr>
                 ${rows}
             </table>
             ${summary}
+            ${calibration}
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             ${button}
         </div>`);
@@ -460,6 +497,10 @@ export class EquipmentGear {
                 break;
             }
 
+            // The response carries the hero's real totals; keep them so the
+            // next plan ranks on measured numbers instead of stand-ins.
+            EquipmentGear.storeHeroTotals(data?.caracs);
+
             const removedId = data?.unequipped_armor?.id_member_armor ?? null;
             swapLog.push({
                 ts: Date.now(),
@@ -506,6 +547,10 @@ function esc(value: string): string {
 function fmtSigned(value: number): string {
     const rounded = Math.round(value);
     return (rounded > 0 ? '+' : '') + rounded.toLocaleString();
+}
+
+function fmtPct(value: number): string {
+    return (value > 0 ? '+' : '') + value.toFixed(2) + '%';
 }
 
 function fmtSignedPct(value: number): string {
