@@ -5,13 +5,19 @@
 // this: docs-internal/equipment-resonance.md. The two decisions that shape
 // this file and are NOT obvious from the code alone:
 //
-//   1. Items are ranked by one number, `pricedValue`: the hero's primary
-//      carac times the hero's endurance, multiplied by whatever resonance
-//      lands on damage or ego. Everything in it is measured. What is NOT in
-//      it -- the off-class caracs (defense) and chance (crit), and the
-//      resonance aimed at them -- is tracked separately as "unpriced" and
-//      only ever breaks a tie. The model states its blind spot instead of
-//      hiding it behind a made-up weight.
+//   1. Items are ranked by PRIORITY TIERS, not by a computed stat score.
+//      Two stat models were tried and both recommended trading mythics away
+//      for legendaries; a crawl of all 99 players in the league settled it:
+//      582 of 594 equipped slots are mythic, 576 of them at level 20, and
+//      every player in the top 25 wears 6/6 mythic. The four players holding
+//      legendaries sit at places 49, 60, 80 and 95. Any score that
+//      contradicts that is wrong, however well it is argued.
+//
+//      A stat score cannot be made right here either: a mythic at level 20
+//      pays out across all five caracs, and the theme resonance axis lands
+//      on defense or chance in all 582 measured cases -- the two axes no
+//      client-side measurement can weigh. The tiers encode what strong
+//      players actually do instead of pricing what cannot be priced.
 //
 //   2. Nothing here measures itself. Every value is derived from the
 //      declared `resonance_bonuses` and the item's own `caracs`. The
@@ -102,42 +108,6 @@ const RESONANCE_PER_LEVEL_CHANCE = 0.2;
  *  silently turning "Possible Best" into nonsense. */
 const PROJECTION_TOLERANCE = 0.05;
 
-/**
- * The hero's own stat totals, as the equip response reports them.
- *
- * `primary_carac_amount` and `secondary_caracs_sum` are the game's own
- * split: the class carac on one side, the other two summed on the other.
- * The names do not appear in shared.js, so this bucketing is decided
- * server-side -- it is the game's judgement, not ours.
- */
-export interface HeroTotals {
-    /** primary_carac_amount -- carac[class]. */
-    primary: number;
-    /** secondary_caracs_sum -- the two off-class caracs. */
-    secondary: number;
-    endurance: number;
-    chance: number;
-}
-
-// How much of an item's carac reaches the hero. Measured 2026-08-16 by
-// swapping two items of known caracs into slot 1 and reading the equip
-// response: +5783 item carac3 moved primary by +6362, and -43301 item
-// endurance moved endurance by -24401.
-const CLASS_CARAC_TO_HERO = 1.100;
-const ENDURANCE_TO_HERO = 0.5636;
-
-/**
- * Stand-in totals for the first run, before any equip response has been
- * seen. One account (hero 1, level 663, class 3) on 2026-08-16, with
- * its own gear on. Only the *ratio* endurance/primary matters for the
- * ordering, and that ratio is a property of the account -- so a plan built
- * on these numbers is flagged as uncalibrated rather than presented as
- * measured.
- */
-export const FALLBACK_HERO_TOTALS: HeroTotals = {
-    primary: 54843, secondary: 96509, endurance: 331530, chance: 86218,
-};
-
 export interface SlotPick {
     slot: number;
     /** The item the button wants to wear. null when the slot has no
@@ -147,28 +117,17 @@ export interface SlotPick {
     current: ArmorItem | null;
     /** false when `chosen` is already equipped -- no ajax call needed. */
     changed: boolean;
-    /** Change in battle value as a percentage, *today*, with the resonance
-     *  that lands on damage or ego already included. "Possible Best" is
-     *  expected to go negative here; that is the gap the upgrade step
-     *  closes. */
-    valuePct: number;
-    /** Hero-level carac points the swap adds to the class carac and to
-     *  endurance. The concrete numbers behind valuePct. */
-    primaryDelta: number;
-    enduranceDelta: number;
-    /** Active resonance percentage points gained today, all axes. Shown for
-     *  information; the damage/ego part is already inside valuePct. */
+    /** Which tier the chosen item landed in. See `gearTier`. */
+    tier: number;
+    /** Raw carac points the swap costs or gains *today*, summed over all
+     *  five stats. Reported, never ranked on -- ranking on this is what
+     *  produced the mythic-for-legendary recommendation. "Possible Best" is
+     *  expected to go negative; that is the gap the upgrade step closes. */
+    caracDelta: number;
+    /** Active resonance percentage points gained today. */
     resonanceDelta: number;
-    /** The part of that which the value cannot price: percentage points on
-     *  defense and chance. Ranked only as a tiebreak. */
-    unpricedResonanceDelta: number;
-    /** Possible Best only: 1 = mythic matching class AND theme,
-     *  2 = mythic matching class only, 3 = strongest by battle value. */
-    tier?: number;
-    /** Possible Best only: battle value once both items sit at max level.
-     *  What the swap buys after the upgrade step. */
-    projectedValuePct?: number;
-    /** Possible Best only: resonance percentage points at max level. */
+    /** Possible Best only: resonance percentage points once the chosen item
+     *  is at max level. */
     projectedResonanceDelta?: number;
     /** Set when the item's own caracs contradict the mythic curve, so the
      *  projection fell back to the measured values. */
@@ -179,20 +138,11 @@ export interface GearPlan {
     picks: SlotPick[];
     /** Slots that actually need an equip call. */
     changes: SlotPick[];
-    /** Battle-value change of the whole plan, in percent. Negative means
-     *  weaker today. */
-    totalValuePct: number;
+    /** Raw carac points the whole plan costs or gains today. */
+    totalCaracDelta: number;
     totalResonanceDelta: number;
-    /** Percentage points of defense/chance resonance the plan gives up or
-     *  gains without that showing in totalValuePct. */
-    totalUnpricedResonanceDelta: number;
-    /** Possible Best only: what the plan is worth once everything is at max
-     *  level. */
-    totalProjectedValuePct?: number;
+    /** Possible Best only: resonance once everything is at max level. */
     totalProjectedResonanceDelta?: number;
-    /** True when the plan was ranked on FALLBACK_HERO_TOTALS because no
-     *  equip response had been seen yet. */
-    uncalibrated?: boolean;
 }
 
 /** The item's class carac -- the one the game tracks as
@@ -203,80 +153,6 @@ export function classCarac(caracs: ArmorCaracs, playerClass: PlayerClass): numbe
         : caracs.carac3;
 }
 
-/** What this item adds to the hero's primary carac and endurance. */
-function contribution(caracs: ArmorCaracs, playerClass: PlayerClass) {
-    return {
-        primary: CLASS_CARAC_TO_HERO * classCarac(caracs, playerClass),
-        endurance: ENDURANCE_TO_HERO * caracs.endurance,
-    };
-}
-
-/**
- * Battle value of wearing `caracs` in a slot that currently holds
- * `inSlot`: the hero's primary carac times the hero's endurance.
- *
- * Why a product and not a weighted sum. Damage is proportional to the
- * primary carac and ego to endurance, so damage x ego is
- * (a x primary) x (b x endurance) = ab x primary x endurance. The two
- * conversion constants are unknown -- and they cancel, because they scale
- * every candidate equally and cannot change the ordering. That is the whole
- * point: this ranking needs no exchange rate between "a point of damage"
- * and "a point of ego", and no such rate is measurable client-side.
- *
- * Why it is computed on hero totals rather than on the item alone: on the
- * item alone a pure-endurance item scores carac x endurance = 0, and a
- * pure-carac item scores 0 as well. Against the hero's totals both are
- * ranked by what they actually move.
- *
- * What this deliberately leaves out: the off-class caracs (defense) and
- * chance (crit). Neither moved in the calibration run, so neither has a
- * measured factor. An item that only carries those is valued at its effect
- * on damage and ego, which is nothing -- the known blind spot of this
- * model.
- */
-export function battleValue(
-    caracs: ArmorCaracs,
-    inSlot: ArmorCaracs | null,
-    playerClass: PlayerClass,
-    hero: HeroTotals,
-): number {
-    const cand = contribution(caracs, playerClass);
-    const cur = inSlot
-        ? contribution(inSlot, playerClass)
-        : { primary: 0, endurance: 0 };
-    const primary = hero.primary - cur.primary + cand.primary;
-    const endurance = hero.endurance - cur.endurance + cand.endurance;
-    return Math.max(0, primary) * Math.max(0, endurance);
-}
-
-/**
- * Battle value with the resonance that lands on damage or ego folded in.
- *
- * The earlier ordering put value first and used resonance only to break
- * ties. That was justified while value was measured in raw carac points and
- * resonance in percentage points -- thousands against a handful. Once value
- * became a percentage the two ended up the same size: the first live run
- * showed +2.87% value against -4.0pp resonance per slot, and a lexicographic
- * order compared them by not comparing them.
- *
- * Resonance is applied on top of everything (official), so it multiplies:
- * a bonus on damage scales the first term of the product, one on ego the
- * second. Bonuses on defense and chance stay outside and are ranked
- * separately, because nothing here can price them.
- */
-export function pricedValue(
-    caracs: ArmorCaracs,
-    inSlot: ArmorCaracs | null,
-    playerClass: PlayerClass,
-    hero: HeroTotals,
-    split: ResonanceSplit,
-): number {
-    return battleValue(caracs, inSlot, playerClass, hero)
-        * (1 + split.damage / 100)
-        * (1 + split.ego / 100);
-}
-
-/** Is this item's class axis active for the given hero class? */
 export function classMatches(item: ArmorItem, playerClass: PlayerClass): boolean {
     const res = item.classResonance;
     if (!res || res.identifier === null) return false;
@@ -419,16 +295,95 @@ export function projectCaracs(item: ArmorItem): { caracs: ArmorCaracs; unreliabl
     };
 }
 
-/** Possible Best ranking tier -- lower is better. See the doc's ordering:
- *  a mythic carrying the wrong class is not a hit even if its theme fits. */
-export function possibleBestTier(
+/** Which button is asking. "current" judges an item as it is today;
+ *  "possible" judges it as it will be once levelled to the cap. */
+export type GearMode = 'current' | 'possible';
+
+/** Sum of all five caracs. Reported as the cost of a swap, never used to
+ *  rank -- see the note at the top of this file. */
+export function caracSum(caracs: ArmorCaracs): number {
+    return caracs.carac1 + caracs.carac2 + caracs.carac3
+        + caracs.endurance + caracs.chance;
+}
+
+/** Total active resonance in percentage points, at the item's own level or
+ *  projected to the cap. */
+function resonancePoints(
     item: ArmorItem,
     playerClass: PlayerClass,
     theme: GearTheme,
-): 1 | 2 | 3 {
-    if (item.rarity !== 'mythic') return 3;
-    if (!classMatches(item, playerClass)) return 3;
-    return themeMatches(item, theme) ? 1 : 2;
+    projected: boolean,
+): number {
+    return projected
+        ? projectedResonance(item, playerClass, theme)
+        : activeResonance(item, playerClass, theme);
+}
+
+/**
+ * The priority ladder. Lower is better.
+ *
+ *   1  mythic at cap, class AND theme match
+ *   2  mythic at cap, class match
+ *   3  mythic at cap, theme match
+ *   4  mythic at cap, no match
+ *   5  everything else -- ranked on stats, then resonance
+ *
+ * Tiers 1..4 need the item to be at MYTHIC_MAX_LEVEL, but what counts as
+ * "at cap" depends on the button. "Possible Best" projects, so an unlevelled
+ * mythic already qualifies: at level 20 every mythic of a slot has exactly
+ * the same caracs (measured across 576 equipped slots, all
+ * 4000/4000/4000/4000/5000), which is why that button needs no stat maths at
+ * all. "Current Best" judges today, so an unlevelled mythic drops to tier 5
+ * and competes on its real stats -- otherwise it would put a level-1 mythic
+ * worth 11,500 carac points over a legendary worth ~18,600 and leave the
+ * player weaker, which is the one thing that button promises not to do.
+ *
+ * Tier 5 also holds every legendary and epic. Those carry no resonance at
+ * all: of the 12 legendary slots in the league, none had a class or theme
+ * bonus.
+ */
+export function gearTier(
+    item: ArmorItem,
+    playerClass: PlayerClass,
+    theme: GearTheme,
+    mode: GearMode,
+): number {
+    if (item.rarity !== 'mythic') return 5;
+    if (mode === 'current' && item.level < MYTHIC_MAX_LEVEL) return 5;
+    const c = classMatches(item, playerClass);
+    const t = themeMatches(item, theme);
+    if (c && t) return 1;
+    if (c) return 2;
+    if (t) return 3;
+    return 4;
+}
+
+/**
+ * Ordering inside tier 5 only -- the fallback tier, which the league says is
+ * rare (582 of 594 equipped slots were a level-20 mythic).
+ *
+ * The geometric mean over the four axes an item can feed: the class carac
+ * (damage), the two off-class caracs (defense), endurance (ego) and chance
+ * (crit). A plain sum ranks a legendary carrying 43,301 endurance and zero
+ * of everything else above a balanced one, which is exactly the pick the
+ * league contradicts; a geometric mean sends any item with a hole in it to
+ * the bottom.
+ *
+ * This is a heuristic and not a measurement. The weights that would settle
+ * the four axes against each other are not obtainable client-side, so
+ * rather than invent them this only encodes "balanced beats one-sided".
+ */
+export function fallbackScore(caracs: ArmorCaracs, playerClass: PlayerClass): number {
+    const offClass = caracSum(caracs)
+        - classCarac(caracs, playerClass) - caracs.endurance - caracs.chance;
+    const axes = [
+        classCarac(caracs, playerClass),
+        offClass,
+        caracs.endurance,
+        caracs.chance,
+    ].map(v => Math.max(0, v));
+    if (axes.some(v => v === 0)) return 0;
+    return Math.exp(axes.reduce((s, v) => s + Math.log(v), 0) / axes.length);
 }
 
 function bySlot(items: ArmorItem[]): Map<number, ArmorItem[]> {
@@ -457,174 +412,114 @@ function buildPick(
     current: ArmorItem | null,
     playerClass: PlayerClass,
     theme: GearTheme,
-    hero: HeroTotals,
+    mode: GearMode,
 ): SlotPick {
-    const base = current ? current.caracs : null;
-    const currentSplit = current
-        ? resonanceSplit(current, playerClass, theme)
-        : { damage: 0, ego: 0, unpriced: 0 };
-    const currentValue = pricedValue(base ?? ZERO_CARACS, base, playerClass, hero, currentSplit);
+    const currentCaracs = current ? caracSum(current.caracs) : 0;
     const currentRes = current ? activeResonance(current, playerClass, theme) : 0;
-    const chosenSplit = chosen
-        ? resonanceSplit(chosen, playerClass, theme)
-        : { damage: 0, ego: 0, unpriced: 0 };
-    const chosenContribution = chosen ? contribution(chosen.caracs, playerClass) : null;
-    const currentContribution = current ? contribution(current.caracs, playerClass) : null;
-    return {
+    const pick: SlotPick = {
         slot,
         chosen,
         current,
         changed: chosen !== null && !chosen.equipped,
-        valuePct: chosen
-            ? pctChange(pricedValue(chosen.caracs, base, playerClass, hero, chosenSplit), currentValue)
-            : 0,
-        primaryDelta: (chosenContribution?.primary ?? 0) - (currentContribution?.primary ?? 0),
-        enduranceDelta: (chosenContribution?.endurance ?? 0) - (currentContribution?.endurance ?? 0),
+        tier: chosen ? gearTier(chosen, playerClass, theme, mode) : 0,
+        caracDelta: chosen ? caracSum(chosen.caracs) - currentCaracs : 0,
         resonanceDelta: chosen ? activeResonance(chosen, playerClass, theme) - currentRes : 0,
-        unpricedResonanceDelta: chosen ? chosenSplit.unpriced - currentSplit.unpriced : 0,
     };
+    if (mode === 'possible' && chosen) {
+        pick.projectedResonanceDelta = projectedResonance(chosen, playerClass, theme)
+            - (current ? projectedResonance(current, playerClass, theme) : 0);
+    }
+    return pick;
 }
 
-const ZERO_CARACS: ArmorCaracs = {
-    carac1: 0, carac2: 0, carac3: 0, endurance: 0, chance: 0,
-};
-
-function pctChange(next: number, base: number): number {
-    if (base <= 0) return 0;
-    return (next / base - 1) * 100;
+/** Rank candidates for one slot: tier first, then -- inside a tier -- the
+ *  stats where they can still differ, then the size of the resonance.
+ *
+ *  The resonance tiebreak is not cosmetic: at level 20 the class axis is
+ *  always worth 2pp, while the theme axis pays 4pp when it lands on chance
+ *  and 2pp when it lands on defense (279 vs 297 of the 576 measured slots).
+ *  Two tier-1 items can therefore be worth 6pp or 4pp. */
+function rankForSlot(
+    candidates: ArmorItem[],
+    playerClass: PlayerClass,
+    theme: GearTheme,
+    mode: GearMode,
+): ArmorItem[] {
+    const projected = mode === 'possible';
+    return [...candidates].sort((a, b) => {
+        const tier = gearTier(a, playerClass, theme, mode) - gearTier(b, playerClass, theme, mode);
+        if (tier !== 0) return tier;
+        // Inside tiers 1..4 every item has identical caracs, so this only
+        // ever separates tier-5 items.
+        const stats = cmp(
+            fallbackScore(a.caracs, playerClass),
+            fallbackScore(b.caracs, playerClass),
+        );
+        if (stats !== 0) return stats;
+        return cmp(
+            resonancePoints(a, playerClass, theme, projected),
+            resonancePoints(b, playerClass, theme, projected),
+        );
+    });
 }
 
-function summarise(picks: SlotPick[], projected: boolean, uncalibrated: boolean): GearPlan {
+function plan(
+    items: ArmorItem[],
+    playerClass: PlayerClass,
+    theme: GearTheme,
+    mode: GearMode,
+): GearPlan {
+    const picks: SlotPick[] = [];
+    for (const [slot, candidates] of bySlot(items)) {
+        const current = candidates.find(i => i.equipped) ?? null;
+        const ranked = rankForSlot(candidates, playerClass, theme, mode);
+        picks.push(buildPick(slot, ranked[0] ?? null, current, playerClass, theme, mode));
+    }
     const changes = picks.filter(p => p.changed);
-    // Percentages of the same hero total add up closely enough at these
-    // magnitudes; the alternative is re-ranking every slot against a moving
-    // base, which would make each slot's number depend on the order.
-    const plan: GearPlan = {
+    const out: GearPlan = {
         picks,
         changes,
-        totalValuePct: changes.reduce((s, p) => s + p.valuePct, 0),
+        totalCaracDelta: changes.reduce((s, p) => s + p.caracDelta, 0),
         totalResonanceDelta: changes.reduce((s, p) => s + p.resonanceDelta, 0),
-        totalUnpricedResonanceDelta: changes.reduce((s, p) => s + p.unpricedResonanceDelta, 0),
     };
-    if (uncalibrated) plan.uncalibrated = true;
-    if (projected) {
-        plan.totalProjectedValuePct = changes.reduce((s, p) => s + (p.projectedValuePct ?? 0), 0);
-        plan.totalProjectedResonanceDelta = changes.reduce((s, p) => s + (p.projectedResonanceDelta ?? 0), 0);
+    if (mode === 'possible') {
+        out.totalProjectedResonanceDelta = changes.reduce(
+            (s, p) => s + (p.projectedResonanceDelta ?? 0), 0);
     }
-    return plan;
+    return out;
 }
 
 /**
- * "Current Best Gear": per slot the item with the highest value *today*.
+ * "Current Best Gear": per slot the best item the player owns *today*.
  *
- * Ordering is battle value first, active resonance second. This never makes
- * the player weaker and never leaves a slot empty.
- *
- * The earlier version of this ranked on the plain sum of an item's five
- * caracs, which valued a point of endurance exactly like a point of damage.
- * Run against the real inventory it wanted to strip all six mythics for
- * legendaries carrying 43,301 endurance and nothing else -- items that add
- * zero damage and zero crit. Hence `battleValue`.
+ * Never leaves a slot empty and never makes the player weaker: an
+ * unlevelled mythic is judged on its real stats, so it cannot displace a
+ * stronger legendary just for being mythic.
  */
 export function planCurrentBest(
     items: ArmorItem[],
     playerClass: PlayerClass,
     theme: GearTheme,
-    hero: HeroTotals | null,
 ): GearPlan {
-    const totals = hero ?? FALLBACK_HERO_TOTALS;
-    const picks: SlotPick[] = [];
-    for (const [slot, candidates] of bySlot(items)) {
-        const current = candidates.find(i => i.equipped) ?? null;
-        const base = current ? current.caracs : null;
-        const ranked = [...candidates].sort((a, b) => {
-            const value = cmp(
-                pricedValue(a.caracs, base, playerClass, totals, resonanceSplit(a, playerClass, theme)),
-                pricedValue(b.caracs, base, playerClass, totals, resonanceSplit(b, playerClass, theme)),
-            );
-            if (value !== 0) return value;
-            // Only the bonuses the value could not price are left to decide.
-            return cmp(
-                resonanceSplit(a, playerClass, theme).unpriced,
-                resonanceSplit(b, playerClass, theme).unpriced,
-            );
-        });
-        picks.push(buildPick(slot, ranked[0] ?? null, current, playerClass, theme, totals));
-    }
-    return summarise(picks, false, hero === null);
+    return plan(items, playerClass, theme, 'current');
 }
 
 /**
- * "Possible Best Gear": per slot the item that would be strongest once
- * everything sits at max level.
+ * "Possible Best Gear": per slot the item that will be strongest once it is
+ * levelled to the cap.
  *
- * This deliberately equips items that are weaker *today* -- the same
- * behaviour as "Best Possible" on the team page, which fields a level-1
- * girl because she is the better target. The cost of that choice is
- * reported per slot (`valuePct`) and in the summary, so the player sees the
- * gap instead of only having it.
- *
- * A mythic with the right theme but the wrong class is not a hit and lands
- * in tier 3, where it competes on battle value like anything else. It can
- * still win that tier -- if it is the only mythic for its slot, wearing it
- * really is the strongest projected option -- and the upgrade step then
- * simply may not consume it, because it is equipped.
+ * Only the tier matters here. Every mythic reaches the same caracs at level
+ * 20, so the choice is purely which resonances it carries -- no projection
+ * arithmetic, no stat comparison. It deliberately equips items that are
+ * weaker today, the same way "Best Possible" on the team page fields a
+ * level-1 girl; `caracDelta` says by how much, per slot and in total.
  */
 export function planPossibleBest(
     items: ArmorItem[],
     playerClass: PlayerClass,
     theme: GearTheme,
-    hero: HeroTotals | null,
 ): GearPlan {
-    const totals = hero ?? FALLBACK_HERO_TOTALS;
-    const picks: SlotPick[] = [];
-    for (const [slot, candidates] of bySlot(items)) {
-        const current = candidates.find(i => i.equipped) ?? null;
-        const projections = new Map<ArmorItem, { caracs: ArmorCaracs; unreliable: boolean }>();
-        for (const item of candidates) projections.set(item, projectCaracs(item));
-        // Both sides projected: the slot's own item will be levelled too, so
-        // comparing a projected candidate against today's worn item would
-        // overstate every swap.
-        const currentProj = current ? projectCaracs(current) : null;
-        const base = currentProj ? currentProj.caracs : null;
-
-        const ranked = [...candidates].sort((a, b) => {
-            const tier = possibleBestTier(a, playerClass, theme) - possibleBestTier(b, playerClass, theme);
-            if (tier !== 0) return tier;
-            const value = cmp(
-                pricedValue(projections.get(a)!.caracs, base, playerClass, totals,
-                    resonanceSplit(a, playerClass, theme, true)),
-                pricedValue(projections.get(b)!.caracs, base, playerClass, totals,
-                    resonanceSplit(b, playerClass, theme, true)),
-            );
-            if (value !== 0) return value;
-            return cmp(
-                resonanceSplit(a, playerClass, theme, true).unpriced,
-                resonanceSplit(b, playerClass, theme, true).unpriced,
-            );
-        });
-
-        const chosen = ranked[0] ?? null;
-        const pick = buildPick(slot, chosen, current, playerClass, theme, totals);
-        if (chosen) {
-            const chosenProj = projections.get(chosen)!;
-            pick.tier = possibleBestTier(chosen, playerClass, theme);
-            pick.projectedValuePct = pctChange(
-                pricedValue(chosenProj.caracs, base, playerClass, totals,
-                    resonanceSplit(chosen, playerClass, theme, true)),
-                pricedValue(base ?? ZERO_CARACS, base, playerClass, totals,
-                    current ? resonanceSplit(current, playerClass, theme, true)
-                            : { damage: 0, ego: 0, unpriced: 0 }),
-            );
-            pick.projectedResonanceDelta = projectedResonance(chosen, playerClass, theme)
-                - (current ? projectedResonance(current, playerClass, theme) : 0);
-            if (chosenProj.unreliable || currentProj?.unreliable) {
-                pick.projectionUnreliable = true;
-            }
-        }
-        picks.push(pick);
-    }
-    return summarise(picks, true, hero === null);
+    return plan(items, playerClass, theme, 'possible');
 }
 
 /**
@@ -681,26 +576,6 @@ export function parseTheme(value: unknown): GearTheme | null {
         'sun', 'darkness', 'psychic', 'light',
     ];
     return known.includes(value as GearTheme) ? value as GearTheme : null;
-}
-
-/**
- * Hero totals out of an equip response's `caracs` block, or out of the
- * cached copy of one. Returns null unless both fields the ranking needs are
- * present and positive -- a half-read total would silently reshape every
- * ranking instead of falling back visibly.
- */
-export function parseHeroTotals(raw: any): HeroTotals | null {
-    if (!raw || typeof raw !== 'object') return null;
-    const primary = Number(raw.primary_carac_amount ?? raw.primary);
-    const endurance = Number(raw.endurance);
-    if (!Number.isFinite(primary) || primary <= 0) return null;
-    if (!Number.isFinite(endurance) || endurance <= 0) return null;
-    return {
-        primary,
-        secondary: Number(raw.secondary_caracs_sum ?? raw.secondary) || 0,
-        endurance,
-        chance: Number(raw.chance) || 0,
-    };
 }
 
 function toResonance(raw: any): ArmorResonance | null {

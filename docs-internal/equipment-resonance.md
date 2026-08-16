@@ -228,86 +228,74 @@ liess sich zu 4/6 bedienen (Slot 5 fehlt, Slot 2 nur mit Klassenverlust).
 | Current Best Gear | Team 2a | Rohwerte, dann aktive Resonanz |
 | Possible Best Gear | Team 2b | Mythic mit Klasse+Theme > Mythic mit Klasse > staerkstes Item roh; darin projizierte Rohwerte, dann projizierte Resonanz |
 
-### Die Wertung: Produkt statt Summe (gemessen 2026-08-16)
+### Die Wertung: Prioritaetenstufen, kein Statscore (2026-08-17)
 
-Der erste Wurf summierte die fuenf Caracs eines Items gleichgewichtet. Gegen
-das echte Inventar wollte er **alle sechs Mythics abwerfen** zugunsten von
-Legendaries mit 43.301 Endurance und sonst nichts -- Items, die null Schaden
-und null Crit beitragen. Eine flache Summe setzt einen Endurance-Punkt einem
-Schadenspunkt gleich; das ist keine Kalibrierungsfrage, sondern falsch.
+Zwei Statmodelle wurden gebaut und beide empfahlen, Mythics gegen
+Legendaries zu tauschen -- erst eine flache Carac-Summe (die ein Legendary
+mit 43.301 Endurance und null auf allem anderen gewinnen liess), dann ein
+Produkt aus Klassen-Carac und Endurance. Entschieden hat ein Crawl der
+gesamten Liga ueber `/hero/<id_member>/profile.html`, wo `hero_items` fuer
+**jeden** Spieler lesbar ist:
 
-Die Equip-Antwort loest das. Ihr `caracs`-Block enthaelt zwei Felder, die im
-Datenmodell oben fehlen:
+```
+99 Spieler, 594 Slots:   mythic 582   legendary 12
+576 der 582 Mythics auf Level 20
+95 von 99 Spielern tragen 6/6 mythic; die Top 25 ausnahmslos
+die vier mit Legendaries stehen auf Platz 49, 60, 80, 95
+```
 
-| Feld | Bedeutung |
+Ein Score, der dem widerspricht, ist falsch, wie gut er auch begruendet ist.
+Und er ist hier auch nicht reparierbar: die theme-Achse zielt in **allen 582
+Faellen** auf `defense` oder `chance` -- genau die beiden Groessen, die
+client-seitig nicht messbar sind.
+
+Die Rangfolge kodiert deshalb, was starke Spieler tun:
+
+| Stufe | Bedingung |
 |---|---|
-| `primary_carac_amount` | `carac[Klasse]` |
-| `secondary_caracs_sum` | Summe der beiden Nebencaracs |
+| 1 | Mythic auf Level 20, Klasse **und** Theme passend |
+| 2 | Mythic auf Level 20, Klasse passend |
+| 3 | Mythic auf Level 20, Theme passend |
+| 4 | Mythic auf Level 20 |
+| 5 | alles andere -- nach Stats, dann Resonanz |
 
-Das Spiel trennt den Klassen-Carac also **selbst** von den anderen beiden.
-In `shared.js` kommen die Namen nicht vor -- die Aufteilung ist serverseitig.
+**Level 20 bedeutet je nach Button etwas anderes.** „Possible Best"
+projiziert, dort qualifiziert ein ungelevelltes Mythic sofort fuer Stufe 1-4;
+bei Level 20 haben alle Mythics eines Slots ohnehin identische Caracs
+(gemessen: ein einziges Tupel `4000/4000/4000/4000/5000` ueber alle 576
+Slots), weshalb dieser Button gar keine Statrechnung braucht. „Current Best"
+urteilt ueber heute, dort faellt ein ungelevelltes Mythic auf Stufe 5 und
+konkurriert mit seinen echten Werten -- sonst wuerde ein Level-1-Mythic
+(11.500 Carac-Punkte) ein Legendary auf Spielerlevel (~18.600) verdraengen.
 
-Zwei Sonden auf Slot 1 (Item bekannter Caracs anlegen, Antwort lesen,
-zurueckbauen) ergaben die Uebertragungsfaktoren Item -> Held:
+**Gleichstand innerhalb einer Stufe** entscheidet die Groesse der Resonanz.
+Die class-Achse zahlt immer 2 pp, die theme-Achse 4 pp auf der
+Chance-Schiene und 2 pp auf defense (279 gegen 297 der 576 Slots). Zwei
+Stufe-1-Items koennen also 6 pp oder 4 pp wert sein.
 
-```
-Klassen-Carac  x 1,100   (+5.783 Item-carac3  ->  +6.362 primary)
-Endurance      x 0,5636  (-43.301 Item-Endur. -> -24.401 endurance)
-```
+**Stufe 5** ordnet nach dem geometrischen Mittel ueber die vier Achsen
+(Klassen-Carac, Nebencaracs, Endurance, Chance). Das ist ausdruecklich eine
+Heuristik und keine Messung -- sie kodiert nur „ausgewogen schlaegt
+einseitig" und verhindert, dass ein Mono-Stat-Item gewinnt. Legendaries
+tragen ueberhaupt keine Resonanz: von den 12 Legendary-Slots der Liga hatte
+keiner einen class- oder theme-Bonus.
 
-Gewertet wird seitdem mit `primary x endurance` auf den **Gesamtwerten des
-Helden**, nicht auf Item-Summen. Der Grund, warum das ohne den fehlenden
-Umrechnungskurs auskommt: Schaden ist proportional zum primary Carac, Ego zur
-Endurance, also ist `Schaden x Ego = a*b x primary x endurance`. Die beiden
-unbekannten Konstanten skalieren jeden Kandidaten gleich und **kuerzen sich
-aus der Reihenfolge heraus**.
+Gegenprobe am Messaccount: beide Buttons melden **„nothing to change"** --
+vier Slots Stufe 1, zwei Slots Stufe 2 (fuer Slot 2 und 5 besitzt der
+Account kein nature-Mythic).
 
-Auf Item-Ebene ginge das nicht: dort haette ein reines Endurance-Item
-`carac x endurance = 0`, ein reines Carac-Item ebenso.
+### Material fuer Upgrade Gear
 
-**Blinder Fleck:** Defense (Nebencaracs) und Crit (chance) stehen nicht im
-Produkt. Beide bewegten sich in der Kalibrierung nicht, also gibt es fuer
-sie keinen gemessenen Faktor. Ein Item, das nur diese traegt, wird mit null
-bewertet.
+Ein Mythic ist Material, **wenn es fuer seinen Slot verdraengt ist** -- wenn
+es also fuer denselben Slot ein Item hoeherer Prioritaet gibt. Damit fallen
+die urspruenglichen zwei Ausnahmen (Dopplung, richtiges Theme bei falscher
+Klasse) automatisch heraus, ohne Sonderregel. Non-Mythics duerfen ohnehin
+verbraucht werden; im Testinventar liegen 1.169 Legendaries und 341 Epics
+gegenueber 104 Mythics.
 
-### Resonanz gehoert in den Wert, nicht daneben
-
-Die erste Fassung ordnete lexikografisch: Kampfwert zuerst, Resonanz nur bei
-Gleichstand. Begruendet war das damit, dass Rohwertunterschiede gross und
-Resonanzen klein sind -- 1.900 Rohpunkte gegen 2 Prozentpunkte. Sobald die
-Wertung selbst in Prozent rechnet, faellt diese Begruendung weg: der erste
-Live-Lauf zeigte +2,87 % Kampfwert gegen -4,0 Prozentpunkte Resonanz pro
-Slot. Zwei vergleichbare Groessen, und die Ordnung verglich sie nicht.
-
-Resonanz wird laut Kinkoid **oben drauf** angewandt, wirkt also
-multiplikativ. Deshalb wird sie nach Zielgroesse aufgeteilt:
-
-| Zielgroesse | Behandlung |
-|---|---|
-| `damage` | multipliziert den ersten Faktor des Produkts |
-| `ego` | multipliziert den zweiten |
-| `defense`, `chance` | **nicht bepreisbar** -- getrennt ausgewiesen, entscheidet nur Gleichstand |
-
-Was das praktisch aendert, am selben Live-Lauf:
-
-```
-vorher (Resonanz als Tiebreak):  +2,87 % pro Slot, +17,44 % gesamt
-nachher (Resonanz im Wert):      +0,87 % pro Slot,  +5,33 % gesamt
-                                 dazu -8,0 pp defense/crit, unbepreist
-```
-
-Der Tausch ist also viel knapper, als die erste Zahl behauptete -- und der
-Teil, den das Modell nicht bewerten kann, steht jetzt daneben, statt still
-in eine Richtung zu fallen.
-
-Die Projektion auf Level 20 prueft die Mythic-Kurve erst gegen die
-*aktuellen* Caracs des Items (5 % Toleranz). Passt sie nicht, faellt die
-Projektion auf die gemessenen Werte zurueck und markiert sich als
-unzuverlaessig, statt auf einer veralteten Kurve zu ranken.
-
-Das Team-Theme liefert `TeamModule` beim Teambau nach
-`HHAuto_Temp_teamTheme`; die Markt-Seite liest es dort. Ohne Theme passiert
-nichts.
+Zwei Raender: ein Mythic, das allein seinen Slot bedient, wird nie Material
+(nichts verdraengt es). Und ein Item, das der laufende Plan anlegen will,
+ist im selben Durchlauf tabu.
 
 **Upgrade Gear fehlt noch.** Der Upgrade-Endpunkt ist unbekannt (weder in
 `shop.js` noch in `shared.js`, kein `*equipment-upgrade*`-Bundle). Er muss

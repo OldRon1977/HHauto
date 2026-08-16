@@ -299,9 +299,6 @@ export const TK = {
     // stays possible. The id changes on every unequip, so it can only come
     // from the equip response.
     gearSwapLog: "Temp_gearSwapLog",
-    // Hero stat totals from the last equip response; the base the gear
-    // ranking measures every candidate against.
-    gearHeroTotals: "Temp_gearHeroTotals",
 
     // Resources
     haveAff: "Temp_haveAff",
