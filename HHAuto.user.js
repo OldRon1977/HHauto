@@ -18156,15 +18156,13 @@ class ClubChampion {
 // this: docs-internal/equipment-resonance.md. The two decisions that shape
 // this file and are NOT obvious from the code alone:
 //
-//   1. Raw stats dominate, resonance is the tiebreak. A resonance bonus is
-//      worth at most 2 percentage points (4 on the chance track) while a
-//      level-1 item costs ~1900 raw points per carac against a level-20 one.
-//      So the ordering is lexicographic (raw, then resonance) rather than a
-//      weighted sum -- a weighted sum would need an exchange rate between
-//      "percentage points of a hero stat" and "carac points of an item",
-//      and that rate is not measurable client-side (see section 4 of the
-//      doc: the resonance is applied after the end calculation of stats and
-//      shows up in no client-visible number).
+//   1. Items are ranked by one number, `pricedValue`: the hero's primary
+//      carac times the hero's endurance, multiplied by whatever resonance
+//      lands on damage or ego. Everything in it is measured. What is NOT in
+//      it -- the off-class caracs (defense) and chance (crit), and the
+//      resonance aimed at them -- is tracked separately as "unpriced" and
+//      only ever breaks a tie. The model states its blind spot instead of
+//      hiding it behind a made-up weight.
 //
 //   2. Nothing here measures itself. Every value is derived from the
 //      declared `resonance_bonuses` and the item's own `caracs`. The
@@ -18260,6 +18258,26 @@ function battleValue(caracs, inSlot, playerClass, hero) {
     const endurance = hero.endurance - cur.endurance + cand.endurance;
     return Math.max(0, primary) * Math.max(0, endurance);
 }
+/**
+ * Battle value with the resonance that lands on damage or ego folded in.
+ *
+ * The earlier ordering put value first and used resonance only to break
+ * ties. That was justified while value was measured in raw carac points and
+ * resonance in percentage points -- thousands against a handful. Once value
+ * became a percentage the two ended up the same size: the first live run
+ * showed +2.87% value against -4.0pp resonance per slot, and a lexicographic
+ * order compared them by not comparing them.
+ *
+ * Resonance is applied on top of everything (official), so it multiplies:
+ * a bonus on damage scales the first term of the product, one on ego the
+ * second. Bonuses on defense and chance stay outside and are ranked
+ * separately, because nothing here can price them.
+ */
+function pricedValue(caracs, inSlot, playerClass, hero, split) {
+    return battleValue(caracs, inSlot, playerClass, hero)
+        * (1 + split.damage / 100)
+        * (1 + split.ego / 100);
+}
 /** Is this item's class axis active for the given hero class? */
 function classMatches(item, playerClass) {
     const res = item.classResonance;
@@ -18292,6 +18310,24 @@ function activeResonance(item, playerClass, theme) {
     if (themeMatches(item, theme))
         total += item.themeResonance.bonus;
     return total;
+}
+function resonanceSplit(item, playerClass, theme, projected = false) {
+    const out = { damage: 0, ego: 0, unpriced: 0 };
+    const level = isUpgradable(item) ? MYTHIC_MAX_LEVEL : item.level;
+    const add = (res) => {
+        const pp = projected ? resonanceAtLevel(res, level) : res.bonus;
+        if (res.resonance === 'damage')
+            out.damage += pp;
+        else if (res.resonance === 'ego')
+            out.ego += pp;
+        else
+            out.unpriced += pp;
+    };
+    if (classMatches(item, playerClass))
+        add(item.classResonance);
+    if (themeMatches(item, theme))
+        add(item.themeResonance);
+    return out;
 }
 /** The same sum, but with both axes scaled to max level. Used by Possible
  *  Best, which ranks items by what they will be worth, not what they are. */
@@ -18387,8 +18423,14 @@ function cmp(a, b) {
 function buildPick(slot, chosen, current, playerClass, theme, hero) {
     var _a, _b, _c, _d;
     const base = current ? current.caracs : null;
-    const currentValue = battleValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, hero);
+    const currentSplit = current
+        ? resonanceSplit(current, playerClass, theme)
+        : { damage: 0, ego: 0, unpriced: 0 };
+    const currentValue = pricedValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, hero, currentSplit);
     const currentRes = current ? activeResonance(current, playerClass, theme) : 0;
+    const chosenSplit = chosen
+        ? resonanceSplit(chosen, playerClass, theme)
+        : { damage: 0, ego: 0, unpriced: 0 };
     const chosenContribution = chosen ? contribution(chosen.caracs, playerClass) : null;
     const currentContribution = current ? contribution(current.caracs, playerClass) : null;
     return {
@@ -18397,11 +18439,12 @@ function buildPick(slot, chosen, current, playerClass, theme, hero) {
         current,
         changed: chosen !== null && !chosen.equipped,
         valuePct: chosen
-            ? pctChange(battleValue(chosen.caracs, base, playerClass, hero), currentValue)
+            ? pctChange(pricedValue(chosen.caracs, base, playerClass, hero, chosenSplit), currentValue)
             : 0,
         primaryDelta: ((_a = chosenContribution === null || chosenContribution === void 0 ? void 0 : chosenContribution.primary) !== null && _a !== void 0 ? _a : 0) - ((_b = currentContribution === null || currentContribution === void 0 ? void 0 : currentContribution.primary) !== null && _b !== void 0 ? _b : 0),
         enduranceDelta: ((_c = chosenContribution === null || chosenContribution === void 0 ? void 0 : chosenContribution.endurance) !== null && _c !== void 0 ? _c : 0) - ((_d = currentContribution === null || currentContribution === void 0 ? void 0 : currentContribution.endurance) !== null && _d !== void 0 ? _d : 0),
         resonanceDelta: chosen ? activeResonance(chosen, playerClass, theme) - currentRes : 0,
+        unpricedResonanceDelta: chosen ? chosenSplit.unpriced - currentSplit.unpriced : 0,
     };
 }
 const ZERO_CARACS = {
@@ -18422,6 +18465,7 @@ function summarise(picks, projected, uncalibrated) {
         changes,
         totalValuePct: changes.reduce((s, p) => s + p.valuePct, 0),
         totalResonanceDelta: changes.reduce((s, p) => s + p.resonanceDelta, 0),
+        totalUnpricedResonanceDelta: changes.reduce((s, p) => s + p.unpricedResonanceDelta, 0),
     };
     if (uncalibrated)
         plan.uncalibrated = true;
@@ -18451,10 +18495,11 @@ function planCurrentBest(items, playerClass, theme, hero) {
         const current = (_a = candidates.find(i => i.equipped)) !== null && _a !== void 0 ? _a : null;
         const base = current ? current.caracs : null;
         const ranked = [...candidates].sort((a, b) => {
-            const value = cmp(battleValue(a.caracs, base, playerClass, totals), battleValue(b.caracs, base, playerClass, totals));
+            const value = cmp(pricedValue(a.caracs, base, playerClass, totals, resonanceSplit(a, playerClass, theme)), pricedValue(b.caracs, base, playerClass, totals, resonanceSplit(b, playerClass, theme)));
             if (value !== 0)
                 return value;
-            return cmp(activeResonance(a, playerClass, theme), activeResonance(b, playerClass, theme));
+            // Only the bonuses the value could not price are left to decide.
+            return cmp(resonanceSplit(a, playerClass, theme).unpriced, resonanceSplit(b, playerClass, theme).unpriced);
         });
         picks.push(buildPick(slot, (_b = ranked[0]) !== null && _b !== void 0 ? _b : null, current, playerClass, theme, totals));
     }
@@ -18494,17 +18539,18 @@ function planPossibleBest(items, playerClass, theme, hero) {
             const tier = possibleBestTier(a, playerClass, theme) - possibleBestTier(b, playerClass, theme);
             if (tier !== 0)
                 return tier;
-            const value = cmp(battleValue(projections.get(a).caracs, base, playerClass, totals), battleValue(projections.get(b).caracs, base, playerClass, totals));
+            const value = cmp(pricedValue(projections.get(a).caracs, base, playerClass, totals, resonanceSplit(a, playerClass, theme, true)), pricedValue(projections.get(b).caracs, base, playerClass, totals, resonanceSplit(b, playerClass, theme, true)));
             if (value !== 0)
                 return value;
-            return cmp(projectedResonance(a, playerClass, theme), projectedResonance(b, playerClass, theme));
+            return cmp(resonanceSplit(a, playerClass, theme, true).unpriced, resonanceSplit(b, playerClass, theme, true).unpriced);
         });
         const chosen = (_b = ranked[0]) !== null && _b !== void 0 ? _b : null;
         const pick = buildPick(slot, chosen, current, playerClass, theme, totals);
         if (chosen) {
             const chosenProj = projections.get(chosen);
             pick.tier = possibleBestTier(chosen, playerClass, theme);
-            pick.projectedValuePct = pctChange(battleValue(chosenProj.caracs, base, playerClass, totals), battleValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, totals));
+            pick.projectedValuePct = pctChange(pricedValue(chosenProj.caracs, base, playerClass, totals, resonanceSplit(chosen, playerClass, theme, true)), pricedValue(base !== null && base !== void 0 ? base : ZERO_CARACS, base, playerClass, totals, current ? resonanceSplit(current, playerClass, theme, true)
+                : { damage: 0, ego: 0, unpriced: 0 }));
             pick.projectedResonanceDelta = projectedResonance(chosen, playerClass, theme)
                 - (current ? projectedResonance(current, playerClass, theme) : 0);
             if (chosenProj.unreliable || (currentProj === null || currentProj === void 0 ? void 0 : currentProj.unreliable)) {
@@ -18982,7 +19028,7 @@ class EquipmentGear {
      *  player can execute, so the log holds the plan even if the run is
      *  abandoned halfway. */
     static logPlan(modeName, theme, plan, mode) {
-        var _a, _b, _c, _d;
+        var _a, _b, _c;
         logHHAuto(`Gear [${modeName}]: theme=${theme}, ${plan.changes.length} of 6 slots would change.`);
         for (const pick of plan.picks) {
             if (!pick.chosen) {
@@ -19004,16 +19050,17 @@ class EquipmentGear {
             logHHAuto(`  Slot ${pick.slot} (${SLOT_NAMES[pick.slot]}): ${EquipmentGear.describe(pick.chosen)}`
                 + ` replaces ${from}, ${fmtPct(pick.valuePct)} battle value today`
                 + ` (${fmtSigned(pick.primaryDelta)} class carac, ${fmtSigned(pick.enduranceDelta)} endurance),`
-                + ` ${fmtSignedPct(pick.resonanceDelta)} active resonance.${projected}${warn}`);
+                + ` ${fmtSignedPct(pick.resonanceDelta)} resonance of which`
+                + ` ${fmtSignedPct(pick.unpricedResonanceDelta)} is defense/crit and unpriced.${projected}${warn}`);
         }
         if (mode === 'possible') {
             logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value now,`
-                + ` ${fmtPct((_c = plan.totalProjectedValuePct) !== null && _c !== void 0 ? _c : 0)} and`
-                + ` ${fmtSignedPct((_d = plan.totalProjectedResonanceDelta) !== null && _d !== void 0 ? _d : 0)} resonance once everything is at max level.`);
+                + ` ${fmtPct((_c = plan.totalProjectedValuePct) !== null && _c !== void 0 ? _c : 0)} once everything is at max level`
+                + ` (plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} unpriced defense/crit resonance).`);
         }
         else {
-            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value,`
-                + ` ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.`);
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value (resonance on damage/ego included),`
+                + ` plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} defense/crit resonance this number cannot price.`);
         }
         if (plan.uncalibrated) {
             logHHAuto('  Ranked on stand-in hero totals -- no equip response has been seen yet,'
@@ -19027,7 +19074,7 @@ class EquipmentGear {
         fillHHPopUp('HHGearPreview', title, `<div id="HHGearPreview" style="padding:10px;max-width:640px;font-size:13px;">${message}</div>`);
     }
     static showPlan(modeName, theme, plan, mode) {
-        var _a, _b;
+        var _a;
         const rows = plan.picks.map(pick => {
             var _a, _b;
             const slot = `${pick.slot} ${SLOT_NAMES[pick.slot]}`;
@@ -19050,16 +19097,18 @@ class EquipmentGear {
                 + `<td>${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})${warn}</td>`
                 + `<td class="num" style="color:${pick.valuePct < 0 ? '#f88' : '#7f7'};">${fmtPct(pick.valuePct)}`
                 + `<br/><span style="color:#aaa;font-size:10px;">${fmtSigned(pick.primaryDelta)} carac / ${fmtSigned(pick.enduranceDelta)} end</span></td>`
-                + `<td class="num">${fmtSignedPct(pick.resonanceDelta)}</td>`
+                + `<td class="num" title="Defense/crit resonance, outside the value">`
+                + `${fmtSignedPct(pick.unpricedResonanceDelta)}</td>`
                 + projected + '</tr>';
         }).join('');
         const summary = mode === 'possible'
             ? `<p><b>Today this costs ${fmtPct(plan.totalValuePct)} battle value.</b>`
                 + ` Once every slot sits at max level it is worth ${fmtPct((_a = plan.totalProjectedValuePct) !== null && _a !== void 0 ? _a : 0)}`
-                + ` and ${fmtSignedPct((_b = plan.totalProjectedResonanceDelta) !== null && _b !== void 0 ? _b : 0)} resonance.`
+                + `, plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} unpriced defense/crit resonance.`
                 + ` The gap is deliberate &mdash; these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtPct(plan.totalValuePct)} battle value, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
-                + ` This button never makes you weaker.</p>`;
+            : `<p><b>${fmtPct(plan.totalValuePct)} battle value.</b>`
+                + ` On top of that ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} defense/crit resonance,`
+                + ` which this number cannot weigh &mdash; judge that part yourself.</p>`;
         const calibration = plan.uncalibrated
             ? `<p style="color:#fc6;font-size:11px;">Ranked on stand-in hero totals: no equip response has been`
                 + ` seen on this account yet, so the endurance-to-carac ratio is borrowed rather than measured.`
@@ -19073,11 +19122,12 @@ class EquipmentGear {
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranking: battle value (class carac &times; endurance, on your own totals) first,
-               resonance as the tiebreak. Defense and crit are not in this number &mdash;
-               an item carrying only those is valued at zero.</p>
+               Ranked by battle value: your class carac &times; your endurance, times the
+               resonance that lands on damage or ego. Resonance aimed at defense or crit
+               is <b>not</b> in that number &mdash; nothing here can weigh it, so it is
+               listed apart and only breaks ties.</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>resonance now</th>${projectedHead}</tr>
+                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>unpriced resonance</th>${projectedHead}</tr>
                 ${rows}
             </table>
             ${summary}

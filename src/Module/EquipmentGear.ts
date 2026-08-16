@@ -366,15 +366,16 @@ export class EquipmentGear {
             logHHAuto(`  Slot ${pick.slot} (${SLOT_NAMES[pick.slot]}): ${EquipmentGear.describe(pick.chosen)}`
                 + ` replaces ${from}, ${fmtPct(pick.valuePct)} battle value today`
                 + ` (${fmtSigned(pick.primaryDelta)} class carac, ${fmtSigned(pick.enduranceDelta)} endurance),`
-                + ` ${fmtSignedPct(pick.resonanceDelta)} active resonance.${projected}${warn}`);
+                + ` ${fmtSignedPct(pick.resonanceDelta)} resonance of which`
+                + ` ${fmtSignedPct(pick.unpricedResonanceDelta)} is defense/crit and unpriced.${projected}${warn}`);
         }
         if (mode === 'possible') {
             logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value now,`
-                + ` ${fmtPct(plan.totalProjectedValuePct ?? 0)} and`
-                + ` ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} resonance once everything is at max level.`);
+                + ` ${fmtPct(plan.totalProjectedValuePct ?? 0)} once everything is at max level`
+                + ` (plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} unpriced defense/crit resonance).`);
         } else {
-            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value,`
-                + ` ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.`);
+            logHHAuto(`  Total: ${fmtPct(plan.totalValuePct)} battle value (resonance on damage/ego included),`
+                + ` plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} defense/crit resonance this number cannot price.`);
         }
         if (plan.uncalibrated) {
             logHHAuto('  Ranked on stand-in hero totals -- no equip response has been seen yet,'
@@ -413,17 +414,19 @@ export class EquipmentGear {
                 + `<td>${esc(pick.chosen.name)} (${pick.chosen.rarity} lvl${pick.chosen.level})${warn}</td>`
                 + `<td class="num" style="color:${pick.valuePct < 0 ? '#f88' : '#7f7'};">${fmtPct(pick.valuePct)}`
                 + `<br/><span style="color:#aaa;font-size:10px;">${fmtSigned(pick.primaryDelta)} carac / ${fmtSigned(pick.enduranceDelta)} end</span></td>`
-                + `<td class="num">${fmtSignedPct(pick.resonanceDelta)}</td>`
+                + `<td class="num" title="Defense/crit resonance, outside the value">`
+                + `${fmtSignedPct(pick.unpricedResonanceDelta)}</td>`
                 + projected + '</tr>';
         }).join('');
 
         const summary = mode === 'possible'
             ? `<p><b>Today this costs ${fmtPct(plan.totalValuePct)} battle value.</b>`
               + ` Once every slot sits at max level it is worth ${fmtPct(plan.totalProjectedValuePct ?? 0)}`
-              + ` and ${fmtSignedPct(plan.totalProjectedResonanceDelta ?? 0)} resonance.`
+              + `, plus ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} unpriced defense/crit resonance.`
               + ` The gap is deliberate &mdash; these are the better targets, not the better items today.</p>`
-            : `<p><b>${fmtPct(plan.totalValuePct)} battle value, ${fmtSignedPct(plan.totalResonanceDelta)} active resonance.</b>`
-              + ` This button never makes you weaker.</p>`;
+            : `<p><b>${fmtPct(plan.totalValuePct)} battle value.</b>`
+              + ` On top of that ${fmtSignedPct(plan.totalUnpricedResonanceDelta)} defense/crit resonance,`
+              + ` which this number cannot weigh &mdash; judge that part yourself.</p>`;
 
         const calibration = plan.uncalibrated
             ? `<p style="color:#fc6;font-size:11px;">Ranked on stand-in hero totals: no equip response has been`
@@ -440,11 +443,12 @@ export class EquipmentGear {
         fillHHPopUp('HHGearPreview', modeName, `
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Hero class <b>${HeroHelper.getClass()}</b>, team theme <b>${esc(theme)}</b>.
-               Ranking: battle value (class carac &times; endurance, on your own totals) first,
-               resonance as the tiebreak. Defense and crit are not in this number &mdash;
-               an item carrying only those is valued at zero.</p>
+               Ranked by battle value: your class carac &times; your endurance, times the
+               resonance that lands on damage or ego. Resonance aimed at defense or crit
+               is <b>not</b> in that number &mdash; nothing here can weigh it, so it is
+               listed apart and only breaks ties.</p>
             <table>
-                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>resonance now</th>${projectedHead}</tr>
+                <tr><th>Slot</th><th>Item</th><th>battle value now</th><th>unpriced resonance</th>${projectedHead}</tr>
                 ${rows}
             </table>
             ${summary}

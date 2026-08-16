@@ -270,13 +270,35 @@ Produkt. Beide bewegten sich in der Kalibrierung nicht, also gibt es fuer
 sie keinen gemessenen Faktor. Ein Item, das nur diese traegt, wird mit null
 bewertet.
 
-**Noch offen:** Die Rangfolge ist weiterhin lexikografisch -- Kampfwert
-zuerst, Resonanz nur bei Gleichstand. Begruendet war das damit, dass
-Rohwertunterschiede gross und Resonanzen klein sind. Seit die Wertung in
-Prozent rechnet, stimmt diese Praemisse nicht mehr: der Live-Lauf zeigt
-+2,87 % Kampfwert gegen -4,0 Prozentpunkte Resonanz pro Slot. Beide Groessen
-sind jetzt vergleichbar, und die lexikografische Ordnung vergleicht sie
-trotzdem nicht.
+### Resonanz gehoert in den Wert, nicht daneben
+
+Die erste Fassung ordnete lexikografisch: Kampfwert zuerst, Resonanz nur bei
+Gleichstand. Begruendet war das damit, dass Rohwertunterschiede gross und
+Resonanzen klein sind -- 1.900 Rohpunkte gegen 2 Prozentpunkte. Sobald die
+Wertung selbst in Prozent rechnet, faellt diese Begruendung weg: der erste
+Live-Lauf zeigte +2,87 % Kampfwert gegen -4,0 Prozentpunkte Resonanz pro
+Slot. Zwei vergleichbare Groessen, und die Ordnung verglich sie nicht.
+
+Resonanz wird laut Kinkoid **oben drauf** angewandt, wirkt also
+multiplikativ. Deshalb wird sie nach Zielgroesse aufgeteilt:
+
+| Zielgroesse | Behandlung |
+|---|---|
+| `damage` | multipliziert den ersten Faktor des Produkts |
+| `ego` | multipliziert den zweiten |
+| `defense`, `chance` | **nicht bepreisbar** -- getrennt ausgewiesen, entscheidet nur Gleichstand |
+
+Was das praktisch aendert, am selben Live-Lauf:
+
+```
+vorher (Resonanz als Tiebreak):  +2,87 % pro Slot, +17,44 % gesamt
+nachher (Resonanz im Wert):      +0,87 % pro Slot,  +5,33 % gesamt
+                                 dazu -8,0 pp defense/crit, unbepreist
+```
+
+Der Tausch ist also viel knapper, als die erste Zahl behauptete -- und der
+Teil, den das Modell nicht bewerten kann, steht jetzt daneben, statt still
+in eine Richtung zu fallen.
 
 Die Projektion auf Level 20 prueft die Mythic-Kurve erst gegen die
 *aktuellen* Caracs des Items (5 % Toleranz). Passt sie nicht, faellt die

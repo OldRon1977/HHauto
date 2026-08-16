@@ -172,13 +172,29 @@ describe('mythic-vs-legendary break-even', () => {
         expect(mythicValue(15)).toBeGreaterThan(legValue);
     });
 
-    it('keeps a level-14 mythic on the bench and fields a level-15 one', () => {
+    // Without resonance the crossing is pure stats. mythic() puts no class
+    // resonance on the item when classId is left out.
+    it('keeps a level-14 mythic on the bench and fields a level-15 one when neither resonates', () => {
         for (const [level, expected] of [[14, 'Legendary item'], [15, 'Mythic item']] as const) {
-            const m = mythic({ slot: 1, level, classId: '3', themeId: 'nature' });
+            const m = mythic({ slot: 1, level });
             const worn = { ...realLegendary, equipped: true, id_member_armor_equipped: 999 };
             const plan = planCurrentBest([worn, m], KNOW_HOW, 'nature', HERO);
             expect(plan.picks.find(p => p.slot === 1)!.chosen!.name).toBe(expected);
         }
+    });
+
+    // Resonance on damage is inside the value now, so a matching mythic
+    // wins earlier than a dead one. This is the behaviour the lexicographic
+    // ordering could not express: it would have taken the legendary at 14
+    // regardless of how much resonance the mythic carried.
+    it('fields a level-14 mythic once its damage resonance is counted', () => {
+        const m = mythic({ slot: 1, level: 14, classId: '3', themeId: 'nature' });
+        const worn = { ...realLegendary, equipped: true, id_member_armor_equipped: 999 };
+        const plan = planCurrentBest([worn, m], KNOW_HOW, 'nature', HERO);
+        const pick = plan.picks.find(p => p.slot === 1)!;
+        expect(pick.chosen!.name).toBe('Mythic item');
+        // 1.4pp of the 2.8pp lands on defense and stays outside the value.
+        expect(pick.unpricedResonanceDelta).toBeCloseTo(1.4);
     });
 });
 
@@ -265,14 +281,16 @@ describe('planCurrentBest', () => {
         expect(plan.changes).toHaveLength(0);
     });
 
-    it('lets resonance decide between two items of equal raw value', () => {
+    it('prices the damage half of the resonance and leaves the defense half outside', () => {
         const dull = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '1', themeId: 'fire', equipped: true });
         const resonant = mythic({ slot: 1, level: MYTHIC_MAX_LEVEL, classId: '3', themeId: 'sun' });
         const plan = planCurrentBest([dull, resonant], KNOW_HOW, 'sun', HERO);
         const slot1 = plan.picks.find(p => p.slot === 1)!;
         expect(slot1.chosen).toBe(resonant);
-        expect(slot1.valuePct).toBeCloseTo(0);
+        // Identical caracs, so the whole gain is the 2pp on damage.
+        expect(slot1.valuePct).toBeCloseTo(2.0);
         expect(slot1.resonanceDelta).toBeCloseTo(4.0);
+        expect(slot1.unpricedResonanceDelta).toBeCloseTo(2.0);
     });
 
     // The bug the flat carac sum shipped with: a legendary carrying 43,301
@@ -320,7 +338,9 @@ describe('planPossibleBest', () => {
         expect(slot1.valuePct).toBeLessThan(0);
         expect(plan.totalValuePct).toBeLessThan(0);
         // ...and is a pure resonance gain once both sit at max level.
-        expect(slot1.projectedValuePct).toBeCloseTo(0);
+        // Same caracs at max level, so the projected gain is exactly the
+        // 2pp of damage resonance the target carries and the worn item does not.
+        expect(slot1.projectedValuePct).toBeCloseTo(2.0);
         expect(slot1.projectedResonanceDelta).toBeCloseTo(4.0);
         expect(plan.totalProjectedResonanceDelta).toBeCloseTo(4.0);
     });
