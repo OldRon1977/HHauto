@@ -12,6 +12,7 @@ import {
     projectedResonance,
     rawScore,
     themeFromElementCounts,
+    themeFromTeamData,
     themeMatches,
 } from '../../src/Service/EquipmentOptimizerService';
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
@@ -144,6 +145,33 @@ describe('projection to max level', () => {
     });
 });
 
+// The one number the whole ranking rests on. Both sides measured on the
+// live account 2026-08-16: a mythic at level 20 carries 4000/4000/4000
+// caracs plus 4000 endurance and 5000 chance; a legendary at player level
+// 661 carried 3606/3619/3467 + 3474 + 4634.57.
+describe('mythic-vs-legendary break-even', () => {
+    const realLegendary = legendary({ slot: 1 });
+    realLegendary.caracs = {
+        carac1: 3606, carac2: 3619, carac3: 3467, endurance: 3474, chance: 4634.57,
+    };
+
+    it('puts the break-even at mythic level 16', () => {
+        const legRaw = rawScore(realLegendary.caracs);
+        const mythicRaw = (lvl: number) => rawScore(mythicCaracs(lvl));
+        expect(mythicRaw(15)).toBeLessThan(legRaw);
+        expect(mythicRaw(16)).toBeGreaterThan(legRaw);
+    });
+
+    it('keeps a level-15 mythic on the bench and fields a level-16 one', () => {
+        for (const [level, expected] of [[15, 'Legendary item'], [16, 'Mythic item']] as const) {
+            const m = mythic({ slot: 1, level, classId: '3', themeId: 'nature' });
+            const worn = { ...realLegendary, equipped: true, id_member_armor_equipped: 999 };
+            const plan = planCurrentBest([worn, m], KNOW_HOW, 'nature');
+            expect(plan.picks.find(p => p.slot === 1)!.chosen!.name).toBe(expected);
+        }
+    });
+});
+
 describe('planCurrentBest', () => {
     it('keeps the legendary when the mythic is below the raw break-even', () => {
         const worn = legendary({ slot: 1, equipped: true });
@@ -264,9 +292,36 @@ describe('theme derivation', () => {
     });
 });
 
+describe('themeFromTeamData', () => {
+    const girls = [{}, {}, {}, {}, {}, {}, {}];
+
+    it('takes the theme the game declares', () => {
+        expect(themeFromTeamData({ theme: 'nature', girls })).toBe('nature');
+    });
+
+    it('falls back to theme_elements when theme is absent', () => {
+        expect(themeFromTeamData({ theme_elements: [{ type: 'darkness' }], girls })).toBe('darkness');
+    });
+
+    it('reads a themeless but manned team as Balanced', () => {
+        expect(themeFromTeamData({ theme: null, theme_elements: [], girls })).toBe('balanced');
+    });
+
+    // 22 of the 30 team slots on the test account look like this. Calling
+    // them Balanced would hand the optimiser a theme for a team that does
+    // not exist.
+    it('reads an empty team slot as no theme at all', () => {
+        expect(themeFromTeamData({ id_team: null, theme: null, girls: [] })).toBeNull();
+        expect(themeFromTeamData(null)).toBeNull();
+        expect(themeFromTeamData(undefined)).toBeNull();
+    });
+});
+
 describe('parseArmorItem', () => {
+    // Shape of a `player_inventory.armor` / `market_get_armor` entry as
+    // measured on 2026-08-16: it carries id_member_armor and never
+    // id_member_armor_equipped.
     const raw = {
-        id_member_armor_equipped: 2666196,
         id_member_armor: 6602031,
         level: 20,
         skin: { subtype: 1, wearer: 'hero', name: 'Dragon Helmet' },
@@ -278,14 +333,43 @@ describe('parseArmorItem', () => {
         },
     };
 
-    it('maps the documented shape', () => {
+    it('maps an inventory entry', () => {
         const item = parseArmorItem(raw)!;
         expect(item.slot).toBe(1);
         expect(item.rarity).toBe('mythic');
-        expect(item.equipped).toBe(true);
+        expect(item.equipped).toBe(false);
+        expect(item.id_member_armor).toBe(6602031);
+        expect(item.id_member_armor_equipped).toBeNull();
         expect(item.classResonance).toEqual({ identifier: '1', resonance: 'damage', bonus: 2 });
         expect(item.themeResonance!.identifier).toBe('stone');
         expect(rawScore(item.caracs)).toBe(21000);
+    });
+
+    // An entry under #equiped carries id_member_armor_equipped and has no
+    // id_member_armor key at all. Sniffing on the field instead of being
+    // told dropped all six worn items and made every plan compare against
+    // an empty slot.
+    const equippedRaw = (() => {
+        const { id_member_armor: _drop, ...rest } = raw;
+        return { ...rest, id_member_armor_equipped: 2806061 };
+    })();
+
+    it('maps an equipped entry, which has no id_member_armor at all', () => {
+        expect(parseArmorItem(equippedRaw)).toBeNull();
+
+        const item = parseArmorItem(equippedRaw, true)!;
+        expect(item.equipped).toBe(true);
+        expect(item.id_member_armor).toBe(2806061);
+        expect(item.id_member_armor_equipped).toBe(2806061);
+        expect(item.slot).toBe(1);
+    });
+
+    it('accepts a chance value the game sends as a string', () => {
+        const item = parseArmorItem({
+            ...raw,
+            caracs: { carac1: 3606, carac2: 3619, carac3: 3467, endurance: 3474, chance: '4634.57' },
+        })!;
+        expect(item.caracs.chance).toBeCloseTo(4634.57);
     });
 
     it('keeps a Balanced theme as null rather than the string "null"', () => {
@@ -298,12 +382,6 @@ describe('parseArmorItem', () => {
         })!;
         expect(item.themeResonance!.identifier).toBeNull();
         expect(themeMatches(item, 'balanced')).toBe(true);
-    });
-
-    it('treats an unequipped item as unequipped', () => {
-        const item = parseArmorItem({ ...raw, id_member_armor_equipped: null })!;
-        expect(item.equipped).toBe(false);
-        expect(item.id_member_armor_equipped).toBeNull();
     });
 
     it('rejects girl equipment and anything without a hero slot', () => {

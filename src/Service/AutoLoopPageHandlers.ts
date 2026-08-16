@@ -229,6 +229,9 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
             break;
         case ConfigHelper.getHHScriptVars("pagesIDBattleTeams"):
             TeamModule.moduleEquipTeam();
+            // Read-only: records the fielded team's theme for the gear
+            // buttons on the market page, which has no team data.
+            EquipmentGear.recordTeamTheme();
             Harem.moduleHaremExportGirlsData();
             Harem.moduleHaremCountMax();
             break;

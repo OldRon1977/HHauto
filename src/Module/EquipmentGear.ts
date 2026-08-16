@@ -34,7 +34,7 @@ import {
     parseTheme,
     planCurrentBest,
     planPossibleBest,
-    themeFromElementCounts,
+    themeFromTeamData,
 } from "../Service/EquipmentOptimizerService";
 import type { PlayerClass } from "../Service/TeamScoringService";
 import { fillHHPopUp } from "../Utils/HHPopup";
@@ -67,30 +67,41 @@ export class EquipmentGear {
     static moduleGearActions(): void {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop")) return;
 
-        // Switching to the gift/potion/booster tab leaves the buttons behind
-        // in a panel that is no longer the armor inventory, so they are torn
-        // down and rebuilt with the tab -- the same lifecycle Shop.ts gives
-        // its sell menu.
-        if ($('#player-inventory.armor').length === 0) {
+        EquipmentGear.watchTabSwitch();
+
+        // The player's own inventory has its own tab strip
+        // (.my-hero-switch-tab: booster / armor / player-stats), separate
+        // from the merchant's five .market-menu-switch-tab tabs that Shop.ts
+        // reads. The tab type is the gate.
+        if ($('.my-hero-switch-tab.active[type="armor"]').length === 0) {
             $('#HHGearButtons').remove();
-            EquipmentGear.watchTabSwitch();
             return;
         }
-        EquipmentGear.watchTabSwitch();
+
+        // Measured 2026-08-16: shop.html carries two separate equipment UIs.
+        // The merchant tree (#shops .shop-container #equipement-tab-container)
+        // holds `#player-inventory.armor` with every owned item -- and is not
+        // rendered at all, every node in it measures 0x0. The visible one is
+        // the My Hero tree, `#my-hero-equipement-tab-container`, whose
+        // `.bottom-container` already hosts the game's own Level-up and Equip
+        // buttons. Anchoring to the inventory container put the buttons in
+        // the dead tree, where they existed but could never be clicked.
+        const host = $('#my-hero-equipement-tab-container .bottom-container');
+        if (host.length === 0) return;
         if (document.getElementById("HHGearCurrentBest") !== null) return;
 
-        GM_addStyle('#HHGearButtons{position:absolute;right:300px;top:110px;z-index:10;'
-            + 'display:flex;flex-direction:column;gap:6px;width:140px;}'
+        GM_addStyle('#HHGearButtons{display:flex;flex-direction:column;gap:4px;'
+            + 'margin-left:10px;justify-content:center;}'
             + '#HHGearButtons .tooltipHH{width:100%;margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
-            + 'box-sizing:border-box;width:100%;height:34px;margin:0;padding:2px 4px;'
+            + 'box-sizing:border-box;width:150px;height:32px;margin:0;padding:2px 6px;'
             + 'font-size:11px;line-height:13px;text-align:center;overflow:hidden;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
             + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
             + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}');
 
-        $('#player-inventory.armor').append('<div id="HHGearButtons">'
+        host.append('<div id="HHGearButtons">'
             + gearButton('HHGearCurrentBest')
             + gearButton('HHGearPossibleBest')
             + '</div>');
@@ -101,15 +112,14 @@ export class EquipmentGear {
 
     private static tabWatcherBound = false;
 
-    /** Re-run the injection after a tab switch. The market swaps the
-     *  inventory panel without a page load, so a one-shot injection from the
-     *  page handler would only ever be right for the tab that happened to be
-     *  open first. */
+    /** Re-run the injection after a tab switch. The market swaps tabs without
+     *  a page load, and it opens on Boosters -- so a one-shot injection from
+     *  the page handler would never see the armor tab at all. */
     private static watchTabSwitch(): void {
         if (EquipmentGear.tabWatcherBound) return;
         EquipmentGear.tabWatcherBound = true;
-        $(document).on('click', '#tabs-switcher .market-menu-switch-tab', () => {
-            setTimeout(() => EquipmentGear.moduleGearActions(), 300);
+        $(document).on('click', '.my-hero-switch-tab', () => {
+            setTimeout(() => EquipmentGear.moduleGearActions(), 400);
         });
     }
 
@@ -127,29 +137,47 @@ export class EquipmentGear {
     static resolveTheme(): GearTheme | null {
         const stored = parseTheme(getStoredValue(HHStoredVarPrefixKey + TK.teamTheme));
         if (stored) return stored;
-
-        const teams = unsafeWindow.teams_data;
-        if (teams && typeof teams === 'object') {
-            const first = Object.values(teams)[0];
-            const girls = (first as any)?.girls;
-            if (Array.isArray(girls) && girls.length > 0) {
-                const counts: Record<string, number> = {};
-                for (const g of girls) {
-                    const element = (g as any)?.element;
-                    if (typeof element === 'string') counts[element] = (counts[element] ?? 0) + 1;
-                }
-                if (Object.keys(counts).length > 0) return themeFromElementCounts(counts);
-            }
-        }
-        return null;
+        // `teams_data` does not exist on the market page (measured), so this
+        // only ever fires if the game starts shipping it there.
+        return EquipmentGear.readThemeFromTeamsData();
     }
 
-    /** The six items the hero is wearing, read from the equipped panel. */
+    /**
+     * Theme of the team the game has selected for battle, straight out of
+     * `teams_data`. Runs on the teams page, where TeamModule's own writer
+     * does not: a player who never presses HHauto's team buttons still ends
+     * up with a usable theme.
+     */
+    static recordTeamTheme(): void {
+        const theme = EquipmentGear.readThemeFromTeamsData();
+        if (!theme) return;
+        if (parseTheme(getStoredValue(HHStoredVarPrefixKey + TK.teamTheme)) === theme) return;
+        setStoredValue(HHStoredVarPrefixKey + TK.teamTheme, theme);
+        logHHAuto('Gear: team theme is "' + theme + '" (from teams_data); the gear buttons will match resonance against it.');
+    }
+
+    /** Prefers the team the game marks as fielded; falls back to the first
+     *  team that actually holds girls. */
+    private static readThemeFromTeamsData(): GearTheme | null {
+        const teams = unsafeWindow.teams_data;
+        if (!teams || typeof teams !== 'object') return null;
+        const entries = Object.values(teams) as any[];
+        const fielded = entries.find(t => Array.isArray(t?.selected_for_battle_type)
+            && t.selected_for_battle_type.length > 0);
+        return themeFromTeamData(fielded)
+            ?? themeFromTeamData(entries.find(t => Array.isArray(t?.girls) && t.girls.length > 0));
+    }
+
+    /** The six items the hero is wearing, read from the equipped panel.
+     *  Present and complete on every market tab, so this does not depend on
+     *  the armor tab being open. */
     private static readEquipped(): ArmorItem[] {
         const items: ArmorItem[] = [];
         $('#equiped .armor div[id_item]').each(function () {
             const raw = safeJsonParse<any>((this as HTMLElement).dataset.d ?? '', null);
-            const parsed = raw ? parseArmorItem(raw) : null;
+            // true: these objects carry id_member_armor_equipped and no
+            // id_member_armor at all.
+            const parsed = raw ? parseArmorItem(raw, true) : null;
             if (parsed) items.push(parsed);
         });
         return items;

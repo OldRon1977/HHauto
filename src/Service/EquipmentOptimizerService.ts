@@ -54,10 +54,17 @@ export interface ArmorResonance {
 }
 
 export interface ArmorItem {
-    /** Inventory id. Changes every time the item is unequipped -- never
-     *  cache it across an equip call, and never look an item up by name. */
+    /** Inventory id, and what `market_equip_armor` is called with. Changes
+     *  every time the item is unequipped -- never cache it across an equip
+     *  call, and never look an item up by name.
+     *
+     *  Measured 2026-08-16: an item in `#equiped` carries *only*
+     *  `id_member_armor_equipped` and no `id_member_armor` at all, while an
+     *  inventory entry carries only the latter. The two id spaces are
+     *  disjoint, so this field holds whichever one the source provided and
+     *  `equipped` says which. */
     id_member_armor: number;
-    /** Set while the item is worn. */
+    /** Set while the item is worn, null in the inventory. */
     id_member_armor_equipped: number | null;
     level: number;
     /** skin.subtype, 1..6. An item only fits its own slot. */
@@ -425,6 +432,31 @@ export function themeFromElementCounts(counts: Record<string, number>): GearThem
     return best;
 }
 
+/**
+ * Theme of one `teams_data` entry, as the game itself reports it.
+ *
+ * Measured 2026-08-16 on `teams.html?battle_type=leagues`: an entry carries
+ * `theme: "nature"` and `theme_elements: [{type: "nature", ...}]` outright,
+ * so nothing has to be counted. Two things this has to keep apart:
+ *
+ *   - `theme: null` on a team that *has* girls is Balanced.
+ *   - `theme: null` on an empty slot (`girls: []`, `id_team: null`) is not a
+ *     theme at all -- 22 of the 30 entries on the test account look like
+ *     that, and treating them as Balanced would hand the optimiser a theme
+ *     for a team that does not exist.
+ *
+ * The girls in this payload carry `element: null`, so counting elements the
+ * way TeamModule does is not an option here.
+ */
+export function themeFromTeamData(team: any): GearTheme | null {
+    if (!team || typeof team !== 'object') return null;
+    const girls = Array.isArray(team.girls) ? team.girls : [];
+    if (girls.length === 0) return null;
+    const declared = parseTheme(team.theme)
+        ?? parseTheme(team?.theme_elements?.[0]?.type);
+    return declared ?? 'balanced';
+}
+
 /** Narrow an arbitrary stored string back to a theme, or null when it is
  *  not one. Callers must treat null as "do nothing and log it" -- acting on
  *  a guessed theme is worse than not acting. */
@@ -447,20 +479,25 @@ function toResonance(raw: any): ArmorResonance | null {
 }
 
 /**
- * Map one raw game object (`player_inventory.armor` entry, `hero_items`
- * entry or a parsed `data-d` attribute) onto ArmorItem.
+ * Map one raw game object onto ArmorItem.
+ *
+ * `isEquipped` has to be told, not sniffed: the two sources carry disjoint
+ * id fields (measured 2026-08-16). An item read from `#equiped` has
+ * `id_member_armor_equipped` and no `id_member_armor`; an entry from
+ * `player_inventory.armor` / `market_get_armor` has it the other way round.
+ * Sniffing on the presence of a field silently dropped all six worn items.
  *
  * Returns null for anything that is not a wearable hero armor with a usable
  * slot -- girl equipment shares the inventory shape, and a silent
  * mis-classification here would equip the wrong thing.
  */
-export function parseArmorItem(raw: any): ArmorItem | null {
+export function parseArmorItem(raw: any, isEquipped = false): ArmorItem | null {
     if (!raw || typeof raw !== 'object') return null;
     const slot = Number(raw?.skin?.subtype);
     if (!Number.isInteger(slot) || slot < 1 || slot > 6) return null;
     if (raw?.skin?.wearer && raw.skin.wearer !== 'hero') return null;
 
-    const id = Number(raw.id_member_armor);
+    const id = Number(isEquipped ? raw.id_member_armor_equipped : raw.id_member_armor);
     if (!Number.isFinite(id)) return null;
 
     const c = raw.caracs ?? {};
@@ -472,15 +509,10 @@ export function parseArmorItem(raw: any): ArmorItem | null {
         chance: Number(c.chance) || 0,
     };
 
-    const equippedId = raw.id_member_armor_equipped === null
-        || raw.id_member_armor_equipped === undefined
-        ? null
-        : Number(raw.id_member_armor_equipped);
-
     const res = raw.resonance_bonuses ?? {};
     return {
         id_member_armor: id,
-        id_member_armor_equipped: Number.isFinite(equippedId as number) ? equippedId : null,
+        id_member_armor_equipped: isEquipped ? id : null,
         level: Number(raw.level) || 0,
         slot,
         rarity: String(raw?.item?.rarity ?? ''),
@@ -488,6 +520,6 @@ export function parseArmorItem(raw: any): ArmorItem | null {
         caracs,
         classResonance: toResonance(res.class),
         themeResonance: toResonance(res.theme),
-        equipped: equippedId !== null && Number.isFinite(equippedId as number),
+        equipped: isEquipped,
     };
 }
