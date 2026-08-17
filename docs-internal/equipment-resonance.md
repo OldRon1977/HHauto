@@ -129,6 +129,28 @@ der Antwort mitschreiben; ueber den Namen zu suchen reicht nicht, weil man
 mehrere identische Items besitzen kann (am 2026-08-17 zwei „Dragon Helmet"
 Lvl 20 mit *unterschiedlicher* Resonanz).
 
+### Zwei ID-Raeume, und sie ueberlappen
+
+Ein Item traegt **entweder** `id_member_armor` (im Inventar) **oder**
+`id_member_armor_equipped` (angelegt) -- nie beides. Der Eintrag unter
+`#equiped` hat den Schluessel `id_member_armor` gar nicht.
+
+Beide Zahlenraeume ueberlappen (gemessen 2026-08-17: Inventar
+567.162..2.136.163.515, angelegt 464.128..2.806.648). Wer beide Quellen in
+eine Map ueber die blanke Zahl legt, verliert bei einer Kollision still ein
+Item -- ohne Fehler, ohne Log. Der Schluessel muss die Quelle mitfuehren.
+
+Dasselbe gilt fuer die Upgrade-Seite, die je nach Herkunft einen **anderen
+Query-Parameter** erwartet:
+
+```
+Inventar-Item:  /mythic-equipment-upgrade.html?id_member_item=<id_member_armor>
+angelegtes:     /mythic-equipment-upgrade.html?id_member_item_equipped=<id_member_armor_equipped>
+```
+
+Der falsche Parameter scheitert **nicht laut**: die Seite springt zum Markt
+zurueck, und die Automatik sieht aus, als haette sie nichts getan.
+
 ---
 
 ## 4. Messfallen -- was NICHT funktioniert
@@ -154,6 +176,14 @@ client-seitigen Zahl auf. Der Client **rechnet Resonanz nie selbst**,
 **Konsequenz fuer den Optimierer:** Er kann seinen eigenen Gewinn nicht
 nachmessen. Er muss aus den deklarierten ``resonance_bonuses`` rechnen und
 darf sich nicht auf eine Vorher/Nachher-Messung stuetzen.
+
+### `item_to_upgrade.level` bewegt sich nicht
+
+Auf der Upgrade-Seite ist dieses Global ein Schnappschuss vom Seitenaufbau.
+Nach **neunzehn** erfolgreichen Level-ups stand dort immer noch `1`. Eine
+Abbruchbedingung, die daran haengt, greift nie -- der erste Lauf endete nur
+deshalb, weil das Spiel bei Level 20 von selbst wegnavigierte. Das Level muss
+aus dem Ladewert plus den ausgefuehrten Schritten gezaehlt werden.
 
 Querverweis: [live-verification-lessons.md](live-verification-lessons.md).
 
@@ -220,13 +250,16 @@ liess sich zu 4/6 bedienen (Slot 5 fehlt, Slot 2 nur mit Klassenverlust).
 
 ## 5a. Was davon gebaut ist
 
-`Service/EquipmentOptimizerService.ts` (rein, testbar) und
-`Module/EquipmentGear.ts` (UI, Ajax) setzen die ersten beiden Schritte um:
+`Service/EquipmentOptimizerService.ts` (Rangfolge) und
+`Service/EquipmentUpgradeService.ts` (Ausbau) sind rein und testbar,
+`Module/EquipmentGear.ts` macht die unreine Haelfte -- Globals lesen,
+paginieren, Vorschau, Ajax. Alle drei Schritte stehen:
 
-| Button | entspricht | Rangfolge |
+| Button | entspricht | Auswahl |
 |---|---|---|
-| Current Best Gear | Team 2a | Rohwerte, dann aktive Resonanz |
-| Possible Best Gear | Team 2b | Mythic mit Klasse+Theme > Mythic mit Klasse > staerkstes Item roh; darin projizierte Rohwerte, dann projizierte Resonanz |
+| Current Best Gear | Team 2a | Prioritaetenstufe nach heutigem Stand |
+| Possible Best Gear | Team 2b | Prioritaetenstufe nach Stand bei Level 20 |
+| Upgrade Gear | Team 3 | angelegte Mythics unter Level 20, beste Stufe zuerst |
 
 ### Die Wertung: Prioritaetenstufen, kein Statscore (2026-08-17)
 
@@ -401,3 +434,10 @@ live nachgemessen.
 - Ob Girl- und Spieler-Resonanzen in denselben Topf laufen. Der
   Recruit-Artikel sagt, die Boni der Girl-Ausruestung im aktuellen Team
   gehen „to the Hero in the end calculation" -- also vermutlich ja.
+- Wie Material genau gewichtet wird. Sieben Epics deckten einen Bedarf von
+  20, `skin.weight` nimmt Werte 1, 3, 5, 6 an -- plausibel, aber nicht
+  nachgerechnet. Die Automatik braucht es nicht: sie liest den Bedarf von der
+  Seite und laesst „Auto Select" waehlen.
+- Was ein Level jenseits des ersten kostet. Gemessen ist nur 1 -> 2 mit
+  1.000.000 Geld; ein Lauf von 1 auf 20 verbrauchte 1.206 Items
+  (alle 334 Epics und 872 Legendaries).

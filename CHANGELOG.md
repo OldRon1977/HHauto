@@ -7,49 +7,62 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.8.0 - Gear buttons for the hero's own equipment
+### v8.8.0 - Gear for your hero
 
-Three buttons next to the armor inventory on the market page, built to mirror
+Three buttons next to the armor inventory on the market page, laid out like
 the team workflow so there is one mental model instead of two.
 
-Two buttons next to the armor inventory on the market page, built to mirror
-the team workflow so there is one mental model instead of two:
+- **Current Best Gear** puts on the best armor you own for each of the six
+  hero slots, judged as things stand today.
+- **Possible Best Gear** puts on the items worth developing -- the ones that
+  will be strongest once levelled to the cap -- and says per slot what that
+  costs you right now.
+- **Upgrade Gear** levels the mythics you are wearing towards the cap,
+  best-matching slot first.
 
-- **Current Best Gear** picks, per slot, the item with the highest value
-  *today*. Raw stats decide and resonance only breaks ties -- a resonance
-  bonus is worth at most 2 percentage points (4 on the chance track) while a
-  level-1 item gives up ~1900 raw points per carac against a level-20 one.
-  A consequence worth knowing: a mythic below roughly level 15 loses to a
-  legendary at player level, and that is the right answer. This button never
-  makes the hero weaker.
-- **Possible Best Gear** picks the item that will be strongest once it is
-  levelled to the max, ranked mythic-with-class-and-theme, then
-  mythic-with-class-only, then whatever is strongest raw. Like "Best
-  Possible" on the team page it deliberately equips items that are weaker
-  today -- so it prints, per slot and in total, exactly how many carac points
-  that costs now and what it is worth once the items are maxed.
+**No mythic is ever used as material.** Upgrade Gear consumes only legendary
+and epic items. There is no exception -- not for duplicates, not for spares,
+not for a mythic sitting unworn in your inventory, and not for one whose
+resonance matches nothing you have. If you own it and it is mythic, this
+feature will not spend it.
 
-- **Upgrade Gear** levels the mythics you are wearing towards the cap, best
-  matching first, so scarce material lands where it grows the most
-  resonance. Legendary and epic items are the material; mythics are never
-  consumed. It does not compute what a level costs -- the cost curve is not
-  derivable from its own numbers, and the game's upgrade page states the
-  requirement and ships an "Auto Select" that fills the material slots by
-  its own rules. The run presses that and stops when the game says the stock
-  is spent.
+**How items are ranked.** By priority, not by a computed stat score: a capped
+mythic matching your class *and* your team's theme, then class, then theme,
+then any capped mythic, and only then everything else. At the cap every
+mythic of a slot has identical stats, so the resonance is the whole
+difference; two items of the same tier are separated by how much bonus they
+carry, and the theme axis pays double on the chance track.
 
-All three show a full preview before anything is touched, log one line per
-planned swap, abort without acting when `hh_ajax` is unavailable, and record the
-inventory id of every item they take off (the id changes on every unequip, so
-it can only come from the equip response) to keep a rollback possible.
+Two stat scores were built first and both wanted to trade mythics away for
+legendaries. Reading the equipment of all 99 players in one league settled
+it: 582 of 594 worn slots are mythic, 576 of those at the cap, every player
+in the top 25 wears six of six, and the four holding legendaries sit at
+places 49, 60, 80 and 95. A score cannot be made right here either -- the
+theme resonance lands on defense or crit in all 582 cases, and neither is
+measurable client-side.
 
-The resonance theme comes from the team: `TeamModule` now stores the theme of
-the team it fielded, because the market page has no team data. With no theme
-available the buttons do nothing and say so -- gear picked on a guessed theme
-is six wrong items.
+**What each button promises.** Current Best never makes you weaker: an
+unlevelled mythic is judged on its real stats, so it cannot displace a
+stronger legendary just for being mythic. Possible Best deliberately does the
+opposite, exactly as "Best Possible" on the team page fields a level-1 girl,
+and prints the gap instead of hiding it. Upgrade Gear leaves the cost curve
+to the game -- the upgrade page states the requirement and its "Auto Select"
+fills the material slots by the game's own rules, so the run presses that and
+stops when the game says the stock is spent.
 
-Mechanics, data model and the measurement traps behind all of this:
-`docs-internal/equipment-resonance.md`.
+**Before it touches anything** each button shows the full plan, logs one line
+per slot, refuses to act when `hh_ajax` is missing, and records the inventory
+id of every item it takes off, so a rollback stays possible -- that id changes
+on every unequip and can only come from the equip response.
+
+**The theme comes from your team.** `TeamModule` now stores the theme of the
+team it fielded, and the teams page records it too, because the market page
+has no team data of its own. Without a theme the buttons do nothing and say
+so: gear picked on a guessed theme is six wrong items.
+
+For scale: taking one mythic from level 1 to the cap took 1,206 legendary and
+epic items on the test account. The run stops on its own when the material
+does, and the upgrade page shows each item's exact requirement.
 
 ### v8.7.0 - Team selection ranked by battle power, and a workflow to go with it
 

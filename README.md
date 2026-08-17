@@ -29,6 +29,9 @@ refactoring with a long run of feature work:
   selection.
 - **Better equipment** — optimized "Stuff Team", auto-equip boosters and
   smarter Sandalwood handling.
+- **Gear for your hero** — three buttons on the market page pick the best
+  armor for your six slots, put on the items worth developing, and level them
+  with legendary and epic material.
 - **More fight control** — independent Troll / Event / Raid clusters and a
   "+Raid Stars" grade filter.
 - **Quality of life** — reorderable function blocks, Season Max Tier, a snappier

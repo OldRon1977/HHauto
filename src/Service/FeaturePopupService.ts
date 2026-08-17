@@ -37,12 +37,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "8.7.0";
+const FEATURE_POPUP_VERSION: string = "8.8.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.7.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.8.0";
 
 /**
  * HTML content for the feature popup.
@@ -50,15 +50,24 @@ const FEATURE_POPUP_TITLE = "HHAuto v8.7.0";
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Better team selection</p>
-    <p style="margin-bottom:6px;">The picker no longer chases the <b>Total Power</b> the game prints &mdash; that number ignores element synergies. It now has the game calculate each candidate team and fields the one that actually wins fights. Measured on one account: <b>88.9% &rarr; 92.2%</b> average win chance at identical Total Power.</p>
-    <ul style="margin-bottom:10px; font-size:12px;">
-      <li>Equipment counts towards a girl&rsquo;s stats, so press <b>1 Unequip All</b> first &mdash; otherwise the team already wearing the gear wins the selection for its items.</li>
-      <li>The edit-team buttons are now a numbered workflow (<b>1</b> Unequip &rarr; <b>2</b> pick &rarr; <b>3</b> Stuff Team), Stuff Team works right there, and the summary folds away with a click on its header.</li>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Gear for your hero</p>
+    <p style="margin-bottom:6px;">Three new buttons on the <b>market page</b>, armor tab &mdash; laid out like the team workflow, so there is one mental model instead of two.</p>
+    <ul style="margin-bottom:6px; font-size:12px;">
+      <li><b>Current Best Gear</b> &mdash; puts on the best armor you own, as things stand today. It never makes you weaker.</li>
+      <li><b>Possible Best Gear</b> &mdash; puts on the items worth developing, and tells you per slot what that costs you right now.</li>
+      <li><b>Upgrade Gear</b> &mdash; levels the mythics you are wearing, best-matching slot first.</li>
     </ul>
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Auto-Mystery (new in 8.6.1)</p>
-    <p style="margin-bottom:10px;">The Sultry Mysteries grid plays itself: the switch sits next to <b>Refresh Shop</b> and asks which rewards matter to you. Squares open in a checkerboard, a new grid is generated once 15 are open and your rewards are found, and <b>keys are never bought with kobans</b>. It is a block of its own in <b>Block Order</b>.</p>
-    <p style="margin-bottom:0; font-size:11px; color:#888;">Both are off by default where a switch exists. Nothing was removed and no settings are reset. Full details in the CHANGELOG.</p>
+    <p style="margin-bottom:6px; padding:6px 8px; border-left:3px solid #090; background:#f2faf2;">
+      <b>No mythic is ever used as material.</b> Upgrade Gear consumes only <b>legendary and epic</b> items &mdash;
+      never a mythic, with no exception for duplicates, for spares, or for a mythic you are not wearing.</p>
+    <p style="margin-bottom:6px;">Items are ranked by <b>priority</b>, not by a stat score: a capped mythic matching your class <i>and</i> your team&rsquo;s theme first, then class, then theme, then any capped mythic. At the cap every mythic has the same stats, so the resonance is the whole difference.</p>
+    <ul style="margin-bottom:10px; font-size:12px;">
+      <li><b>Build your team first.</b> The theme of the team you field decides which resonances count. Without it the buttons do nothing and say so.</li>
+      <li>Every button shows the <b>full plan before it touches anything</b>, and notes the id of each item it takes off so you can put it back.</li>
+    </ul>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Better team selection (new in 8.7.0)</p>
+    <p style="margin-bottom:10px;">The picker no longer chases the <b>Total Power</b> the game prints &mdash; it has the game calculate each candidate team and fields the one that actually wins fights. Measured on one account: <b>88.9% &rarr; 92.2%</b> average win chance at identical Total Power. Press <b>1 Unequip All</b> first, or the team already wearing the gear wins the selection for its items.</p>
+    <p style="margin-bottom:0; font-size:11px; color:#888;">Nothing was removed and no settings are reset. The gear buttons need <b>Show market tools</b>. Full details in the CHANGELOG.</p>
   </div>
 `;
 

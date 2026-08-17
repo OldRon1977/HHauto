@@ -556,10 +556,8 @@ export class EquipmentGear {
             </table>
             <p><b>Material:</b> ${stock.legendary.toLocaleString()} legendary and
                ${stock.epic.toLocaleString()} epic items. Mythics are never consumed.</p>
-            <p style="color:#fc6;font-size:11px;">One measured level cost 1,000,000 money and 7 epics,
-               and the game asked for 1,555 material points to take a level-1 mythic all the way.
-               Expect this to run out long before the cap. Each item's exact requirement is shown
-               on the upgrade page, and the run stops by itself when the material does.</p>
+            <p style="color:#aaa;font-size:11px;">The upgrade page shows each item's exact
+               requirement, and the run stops by itself once the material is spent.</p>
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
                 Start with ${esc(targets[0].name)} (slot ${targets[0].slot})</label>
