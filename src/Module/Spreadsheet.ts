@@ -4,7 +4,7 @@
 // spreadsheets) directly into the game interface. Listens for AJAX responses
 // to inject links at the right time when relevant pages load.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";

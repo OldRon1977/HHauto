@@ -5,7 +5,7 @@
 // to the correct tab, and executes free pulls when available. Does not spend
 // premium currency -- only claims free pulls.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts, index.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { hhMenuSwitch } from "../Helper/HHMenuHelper";

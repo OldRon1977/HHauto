@@ -4,7 +4,7 @@
 // via AJAX requests using the player's soft currency. Manages purchase
 // cooldowns and tracks spending to avoid over-buying.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/StartService.ts
 //
 import { HeroHelper, getHero } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";

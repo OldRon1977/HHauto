@@ -8,7 +8,7 @@
 // game features.
 //
 // Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

@@ -115,9 +115,9 @@ export async function handleMythicWave(_ctx: AutoLoopContext): Promise<void> {
  *   git grep -n "wouldFightWithPower\|isTrollFightActivated" src/
  *
  * The activation paths are guarded by a Pure-spec
- * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 13 cases) and
+ * (spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts, 9 cases) and
  * a wait-marker spec (spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts,
- * 5 cases). New paths must be added to both specs. The lessons file
+ * 3 cases). New paths must be added to both specs. The lessons file
  * c:\Users\StephanMesser\.kiro\Arbeitsplatz\.kiro\steering\_lessons\
  * mapping-fix-vollstaendig-pruefen.md captures the cost of skipping this
  * pruning step.

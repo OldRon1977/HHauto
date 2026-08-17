@@ -6,7 +6,7 @@
 // the harem page UI interactions.
 //
 // Depends on: HaremGirl.ts (individual girl data)
-// Used by: Service/index.ts (main automation loop), EventModule.ts (girl tracking)
+// Used by: Module/PlaceOfPower.ts, Module/TeamModule.ts, Module/Troll.ts, Module/harem/HaremGirl.ts u. a.
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";

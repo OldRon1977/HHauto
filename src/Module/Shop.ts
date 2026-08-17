@@ -5,7 +5,7 @@
 // desired equipment, sells unwanted items, and manages inventory slots.
 // Tracks shop refresh timers and available currency.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";

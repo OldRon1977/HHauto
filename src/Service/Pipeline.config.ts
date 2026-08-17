@@ -960,8 +960,8 @@ const handleTrollBattle: HandlerConfig = {
  * either fires too often (blocking event-parsing) or too rarely (issue #1700
  * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
  *
- * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (13 cases)
- *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (5 cases)
+ * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (9 cases)
+ *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (3 cases)
  * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
  */
 function wouldFightWithPower(

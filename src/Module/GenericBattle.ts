@@ -5,7 +5,7 @@
 // reward drops. It acts as a shared handler for all battle outcomes rather
 // than being specific to one game mode.
 //
-// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+// Used by: Service/Pipeline.config.ts
 //          and other fight modules that navigate to battle pages
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";

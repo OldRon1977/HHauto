@@ -8,7 +8,7 @@
 //
 // Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
 //             EventModule.ts (event detection)
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 import { BDSMHelper, calculateBattleProbabilities } from "../../Helper/BDSMHelper";
 import { ConfigHelper } from "../../Helper/ConfigHelper";

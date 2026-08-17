@@ -4,7 +4,7 @@
 // Champions feature. Manages fight energy (tickets), selects opponents, and
 // tracks cooldown timers between rounds.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/Champion.ts, Module/ClubChampion.ts, Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

@@ -189,7 +189,9 @@ export function activeResonance(
 }
 
 /**
- * An item's active resonance split by whether `battleValue` can price it.
+ * An item's active resonance split by whether the effective-power model can
+ * price it -- that is `TeamEvaluationService.computeEffectivePower()`, which
+ * multiplies a damage term by an ego term.
  *
  * `damage` and `ego` multiply the two terms of the product, so they belong
  * inside the value. `defense` and `chance` do not appear in it at all -- they

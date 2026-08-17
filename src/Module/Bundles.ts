@@ -4,7 +4,7 @@
 // detects available bundles, navigates to the shop page, and claims them
 // automatically on a timer-based schedule.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";

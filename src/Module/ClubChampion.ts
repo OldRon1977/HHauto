@@ -5,7 +5,7 @@
 // in club champion rounds. Requires active club membership (see Club.ts).
 //
 // Depends on: Club.ts (membership check), TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";

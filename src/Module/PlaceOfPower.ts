@@ -5,7 +5,7 @@
 // module detects which PoPs are currently active, navigates to them, and
 // collects available rewards on a timed schedule.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/ParanoiaService.ts, Service/Pipeline.config.ts, Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

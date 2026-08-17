@@ -5,7 +5,7 @@
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
 // Depends on: TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper } from "../Helper/HeroHelper";

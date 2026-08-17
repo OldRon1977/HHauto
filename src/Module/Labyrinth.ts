@@ -8,7 +8,7 @@
 //
 // Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
 //             TeamModule.ts (team setup)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { hhMenuSelect } from "../Helper/HHMenuHelper";

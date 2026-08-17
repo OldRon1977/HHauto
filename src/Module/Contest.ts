@@ -5,7 +5,7 @@
 // implements the "wait for contest" feature that pauses other automation
 // when a contest requiring specific actions is active.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";

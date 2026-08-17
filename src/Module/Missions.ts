@@ -5,7 +5,7 @@
 // mission automatically. Tracks mission durations and schedules collection
 // at the right time.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts, Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";

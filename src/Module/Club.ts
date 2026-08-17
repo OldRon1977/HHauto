@@ -4,7 +4,7 @@
 // club-specific UI elements (e.g. Club Champion buttons). This ensures that
 // club features are only shown when the player has an active membership.
 //
-// Used by: Service/index.ts (main automation loop), ClubChampion.ts
+// Used by: Service/AutoLoopPageHandlers.ts, Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";

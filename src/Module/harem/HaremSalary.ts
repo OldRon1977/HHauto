@@ -4,7 +4,7 @@
 // periodically navigates to the harem page and collects accumulated salary
 // earnings, tracking collection timers to avoid unnecessary page loads.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
