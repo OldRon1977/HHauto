@@ -50,6 +50,19 @@
     //
     'use strict';
 
+    // FROZEN as of 2026-08-17. Kept, not developed.
+    //
+    // The catalogue tooling in scripts/catalogue/ took over what this does for
+    // the maintainer -- reading the game's source without a login, recording
+    // ajax traffic as shapes, snapshotting page globals -- and does it from a
+    // driver, where tour state, IndexedDB chunking and XHR/fetch patching are
+    // not needed at all.
+    //
+    // What still lives only here: DUMP FOR SHARING, the PII pipeline that lets
+    // a player attach an anonymised dump to a public bug report. A driver
+    // cannot serve that audience.
+    //
+    // Before extending this file, check whether scripts/catalogue answers it.
     const VERSION = '4.9.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 

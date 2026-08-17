@@ -57,3 +57,6 @@ docs-internal/_archive/
 /BACKLOG.md
 /REVIEW_SUMMARY.md
 BACKLOG-ISSUES.md
+
+# Katalog-Ausgaben: aus dem Spiel gezogen, gehen schnell veraltet
+scripts/catalogue/out/
