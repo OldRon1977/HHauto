@@ -5,9 +5,10 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **5 in progress** (spec triage -- A and B shipped, D blocked)
-- Last completed task: 5.2 (live-only claims moved to `scripts/live-check/`)
-- Open: 5.3 (parser fixtures) is blocked -- see the stage 5 section.
+- Current stage: **5 in progress** (spec triage -- A, B and D shipped)
+- Last completed task: 5.3 (payload parsers fed from the 2026-08-17 capture)
+- Open: two gaps recorded in the stage 5 section (hero armor globals, the
+  `item.ico` redaction conflict) and task 5.4 (closure).
 - Coverage is no longer a goal. What a test proves is. See "Why coverage
   stopped being the target" below.
 - Note on the earlier consensus: "Coverage threshold as a CI gate" is listed
@@ -926,31 +927,48 @@ spy-free by the matching `.pure` spec. **39 tests.**
     verified -- the game allows one session per account, so that needs the
     maintainer's own browser.
   - Tests: 1,218 -> 1,176. Suites: 83 -> 82.
-- [ ] **5.3** D onto real payloads -- **blocked**
-  - `INPUT/` no longer holds the 41 MB dump (only `Logfile.md` survives, and
-    the directory is gitignored). Without a capture there is nothing to build
-    the missing fixtures from.
-  - Convertible from fixtures already in the repo (17 tests):
-    - `BlessingService` (12): `blessing_bonuses`, `can_be_blessed`,
-      `can_be_blessed_pvp4` and `blessed_attributes` are all present on
-      `spec/fixtures/haremGirl/sample-girls.json` and on the event girls.
-    - `TeamModule.mapAvailableGirl` (5): the haremGirl fixture is exactly the
-      raw shape this maps from.
-  - Needs a fresh capture (19 tests):
-    - `EquipmentOptimizerService.parseArmorItem` (5) and `themeFromTeamData`
-      (4): armor entries with `skin`/`caracs`/`resonance_bonuses` from both
-      `#equiped` and the inventory, plus a `teams` payload with `theme` /
-      `theme_elements` / an empty slot. `spec/fixtures/market/store-contents
-      .json` carries buckets 1-3 only; the armor bucket is not in it.
-    - `BDSMHelper.fightBonues` (2) and `getSkillPercentage` (4): a team payload
-      with `synergies[]` and `girls[].skills[<id>].skill.percentage_value`.
-      No fixture has either key.
-    - `RewardHelper.getRewardTypeByData` (4): reward items with their `ico`
-      url. The champion fixture has real reward items but `item.ico` was
-      stripped as an asset url -- the gift/potion detection reads exactly that
-      field, so the redaction rule and this test are in direct conflict. Decide
-      the rule before capturing: either keep `ico` for reward fixtures, or drop
-      the url-pattern branch from the parser.
+- [x] **5.3** D onto real payloads (2026-08-17)
+  - A fresh dump was captured the same day (inspector v4.8.0, 32 pages,
+    51 MB), which unblocked this task.
+  - New fixtures, each with a README naming source, selection, redactions,
+    consumers and refresh procedure:
+    - `spec/fixtures/teams/` -- `teams-data.json` (a fielded themed team and
+      an empty slot from `/teams.html`), `team-girls.json` (three girls with
+      their skills map), `available-girls.json` (three raw entries
+      whitelisted to the 21 fields `mapAvailableGirl` reads).
+    - `spec/fixtures/blessings/blessed-girls.json` -- one girl per case:
+      league-blessed, Role-only, unblessed.
+    - `spec/fixtures/equipment/girl-armor.json` -- a real girl armor entry.
+  - Three things the capture settled that no hand-written object had:
+    - The game's own `bonus_identifier` per synergy confirms the element
+      mapping `fightBonues` assumes (fire = critical hit damage, stone =
+      crit chance, sun = decrease defense, water = recover on hit).
+    - A flat skill carries `percentage_value: null` -- not `0`, not a
+      missing key. That is what the nullish coalescing in
+      `getSkillPercentage` is for.
+    - A Role-blessed girl carries **no `pvp_v3` key at all** and her
+      `can_be_blessed` flag is `false`, exactly as the BlessingService spec
+      had been asserting since July.
+  - Two gaps stay, both written into the fixture READMEs:
+    - The hero's own armor is not in the dump. `equipped_armor` and
+      `player_inventory.armor` exist as page globals on `/shop.html`, but
+      the inspector records their names and types in `globals_overview`,
+      not their contents. The positive `parseArmorItem` cases still run on
+      the entry transcribed from the 2026-08-16 live measurement. Fixing it
+      is a small inspector change or a one-off console read; both entry
+      kinds are needed, because `#equiped` carries only
+      `id_member_armor_equipped` and an inventory entry only
+      `id_member_armor`.
+    - `RewardHelper.getRewardTypeByData` reads `item.ico`, and no reward
+      payload in the dump carries a `/pictures/items/` url -- the field the
+      redaction rule strips is the field this parser needs. Decide the rule
+      before the next capture: keep `ico` for reward fixtures, or drop the
+      url-pattern branch from the parser.
+  - No fielded team on the account is themeless, so the one
+    `themeFromTeamData` case that needs it builds it by emptying the two
+    theme fields of the real team. Noted at the test.
+  - Tests: 1,176 -> 1,183. Suites: 82. Coverage unchanged (same paths, real
+    input).
 - [ ] **5.4** Close the stage: fold the numbers back into this document.
 
 #### Why coverage stopped being the target
@@ -1067,3 +1085,4 @@ findNextChamptionTime with 1 test.
 | 2026-08-17 | Stage 5 task 5.1: spec triage, class A plus the four adapter duplicates deleted -- 178 tests, ten spec files gone entirely. Coverage 44.04->43.37 statements / 35.48->34.89 branches / 42.61->41.10 functions / 44.32->43.65 lines, all above the configured thresholds. 1396 -> 1218 tests, 93 -> 83 suites |
 | 2026-08-17 | Stage 5 task 5.2: 42 class-B tests removed and replaced by `scripts/live-check/` (declarative check list plus a read-only Playwright runner, session guard, manual instructions for writes and popup states; playwright deliberately not a devDependency). Runner verified against local stand-in pages; the claims themselves need the maintainer's own session. 1218 -> 1176 tests, 83 -> 82 suites |
 | 2026-08-17 | Stage 5 task 5.3 blocked: `INPUT/` no longer holds the dump, so 19 of the 36 open class-D tests have nothing to be built from. 17 are convertible from fixtures already in the repo (BlessingService, TeamModule.mapAvailableGirl). Conflict recorded: `RewardHelper.getRewardTypeByData` reads `item.ico`, which the fixture redaction rule strips |
+| 2026-08-17 | Stage 5 task 5.3 done: a fresh capture (inspector v4.8.0) unblocked the parser fixtures. New fixture sets `teams/`, `blessings/`, `equipment/` with READMEs; BDSMHelper (synergies + skills), TeamModule.mapAvailableGirl, BlessingService and the parseArmorItem reject case now run on real payloads. The capture confirmed three things no hand-written object had: the element/bonus_identifier mapping, `percentage_value: null` on flat skills, and the absent `pvp_v3` key on Role-only girls. Two gaps recorded (hero armor globals not captured; `item.ico` needed by getRewardTypeByData but stripped by the redaction rule). 1176 -> 1183 tests |
