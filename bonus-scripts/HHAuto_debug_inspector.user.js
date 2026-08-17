@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.8.1
+// @version      4.9.0
 // @description  Full game data dumper. DUMP THIS PAGE / DUMP FOR SHARING / AUTO TOUR. Persistent XHR + fetch hooks. Optional PII share-mode pipeline anonymises dumps for public bug reports.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -50,7 +50,7 @@
     //
     'use strict';
 
-    const VERSION = '4.8.0';
+    const VERSION = '4.9.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // PII share-mode toggle. Single source of truth for the share pipeline.
@@ -535,6 +535,12 @@
             'market_data','shop_data','items','items_data','shop',
             'girl_armor','equipment','inventory','girl_skills',
             'skill_tiers','awakening_data',
+            // The hero's own equipment, market page only. Both are needed and
+            // they differ: an entry under equipped_armor carries
+            // id_member_armor_equipped and no id_member_armor at all, an
+            // inventory entry only the latter. Sniffing on the field instead
+            // of being told which is which dropped all six worn items once.
+            'equipped_armor','player_inventory','market_inventory',
             'mythic_boosters','classBoosters','specialBoosters','hh_prices'
         ]) {
             try { if (w[k] !== undefined) marketData[k] = w[k]; } catch (e) {}
