@@ -1,0 +1,67 @@
+{
+  "id_girl_armor_equipped": 197468365,
+  "id_member": 1,
+  "id_girl_item_armor": 5,
+  "id_item_skin": 609,
+  "id_variation": 83,
+  "level": 10,
+  "id_girl": 293173456,
+  "caracs": {
+    "carac1": 300,
+    "carac2": 300,
+    "carac3": 300,
+    "damage": 75,
+    "defense": 120,
+    "ego": 450
+  },
+  "slot_index": 3,
+  "armor": {
+    "id_girl_item_armor": 5,
+    "rarity": "mythic",
+    "carac1": 30,
+    "carac2": 30,
+    "carac3": 30,
+    "damage": 7.5,
+    "defense": 12,
+    "ego": 45
+  },
+  "skin": {
+    "release_date": "1900-01-01",
+    "id_item_skin": 609,
+    "id_skin_set": 117,
+    "identifier": "EB117",
+    "subtype": 3,
+    "wearer": "girl",
+    "weight": 1,
+    "name": "Luxury ankle bracelets"
+  },
+  "variation": {
+    "id_variation": 83,
+    "rarity": "mythic",
+    "class": 2,
+    "class_resonance": "ego",
+    "element": "stone",
+    "element_resonance": "defense",
+    "figure": 8,
+    "figure_resonance": "damage"
+  },
+  "rarity": "mythic",
+  "type": "girl_armor",
+  "resonance_bonuses": {
+    "class": {
+      "identifier": "2",
+      "resonance": "ego",
+      "bonus": 0.5
+    },
+    "element": {
+      "identifier": "stone",
+      "resonance": "defense",
+      "bonus": 0.5
+    },
+    "figure": {
+      "identifier": "8",
+      "resonance": "damage",
+      "bonus": 0.5
+    }
+  }
+}

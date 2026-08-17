@@ -8,18 +8,28 @@
 // carrying only the Role blessing must NOT count as league-blessed.
 
 import { BlessingService } from '../../src/Service/BlessingService';
+import { loadFixture } from '../testHelpers/Fixtures';
 
-// Raw API shape (snake_case), as delivered by availableGirls.
+// Three real girls off /edit-team.html availableGirls, one per case the
+// context split has to tell apart. Captured 2026-08-17; the percents are
+// whatever that week's blessings were, which is the point -- the flags and
+// the pvp_v3 / pvp_v4 keys come from the game, not from this file.
+const REAL = loadFixture('blessings', 'blessed-girls') as {
+    leagueBlessed: any;
+    roleOnly: any;
+    unblessed: any;
+};
+
+// Raw API shape (snake_case), as delivered by availableGirls. The trait
+// fields are taken from a real entry so a renamed key shows up here; only the
+// blessing percents are varied, because the arithmetic cases below need
+// values the captured week does not happen to contain.
 function rawGirl(overrides: Record<string, any> = {}): any {
+    const { blessing_bonuses: _b, can_be_blessed: _c, can_be_blessed_pvp4: _p, ...traits } =
+        REAL.leagueBlessed;
     return {
+        ...traits,
         id_girl: overrides.id_girl ?? Math.floor(Math.random() * 1e9),
-        name: 'Girl',
-        rarity: 'legendary',
-        element: 'fire',
-        eye_color1: '00F',
-        hair_color1: 'B62',
-        zodiac: '♎ Balance',
-        position_img: '3.png',
         ...overrides,
     };
 }
@@ -182,5 +192,46 @@ describe('BlessingService.detectActiveBlessings -- context split', () => {
             'hairColor=B62+40',
             'position=3+25',
         ]);
+    });
+});
+
+describe('BlessingService -- the three real cases, unmodified', () => {
+    // No builders here: the girls go in exactly as the game sent them. This is
+    // the test that fails when the game renames a key or flips the meaning of
+    // a flag; everything above varies the percents on purpose.
+    const { leagueBlessed, roleOnly, unblessed } = REAL;
+
+    it('the captured week really does have the three cases in it', () => {
+        expect(leagueBlessed.blessing_bonuses.pvp_v3).toBeDefined();
+        expect(leagueBlessed.can_be_blessed).toBe(true);
+        // A Role-only girl carries no pvp_v3 key at all -- not an empty one.
+        expect('pvp_v3' in roleOnly.blessing_bonuses).toBe(false);
+        expect(roleOnly.blessing_bonuses.pvp_v4).toBeDefined();
+        expect(roleOnly.can_be_blessed).toBe(false);
+        expect(roleOnly.can_be_blessed_pvp4).toBe(true);
+        expect(unblessed.can_be_blessed).toBe(false);
+        expect(unblessed.can_be_blessed_pvp4).toBe(false);
+    });
+
+    it('gives the league-blessed girl her percents in both contexts', () => {
+        const v3 = leagueBlessed.blessing_bonuses.pvp_v3.carac1 as number[];
+        const v4 = leagueBlessed.blessing_bonuses.pvp_v4.carac1 as number[];
+        // Blessings multiply, they do not add: two +40% make 1.96, not 1.8.
+        const stacked = (l: number[]) => l.reduce((acc, p) => acc * (1 + p / 100), 1);
+        expect(BlessingService.getEffectiveMultiplier(leagueBlessed, 'league')).toBeCloseTo(stacked(v3));
+        expect(BlessingService.getEffectiveMultiplier(leagueBlessed, 'labyrinth')).toBeCloseTo(stacked(v4));
+    });
+
+    it('leaves the Role-only girl unblessed for the league and blessed in the labyrinth', () => {
+        const v4 = roleOnly.blessing_bonuses.pvp_v4.carac1 as number[];
+        expect(BlessingService.getEffectiveMultiplier(roleOnly, 'league')).toBeCloseTo(1);
+        expect(BlessingService.getActivePercents(roleOnly, 'league')).toEqual([]);
+        expect(BlessingService.getEffectiveMultiplier(roleOnly, 'labyrinth'))
+            .toBeCloseTo(v4.reduce((acc, p) => acc * (1 + p / 100), 1));
+    });
+
+    it('leaves the unblessed girl at 1 in both contexts', () => {
+        expect(BlessingService.getEffectiveMultiplier(unblessed, 'league')).toBeCloseTo(1);
+        expect(BlessingService.getEffectiveMultiplier(unblessed, 'labyrinth')).toBeCloseTo(1);
     });
 });

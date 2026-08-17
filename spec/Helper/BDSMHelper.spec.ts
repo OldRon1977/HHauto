@@ -6,6 +6,7 @@ import {
     calculateBattleProbabilities,
 } from '../../src/Helper/BDSMHelper';
 import { BDSMPlayer } from '../../src/model/BDSMPlayer';
+import { loadFixture } from '../testHelpers/Fixtures';
 
 jest.mock('../../src/Utils/LogUtils', () => ({
     logHHAuto: jest.fn(),
@@ -35,30 +36,38 @@ jest.mock('../../src/Helper/ConfigHelper', () => ({
 describe('BDSMHelper', () => {
 
     describe('fightBonues', () => {
-        it('should extract synergy multipliers from team object', () => {
-            const team = {
-                synergies: [
-                    { element: { type: 'fire' }, bonus_multiplier: 0.35 },
-                    { element: { type: 'stone' }, bonus_multiplier: 0.07 },
-                    { element: { type: 'sun' }, bonus_multiplier: 0.08 },
-                    { element: { type: 'water' }, bonus_multiplier: 0.12 },
-                ],
-            };
-            const result = BDSMHelper.fightBonues(team);
-            expect(result.critDamage).toBe(0.35);
-            expect(result.critChance).toBe(0.07);
-            expect(result.defReduce).toBe(0.08);
-            expect(result.healOnHit).toBe(0.12);
+        // Real teams payload from /teams.html. The game's own
+        // bonus_identifier per element confirms the mapping this reads:
+        // fire = "critical hit damage", stone = "critical hit chance",
+        // sun = "decrease defense of opponent", water = "Recover on hit".
+        const themedTeam = (loadFixture('teams', 'teams-data') as any).themed;
+
+        it('picks the four multipliers out of a real synergies list', () => {
+            const byElement = Object.fromEntries(
+                themedTeam.synergies.map((s: any) => [s.element.type, s.bonus_multiplier]));
+
+            const result = BDSMHelper.fightBonues(themedTeam);
+
+            expect(result.critDamage).toBe(byElement.fire);
+            expect(result.critChance).toBe(byElement.stone);
+            expect(result.defReduce).toBe(byElement.sun);
+            expect(result.healOnHit).toBe(byElement.water);
+        });
+
+        it('carries the synergy for every element the game sends', () => {
+            // Eight elements: a missing one would silently read as undefined
+            // and poison the whole simulation.
+            expect(themedTeam.synergies).toHaveLength(8);
+            for (const s of themedTeam.synergies) {
+                expect(typeof s.element.type).toBe('string');
+                expect(typeof s.bonus_multiplier).toBe('number');
+                expect(typeof s.bonus_identifier).toBe('string');
+            }
         });
 
         it('should handle zero multipliers', () => {
             const team = {
-                synergies: [
-                    { element: { type: 'fire' }, bonus_multiplier: 0 },
-                    { element: { type: 'stone' }, bonus_multiplier: 0 },
-                    { element: { type: 'sun' }, bonus_multiplier: 0 },
-                    { element: { type: 'water' }, bonus_multiplier: 0 },
-                ],
+                synergies: themedTeam.synergies.map((s: any) => ({ ...s, bonus_multiplier: 0 })),
             };
             const result = BDSMHelper.fightBonues(team);
             expect(result.critDamage).toBe(0);
@@ -194,46 +203,44 @@ describe('BDSMHelper', () => {
     });
 
     describe('getSkillPercentage', () => {
-        it('should return 1 + sum/100 for a single girl with a matching skill', () => {
-            const team = {
-                girls: [
-                    { skills: { 5: { skill: { percentage_value: 20 } } } },
-                ],
-            };
-            expect(getSkillPercentage(team, 5)).toBeCloseTo(1.2);
+        // Three real girls off the fielded team, reduced to their skills map.
+        // The game keys skills by skill id and puts the number this reads
+        // under skills[<id>].skill.percentage_value -- flat skills carry
+        // null there, which is what the nullish coalescing is for.
+        const girls = loadFixture('teams', 'team-girls') as Array<{
+            skills: Record<string, { skill: { percentage_value: number | null } }>;
+        }>;
+        const team = { girls };
+
+        /** The percent the game reports for this skill, summed over the team. */
+        const realSum = (id: number) => girls.reduce(
+            (acc, g) => acc + (g.skills[String(id)]?.skill?.percentage_value ?? 0), 0);
+
+        it('sums the reported percent across the real team', () => {
+            // Pick a skill id that at least one girl actually carries a
+            // percent for, so this is not a test of the empty case.
+            const id = Number(Object.keys(girls[0].skills)
+                .find((k) => typeof girls[0].skills[k]?.skill?.percentage_value === 'number'));
+            expect(Number.isFinite(id)).toBe(true);
+            expect(getSkillPercentage(team, id)).toBeCloseTo(1 + realSum(id) / 100);
         });
 
-        it('should sum across multiple girls', () => {
-            const team = {
-                girls: [
-                    { skills: { 3: { skill: { percentage_value: 10 } } } },
-                    { skills: { 3: { skill: { percentage_value: 15 } } } },
-                    { skills: { 3: { skill: { percentage_value: 25 } } } },
-                ],
-            };
-            // 1 + (10+15+25)/100 = 1.5
-            expect(getSkillPercentage(team, 3)).toBeCloseTo(1.5);
+        it('treats a flat skill (percentage_value null) as zero', () => {
+            const id = Number(Object.keys(girls[0].skills)
+                .find((k) => girls[0].skills[k]?.skill?.percentage_value === null));
+            expect(Number.isFinite(id)).toBe(true);
+            expect(getSkillPercentage(team, id)).toBeCloseTo(1 + realSum(id) / 100);
         });
 
-        it('should treat missing skill as 0 via nullish coalescing', () => {
-            const team = {
-                girls: [
-                    { skills: { 3: { skill: { percentage_value: 10 } } } },
-                    { skills: {} }, // no skill id 3
-                ],
-            };
-            // 1 + (10+0)/100 = 1.1
-            expect(getSkillPercentage(team, 3)).toBeCloseTo(1.1);
+        it('treats a girl without the skill as zero', () => {
+            const id = Number(Object.keys(girls[0].skills)[0]);
+            const mixed = { girls: [girls[0], { skills: {} }] };
+            const expected = 1 + (girls[0].skills[String(id)]?.skill?.percentage_value ?? 0) / 100;
+            expect(getSkillPercentage(mixed, id)).toBeCloseTo(expected);
         });
 
-        it('should return 1 when no girls have the skill', () => {
-            const team = {
-                girls: [
-                    { skills: {} },
-                    { skills: {} },
-                ],
-            };
-            expect(getSkillPercentage(team, 7)).toBeCloseTo(1.0);
+        it('returns 1 when no girl has the skill', () => {
+            expect(getSkillPercentage(team, 9999)).toBeCloseTo(1.0);
         });
     });
 

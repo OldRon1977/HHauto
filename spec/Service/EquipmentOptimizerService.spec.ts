@@ -17,6 +17,7 @@ import {
     themeMatches,
 } from '../../src/Service/EquipmentOptimizerService';
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
+import { loadFixture } from '../testHelpers/Fixtures';
 
 const KNOW_HOW: PlayerClass = 3;
 
@@ -300,29 +301,45 @@ describe('theme derivation', () => {
 });
 
 describe('themeFromTeamData', () => {
-    const girls = [{}, {}, {}, {}, {}, {}, {}];
+    // Two real entries off /teams.html teams_data: a fielded themed team and
+    // one of the empty slots (24 of the 30 slots on the test account are).
+    const teams = loadFixture('teams', 'teams-data') as {
+        themed: { theme: string; theme_elements: Array<{ type: string }>; girls: unknown[] };
+        emptySlot: { id_team: number | null; theme: string | null; girls: unknown[] };
+    };
 
     it('takes the theme the game declares', () => {
-        expect(themeFromTeamData({ theme: 'nature', girls })).toBe('nature');
+        expect(themeFromTeamData(teams.themed)).toBe(teams.themed.theme);
     });
 
     it('falls back to theme_elements when theme is absent', () => {
-        expect(themeFromTeamData({ theme_elements: [{ type: 'darkness' }], girls })).toBe('darkness');
+        const { theme: _drop, ...withoutTheme } = teams.themed;
+        expect(themeFromTeamData(withoutTheme)).toBe(teams.themed.theme_elements[0].type);
     });
 
     it('reads a themeless but manned team as Balanced', () => {
-        expect(themeFromTeamData({ theme: null, theme_elements: [], girls })).toBe('balanced');
+        // No real example: every fielded team on the test account carries a
+        // theme. The shape is the fixture's, only theme/theme_elements are
+        // emptied.
+        expect(themeFromTeamData({ ...teams.themed, theme: null, theme_elements: [] }))
+            .toBe('balanced');
     });
 
-    // 22 of the 30 team slots on the test account look like this.
     it('reads an empty team slot as no theme at all', () => {
-        expect(themeFromTeamData({ id_team: null, theme: null, girls: [] })).toBeNull();
+        expect(teams.emptySlot.girls).toHaveLength(0);
+        expect(themeFromTeamData(teams.emptySlot)).toBeNull();
         expect(themeFromTeamData(null)).toBeNull();
         expect(themeFromTeamData(undefined)).toBeNull();
     });
 });
 
 describe('parseArmorItem', () => {
+    // The hero's own armor is not in the dump: `equipped_armor` and
+    // `player_inventory.armor` exist as page globals on shop.html but the
+    // inspector captures their names, not their contents. The positive cases
+    // below therefore still use a hand-written entry, transcribed from the
+    // live objects measured on 2026-08-16. Capturing those two globals is the
+    // one thing missing before this block is fully fixture-fed.
     const raw = {
         id_member_armor: 6602031,
         level: 20,
@@ -377,8 +394,18 @@ describe('parseArmorItem', () => {
         expect(gearTier(item, KNOW_HOW, 'sun', 'current')).toBe(5);
     });
 
-    it('rejects girl equipment and anything without a hero slot', () => {
-        expect(parseArmorItem({ ...raw, skin: { subtype: 1, wearer: 'girl', name: 'x' } })).toBeNull();
+    // A real girl armor entry off the fielded team. Girl and hero equipment
+    // share the inventory, so this is the entry the optimiser must drop --
+    // and the one shape that could not be got wrong by hand, because it
+    // carries id_girl_armor_equipped instead of any hero id at all.
+    it('rejects a real girl armor entry', () => {
+        const girlArmor = loadFixture('equipment', 'girl-armor') as { skin: { wearer: string } };
+        expect(girlArmor.skin.wearer).toBe('girl');
+        expect(parseArmorItem(girlArmor)).toBeNull();
+        expect(parseArmorItem(girlArmor, true)).toBeNull();
+    });
+
+    it('rejects anything without a hero slot', () => {
         expect(parseArmorItem({ ...raw, skin: { subtype: 9, wearer: 'hero', name: 'x' } })).toBeNull();
         expect(parseArmorItem({ ...raw, skin: {} })).toBeNull();
         expect(parseArmorItem(null)).toBeNull();

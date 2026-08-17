@@ -1,0 +1,432 @@
+{
+  "themed": {
+    "caracs": {
+      "ego": 1349637,
+      "damage": 262889.828,
+      "defense": 76864,
+      "chance": 103906
+    },
+    "remaining_ego": 1349637,
+    "hitter_girl_id": 293173456,
+    "id_team": 173170,
+    "id_member": 1,
+    "slot_index": 1,
+    "theme": "nature",
+    "girls_ids": [
+      293173456,
+      12188250,
+      364398698,
+      507945521,
+      976013156,
+      573990530,
+      762095407
+    ],
+    "total_power": 282487.8,
+    "girls": [
+      {
+        "id_girl": 293173456
+      },
+      {
+        "id_girl": 12188250
+      },
+      {
+        "id_girl": 364398698
+      },
+      {
+        "id_girl": 507945521
+      },
+      {
+        "id_girl": 976013156
+      },
+      {
+        "id_girl": 573990530
+      },
+      {
+        "id_girl": 762095407
+      }
+    ],
+    "synergies": [
+      {
+        "element": {
+          "type": "darkness",
+          "weakness": "psychic",
+          "domination": "light",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "darkness_flavor_element"
+        },
+        "team_girls_count": 2,
+        "harem_girls_count": 217,
+        "bonus_identifier": "damage",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0.11000000000000001,
+        "team_bonus_multiplier": 0.04,
+        "harem_bonus_multiplier": 0.07
+      },
+      {
+        "element": {
+          "type": "light",
+          "weakness": "darkness",
+          "domination": "psychic",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "light_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 213,
+        "bonus_identifier": "defense",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0.07,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0.07
+      },
+      {
+        "element": {
+          "type": "psychic",
+          "weakness": "light",
+          "domination": "darkness",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "psychic_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 227,
+        "bonus_identifier": "harmony",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0.07,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0.07
+      },
+      {
+        "element": {
+          "type": "fire",
+          "weakness": "water",
+          "domination": "nature",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "fire_flavor_element"
+        },
+        "team_girls_count": 1,
+        "harem_girls_count": 211,
+        "bonus_identifier": "critical hit damage",
+        "team_bonus_per_girl": 0.1,
+        "harem_bonus_per_girl": 0.0035,
+        "team_bonus_max_amount": 0.7,
+        "harem_bonus_max_amount": 0.35,
+        "bonus_multiplier": 0.44999999999999996,
+        "team_bonus_multiplier": 0.1,
+        "harem_bonus_multiplier": 0.35
+      },
+      {
+        "element": {
+          "type": "nature",
+          "weakness": "fire",
+          "domination": "stone",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "nature_flavor_element"
+        },
+        "team_girls_count": 3,
+        "harem_girls_count": 228,
+        "bonus_identifier": "ego",
+        "team_bonus_per_girl": 0.03,
+        "harem_bonus_per_girl": 0.001,
+        "team_bonus_max_amount": 0.21,
+        "harem_bonus_max_amount": 0.1,
+        "bonus_multiplier": 0.19,
+        "team_bonus_multiplier": 0.09,
+        "harem_bonus_multiplier": 0.1
+      },
+      {
+        "element": {
+          "type": "stone",
+          "weakness": "nature",
+          "domination": "sun",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "stone_flavor_element"
+        },
+        "team_girls_count": 1,
+        "harem_girls_count": 215,
+        "bonus_identifier": "critical hit chance",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0.09000000000000001,
+        "team_bonus_multiplier": 0.02,
+        "harem_bonus_multiplier": 0.07
+      },
+      {
+        "element": {
+          "type": "sun",
+          "weakness": "stone",
+          "domination": "water",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "sun_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 244,
+        "bonus_identifier": "decrease defense of opponent",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0.07,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0.07
+      },
+      {
+        "element": {
+          "type": "water",
+          "weakness": "sun",
+          "domination": "fire",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "water_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 228,
+        "bonus_identifier": "Recover on hit",
+        "team_bonus_per_girl": 0.03,
+        "harem_bonus_per_girl": 0.001,
+        "team_bonus_max_amount": 0.21,
+        "harem_bonus_max_amount": 0.1,
+        "bonus_multiplier": 0.1,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0.1
+      }
+    ],
+    "theme_elements": [
+      {
+        "type": "nature",
+        "weakness": "fire",
+        "domination": "stone",
+        "domination_ego_bonus_percent": 10,
+        "domination_damage_bonus_percent": 10,
+        "domination_critical_chance_bonus_percent": 20,
+        "flavor": "nature_flavor_element"
+      }
+    ],
+    "max_team_size": 7,
+    "min_team_size": 3,
+    "locked": false,
+    "selected_for_battle_type": [
+      "trolls",
+      "leagues",
+      "seasons",
+      "pantheon"
+    ]
+  },
+  "noTheme": null,
+  "emptySlot": {
+    "caracs": {
+      "damage": 0,
+      "ego": 0,
+      "defense": 0,
+      "chance": 0
+    },
+    "remaining_ego": 0,
+    "hitter_girl_id": 0,
+    "id_team": null,
+    "id_member": 1,
+    "slot_index": 4,
+    "theme": null,
+    "girls_ids": [],
+    "total_power": 0,
+    "girls": [],
+    "synergies": [
+      {
+        "element": {
+          "type": "darkness",
+          "weakness": "psychic",
+          "domination": "light",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "darkness_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "damage",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "light",
+          "weakness": "darkness",
+          "domination": "psychic",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "light_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "defense",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "psychic",
+          "weakness": "light",
+          "domination": "darkness",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "psychic_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "harmony",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "fire",
+          "weakness": "water",
+          "domination": "nature",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "fire_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "critical hit damage",
+        "team_bonus_per_girl": 0.1,
+        "harem_bonus_per_girl": 0.0035,
+        "team_bonus_max_amount": 0.7,
+        "harem_bonus_max_amount": 0.35,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "nature",
+          "weakness": "fire",
+          "domination": "stone",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "nature_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "ego",
+        "team_bonus_per_girl": 0.03,
+        "harem_bonus_per_girl": 0.001,
+        "team_bonus_max_amount": 0.21,
+        "harem_bonus_max_amount": 0.1,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "stone",
+          "weakness": "nature",
+          "domination": "sun",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "stone_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "critical hit chance",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "sun",
+          "weakness": "stone",
+          "domination": "water",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "sun_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "decrease defense of opponent",
+        "team_bonus_per_girl": 0.02,
+        "harem_bonus_per_girl": 0.0007,
+        "team_bonus_max_amount": 0.14,
+        "harem_bonus_max_amount": 0.07,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      },
+      {
+        "element": {
+          "type": "water",
+          "weakness": "sun",
+          "domination": "fire",
+          "domination_ego_bonus_percent": 10,
+          "domination_damage_bonus_percent": 10,
+          "domination_critical_chance_bonus_percent": 20,
+          "flavor": "water_flavor_element"
+        },
+        "team_girls_count": 0,
+        "harem_girls_count": 0,
+        "bonus_identifier": "Recover on hit",
+        "team_bonus_per_girl": 0.03,
+        "harem_bonus_per_girl": 0.001,
+        "team_bonus_max_amount": 0.21,
+        "harem_bonus_max_amount": 0.1,
+        "bonus_multiplier": 0,
+        "team_bonus_multiplier": 0,
+        "harem_bonus_multiplier": 0
+      }
+    ],
+    "theme_elements": [],
+    "max_team_size": 7,
+    "min_team_size": 3,
+    "locked": false,
+    "selected_for_battle_type": []
+  }
+}

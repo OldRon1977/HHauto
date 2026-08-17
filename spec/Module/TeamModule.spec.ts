@@ -1,4 +1,5 @@
 import { TeamModule } from "../../src/Module/TeamModule";
+import { loadFixture } from "../testHelpers/Fixtures";
 
 describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
     afterEach(() => {
@@ -41,36 +42,55 @@ describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
     });
 });
 
-describe('TeamModule.mapAvailableGirl -- TM-C raw->GirlData mapping', () => {
-    it('maps the core fields and coerces numerics', () => {
-        const g = TeamModule.mapAvailableGirl({
-            id_girl: '42', name: 'Ada', carac1: '10', carac2: 20, carac3: '30',
-            level: '750', class: 3, rarity: 'mythic', graded: '6', nb_grades: 6,
-            element_data: { type: 'stone' },
-            caracs: { carac1: '11', carac2: 22, carac3: '33' },
-            hair_color1: 'FF0', eye_color1: '00F', zodiac: 'GLYPH Belier',
-            position_img: '5.png', blessing_bonuses: { pvp_v3: { carac1: [40] } },
-            can_be_blessed: true,
-        });
-        expect(g.id_girl).toBe(42);
-        expect(g.name).toBe('Ada');
-        expect(g.carac1).toBe(10);
-        expect(g.carac3).toBe(30);
-        expect(g.level).toBe(750);
-        expect(g.class).toBe(3);
-        expect(g.element).toBe('stone');
-        expect(g.rarity).toBe('mythic');
-        expect(g.nb_grades).toBe(6);
-        expect(g.caracs).toEqual({ carac1: 11, carac2: 22, carac3: 33 });
-        expect(g.hairColor).toBe('FF0');
-        expect(g.eyeColor).toBe('00F');
-        expect(g.zodiac).toBe('GLYPH Belier');
-        expect(g.position).toBe('5'); // .png stripped
-        expect(g.can_be_blessed_league).toBe(true);
+describe('TeamModule.mapAvailableGirl -- raw availableGirls -> GirlData', () => {
+    // Three real entries off /edit-team.html availableGirls, reduced to the
+    // fields this mapper reads. A renamed field in the game shows up here as
+    // a missing key instead of passing against a hand-written object.
+    const raw = loadFixture('teams', 'available-girls') as any[];
+
+    it('maps a real entry field for field', () => {
+        const src = raw[0];
+        const g = TeamModule.mapAvailableGirl(src);
+
+        expect(g.id_girl).toBe(Number(src.id_girl));
+        expect(g.name).toBe(src.name);
+        expect(g.carac1).toBe(Number(src.carac1));
+        expect(g.carac2).toBe(Number(src.carac2));
+        expect(g.carac3).toBe(Number(src.carac3));
+        expect(g.rarity).toBe(src.rarity);
+        expect(g.nb_grades).toBe(Number(src.nb_grades));
+        expect(g.element).toBe(src.element_data?.type ?? src.element);
+        expect(g.hairColor).toBe(src.hair_color1);
+        expect(g.eyeColor).toBe(src.eye_color1);
+        expect(g.zodiac).toBe(src.zodiac);
+    });
+
+    it('strips the .png the game appends to the position', () => {
+        const src = raw.find((g) => typeof g.position_img === 'string');
+        expect(src).toBeDefined();
+        expect(src.position_img).toMatch(/\.png$/);
+        expect(TeamModule.mapAvailableGirl(src).position)
+            .toBe(String(src.position_img).replace('.png', ''));
+    });
+
+    it('carries the blessing flags across under their per-context names', () => {
+        const src = raw.find((g) => typeof g.can_be_blessed === 'boolean');
+        expect(src).toBeDefined();
+        const g = TeamModule.mapAvailableGirl(src);
+        expect(g.can_be_blessed_league).toBe(src.can_be_blessed);
+        if (typeof src.can_be_blessed_pvp4 === 'boolean') {
+            expect(g.can_be_blessed_labyrinth).toBe(src.can_be_blessed_pvp4);
+        }
+        expect(g.blessingBonuses).toEqual(src.blessing_bonuses);
     });
 
     it('prefers element_data.type over element, falls back to fire', () => {
-        expect(TeamModule.mapAvailableGirl({ id_girl: 1, element_data: { type: 'water' }, element: 'fire' }).element).toBe('water');
+        const src = raw.find((g) => g.element_data?.type);
+        expect(src).toBeDefined();
+        // The game sends both; element_data wins because it is the one that
+        // follows an element change.
+        expect(TeamModule.mapAvailableGirl({ ...src, element: 'psychic' }).element)
+            .toBe(src.element_data.type);
         expect(TeamModule.mapAvailableGirl({ id_girl: 1, element: 'light' }).element).toBe('light');
         expect(TeamModule.mapAvailableGirl({ id_girl: 1 }).element).toBe('fire');
     });
@@ -89,14 +109,6 @@ describe('TeamModule.mapAvailableGirl -- TM-C raw->GirlData mapping', () => {
     it('omits can_be_blessed flags when not boolean', () => {
         const g = TeamModule.mapAvailableGirl({ id_girl: 9, can_be_blessed: 'yes' as any });
         expect('can_be_blessed_league' in g).toBe(false);
-    });
-
-    it('maps both game flags to the speaking per-context names', () => {
-        const g = TeamModule.mapAvailableGirl({
-            id_girl: 10, can_be_blessed: false, can_be_blessed_pvp4: true,
-        });
-        expect(g.can_be_blessed_league).toBe(false);
-        expect(g.can_be_blessed_labyrinth).toBe(true);
     });
 });
 

@@ -1,0 +1,217 @@
+[
+  {
+    "id_girl": 293173456,
+    "skills": {
+      "1": {
+        "id_skill": 1,
+        "tier": 1,
+        "skill": {
+          "id_skill": 1,
+          "tier": 1,
+          "flat_value": 200,
+          "percentage_value": null
+        }
+      },
+      "2": {
+        "id_skill": 2,
+        "tier": 1,
+        "skill": {
+          "id_skill": 2,
+          "tier": 1,
+          "flat_value": null,
+          "percentage_value": 10
+        }
+      },
+      "4": {
+        "id_skill": 4,
+        "tier": 2,
+        "skill": {
+          "id_skill": 4,
+          "tier": 2,
+          "flat_value": null,
+          "percentage_value": 5
+        }
+      },
+      "5": {
+        "id_skill": 5,
+        "tier": 2,
+        "skill": {
+          "id_skill": 5,
+          "tier": 2,
+          "flat_value": 350,
+          "percentage_value": null
+        }
+      },
+      "8": {
+        "id_skill": 8,
+        "tier": 3,
+        "skill": {
+          "id_skill": 8,
+          "tier": 3,
+          "flat_value": null,
+          "percentage_value": 1
+        }
+      },
+      "9": {
+        "id_skill": 9,
+        "tier": 4,
+        "skill": {
+          "id_skill": 9,
+          "tier": 4,
+          "flat_value": null,
+          "percentage_value": 1
+        }
+      },
+      "12": {
+        "id_skill": 12,
+        "tier": 5,
+        "skill": {
+          "id_skill": 12,
+          "tier": 5,
+          "flat_value": null,
+          "percentage_value": 40
+        }
+      },
+      "21": {
+        "id_skill": 21,
+        "tier": 5,
+        "skill": {
+          "id_skill": 21,
+          "tier": 5,
+          "flat_value": 4,
+          "percentage_value": 8
+        }
+      }
+    }
+  },
+  {
+    "id_girl": 12188250,
+    "skills": {
+      "1": {
+        "id_skill": 1,
+        "tier": 1,
+        "skill": {
+          "id_skill": 1,
+          "tier": 1,
+          "flat_value": 200,
+          "percentage_value": null
+        }
+      },
+      "2": {
+        "id_skill": 2,
+        "tier": 1,
+        "skill": {
+          "id_skill": 2,
+          "tier": 1,
+          "flat_value": null,
+          "percentage_value": 10
+        }
+      },
+      "4": {
+        "id_skill": 4,
+        "tier": 2,
+        "skill": {
+          "id_skill": 4,
+          "tier": 2,
+          "flat_value": null,
+          "percentage_value": 4
+        }
+      },
+      "5": {
+        "id_skill": 5,
+        "tier": 2,
+        "skill": {
+          "id_skill": 5,
+          "tier": 2,
+          "flat_value": 350,
+          "percentage_value": null
+        }
+      },
+      "8": {
+        "id_skill": 8,
+        "tier": 3,
+        "skill": {
+          "id_skill": 8,
+          "tier": 3,
+          "flat_value": null,
+          "percentage_value": 0.8
+        }
+      },
+      "9": {
+        "id_skill": 9,
+        "tier": 4,
+        "skill": {
+          "id_skill": 9,
+          "tier": 4,
+          "flat_value": null,
+          "percentage_value": 0.8
+        }
+      }
+    }
+  },
+  {
+    "id_girl": 364398698,
+    "skills": {
+      "1": {
+        "id_skill": 1,
+        "tier": 1,
+        "skill": {
+          "id_skill": 1,
+          "tier": 1,
+          "flat_value": 200,
+          "percentage_value": null
+        }
+      },
+      "2": {
+        "id_skill": 2,
+        "tier": 1,
+        "skill": {
+          "id_skill": 2,
+          "tier": 1,
+          "flat_value": null,
+          "percentage_value": 10
+        }
+      },
+      "4": {
+        "id_skill": 4,
+        "tier": 2,
+        "skill": {
+          "id_skill": 4,
+          "tier": 2,
+          "flat_value": null,
+          "percentage_value": 5
+        }
+      },
+      "5": {
+        "id_skill": 5,
+        "tier": 2,
+        "skill": {
+          "id_skill": 5,
+          "tier": 2,
+          "flat_value": 350,
+          "percentage_value": null
+        }
+      },
+      "8": {
+        "id_skill": 8,
+        "tier": 3,
+        "skill": {
+          "id_skill": 8,
+          "tier": 3,
+          "flat_value": null,
+          "percentage_value": 1
+        }
+      },
+      "9": {
+        "id_skill": 9,
+        "tier": 4,
+        "skill": {
+          "id_skill": 9,
+          "tier": 4,
+          "flat_value": null,
+          "percentage_value": 1
+        }
+      }
+    }
+  }
+]
