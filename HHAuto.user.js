@@ -19064,12 +19064,19 @@ class EquipmentGear {
                     logHHAuto('Gear: read 0 equipped items from #equiped .armor div[id_item].'
                         + ' The per-slot cost below is measured against an empty slot.');
                 }
-                const byId = new Map();
+                // Keyed by source as well as id. The worn panel and the
+                // inventory draw their ids from two different spaces that
+                // overlap in range (measured: inventory 567,162..2,136,163,515,
+                // worn 464,128..2,806,648), so a bare numeric key can collide
+                // and silently drop whichever item lost the merge -- taking a
+                // candidate out of the running with no error anywhere.
+                const byKey = new Map();
                 for (const item of [...equipped, ...inventory]) {
-                    if (!byId.has(item.id_member_armor))
-                        byId.set(item.id_member_armor, item);
+                    const key = `${item.equipped ? 'eq' : 'inv'}:${item.id_member_armor}`;
+                    if (!byKey.has(key))
+                        byKey.set(key, item);
                 }
-                const all = [...byId.values()];
+                const all = [...byKey.values()];
                 const plan = mode === 'current'
                     ? planCurrentBest(all, playerClass, theme)
                     : planPossibleBest(all, playerClass, theme);
