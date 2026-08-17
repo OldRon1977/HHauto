@@ -12,7 +12,7 @@ HHAuto_ToolTips.en['waitforContest'] = { version: "6.10.0", elementText: "Wait f
 HHAuto_ToolTips.en['settPerTab'] = { version: "5.6.24", elementText: "Settings per tab", tooltip: "Allow the settings to be set for this tab only"};
 HHAuto_ToolTips.en['paranoia'] = { version: "5.6.24", elementText: "Paranoia mode", tooltip: "Allow to simulate sleep, and human user (To be documented further)"};
 HHAuto_ToolTips.en['paranoiaSpendsBefore'] = { version: "5.6.24", elementText: "Spend points before", tooltip: "On will spend points for options (quest, Troll, Leagues and Season)<br>only if they are enabled<br>and spend points that would be above max limits<br>Ex : you have power for troll at 17, but going 4h45 in paranoia<br>it would mean having 17+10 points (rounded to higher int), thus being above the 20 max<br> it will then spend 8 points to fall back to 19 end of Paranoia, preventing to loose points."};
-HHAuto_ToolTips.en['spendKobans0'] = { version: "5.6.24", elementText: "Spend Kobans", tooltip: "<p style='color:red'>/!\\ Allow Kobans spending /!\\</p>Security switches for usage of kobans, needs to be active for Kobans spending functions"};
+HHAuto_ToolTips.en['spendKobans0'] = { version: "8.10.0", elementText: "Spend Kobans", tooltip: "<p style='color:red'>/!\\ Allow Kobans spending /!\\</p>Security switch for koban usage. Must be ON before any function is allowed to spend kobans."};
 //HHAuto_ToolTips.en['spendKobans1'] = { version: "5.6.24", elementText: "Are you sure?", tooltip: "Second security switches for usage of kobans <br>Have to be activated after the first one.<br> All 3 needs to be active for Kobans spending functions"};
 //HHAuto_ToolTips.en['spendKobans2'] = { version: "5.6.24", elementText: "You\'ve been warned", tooltip: "Third security switches for usage of kobans <br>Have to be activated after the second one.<br> All 3 needs to be active for Kobans spending functions"};
 HHAuto_ToolTips.en['kobanBank'] = { version: "5.6.24", elementText: "Kobans Bank", tooltip: "(Integer)<br>Minimum Kobans kept when using Kobans spending functions"};
@@ -210,7 +210,7 @@ HHAuto_ToolTips.en['equipementType'] = { version: "5.6.24", elementText: "Type",
 HHAuto_ToolTips.en['autoMissionKFirst'] = { version: "5.6.24", elementText: "Kobans first", tooltip: "Start by missions rewarded with Kobans."};
 HHAuto_ToolTips.en['affection'] = { version: "6.11.0", elementText: "Affection"};
 HHAuto_ToolTips.en['experience'] = { version: "6.11.0", elementText: "Experience"};
-HHAuto_ToolTips.en['upradable'] = { version: "6.11.0", elementText: "Upradable"};
+HHAuto_ToolTips.en['upradable'] = { version: "8.10.0", elementText: "Upgradable"};
 HHAuto_ToolTips.en['skills'] = { version: "7.16.0", elementText: "Skills"};
 HHAuto_ToolTips.en['giveexperience'] = { version: "6.2.0", elementText: "Give experience", tooltip: "Automatically give max current range Exp to selected girl."};
 HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: ""};
