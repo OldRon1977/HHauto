@@ -532,17 +532,6 @@ export class LeagueHelper {
 
         const tableRow = $(".data-list .data-row.body-row");
 
-        /*var getPowerOrPoints = function (hasHHBdsmChangeBefore, oppoRow)
-        {
-            if(hasHHBdsmChangeBefore) {
-                // HH++ BDSM script exist
-                // As power information is removed and replaced by simulation score, we need to use the score
-                return Number($('.data-column[column="power"] .matchRating-expected .matchRating-value', oppoRow).text().replace(',', '.'));
-            } else {
-                return parsePrice($('.data-column[column="power"]', oppoRow).text());
-            }
-        }*/
-
         logHHAuto('Number of player in league:' + tableRow.length + '. Number of opponent not fought in league:' + $('.data-list .data-row.body-row a').length);
 
         const opponents_list = getHHVars("opponents_list");

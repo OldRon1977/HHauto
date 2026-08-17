@@ -817,18 +817,6 @@ export class EventModule {
             // The collect logic on the actual event page checks availability before
             // acting; the toggle does not need to be in sync with the home banner.
         }
-/*
-        if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) : {};
-            for (const eventIDStored of Object.keys(eventList)) {
-                //console.log(eventID);
-                if (!ongoingEventIDs.includes(eventIDStored)) {
-                    logHHAuto(`Event ${eventIDStored} seems not available anymore, removing from store`);
-                    EventModule.clearEventData(eventIDStored);
-                }
-            }
-        }
-*/
         return {eventIDs:eventIDs,bossBangEventIDs:bossBangEventIDs};
     }
 }

@@ -58,11 +58,11 @@ export function getLanguageCode()
     return HHAuto_Lang;
 }
 
-/*
- 0: version strings are equal
- 1: version a is greater than b
--1: version b is greater than a
-*/
+/**
+ * Vergleicht zwei Versionsstrings.
+ *
+ * @returns `0` gleich, `1` a groesser als b, `-1` b groesser als a
+ */
 function cmpVersions(a: string, b: string)
 {
     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }) ;

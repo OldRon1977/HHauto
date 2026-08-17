@@ -327,15 +327,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     }
 }
 
-/*function calculateTier4SkillValue(teamGirlsArray): { dmg: number, def: number } {
-    let skill_tier_4 = { dmg: 0, def: 0 };
-
-    teamGirlsArray.forEach((girl) => {
-        if (girl.skills && girl.skills[9]) skill_tier_4.dmg += girl.skills[9].skill.percentage_value / 100;
-        if (girl.skills && girl.skills[10]) skill_tier_4.def += girl.skills[10].skill.percentage_value / 100;
-    })
-    return skill_tier_4;
-}*/
 /**
  * Estimate tier-4 skill bonuses from skill_tiers_info.
  * The exact skill data is not always available from the API, so we estimate
@@ -349,20 +340,6 @@ function estimateTier4SkillValue(teamGirlsArray: any): { dmg: number, def: numbe
         })
     return skill_tier_4;
 }
-
-/*const tier5_Skill_Id = [11, 12, 13, 14];
-function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number } {
-    let skill_tier_5 = { id: 0, value: 0 };
-    const girl = teamGirlsArray[0];
-
-    tier5_Skill_Id.forEach((id) => {
-        if (girl.skills && girl.skills[id]) {
-            skill_tier_5.id = id;
-            skill_tier_5.value = (id == 11) ? parseInt(girl.skills[id].skill.display_value_text, 10) / 100 : girl.skills[id].skill.percentage_value / 100;
-        }
-    })
-    return skill_tier_5;
-}*/
 
 /**
  * Estimate the tier-5 (leader) skill from the first girl's element.
@@ -404,32 +381,6 @@ function estimateTier5SkillValue(teamGirlsArray: any): { id: number, value: numb
     return skill_tier_5;
 }
 
-/*
-commented        const girlDictionary
-replaced         const girlCount = girlDictionary.size || 800
-              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize")).count:800;
-              *
-export function calculateSynergiesFromTeamMemberElements(elements) {
-    const counts = countElementsInTeam(elements)
-
-    // Only care about those not included in the stats already: fire, stone, sun and water
-    // Assume max harem synergy
-    //const girlDictionary = (typeof(localStorage.HHPNMap) == "undefined") ? new Map(): new Map(JSON.parse(localStorage.HHPNMap));
-    const girlCount = getStoredJSON(HHStoredVarPrefixKey+TK.HaremSize", {count:800}).count;
-    const girlsPerElement = Math.min(girlCount / 8, 100)
-
-    return {
-        critDamage: (0.0035 * girlsPerElement) + (0.1  * counts.fire),
-        critChance: (0.0007 * girlsPerElement) + (0.02 * counts.stone),
-        defReduce:  (0.0007 * girlsPerElement) + (0.02 * counts.sun),
-        healOnHit:  (0.001  * girlsPerElement) + (0.03 * counts.water)
-    }
-}
-*/
-/*
-replaced       ELEMENTS
-by ConfigHelper.getHHScriptVars("ELEMENTS")
-*/
 /**
  * Calculate elemental domination bonuses for both sides.
  * Each element on team A that dominates a matching element on team B

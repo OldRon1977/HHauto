@@ -66,13 +66,6 @@ export function getCallerCallerFunction()
     try{
     console.log('Function ' + match![3] + ' at ' + match![4])
     }catch(err){}
-    /*
-    var callerName;
-    {
-        let re = /([^(]+)@|at ([^(]+) \(/g;
-        let aRegexResult = re.exec(new Error().stack);
-        callerName = aRegexResult[1] || aRegexResult[2];
-    }*/
     //console.log(callerName);
     return callerName;
     //return getCallerCallerFunction.caller.caller.name
@@ -118,20 +111,6 @@ export function getCurrentSorting()
 {
     return localStorage.sort_by;
 }
-
-/* Used ? 
-export function waitForKeyElements (selectorTxt,maxMilliWaitTime)
-{
-    var targetNodes;
-    var timer= new Date().getTime() + maxMilliWaitTime;
-    targetNodes = jQuery(selectorTxt);
-
-    while ( targetNodes.length === 0 && Math.ceil(timer)-Math.ceil(new Date().getTime()) > 0)
-    {
-        targetNodes = jQuery(selectorTxt);
-    }
-    return targetNodes.length !== 0);
-}*/
 
 
 export function myfileLoad_onChange(event: any)

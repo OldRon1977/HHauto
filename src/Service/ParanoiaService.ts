@@ -321,22 +321,6 @@ export class ParanoiaService {
         setTimer('paranoiaSwitch', toNextSwitch);
         //force recheck non completed event after paranoia
         if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
-            /*
-            let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
-            for (let eventID of Object.keys(eventList))
-            {
-                //console.log(eventID);
-                if (!eventList[eventID]["isCompleted"])
-                {
-                    eventList[eventID]["next_refresh"]=new Date().getTime()-1000;
-                    //console.log("expire");
-                    if(Object.keys(eventList).length >0)
-                    {
-                        setStoredValue(HHStoredVarPrefixKey+TK.eventsList, JSON.stringify(eventList));
-                    }
-                }
-            }
-            */
             //sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }

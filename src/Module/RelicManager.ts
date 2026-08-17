@@ -143,22 +143,4 @@ export class RelicManager {
         }
     }
 
-    /*static testRelicParser(){
-        try {
-            const observer = new MutationObserver(() => {
-                if ($('.relics-grid').length > 0) {
-                    const rewards: LabyrinthRelic[] = [];
-                    $.each($('#relics_tab_container .relic-container'), (rewIndex, $reward) => {
-                        const labyReward = new LabyrinthRelic(rewIndex, $($reward));
-                        rewards.push(labyReward);
-                    });
-                    logHHAuto('Laby relic', rewards);
-                }
-            })
-            observer.observe($('#relics_tab_container .relics-container')[0], { childList: true, attributes: false });
-
-        } catch (err) {
-
-        }
-    }*/
 }

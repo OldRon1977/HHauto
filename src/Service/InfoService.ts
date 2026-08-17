@@ -143,15 +143,6 @@ export function updateData() {
         {
             Tegzd += PentaDrill.getPinfo();
         }
-        /*
-        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) =="true")
-        {
-            Tegzd += '<li>Collect POV : '+getTimeLeft('nextPoVCollectTime')+'</li>';
-        }
-        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) =="true")
-        {
-            Tegzd += '<li>Collect POG : '+getTimeLeft('nextPoGCollectTime')+'</li>';
-        }*/
         if (ConfigHelper.getHHScriptVars('isEnabledLeagues',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoLeagues) =="true")
         {
             Tegzd += LeagueHelper.getPinfo();

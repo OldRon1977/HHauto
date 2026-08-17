@@ -27,17 +27,6 @@ export class EventGirl {
             this.parseSource(girlData);
         }
     }
-    /*
-    constructor(girl_id: number, troll_id: number, champ_id: number, girl_shards: number, girl_name: string, event_id: string, is_mythic: boolean = false) {
-        this.girl_id = girl_id;
-        this.troll_id = troll_id;
-        this.champ_id = champ_id;
-        this.girl_shards = girl_shards;
-        this.is_mythic = is_mythic;
-        this.girl_name = girl_name;
-        this.event_id = event_id;
-    }*/
-
     isOnTroll() : boolean {
         return this.troll_id > 0;
     }
