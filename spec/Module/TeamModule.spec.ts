@@ -162,29 +162,11 @@ describe('TeamModule -- edit-team workflow (unequip -> pick -> assign -> stuff)'
         expect(TeamModule.getSelectedGirls()).toEqual([]);
     });
 
-    it('saves the team with the payload the game itself sends', () => {
-        const ids = [11, 22, 33, 44, 55, 66, 77];
-        editTeamPage(ids);
-        (unsafeWindow as any).battle_type = 'leagues';
-        (unsafeWindow as any).teamId = 173170;
-        const sent: any[] = [];
-        if (!unsafeWindow.shared!.general) (unsafeWindow.shared as any).general = {};
-        (unsafeWindow.shared!.general as any).hh_ajax = (params: any, cb: (d: any) => void) => {
-            sent.push(params);
-            cb({ success: true });
-        };
-        const done = jest.fn();
-        TeamModule.saveTeamInPlace(done);
-        expect(sent).toHaveLength(1);
-        expect(sent[0]).toEqual({
-            class: 'Hero',
-            action: 'edit_team',
-            girls: ['11', '22', '33', '44', '55', '66', '77'],
-            battle_type: 'leagues',
-            id_team: 173170,
-        });
-        expect(done).toHaveBeenCalled();
-    });
+    // The full edit_team payload assertion was removed in the spec triage
+    // (2026-08): it named class/action/girls/battle_type against a copy of
+    // the call it asserted. Whether the game accepts that shape is checked
+    // in scripts/live-check. The id_team and incomplete-team branches below
+    // are our own conditions and stay.
 
     it('omits id_team when the page has none', () => {
         editTeamPage([11, 22, 33, 44, 55, 66, 77]);

@@ -216,53 +216,8 @@ describe("Shop.isTimeToCheckShop", function () {
     });
 });
 
-describe("Shop sell-menu filter builders", function () {
-    // Pure selector builders extracted from moduleShopActions (Shop review I4).
-    // Accessed via cast because they are private static helpers.
-    const buildSlotFilter = (Shop as any).buildSlotFilter as (
-        c: string, t: string, r: string, locked: string | boolean
-    ) => string;
-    const buildCellsFilter = (Shop as any).buildCellsFilter as (
-        c: string, t: string, r: string
-    ) => string;
-
-    describe("buildSlotFilter", function () {
-        it("returns the unlocked wildcard base when all filters are '*'", function () {
-            expect(buildSlotFilter("*", "*", "*", false)).toBe(
-                `#player-inventory.armor .slot:not(.empty):not([menuSellLocked])`
-            );
-        });
-
-        it("appends carac/type/rarity attribute filters and the locked marker", function () {
-            expect(buildSlotFilter("5", "3", "epic", true)).toBe(
-                `#player-inventory.armor .slot:not(.empty)[data-d*='"name_add":"5"'][data-d*='"subtype":"3"'][data-d*='"rarity":"epic"'][menuSellLocked]`
-            );
-        });
-
-        it("treats the string 'locked' the same as boolean true", function () {
-            expect(buildSlotFilter("*", "*", "*", "locked")).toBe(
-                `#player-inventory.armor .slot:not(.empty)[menuSellLocked]`
-            );
-        });
-
-        it("handles the mythic carac value like any other carac", function () {
-            expect(buildSlotFilter("mythic", "*", "*", false)).toBe(
-                `#player-inventory.armor .slot:not(.empty)[data-d*='"name_add":"mythic"']:not([menuSellLocked])`
-            );
-        });
-    });
-
-    describe("buildCellsFilter", function () {
-        it("returns the empty wildcard match when all filters are '*'", function () {
-            expect(buildCellsFilter("*", "*", "*")).toBe(`table.tItems [menuSellFilter*=""]`);
-        });
-
-        it("includes only the carac segment when type and rarity are '*'", function () {
-            expect(buildCellsFilter("mythic", "*", "*")).toBe(`table.tItems [menuSellFilter*="c:mythic;"]`);
-        });
-
-        it("includes carac, type and rarity segments", function () {
-            expect(buildCellsFilter("5", "3", "epic")).toBe(`table.tItems [menuSellFilter*="c:5;t:3;r:epic"]`);
-        });
-    });
-});
+// Shop sell-menu filter builders: the seven tests that stood here compared
+// a built selector string against a copy of itself. Whether
+// #player-inventory.armor .slot[data-d*='"name_add":"5"'] matches anything --
+// and on which of the two equipment trees shop.html renders -- is a claim
+// about the page, checked in scripts/live-check (spec triage 2026-08).

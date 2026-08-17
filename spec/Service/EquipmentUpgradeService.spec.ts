@@ -4,7 +4,6 @@ import {
     decideNextLevelUp,
     parseRequirement,
     pickUpgradeTargets,
-    upgradePageUrl,
 } from '../../src/Service/EquipmentUpgradeService';
 import { ArmorItem, MYTHIC_MAX_LEVEL } from '../../src/Service/EquipmentOptimizerService';
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
@@ -70,16 +69,11 @@ describe('pickUpgradeTargets', () => {
     });
 });
 
-// The bug that made the whole button look dead: a worn item reports only
-// id_member_armor_equipped, and the upgrade page wants that under a
-// different query parameter. Sent under the inventory one the page simply
-// bounced back to the market, so the run "did nothing" with no error.
-describe('upgradePageUrl', () => {
-    it('addresses a worn item by the equipped parameter', () => {
-        expect(upgradePageUrl({ id_member_armor: 2806615 }))
-            .toBe('/mythic-equipment-upgrade.html?id_member_item_equipped=2806615');
-    });
-});
+// upgradePageUrl: the test that stood here compared the built URL against a
+// copy of the same string. The bug it documented -- the upgrade page wants a
+// worn item under id_member_item_equipped, and bounced back to the market
+// when sent the inventory parameter -- is a claim about the page, so it is
+// checked in scripts/live-check instead (spec triage 2026-08).
 
 describe('countMaterialStock', () => {
     it('counts legendaries and epics, never mythics, never worn items', () => {

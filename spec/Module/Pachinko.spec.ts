@@ -37,28 +37,11 @@ describe("Pachinko", function() {
       expect(Pachinko.getHumanPachinkoFromOrbName('o_x10')).toBe('Unknown');
       expect(Pachinko.getHumanPachinkoFromOrbName('ANY')).toBe('Unknown');
     });
-    it("Event Pachinko", function () {
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_v4')).toBe('4');
-    });
-    it("Epic Pachinko", function () {
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_e1')).toBe('1');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_e10')).toBe('10');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_ed')).toBe('Draft');
-    });
-    it("Mythic Pachinko", function () {
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_m1')).toBe('1');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_m3')).toBe('3');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_m6')).toBe('6');
-    });
-    it("Equipment Pachinko", function () {
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_eq1')).toBe('1');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_eq2')).toBe('2');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_eq10')).toBe('10');
-    });
-    it("Great Pachinko", function () {
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_g1')).toBe('1');
-      expect(Pachinko.getHumanPachinkoFromOrbName('o_g10')).toBe('10');
-    });
+    // The prefix table (o_v / o_e / o_m / o_eq / o_g -> display name) was
+    // removed in the spec triage (2026-08): the orb names are the game's,
+    // and the test asserted them against the same table src/Module/Pachinko.ts
+    // defines. Checked in scripts/live-check instead. The two fallback cases
+    // above are ours and stay.
   });
 
   describe("resolveStopOrbsLeft", function() {

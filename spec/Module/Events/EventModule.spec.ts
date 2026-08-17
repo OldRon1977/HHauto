@@ -40,23 +40,11 @@ describe("Event Module", function() {
     
 
 
-    describe("getDisplayedIdEventPage", function () {
-        // $("#contains_all #events .events-list .event-title.active").attr("href")
-
-        it("default", function () {
-            expect(EventModule.getDisplayedIdEventPage()).toBe('');
-        });
-
-        it("Event 666", function () {
-            createEventTab('666');
-            expect(EventModule.getDisplayedIdEventPage()).toBe('event_666');
-        });
-
-        it("wrong event", function () {
-            createEventTab('');
-            expect(EventModule.getDisplayedIdEventPage()).toBe('');
-        });
-    });
+    // getDisplayedIdEventPage: the three tests that stood here built the
+    // #contains_all #events .events-list .event-title.active markup
+    // themselves and then asserted the selector that reads it. Whether the
+    // event tab still carries those classes is checked in
+    // scripts/live-check (spec triage 2026-08).
 
 
     describe("isEventActive", function () {

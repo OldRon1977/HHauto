@@ -1,0 +1,206 @@
+{
+  "baseUrl": "https://www.hentaiheroes.com",
+  "checks": [
+    {
+      "id": "league-anchors",
+      "claim": "leagues.html carries the anchors the header injection mounts into",
+      "source": "src/Module/League.ts:353,374 (moduleSimLeagueHideBeatenOppo)",
+      "page": "/leagues.html",
+      "kind": "selector",
+      "assert": [
+        { "selector": "#leagues", "min": 1 },
+        { "selector": "#leagues .league_content", "min": 1 },
+        { "selector": ".league_content .league_table", "min": 1 },
+        { "selector": ".league_content .data-list", "min": 1 }
+      ]
+    },
+    {
+      "id": "league-sort-columns",
+      "claim": "the opponent table still exposes sortable columns",
+      "source": "src/Module/League.ts:250 (columnHeadSelector)",
+      "page": "/leagues.html",
+      "kind": "selector",
+      "assert": [{ "selector": ".league_content .data-list .data-column[sorting]", "min": 1 }]
+    },
+    {
+      "id": "league-end-timer",
+      "claim": "the league end timer is where getLeagueEndTime reads it",
+      "source": "src/Module/League.ts:49",
+      "page": "/leagues.html",
+      "kind": "selector",
+      "assert": [{ "selector": "#leagues .league_end_in .timer span[rel=\"expires\"]", "min": 1 }]
+    },
+    {
+      "id": "shop-player-inventory",
+      "claim": "the sell menu's armor grid exists and carries data-d payloads",
+      "source": "src/Module/Shop.ts:122,172 (buildSlotFilter, itemsQuery)",
+      "page": "/shop.html",
+      "kind": "selector",
+      "assert": [
+        { "selector": "#player-inventory.armor", "min": 1 },
+        { "selector": "#player-inventory.armor .slot:not(.empty)", "min": 1 },
+        { "selector": "#player-inventory.armor .slot:not(.empty)[data-d]", "min": 1 }
+      ],
+      "note": "shop.html renders two equipment trees; the one with the data is not the visible one. Counts are taken without a visibility filter on purpose."
+    },
+    {
+      "id": "shop-data-d-shape",
+      "claim": "data-d still carries name_add, subtype and rarity -- the three keys the sell filter matches on",
+      "source": "src/Module/Shop.ts:122 (buildSlotFilter attribute selectors)",
+      "page": "/shop.html",
+      "kind": "harvest",
+      "selector": "#player-inventory.armor .slot:not(.empty)[data-d]",
+      "attribute": "data-d",
+      "extract": "keys",
+      "expectKeys": ["name_add", "subtype", "rarity"]
+    },
+    {
+      "id": "shop-merchant-buckets",
+      "claim": "the four merchant buckets updateShop scrapes are still named the same",
+      "source": "src/Module/Shop.ts:69-73 (updateShop)",
+      "page": "/shop.html",
+      "kind": "selector",
+      "assert": [
+        { "selector": "#shops", "min": 1 },
+        { "selector": "#shops div.gift.player-inventory-content .slot", "min": 0 },
+        { "selector": "#shops div.potion.player-inventory-content .slot", "min": 0 },
+        { "selector": "#shops div.booster.player-inventory-content .slot", "min": 0 },
+        { "selector": "#shops div.armor.merchant-inventory-item .slot", "min": 1 }
+      ],
+      "note": "player-inventory buckets are legitimately empty when nothing is owned; only the merchant side must be populated."
+    },
+    {
+      "id": "event-tab-anchor",
+      "claim": "the event tab strip still marks the open event with .event-title.active",
+      "source": "src/Module/Events/EventModule.ts:157,760",
+      "page": "/event.html",
+      "kind": "selector",
+      "assert": [
+        { "selector": "#contains_all #events .events-list", "min": 1 },
+        { "selector": ".events-list a.event-title", "min": 1 },
+        { "selector": "#contains_all #events .events-list .event-title.active[href]", "min": 1 }
+      ]
+    },
+    {
+      "id": "pop-list",
+      "claim": "the Place-of-Power tab still distinguishes the main list from a single POP",
+      "source": "src/Helper/PageHelper.ts (getPage pop branch), src/Module/PlaceOfPower.ts",
+      "page": "/activities.html?tab=pop",
+      "kind": "selector",
+      "assert": [
+        { "selector": ".pop_list", "min": 1 },
+        { "selector": ".pop_list .pop_thumb[pop_id]", "min": 1 }
+      ]
+    },
+    {
+      "id": "pop-globals",
+      "claim": "pop_list and pop_index are still page globals",
+      "source": "src/Helper/PageHelper.ts (getPage pop branch)",
+      "page": "/activities.html?tab=pop",
+      "kind": "global",
+      "globals": ["pop_list"]
+    },
+    {
+      "id": "daily-goals-global",
+      "claim": "daily_goals_list is the global DailyGoals.parse reads",
+      "source": "src/Module/DailyGoals.ts (parse)",
+      "page": "/activities.html?tab=daily_goals",
+      "kind": "global",
+      "globals": ["daily_goals_list"]
+    },
+    {
+      "id": "pachinko-orb-names",
+      "claim": "every orb name the page offers is one getHumanPachinkoFromOrbName knows",
+      "source": "src/Module/Pachinko.ts:540 (getHumanPachinkoFromOrbName)",
+      "page": "/pachinko.html",
+      "kind": "harvest",
+      "selector": "[orb_name]",
+      "attribute": "orb_name",
+      "extract": "value",
+      "allow": ["^o_v\\d+$", "^o_e(d|\\d+)$", "^o_eq\\d+$", "^o_m\\d+$", "^o_g\\d+$"],
+      "note": "An unknown prefix means the mapping table needs a new case, not that the check is broken."
+    },
+    {
+      "id": "girl-equipment-slots",
+      "claim": "the girl equipment tab still renders six .equipment_slot elements",
+      "source": "src/Module/harem/HaremGirl.ts (optimizeEquipmentSlots)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "Open any owned girl as /girl/<id_girl>?resource=equipment -- NOT the books tab.",
+        "Expect 6 elements matching .equipment_slot with slot=\"1\"..\"6\".",
+        "Measured 2026-08-15: 6 slots present. The books tab has none, which is what made this look broken once."
+      ]
+    },
+    {
+      "id": "gift-button",
+      "claim": "the affection max-out button keeps its id",
+      "source": "src/Module/harem/HaremGirl.ts (canGiftGirl)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "Open an upgradable girl (graded < nb_grades).",
+        "Expect #girl-leveler-max-out-affection to exist and be clickable."
+      ]
+    },
+    {
+      "id": "reward-slot-classes",
+      "claim": "the reward popup still labels its slots with the classes getRewardTypeBySlot maps",
+      "source": "src/Helper/RewardHelper.ts:48-99",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "Trigger any reward popup (daily reward, path-of-valor claim, mission reward).",
+        "In the console: [...document.querySelectorAll('.slot,.shards_girl_ico')].map(e => e.className)",
+        "Every class must fall under one of: cur attribute, shards_girl_ico, slot_avatar (+girl_ico), girl-shards-slot, slot_girl_shards, slot_random_girl, mythic, slot_scrolls_*, slot_seasonal_event_cash, data-d, or the possible-rewards list.",
+        "A class that matches none of those is the drift: getRewardTypeBySlot returns 'undetected' for it."
+      ]
+    },
+    {
+      "id": "reward-quantity-markup",
+      "claim": "quantities still sit in .amount and the shards attribute",
+      "source": "src/Helper/RewardHelper.ts (getRewardQuantityByType)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "In the same reward popup: a girl-shard slot must carry .shards[shards], everything countable must carry .amount.",
+        "Currency amounts are formatted (1,0M / 1,0K) and go through parsePrice."
+      ]
+    },
+    {
+      "id": "equip-booster-call",
+      "claim": "market_equip_booster still accepts action/id_item/type",
+      "source": "src/Helper/HeroHelper.ts (equipBooster)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "This is a write. Equip one booster by hand with the network tab open.",
+        "Expect a POST to /ajax.php with action=market_equip_booster, id_item=<numeric>, type=booster, answering {success:true}.",
+        "If the game renamed the action or the parameter, the equip path dies silently -- HHauto only sees success:false."
+      ]
+    },
+    {
+      "id": "upgrade-page-param",
+      "claim": "the mythic upgrade page addresses a worn item by id_member_item_equipped",
+      "source": "src/Service/EquipmentUpgradeService.ts:45 (upgradePageUrl)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "Take a worn mythic below level 20 and open /mythic-equipment-upgrade.html?id_member_item_equipped=<id>.",
+        "Expect the upgrade page for that item. A bounce back to the market means the parameter changed -- that was the August 2026 bug.",
+        "Also confirm item_to_upgrade.level in the console: it is captured at page build and does NOT follow a level-up in the same page."
+      ]
+    },
+    {
+      "id": "edit-team-payload",
+      "claim": "edit_team still takes class/action/girls/battle_type/id_team",
+      "source": "src/Module/TeamModule.ts (saveTeamInPlace)",
+      "page": "manual",
+      "kind": "manual",
+      "instructions": [
+        "This is a write. Save a team by hand on /edit-team.html with the network tab open.",
+        "Expect class=Hero, action=edit_team, girls[] as strings, battle_type, id_team when the page has one."
+      ]
+    }
+  ]
+}
