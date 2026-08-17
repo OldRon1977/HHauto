@@ -4,6 +4,7 @@ import {
     decideNextLevelUp,
     parseRequirement,
     pickUpgradeTargets,
+    upgradePageUrl,
 } from '../../src/Service/EquipmentUpgradeService';
 import { ArmorItem, MYTHIC_MAX_LEVEL } from '../../src/Service/EquipmentOptimizerService';
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
@@ -66,6 +67,17 @@ describe('pickUpgradeTargets', () => {
         // levelling it is the whole point.
         const young = item({ rarity: 'mythic', level: 1, equipped: true, classId: '3', themeId: 'sun' });
         expect(pickUpgradeTargets([young], KNOW_HOW, 'sun')[0].tier).toBe(1);
+    });
+});
+
+// The bug that made the whole button look dead: a worn item reports only
+// id_member_armor_equipped, and the upgrade page wants that under a
+// different query parameter. Sent under the inventory one the page simply
+// bounced back to the market, so the run "did nothing" with no error.
+describe('upgradePageUrl', () => {
+    it('addresses a worn item by the equipped parameter', () => {
+        expect(upgradePageUrl({ id_member_armor: 2806615 }))
+            .toBe('/mythic-equipment-upgrade.html?id_member_item_equipped=2806615');
     });
 });
 

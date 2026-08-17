@@ -30,6 +30,22 @@ export interface UpgradeTarget {
     tier: number;
 }
 
+/** The upgrade flow lives on its own page. Which query parameter it wants
+ *  depends on where the item sits (measured 2026-08-17):
+ *
+ *    inventory item : ?id_member_item=<id_member_armor>
+ *    worn item      : ?id_member_item_equipped=<id_member_armor_equipped>
+ *
+ *  The two id spaces are disjoint, so passing an equipped id under the
+ *  inventory parameter does not fail loudly -- the page just bounces back to
+ *  the market and the run looks like it did nothing. Upgrade Gear only ever
+ *  targets worn items, so it always uses the second form. */
+export const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
+
+export function upgradePageUrl(target: { id_member_armor: number }): string {
+    return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
+}
+
 /** Hard stop on level-ups per page load, so a misread response cannot spend
  *  an inventory. Each one costs money and material. */
 export const MAX_LEVELUPS_PER_PAGE = 30;

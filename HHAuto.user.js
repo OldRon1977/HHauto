@@ -18638,6 +18638,20 @@ function parseArmorItem(raw, isEquipped = false) {
 //
 // Used by: Module/EquipmentGear.ts
 
+/** The upgrade flow lives on its own page. Which query parameter it wants
+ *  depends on where the item sits (measured 2026-08-17):
+ *
+ *    inventory item : ?id_member_item=<id_member_armor>
+ *    worn item      : ?id_member_item_equipped=<id_member_armor_equipped>
+ *
+ *  The two id spaces are disjoint, so passing an equipped id under the
+ *  inventory parameter does not fail loudly -- the page just bounces back to
+ *  the market and the run looks like it did nothing. Upgrade Gear only ever
+ *  targets worn items, so it always uses the second form. */
+const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
+function upgradePageUrl(target) {
+    return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
+}
 /** Hard stop on level-ups per page load, so a misread response cannot spend
  *  an inventory. Each one costs money and material. */
 const MAX_LEVELUPS_PER_PAGE = 30;
@@ -18775,9 +18789,9 @@ var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (this
  *  the page sizes the game uses that is well under 100 requests. A cap this
  *  side of infinity keeps a changed response shape from looping forever. */
 const MAX_INVENTORY_PAGES = 120;
-/** The upgrade flow lives on its own page; the Level-up button on the market
- *  only navigates there. That is why no bundle contained the action. */
-const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
+/** How long a queue may sit untouched before the market page forgets it.
+ *  Long enough to survive the navigation the Start button triggers. */
+const STALE_QUEUE_MS = 90000;
 const SLOT_NAMES = {
     1: 'Head', 2: 'Body', 3: 'Legs', 4: 'Flag', 5: 'Pet', 6: 'Weapon',
 };
@@ -18798,6 +18812,7 @@ class EquipmentGear {
     static moduleGearActions() {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop"))
             return;
+        EquipmentGear.dropStaleUpgradeQueue();
         EquipmentGear.watchTabSwitch();
         // The player's own inventory has its own tab strip
         // (.my-hero-switch-tab: booster / armor / player-stats), separate
@@ -18838,6 +18853,29 @@ class EquipmentGear {
         $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
         $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
         $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
+    }
+    /**
+     * Forget an upgrade queue that is no longer being worked on.
+     *
+     * At the cap the game redirects off the upgrade page by itself, so the
+     * loop never reaches its own clean-up and the queue would sit in storage
+     * until the player happened to open an upgrade page again. Being back on
+     * the market with an old queue means the run is over one way or another.
+     * The age check is what keeps this from eating the queue the Start button
+     * just wrote, one navigation earlier.
+     */
+    static dropStaleUpgradeQueue() {
+        var _a;
+        const queue = getStoredJSON(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+        if (!Array.isArray(queue) || queue.length === 0)
+            return;
+        const startedAt = Number((_a = queue[0]) === null || _a === void 0 ? void 0 : _a.startedAt) || 0;
+        if (Date.now() - startedAt < STALE_QUEUE_MS)
+            return;
+        setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+        EquipmentGear.releaseAutoLoop();
+        logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
+            + ' the run is no longer on the upgrade page.');
     }
     /** Re-run the injection after a tab switch. The market swaps tabs without
      *  a page load, and it opens on Boosters -- so a one-shot injection from
@@ -19229,14 +19267,33 @@ class EquipmentGear {
         </div>`);
         $('#HHGearUpgradeStart').on('click', function () {
             $(this).attr('disabled', 'disabled').css('opacity', '0.5');
-            const queue = targets.map(t => ({ id: t.id_member_armor, name: t.name, slot: t.slot }));
+            const queue = targets.map(t => ({
+                id: t.id_member_armor, name: t.name, slot: t.slot, startedAt: Date.now(),
+            }));
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
             logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
             EquipmentGear.gotoUpgradePage(queue[0].id);
         });
     }
+    /**
+     * Go to an item's upgrade page.
+     *
+     * Parking the autoloop first is not optional. It issues its own
+     * navigations (the market refresh alone sends you back to shop.html),
+     * and a bare `location.href` assignment loses that race: the queue was
+     * written, the log said "going to the upgrade page", and the browser
+     * ended up back on the market with nothing done. gotoPage() sets the
+     * same flag for the same reason.
+     */
     static gotoUpgradePage(id) {
-        window.location.href = addNutakuSession(`${UPGRADE_PATH}?id_member_item=${id}`);
+        const target = addNutakuSession(upgradePageUrl({ id_member_armor: id }));
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+        logHHAuto('Gear: navigating to ' + target);
+        window.location.href = target;
+    }
+    /** Let the autoloop run again once the upgrade work is over. */
+    static releaseAutoLoop() {
+        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
     }
     // --------------------------------------------------- the upgrade page
     /** True on /mythic-equipment-upgrade.html. That page carries no `page`
@@ -19259,7 +19316,7 @@ class EquipmentGear {
      */
     static runUpgradePage() {
         return EquipmentGear_awaiter(this, void 0, void 0, function* () {
-            var _a, _b, _c, _d, _e, _f;
+            var _a, _b, _c, _d, _e, _f, _g;
             if (!EquipmentGear.isUpgradePage())
                 return;
             const queue = getStoredJSON(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
@@ -19270,11 +19327,14 @@ class EquipmentGear {
             EquipmentGear.running = true;
             const finish = (msg) => {
                 setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run finished -- ' + msg);
             };
             try {
                 const head = queue[0];
-                const onPage = Number((_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor);
+                // A worn item reports its id under id_member_armor_equipped, and
+                // the game sends it back as a string.
+                const onPage = Number((_b = (_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor_equipped) !== null && _b !== void 0 ? _b : (_c = unsafeWindow.item_to_upgrade) === null || _c === void 0 ? void 0 : _c.id_member_armor);
                 if (onPage !== head.id) {
                     // Someone navigated by hand, or the queue is stale. Acting
                     // here would spend material on an item nobody asked for.
@@ -19283,16 +19343,23 @@ class EquipmentGear {
                 }
                 const req = parseRequirement(document.body.innerText);
                 logHHAuto(`Gear: upgrading ${head.name} (slot ${head.slot}), level`
-                    + ` ${(_b = unsafeWindow.item_to_upgrade) === null || _b === void 0 ? void 0 : _b.level}. Game asks ${(_c = req.toNextLevel) !== null && _c !== void 0 ? _c : '?'}`
-                    + ` material for the next level, ${(_d = req.toMaxLevel) !== null && _d !== void 0 ? _d : '?'} to reach the cap.`);
+                    + ` ${(_d = unsafeWindow.item_to_upgrade) === null || _d === void 0 ? void 0 : _d.level}. Game asks ${(_e = req.toNextLevel) !== null && _e !== void 0 ? _e : '?'}`
+                    + ` material for the next level, ${(_f = req.toMaxLevel) !== null && _f !== void 0 ? _f : '?'} to reach the cap.`);
+                // `item_to_upgrade.level` is a snapshot from page load and does
+                // NOT move as levels are bought -- measured: it still read 1
+                // after nineteen successful level-ups. Counting from the load
+                // value is the only reliable level here. Over-counting a failed
+                // call only makes this stop early, which is the safe direction.
+                const startLevel = Number((_g = unsafeWindow.item_to_upgrade) === null || _g === void 0 ? void 0 : _g.level) || 0;
                 let performed = 0;
                 for (;;) {
                     $('#auto-select').trigger('click');
                     yield new Promise(r => setTimeout(r, randomInterval(700, 1200)));
-                    const level = Number((_e = unsafeWindow.item_to_upgrade) === null || _e === void 0 ? void 0 : _e.level) || 0;
                     const enabled = $('#level-up').length > 0
                         && !document.getElementById('level-up').disabled;
-                    const verdict = decideNextLevelUp({ currentLevel: level, levelUpEnabled: enabled, performed });
+                    const verdict = decideNextLevelUp({
+                        currentLevel: startLevel + performed, levelUpEnabled: enabled, performed,
+                    });
                     if (!verdict.go) {
                         logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
                         if (!verdict.done) {
@@ -19304,7 +19371,7 @@ class EquipmentGear {
                     $('#level-up').trigger('click');
                     performed++;
                     yield new Promise(r => setTimeout(r, randomInterval(1500, 2500)));
-                    logHHAuto(`Gear: ${head.name} is now level ${(_f = unsafeWindow.item_to_upgrade) === null || _f === void 0 ? void 0 : _f.level}`
+                    logHHAuto(`Gear: ${head.name} is now level ${startLevel + performed}`
                         + ` (${performed} level(s) this run).`);
                 }
                 const rest = queue.slice(1);
@@ -19312,12 +19379,13 @@ class EquipmentGear {
                     finish('every queued item is done.');
                     return;
                 }
-                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(rest));
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(rest.map(r => (Object.assign(Object.assign({}, r), { startedAt: Date.now() })))));
                 logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
                 EquipmentGear.gotoUpgradePage(rest[0].id);
             }
             catch (err) {
                 setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                EquipmentGear.releaseAutoLoop();
                 logHHAuto('Gear: upgrade run aborted: ' + err);
             }
             finally {

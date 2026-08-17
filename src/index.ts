@@ -90,7 +90,13 @@ declare global {
         player_inventory?: { armor?: unknown[]; [key: string]: unknown };
         // Only on /mythic-equipment-upgrade.html: the item that page is
         // raising. EquipmentGear reads its id and level to drive the run.
-        item_to_upgrade?: { id_member_armor?: number; level?: number; [key: string]: unknown };
+        item_to_upgrade?: {
+            id_member_armor?: number;
+            // Worn items report only this one, and as a string.
+            id_member_armor_equipped?: number | string;
+            level?: number;
+            [key: string]: unknown;
+        };
         season_sec_untill_event_end: number | undefined;
         seasonal_event_active: boolean;
         seasonal_time_remaining: number;
