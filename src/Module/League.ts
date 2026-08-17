@@ -246,19 +246,6 @@ export class LeagueHelper {
         return decideShouldFight(state);
     }
 
-    /* static async _refreshSorting(){
-        const columnHeadSelector = '.league_content .data-list .data-column[sorting]';
-        if ($(columnHeadSelector).length > 0 && $(columnHeadSelector+"[column='can_fight']").length == 0) {
-            // No need of it in case HH++OCD sorting
-            await TimeHelper.sleep(randomInterval(200, 400));
-            logHHAuto("Click sort");
-            $(columnHeadSelector).trigger('click');
-            await TimeHelper.sleep(randomInterval(200, 400));
-            $(columnHeadSelector).trigger('click');
-            await TimeHelper.sleep(randomInterval(200, 400));
-        }
-    }*/
-
     static moduleSimLeague() {
         try {
         LeagueHelper.moduleSimLeagueHideBeatenOppo();

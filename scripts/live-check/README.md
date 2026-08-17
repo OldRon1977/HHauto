@@ -69,6 +69,20 @@ neither applies here.
 Entries live in `checks.json`. Every entry names the claim and the call site it
 comes from, so a DRIFT can be traced back to the code that believes it.
 
+**Follow the selector to a live call site before adding it.** A grep hit is not
+a claim. The first run of this checker, 2026-08-17, produced exactly one DRIFT
+— `.league_content .data-list .data-column[sorting]` matched nothing — and the
+cause was this file, not the game: the selector sat inside a commented-out
+`_refreshSorting` block with no callers. The check asserted something the
+script had stopped believing. Concretely, for each new entry:
+
+1. `grep` the selector to find the reading code.
+2. Check it is not inside `/* … */` and that something calls it.
+3. Follow it up to the guard that decides when it runs — usually
+   `getPage() === ConfigHelper.getHHScriptVars("pagesIDxxx")`, a block
+   precondition in `Service/Pipeline.config.ts`, or a handler in
+   `Service/AutoLoopPageHandlers.ts` — and name that page in `page`.
+
 | `kind` | what it does |
 |---|---|
 | `selector` | counts each selector in `assert[]`, DRIFT below `min` (default 1). No visibility filter: `shop.html` renders two equipment trees and the one with the data is the hidden one. |

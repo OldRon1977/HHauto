@@ -8,19 +8,55 @@
       "page": "/leagues.html",
       "kind": "selector",
       "assert": [
-        { "selector": "#leagues", "min": 1 },
-        { "selector": "#leagues .league_content", "min": 1 },
-        { "selector": ".league_content .league_table", "min": 1 },
-        { "selector": ".league_content .data-list", "min": 1 }
+        {
+          "selector": "#leagues",
+          "min": 1
+        },
+        {
+          "selector": "#leagues .league_content",
+          "min": 1
+        },
+        {
+          "selector": ".league_content .league_table",
+          "min": 1
+        },
+        {
+          "selector": ".league_content .data-list",
+          "min": 1
+        }
       ]
     },
     {
-      "id": "league-sort-columns",
-      "claim": "the opponent table still exposes sortable columns",
-      "source": "src/Module/League.ts:250 (columnHeadSelector)",
+      "id": "league-opponent-rows",
+      "claim": "the opponent rows carry the match-history column the beaten-opponent filter reads",
+      "source": "src/Module/League.ts:445,464 (hideBeatenOpponents / displayBeatenOpponents)",
       "page": "/leagues.html",
       "kind": "selector",
-      "assert": [{ "selector": ".league_content .data-list .data-column[sorting]", "min": 1 }]
+      "assert": [
+        {
+          "selector": ".data-list .data-row.body-row",
+          "min": 1
+        },
+        {
+          "selector": ".data-list .data-row.body-row div[column='match_history'], .data-list .data-row.body-row div[column='match_history_sorting']",
+          "min": 1
+        }
+      ],
+      "note": "The code accepts either attribute and carries a note to drop match_history after the w32 update. Which of the two the page serves is worth reading off the run: if only match_history_sorting appears, the fallback can go."
+    },
+    {
+      "id": "league-match-history-legacy",
+      "claim": "the pre-w32 match_history attribute is still served",
+      "source": "src/Module/League.ts:445 (the 'remove match_history after w32 update' note)",
+      "page": "/leagues.html",
+      "kind": "selector",
+      "assert": [
+        {
+          "selector": ".data-list div[column='match_history']",
+          "min": 1
+        }
+      ],
+      "note": "A DRIFT here is good news, not a defect: it means the legacy branch can be deleted."
     },
     {
       "id": "league-end-timer",
@@ -28,7 +64,12 @@
       "source": "src/Module/League.ts:49",
       "page": "/leagues.html",
       "kind": "selector",
-      "assert": [{ "selector": "#leagues .league_end_in .timer span[rel=\"expires\"]", "min": 1 }]
+      "assert": [
+        {
+          "selector": "#leagues .league_end_in .timer span[rel=\"expires\"]",
+          "min": 1
+        }
+      ]
     },
     {
       "id": "shop-player-inventory",
@@ -37,9 +78,18 @@
       "page": "/shop.html",
       "kind": "selector",
       "assert": [
-        { "selector": "#player-inventory.armor", "min": 1 },
-        { "selector": "#player-inventory.armor .slot:not(.empty)", "min": 1 },
-        { "selector": "#player-inventory.armor .slot:not(.empty)[data-d]", "min": 1 }
+        {
+          "selector": "#player-inventory.armor",
+          "min": 1
+        },
+        {
+          "selector": "#player-inventory.armor .slot:not(.empty)",
+          "min": 1
+        },
+        {
+          "selector": "#player-inventory.armor .slot:not(.empty)[data-d]",
+          "min": 1
+        }
       ],
       "note": "shop.html renders two equipment trees; the one with the data is not the visible one. Counts are taken without a visibility filter on purpose."
     },
@@ -52,7 +102,11 @@
       "selector": "#player-inventory.armor .slot:not(.empty)[data-d]",
       "attribute": "data-d",
       "extract": "keys",
-      "expectKeys": ["name_add", "subtype", "rarity"]
+      "expectKeys": [
+        "name_add",
+        "subtype",
+        "rarity"
+      ]
     },
     {
       "id": "shop-merchant-buckets",
@@ -61,11 +115,26 @@
       "page": "/shop.html",
       "kind": "selector",
       "assert": [
-        { "selector": "#shops", "min": 1 },
-        { "selector": "#shops div.gift.player-inventory-content .slot", "min": 0 },
-        { "selector": "#shops div.potion.player-inventory-content .slot", "min": 0 },
-        { "selector": "#shops div.booster.player-inventory-content .slot", "min": 0 },
-        { "selector": "#shops div.armor.merchant-inventory-item .slot", "min": 1 }
+        {
+          "selector": "#shops",
+          "min": 1
+        },
+        {
+          "selector": "#shops div.gift.player-inventory-content .slot",
+          "min": 0
+        },
+        {
+          "selector": "#shops div.potion.player-inventory-content .slot",
+          "min": 0
+        },
+        {
+          "selector": "#shops div.booster.player-inventory-content .slot",
+          "min": 0
+        },
+        {
+          "selector": "#shops div.armor.merchant-inventory-item .slot",
+          "min": 1
+        }
       ],
       "note": "player-inventory buckets are legitimately empty when nothing is owned; only the merchant side must be populated."
     },
@@ -76,9 +145,18 @@
       "page": "/event.html",
       "kind": "selector",
       "assert": [
-        { "selector": "#contains_all #events .events-list", "min": 1 },
-        { "selector": ".events-list a.event-title", "min": 1 },
-        { "selector": "#contains_all #events .events-list .event-title.active[href]", "min": 1 }
+        {
+          "selector": "#contains_all #events .events-list",
+          "min": 1
+        },
+        {
+          "selector": ".events-list a.event-title",
+          "min": 1
+        },
+        {
+          "selector": "#contains_all #events .events-list .event-title.active[href]",
+          "min": 1
+        }
       ]
     },
     {
@@ -88,8 +166,14 @@
       "page": "/activities.html?tab=pop",
       "kind": "selector",
       "assert": [
-        { "selector": ".pop_list", "min": 1 },
-        { "selector": ".pop_list .pop_thumb[pop_id]", "min": 1 }
+        {
+          "selector": ".pop_list",
+          "min": 1
+        },
+        {
+          "selector": ".pop_list .pop_thumb[pop_id]",
+          "min": 1
+        }
       ]
     },
     {
@@ -98,7 +182,9 @@
       "source": "src/Helper/PageHelper.ts (getPage pop branch)",
       "page": "/activities.html?tab=pop",
       "kind": "global",
-      "globals": ["pop_list"]
+      "globals": [
+        "pop_list"
+      ]
     },
     {
       "id": "daily-goals-global",
@@ -106,7 +192,9 @@
       "source": "src/Module/DailyGoals.ts (parse)",
       "page": "/activities.html?tab=daily_goals",
       "kind": "global",
-      "globals": ["daily_goals_list"]
+      "globals": [
+        "daily_goals_list"
+      ]
     },
     {
       "id": "pachinko-orb-names",
@@ -117,7 +205,13 @@
       "selector": "[orb_name]",
       "attribute": "orb_name",
       "extract": "value",
-      "allow": ["^o_v\\d+$", "^o_e(d|\\d+)$", "^o_eq\\d+$", "^o_m\\d+$", "^o_g\\d+$"],
+      "allow": [
+        "^o_v\\d+$",
+        "^o_e(d|\\d+)$",
+        "^o_eq\\d+$",
+        "^o_m\\d+$",
+        "^o_g\\d+$"
+      ],
       "note": "An unknown prefix means the mapping table needs a new case, not that the check is broken."
     },
     {
