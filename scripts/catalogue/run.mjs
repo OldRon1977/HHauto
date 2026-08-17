@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { attach, gamePages, sessionState, findChromium, DEFAULT_PORT } from './lib/attach.mjs';
 import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
-import { shapeOf, mergeShapes, shapeLines } from './lib/shape.mjs';
+import { shapeOf, mergeShapes, shapeLines, labelCall } from './lib/shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..');
@@ -185,9 +185,12 @@ async function cmdObserve(port, seconds) {
     console.log('');
 
     const byAction = new Map();
-    const record = (action, cls, reqShape, resShape, url) => {
-        const key = cls ? `${cls}.${action}` : action;
-        const prev = byAction.get(key) || { action, class: cls || null, calls: 0, url, request: undefined, response: undefined };
+    const record = (label, reqShape, resShape, url) => {
+        const key = label.key;
+        const prev = byAction.get(key) || {
+            key, action: label.action, class: label.class, actionless: label.actionless,
+            calls: 0, url, request: undefined, response: undefined,
+        };
         prev.calls += 1;
         prev.request = mergeShapes(prev.request, reqShape);
         prev.response = mergeShapes(prev.response, resShape);
@@ -209,13 +212,12 @@ async function cmdObserve(port, seconds) {
         if (!/\/ajax\.php/.test(url)) return;
         let params = {};
         try { params = parseBody(req.postData()); } catch { /* opaque */ }
-        const action = params.action || new URL(url).searchParams.get('action') || '(unknown)';
-        const cls = params.class || null;
+        const label = labelCall(params, url);
         let payload;
         try { payload = await response.json(); } catch { payload = undefined; }
-        const entry = record(action, cls, shapeOf(params), payload === undefined ? 'unparsed' : shapeOf(payload), url);
+        const entry = record(label, shapeOf(params), payload === undefined ? 'unparsed' : shapeOf(payload), url);
         const size = (await response.body().catch(() => Buffer.alloc(0))).length;
-        console.log(`  ${String(entry.calls).padStart(3)}x  ${(cls ? cls + '.' : '') + action}`.padEnd(48)
+        console.log(`  ${String(entry.calls).padStart(3)}x  ${label.key}`.padEnd(52)
             + `${response.status()}  ${size} B`);
     };
 
@@ -239,7 +241,9 @@ async function cmdObserve(port, seconds) {
             });
             const md = ['# Observed AJAX traffic', '', `Recorded ${new Date().toISOString()}. Shapes only -- keys and types, no values.`, ''];
             for (const e of entries) {
-                md.push(`## ${(e.class ? e.class + '.' : '') + e.action}`, '', `${e.calls} call(s)`, '', '**Request**', '', '```',
+                md.push(`## ${e.key}`, '', `${e.calls} call(s)`
+                    + (e.actionless ? ' -- identified by class alone; this request carries no action key' : ''),
+                    '', '**Request**', '', '```',
                     ...shapeLines(e.request), '```', '', '**Response**', '', '```', ...shapeLines(e.response), '```', '');
             }
             write('observed-actions.md', md.join('\n'));

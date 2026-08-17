@@ -29,8 +29,15 @@ game's real names for its own machinery, not guesses.
 
 Its limit is stated in every report it writes, because it is severe: **of the
 25 action names HHauto sends, 2 appear here as literals.** The rest the game
-assembles at runtime. Static reading finds what the source spells out and
-nothing else, which is exactly why `observe` exists.
+assembles at runtime.
+
+Two recordings on 2026-08-17 put a number on it from the other side. Across
+25 minutes of ordinary play, 24 distinct actions went over the wire and
+**20 of them appear nowhere in this file** -- including every one of
+`do_battles_leagues`, `do_battles_seasons`, `do_battles_trolls`,
+`do_battles_penta_drill` and `do_battles_labyrinth`. Static reading finds what
+the source spells out and nothing else, which is exactly why `observe`
+exists.
 
 ## `observe` — what actually goes over the wire
 
@@ -40,7 +47,11 @@ types, never values — so one file describes a hundred calls, and nothing in it
 carries account data.
 
 This is the mode that sees what nothing else can: battle pages, pre-battle
-screens, popups mid-flow. A separate headless session would have to fight an
+screens, popups mid-flow. Fifteen minutes of fighting produced the whole
+labyrinth chain -- `labyrinth_pool_select`, `labyrinth_hex_enter`,
+`do_battles_labyrinth` with a 176 kB response, `labyrinth_get_member_relics`,
+`labyrinth_pick_unclaimed_relic` -- none of which any page tour had ever
+reached. A separate headless session would have to fight an
 actual battle to reach them, and would evict your own session doing it — the
 game allows one per account. Attaching sidesteps that entirely: it is your
 session, you are simply playing.
@@ -110,3 +121,9 @@ The same rule as `scripts/live-check`: a name in here is a name the game
 as one it *accepts*. `bundle` lists 63 live actions; several are dead branches
 in the game's own code. Before addressing one from HHauto, confirm it with
 `observe` — that it goes over the wire is the only evidence that counts.
+
+One thing the recording taught about the shape of the data itself: not every
+call carries an `action`. The team-battle submit identifies itself by `class`
+plus `battle_type` and has no action key at all. Such calls are labelled
+`TeamBattle[leagues] (no action key)` rather than `(unknown)`, because the
+first says something true about the request and the second blames the tool.

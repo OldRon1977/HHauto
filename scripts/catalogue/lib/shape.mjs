@@ -68,3 +68,28 @@ export function shapeLines(shape, prefix = '') {
     }
     return [prefix ? `${prefix}: ${shape}` : String(shape)];
 }
+
+/**
+ * Names a call the way the game identifies it.
+ *
+ * Most calls carry `action`. Some carry only `class` -- the team-battle
+ * submit sends class/battle_type/battles_amount/defender_id/attacker[team][]
+ * and no action at all. Calling that "(unknown)" reads as a failure of this
+ * tool when it is a fact about the request, so it gets said plainly.
+ *
+ * `battle_type` is kept by value because it is the discriminator between
+ * otherwise identical calls, and its values are game words (leagues, seasons)
+ * rather than anything about the account. Nothing else is.
+ */
+export function labelCall(params, url) {
+    const fromUrl = () => {
+        try { return new URL(url).searchParams.get('action'); } catch { return null; }
+    };
+    const action = params.action || fromUrl();
+    const cls = params.class || null;
+    const variant = params.battle_type ? `[${params.battle_type}]` : '';
+
+    if (action) return { key: (cls ? cls + '.' : '') + action + variant, action, class: cls, actionless: false };
+    if (cls) return { key: cls + variant + ' (no action key)', action: null, class: cls, actionless: true };
+    return { key: '(unidentified)' + variant, action: null, class: null, actionless: true };
+}
