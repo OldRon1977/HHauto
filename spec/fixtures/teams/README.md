@@ -2,11 +2,11 @@
 
 ## Source
 
-- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T09-42-21-877Z.json`
-- Capture date: 2026-08-17T09:42Z, inspector v4.8.0
-- `teams-data.json` — `pages[27].teams.teams_data` (`/teams.html`)
-- `team-girls.json` — `pages[28].girls_full["game.teamGirls"]` (`/edit-team.html`)
-- `available-girls.json` — `pages[28].girls_full["game.availableGirls"]`
+- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T13-13-52-547Z.json`
+- Capture date: 2026-08-17T13:13Z, inspector v4.9.0
+- `teams-data.json` — `teams.teams_data` on `/teams.html`
+- `team-girls.json` — `girls_full["game.teamGirls"]` on `/edit-team.html`
+- `available-girls.json` — `girls_full["game.availableGirls"]` on `/edit-team.html`
 
 ## Files
 

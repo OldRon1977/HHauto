@@ -2,9 +2,9 @@
 
 ## Source
 
-- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T09-42-21-877Z.json`
-- Capture date: 2026-08-17T09:42Z, inspector v4.8.0
-- Path: `pages[28].girls_full["game.availableGirls"]` (`/edit-team.html`), 1783
+- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T13-13-52-547Z.json`
+- Capture date: 2026-08-17T13:13Z, inspector v4.9.0
+- Path: `girls_full["game.availableGirls"]` on `/edit-team.html` (`/edit-team.html`), 1783
   entries, filtered down to one girl per case.
 
 ## Files

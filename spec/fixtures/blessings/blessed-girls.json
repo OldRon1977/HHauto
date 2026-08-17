@@ -1,43 +1,43 @@
 {
   "leagueBlessed": {
-    "id_girl": 976013156,
-    "id_girl_ref": 787,
-    "name": "Lucia",
-    "rarity": "legendary",
+    "id_girl": 573990530,
+    "id_girl_ref": 1103,
+    "name": "Misora",
+    "rarity": "mythic",
     "element": "darkness",
     "class": 1,
-    "eye_color1": "00F",
-    "hair_color1": "00F",
+    "eye_color1": "F0F",
+    "hair_color1": "F0F",
     "zodiac": "♐︎ Sagittarius",
     "position_img": "2.png",
-    "id_role": 5,
+    "id_role": 3,
     "blessing_bonuses": {
       "pvp_v3": {
         "carac1": [
           40,
-          40
+          20
         ],
         "carac2": [
           40,
-          40
+          20
         ],
         "carac3": [
           40,
-          40
+          20
         ]
       },
       "pvp_v4": {
         "carac1": [
           40,
-          40
+          20
         ],
         "carac2": [
           40,
-          40
+          20
         ],
         "carac3": [
           40,
-          40
+          20
         ]
       }
     },
@@ -57,17 +57,17 @@
     ]
   },
   "roleOnly": {
-    "id_girl": 118565805,
-    "id_girl_ref": 111,
-    "name": "Untamed Levitya",
+    "id_girl": 897082316,
+    "id_girl_ref": 69,
+    "name": "Infiltrator Liu-Yeng",
     "rarity": "mythic",
-    "element": "darkness",
+    "element": "nature",
     "class": 2,
-    "eye_color1": "CCC",
-    "hair_color1": "CCC",
-    "zodiac": "♏︎ Scorpio",
+    "eye_color1": "A55",
+    "hair_color1": "000",
+    "zodiac": "♍︎ Virgo",
     "position_img": "5.png",
-    "id_role": 4,
+    "id_role": 2,
     "blessing_bonuses": {
       "pvp_v4": {
         "carac1": [
