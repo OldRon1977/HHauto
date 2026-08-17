@@ -85,7 +85,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('pipelineDiagnose'))
             + group('menuSecKobans',
                 hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
-                + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, 'text-align:right; width:60px', 'pictures/design/ic_hard_currency.png'))
+                + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
             + group('menuSecAutoCollect',
                 hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
                 + hhMenuSwitch('collectEventChest')),
@@ -124,7 +124,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko')
             + group('menuSecSalary',
                 hhMenuSwitch('autoSalary')
-                + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, 'text-align:right; width:60px'), 'isEnabledSalary')
+                + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
             + group('powerPlacesTitle',
                 hhMenuSwitch('autoPowerPlaces')
                 + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, 'width:100px')
@@ -239,7 +239,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp')
             + group('menuSecTeam',
                 hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
-                + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, 'text-align:right; width:60px')
+                + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                 + hhMenuSwitch('autoChampsTeamKeepSecondLine')
                 + hhMenuSwitch('autoBuildChampsTeam'))
             + group('autoPantheonTitle',
@@ -274,11 +274,11 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
             + group('menuSecBoosters',
                 hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-                + hhMenuInput('maxBooster', P.nWith1000sSeparator, 'text-align:right; width:60px')
-                + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, 'text-align:center; width:90px')
+                + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                 + hhMenuSwitch('autoEquipBoosters')
-                + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, 'text-align:center; width:90px')
-                + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, 'text-align:center; width:90px'), '', true)
+                + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
+                + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true)
             + group('menuSecMarketTools',
                 hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                 + hhMenuSwitch('updateMarket')),

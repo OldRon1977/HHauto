@@ -74,7 +74,7 @@ export function hhMenuInput(textKeyAndInputId: string, inputPattern: string, inp
     +`</div>`;
 }
 
-export function hhMenuInputWithImg(textKeyAndInputId: string, inputPattern: string, inputStyle: string, imgPath: string, inputMode='text') {
+export function hhMenuInputWithImg(textKeyAndInputId: string, inputPattern: string, inputStyle: string, imgPath: string, inputMode='text', inputClass='') {
     const { getTextForUI, getHHScriptVars } = MenuPorts;
     let htmlRet = `<div class="labelAndButton">`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
@@ -88,7 +88,7 @@ export function hhMenuInputWithImg(textKeyAndInputId: string, inputPattern: stri
             `<div style="padding-left:5px">`
                 +`<div class="tooltipHH">`
                     +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`
-                    +`<input style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
+                    +`<input class="${inputClass}" style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
                 +`</div>`
             +`</div>`
         +`</div>`

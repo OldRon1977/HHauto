@@ -93,6 +93,14 @@ GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba
 GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
 GM_addStyle('#sMenu select {max-width:100%;}');
+// Number fields run to twelve digits plus thousands separators ("999.999.999.999",
+// 15 characters). Smaller type in the fields buys the room; the width is given in
+// ch so it keeps fitting that many characters whatever font the game applies.
+GM_addStyle('#sMenu input[type=text] {font-size:8px; box-sizing:content-box; padding:0 2px;}');
+GM_addStyle('#sMenu input.maxMoneyInputField {width:17ch; text-align:right;}');
+// Booster lists hold up to five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters) —
+// the example the tooltip itself gives.
+GM_addStyle('#sMenu input.menuListInput {width:21ch; text-align:center;}');
 // Footer
 GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
 GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');
