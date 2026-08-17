@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-05-05
-verified-against-version: 7.35.21
+last-verified: 2026-08-17
+verified-against-version: 8.8.0
 status: current
 ---
 
@@ -8,6 +8,18 @@ status: current
 
 Vollstaendige Inventarisierung aller Datenquellen, auf die das HHAuto-Skript zugreift.
 Quelle: systematischer grep durch alle TypeScript-Dateien unter `src/`.
+
+Seit 2026-08-17 gibt es zwei Werkzeuge, die diese Datei gegen das laufende Spiel
+pruefen, statt sie nur aus dem eigenen Quelltext abzuleiten:
+
+- `scripts/catalogue/` -- `bundle` liest den Spiel-Quelltext ohne Login
+  (Aktionsnamen, `shared.*`-API, `hh_*`-Globals), `observe` zeichnet echten
+  AJAX-Verkehr als Form auf, `snapshot` greift die Globals der offenen Seite ab.
+- `scripts/live-check/` -- prueft die Selektoren und API-Parameter, auf die sich
+  der Code verlaesst, gegen die echte Seite.
+
+Was hier steht, ist damit belegbar. Was noch nie live gemessen wurde, sollte auch
+so gekennzeichnet sein.
 
 > Konventionen
 >
@@ -61,6 +73,9 @@ Siehe auch `src/index.ts` fuer die `Window`-Interface-Erweiterung, die alle hier
 | `unsafeWindow.id_girl` | Number/String | GirlPage | `Module/harem/HaremGirl.ts` | `HaremGirl` (Affection-Page-Back) | ID des Girls (fuer Navigation zurueck) |
 | `unsafeWindow.player_gems_amount` | Map `{element: {amount: number}}` | GirlPage | `Module/harem/HaremGirl.ts` | `awakGirl()`, `canAwakGirl()`, `canGiftGirl()` | Gem-Bestand pro Element fuer Awakening-Pruefung |
 | `unsafeWindow.Hero.currencies.soft_currency` (auskommentiert) | Number | jede Page | `Module/Market.ts` (Kommentar) | - | Veralteter Direktzugriff (heute via `Hero.update`) |
+| `unsafeWindow.player_inventory.armor` | Array (Armor-Eintraege) | Market-Page (`pagesIDShop`) | `Module/EquipmentGear.ts` | `fetchInventory()` | Erste Seite des Ruestungs-Inventars; der Rest kommt ueber `market_get_armor`. Gemessen 2026-08-17: 204 Eintraege, 104 mythic / 100 legendary, alle `skin.wearer = "hero"`. Ein Eintrag traegt `id_member_armor` und **kein** `id_member_armor_equipped` |
+| `unsafeWindow.item_to_upgrade` | Objekt (Armor + `level`) | Mythic-Upgrade-Page | `Module/EquipmentGear.ts` | Upgrade-Schleife | **Falle:** `level` wird beim Seitenaufbau eingefroren und folgt einem Level-Up auf derselben Seite nicht. Das war einer der fuenf Fehler vom August 2026 |
+| `unsafeWindow.equipped_armor` | Map `{slot: Armor-Eintrag}` | Market-Page | (noch kein Konsument) | - | Die sechs getragenen Teile. Wird vom Skript heute ueber `#equiped .armor div[id_item]` aus dem DOM gelesen, nicht ueber dieses Global. Ein Eintrag traegt `id_member_armor_equipped` und **keinen** `id_member_armor`-Schluessel -- das Verwechseln der beiden Formen hat im August alle sechs getragenen Teile verworfen |
 
 Zusaetzlich werden in `src/index.ts` (Window-Interface) folgende Properties typed - manche werden aktuell noch nicht ausgelesen, sind aber Teil der Bridge-Vertraege:
 `championData`, `Collect`, `HHTimers`, `league_tag`, `server_now_ts`, `love_raids`.
@@ -158,6 +173,10 @@ Die meisten Calls laufen ueber `getHHAjax()` (delegiert an `shared.general.hh_aj
 | `get_girls_blessings` | (kein Body) | `Service/BlessingService.ts` | `BlessingService.fetchAndCache()` | Blessing-Daten anfragen + cachen |
 | `arena_reload` | `opponent_id` (chosenID) | `Module/Events/Season.ts` | `Season` (Reroll-Logik) | Season-Arena-Reload (Reroll) |
 | `girl_skills_reset` | `id_girl` | `Module/harem/Harem.ts` | `Harem.resetSkillsOnCurrentGirl()` | Skill-Reset eines Girls |
+| `edit_team` | `class: "Hero"`, `girls[]` (als Strings), `battle_type`, `id_team` (falls vorhanden) | `Module/TeamModule.ts` | `TeamModule.saveTeamInPlace()` | Team speichern |
+| `market_get_armor` | `id_member_armor` (letzte gesehene ID) | `Module/EquipmentGear.ts` | `fetchInventory()` | Naechste Seite des Ruestungs-Inventars; leeres `items` markiert das Ende |
+| `market_equip_armor` | `id_member_armor` | `Module/EquipmentGear.ts` | Equip-Schleife | Ruestungsteil auf den Helden legen |
+| `team_calculate_caracs` | `girls[]`, `battle_type` | `Service/TeamEvaluationService.ts` | Kandidaten-Ranking | Das Spiel selbst rechnen lassen, statt die Werte nachzubauen |
 
 ### 3.2 Calls via jQuery `$.ajax` direkt
 
@@ -165,7 +184,49 @@ Die meisten Calls laufen ueber `getHHAjax()` (delegiert an `shared.general.hh_aj
 |---|---|---|---|---|
 | `girl_equipment_equip` | `id_girl`, `id_girl_armor`, `sort_by: "rarity"`, `sorting_order: "asc"` | `Module/harem/HaremGirl.ts` | `HaremGirl.equipItem()` | Einzelnes Equipment auf Girl (umgeht `getHHAjax()`-Bridge) |
 
-Hinweis: viele weitere Game-Actions werden vom Spiel selbst gesendet (z.B. `do_battles_trolls`, `do_battles_seasons`, `start` (TempPlaceOfPower)). Diese werden in Sektion 4 ueber `onAjaxResponse`-Hooks abgegriffen.
+Hinweis: viele weitere Game-Actions werden vom Spiel selbst gesendet. Diese werden in Sektion 4 ueber `onAjaxResponse`-Hooks abgegriffen -- und in Sektion 3.3 sind sie jetzt gemessen statt geschaetzt.
+
+### 3.3 Vom Spiel gesendet -- gemessen, nicht abgeleitet
+
+Zwei Aufzeichnungen mit `scripts/catalogue/run.mjs observe` am 2026-08-17, zusammen rund 25 Minuten normales Spielen (Pachinko-Lauf, Labyrinth-Zug, Liga-, Season-, PentaDrill- und Troll-Kaempfe):
+
+| Aktion | Klasse | beobachtet | im Spiel-Bundle als Literal | HHauto sendet sie |
+|---|---|---|---|---|
+| `play` | `Pachinko` | 281x | ja | nein |
+| `process_rewards_queue` | - | 14x | ja | nein |
+| `do_battles_leagues` | - | 3x | nein | ja |
+| `labyrinth_hex_enter` | - | 3x | nein | nein |
+| `seasonal_claim` | - | 6x | nein | nein |
+| `contest_give_reward` | - | 2x | nein | nein |
+| `get_girls_list` | - | 2x | nein | nein |
+| `get_girl` | - | 2x | nein | nein |
+| `do_battles_seasons` | - | 1x | nein | nein |
+| `do_battles_penta_drill` | - | 1x | nein | nein |
+| `do_battles_trolls` | - | 1x | nein | nein |
+| `do_battles_labyrinth` | - | 1x | nein | nein |
+| `labyrinth_pool_select` | - | 1x | nein | nein |
+| `labyrinth_get_member_relics` | - | 1x | nein | nein |
+| `labyrinth_pick_unclaimed_relic` | - | 1x | nein | nein |
+| `adventure_switch` | - | 1x | nein | nein |
+| `get_sweep_status` | - | 1x | nein | nein |
+| `claim` | `Pachinko` | 1x | nein | nein |
+| `claim_all_salaries` | - | 1x | ja | nein |
+| `event_market_get_data` | - | 1x | nein | nein |
+| `edit_team` | `Hero` | 1x | nein | ja |
+| `team_calculate_caracs` | - | 1x | nein | ja |
+| `get_girls_blessings` | - | 1x | ja | ja |
+| (ohne `action`) | `TeamBattle` | 2x | - | - |
+
+**Die Zahl, auf die es ankommt: 20 der 24 Aktionen stehen nirgends als Literal im Spiel-Bundle.** Das Spiel baut die Namen zur Laufzeit zusammen. Wer Aktionsnamen durch Lesen von Quelltext sucht -- unserem oder dem des Spiels -- findet sie nicht. Dazu gehoeren **alle fuenf** `do_battles_*`-Varianten; `live-verification-lessons.md` hatte zwei davon als Beispiel genannt, die Aufzeichnung belegt die ganze Familie.
+
+Zwei Beobachtungen zur Form:
+
+- **Nicht jeder Aufruf traegt ein `action`.** Der Team-Kampf-Submit identifiziert sich ueber `class: "TeamBattle"` plus `battle_type`, dazu `battles_amount`, `defender_id`, `attacker[team][]` -- und hat gar keinen `action`-Schluessel.
+- `claim_all_salaries` nimmt `{action, where}` und antwortet `{money, girls[], upcoming_girl_salaries[{next_pay_in, value}], success}`. Ein Aufruf holt alle Gehaelter. HHauto nutzt ihn nicht.
+
+Die vollstaendigen Anfrage- und Antwortformen stehen in `scripts/catalogue/out/observed-actions.md` (nur Schluessel und Typen, keine Werte -- die Ausgabe traegt keine Kontodaten). Zum Auffrischen: `node scripts/catalogue/run.mjs observe --seconds=900` waehrend einer Spielsitzung.
+
+Was hier fehlt, fehlt aus einem Grund: es wurde in diesen 25 Minuten nicht gespielt. Champion, Club-Champion, Pantheon, Path-of-Attraction und die Event-Kaempfe sind noch nicht aufgezeichnet.
 
 
 ## 4. AJAX-Response-Interceptors (`onAjaxResponse`)

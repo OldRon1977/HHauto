@@ -26,10 +26,22 @@ and add the date plus commit hash in the Status field.
   - `parseGirlsFromGameData(rawData) -> Girl[]` (deferred from stage 1 task 1.3): the haremGirl / event fixtures are sized to feed this parser. Stage 3 did not need it; reactivate when a haremGirl-touching parser test lands.
   - Champion-map fixture deferral: page 8 (`/champions-map.html`) carries no champion JSON in the dump (DOM-only). Needs a different testing approach for DOM-derived state before a map fixture can be produced.
   - League energy snapshot (`hero.shared.Hero.energies.challenge`) deferred from task 2.2: not added until a League parser test needs it.
-  - Inspector-observed AJAX endpoints without an HHAuto consumer (audit hint, no test follow-up):
-    - `process_rewards_queue` (page 0 / Home, response `{ rewards, success }`, ~29 bytes)
-    - `show_specific_girl_grade` (class=`Hero`, page 19 / Waifu, response `{ ava, ico, success }`, ~245 bytes)
-    Both are game-internal UI calls. If HHAuto starts consuming them later, an AJAX schema test belongs in the same `spec/fixtures/<endpoint>/` layout as the live-blessings slice.
+  - AJAX endpoints observed without an HHAuto consumer (audit hint, no test follow-up).
+    The May list held two; a traffic recording on 2026-08-17
+    (`scripts/catalogue/run.mjs observe`, 25 minutes of play) raised it to 19:
+    `process_rewards_queue`, `show_specific_girl_grade`, `seasonal_claim`,
+    `contest_give_reward`, `get_girls_list`, `get_girl`, `claim_all_salaries`,
+    `event_market_get_data`, `get_sweep_status`, `adventure_switch`,
+    `labyrinth_pool_select`, `labyrinth_hex_enter`,
+    `labyrinth_get_member_relics`, `labyrinth_pick_unclaimed_relic`,
+    `do_battles_labyrinth`, `do_battles_seasons`, `do_battles_penta_drill`,
+    `do_battles_trolls`, plus `Pachinko.play` / `Pachinko.claim`.
+    If HHAuto starts consuming any of them, an AJAX schema test belongs in the
+    same `spec/fixtures/<endpoint>/` layout as the live-blessings slice -- and
+    the shape is already recorded in `scripts/catalogue/out/observed-actions.md`.
+    Two worth a second look on their own merits: `claim_all_salaries` collects
+    every salary in one call, and `team_calculate_caracs` lets the game do the
+    stat maths HHauto reimplements.
 
 ## Context
 

@@ -101,6 +101,19 @@ static extraction. Grepping `action:` out of `src/` missed `do_battles_trolls`
 and `do_battles_seasons` because they are assembled at runtime; the live
 network log had them.
 
+**Measured since (2026-08-17).** Two recordings with
+`scripts/catalogue/run.mjs observe`, 25 minutes of ordinary play, put a number
+on that caveat: 24 distinct actions went over the wire and **20 of them appear
+nowhere in the game's own bundle as literals** -- including all five
+`do_battles_*` variants, not just the two named above. Static extraction is not
+a weaker method here, it is the wrong one. Grep the bundle for names it spells
+out; record traffic for the rest.
+
+One more thing the recording settled about shape: not every call carries an
+`action` at all. The team-battle submit identifies itself by `class:
+"TeamBattle"` plus `battle_type`. Code that keys on `action` alone will not see
+it.
+
 ## Delegating to agents
 
 - **Agents inherit your errors.** Label every premise in the brief as either
@@ -157,7 +170,21 @@ Before shipping a fix:
 
 ## Tooling
 
-The harness scripts live outside the repo (they carry a logged-in browser
+Two tools now live in the repo, and they cover most of what the outside harness
+was used for:
+
+- `scripts/live-check/` -- checks the selectors, globals and API parameters the
+  code depends on against the running game, one line per claim as
+  `OK / DRIFT / SKIP`. First run 2026-08-17: 11 of 12 held, and the one DRIFT
+  was a dead claim in the checker rather than a change in the game.
+- `scripts/catalogue/` -- `bundle` reads the game's own source without a login,
+  `observe` records ajax traffic as shapes while you play, `snapshot` dumps the
+  globals of the open page. `observe` and `snapshot` attach to a browser you
+  are already using over CDP, which is how they reach battle pages and popups:
+  those states exist only because you played them, and a second session would
+  evict yours trying.
+
+The older harness scripts live outside the repo (they carry a logged-in browser
 profile): `~/.config/hhauto-claude/tools/`. They inject the built
 `HHAuto.user.js` with Tampermonkey shims (`GM_addStyle`, `GM.info`,
 `unsafeWindow`) via `addInitScript`, so the script survives navigations the way

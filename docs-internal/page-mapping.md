@@ -1,15 +1,25 @@
 ---
-last-verified: 2026-05-05
-verified-against-version: 7.35.21
+last-verified: 2026-08-17
+verified-against-version: 8.8.0
 status: current
 ---
 
 # Page Mapping Referenz
 
 Alle Seiten-IDs und ihre URL-Zuordnung im HHauto-Skript.
-Quelle: src/config/HHEnvVariables.ts. Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
+Quelle: src/config/HHEnvVariables.ts.
 
-**Code-Stand:** 53 Page-IDs definiert, 54 Eintraege in pagesKnownList.
+**Code-Stand (2026-08-17, gegen v8.8.0 nachgezaehlt):** 53 Page-IDs definiert,
+55 Eintraege in pagesKnownList. Die letzte vollstaendige Verifikation der
+einzelnen URL-Zuordnungen stammt vom 2026-05-05 gegen v7.35.21 -- nachgezaehlt
+wurden hier nur die beiden Zahlen, nicht jede Zeile der Tabelle.
+
+Welche dieser Seiten je in einer Aufnahme vorkamen, ist eine andere Frage als
+welche definiert sind: die Kampf- und Vorkampfseiten erreicht keine Seitentour,
+weil man sie erspielen muss. `scripts/catalogue/run.mjs observe` haengt sich an
+eine laufende Sitzung und sieht sie deshalb; eine Aufzeichnung vom 2026-08-17
+hat die vollstaendige Labyrinth-Kette und alle fuenf `do_battles_*`-Varianten
+erfasst.
 
 ---
 
