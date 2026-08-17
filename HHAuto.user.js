@@ -53,11 +53,49 @@ GM_addStyle('div.optionsBoxWithTitle {display:flex; flex-direction:column}');
 GM_addStyle('div.optionsBoxWithTitleInline {display:flex; flex-direction:row; border:1px solid #ffa23e; border-radius:5px; margin:1px}');
 GM_addStyle('div.optionsBoxWithTitleInline .optionsBox {border: none}');
 GM_addStyle('img.iconImg {max-width:15px; height:15px}');
-GM_addStyle('#sMenu {top: 5px;right: 52px;padding: 1px;opacity: 1;border-radius: 4px;border: 1px solid #ffa23e;background-color: #1e261e;font-size:x-small; position:absolute; text-align:left; flex-direction:column; justify-content:space-between; z-index:10000; overflow:auto; max-height:calc(100% - 5px); scrollbar-width: thin;max-width: calc(100% - 52px);}');
-GM_addStyle('#sMenu::-webkit-scrollbar {width: 6px;height: 6px;background: #000;}');
-GM_addStyle('#sMenu::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-border-radius: 1ex; -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);}');
-GM_addStyle('#sMenu::-webkit-scrollbar-corner {background: #000;}');
-GM_addStyle('#sMenu .HHMenuItemName {font-size:8px;}');
+// Settings panel (8.10.0): a fixed-size panel with a tab rail instead of three
+// fixed-width columns. Rows are a two-column grid so a long translation wraps
+// in the label column and can never run under its control.
+GM_addStyle('#sMenu {top: 5px; right: 52px; position:absolute; z-index:10000;'
+            +' width:820px; height:540px; max-width:calc(100% - 56px); max-height:calc(100% - 10px);'
+            +' flex-direction:column; overflow:hidden;'
+            +' border-radius:4px; border:1px solid #ffa23e; background-color:#1e261e;'
+            +' font-size:10px; text-align:left; scrollbar-width:thin;}');
+GM_addStyle('#sMenu ::-webkit-scrollbar {width: 6px;height: 6px;background: #000;}');
+GM_addStyle('#sMenu ::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-border-radius: 1ex; -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);}');
+GM_addStyle('#sMenu ::-webkit-scrollbar-corner {background: #000;}');
+GM_addStyle('#sMenu .HHMenuItemName {font-size:10px; padding-bottom:0; line-height:1.25;}');
+// Header
+GM_addStyle('#sMenu .menuHead {flex:none; display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; padding:6px 10px; border-bottom:1px solid #ffa23e;}');
+GM_addStyle('#sMenu .menuName {font-weight:bold; font-size:13px;}');
+GM_addStyle('#sMenu .menuVer {color:#98a191; margin-left:5px;}');
+GM_addStyle('#sMenu .menuMaster {margin-left:auto;}');
+GM_addStyle('#sMenu .menuMaster .labelAndButton {grid-template-columns:auto auto; gap:6px; padding:0;}');
+GM_addStyle('#sMenu .menuWarn {flex-basis:100%; color:#ff8a80;}');
+// Body: tab rail + panes
+GM_addStyle('#sMenu .menuBody {flex:1; display:flex; min-height:0;}');
+GM_addStyle('#sMenu .menuTabs {flex:none; width:158px; overflow-y:auto; padding:4px 0; border-right:1px solid #ffa23e; background:#0d120b;}');
+GM_addStyle('#sMenu .menuTab {display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; color:#98a191; font-size:12px; border-left:3px solid transparent;}');
+GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.06);}');
+GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
+GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
+GM_addStyle('#sMenu .menuPane {display:none;}');
+GM_addStyle('#sMenu .menuPane.active {display:block;}');
+GM_addStyle('#sMenu .menuPaneTitle {font-size:14px; font-weight:bold; padding-bottom:4px; margin-bottom:6px; border-bottom:1px solid rgba(255,162,62,.3);}');
+GM_addStyle('#sMenu .menuGroups {display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:5px; align-items:start;}');
+GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-radius:4px; padding:4px 7px 5px;}');
+GM_addStyle('#sMenu .menuGroup.wide {grid-column:1/-1;}');
+GM_addStyle('#sMenu .menuGroup.wide > .menuGroupRows {display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); column-gap:18px;}');
+GM_addStyle('#sMenu .menuGroupTitle {color:#ffa23e; font-weight:bold; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;}');
+// The row: flexible label column, fixed control column.
+GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:21px; padding:1px 0;}');
+GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
+GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
+GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
+GM_addStyle('#sMenu select {max-width:100%;}');
+// Footer
+GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
+GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');
 GM_addStyle('div.optionsBoxTitle {height:12px; display:flex; flex-direction:row; justify-content:center; align-items:center;}'); //; padding:2px; padding-bottom:0px;
 GM_addStyle('div.rowOptionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px}');
 GM_addStyle('div.optionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px}');
@@ -512,6 +550,45 @@ HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Main ad
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Side adventure", tooltip: "" };
 HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Others", tooltip: "" };
 //HHAuto_ToolTips.en['scriptWarning'] = { version: "7.4.0", elementText: "Warning", tooltip: "An issue is detected in bot execution, open menu and logs for more info"};
+// Tab rail names and group headings of the settings menu (8.10.0)
+HHAuto_ToolTips.en['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: "" };
+HHAuto_ToolTips.en['menuTabDisplay'] = { version: "8.10.0", elementText: "Display", tooltip: "" };
+HHAuto_ToolTips.en['menuTabDaily'] = { version: "8.10.0", elementText: "Daily", tooltip: "" };
+HHAuto_ToolTips.en['menuTabAdventure'] = { version: "8.10.0", elementText: "Adventure", tooltip: "" };
+HHAuto_ToolTips.en['menuTabSeason'] = { version: "8.10.0", elementText: "Season", tooltip: "" };
+HHAuto_ToolTips.en['menuTabLeagues'] = { version: "8.10.0", elementText: "Leagues", tooltip: "" };
+HHAuto_ToolTips.en['menuTabChampions'] = { version: "8.10.0", elementText: "Champions", tooltip: "" };
+HHAuto_ToolTips.en['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Labyrinth", tooltip: "" };
+HHAuto_ToolTips.en['menuTabShop'] = { version: "8.10.0", elementText: "Market", tooltip: "" };
+HHAuto_ToolTips.en['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
+HHAuto_ToolTips.en['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
+HHAuto_ToolTips.en['menuSecBasics'] = { version: "8.10.0", elementText: "Basics", tooltip: "" };
+HHAuto_ToolTips.en['menuSecTiming'] = { version: "8.10.0", elementText: "Timing & safety", tooltip: "" };
+HHAuto_ToolTips.en['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Auto collect", tooltip: "" };
+HHAuto_ToolTips.en['menuSecKobans'] = { version: "8.10.0", elementText: "Kobans", tooltip: "" };
+HHAuto_ToolTips.en['menuSecInfoPanel'] = { version: "8.10.0", elementText: "Info panel", tooltip: "" };
+HHAuto_ToolTips.en['menuSecRewards'] = { version: "8.10.0", elementText: "Rewards", tooltip: "" };
+HHAuto_ToolTips.en['menuSecAds'] = { version: "8.10.0", elementText: "Ads", tooltip: "" };
+HHAuto_ToolTips.en['menuSecContests'] = { version: "8.10.0", elementText: "Contests", tooltip: "" };
+HHAuto_ToolTips.en['menuSecPachinko'] = { version: "8.10.0", elementText: "Pachinko", tooltip: "" };
+HHAuto_ToolTips.en['menuSecSalary'] = { version: "8.10.0", elementText: "Salary", tooltip: "" };
+HHAuto_ToolTips.en['menuSecQuests'] = { version: "8.10.0", elementText: "Quests", tooltip: "" };
+HHAuto_ToolTips.en['menuSecStandardTroll'] = { version: "8.10.0", elementText: "Standard troll", tooltip: "" };
+HHAuto_ToolTips.en['menuSecEventTrolls'] = { version: "8.10.0", elementText: "Event trolls", tooltip: "" };
+HHAuto_ToolTips.en['menuSecMythicEvent'] = { version: "8.10.0", elementText: "Mythic event", tooltip: "" };
+HHAuto_ToolTips.en['menuSecMultiFights'] = { version: "8.10.0", elementText: "Multi fights", tooltip: "" };
+HHAuto_ToolTips.en['menuSecShardsSkins'] = { version: "8.10.0", elementText: "Shards & skins", tooltip: "" };
+HHAuto_ToolTips.en['menuSecFightCollect'] = { version: "8.10.0", elementText: "Fight & collect", tooltip: "" };
+HHAuto_ToolTips.en['menuSecOpponents'] = { version: "8.10.0", elementText: "Opponent choice", tooltip: "" };
+HHAuto_ToolTips.en['menuSecThresholds'] = { version: "8.10.0", elementText: "Thresholds", tooltip: "" };
+HHAuto_ToolTips.en['menuSecClubChamp'] = { version: "8.10.0", elementText: "Club champion", tooltip: "" };
+HHAuto_ToolTips.en['menuSecTeam'] = { version: "8.10.0", elementText: "Team", tooltip: "" };
+HHAuto_ToolTips.en['menuSecStats'] = { version: "8.10.0", elementText: "Stat upgrades", tooltip: "" };
+HHAuto_ToolTips.en['menuSecBooks'] = { version: "8.10.0", elementText: "Books", tooltip: "" };
+HHAuto_ToolTips.en['menuSecGifts'] = { version: "8.10.0", elementText: "Gifts", tooltip: "" };
+HHAuto_ToolTips.en['menuSecBoosters'] = { version: "8.10.0", elementText: "Boosters", tooltip: "" };
+HHAuto_ToolTips.en['menuSecMarketTools'] = { version: "8.10.0", elementText: "Market tools", tooltip: "" };
+HHAuto_ToolTips.en['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Event display", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -1057,6 +1134,45 @@ HHAuto_ToolTips.de['latestTroll'] = { version: "7.23.0", elementText: "Letzter T
 HHAuto_ToolTips.de['mainAdventure'] = { version: "7.23.0", elementText: "Hauptabenteuer", tooltip: "" };
 HHAuto_ToolTips.de['sideAdventure'] = { version: "7.23.0", elementText: "Nebenabenteuer", tooltip: "" };
 HHAuto_ToolTips.de['otherTrollOption'] = { version: "7.23.0", elementText: "Andere", tooltip: "" };
+// Tab rail names and group headings of the settings menu (8.10.0)
+HHAuto_ToolTips.de['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: "" };
+HHAuto_ToolTips.de['menuTabDisplay'] = { version: "8.10.0", elementText: "Anzeige", tooltip: "" };
+HHAuto_ToolTips.de['menuTabDaily'] = { version: "8.10.0", elementText: "Tägliches", tooltip: "" };
+HHAuto_ToolTips.de['menuTabAdventure'] = { version: "8.10.0", elementText: "Abenteuer", tooltip: "" };
+HHAuto_ToolTips.de['menuTabSeason'] = { version: "8.10.0", elementText: "Season", tooltip: "" };
+HHAuto_ToolTips.de['menuTabLeagues'] = { version: "8.10.0", elementText: "Ligen", tooltip: "" };
+HHAuto_ToolTips.de['menuTabChampions'] = { version: "8.10.0", elementText: "Champions", tooltip: "" };
+HHAuto_ToolTips.de['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Labyrinth", tooltip: "" };
+HHAuto_ToolTips.de['menuTabShop'] = { version: "8.10.0", elementText: "Markt", tooltip: "" };
+HHAuto_ToolTips.de['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
+HHAuto_ToolTips.de['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
+HHAuto_ToolTips.de['menuSecBasics'] = { version: "8.10.0", elementText: "Grundlagen", tooltip: "" };
+HHAuto_ToolTips.de['menuSecTiming'] = { version: "8.10.0", elementText: "Zeiten & Sicherheit", tooltip: "" };
+HHAuto_ToolTips.de['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Automatisch einsammeln", tooltip: "" };
+HHAuto_ToolTips.de['menuSecKobans'] = { version: "8.10.0", elementText: "Kobans", tooltip: "" };
+HHAuto_ToolTips.de['menuSecInfoPanel'] = { version: "8.10.0", elementText: "Info-Anzeige", tooltip: "" };
+HHAuto_ToolTips.de['menuSecRewards'] = { version: "8.10.0", elementText: "Belohnungen", tooltip: "" };
+HHAuto_ToolTips.de['menuSecAds'] = { version: "8.10.0", elementText: "Werbung", tooltip: "" };
+HHAuto_ToolTips.de['menuSecContests'] = { version: "8.10.0", elementText: "Wettbewerbe", tooltip: "" };
+HHAuto_ToolTips.de['menuSecPachinko'] = { version: "8.10.0", elementText: "Pachinko", tooltip: "" };
+HHAuto_ToolTips.de['menuSecSalary'] = { version: "8.10.0", elementText: "Einkommen", tooltip: "" };
+HHAuto_ToolTips.de['menuSecQuests'] = { version: "8.10.0", elementText: "Quests", tooltip: "" };
+HHAuto_ToolTips.de['menuSecStandardTroll'] = { version: "8.10.0", elementText: "Standard-Troll", tooltip: "" };
+HHAuto_ToolTips.de['menuSecEventTrolls'] = { version: "8.10.0", elementText: "Event-Trolle", tooltip: "" };
+HHAuto_ToolTips.de['menuSecMythicEvent'] = { version: "8.10.0", elementText: "Mythisches Event", tooltip: "" };
+HHAuto_ToolTips.de['menuSecMultiFights'] = { version: "8.10.0", elementText: "Mehrfachkämpfe", tooltip: "" };
+HHAuto_ToolTips.de['menuSecShardsSkins'] = { version: "8.10.0", elementText: "Shards & Skins", tooltip: "" };
+HHAuto_ToolTips.de['menuSecFightCollect'] = { version: "8.10.0", elementText: "Kämpfen & Einsammeln", tooltip: "" };
+HHAuto_ToolTips.de['menuSecOpponents'] = { version: "8.10.0", elementText: "Gegnerwahl", tooltip: "" };
+HHAuto_ToolTips.de['menuSecThresholds'] = { version: "8.10.0", elementText: "Schwellwerte", tooltip: "" };
+HHAuto_ToolTips.de['menuSecClubChamp'] = { version: "8.10.0", elementText: "Club-Champion", tooltip: "" };
+HHAuto_ToolTips.de['menuSecTeam'] = { version: "8.10.0", elementText: "Team", tooltip: "" };
+HHAuto_ToolTips.de['menuSecStats'] = { version: "8.10.0", elementText: "Aufwertungen", tooltip: "" };
+HHAuto_ToolTips.de['menuSecBooks'] = { version: "8.10.0", elementText: "Bücher", tooltip: "" };
+HHAuto_ToolTips.de['menuSecGifts'] = { version: "8.10.0", elementText: "Geschenke", tooltip: "" };
+HHAuto_ToolTips.de['menuSecBoosters'] = { version: "8.10.0", elementText: "Booster", tooltip: "" };
+HHAuto_ToolTips.de['menuSecMarketTools'] = { version: "8.10.0", elementText: "Markt-Werkzeuge", tooltip: "" };
+HHAuto_ToolTips.de['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Event-Anzeige", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -1593,6 +1709,7 @@ const TK = {
     freshStart: "Temp_freshStart",
     scriptversion: "Temp_scriptversion",
     pinfo: "Temp_pinfo",
+    menuTab: "Temp_menuTab",
     // Harem
     HaremSize: "Temp_HaremSize",
     filteredGirlsList: "Temp_filteredGirlsList",
@@ -4327,6 +4444,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.paranoiaSpendings] =
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.pinfo] =
     {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// Which settings tab was open. sessionStorage so it survives the page loads the
+// script triggers while automating, without leaking into another browser tab.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuTab] =
+    {
+        default: "global",
         storage: "sessionStorage",
         HHType: "Temp"
     };
@@ -28344,596 +28469,348 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
     return htmlRet;
 }
 
-;// ./src/Helper/menu/MenuColumnLeft.ts
-// MenuColumnLeft.ts
+;// ./src/Helper/menu/MenuTabs.ts
+// MenuTabs.ts
 //
-// DOM construction (layout): the left column of the #sMenu panel — script
-// header buttons, global options, kobans, display toggles, PoV/PoG and harem.
-// Pure string production from MenuWidgets rows.
+// DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
+// area buttons on the left and one pane per area on the right. Replaces the
+// three fixed-width columns (MenuColumnLeft/Middle/Right, removed in 8.10.0),
+// which sized their labels for English and let longer translations overlap.
 //
-// Split out of HHMenuHelper/MenuTemplate as part of WART-002 (behavior-neutral).
+// Two rules keep that from coming back:
+//   - a row is a two-column grid (label | control, see the #sMenu CSS in
+//     build/HHAuto.template.js), so a label may wrap to any length and can
+//     never run under its control;
+//   - every group carries a visible heading. That is not decoration: 23 label
+//     texts are reused across the menu ("Collect" alone appears eleven times),
+//     and the heading is what tells them apart.
+//
+// Element ids are unchanged from the column layout — MenuSettings binds values
+// by id, maskInactiveMenus() hides by id, and feature modules look rows up by
+// id. Only the arrangement moved.
+//
+// Reads its storage/translation helpers from MenuPorts so this file stays a
+// graph leaf (see MenuPorts.ts).
 
 
 
-function buildLeftColumn() {
-    const { getTextForUI, getHHScriptVars } = MenuPorts;
-    return `<div class="optionsColumn" style="min-width: 185px;">`
-        + `<div style="padding:3px; display:flex; flex-direction:column;">`
-        + `<span>HH Automatic ++</span>`
-        + `<span style="font-size:smaller;">Version ${GM.info.script.version}</span>`
-        + `<div class="internalOptionsRow" style="padding:3px">`
-        + hhButton('gitHub', 'git')
-        + hhButton('ReportBugs', 'ReportBugs')
-        + hhButton('DebugMenu', 'DebugMenu')
-        + `</div>`
-        + `<div class="internalOptionsRow" style="padding:3px">`
-        + hhButton('saveConfig', 'saveConfig')
-        + hhButton('loadConfig', 'loadConfig')
-        + `</div>`
-        + `<div class="internalOptionsRow" style="padding:3px">`
-        + hhButton('saveDefaults', 'saveDefaults')
-        + hhButton('settingsSurvey', 'settingsSurvey')
-        + hhButton('blockOrder', 'blockOrder')
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/panel.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("globalTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="rowOptionsBox" style="display:grid;grid-auto-flow: column;">`
-        + `<div class="optionsColumn">`
-        + hhMenuSwitch('master') // Master switch
-        + hhMenuSwitch('paranoia')
-        + `<div id="isEnabledMousePause" class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI("mousePause", "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI("mousePause", "tooltip")}</span>`
-        + `<label class="switch">`
-        + `<input id="mousePause" type="checkbox">`
-        + `<span class="slider round">`
-        + `</span>`
-        + `</label>`
-        + `<input style="text-align:center; width:40px" id="mousePauseTimeout" required pattern="${HHAuto_inputPattern.mousePauseTimeout}" type="text">`
-        + `</div>`
-        + `</div>`
-        + hhMenuInput('collectAllTimer', HHAuto_inputPattern.collectAllTimer, 'text-align:center; width:25px')
-        + hhMenuSwitch('showTooltips')
-        + hhMenuInput('autoPentaDrillDelay', HHAuto_inputPattern.autoPentaDrillDelay, 'text-align:center; width:25px')
-        + `</div>`
-        + `<div class="optionsColumn">`
-        + `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI("waitforContest", "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI("waitforContest", "tooltip")}</span>`
-        + `<label class="switch">`
-        + `<input id="waitforContest" type="checkbox">`
-        + `<span class="slider round">`
-        + `</span>`
-        + `</label>`
-        + `<input style="text-align:center; width:30px" id="safeSecondsForContest" required pattern="${HHAuto_inputPattern.safeSecondsForContest}" type="text">`
-        + `</div>`
-        + `</div>`
-        + hhMenuSwitch('settPerTab')
-        + hhMenuSwitch('pipelineDiagnose')
-        + hhMenuSwitch('paranoiaSpendsBefore')
-        + hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
-        + hhMenuSwitch('collectEventChest')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/pictures/design/ic_hard_currency.png" />`
-        + `<span class="optionsBoxTitle">Kobans</span>`
-        + `</div>`
-        + `<div class="rowOptionsBox">`
-        + hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
-        + hhMenuInputWithImg('kobanBank', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:50px', 'pictures/design/ic_hard_currency.png')
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/sex_friends.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("displayTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="rowOptionsBox">`
-        + `<div class="optionsColumn">`
-        + hhMenuSwitch('showInfo')
-        + hhMenuSwitch('showInfoLeft', '', false, true)
-        + `</div>`
-        + `<div class="optionsColumn">`
-        + hhMenuSwitch('showCalculatePower')
-        + hhMenuSwitch('showAdsBack', '', false, true)
-        + hhMenuSwitch('autoAdsClick')
-        + `</div>`
-        + `<div class="optionsColumn">`
-        + hhMenuSwitch('showRewardsRecap')
-        + hhMenuSwitch('AllMaskRewards', '', false, true)
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="rowOptionsBox">`
-        + `<div id="isEnabledPoV" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("povTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoPoVCollect')
-        + hhMenuSwitch('autoPoVCollectAll')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledPoG" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("pogTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoPoGCollect')
-        + hhMenuSwitch('autoPoGCollectAll')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/pictures/design/harem.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("haremTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="rowOptionsBox">`
-        + hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
-        + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
-        + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')
-        + `</div>`
+
+const t = (key) => MenuPorts.getTextForUI(key, "elementText");
+/**
+ * One settings group. `maskId` goes on the group element so the existing
+ * maskInactiveMenus() can hide the whole group on games without that feature.
+ * `wide` makes the group span the full pane and lay its rows out in columns —
+ * used where a row holds a dropdown or a long text field that will not fit
+ * beside a label in a single narrow column.
+ */
+function group(titleKey, rows, maskId = '', wide = false) {
+    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}>`
+        + `<div class="menuGroupTitle">${t(titleKey)}</div>`
+        + `<div class="menuGroupRows">${rows}</div>`
+        + `</div>`;
+}
+/** A row the widgets cannot build: a switch with its own number field next to it. */
+function switchWithInput(switchId, inputId, pattern, width) {
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${t(switchId)}</span>`
+        + `<div class="tooltipHH menuPair">`
+        + `<span class="tooltipHHtext">${MenuPorts.getTextForUI(switchId, "tooltip")}</span>`
+        + `<label class="switch"><input id="${switchId}" type="checkbox"><span class="slider round"></span></label>`
+        + `<input style="text-align:center; width:${width}" id="${inputId}" required pattern="${pattern}" type="text">`
         + `</div>`
         + `</div>`;
 }
-
-;// ./src/Helper/menu/MenuColumnMiddle.ts
-// MenuColumnMiddle.ts
-//
-// DOM construction (layout): the middle column of the #sMenu panel — missions,
-// power places, daily goals, labyrinth, quests, season, leagues, troll battle,
-// penta-drill and the seasonal event. `debugEnabled` gates survey-hidden rows.
-// Pure string production from MenuWidgets rows.
-//
-// Split out of HHMenuHelper/MenuTemplate as part of WART-002 (behavior-neutral).
-
-
-
-function buildMiddleColumn(debugEnabled) {
-    const { getTextForUI, getHHScriptVars } = MenuPorts;
-    return `<div class="optionsColumn" style="min-width: 520px;">`
-        + `<div class="optionsRow">`
-        + `<div class="optionsColumn">`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/missions.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoActivitiesTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox" style="border:none;padding:0">`
-        + `<div class="internalOptionsRow">`
-        + `<div id="isEnabledMission" class="internalOptionsRow optionsBox" style="padding:0;margin:0 3px 0 0;">`
-        + hhMenuSwitch('autoMission')
-        + hhMenuSwitch('autoMissionCollect')
-        + hhMenuSwitch('autoMissionKFirst')
-        + hhMenuSwitch('compactMissions', '', false, true)
-        + hhMenuSwitch('invertMissions', '', false, true)
-        + `</div>`
-        + `<div id="isEnabledContest" class="internalOptionsRow optionsBox" style="padding:0;margin:0 0 0 3px;">`
-        + hhMenuSwitch('autoContest')
-        + hhMenuSwitch('compactEndedContests', '', false, true)
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBox" style="border:none;padding:0">`
-        + `<div class="internalOptionsRow">`
-        + `<div id="isEnabledPowerPlaces" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("powerPlacesTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoPowerPlaces')
-        + hhMenuInput('autoPowerPlacesIndexFilter', HHAuto_inputPattern.autoPowerPlacesIndexFilter, 'width: 100px;')
-        + hhMenuSwitch('autoPowerPlacesAll')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoPowerPlacesPrecision')
-        + hhMenuSwitch('autoPowerPlacesInverted')
-        + hhMenuSwitch('autoPowerPlacesWaitMax')
-        + hhMenuSwitch('compactPowerPlace', '', false, true)
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("dailyGoalsTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div id="isEnabledDailyGoals" class="rowOptionsBox">`
-        + `<div class="internalOptionsRow">`
-        + `<div style="${debugEnabled ? '' : 'display:none;'}">` + hhMenuSwitch('autoDailyGoals') + `</div>`
-        + hhMenuSwitch('autoDailyGoalsCollect')
-        + hhMenuSwitch('compactDailyGoals', '', false, true)
-        + `</div>`
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + `<div class="rowOptionsBox">`
-        + `<div id="isEnabledPachinko" class="internalOptionsRow">`
-        + hhMenuSwitch('autoFreePachinko')
-        + `</div>`
-        + `</div>`
-        + `<div class="rowOptionsBox">`
-        + `<div id="isEnabledSalary" class="internalOptionsRow">`
-        + hhMenuSwitch('autoSalary')
-        + hhMenuInput('autoSalaryMinSalary', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsColumn">`
-        + `<div class="optionsBoxTitle">` // Empty box to align with left column
-        + `</div>`
-        + `<div id="isEnabledLabyrinth" class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autoLabyrinth')
-        + hhMenuSelect('autoLabyDifficulty', 'width:60px;')
-        + `</div>`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autoLabyHard')
-        + hhMenuSwitch('autoLabySweep')
-        + hhMenuSwitch('autoLabyCustomTeamBuilder')
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsRow">`
-        + `<div id="isEnabledQuest" class="rowOptionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoQuest')
-        + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
-        + hhMenuInputWithImg('autoQuestThreshold', HHAuto_inputPattern.autoQuestThreshold, 'text-align:center; width:25px', 'pictures/design/ic_energy_quest.png', 'numeric')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsRow" style="justify-content: space-evenly">`
-        + `<div id="isEnabledSeason" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/seasons.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoSeasonTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoSeason')
-        + hhMenuSwitch('autoSeasonCollect')
-        + hhMenuSwitch('autoSeasonCollectAll')
-        + hhMenuSelect('seasonFocusSelector', 'width:85px;')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
-        + hhMenuSwitch('autoSeasonPassReds', '', true)
-        + `</div>`
-        + hhMenuSwitch('autoSeasonBoostedOnly')
-        + hhMenuSwitch('autoSeasonSkipLowMojo')
-        + `<div class="labelAndButton" style="width: 70px;">`
-        + `<span class="HHMenuItemName">${getTextForUI("autoSeasonMaxTier", "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI("autoSeasonMaxTier", "tooltip")}</span>`
-        + `<label class="switch">`
-        + `<input id="autoSeasonMaxTier" type="checkbox">`
-        + `<span class="slider round">`
-        + `</span>`
-        + `</label>`
-        + `<input style="text-align:center; width:20px" id="autoSeasonMaxTierNb" required pattern="${HHAuto_inputPattern.autoSeasonMaxTierNb}" type="text">`
-        + `</div>`
-        + `</div>`
-        + hhMenuSwitch('autoSeasonMaxTierHard')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuInputWithImg('autoSeasonThreshold', HHAuto_inputPattern.autoSeasonThreshold, 'text-align:center; width:30px', 'pictures/design/ic_kiss.png', 'numeric')
-        + hhMenuSwitch('seasonDisplayPowerCalc')
-        + hhMenuInputWithImg('autoSeasonRunThreshold', HHAuto_inputPattern.autoSeasonRunThreshold, 'text-align:center; width:25px', 'pictures/design/ic_kiss.png', 'numeric')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledLeagues" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/leaderboard.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoLeaguesTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoLeagues')
-        + hhMenuSelect('autoLeaguesSortMode', 'width:85px;')
-        + hhMenuSwitch('autoLeaguesCollect')
-        + hhMenuSwitch('autoLeaguesBoostedOnly')
-        + hhMenuSwitch('leagueListDisplayPowerCalc')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSelect('autoLeaguesSelector')
-        + hhMenuSwitch('autoLeaguesAllowWinCurrent')
-        + hhMenuSwitch('autoLeaguesForceOneFight')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuInputWithImg('autoLeaguesThreshold', HHAuto_inputPattern.autoLeaguesThreshold, 'text-align:center; width:25px', 'pictures/design/league_points.png', 'numeric')
-        + hhMenuInputWithImg('autoLeaguesRunThreshold', HHAuto_inputPattern.autoLeaguesRunThreshold, 'text-align:center; width:25px', 'pictures/design/league_points.png', 'numeric')
-        + hhMenuInput('autoLeaguesSecurityThreshold', HHAuto_inputPattern.autoLeaguesSecurityThreshold, 'text-align:center; width:25px', '', 'numeric')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledTrollBattle" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/pictures/design/menu/map.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoTrollTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-between">`
-        + hhMenuSwitch('autoTrollBattle')
-        + hhMenuSelect('autoTrollSelector')
-        + hhMenuInputWithImg('autoTrollThreshold', HHAuto_inputPattern.autoTrollThreshold, 'text-align:center; width:25px', 'pictures/design/ic_energy_fight.png', 'numeric')
-        + hhMenuInputWithImg('autoTrollRunThreshold', HHAuto_inputPattern.autoTrollRunThreshold, 'text-align:center; width:25px', 'pictures/design/ic_energy_fight.png', 'numeric')
-        + `<div style="border-left:1px solid #ffa23e;height:36px;"> </div>`
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + `<div style="${debugEnabled ? '' : 'display:none;'}">` // #1533 hidden: 0% usage in survey (168 responses). Remove div wrapper to restore.
-        + hhMenuSwitch('useX10Fights', '', true)
-        + hhMenuSwitch('useX10FightsAllowNormalEvent')
-        + hhMenuInput('minShardsX10', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
-        + hhMenuSwitch('useX50Fights', '', true)
-        + hhMenuSwitch('useX50FightsAllowNormalEvent')
-        + hhMenuInput('minShardsX50', HHAuto_inputPattern.minShardsX, 'text-align:center; width:7em')
-        + `</div>`
-        + hhMenuSwitch('plusGirlSkins')
-        + hhMenuInput('sandalwoodMinShardsThreshold', HHAuto_inputPattern.sandalwoodLimit, 'text-align:center; width:7em')
-        + `</div>`
-        + `<div class="internalOptionsRow separator">`
-        + hhMenuSwitch('plusEvent')
-        + hhMenuInput('eventTrollOrder', HHAuto_inputPattern.eventTrollOrder, 'width:150px')
-        + hhMenuSwitch('buyCombat', '', true)
-        + hhMenuInput('buyCombTimer', HHAuto_inputPattern.buyCombTimer, 'text-align:center; width:40px', '', 'numeric')
-        + hhMenuInput('autoBuyTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-        + hhMenuSwitch('plusEventSandalWood')
-        + `</div>`
-        + `<div class="internalOptionsRow separator">`
-        + hhMenuSwitch('plusEventMythic')
-        + hhMenuSwitch('autoTrollMythicByPassParanoia')
-        + hhMenuSwitch('buyMythicCombat', '', true)
-        + hhMenuInput('autoBuyMythicTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-        + hhMenuInput('buyMythicCombTimer', HHAuto_inputPattern.buyMythicCombTimer, 'text-align:center; width:40px', '', 'numeric')
-        + hhMenuSwitch('plusEventMythicSandalWood')
-        + `</div>`
-        + `<div class="internalOptionsRow separator">`
-        + hhMenuSwitch('plusLoveRaid')
-        + hhMenuSelect('loveRaidSelector')
-        + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
-        + hhMenuSelect('raidStarsSelector', 'width:75px;')
-        + hhMenuSwitch('buyLoveRaidCombat', '', true)
-        + hhMenuInput('autoBuyLoveRaidTrollNumber', HHAuto_inputPattern.autoBuyTrollNumber, 'width:40px')
-        + hhMenuSwitch('plusEventLoveRaidSandalWood')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsRow" style="justify-content: space-evenly">`
-        + `<div id="isEnabledPentaDrill" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoPentaDrillTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoPentaDrill')
-        + hhMenuSwitch('autoPentaDrillCollect')
-        + hhMenuSwitch('autoPentaDrillCollectAll')
-        + hhMenuSwitch('autoPentaDrillBoostedOnly')
-        + hhMenuInputWithImg('autoPentaDrillThreshold', HHAuto_inputPattern.autoPentaDrillThreshold, 'text-align:center; width:30px', 'images/penta_drill/penta_drill.png', 'numeric')
-        + hhMenuInputWithImg('autoPentaDrillRunThreshold', HHAuto_inputPattern.autoPentaDrillRunThreshold, 'text-align:center; width:25px', 'images/penta_drill/penta_drill.png', 'numeric')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledSeasonalEvent" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("seasonalEventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoSeasonalEventCollect')
-        + hhMenuSwitch('autoSeasonalEventCollectAll')
-        + hhMenuSwitch('autoSeasonalBuyFreeCard')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
+/** Rows hidden unless Debug is on — #1533, 0% usage in a 168-response survey. */
+function debugOnly(enabled, rows) {
+    return `<div${enabled ? '' : ' style="display:none;"'}>${rows}</div>`;
+}
+function tabs(debugEnabled) {
+    const P = HHAuto_inputPattern;
+    return [
+        {
+            id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
+            groups: group('menuSecBasics', hhMenuSwitch('paranoia')
+                + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
+                + hhMenuSwitch('settPerTab')
+                + hhMenuSwitch('showTooltips'))
+                + group('menuSecTiming', hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
+                    + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
+                    + hhMenuSwitch('paranoiaSpendsBefore')
+                    + hhMenuInput('autoPentaDrillDelay', P.autoPentaDrillDelay, 'text-align:center; width:30px')
+                    + hhMenuSwitch('pipelineDiagnose'))
+                + group('menuSecKobans', hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
+                    + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, 'text-align:right; width:60px', 'pictures/design/ic_hard_currency.png'))
+                + group('menuSecAutoCollect', hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
+                    + hhMenuSwitch('collectEventChest')),
+        },
+        {
+            id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
+            groups: group('menuSecInfoPanel', hhMenuSwitch('showInfo')
+                + hhMenuSwitch('showInfoLeft', '', false, true)
+                + hhMenuSwitch('showCalculatePower'))
+                + group('menuSecRewards', hhMenuSwitch('showRewardsRecap')
+                    + hhMenuSwitch('AllMaskRewards', '', false, true))
+                + group('menuSecAds', hhMenuSwitch('showAdsBack', '', false, true)
+                    + hhMenuSwitch('autoAdsClick')),
+        },
+        {
+            id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
+            groups: group('autoActivitiesTitle', hhMenuSwitch('autoMission')
+                + hhMenuSwitch('autoMissionCollect')
+                + hhMenuSwitch('autoMissionKFirst')
+                + hhMenuSwitch('compactMissions', '', false, true)
+                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission')
+                + group('menuSecContests', hhMenuSwitch('autoContest')
+                    + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest')
+                + group('dailyGoalsTitle', debugOnly(debugEnabled, hhMenuSwitch('autoDailyGoals'))
+                    + hhMenuSwitch('autoDailyGoalsCollect')
+                    + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals')
+                + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko')
+                + group('menuSecSalary', hhMenuSwitch('autoSalary')
+                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, 'text-align:right; width:60px'), 'isEnabledSalary')
+                + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
+                    + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, 'width:100px')
+                    + hhMenuSwitch('autoPowerPlacesAll')
+                    + hhMenuSwitch('autoPowerPlacesPrecision')
+                    + hhMenuSwitch('autoPowerPlacesInverted')
+                    + hhMenuSwitch('autoPowerPlacesWaitMax')
+                    + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true)
+                + group('menuSecQuests', hhMenuSwitch('autoQuest')
+                    + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
+                    + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest')
+                + group('povTitle', hhMenuSwitch('autoPoVCollect')
+                    + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV')
+                + group('pogTitle', hhMenuSwitch('autoPoGCollect')
+                    + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG'),
+        },
+        {
+            id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
+            groups: group('menuSecStandardTroll', hhMenuSwitch('autoTrollBattle')
+                + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
+                + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
+                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true)
+                + group('menuSecEventTrolls', hhMenuSwitch('plusEvent')
+                    + hhMenuInput('eventTrollOrder', P.eventTrollOrder, 'width:150px')
+                    + hhMenuSwitch('buyCombat', '', true)
+                    + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
+                    + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuSwitch('plusEventSandalWood'), '', true)
+                + group('menuSecMythicEvent', hhMenuSwitch('plusEventMythic')
+                    + hhMenuSwitch('autoTrollMythicByPassParanoia')
+                    + hhMenuSwitch('buyMythicCombat', '', true)
+                    + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
+                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true)
+                + group('loveRaidTitle', hhMenuSwitch('plusLoveRaid')
+                    + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
+                    + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
+                    + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
+                    + hhMenuSwitch('buyLoveRaidCombat', '', true)
+                    + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true)
+                + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
+                    + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
+                + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)
+                    + hhMenuSwitch('useX10FightsAllowNormalEvent')
+                    + hhMenuInput('minShardsX10', P.minShardsX, 'text-align:center; width:90px')
+                    + hhMenuSwitch('useX50Fights', '', true)
+                    + hhMenuSwitch('useX50FightsAllowNormalEvent')
+                    + hhMenuInput('minShardsX50', P.minShardsX, 'text-align:center; width:90px'), '', true)),
+        },
+        {
+            id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
+            groups: group('menuSecFightCollect', hhMenuSwitch('autoSeason')
+                + hhMenuSwitch('autoSeasonCollect')
+                + hhMenuSwitch('autoSeasonCollectAll')
+                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true)
+                + group('menuSecOpponents', hhMenuSwitch('autoSeasonBoostedOnly')
+                    + hhMenuSwitch('autoSeasonSkipLowMojo')
+                    + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
+                    + hhMenuSwitch('autoSeasonMaxTierHard')
+                    + debugOnly(debugEnabled, hhMenuSwitch('autoSeasonPassReds', '', true)))
+                + group('menuSecThresholds', hhMenuInputWithImg('autoSeasonThreshold', P.autoSeasonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
+                    + hhMenuInputWithImg('autoSeasonRunThreshold', P.autoSeasonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
+                    + hhMenuSwitch('seasonDisplayPowerCalc')),
+        },
+        {
+            id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
+            groups: group('menuSecFightCollect', hhMenuSwitch('autoLeagues')
+                + hhMenuSwitch('autoLeaguesCollect')
+                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true)
+                + group('menuSecOpponents', hhMenuSelect('autoLeaguesSortMode', 'max-width:130px;')
+                    + hhMenuSwitch('autoLeaguesBoostedOnly')
+                    + hhMenuSwitch('autoLeaguesAllowWinCurrent')
+                    + hhMenuSwitch('autoLeaguesForceOneFight')
+                    + hhMenuSwitch('leagueListDisplayPowerCalc'), '', true)
+                + group('menuSecThresholds', hhMenuInputWithImg('autoLeaguesThreshold', P.autoLeaguesThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
+                    + hhMenuInputWithImg('autoLeaguesRunThreshold', P.autoLeaguesRunThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
+                    + hhMenuInput('autoLeaguesSecurityThreshold', P.autoLeaguesSecurityThreshold, 'text-align:center; width:34px', '', 'numeric')),
+        },
+        {
+            id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
+            groups: group('autoChampsTitle', hhMenuSwitch('autoChamps')
+                + hhMenuSwitch('autoChampsForceStart')
+                + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
+                + hhMenuInput('autoChampsFilter', P.autoChampsFilter, 'text-align:center; width:70px')
+                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps')
+                + group('menuSecClubChamp', hhMenuSwitch('autoClubChamp')
+                    + hhMenuSwitch('autoClubForceStart')
+                    + hhMenuInputWithImg('autoClubChampMax', P.autoClubChampMax, 'text-align:center; width:50px', 'pictures/design/champion_ticket.png', 'numeric')
+                    + hhMenuSwitch('showClubButtonInPoa')
+                    + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp')
+                + group('menuSecTeam', hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
+                    + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, 'text-align:right; width:60px')
+                    + hhMenuSwitch('autoChampsTeamKeepSecondLine')
+                    + hhMenuSwitch('autoBuildChampsTeam'))
+                + group('autoPantheonTitle', hhMenuSwitch('autoPantheon')
+                    + hhMenuInputWithImg('autoPantheonThreshold', P.autoPantheonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
+                    + hhMenuInputWithImg('autoPantheonRunThreshold', P.autoPantheonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
+                    + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon'),
+        },
+        {
+            id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
+            groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
+                + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
+                + hhMenuSwitch('autoLabyHard')
+                + hhMenuSwitch('autoLabySweep')
+                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true),
+        },
+        {
+            id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
+            groups: group('menuSecStats', hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
+                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop')
+                + group('menuSecBooks', hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
+                    + hhMenuInput('maxExp', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                + group('menuSecGifts', hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
+                    + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
+                    + hhMenuInput('maxBooster', P.nWith1000sSeparator, 'text-align:right; width:60px')
+                    + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, 'text-align:center; width:90px')
+                    + hhMenuSwitch('autoEquipBoosters')
+                    + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, 'text-align:center; width:90px')
+                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, 'text-align:center; width:90px'), '', true)
+                + group('menuSecMarketTools', hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
+                    + hhMenuSwitch('updateMarket')),
+        },
+        {
+            id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
+            groups: group('menuSecEventDisplay', hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
+                + group('autoPentaDrillTitle', hhMenuSwitch('autoPentaDrill')
+                    + hhMenuSwitch('autoPentaDrillCollect')
+                    + hhMenuSwitch('autoPentaDrillCollectAll')
+                    + hhMenuSwitch('autoPentaDrillBoostedOnly')
+                    + hhMenuInputWithImg('autoPentaDrillThreshold', P.autoPentaDrillThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric')
+                    + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true)
+                + group('seasonalEventTitle', hhMenuSwitch('autoSeasonalEventCollect')
+                    + hhMenuSwitch('autoSeasonalEventCollectAll')
+                    + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent')
+                + group('doublePenetrationEventTitle', hhMenuSwitch('autodpEventCollect')
+                    + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent')
+                + group('livelySceneEventTitle', hhMenuSwitch('autoLivelySceneEventCollect')
+                    + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent')
+                + group('sultryMysteriesEventTitle', hhMenuSwitch('sultryMysteriesEventRefreshShop')
+                    + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent')
+                + group('bossBangEventTitle', hhMenuSwitch('bossBangEvent')
+                    + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent')
+                + group('poaTitle', hhMenuSwitch('autoPoACollect')
+                    + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa'),
+        },
+        {
+            id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
+            groups: group('haremTitle', hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
+                + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
+                + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')),
+        },
+    ];
+}
+/** The rail of area buttons plus one pane per area. */
+function buildTabbedBody(debugEnabled) {
+    const defs = tabs(debugEnabled);
+    const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
+        + `<span class="menuTabIcon">${tab.icon}</span>`
+        + `<span class="menuTabName">${t(tab.nameKey)}</span>`
+        + `</div>`).join('');
+    const panes = defs.map(tab => `<div class="menuPane" data-pane="${tab.id}">`
+        + `<div class="menuPaneTitle">${t(tab.titleKey)}</div>`
+        + `<div class="menuGroups">${tab.groups}</div>`
+        + `</div>`).join('');
+    return `<div class="menuBody">`
+        + `<div class="menuTabs" id="sMenuTabs">${rail}</div>`
+        + `<div class="menuPanes" id="sMenuPanes">${panes}</div>`
         + `</div>`;
 }
-
-;// ./src/Helper/menu/MenuColumnRight.ts
-// MenuColumnRight.ts
-//
-// DOM construction (layout): the right column of the #sMenu panel — champions
-// and club champion, pantheon, shop/auto-buy and the events box. Pure string
-// production from MenuWidgets rows.
-//
-// Split out of HHMenuHelper/MenuTemplate as part of WART-002 (behavior-neutral).
-
-
-
-function buildRightColumn() {
-    const { getTextForUI, getHHScriptVars } = MenuPorts;
-    return `<div class="optionsColumn" style="width: 340px;">`
-        + `<div id="isEnabledAllChamps" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/ic_champions.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoChampsTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div id="isEnabledChamps" class="internalOptionsRow">`
-        + hhMenuSwitch('autoChamps')
-        + hhMenuSwitch('autoChampsForceStart')
-        + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
-        + hhMenuInput('autoChampsFilter', HHAuto_inputPattern.autoChampsFilter, 'text-align:center; width:55px')
-        + hhMenuSwitch('autoChampsForceStartEventGirl')
-        + `</div>`
-        + `<div id="isEnabledClubChamp" class="internalOptionsRow separator">`
-        + hhMenuSwitch('autoClubChamp')
-        + hhMenuSwitch('autoClubForceStart')
-        + hhMenuInputWithImg('autoClubChampMax', HHAuto_inputPattern.autoClubChampMax, 'text-align:center; width:45px', 'pictures/design/champion_ticket.png', 'numeric')
-        + hhMenuSwitch('showClubButtonInPoa')
-        + hhMenuSwitch('autoChampAlignTimer')
-        + `</div>`
-        + `<div class="internalOptionsRow separator">`
-        + hhMenuInput('autoChampsTeamLoop', HHAuto_inputPattern.autoChampsTeamLoop, 'text-align:center; width:25px', '', 'numeric')
-        + hhMenuInput('autoChampsGirlThreshold', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:center; width:45px')
-        + hhMenuSwitch('autoChampsTeamKeepSecondLine')
-        + hhMenuSwitch('autoBuildChampsTeam')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledPantheon" class="">` // optionsBoxWithTitle
-        // +`<div class="optionsBoxTitle">`
-        //     +`<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/ic_champions.svg" />`
-        //     +`<span class="optionsBoxTitle">${getTextForUI("autoPantheonTitle","elementText")}</span>`
-        // +`</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autoPantheon')
-        + hhMenuInputWithImg('autoPantheonThreshold', HHAuto_inputPattern.autoPantheonThreshold, 'text-align:center; width:25px', 'pictures/design/ic_worship.svg', 'numeric')
-        + hhMenuInputWithImg('autoPantheonRunThreshold', HHAuto_inputPattern.autoPantheonRunThreshold, 'text-align:center; width:25px', 'pictures/design/ic_worship.svg', 'numeric')
-        + hhMenuSwitch('autoPantheonBoostedOnly')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledShop" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/design/menu/shop.svg" />`
-        + `<span class="optionsBoxTitle">${getTextForUI("autoBuy", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
-        + hhMenuInput('autoStats', HHAuto_inputPattern.nWith1000sSeparator, '', 'maxMoneyInputField')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
-        + hhMenuInput('maxExp', HHAuto_inputPattern.nWith1000sSeparator, '', 'maxMoneyInputField')
-        + hhMenuInput('autoExp', HHAuto_inputPattern.nWith1000sSeparator, '', 'maxMoneyInputField')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
-        + hhMenuInput('maxAff', HHAuto_inputPattern.nWith1000sSeparator, '', 'maxMoneyInputField')
-        + hhMenuInput('autoAff', HHAuto_inputPattern.nWith1000sSeparator, '', 'maxMoneyInputField')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-        + hhMenuInput('maxBooster', HHAuto_inputPattern.nWith1000sSeparator, 'text-align:right; width:45px')
-        + hhMenuInput('autoBuyBoostersFilter', HHAuto_inputPattern.autoBuyBoostersFilter, 'text-align:center; width:70px')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitch('autoEquipBoosters')
-        + hhMenuInput('autoEquipBoostersSlots', HHAuto_inputPattern.autoEquipBoostersSlots, 'text-align:center; width:70px')
-        + `</div>`
-        + `<div class="internalOptionsRow" style="justify-content: flex-end">`
-        + hhMenuInput('autoEquipMythicBooster', HHAuto_inputPattern.autoEquipMythicBooster, 'text-align:center; width:70px')
-        + `</div>`
-        + `<div class="internalOptionsRow">`
-        + hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
-        + hhMenuSwitch('updateMarket')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="optionsRow" style="display:block">`
-        + `<div id="isEnabledEvents" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("eventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox" style="border-style: dotted;">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('hideOwnedGirls', '', false, true)
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledDPEvent" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("doublePenetrationEventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autodpEventCollect')
-        + hhMenuSwitch('autodpEventCollectAll')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledLivelySceneEvent" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("livelySceneEventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autoLivelySceneEventCollect')
-        + hhMenuSwitch('autoLivelySceneEventCollectAll')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + `<div id="isEnabledSultryMysteriesEvent" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("sultryMysteriesEventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('sultryMysteriesEventRefreshShop')
-        + hhMenuSwitch('sultryMysteriesAutoOpen')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledBossBangEvent" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("bossBangEventTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('bossBangEvent')
-        + hhMenuInput('bossBangMinTeam', HHAuto_inputPattern.bossBangMinTeam, 'text-align:center; width:25px', '', 'numeric')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `<div id="isEnabledPoa" class="optionsBoxWithTitle">`
-        + `<div class="optionsBoxTitle">`
-        + `<span class="optionsBoxTitle">${getTextForUI("poaTitle", "elementText")}</span>`
-        + `</div>`
-        + `<div class="optionsBox">`
-        + `<div class="internalOptionsRow" style="justify-content: space-evenly">`
-        + hhMenuSwitch('autoPoACollect')
-        + hhMenuSwitch('autoPoACollectAll')
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`;
+/** Computed at call time, never at module top level (see StorageKeys guard). */
+function tabStorageKey() {
+    return MenuPorts.storedVarPrefix + TK.menuTab;
+}
+function selectTab(id) {
+    for (const el of document.querySelectorAll('#sMenuTabs .menuTab')) {
+        el.classList.toggle('active', el.dataset.tab === id);
+    }
+    for (const el of document.querySelectorAll('#sMenuPanes .menuPane')) {
+        el.classList.toggle('active', el.dataset.pane === id);
+    }
+    const panes = document.getElementById('sMenuPanes');
+    if (panes !== null)
+        panes.scrollTop = 0;
+}
+/**
+ * Wires the tab rail and restores the area that was open before.
+ *
+ * Must run AFTER maskInactiveMenus(): a game without champions has every group
+ * of that pane hidden, and an area with nothing left in it should not offer a
+ * button at all. If the remembered area is one of those, the first remaining
+ * one is opened instead.
+ */
+function initMenuTabs() {
+    var _a;
+    const rail = document.getElementById('sMenuTabs');
+    if (rail === null)
+        return;
+    const available = [];
+    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
+        const id = tabEl.dataset.tab;
+        if (id === undefined)
+            continue;
+        const pane = document.querySelector(`#sMenuPanes .menuPane[data-pane="${id}"]`);
+        const groups = pane === null ? [] : Array.from(pane.querySelectorAll('.menuGroup'));
+        const anyVisible = groups.some(g => g.style.display !== 'none');
+        if (anyVisible) {
+            available.push(id);
+            tabEl.addEventListener('click', () => {
+                selectTab(id);
+                MenuPorts.setStoredValue(tabStorageKey(), id);
+            });
+        }
+        else {
+            tabEl.style.display = 'none';
+        }
+    }
+    if (available.length === 0)
+        return;
+    const remembered = String((_a = MenuPorts.getStoredValue(tabStorageKey())) !== null && _a !== void 0 ? _a : '');
+    selectTab(available.includes(remembered) ? remembered : available[0]);
 }
 
 ;// ./src/Helper/menu/MenuTemplate.ts
 // MenuTemplate.ts
 //
-// DOM construction (layout): assembles the full settings panel (div#sMenu) from
-// the three column builders. `debugEnabled` (read from storage) gates rows that
-// were hidden by survey feedback. Pure string production; the returned markup is
-// injected by StartService.
+// DOM construction (layout): assembles the full settings panel (div#sMenu) —
+// a fixed header (name, version, master switch), the tabbed body built by
+// MenuTabs, and a fixed footer with the save/load and tool buttons.
+// `debugEnabled` (read from storage) gates rows that were hidden by survey
+// feedback. Pure string production; the returned markup is injected by
+// StartService.
 //
-// Split out of HHMenuHelper as part of WART-002 (behavior-neutral). Reads its
-// storage/translation helpers from MenuPorts so this file stays a graph leaf
-// (see MenuPorts.ts).
-
+// The master switch lives in the header rather than in the Global tab: it is
+// the one control that has to be reachable from every area. There is still
+// exactly one of it — a second copy would mean a duplicate DOM id and break
+// MenuSettings.
+//
+// Reads its storage/translation helpers from MenuPorts so this file stays a
+// graph leaf (see MenuPorts.ts).
 
 
 
@@ -28941,14 +28818,30 @@ function buildRightColumn() {
 function getMenu() {
     const { getTextForUI, getStoredValue, storedVarPrefix } = MenuPorts;
     const debugEnabled = getStoredValue(storedVarPrefix + TK.Debug) === 'true';
-    // Add UI buttons.
-    return `<div id="sMenu" class="HHAutoScriptMenu" style="display: none;">`
-        + `<div style="position: absolute;left: 380px;color: #F00">${getTextForUI("noOtherScripts", "elementText")}</div>`
-        + `<div class="optionsRow">`
-        + buildLeftColumn()
-        + buildMiddleColumn(debugEnabled)
-        + buildRightColumn()
+    const header = `<div class="menuHead">`
+        + `<div class="menuBrand">`
+        + `<span class="menuName">HH Automatic ++</span>`
+        + `<span class="menuVer">${GM.info.script.version}</span>`
         + `</div>`
+        + `<div class="menuMaster">${hhMenuSwitch('master')}</div>`
+        + `<div class="menuWarn">${getTextForUI("noOtherScripts", "elementText")}</div>`
+        + `</div>`;
+    const footer = `<div class="menuFoot">`
+        + hhButton('saveConfig', 'saveConfig')
+        + hhButton('loadConfig', 'loadConfig')
+        + hhButton('saveDefaults', 'saveDefaults')
+        + hhButton('blockOrder', 'blockOrder')
+        + `<div class="menuFootRight">`
+        + hhButton('settingsSurvey', 'settingsSurvey')
+        + hhButton('gitHub', 'git')
+        + hhButton('ReportBugs', 'ReportBugs')
+        + hhButton('DebugMenu', 'DebugMenu')
+        + `</div>`
+        + `</div>`;
+    return `<div id="sMenu" class="HHAutoScriptMenu" style="display: none;">`
+        + header
+        + buildTabbedBody(debugEnabled)
+        + footer
         + `</div>`;
 }
 
@@ -28973,6 +28866,7 @@ function getMenu() {
 //
 // Used by: StartService (on init), AutoLoop (button state refresh),
 // StorageHelper (getMenuValues), and feature modules that inject menu rows.
+
 
 
 
@@ -31297,6 +31191,9 @@ function start() {
     Booster.collectBoostersFromAjaxResponses();
     $('#contains_all').append(pInfoDiv);
     maskInactiveMenus();
+    // After masking: an area whose groups are all hidden on this game loses its
+    // tab button, so this has to know what maskInactiveMenus() just hid.
+    initMenuTabs();
     // Add auto troll options
     let lastTrollIdAvailable = -1;
     if (isMainAdventure) {
