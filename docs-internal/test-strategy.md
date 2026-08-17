@@ -5,10 +5,12 @@ and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **5 in progress** (spec triage -- A, B and D shipped)
-- Last completed task: 5.3 (payload parsers fed from the 2026-08-17 capture)
-- Open: two gaps recorded in the stage 5 section (hero armor globals, the
-  `item.ico` redaction conflict) and task 5.4 (closure).
+- Current stage: **5 finished** (spec triage)
+- Last completed task: 5.5 (stage closure, 2026-08-17)
+- Open, carried forward: one decision, not a task -- `RewardHelper.getRewardTypeByData`
+  reads `item.ico`, which no dump carries and the redaction rule strips. See the
+  stage 5 section.
+- Next step: none planned. New stages need a fresh planning round with the user.
 - Coverage is no longer a goal. What a test proves is. See "Why coverage
   stopped being the target" below.
 - Note on the earlier consensus: "Coverage threshold as a CI gate" is listed
@@ -949,27 +951,99 @@ spy-free by the matching `.pure` spec. **39 tests.**
     - A Role-blessed girl carries **no `pvp_v3` key at all** and her
       `can_be_blessed` flag is `false`, exactly as the BlessingService spec
       had been asserting since July.
-  - Two gaps stay, both written into the fixture READMEs:
-    - The hero's own armor is not in the dump. `equipped_armor` and
-      `player_inventory.armor` exist as page globals on `/shop.html`, but
-      the inspector records their names and types in `globals_overview`,
-      not their contents. The positive `parseArmorItem` cases still run on
-      the entry transcribed from the 2026-08-16 live measurement. Fixing it
-      is a small inspector change or a one-off console read; both entry
-      kinds are needed, because `#equiped` carries only
-      `id_member_armor_equipped` and an inventory entry only
-      `id_member_armor`.
+  - One of the two gaps recorded here was closed the same day (see 5.4); the
+    other is a decision, not a task:
     - `RewardHelper.getRewardTypeByData` reads `item.ico`, and no reward
-      payload in the dump carries a `/pictures/items/` url -- the field the
-      redaction rule strips is the field this parser needs. Decide the rule
-      before the next capture: keep `ico` for reward fixtures, or drop the
-      url-pattern branch from the parser.
+      payload in either capture carries a `/pictures/items/` url -- the
+      inspector does not collect reward payloads with their icons at all, and
+      the redaction rule would strip the field anyway. Decide before the next
+      capture: teach the inspector to keep `ico` for reward fixtures, or drop
+      the url-pattern branch from the parser and detect on `type` alone.
   - No fielded team on the account is themeless, so the one
     `themeFromTeamData` case that needs it builds it by emptying the two
     theme fields of the real team. Noted at the test.
   - Tests: 1,176 -> 1,183. Suites: 82. Coverage unchanged (same paths, real
     input).
-- [ ] **5.4** Close the stage: fold the numbers back into this document.
+- [x] **5.4** Hero armor captured and parsed (2026-08-17)
+  - Inspector v4.9.0 adds `equipped_armor`, `player_inventory` and
+    `market_inventory` to the captured market globals; the header said 4.8.1
+    while the `VERSION` constant said 4.8.0, so dumps had been reporting the
+    older number. Both now agree.
+  - The 13:13 capture delivered 6 worn items and 204 stocked (104 mythic, 100
+    legendary, all `wearer: hero`, evenly over the six slots).
+  - `spec/fixtures/equipment/hero-armor.json` carries three of them. The
+    capture confirms every claim the block had been making against its own
+    builder: a worn entry has `id_member_armor_equipped` and **no**
+    `id_member_armor` key, `caracs.chance` arrives as a string on legendaries,
+    and `resonance_bonuses` is absent rather than empty on 100 of the 204.
+  - Two tests deleted in 5.1 as tautological return as `the model against the
+    capture`, measured this time: a level-20 mythic really carries
+    4000/4000/4000/4000/5000 (21,000 points), and resonance really grows at
+    0.1 per level, doubled on the chance track. A rebalance now fires a test.
+  - All fixture sets re-cut from the surviving capture after the older dump was
+    deleted, so every provenance line in a README is followable. The extractor
+    finds pages by pathname instead of index.
+  - Merged via PR #1828. Tests: 1,183 -> 1,185.
+- [x] **5.5** Stage 5 closed (2026-08-17)
+  - Shipped across four PRs: #1826 (triage stages A, B, D and the strategy
+    entry), #1827 (the pipeline), #1828 (hero armor and the live-check
+    correction).
+  - Totals: 1,396 -> 1,185 tests, 93 -> 82 suites. Coverage 44.04 -> 42.92
+    statements / 35.48 -> 34.03 branches / 42.61 -> 40.74 functions /
+    44.32 -> 43.18 lines, all above the configured thresholds.
+  - 220 tests removed, 7 added. Every removed one either checked the code
+    against a copy of itself or made a claim about the game that jsdom cannot
+    hold.
+
+#### What the first live run found
+
+`scripts/live-check/run.mjs` ran against the game on 2026-08-17: **11 OK, 1
+DRIFT, 0 ERROR, 7 SKIP** (the manual ones).
+
+The single DRIFT was in the checker, not the game.
+`.league_content .data-list .data-column[sorting]` matched nothing because the
+script no longer looks for it -- the selector sat in a commented-out
+`_refreshSorting` block with no callers, and it had been lifted into
+`checks.json` from a grep hit without following it to a live call site. That is
+the mistake `live-verification-lessons.md` exists to prevent, made while
+building the tool meant to apply it.
+
+Three things came out of that, all in PR #1828:
+
+- the dead block is gone from `League.ts`; commented-out selectors are what
+  produced the false claim, and git history keeps them better than a comment
+- two checks the code really does make replace it, both reading
+  `div[column="match_history"], div[column="match_history_sorting"]` on the
+  opponent rows. `league-match-history-legacy` is inverted on purpose: a DRIFT
+  there means the game finished the w32 rename and the fallback branch at
+  `League.ts:445` can go
+- the README states the rule the run taught: follow the selector to a live call
+  site before adding a check, a grep hit is not a claim
+
+The other eight automated claims held. For selectors that had gone two weeks
+without live verification, that is a better result than expected -- and it is
+the first time any of them was actually checked rather than asserted.
+
+#### The pipeline, fixed on the way (PR #1827)
+
+`quality` had been red on `main` since 2026-08-16: `lint:ci` allowed 1203
+warnings and the tree carried 1253. A permanently red check teaches everyone to
+stop reading it, which is the same failure mode as a green suite that proves
+nothing.
+
+`eslint --fix` cleared 207, all `let` -> `const`. The ceiling now sits at the
+real number, 1046, and moves **down** as warnings go rather than up as they
+accumulate. It caught its author two commits later, when the first draft of the
+hero-armor fixture added four `any`; the fixture got typed instead.
+
+What remains is substantial work, not noise: 560 `no-explicit-any`, 155
+`eqeqeq`, 124 unused bindings, concentrated in `BDSMHelper` (100),
+`KKHaremGirl` (64), `League` (60) and `Champion` (58).
+
+Also fixed there: `AjaxTracker`'s uninstalled path was pinned to 50 ms of wall
+clock, failed at 54 ms under parallel load and passed alone. The number
+described the machine. It is measured against its own timeout budget now.
+
 
 #### Why coverage stopped being the target
 
@@ -1086,3 +1160,5 @@ findNextChamptionTime with 1 test.
 | 2026-08-17 | Stage 5 task 5.2: 42 class-B tests removed and replaced by `scripts/live-check/` (declarative check list plus a read-only Playwright runner, session guard, manual instructions for writes and popup states; playwright deliberately not a devDependency). Runner verified against local stand-in pages; the claims themselves need the maintainer's own session. 1218 -> 1176 tests, 83 -> 82 suites |
 | 2026-08-17 | Stage 5 task 5.3 blocked: `INPUT/` no longer holds the dump, so 19 of the 36 open class-D tests have nothing to be built from. 17 are convertible from fixtures already in the repo (BlessingService, TeamModule.mapAvailableGirl). Conflict recorded: `RewardHelper.getRewardTypeByData` reads `item.ico`, which the fixture redaction rule strips |
 | 2026-08-17 | Stage 5 task 5.3 done: a fresh capture (inspector v4.8.0) unblocked the parser fixtures. New fixture sets `teams/`, `blessings/`, `equipment/` with READMEs; BDSMHelper (synergies + skills), TeamModule.mapAvailableGirl, BlessingService and the parseArmorItem reject case now run on real payloads. The capture confirmed three things no hand-written object had: the element/bonus_identifier mapping, `percentage_value: null` on flat skills, and the absent `pvp_v3` key on Role-only girls. Two gaps recorded (hero armor globals not captured; `item.ico` needed by getRewardTypeByData but stripped by the redaction rule). 1176 -> 1183 tests |
+| 2026-08-17 | Stage 5 task 5.4: inspector v4.9.0 captures the hero's own equipment; `spec/fixtures/equipment/hero-armor.json` added and `parseArmorItem` fed from it. The capture confirms the worn/inventory id asymmetry, the string `chance`, and the absent `resonance_bonuses` key. Two tests deleted in 5.1 return as `the model against the capture`, measured against a real capped mythic. All fixtures re-cut from the surviving dump. Merged via PR #1828. 1183 -> 1185 tests |
+| 2026-08-17 | Stage 5 finished: 1396 -> 1185 tests, 93 -> 82 suites, across PRs #1826, #1827 and #1828. First live run: 11 OK, 1 DRIFT, 0 ERROR -- and the DRIFT was a dead claim in the checker, not a change in the game. The `quality` job, red on main since 2026-08-16, is green again with the lint ceiling at the real number (1046). Carried forward: the `item.ico` decision for `getRewardTypeByData` |
