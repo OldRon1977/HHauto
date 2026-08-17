@@ -26,7 +26,15 @@ has, none missing, none falling back to English behind your back.
 Game words stay as the game says them -- Koban, Booster, Troll, Season,
 Pachinko, Orbs, Skills. Everything around them is German.
 
-French is next; Spanish is untouched for now.
+**The translation was produced with AI assistance.** It follows the
+terminology the existing entries already established and every string was
+reviewed before it landed, but a machine does not have a native speaker's ear
+for what reads naturally in a game menu. If something sounds stiff, wrong or
+simply odd to you, please say so -- open an issue or send a pull request
+against `src/i18n/de.ts`. Corrections from native speakers are genuinely
+wanted, not merely tolerated.
+
+French is next and will carry the same note; Spanish is untouched for now.
 
 #### Under the hood
 
