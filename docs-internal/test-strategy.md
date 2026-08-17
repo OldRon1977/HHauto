@@ -1,12 +1,22 @@
 # Test Strategy HHAuto
 
-Status: 2026-05-07. Living document. When a task is finished, tick the checkbox
+Status: 2026-08-17. Living document. When a task is finished, tick the checkbox
 and add the date plus commit hash in the Status field.
 
 ## Status
 
-- Current stage: **4 finished** (reliability layer)
-- Last completed task: 4.4 (stage 4 closure -- CI coverage reporting picked up under refs #1614)
+- Current stage: **5 in progress** (spec triage -- A and B shipped, D blocked)
+- Last completed task: 5.2 (live-only claims moved to `scripts/live-check/`)
+- Open: 5.3 (parser fixtures) is blocked -- see the stage 5 section.
+- Coverage is no longer a goal. What a test proves is. See "Why coverage
+  stopped being the target" below.
+- Note on the earlier consensus: "Coverage threshold as a CI gate" is listed
+  under both *Blocked* and *Deliberately dropped*, but `jest.config.ts` has
+  carried a `coverageThreshold` (39/30/35/40) for some time. Doc and reality
+  disagreed; the gate exists. It is left in place, but it must not be allowed
+  to argue against removing a worthless test -- lower the number instead.
+- Previous stage: **4 finished** (reliability layer)
+- Last completed task before stage 5: 4.4 (stage 4 closure -- CI coverage reporting picked up under refs #1614)
 - Open reminder: none. Issue #1614 is referenced in PR #1659; the issue stays open until the reporter (and any CI consumers) verifies the comment + artefact behaviour live, then it is closed manually.
 - Next step: none planned. The strategy plan ends with stage 4. New stages (e.g. browser-end-to-end smoke, mutation testing experiments, deeper domain-specific suites) require a fresh planning round with the user.
 - Carried-forward reminders for stage 4:
@@ -845,6 +855,119 @@ module.
       club-leader nicknames). Tracked as a new feature for the
       inspector userscript; not part of stage 4.
 
+### Stage 5 -- spec triage (2026-08-17)
+
+The trigger: building the equipment optimizers shipped five real defects with a
+green suite. The file carrying the wrong model sat at 91.5% statement coverage.
+
+| Defect | would have been caught by |
+|---|---|
+| equipped items carry no `id_member_armor` | a fixture of a real `#equiped` object |
+| wrong query parameter for worn items | fixture / contract test |
+| buttons in a DOM tree that is never rendered | **live only** |
+| `item_to_upgrade.level` freezes after page build | **live only** |
+| ranking by a home-grown stat score | **no kind of test** -- it took a data comparison against 99 real players |
+
+None of those tests were broken. They were correct about a world that was not
+the game's. That is the finding this stage acts on.
+
+#### The four classes
+
+Every one of the 1,396 tests was placed in exactly one:
+
+- **A -- tautological.** Checks the implementation against a copy of itself:
+  config literals read back out of the registry that defines them, constructors
+  read back through their own getters, mocked values read back through the
+  getter that returned them, markup held against its own template, `styles()`
+  smoke tests, fixture files checked against their own README. **139 tests.**
+- **B -- live-only.** Claims about selectors, CSS classes, page globals and API
+  parameters, asserted against evidence the test built itself. Green by
+  construction and therefore silent when the game changes. **44 tests**, of
+  which 42 were removed (two turned out to be null-guards on our own side).
+- **C -- real logic.** Rankings, thresholds, state machines, parsers with error
+  handling. Synthetic input is the point here, not a weakness. **1,143 tests**,
+  untouched.
+- **D -- deserves a real payload.** Anything taking game data. **70 tests**, of
+  which 34 already run on captured fixtures (live-blessings, EventGirl, the
+  TeamBuilder player pools, the ad tiles) and 36 still run on hand-built
+  objects.
+
+Plus a side finding outside the classes: four blocks said the same thing twice,
+once through spies -- `League.isTimeToFight`, `Season.isBlockedOnlyByMissing
+Booster`, `Labyrinth.findBetter` and `ClubChampion._setTimer` are each covered
+spy-free by the matching `.pure` spec. **39 tests.**
+
+- [x] **5.1** A and the duplicates deleted (2026-08-17)
+  - 178 tests, ten spec files gone entirely (ButtonHelper, ChampionModel,
+    LeagueOpponent, Contest, Quest, PathOfGlory, PathOfValue, Pantheon,
+    PathOfAttraction, Labyrinth).
+  - Where a block went because a `.pure` spec covers it, a comment naming that
+    file stands in its place, so nobody re-adds it in six months.
+  - Tests: 1,396 -> 1,218. Suites: 93 -> 83.
+  - Coverage: 44.04 -> 43.37 statements / 35.48 -> 34.89 branches /
+    42.61 -> 41.10 functions / 44.32 -> 43.65 lines.
+- [x] **5.2** B deleted and moved into a live check (2026-08-17)
+  - 42 tests removed; `scripts/live-check/` added.
+  - `checks.json` names every claim together with the call site it comes from;
+    `run.mjs` is a read-only Playwright runner printing one line per claim as
+    `OK` / `DRIFT` / `SKIP`.
+  - It refuses to measure unless `shared.Hero.infos.id` is set **and**
+    `a[rel='phoenix_member_login']` matches nothing -- the logged-out page
+    serves a plausible placeholder hero (600 kobans, full energies).
+  - Selector counts ignore visibility on purpose: `shop.html` renders two
+    equipment trees and the one carrying the data is the hidden one.
+  - Writes and popup states stay manual with printed instructions. A checker
+    that buys and equips to prove the API still works is a bot, not a checker.
+  - `playwright` is deliberately **not** a devDependency: CI has no account and
+    must never download a browser for this. The profile stays outside the repo,
+    addressed through `HHAUTO_PROFILE`.
+  - The runner is verified end to end against local stand-in pages (every probe
+    kind, the drift path, the logged-out abort). The claims themselves are not
+    verified -- the game allows one session per account, so that needs the
+    maintainer's own browser.
+  - Tests: 1,218 -> 1,176. Suites: 83 -> 82.
+- [ ] **5.3** D onto real payloads -- **blocked**
+  - `INPUT/` no longer holds the 41 MB dump (only `Logfile.md` survives, and
+    the directory is gitignored). Without a capture there is nothing to build
+    the missing fixtures from.
+  - Convertible from fixtures already in the repo (17 tests):
+    - `BlessingService` (12): `blessing_bonuses`, `can_be_blessed`,
+      `can_be_blessed_pvp4` and `blessed_attributes` are all present on
+      `spec/fixtures/haremGirl/sample-girls.json` and on the event girls.
+    - `TeamModule.mapAvailableGirl` (5): the haremGirl fixture is exactly the
+      raw shape this maps from.
+  - Needs a fresh capture (19 tests):
+    - `EquipmentOptimizerService.parseArmorItem` (5) and `themeFromTeamData`
+      (4): armor entries with `skin`/`caracs`/`resonance_bonuses` from both
+      `#equiped` and the inventory, plus a `teams` payload with `theme` /
+      `theme_elements` / an empty slot. `spec/fixtures/market/store-contents
+      .json` carries buckets 1-3 only; the armor bucket is not in it.
+    - `BDSMHelper.fightBonues` (2) and `getSkillPercentage` (4): a team payload
+      with `synergies[]` and `girls[].skills[<id>].skill.percentage_value`.
+      No fixture has either key.
+    - `RewardHelper.getRewardTypeByData` (4): reward items with their `ico`
+      url. The champion fixture has real reward items but `item.ico` was
+      stripped as an asset url -- the gift/potion detection reads exactly that
+      field, so the redaction rule and this test are in direct conflict. Decide
+      the rule before capturing: either keep `ico` for reward fixtures, or drop
+      the url-pattern branch from the parser.
+- [ ] **5.4** Close the stage: fold the numbers back into this document.
+
+#### Why coverage stopped being the target
+
+Coverage counts lines a test *entered*. It says nothing about lines a test
+*checked*. The 91.5% on the equipment optimizer was honest and worthless: every
+branch ran, every assertion agreed with the same wrong model.
+
+Stage 5 lowered coverage by roughly a point and a half on functions and half a
+point on statements. Every point of it came from lines that were entered and
+never checked. That is a gain, and the reporting should be read that way: the
+number is a description of where tests go, not a measure of what they know.
+
+The `coverageThreshold` in `jest.config.ts` stays as a floor against silent
+rot, not as an argument. When a worthless test is removed and the number drops
+below it, the number moves -- not the decision.
+
 ## Deliberately dropped (do not implement)
 
 - Snapshot tests for HTML
@@ -941,3 +1064,6 @@ findNextChamptionTime with 1 test.
 | 2026-05-08 | Task 4.2 closed (helpers slice only): plan deviation documented after re-reading live source -- the four module-level `JSON.parse(getStored...)` sites the plan listed are either commented out (`BDSMHelper:428`, `AutoLoopActions:169`, `EventModule:792`) or already covered by the helpers slice (`Market:38` defensive log + `getStoredJSON`, `Shop:101` `isJSON` + `getStoredJSON`); no remaining ungauarded `JSON.parse` site in live code. Optional follow-up slices recorded but not blocking (`extractHHVars` corrupted `Temp_Logging`; `setDefaults` boot-path). Next step: stage 4 task 4.3 (multi-domain smoke) |
 | 2026-05-08 | Task 4.3 done: multi-domain smoke covering all 21 hostnames in `HHKnownEnvironnements` (HentaiHeroes 6 / ComixHarem 2 / GayHarem 3 / GayPornstarHarem 2 / MangaRpg 2 / PornstarHarem 2 / TransPornstarHarem 2 / AmourAgent 1 / SexyHeroes 1) plus a sanity guard against new hostnames; appended to existing `spec/Helper/ConfigHelper.spec.ts` (per user direction, instead of new `spec/config/Domain.spec.ts` file). 22 new tests (765 total, 54 suites). Plan deviations documented (exact-match instead of `domain.includes()`; appended instead of new file; `tour` subdomain in handoff was a filename artefact). No `src/` change. Merged via PR #1657 (commit d191c47) |
 | 2026-05-08 | Stage 4 finished: 4.4 closure picked up issue #1614 (CI coverage reporting). `jest.config.ts` adds `json-summary` reporter; `.github/workflows/ci.yml` adds permissions block (contents=read, pull-requests=write), uploads `coverage/` as workflow artefact, and posts a PR coverage comment via `MishaKav/jest-coverage-comment@v1.0.23` (pinned, Marketplace latest as of 2026-05-08); reporting only, no threshold gate. Stage 4 totals: 7 code PRs + 6 doc PRs across tasks 4.1-4.4 plus this closure; 711 -> 765 tests (+54), 53 -> 54 suites; coverage 30.13->30.62 statements / 18.94->19.75 branches / 25.79->26.22 functions / 30.69->31.12 lines; inspector userscript v4.5.0 -> v4.7.0. Plan deviation documented (per-task branches mirroring stages 2 + 3 instead of the plan's single `feat/test-reliability` branch). Carried-forward deferrals for the next planning round listed in the closure block. Merged via PR #1659 (commit 284938d) for the 4.4 code part |
+| 2026-08-17 | Stage 5 task 5.1: spec triage, class A plus the four adapter duplicates deleted -- 178 tests, ten spec files gone entirely. Coverage 44.04->43.37 statements / 35.48->34.89 branches / 42.61->41.10 functions / 44.32->43.65 lines, all above the configured thresholds. 1396 -> 1218 tests, 93 -> 83 suites |
+| 2026-08-17 | Stage 5 task 5.2: 42 class-B tests removed and replaced by `scripts/live-check/` (declarative check list plus a read-only Playwright runner, session guard, manual instructions for writes and popup states; playwright deliberately not a devDependency). Runner verified against local stand-in pages; the claims themselves need the maintainer's own session. 1218 -> 1176 tests, 83 -> 82 suites |
+| 2026-08-17 | Stage 5 task 5.3 blocked: `INPUT/` no longer holds the dump, so 19 of the 36 open class-D tests have nothing to be built from. 17 are convertible from fixtures already in the repo (BlessingService, TeamModule.mapAvailableGirl). Conflict recorded: `RewardHelper.getRewardTypeByData` reads `item.ico`, which the fixture redaction rule strips |
