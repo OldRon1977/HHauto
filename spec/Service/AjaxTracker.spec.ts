@@ -78,11 +78,16 @@ describe("AjaxTracker", () => {
         expect(pendingAjaxCount()).toBe(0);
     });
 
-    it("waitForAjaxIdle resolves immediately when not installed", async () => {
+    it("waitForAjaxIdle returns without waiting out its budget when not installed", async () => {
+        // The claim is "does not sit out the timeout", not "finishes within
+        // n milliseconds": the old 50 ms wall-clock bound failed at 54 ms
+        // under parallel load and said nothing about the code. Measuring
+        // against the budget it was handed is the assertion that holds.
+        const budget = 2000;
         const start = Date.now();
-        const ok = await waitForAjaxIdle(1000, 0);
+        const ok = await waitForAjaxIdle(budget, 0);
         expect(ok).toBe(true);
-        expect(Date.now() - start).toBeLessThan(50);
+        expect(Date.now() - start).toBeLessThan(budget / 2);
     });
 
     it("counts in-flight requests after install", () => {
