@@ -416,6 +416,7 @@ HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams"
 HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team", tooltip: "Auto build the team by selecting equipment and skills. Can also remove skills from other girls if needed. Money limit will be considered" };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
+HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
@@ -1305,6 +1306,9 @@ const TK = {
     // stays possible. The id changes on every unequip, so it can only come
     // from the equip response.
     gearSwapLog: "Temp_gearSwapLog",
+    // Items "Upgrade Gear" still has to level, worked off across the
+    // navigations to the upgrade page.
+    gearUpgradeQueue: "Temp_gearUpgradeQueue",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -3907,6 +3911,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.teamTheme] =
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
+    {
+        default: "[]",
+        storage: "localStorage",
+        HHType: "Temp"
+    };
+// Empty unless the player pressed "Upgrade Gear": the automation on the
+// upgrade page does nothing at all while this is empty.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
     {
         default: "[]",
         storage: "localStorage",
@@ -18606,6 +18618,114 @@ function parseArmorItem(raw, isEquipped = false) {
     };
 }
 
+;// ./src/Service/EquipmentUpgradeService.ts
+// EquipmentUpgradeService.ts -- Pure helpers for "Upgrade Gear": which worn
+// items are worth levelling, and when to stop.
+//
+// The deliberate non-decision in here: this file does not compute how much
+// material a level costs, and does not pick the material. Both are left to
+// the game.
+//
+// Measured 2026-08-17 on the upgrade page: material is counted by weight,
+// not by piece -- seven epics covered a stated requirement of 20 -- and the
+// cost curve is not derivable (20 for level 1->2, 23 for 2->3, but 1555 in
+// total from level 1, which no arithmetic series through those two points
+// produces). Guessing it would either waste material or send calls the
+// server rejects. The upgrade page states the requirement outright and ships
+// an "Auto Select" that fills the material slots by the game's own rules, so
+// the automation reads that number and presses that button instead of
+// re-deriving either.
+//
+// Used by: Module/EquipmentGear.ts
+
+/** Hard stop on level-ups per page load, so a misread response cannot spend
+ *  an inventory. Each one costs money and material. */
+const MAX_LEVELUPS_PER_PAGE = 30;
+/**
+ * The worn items worth spending material on: mythics that are not yet at
+ * the cap.
+ *
+ * Only equipped items qualify. Levelling a mythic that is not being worn
+ * buys nothing today, and "Possible Best Gear" exists precisely to put the
+ * right ones on first -- the intended order is equip, then upgrade.
+ *
+ * Ordered by priority tier so the material goes into the slot that gains
+ * the most from it: a mythic matching class and theme grows both bonuses,
+ * one matching nothing grows nothing that counts.
+ */
+function pickUpgradeTargets(items, playerClass, theme) {
+    return items
+        .filter(i => i.equipped && i.rarity === 'mythic' && i.level < (/* inlined export .MYTHIC_MAX_LEVEL */20))
+        .map(i => ({
+        id_member_armor: i.id_member_armor,
+        name: i.name,
+        slot: i.slot,
+        level: i.level,
+        // 'possible' so an unlevelled mythic is judged by the resonance
+        // it will have, which is the whole point of upgrading it.
+        tier: gearTier(i, playerClass, theme, 'possible'),
+    }))
+        .sort((a, b) => a.tier - b.tier || a.slot - b.slot);
+}
+/**
+ * Items the game may consume. Mythics are never material -- no exception for
+ * duplicates or for a theme match on the wrong class.
+ *
+ * Nothing here is passed to the game; the count only tells the player how
+ * much stock stands behind the plan. The actual picking is Auto Select's.
+ */
+function countMaterialStock(items) {
+    const out = { legendary: 0, epic: 0, other: 0 };
+    for (const i of items) {
+        if (i.equipped || i.rarity === 'mythic')
+            continue;
+        if (i.rarity === 'legendary')
+            out.legendary++;
+        else if (i.rarity === 'epic')
+            out.epic++;
+        else
+            out.other++;
+    }
+    return out;
+}
+function parseRequirement(pageText) {
+    const out = { toNextLevel: null, toMaxLevel: null };
+    // "Until lvl.3: 23" / "Until lvl.20: 1,535"
+    const re = /Until\s+lvl\.(\d+):\s*([\d.,]+)/gi;
+    let m;
+    while ((m = re.exec(pageText)) !== null) {
+        const level = Number(m[1]);
+        const amount = Number(m[2].replace(/[.,]/g, ''));
+        if (!Number.isFinite(amount))
+            continue;
+        if (level >= (/* inlined export .MYTHIC_MAX_LEVEL */20))
+            out.toMaxLevel = amount;
+        else if (out.toNextLevel === null)
+            out.toNextLevel = amount;
+    }
+    return out;
+}
+/**
+ * Whether to press Level-up once more.
+ *
+ * `levelUpEnabled` is the game's own verdict: the button only lights up once
+ * Auto Select has managed to cover the requirement, so a disabled button
+ * after Auto Select means the stock is spent. That is the signal this stops
+ * on -- not an estimate of remaining material.
+ */
+function decideNextLevelUp(state) {
+    if (state.currentLevel >= (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
+        return { go: false, reason: 'item is at max level', done: true };
+    }
+    if (state.performed >= MAX_LEVELUPS_PER_PAGE) {
+        return { go: false, reason: `hit the ${MAX_LEVELUPS_PER_PAGE}-level cap for one run`, done: false };
+    }
+    if (!state.levelUpEnabled) {
+        return { go: false, reason: 'not enough material left for another level', done: false };
+    }
+    return { go: true };
+}
+
 ;// ./src/Module/EquipmentGear.ts
 // EquipmentGear.ts -- The gear buttons on the market page: pick the best
 // armor for the hero's six slots and put it on.
@@ -18616,8 +18736,7 @@ function parseArmorItem(raw, isEquipped = false) {
 //   Team page                Market page
 //   2a Current Best     ->   Current Best Gear
 //   2b Possible Best    ->   Possible Best Gear
-//   3  Stuff Team       ->   Upgrade Gear (not implemented -- the upgrade
-//                            endpoint is still unknown, see below)
+//   3  Stuff Team       ->   Upgrade Gear
 //
 // The ranking itself lives in Service/EquipmentOptimizerService.ts and is
 // pure. This file only does the impure half: read the game's globals and
@@ -18627,7 +18746,8 @@ function parseArmorItem(raw, isEquipped = false) {
 // Background, data model and the measurement traps:
 // docs-internal/equipment-resonance.md.
 //
-// Used by: Service/AutoLoopPageHandlers.ts (shop page)
+// Used by: Service/AutoLoopPageHandlers.ts (market page, and the upgrade
+// page the Level-up button navigates to)
 var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -18649,10 +18769,15 @@ var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (this
 
 
 
+
+
 /** Hard stop for the inventory walk. The test account held 1614 armors; at
  *  the page sizes the game uses that is well under 100 requests. A cap this
  *  side of infinity keeps a changed response shape from looping forever. */
 const MAX_INVENTORY_PAGES = 120;
+/** The upgrade flow lives on its own page; the Level-up button on the market
+ *  only navigates there. That is why no bundle contained the action. */
+const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
 const SLOT_NAMES = {
     1: 'Head', 2: 'Body', 3: 'Legs', 4: 'Flag', 5: 'Pet', 6: 'Weapon',
 };
@@ -18708,9 +18833,11 @@ class EquipmentGear {
         host.append('<div id="HHGearButtons">'
             + gearButton('HHGearCurrentBest')
             + gearButton('HHGearPossibleBest')
+            + gearButton('HHGearUpgrade')
             + '</div>');
         $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
         $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
+        $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
     }
     /** Re-run the injection after a tab switch. The market swaps tabs without
      *  a page load, and it opens on Boosters -- so a one-shot injection from
@@ -19017,6 +19144,185 @@ class EquipmentGear {
         $('#HHGearExecute').on('click', function () {
             $(this).attr('disabled', 'disabled').css('opacity', '0.5');
             void EquipmentGear.execute(plan);
+        });
+    }
+    // ------------------------------------------------------------- upgrade
+    /**
+     * "Upgrade Gear": level the mythics the hero is wearing towards the cap.
+     *
+     * The plan is deliberately thin. How much material a level costs is not
+     * derivable (see EquipmentUpgradeService) and the upgrade page states it
+     * per item, so the preview lists the targets and the stock behind them
+     * and leaves the arithmetic to the page that knows it.
+     */
+    static previewUpgrade() {
+        return EquipmentGear_awaiter(this, void 0, void 0, function* () {
+            if (EquipmentGear.running)
+                return;
+            EquipmentGear.running = true;
+            try {
+                const theme = EquipmentGear.resolveTheme();
+                if (!theme) {
+                    EquipmentGear.showMessage('Upgrade Gear', 'No team theme available. Build a team first -- without it the tiers'
+                        + ' below would be guesses, and material spent on the wrong slot is gone.');
+                    logHHAuto('Gear: Upgrade Gear aborted, no team theme. Nothing was changed.');
+                    return;
+                }
+                const rawClass = Number(HeroHelper.getClass());
+                if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
+                    EquipmentGear.showMessage('Upgrade Gear', 'Could not read the hero class.');
+                    return;
+                }
+                EquipmentGear.showMessage('Upgrade Gear', 'Reading the inventory...');
+                const inventory = yield EquipmentGear.fetchInventory();
+                if (inventory === null) {
+                    EquipmentGear.showMessage('Upgrade Gear', 'Could not read the inventory. Nothing was changed -- see the log.');
+                    return;
+                }
+                const all = [...EquipmentGear.readEquipped(), ...inventory];
+                const targets = pickUpgradeTargets(all, rawClass, theme);
+                const stock = countMaterialStock(all);
+                logHHAuto(`Gear [Upgrade Gear]: ${targets.length} worn mythic(s) below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)},`
+                    + ` material stock ${stock.legendary} legendary + ${stock.epic} epic.`);
+                for (const t of targets) {
+                    logHHAuto(`  Slot ${t.slot} (${SLOT_NAMES[t.slot]}): ${t.name} at level ${t.level}`
+                        + ` [${TIER_NAMES[t.tier]}]`);
+                }
+                EquipmentGear.showUpgradePlan(targets, stock);
+            }
+            catch (err) {
+                logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
+                EquipmentGear.showMessage('Upgrade Gear', 'Failed, nothing was changed. See the log.');
+            }
+            finally {
+                EquipmentGear.running = false;
+            }
+        });
+    }
+    static showUpgradePlan(targets, stock) {
+        if (targets.length === 0) {
+            EquipmentGear.showMessage('Upgrade Gear', `<p>Every mythic you are wearing is already at level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}.</p>`
+                + '<p style="color:#aaa;">Put the items you want to develop on first'
+                + ' &mdash; "Possible Best Gear" does exactly that.</p>');
+            return;
+        }
+        const rows = targets.map(t => `<tr><td>${t.slot} ${SLOT_NAMES[t.slot]}</td><td>${esc(t.name)}</td>`
+            + `<td class="num">lvl ${t.level}</td>`
+            + `<td style="color:#aaa;">${esc(TIER_NAMES[t.tier])}</td></tr>`).join('');
+        fillHHPopUp('HHGearPreview', 'Upgrade Gear', `
+        <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
+            <p>Worn mythics below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}, best-matching first &mdash;
+               material goes where it grows the most resonance.</p>
+            <table>
+                <tr><th>Slot</th><th>Item</th><th>level</th><th>why it is worth it</th></tr>
+                ${rows}
+            </table>
+            <p><b>Material:</b> ${stock.legendary.toLocaleString()} legendary and
+               ${stock.epic.toLocaleString()} epic items. Mythics are never consumed.</p>
+            <p style="color:#fc6;font-size:11px;">One measured level cost 1,000,000 money and 7 epics,
+               and the game asked for 1,555 material points to take a level-1 mythic all the way.
+               Expect this to run out long before the cap. Each item's exact requirement is shown
+               on the upgrade page, and the run stops by itself when the material does.</p>
+            <p id="HHGearStatus" style="color:#ffb827;"></p>
+            <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
+                Start with ${esc(targets[0].name)} (slot ${targets[0].slot})</label>
+        </div>`);
+        $('#HHGearUpgradeStart').on('click', function () {
+            $(this).attr('disabled', 'disabled').css('opacity', '0.5');
+            const queue = targets.map(t => ({ id: t.id_member_armor, name: t.name, slot: t.slot }));
+            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(queue));
+            logHHAuto(`Gear: queued ${queue.length} item(s) for upgrade; going to the upgrade page.`);
+            EquipmentGear.gotoUpgradePage(queue[0].id);
+        });
+    }
+    static gotoUpgradePage(id) {
+        window.location.href = addNutakuSession(`${UPGRADE_PATH}?id_member_item=${id}`);
+    }
+    // --------------------------------------------------- the upgrade page
+    /** True on /mythic-equipment-upgrade.html. That page carries no `page`
+     *  attribute, so getPage() cannot identify it -- the path is the only
+     *  handle. */
+    static isUpgradePage() {
+        return window.location.pathname.indexOf(UPGRADE_PATH) !== -1;
+    }
+    /**
+     * Work the queue on the upgrade page: Auto Select, then Level-up, until
+     * the item is capped or the material runs out.
+     *
+     * Auto Select is the game's own material picker, and the Level-up button
+     * only lights up once it has covered the requirement -- so a button that
+     * stays disabled is the game telling us the stock is spent. Nothing here
+     * counts material or reimplements the cost curve.
+     *
+     * Does nothing at all while the queue is empty, which is the state
+     * unless the player pressed the button.
+     */
+    static runUpgradePage() {
+        return EquipmentGear_awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f;
+            if (!EquipmentGear.isUpgradePage())
+                return;
+            const queue = getStoredJSON(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
+            if (!Array.isArray(queue) || queue.length === 0)
+                return;
+            if (EquipmentGear.running)
+                return;
+            EquipmentGear.running = true;
+            const finish = (msg) => {
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                logHHAuto('Gear: upgrade run finished -- ' + msg);
+            };
+            try {
+                const head = queue[0];
+                const onPage = Number((_a = unsafeWindow.item_to_upgrade) === null || _a === void 0 ? void 0 : _a.id_member_armor);
+                if (onPage !== head.id) {
+                    // Someone navigated by hand, or the queue is stale. Acting
+                    // here would spend material on an item nobody asked for.
+                    finish(`the page shows item ${onPage}, the queue expects ${head.id}. Stopped without spending anything.`);
+                    return;
+                }
+                const req = parseRequirement(document.body.innerText);
+                logHHAuto(`Gear: upgrading ${head.name} (slot ${head.slot}), level`
+                    + ` ${(_b = unsafeWindow.item_to_upgrade) === null || _b === void 0 ? void 0 : _b.level}. Game asks ${(_c = req.toNextLevel) !== null && _c !== void 0 ? _c : '?'}`
+                    + ` material for the next level, ${(_d = req.toMaxLevel) !== null && _d !== void 0 ? _d : '?'} to reach the cap.`);
+                let performed = 0;
+                for (;;) {
+                    $('#auto-select').trigger('click');
+                    yield new Promise(r => setTimeout(r, randomInterval(700, 1200)));
+                    const level = Number((_e = unsafeWindow.item_to_upgrade) === null || _e === void 0 ? void 0 : _e.level) || 0;
+                    const enabled = $('#level-up').length > 0
+                        && !document.getElementById('level-up').disabled;
+                    const verdict = decideNextLevelUp({ currentLevel: level, levelUpEnabled: enabled, performed });
+                    if (!verdict.go) {
+                        logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
+                        if (!verdict.done) {
+                            finish(verdict.reason);
+                            return;
+                        }
+                        break;
+                    }
+                    $('#level-up').trigger('click');
+                    performed++;
+                    yield new Promise(r => setTimeout(r, randomInterval(1500, 2500)));
+                    logHHAuto(`Gear: ${head.name} is now level ${(_f = unsafeWindow.item_to_upgrade) === null || _f === void 0 ? void 0 : _f.level}`
+                        + ` (${performed} level(s) this run).`);
+                }
+                const rest = queue.slice(1);
+                if (rest.length === 0) {
+                    finish('every queued item is done.');
+                    return;
+                }
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, JSON.stringify(rest));
+                logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
+                EquipmentGear.gotoUpgradePage(rest[0].id);
+            }
+            catch (err) {
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                logHHAuto('Gear: upgrade run aborted: ' + err);
+            }
+            finally {
+                EquipmentGear.running = false;
+            }
         });
     }
     // ------------------------------------------------------------- execute
@@ -24358,6 +24664,14 @@ var AutoLoopPageHandlers_awaiter = (undefined && undefined.__awaiter) || functio
 let seasonArenaPreviewShown = false;
 function handlePageSpecific(ctx) {
     return AutoLoopPageHandlers_awaiter(this, void 0, void 0, function* () {
+        // The mythic upgrade page carries no `page` attribute, so it never
+        // reaches the switch below -- it is matched on its path instead. The run
+        // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
+        // on its own.
+        if (EquipmentGear.isUpgradePage()) {
+            yield EquipmentGear.runUpgradePage();
+            return;
+        }
         switch (ctx.currentPage) {
             case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):
                 if (getStoredValue(HHStoredVarPrefixKey + SK.showCalculatePower) === "true") {

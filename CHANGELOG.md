@@ -9,6 +9,9 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.8.0 - Gear buttons for the hero's own equipment
 
+Three buttons next to the armor inventory on the market page, built to mirror
+the team workflow so there is one mental model instead of two.
+
 Two buttons next to the armor inventory on the market page, built to mirror
 the team workflow so there is one mental model instead of two:
 
@@ -26,8 +29,17 @@ the team workflow so there is one mental model instead of two:
   today -- so it prints, per slot and in total, exactly how many carac points
   that costs now and what it is worth once the items are maxed.
 
-Both show a full preview before anything is touched, log one line per planned
-swap, abort without acting when `hh_ajax` is unavailable, and record the
+- **Upgrade Gear** levels the mythics you are wearing towards the cap, best
+  matching first, so scarce material lands where it grows the most
+  resonance. Legendary and epic items are the material; mythics are never
+  consumed. It does not compute what a level costs -- the cost curve is not
+  derivable from its own numbers, and the game's upgrade page states the
+  requirement and ships an "Auto Select" that fills the material slots by
+  its own rules. The run presses that and stops when the game says the stock
+  is spent.
+
+All three show a full preview before anything is touched, log one line per
+planned swap, abort without acting when `hh_ajax` is unavailable, and record the
 inventory id of every item they take off (the id changes on every unequip, so
 it can only come from the equip response) to keep a rollback possible.
 

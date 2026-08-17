@@ -2330,6 +2330,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearSwapLog] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// Empty unless the player pressed "Upgrade Gear": the automation on the
+// upgrade page does nothing at all while this is empty.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
+    {
+    default:"[]",
+    storage:"localStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
     storage:"sessionStorage",

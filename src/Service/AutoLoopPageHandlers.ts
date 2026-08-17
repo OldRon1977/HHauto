@@ -58,6 +58,15 @@ import { AdsService } from "./AdsService";
 let seasonArenaPreviewShown = false;
 
 export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
+    // The mythic upgrade page carries no `page` attribute, so it never
+    // reaches the switch below -- it is matched on its path instead. The run
+    // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
+    // on its own.
+    if (EquipmentGear.isUpgradePage()) {
+        await EquipmentGear.runUpgradePage();
+        return;
+    }
+
     switch (ctx.currentPage)
     {
         case ConfigHelper.getHHScriptVars("pagesIDLeaderboard"):

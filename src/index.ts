@@ -88,6 +88,9 @@ declare global {
         // First page of the market inventory. Only `armor` is read (by
         // EquipmentGear); the remaining pages come from market_get_armor.
         player_inventory?: { armor?: unknown[]; [key: string]: unknown };
+        // Only on /mythic-equipment-upgrade.html: the item that page is
+        // raising. EquipmentGear reads its id and level to drive the run.
+        item_to_upgrade?: { id_member_armor?: number; level?: number; [key: string]: unknown };
         season_sec_untill_event_end: number | undefined;
         seasonal_event_active: boolean;
         seasonal_time_remaining: number;

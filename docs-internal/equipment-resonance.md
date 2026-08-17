@@ -284,6 +284,26 @@ Gegenprobe am Messaccount: beide Buttons melden **„nothing to change"** --
 vier Slots Stufe 1, zwei Slots Stufe 2 (fuer Slot 2 und 5 besitzt der
 Account kein nature-Mythic).
 
+### Wie Upgrade Gear das benutzt
+
+Der Ablauf faehrt bewusst ueber die Spielseite statt ueber einen eigenen
+Ajax-Aufruf: Warteschlange schreiben, zur Upgrade-Seite des ersten Ziels
+navigieren, dort „Auto Select" und „Level-up" druecken, bis das Spiel den
+Level-up-Knopf nicht mehr freigibt, dann zum naechsten Ziel.
+
+Der Grund steht oben -- die Kostenkurve ist aus ihren eigenen Zahlen nicht
+herleitbar (20 fuer 1->2, 23 fuer 2->3, aber 1.555 insgesamt ab Level 1; keine
+arithmetische Reihe durch diese Punkte ergibt das). „Auto Select" waehlt das
+Material nach den Regeln des Spiels, und der Level-up-Knopf ist genau dann
+aktiv, wenn der Bedarf gedeckt ist. Ein deaktivierter Knopf **ist** die
+Aussage „Material alle" -- der Automat zaehlt nichts selbst nach.
+
+Sicherungen: Die Automatik tut nichts, solange die Warteschlange leer ist
+(live geprueft: null Aufrufe). Stimmt `item_to_upgrade.id_member_armor` nicht
+mit dem Kopf der Warteschlange ueberein, bricht sie ab, ohne etwas
+auszugeben. Und es gilt eine harte Obergrenze von 30 Leveln je Seitenaufruf,
+weil jedes Level Geld und Material kostet.
+
 ### Material fuer Upgrade Gear
 
 **Mythics sind niemals Material.** Keine Ausnahme fuer Dopplungen, keine fuer

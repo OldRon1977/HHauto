@@ -292,6 +292,7 @@ HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams"
 HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team", tooltip: "Auto build the team by selecting equipment and skills. Can also remove skills from other girls if needed. Money limit will be considered"};
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker."};
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today."};
+HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent."};
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] ={ version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
