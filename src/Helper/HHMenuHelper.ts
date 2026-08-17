@@ -34,6 +34,7 @@ import { getStoredValue } from "./StorageHelper";
 import { getMenuValues, setMenuValues } from "./menu/MenuSettings";
 
 export { getMenu } from "./menu/MenuTemplate";
+export { initMenuTabs } from "./menu/MenuTabs";
 export {
     hhButton,
     hhMenuInput,

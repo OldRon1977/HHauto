@@ -53,11 +53,49 @@ GM_addStyle('div.optionsBoxWithTitle {display:flex; flex-direction:column}');
 GM_addStyle('div.optionsBoxWithTitleInline {display:flex; flex-direction:row; border:1px solid #ffa23e; border-radius:5px; margin:1px}');
 GM_addStyle('div.optionsBoxWithTitleInline .optionsBox {border: none}');
 GM_addStyle('img.iconImg {max-width:15px; height:15px}');
-GM_addStyle('#sMenu {top: 5px;right: 52px;padding: 1px;opacity: 1;border-radius: 4px;border: 1px solid #ffa23e;background-color: #1e261e;font-size:x-small; position:absolute; text-align:left; flex-direction:column; justify-content:space-between; z-index:10000; overflow:auto; max-height:calc(100% - 5px); scrollbar-width: thin;max-width: calc(100% - 52px);}');
-GM_addStyle('#sMenu::-webkit-scrollbar {width: 6px;height: 6px;background: #000;}');
-GM_addStyle('#sMenu::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-border-radius: 1ex; -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);}');
-GM_addStyle('#sMenu::-webkit-scrollbar-corner {background: #000;}');
-GM_addStyle('#sMenu .HHMenuItemName {font-size:8px;}');
+// Settings panel (8.10.0): a fixed-size panel with a tab rail instead of three
+// fixed-width columns. Rows are a two-column grid so a long translation wraps
+// in the label column and can never run under its control.
+GM_addStyle('#sMenu {top: 5px; right: 52px; position:absolute; z-index:10000;'
+            +' width:820px; height:540px; max-width:calc(100% - 56px); max-height:calc(100% - 10px);'
+            +' flex-direction:column; overflow:hidden;'
+            +' border-radius:4px; border:1px solid #ffa23e; background-color:#1e261e;'
+            +' font-size:10px; text-align:left; scrollbar-width:thin;}');
+GM_addStyle('#sMenu ::-webkit-scrollbar {width: 6px;height: 6px;background: #000;}');
+GM_addStyle('#sMenu ::-webkit-scrollbar-thumb { background: #ffa23e; -webkit-border-radius: 1ex; -webkit-box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.75);}');
+GM_addStyle('#sMenu ::-webkit-scrollbar-corner {background: #000;}');
+GM_addStyle('#sMenu .HHMenuItemName {font-size:10px; padding-bottom:0; line-height:1.25;}');
+// Header
+GM_addStyle('#sMenu .menuHead {flex:none; display:flex; align-items:center; flex-wrap:wrap; gap:4px 10px; padding:6px 10px; border-bottom:1px solid #ffa23e;}');
+GM_addStyle('#sMenu .menuName {font-weight:bold; font-size:13px;}');
+GM_addStyle('#sMenu .menuVer {color:#98a191; margin-left:5px;}');
+GM_addStyle('#sMenu .menuMaster {margin-left:auto;}');
+GM_addStyle('#sMenu .menuMaster .labelAndButton {grid-template-columns:auto auto; gap:6px; padding:0;}');
+GM_addStyle('#sMenu .menuWarn {flex-basis:100%; color:#ff8a80;}');
+// Body: tab rail + panes
+GM_addStyle('#sMenu .menuBody {flex:1; display:flex; min-height:0;}');
+GM_addStyle('#sMenu .menuTabs {flex:none; width:158px; overflow-y:auto; padding:4px 0; border-right:1px solid #ffa23e; background:#0d120b;}');
+GM_addStyle('#sMenu .menuTab {display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; color:#98a191; font-size:12px; border-left:3px solid transparent;}');
+GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.06);}');
+GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
+GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
+GM_addStyle('#sMenu .menuPane {display:none;}');
+GM_addStyle('#sMenu .menuPane.active {display:block;}');
+GM_addStyle('#sMenu .menuPaneTitle {font-size:14px; font-weight:bold; padding-bottom:4px; margin-bottom:6px; border-bottom:1px solid rgba(255,162,62,.3);}');
+GM_addStyle('#sMenu .menuGroups {display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:5px; align-items:start;}');
+GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-radius:4px; padding:4px 7px 5px;}');
+GM_addStyle('#sMenu .menuGroup.wide {grid-column:1/-1;}');
+GM_addStyle('#sMenu .menuGroup.wide > .menuGroupRows {display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); column-gap:18px;}');
+GM_addStyle('#sMenu .menuGroupTitle {color:#ffa23e; font-weight:bold; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;}');
+// The row: flexible label column, fixed control column.
+GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:21px; padding:1px 0;}');
+GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
+GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
+GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
+GM_addStyle('#sMenu select {max-width:100%;}');
+// Footer
+GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
+GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');
 GM_addStyle('div.optionsBoxTitle {height:12px; display:flex; flex-direction:row; justify-content:center; align-items:center;}'); //; padding:2px; padding-bottom:0px;
 GM_addStyle('div.rowOptionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:row; align-items:flex-start; border: 1px solid #ffa23e; border-radius: 5px}');
 GM_addStyle('div.optionsBox {margin:1px; padding:3px; font-size:smaller; display:flex; flex-direction:column; border:1px solid #ffa23e; border-radius:5px}');

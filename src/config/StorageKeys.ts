@@ -276,6 +276,7 @@ export const TK = {
     freshStart: "Temp_freshStart",
     scriptversion: "Temp_scriptversion",
     pinfo: "Temp_pinfo",
+    menuTab: "Temp_menuTab",
 
     // Harem
     HaremSize: "Temp_HaremSize",

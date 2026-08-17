@@ -2435,6 +2435,14 @@ HHStoredVars[HHStoredVarPrefixKey + TK.pinfo] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// Which settings tab was open. sessionStorage so it survives the page loads the
+// script triggers while automating, without leaking into another browser tab.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuTab] =
+    {
+    default:"global",
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.PopTargeted] =
     {
     storage:"sessionStorage",

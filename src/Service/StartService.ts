@@ -24,7 +24,7 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { safeReload } from "./PageNavigationService";
 import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
-import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
+import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, initMenuTabs, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
 import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
@@ -440,6 +440,9 @@ export function start() {
 
     $('#contains_all').append(pInfoDiv);
     maskInactiveMenus();
+    // After masking: an area whose groups are all hidden on this game loses its
+    // tab button, so this has to know what maskInactiveMenus() just hid.
+    initMenuTabs();
 
     // Add auto troll options
     let lastTrollIdAvailable:number = -1;
