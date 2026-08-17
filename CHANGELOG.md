@@ -7,6 +7,37 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.9.0 - German, in full
+
+The German menu is complete: every one of the 381 entries the English file
+has, none missing, none falling back to English behind your back.
+
+- **310 entries translated**, from the option labels down to the tooltips.
+- **9 rewritten** where the English text had moved on and nobody noticed.
+  `+Event` and `+Mythic Event` still described how they worked before
+  v7.32.1 -- "ignore the selected trolls during an event" -- when they have
+  meant "fight event trolls independently of Auto Troll" for months. You
+  never saw the wrong text: the version stamp was older than the English
+  entry, so the menu quietly showed English instead. Same for Main Quest,
+  the booster filter, Max Exp and Max Aff.
+- **1 dead key removed** (`autoArenaCheckbox`), which had no English
+  counterpart and could never be read.
+
+Game words stay as the game says them -- Koban, Booster, Troll, Season,
+Pachinko, Orbs, Skills. Everything around them is German.
+
+French is next; Spanish is untouched for now.
+
+#### Under the hood
+
+- 195 lines of commented-out code deleted. A commented-out selector had
+  already produced one false finding in the live checker: nothing about a
+  commented block says "this is not a claim the script makes any more".
+- Comments that stated something checkable were checked. 23 module headers
+  claimed they were used by `Service/index.ts`, a file that does not exist;
+  they now name the modules that actually import them. Two spec case counts
+  were wrong, and one comment referred to a function that never existed.
+
 ### v8.8.0 - Gear for your hero
 
 Three buttons next to the armor inventory on the market page, laid out like
