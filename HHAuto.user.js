@@ -93,6 +93,14 @@ GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba
 GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
 GM_addStyle('#sMenu select {max-width:100%;}');
+// Number fields run to twelve digits plus thousands separators ("999.999.999.999",
+// 15 characters). Smaller type in the fields buys the room; the width is given in
+// ch so it keeps fitting that many characters whatever font the game applies.
+GM_addStyle('#sMenu input[type=text] {font-size:8px; box-sizing:content-box; padding:0 2px;}');
+GM_addStyle('#sMenu input.maxMoneyInputField {width:17ch; text-align:right;}');
+// Booster lists hold up to five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters) —
+// the example the tooltip itself gives.
+GM_addStyle('#sMenu input.menuListInput {width:21ch; text-align:center;}');
 // Footer
 GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
 GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');
@@ -28446,7 +28454,7 @@ function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle = '', inputClas
         + `</div>`
         + `</div>`;
 }
-function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode = 'text') {
+function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode = 'text', inputClass = '') {
     const { getTextForUI, getHHScriptVars } = MenuPorts;
     let htmlRet = `<div class="labelAndButton">`
         + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
@@ -28461,7 +28469,7 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
         `<div style="padding-left:5px">`
             + `<div class="tooltipHH">`
             + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-            + `<input style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
+            + `<input class="${inputClass}" style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
             + `</div>`
             + `</div>`
             + `</div>`
@@ -28539,7 +28547,7 @@ function tabs(debugEnabled) {
                     + hhMenuInput('autoPentaDrillDelay', P.autoPentaDrillDelay, 'text-align:center; width:30px')
                     + hhMenuSwitch('pipelineDiagnose'))
                 + group('menuSecKobans', hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
-                    + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, 'text-align:right; width:60px', 'pictures/design/ic_hard_currency.png'))
+                    + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
                 + group('menuSecAutoCollect', hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
                     + hhMenuSwitch('collectEventChest')),
         },
@@ -28567,7 +28575,7 @@ function tabs(debugEnabled) {
                     + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals')
                 + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko')
                 + group('menuSecSalary', hhMenuSwitch('autoSalary')
-                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, 'text-align:right; width:60px'), 'isEnabledSalary')
+                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
                 + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
                     + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, 'width:100px')
                     + hhMenuSwitch('autoPowerPlacesAll')
@@ -28659,7 +28667,7 @@ function tabs(debugEnabled) {
                     + hhMenuSwitch('showClubButtonInPoa')
                     + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp')
                 + group('menuSecTeam', hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
-                    + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, 'text-align:right; width:60px')
+                    + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuSwitch('autoChampsTeamKeepSecondLine')
                     + hhMenuSwitch('autoBuildChampsTeam'))
                 + group('autoPantheonTitle', hhMenuSwitch('autoPantheon')
@@ -28686,11 +28694,11 @@ function tabs(debugEnabled) {
                     + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
                 + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-                    + hhMenuInput('maxBooster', P.nWith1000sSeparator, 'text-align:right; width:60px')
-                    + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, 'text-align:center; width:90px')
+                    + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                     + hhMenuSwitch('autoEquipBoosters')
-                    + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, 'text-align:center; width:90px')
-                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, 'text-align:center; width:90px'), '', true)
+                    + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
+                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true)
                 + group('menuSecMarketTools', hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                     + hhMenuSwitch('updateMarket')),
         },
