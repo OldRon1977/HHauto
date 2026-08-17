@@ -8,6 +8,7 @@ Three ways to ask, because no single one is complete.
 
 ```
 node scripts/catalogue/run.mjs bundle                    # the game's own source
+node scripts/catalogue/run.mjs browser                   # a browser to attach to
 node scripts/catalogue/run.mjs observe --seconds=300     # what it sends while you play
 node scripts/catalogue/run.mjs snapshot                  # what is on the page right now
 ```
@@ -58,24 +59,33 @@ contains four globals.
 
 ## Attaching
 
-`observe` and `snapshot` need a browser started with the DevTools port open.
-An already-running Chrome will not pick the flag up; it has to be started
-with it.
+`observe` and `snapshot` need a browser with the DevTools port open. An
+already-running browser will not pick the flag up — it has to be *started*
+with it, which is what `browser` does:
 
 ```
-chromium --remote-debugging-port=9222
+node scripts/catalogue/run.mjs browser
 ```
 
-Use a separate profile if you would rather not close the browser you have
-open:
+It uses its own profile (`~/.config/hhauto-catalogue`), so nothing you have
+open is disturbed, and it waits until the port actually answers rather than
+reporting success on a spawn. Log into the game in that window, then run
+`observe` or `snapshot` from another terminal. Neither clicks, submits or
+navigates — they read.
 
-```
-chromium --remote-debugging-port=9222 --user-data-dir=$HOME/.config/hhauto-catalogue
-```
+Finding the binary, in order: `HHAUTO_CHROMIUM` if set, then the browser
+Playwright ships, then `/usr/bin/chromium` and its usual siblings.
 
-Then log in and play. Neither mode clicks, submits or navigates — they read.
+It has to be Chromium-based. **Firefox cannot do this** — Playwright's CDP
+connection is Chromium-only — so on a machine carrying only Firefox the
+Playwright browser is the answer, and it is an ordinary Chromium that takes
+the same flags. One wrinkle worth knowing: `chromium.executablePath()` names
+the revision *this* Playwright version wants, which is not always the one
+installed. The finder falls back to whatever is really in the Playwright
+cache, because any of them speaks CDP.
 
-`--port=N` if you use a different port.
+`--port=N` if 9222 is taken. `--headless` on `browser` if you only want to
+prove the plumbing works.
 
 ## Why this and not the inspector
 

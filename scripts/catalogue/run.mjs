@@ -16,7 +16,9 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { attach, gamePages, sessionState, DEFAULT_PORT } from './lib/attach.mjs';
+import { attach, gamePages, sessionState, findChromium, DEFAULT_PORT } from './lib/attach.mjs';
+import { spawn } from 'node:child_process';
+import { homedir } from 'node:os';
 import { shapeOf, mergeShapes, shapeLines } from './lib/shape.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -341,6 +343,54 @@ async function cmdSnapshot(port) {
     await close();
 }
 
+// =================================================================== browser
+
+async function cmdBrowser(port, headless) {
+    let found;
+    try { found = findChromium(); }
+    catch (e) { console.error(String(e.message)); process.exit(2); }
+
+    const profile = process.env.HHAUTO_CATALOGUE_PROFILE || join(homedir(), '.config', 'hhauto-catalogue');
+    const args = [
+        `--remote-debugging-port=${port}`,
+        `--user-data-dir=${profile}`,
+        '--no-first-run',
+        '--no-default-browser-check',
+        ...(headless ? ['--headless=new'] : []),
+    ];
+    console.log(`launching ${found.path}`);
+    console.log(`  (${found.source})`);
+    console.log(`  profile: ${profile}`);
+    console.log(`  debugging port: ${port}`);
+
+    const child = spawn(found.path, args, { detached: true, stdio: 'ignore' });
+    child.unref();
+
+    // Confirm the port answers rather than claiming success on a spawn.
+    const endpoint = `http://127.0.0.1:${port}/json/version`;
+    for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        try {
+            const res = await fetch(endpoint);
+            if (res.ok) {
+                const v = await res.json();
+                console.log('');
+                console.log(`  up: ${v.Browser}`);
+                console.log('');
+                console.log('Log into the game in that window, then in another terminal:');
+                console.log(`  node scripts/catalogue/run.mjs observe --seconds=600`);
+                console.log(`  node scripts/catalogue/run.mjs snapshot`);
+                return;
+            }
+        } catch { /* not up yet */ }
+    }
+    console.error('');
+    console.error(`The browser started but ${endpoint} never answered.`);
+    console.error('If a browser with this profile was already running, it took the launch over');
+    console.error('without opening the port. Close it and try again.');
+    process.exit(2);
+}
+
 // ====================================================================== main
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -350,13 +400,22 @@ const port = portArg ? Number(portArg.split('=')[1]) : DEFAULT_PORT;
 const secondsArg = rest.find((a) => /^--seconds=/.test(a));
 const seconds = secondsArg ? Number(secondsArg.split('=')[1]) : 0;
 
-const commands = { bundle: () => cmdBundle(), observe: () => cmdObserve(port, seconds), snapshot: () => cmdSnapshot(port) };
+const headless = rest.includes('--headless');
+
+const commands = {
+    bundle: () => cmdBundle(),
+    browser: () => cmdBrowser(port, headless),
+    observe: () => cmdObserve(port, seconds),
+    snapshot: () => cmdSnapshot(port),
+};
 
 if (!commands[cmd]) {
-    console.log('usage: node scripts/catalogue/run.mjs <bundle|observe|snapshot> [--port=9222]');
+    console.log('usage: node scripts/catalogue/run.mjs <bundle|browser|observe|snapshot> [--port=9222]');
     console.log('');
     console.log('  bundle    read the game\'s own source: action names, shared.* API, hh_* globals');
     console.log('            needs no login and touches nothing');
+    console.log('  browser   start a Chromium with the debugging port open, so observe and');
+    console.log('            snapshot have something to attach to');
     console.log('  observe   attach to your browser and record ajax traffic as shapes while you play');
     console.log('            --seconds=N records for a fixed time instead of until Ctrl-C');
     console.log('  snapshot  attach and dump the globals of the page you are on');
