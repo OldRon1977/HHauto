@@ -37,12 +37,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "8.8.0";
+const FEATURE_POPUP_VERSION: string = "8.9.0";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.8.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.9.0";
 
 /**
  * HTML content for the feature popup.
@@ -67,6 +67,7 @@ const FEATURE_POPUP_CONTENT = `
     </ul>
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Better team selection (new in 8.7.0)</p>
     <p style="margin-bottom:10px;">The picker no longer chases the <b>Total Power</b> the game prints &mdash; it has the game calculate each candidate team and fields the one that actually wins fights. Measured on one account: <b>88.9% &rarr; 92.2%</b> average win chance at identical Total Power. Press <b>1 Unequip All</b> first, or the team already wearing the gear wins the selection for its items.</p>
+    <p style="margin-bottom:10px;"><b>Deutsch:</b> Sprache Deutsch vervollst&auml;ndigt, Fehler gerne melden.</p>
     <p style="margin-bottom:0; font-size:11px; color:#888;">Nothing was removed and no settings are reset. The gear buttons need <b>Show market tools</b>. Full details in the CHANGELOG.</p>
   </div>
 `;
