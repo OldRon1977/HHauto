@@ -107,6 +107,14 @@ describe('parseRequirement', () => {
             .toEqual({ toNextLevel: 23, toMaxLevel: 1535 });
     });
 
+    // At level 19 the page prints "Until lvl.20: 204" twice, because the next
+    // level and the cap are the same one. Reading only the cap out of that
+    // left the next-level figure null and the log saying "?".
+    it('reads a doubled line one level below the cap as both figures', () => {
+        expect(parseRequirement('Until lvl.20: 204 Until lvl.20: 204'))
+            .toEqual({ toNextLevel: 204, toMaxLevel: 204 });
+    });
+
     it('returns nulls rather than guesses when the page says nothing', () => {
         expect(parseRequirement('nothing here')).toEqual({ toNextLevel: null, toMaxLevel: null });
     });

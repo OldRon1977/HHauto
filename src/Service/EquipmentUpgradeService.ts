@@ -117,8 +117,12 @@ export function parseRequirement(pageText: string): UpgradeRequirement {
         const level = Number(m[1]);
         const amount = Number(m[2].replace(/[.,]/g, ''));
         if (!Number.isFinite(amount)) continue;
+        // One level below the cap the page prints the same line twice --
+        // "Until lvl.20: 204" is both the next level and the last one. So the
+        // first match is always the next level, and the cap line is whichever
+        // one names MYTHIC_MAX_LEVEL; at level 19 that is the same number.
+        if (out.toNextLevel === null) out.toNextLevel = amount;
         if (level >= MYTHIC_MAX_LEVEL) out.toMaxLevel = amount;
-        else if (out.toNextLevel === null) out.toNextLevel = amount;
     }
     return out;
 }

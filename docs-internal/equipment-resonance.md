@@ -65,10 +65,15 @@ Slots. Dieselben Objekte stecken auf ``shop.html`` in
 ``player_inventory.armor`` und in den ``data-d``-Attributen unter
 ``#equiped .armor div[id_item]``.
 
+Ein Objekt traegt **entweder** die eine ID **oder** die andere, nie beide
+(siehe „Zwei ID-Raeume" weiter unten):
+
 ```jsonc
 {
-  "id_member_armor_equipped": 2666196,   // angelegt
-  "id_member_armor":          6602031,   // im Inventar (ID wechselt beim Ablegen!)
+  // angelegt: nur dieses Feld, `id_member_armor` fehlt ganz
+  "id_member_armor_equipped": 2666196,
+  // im Inventar stattdessen nur dieses (ID wechselt beim Ablegen!)
+  // "id_member_armor": 6602031,
   "level": 20,
   "skin": { "subtype": 1, "wearer": "hero", "name": "Dragon Helmet" },
   "item": { "rarity": "mythic", "type": "armor" },
@@ -87,6 +92,8 @@ Slots. Dieselben Objekte stecken auf ``shop.html`` in
 - ``resonance.resonance``: Zielgroesse (``damage`` | ``ego`` | ``defense`` |
   ``chance``).
 - ``bonus``: Prozentpunkte.
+- ``caracs.chance`` kommt mal als Zahl, mal als **String** (`"4634.57"`).
+  Immer durch `Number()` schicken.
 
 ### Der Bonus skaliert mit dem Item-Level
 
@@ -208,6 +215,11 @@ Beide Achsen unabhaengig, Boni werden aufsummiert (offiziell).
 - Zielgroesse pro Item aus den Daten lesen (siehe Abschnitt 1); ob ``damage``
   mehr wert ist als ``ego`` oder ``defense``, ist eine Gewichtungsfrage, die
   der Optimierer offenlegen sollte.
+
+> **Historisch.** Dieser Abschnitt beschreibt den Planungsstand *vor* dem
+> Bau. Die Gewichtungsfrage im letzten Punkt wurde nicht beantwortet, sondern
+> **verworfen**: zwei Statmodelle sind daran gescheitert, und Abschnitt 5a
+> ersetzt sie durch Prioritaetenstufen. Was dort steht, gilt.
 
 **Reihenfolge: erst das Team, dann die Items.** Das Theme des Teams entscheidet,
 welche Theme-Resonanzen aktiv sind -- die Abhaengigkeit laeuft also vom Team zur
@@ -406,6 +418,17 @@ Die 7 Items deckten einen Bedarf von 20 -- Material zaehlt also **nicht nach
 Stueck, sondern nach Gewicht**. Plausibelster Traeger ist `skin.weight`, das
 in der Materialliste Werte 1, 3, 5 und 6 annimmt (*vermutet*, nicht
 nachgerechnet).
+
+**Bei Level 20 leitet die Seite um.** Ein Aufruf fuer ein Item am Cap landet
+wortlos auf `/shop.html`. Genau deshalb erreicht eine Automatik, die bis zum
+Cap laeuft, ihr eigenes Aufraeumen nicht -- sie wird mitten im Lauf von der
+Seite geworfen.
+
+**Eine Stufe unter dem Cap steht die Bedarfszeile doppelt.** Auf Level 19
+druckt die Seite zweimal „Until lvl.20: 204", weil naechste Stufe und Cap
+dieselbe sind. Ein Parser, der die erste Zeile als „naechste Stufe" und die
+20er-Zeile als „bis zum Cap" liest, muss beide aus demselben Treffer bedienen
+koennen.
 
 **Was das praktisch bedeutet:** Ein Mythic von 1 auf 20 kostet rund 1.555
 Materialpunkte. Der Testaccount besitzt 1.169 Legendaries und 341 Epics --

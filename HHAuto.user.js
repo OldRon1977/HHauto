@@ -18712,10 +18712,14 @@ function parseRequirement(pageText) {
         const amount = Number(m[2].replace(/[.,]/g, ''));
         if (!Number.isFinite(amount))
             continue;
+        // One level below the cap the page prints the same line twice --
+        // "Until lvl.20: 204" is both the next level and the last one. So the
+        // first match is always the next level, and the cap line is whichever
+        // one names MYTHIC_MAX_LEVEL; at level 19 that is the same number.
+        if (out.toNextLevel === null)
+            out.toNextLevel = amount;
         if (level >= (/* inlined export .MYTHIC_MAX_LEVEL */20))
             out.toMaxLevel = amount;
-        else if (out.toNextLevel === null)
-            out.toNextLevel = amount;
     }
     return out;
 }
