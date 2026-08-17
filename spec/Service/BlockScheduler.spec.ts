@@ -343,7 +343,7 @@ describe("BlockScheduler -- auto-disable reset", () => {
         h.ctl.version = "v1";
         const A = block("A", [step("a1", { ok: true })]);
         // constructor reconciles version resets
-        // eslint-disable-next-line no-new
+         
         new BlockScheduler(reg(A), ["A"], h.ports);
         expect(h.state.disabled["A"]).toBeUndefined();
         expect(h.state.failures["A:step:x"]).toBeUndefined();

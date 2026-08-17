@@ -107,7 +107,7 @@ const NORMAL_START_DELAY_MS = 1000;
 export class StartService {
     static checkVersion()
     {
-        let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
+        const previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
         if (previousScriptVersion != GM.info.script.version) {
             // run action on new script version
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
@@ -155,11 +155,11 @@ export class StartService {
 
 export function setDefaults(force = false)
 {
-    for (let i of Object.keys(HHStoredVars))
+    for (const i of Object.keys(HHStoredVars))
     {
         if ((HHStoredVars as any)[i].storage !== undefined )
         {
-            let storageItem = getStorageItem((HHStoredVars as any)[i].storage);
+            const storageItem = getStorageItem((HHStoredVars as any)[i].storage);
             let isInvalid = false;
             //console.log(storageItem[i], storageItem[i] !== undefined);
             if ((HHStoredVars as any)[i].isValid !== undefined && storageItem[i] !== undefined)
@@ -465,7 +465,7 @@ export function start() {
     $("#git").on("click", function(){ window.open("https://github.com/OldRon1977/HHauto/wiki"); });
     $("#ReportBugs").on("click", function(){ window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
     $("#loadConfig").on("click", function(){
-        let LoadDialog='<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
+        const LoadDialog='<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
         fillHHPopUp("loadConfig",getTextForUI("loadConfig","elementText"), LoadDialog);
         $('#myfile').on('change', myfileLoad_onChange);
 
@@ -473,7 +473,7 @@ export function start() {
     $("#saveConfig").on("click", saveHHVarsSettingsAsJSON);
     $("#saveDefaults").on("click", saveHHStoredVarsDefaults);
     $("#DebugMenu").on("click", function(){
-        let debugDialog =   '<div style="padding:10px; display:flex;flex-direction:column">'
+        const debugDialog =   '<div style="padding:10px; display:flex;flex-direction:column">'
         +    '<p>HHAuto : v'+GM_info.script.version+'</p>'
         +    '<p>'+getTextForUI("DebugFileText","elementText")+'</p>'
         +    '<div style="display:flex;flex-direction:row">'
@@ -507,7 +507,7 @@ export function start() {
         $("#saveDebug").on("click", saveHHDebugLog);
 
         $("#timerResetButton").on("click", function(){
-            let timerSelector = <HTMLSelectElement>document.getElementById("timerResetSelector");
+            const timerSelector = <HTMLSelectElement>document.getElementById("timerResetSelector");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer","elementText") && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector","elementText"))
             {
                 const sMenu = document.getElementById("sMenu");
@@ -518,7 +518,7 @@ export function start() {
             }
         });
         $(document).on('change',"#timerResetSelector", function() {
-            let timerSelector = <HTMLSelectElement>document.getElementById("timerResetSelector");
+            const timerSelector = <HTMLSelectElement>document.getElementById("timerResetSelector");
             const timerLeftTime = document.getElementById("timerLeftTime");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer","elementText")  && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector","elementText"))
             {
@@ -530,16 +530,16 @@ export function start() {
             }
         });
         // Add Timer reset options //changed
-        let timerOptions = <HTMLSelectElement>document.getElementById("timerResetSelector");
+        const timerOptions = <HTMLSelectElement>document.getElementById("timerResetSelector");
         var countTimers=0;
-        let optionElement = document.createElement("option");
+        const optionElement = document.createElement("option");
         optionElement.value = countTimers+'';
         optionElement.text = getTextForUI("timerResetSelector","elementText");
         countTimers++;
         timerOptions.add(optionElement);
 
-        for (let i2 in Timers) {
-            let optionElement = document.createElement("option");
+        for (const i2 in Timers) {
+            const optionElement = document.createElement("option");
             optionElement.value = countTimers+'';
             countTimers++;
             optionElement.text = i2;
@@ -548,7 +548,7 @@ export function start() {
 
         if(countTimers === 1)
         {
-            let optionElement = document.createElement("option");
+            const optionElement = document.createElement("option");
             optionElement.value = countTimers+'';
             optionElement.text = getTextForUI("timerResetNoTimer","elementText");
             timerOptions.add(optionElement);

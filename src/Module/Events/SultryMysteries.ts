@@ -54,14 +54,14 @@ export class SultryMysteries {
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
+        const refreshTimer = randomInterval(3600, 4000);
 
         // Grid tab (shown by default on /event.html) doesn't render this
         // timer -- it only appears after switching to the shop tab -- so
         // sm_event_data.seconds_until_event_end (available on either tab)
         // is tried first; the DOM reading is a fallback for when that
         // global isn't there.
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         const domSecondsLeft = timeLeft !== undefined && timeLeft.length ? Number(convertTimeToInt(timeLeft)) : null;
         const hhVarSecondsLeft = getHHVars('sm_event_data.seconds_until_event_end', false);
         const secondsLeft = resolveSultryMysteriesSecondsLeft(hhVarSecondsLeft, domSecondsLeft, 3600);
@@ -87,7 +87,7 @@ export class SultryMysteries {
             shopButton.trigger('click');
 
             setTimeout(function () { // Wait tab switch and timer init
-                let shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
+                const shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
                 setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
                 eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
 

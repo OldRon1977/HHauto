@@ -73,7 +73,7 @@ export function createHHPopUp()
     + '#HHAutoPopupGlobalContent .HHAutoScriptMenu .slider.round::before {  width: 22px; height: 22px; bottom: 5px; }'
     + '.PachinkoPlay {margin-top: 20px !important; }');
 
-    let popUp = '<div id="HHAutoPopupGlobal" class="HHAutoOverlay">'
+    const popUp = '<div id="HHAutoPopupGlobal" class="HHAutoOverlay">'
     +' <div id="HHAutoPopupGlobalPopup">'
     +'   <h2 id="HHAutoPopupGlobalTitle">Here i am</h2>'
     +'   <a id="HHAutoPopupGlobalClose">&times;</a>'

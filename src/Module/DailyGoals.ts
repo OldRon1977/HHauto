@@ -96,9 +96,9 @@ export class DailyGoals {
                     logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     const nextDailyGoalsTimer = DailyGoals.getNewGoalsTimer();
-                    let buttonsToCollect:HTMLElement[] = [];
+                    const buttonsToCollect:HTMLElement[] = [];
                     const listDailyGoalsTiersToClaim = $("#daily_goals .progress-section .progress-bar-rewards-container .progress-bar-reward");
-                    let potionsNum = Number($('.progress-section div.potions-total > div > p').text());
+                    const potionsNum = Number($('.progress-section div.potions-total > div > p').text());
                     for (let currentTier = 0 ; currentTier < listDailyGoalsTiersToClaim.length ; currentTier++)
                     {
                         const currentButton = $("button[rel='claim']", listDailyGoalsTiersToClaim[currentTier]);
@@ -116,7 +116,7 @@ export class DailyGoals {
                             else
                             {
                                 let validToCollect = true;
-                                for (let reward of currentRewardsList)
+                                for (const reward of currentRewardsList)
                                 {
                                     const rewardType = RewardHelper.getRewardTypeByData(reward);
 
@@ -230,7 +230,7 @@ export class DailyGoals {
     }
 
     static _isDailyGoalType(anchor: string, update: boolean) {
-        let dailyGoals: KKDailyGoal[] = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
+        const dailyGoals: KKDailyGoal[] = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
         let find = false;
         if (dailyGoals && dailyGoals.length > 0) {
             for (let currentTier = 0; currentTier < dailyGoals.length; currentTier++) {

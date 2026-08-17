@@ -75,8 +75,8 @@ export class Contest {
         }
         else {
             try{
-                let nextContestSelector = '#contests .next_contest .contest_timer span';
-                let remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
+                const nextContestSelector = '#contests .next_contest .contest_timer span';
+                const remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
 
                 let nextContestTime = unsafeWindow.contests_timer!.next_contest;
                 const duration = unsafeWindow.contests_timer!.duration;

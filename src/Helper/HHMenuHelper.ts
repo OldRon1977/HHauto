@@ -135,7 +135,7 @@ export class HHMenu {
             const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
             if (Object.keys(sideTrollz).length > 0) {
                 trollOptions.add(this._createHtmlSeparator(getTextForUI("sideAdventure", "elementText")));
-                for (let i of Object.keys(sideTrollz)) {
+                for (const i of Object.keys(sideTrollz)) {
                     const option = this._createHtmlOption(i + '', sideTrollz[i]);
                     if (option.text !== 'EMPTY' && sideTrollz[i]) {
                         trollOptions.add(option);
@@ -226,12 +226,12 @@ export class HHMenu {
 
 export function maskInactiveMenus()
 {
-    let menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
+    const menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
                     "isEnabledSeasonalEvent" , "isEnabledBossBangEvent" , "isEnabledSultryMysteriesEvent",
                     "isEnabledDailyRewards", "isEnabledFreeBundles", "isEnabledMission","isEnabledContest",
                     "isEnabledTrollBattle","isEnabledPowerPlaces","isEnabledSalary","isEnabledPachinko","isEnabledQuest","isEnabledSideQuest","isEnabledSeason","isEnabledLeagues",
                     "isEnabledAllChamps","isEnabledChamps","isEnabledClubChamp","isEnabledPantheon","isEnabledShop"];
-    for (let menu of menuIDList)
+    for (const menu of menuIDList)
     {
         const menuElement = document.getElementById(menu);
         if ( menuElement !== null && ConfigHelper.getHHScriptVars(menu,false) !== null && !ConfigHelper.getHHScriptVars(menu,false) )

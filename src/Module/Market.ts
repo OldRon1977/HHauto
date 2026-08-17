@@ -67,7 +67,7 @@ export class Market {
 
                 for (var boost of boosterFilter)
                 {
-                    let boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
+                    const boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
                     for (var n1=shop[1].length-1;n1>=0;n1--)
                     {
                         if (kobans>=Number(getStoredValue(HHStoredVarPrefixKey+SK.kobanBank))+Number(shop[1][n1].price_buy) && shop[1][n1].item.currency == "hc" && shop[1][n1].item.identifier == boost && (shop[1][n1].item.rarity=='legendary' || shop[1][n1].item.rarity=='mythic') && boosterOwned < MaxBooster)

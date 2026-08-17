@@ -52,7 +52,7 @@ export function getCallerFunction()
 export function getCallerCallerFunction()
 {
 
-    let stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
+    const stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
     let match
     try {
         match = stackTrace.match(/at Object\.(\w+) \((\S+)\)/);
@@ -61,7 +61,7 @@ export function getCallerCallerFunction()
         // Firefox
         match = stackTrace.match(/\n(\w+)@(\S+)/);
     }
-    let [callerName, callerPlace] = [match![1], match![2]]
+    const [callerName, callerPlace] = [match![1], match![2]]
 
     try{
     console.log('Function ' + match![3] + ' at ' + match![4])

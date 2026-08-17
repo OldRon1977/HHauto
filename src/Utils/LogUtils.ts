@@ -71,7 +71,7 @@ export function logHHAuto(...args: any[])
 
     const callerName = match[1];
 
-    let currDate = new Date();
+    const currDate = new Date();
     var prefix = currDate.toLocaleString()+"."+currDate.getMilliseconds()+":"+callerName;
     var text:any;
     var currentLoggingText:any;

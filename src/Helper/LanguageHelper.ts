@@ -70,7 +70,7 @@ function cmpVersions(a: string, b: string)
 
 export function getTextForUI(id: string, type: string)
 {
-    let HHAuto_Lang = getLanguageCode();
+    const HHAuto_Lang = getLanguageCode();
     let defaultLanguageText = null;
     let defaultLanguageVersion = "0";
 
@@ -134,7 +134,7 @@ export function manageTranslationPopUp()
     +' <tbody class="tItemsTBody">';
 
     const currentLanguage = getLanguageCode();
-    for ( let item of Object.keys(HHAuto_ToolTips.en))
+    for ( const item of Object.keys(HHAuto_ToolTips.en))
     {
         let reworkedClass = "";
         translatePopUpContent +='  <tr id="'+HtmlIdPrefix+item+'">';
@@ -193,7 +193,7 @@ export function manageTranslationPopUp()
         let translation = `Translated to : ${currentLanguage}\n`;
         translation += `From version : ${GM_info.version}\n`;
         let hasTranslation = false;
-        for ( let item of Object.keys(HHAuto_ToolTips.en))
+        for ( const item of Object.keys(HHAuto_ToolTips.en))
         {
             const currentTranslatedElementText = $(`#${HtmlIdPrefix+item} [type="elementText"]`)[0].innerHTML;
             const currentTranslatedTooltip = $(`#${HtmlIdPrefix+item} [type="tooltip"]`)[0].innerHTML;

@@ -124,8 +124,8 @@ export class Pantheon {
                 if (runThreshold > 0) {
                     setStoredValue(HHStoredVarPrefixKey+TK.PantheonHumanLikeRun, "true");
                 }
-                let pantheonButton = $("#pantheon_tab_container .bottom-container .blue_button_L.pantheon-pre-battle-btn");
-                let templeID = queryStringGetParam(new URL(pantheonButton[0].getAttribute("href")||'',window.location.origin).search, 'id_opponent');
+                const pantheonButton = $("#pantheon_tab_container .bottom-container .blue_button_L.pantheon-pre-battle-btn");
+                const templeID = queryStringGetParam(new URL(pantheonButton[0].getAttribute("href")||'',window.location.origin).search, 'id_opponent');
                 if (pantheonButton.length > 0 && templeID !== null )
                 {
                     logHHAuto("Going to fight Temple : " + templeID);
@@ -157,9 +157,9 @@ export class Pantheon {
         else if (page === ConfigHelper.getHHScriptVars("pagesIDPantheonPreBattle"))
         {
             logHHAuto("On pantheon-pre-battle page.");
-            let templeID = queryStringGetParam(window.location.search,'id_opponent');
+            const templeID = queryStringGetParam(window.location.search,'id_opponent');
             logHHAuto("Go and fight temple :"+templeID);
-            let pantheonTempleBattleButton =$("#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='"+templeID+"']");
+            const pantheonTempleBattleButton =$("#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='"+templeID+"']");
             if (pantheonTempleBattleButton.length >0)
             {
                 //replaceCheatClick();

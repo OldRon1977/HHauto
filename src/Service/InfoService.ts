@@ -39,7 +39,7 @@ export function createPInfo():JQuery<HTMLElement> {
 
     if(pInfo != null) {
         pInfo.on("dblclick", function() {
-            let masterSwitch = <HTMLInputElement>document.getElementById("master");
+            const masterSwitch = <HTMLInputElement>document.getElementById("master");
             if (masterSwitch.checked === true) {
                 setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
                 masterSwitch.checked = false;

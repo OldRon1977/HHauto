@@ -59,7 +59,7 @@ export class BDSMHelper {
         const playerDef = inHeroData.defense;
         const playerCrit = inHeroData.chance;
         
-        let playerElements:string[] = [];
+        const playerElements:string[] = [];
         inHeroData.team.theme_elements.forEach((el: any) => playerElements.push(el.type));
         const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
     
@@ -68,7 +68,7 @@ export class BDSMHelper {
         const opponentDef = opponentData.defense;
         const opponentCrit = opponentData.chance;
     
-        let opponentElements:string[] = [];
+        const opponentElements:string[] = [];
         opponentData.team.theme_elements.forEach((el: any) => opponentElements.push(el.type));
         
         const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
@@ -233,24 +233,24 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         }
 
         //Damage
-        let playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
+        const playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
         opponentHP -= playerDamage;
         opponentShield = Math.max(0, opponentShield - attack.damageAmount);
 
         //Tier 5 skill : Player Execute
         if (_player.tier5.id == 14) {
-            let opponentHPRate = opponentHP / _opponent.hp;
+            const opponentHPRate = opponentHP / _opponent.hp;
             if (opponentHPRate <= _player.tier5.value) opponentHP = 0;
         }
 
         //Tier 5 skill : Opponent Reflect
-        let opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
+        const opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
         playerHP -= Math.max(0, (opponentReflectDmg - playerShield));
         playerShield = Math.max(0, playerShield - opponentReflectDmg);
         opponentReflect -= 1;
 
         //Heal on hit
-        let playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
+        const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
         playerHP = Math.min(_player.hp, playerHP + playerHeal);
 
         //Check win
@@ -293,24 +293,24 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         }
 
         //Damage
-        let opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
+        const opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
         playerHP -= opponentDamage;
         playerShield = Math.max(0, playerShield - attack.damageAmount);
 
         //Tier 5 skill : Opponent Execute
         if (_opponent.tier5.id == 14) {
-            let playerHPRate = playerHP / _player.hp;
+            const playerHPRate = playerHP / _player.hp;
             if (playerHPRate <= _opponent.tier5.value) playerHP = 0;
         }
 
         //Tier 5 skill : Player Reflect
-        let playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0
+        const playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0
         opponentHP -= Math.max(0, (playerReflectDmg - opponentShield));
         opponentShield = Math.max(0, opponentShield - playerReflectDmg);
         playerReflect -= 1;
 
         //Heal on hit
-        let opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
+        const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
         opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
 
         //Check loss
@@ -342,7 +342,7 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
  * based on the number of skill points invested (0.2% per point for damage).
  */
 function estimateTier4SkillValue(teamGirlsArray: any): { dmg: number, def: number } {
-    let skill_tier_4 = { dmg: 0, def: 0 };
+    const skill_tier_4 = { dmg: 0, def: 0 };
 
     teamGirlsArray.forEach((girl: any) => {
             if (girl.skill_tiers_info[4]) skill_tier_4.dmg += girl.skill_tiers_info[4].skill_points_used * 0.002;
@@ -374,7 +374,7 @@ function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number }
  * Values are estimated from skill points invested since exact data may be unavailable.
  */
 function estimateTier5SkillValue(teamGirlsArray: any): { id: number, value: number } {
-    let skill_tier_5 = { id: 0, value: 0 };
+    const skill_tier_5 = { id: 0, value: 0 };
     const girl = teamGirlsArray[0];
 
     const skill5_girl = girl.skill_tiers_info[5];

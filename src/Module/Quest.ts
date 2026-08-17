@@ -72,9 +72,9 @@ export class QuestHelper {
     static run(): boolean {
         //logHHAuto("Starting auto quest.");
         // Check if at correct page.
-        let page = getPage();
-        let mainQuestUrl = QuestHelper.getMainQuestUrl();
-        let doMainQuest = getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
+        const page = getPage();
+        const mainQuestUrl = QuestHelper.getMainQuestUrl();
+        const doMainQuest = getStoredValue(HHStoredVarPrefixKey+SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
         if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSideQuest) === "true") {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
             let navOk: boolean;
@@ -223,7 +223,7 @@ export class QuestHelper {
             //proceedButtonMatch.click();
         }
         else if (proceedType === "end_play") {
-            let rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
+            const rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
             if (proceedButtonMatch.attr('disabled') && rewards.length>0){
                 logHHAuto("Reached end of current archive. Claim reward.");
                 rewards.click();

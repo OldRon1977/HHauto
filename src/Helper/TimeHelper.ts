@@ -55,10 +55,10 @@ export class TimeHelper {
 
     static debugDate(sec_num: number): string
     {
-        let days = Math.floor(sec_num / 86400);
-        let hours = Math.floor(sec_num / 3600) % 24;
-        let minutes = Math.floor(sec_num / 60) % 60;
-        let seconds = sec_num % 60;
+        const days = Math.floor(sec_num / 86400);
+        const hours = Math.floor(sec_num / 3600) % 24;
+        const minutes = Math.floor(sec_num / 60) % 60;
+        const seconds = sec_num % 60;
         return JSON.stringify({days:days,hours:hours,minutes:minutes,seconds:seconds});
     }
 
@@ -85,9 +85,9 @@ export function convertTimeToInt(remainingTimer: string, failSafe=true): number 
     let newTimer = 0;
     if (remainingTimer && remainingTimer.length > 0) {
         try{
-            let splittedTime = remainingTimer.trim().split(' ');
+            const splittedTime = remainingTimer.trim().split(' ');
             for (let i = 0; i < splittedTime.length; i++) {
-                let timerSymbol = splittedTime[i].match(/[^0-9]+/)![0];
+                const timerSymbol = splittedTime[i].match(/[^0-9]+/)![0];
                 switch (timerSymbol) {
                     case timerDefinitions[hhTimerLocale].days:
                         newTimer += parseInt(splittedTime[i])*86400;

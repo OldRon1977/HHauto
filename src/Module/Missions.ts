@@ -75,7 +75,7 @@ export class Missions {
                 if(RewardHelper.closeRewardPopupIfAny()) {
                     return true;
                 }
-                let canCollect = getStoredValue(HHStoredVarPrefixKey+SK.autoMissionCollect) ==="true" && $(".mission_button button:visible[rel='claim']").length >0 && TimeHelper.canCollectCompetitionActive();
+                const canCollect = getStoredValue(HHStoredVarPrefixKey+SK.autoMissionCollect) ==="true" && $(".mission_button button:visible[rel='claim']").length >0 && TimeHelper.canCollectCompetitionActive();
                 var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
                 if (debugEnabled) logHHAuto("Missions parsed, mission list is:", missions);
                 if (debugEnabled && missionOngoing != null) logHHAuto("Mission missionOngoing:", missionOngoing);
@@ -135,7 +135,7 @@ export class Missions {
                             return true;
                         }
                     }
-                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text()
+                    const time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text()
                     if(time === undefined || time === null || time.length === 0) {
                         logHHAuto("New mission time was undefined... Setting it manually to 10min.");
                         setTimer('nextMissionTime', randomInterval(10*60, 12*60));

@@ -22,10 +22,10 @@ import { KKEventGirl } from "../../model/KK/KKEventGirl";
 export class MythicEvent {
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
         const eventID = hhEvent.eventId;
-        let Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        let refreshTimer = randomInterval(3600, 4000);
+        const Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        const refreshTimer = randomInterval(3600, 4000);
 
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
         } else setTimer('eventMythicGoing', refreshTimer);
@@ -36,14 +36,14 @@ export class MythicEvent {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls as any[] : [];
+        const allEventGirlz = hhEventData ? hhEventData.girls as any[] : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData: KKEventGirl = allEventGirlz[currIndex];
-            let ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
-            let timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer'
+            const girlData: KKEventGirl = allEventGirlz[currIndex];
+            const ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
+            const timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer'
             if ($(ShardsQuery).length > 0) {
-                let remShards = Number($(ShardsQuery)[0].innerText);
-                let nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
+                const remShards = Number($(ShardsQuery)[0].innerText);
+                const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
                 if (girlData.shards < 100) {
                     eventList[eventID]["isCompleted"] = false;
                     if (nextWave === -1) {

@@ -36,9 +36,9 @@ export class LivelyScene {
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
+        const refreshTimer = randomInterval(3600, 4000);
 
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         let remainingTime = 3600;
         if (timeLeft !== undefined && timeLeft.length) {
             remainingTime = Number(convertTimeToInt(timeLeft));
@@ -167,7 +167,7 @@ export class LivelyScene {
                 for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
                     const puzzlePiece = puzzlePieces[currentReward];
                     if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                        let rewardType = puzzlePiece?.reward?.shards ? 'girl_shards' : puzzlePiece?.reward?.rewards[0].type;
+                        const rewardType = puzzlePiece?.reward?.shards ? 'girl_shards' : puzzlePiece?.reward?.rewards[0].type;
 
                         const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
                         const iconHref = RewardHelper.getRewardsIconHref(rewardType);

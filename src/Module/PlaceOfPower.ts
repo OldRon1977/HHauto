@@ -205,7 +205,7 @@ export class PlaceOfPower {
             }
             setStoredValue(HHStoredVarPrefixKey+TK.currentlyAvailablePops,newFilter.substring(1))
             //collect all
-            let buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
+            const buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
             if ($(buttonClaimQuery).length >0)
             {
                 // Issue #1598 / ADR-003: serialise the claim POST through
@@ -294,10 +294,10 @@ export class PlaceOfPower {
             clearTimer('minPowerPlacesTime');
             clearTimer('maxPowerPlacesTime');
 
-            let popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
+            const popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
             popListRemaining.each(function() {
-                let $elem=$(this);
-                let elementText=$elem.text();
+                const $elem=$(this);
+                const elementText=$elem.text();
                 currIndex = $elem.parents('.pop_thumb_expanded').attr('pop_id');
                 if (filteredPops.includes(currIndex) && ! popUnableToStart.includes(currIndex))
                 {
@@ -363,9 +363,9 @@ export class PlaceOfPower {
 
     
     static girlPower(powerRemaining:number, girlList:{id: number; power: number}[], selectedGirls:{id: number; power: number}[]):{id: number; power: number}[] {
-        let subList = girlList;
+        const subList = girlList;
         if (subList.length>0){
-            let currentGirl = subList.pop()!;
+            const currentGirl = subList.pop()!;
             if(currentGirl.power <= powerRemaining) {
                 selectedGirls.push(currentGirl);
                 powerRemaining -= currentGirl.power;
@@ -543,9 +543,9 @@ export class PlaceOfPower {
 
         // Goal is to select girls which add to required power without going over
         // Once completed, if the time will be under 7.5 hours, proceed
-        let girlsList:{id: number; power: number}[] = [];
+        const girlsList:{id: number; power: number}[] = [];
         if (document.querySelectorAll('[girl]').length>0) {
-            let availGirls = document.querySelectorAll('[girl]');
+            const availGirls = document.querySelectorAll('[girl]');
             availGirls.forEach(girl=>{
                 const girlObj = {
                     id : parseInt((girl.attributes as any)["girl"].value),
@@ -581,7 +581,7 @@ export class PlaceOfPower {
             startTime = performance.now();
         }
 
-        let girlOptions:{id: number; power: number}[][] = [];
+        const girlOptions:{id: number; power: number}[][] = [];
 
         for (let i = girlsList.length - 1; i >= 0; i--) {
             const loopGirls = girlsList.slice(0, i + 1);

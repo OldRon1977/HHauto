@@ -51,12 +51,12 @@ describe("Club Champion module", function () {
         it("default home", function () {
             MockHelper.mockPage('home');
             expect(ClubChampion.updateClubChampionTimer()).toBeTruthy();
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
+            const nextChampionTime = getSecondsLeft('nextClubChampionTime');
             expect(nextChampionTime).toBe(0);
         });
         it("default club page", function () {
             expect(ClubChampion.updateClubChampionTimer()).toBeTruthy();
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
+            const nextChampionTime = getSecondsLeft('nextClubChampionTime');
             expect(nextChampionTime).toBeGreaterThanOrEqual(15*60);
             expect(nextChampionTime).toBeLessThanOrEqual(17*60);
         });

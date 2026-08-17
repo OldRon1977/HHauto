@@ -80,12 +80,12 @@ export class RewardHelper {
             }
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d"))
             {
-                let objectData = $(inSlot).data("d");
+                const objectData = $(inSlot).data("d");
                 //console.log(currentIndicator+" : "+inSlot.getAttribute("rarity")+" "+objectData.item.type+" "+objectData.item.value);
                 reward = objectData.item.type;
             }else{
                 const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
-                for (let currentRewards of Object.keys(possibleRewards))
+                for (const currentRewards of Object.keys(possibleRewards))
                 {
                     if (inSlot.className.indexOf('slot_'+currentRewards) >= 0)
                     {
@@ -268,7 +268,7 @@ export class RewardHelper {
         }
     }
     static closeRewardPopupIfAny(logging=true, popupId='') {
-        let rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
         if ($(rewardQuery).length >0 )
         {
             if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
@@ -282,7 +282,7 @@ export class RewardHelper {
         return false;
     }
     static closeGirlRewardPopupIfAny(logging=true, popupId='') {
-        let rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
         if ($(rewardQuery).length >0 )
         {
             if (logging) logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
@@ -293,17 +293,17 @@ export class RewardHelper {
     }
     static ObserveAndGetGirlRewards()
     {
-        let inCaseTimer = setTimeout(function(){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));}, 60000); //in case of issue
+        const inCaseTimer = setTimeout(function(){gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));}, 60000); //in case of issue
         function parseReward()
         {
-            let eventsGirlz: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-            let eventGirl: EventGirl = EventModule.getEventGirl();
-            let eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
+            const eventsGirlz: EventGirl[] = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+            const eventGirl: EventGirl = EventModule.getEventGirl();
+            const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
             if (!eventsGirlz || eventsGirlz.length == 0)
             {
                 return -1;
             }
-            let foughtTrollId:number = Number(queryStringGetParam(window.location.search,'id_opponent'));
+            const foughtTrollId:number = Number(queryStringGetParam(window.location.search,'id_opponent'));
             const loveRaid = LoveRaidManager.getAllRaids();
             const foughtTrollFromLoveRaid = loveRaid.find(raid => raid.trollId === foughtTrollId);
             if (eventMythicGirl.troll_id && foughtTrollId != eventMythicGirl.troll_id && eventGirl.troll_id && foughtTrollId != eventGirl.troll_id && !foughtTrollFromLoveRaid) {
@@ -321,12 +321,12 @@ export class RewardHelper {
             let renewEvent = "";
             let needLoveRaidUpdate = false;
             let loveRaidGirlWon = false;
-            let girlShardsWon = $('.shards_wrapper .slot_girl_shards');
+            const girlShardsWon = $('.shards_wrapper .slot_girl_shards');
             logHHAuto("Detected girl shard reward");
             for (var currGirl=0; currGirl <= girlShardsWon.length; currGirl++)
             {
-                let girlIdSrc = $("img",girlShardsWon[currGirl]).attr("src") || '';
-                let girlId = Number(girlIdSrc.split('/')[5]);
+                const girlIdSrc = $("img",girlShardsWon[currGirl]).attr("src") || '';
+                const girlId = Number(girlIdSrc.split('/')[5]);
                 const previousGirlShards = Math.min(Number($('.shards[shards]', girlShardsWon[currGirl]).attr('shards')), 100);
                 let wonShards = Number($('.shards[shards]', girlShardsWon[currGirl]).text().replace(/^\D+/g, ''));
                 if (!(wonShards > 0)) {
@@ -336,7 +336,7 @@ export class RewardHelper {
                 const girlShards = Math.min(previousGirlShards + wonShards, 100);
                 if (eventsGirlz.length >0)
                 {
-                    let girlIndex = eventsGirlz.findIndex((element) =>element.girl_id === girlId);
+                    const girlIndex = eventsGirlz.findIndex((element) =>element.girl_id === girlId);
                     if (girlIndex !==-1)
                     {
                         eventsGirlz[girlIndex].shards = girlShards;
@@ -417,7 +417,7 @@ export class RewardHelper {
             }
         }
 
-        let observerReward = new MutationObserver(function(mutations) {
+        const observerReward = new MutationObserver(function(mutations) {
             mutations.forEach(parseReward);
         });
 
@@ -440,10 +440,10 @@ export class RewardHelper {
             }
         }
 
-        let observerPass = new MutationObserver(function(mutations) {
+        const observerPass = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation)
                             {
-                let querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
+                const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0
                     || $(querySkip)[0].style.display!=="block"
                 )

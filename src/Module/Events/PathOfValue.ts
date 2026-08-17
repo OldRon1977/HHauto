@@ -44,7 +44,7 @@ export class PathOfValue {
     static getRewardButtonToCollect(): HTMLElement[] {
         const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
 
-        let buttonsToCollect: HTMLElement[] = [];
+        const buttonsToCollect: HTMLElement[] = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
@@ -100,7 +100,7 @@ export class PathOfValue {
                 logHHAuto("Checking Path of Valor for collectable rewards.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-                let buttonsToCollect:HTMLElement[] = PathOfValue.getRewardButtonToCollect();
+                const buttonsToCollect:HTMLElement[] = PathOfValue.getRewardButtonToCollect();
 
                 if (buttonsToCollect.length >0)
                 {

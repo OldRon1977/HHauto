@@ -17,7 +17,7 @@ export function getHHVars(infoSearched:string, logging = true): any
     }
     infoSearched = prefixIfNeeded(infoSearched);
 
-    let splittedInfoSearched = infoSearched.split(".");
+    const splittedInfoSearched = infoSearched.split(".");
 
     for (let i=0;i<splittedInfoSearched.length;i++)
     {
@@ -46,7 +46,7 @@ export function setHHVars(infoSearched: any, newValue: any): any
     }
     infoSearched = prefixIfNeeded(infoSearched);
 
-    let splittedInfoSearched = infoSearched.split(".");
+    const splittedInfoSearched = infoSearched.split(".");
 
     for (let i=0;i<splittedInfoSearched.length;i++)
     {

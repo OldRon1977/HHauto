@@ -37,12 +37,12 @@ HHKnownEnvironnements["www.hornyheroes.com"] = {name:"SH_prod",id:"hh_sexy"};
 
 export const HHEnvVariables: Record<string, any> = {};
 HHEnvVariables["global"] = {};
-for (let i in HHKnownEnvironnements)
+for (const i in HHKnownEnvironnements)
 {
     HHEnvVariables[HHKnownEnvironnements[i].name] = {};
     HHEnvVariables[HHKnownEnvironnements[i].name].gameID = HHKnownEnvironnements[i].id;
     HHEnvVariables[HHKnownEnvironnements[i].name].HHGameName = HHKnownEnvironnements[i].name;
-    let baseImgPath =  HHKnownEnvironnements[i].baseImgPath ? HHKnownEnvironnements[i].baseImgPath : 'https://hh2.hh-content.com';
+    const baseImgPath =  HHKnownEnvironnements[i].baseImgPath ? HHKnownEnvironnements[i].baseImgPath : 'https://hh2.hh-content.com';
     HHEnvVariables[HHKnownEnvironnements[i].name].baseImgPath = baseImgPath;
 }
 

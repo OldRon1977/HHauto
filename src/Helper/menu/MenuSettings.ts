@@ -23,12 +23,12 @@ export function setMenuValues()
     }
     setDefaults();
 
-    for (let i of Object.keys(HHStoredVars))
+    for (const i of Object.keys(HHStoredVars))
     {
         if (HHStoredVars[i].storage !== undefined && HHStoredVars[i].HHType !== undefined)
         {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
-            let menuID:string = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
+            const storageItem = getStorageItem(HHStoredVars[i].storage);
+            const menuID:string = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
             const menuElement = document.getElementById(menuID);
             if (
                 HHStoredVars[i].setMenu !== undefined
@@ -72,12 +72,12 @@ export function getMenuValues()
     }
     if (isDisplayedHHPopUp() === 'loadConfig') {return}
 
-    for (let i of Object.keys(HHStoredVars))
+    for (const i of Object.keys(HHStoredVars))
     {
         if (HHStoredVars[i].storage !== undefined && HHStoredVars[i].HHType !== undefined)
         {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
-            let menuID = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
+            const storageItem = getStorageItem(HHStoredVars[i].storage);
+            const menuID = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
             const menuElement = document.getElementById(menuID);
             if (
                 HHStoredVars[i].getMenu !== undefined
@@ -88,7 +88,7 @@ export function getMenuValues()
                 && menuElement != null
             )
             {
-                let currentValue = storageItem[i];
+                const currentValue = storageItem[i];
                 let menuValue = String((menuElement as any)[HHStoredVars[i].menuType]);
                 switch (HHStoredVars[i].valueType)
                 {
@@ -120,7 +120,7 @@ export function preventKobanUsingSwitchUnauthorized(this: any)
 
     if (this.checked && !(<HTMLInputElement>document.getElementById("spendKobans0")).checked)
     {
-        let idToDisable = this.id;
+        const idToDisable = this.id;
         setTimeout(function(){(<HTMLInputElement>document.getElementById(idToDisable)).checked = false;},500);
     }
 }
@@ -128,12 +128,12 @@ export function preventKobanUsingSwitchUnauthorized(this: any)
 export function addEventsOnMenuItems()
 {
     const { HHStoredVars, storedVarPrefix, setStoredValue } = MenuPorts;
-    for (let i of Object.keys(HHStoredVars))
+    for (const i of Object.keys(HHStoredVars))
     {
         //console.log(i);
         if (HHStoredVars[i].HHType !== undefined )
         {
-            let menuID = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
+            const menuID = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");
             const menuElement = document.getElementById(menuID);
             if(menuElement != null) {
                 if ( HHStoredVars[i].valueType === "Long Integer")
@@ -142,7 +142,7 @@ export function addEventsOnMenuItems()
                 }
                 if (HHStoredVars[i].events !== undefined )
                 {
-                    for (let event of Object.keys(HHStoredVars[i].events))
+                    for (const event of Object.keys(HHStoredVars[i].events))
                     {
                         menuElement.addEventListener(event,HHStoredVars[i].events[event]);
                     }

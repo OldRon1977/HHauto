@@ -54,11 +54,11 @@ export class PathOfAttraction {
     }
     static runOld(){
         //https://nutaku.haremheroes.com/path-of-attraction.html"
-        let array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
+        const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
         if (array.length == 0) {
             return
         }
-        let lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
+        const lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
         for (let i = array.length - 1; i >= 0; i--) {
             if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
                 array[i].style.display = "none";

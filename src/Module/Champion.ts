@@ -92,7 +92,7 @@ export class Champion {
         const confirmDraftButtonQuery =  ".champions-bottom__footer button.champions-bottom__confirm-team";
 
         const buttonStyles = 'position: absolute;width:90px;z-index:10;left: 330px';
-        let updateChampTeamButton = '<div style="' + buttonStyles +';top: 10px" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("updateChampTeamButton","tooltip")+'</span><label class="myButton" id="updateChampTeamButton">'+getTextForUI("updateChampTeamButton","elementText")+' x'+maxLoops+'</label></div>';
+        const updateChampTeamButton = '<div style="' + buttonStyles +';top: 10px" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("updateChampTeamButton","tooltip")+'</span><label class="myButton" id="updateChampTeamButton">'+getTextForUI("updateChampTeamButton","elementText")+' x'+maxLoops+'</label></div>';
         $(".champions-top__inner-wrapper").append(updateChampTeamButton);
         if (freeDrafts == 0) $('#updateChampTeamButton').attr('disabled', 'disabled')
 
@@ -127,7 +127,7 @@ export class Champion {
             for(var i=0;i<10;i++) {
                 var expectedPose = championRequiredPoses[i%5];
                 if(girlsPerPose[expectedPose] && girlsPerPose[expectedPose].length > 0){
-                    let color = 'gold'; // i >= 5 ? 'white' : 'gold';
+                    const color = 'gold'; // i >= 5 ? 'white' : 'gold';
                     girlsPerPose[expectedPose][0].htmlDom.append('<span class="hhgirlOrder best" title="'+getTextForUI("ChampGirlOrder","tooltip")+' '+(i+1)+'" style="position: absolute;top: 41px;left: 3px;z-index: 10;color:'+color+';">'+(i+1)+'</span>');
                     girlsPerPose[expectedPose].shift();
                 }
@@ -143,7 +143,7 @@ export class Champion {
         $(document).on('click', confirmDraftButtonQuery, indicateBestTeam);
 
         var checkAjaxCompleteOnChampionPage = function(event: any, request: any, settings: any) {
-            let match = settings.data.match(/action=champion_team_draft/);
+            const match = settings.data.match(/action=champion_team_draft/);
             if (match === null) return;
             champTeam = request.responseJSON.teamArray;
             freeDrafts = request.responseJSON.freeDrafts
@@ -324,7 +324,7 @@ export class Champion {
         $('span.stage-bar-tier').each(function(i, tier){    
             const champion = new ChampionModel(i, (tier.getAttribute("hh_title")||'').split('/')[0].replace(/[^0-9]/gi, ''), Filter.includes(i+1));
 
-            let timerElm = $($('a.champion-lair div.champion-lair-name')[i+1]).find('span[rel=expires]').text();
+            const timerElm = $($('a.champion-lair div.champion-lair-name')[i+1]).find('span[rel=expires]').text();
             if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
                 champion.timer = Number(convertTimeToInt(timerElm));
             }
@@ -531,16 +531,16 @@ export class Champion {
 
             for (let i=0;i<championMap.length;i++)
             {
-                let OnTimer= championMap[i].timer > 0;
+                const OnTimer= championMap[i].timer > 0;
                 let autoChampGirlInEvent = false;
                 let autoChampGirlOnChamp = false;
-                let autoChampGirlsIds:number[] = [];
+                const autoChampGirlsIds:number[] = [];
                 let autoChampGirlsEventsID;
                 if (autoChampsForceStartEventGirl)
                 {
                     for (let ec=autoChampsEventGirls.length;ec>0;ec--)
                     {
-                        let idArray = Number(ec)-1;
+                        const idArray = Number(ec)-1;
                         if ( Number(autoChampsEventGirls[idArray].champ_id) === i+1)
                         {
                             autoChampGirlInEvent = true;
@@ -548,11 +548,11 @@ export class Champion {
                             autoChampGirlsEventsID=autoChampsEventGirls[idArray].event_id;
                         }
                     }
-                    let firstLockedLevelOfChampRequest ='a.champion-lair[href*=' + Number(i+1) +'] .stage-icon.locked';
+                    const firstLockedLevelOfChampRequest ='a.champion-lair[href*=' + Number(i+1) +'] .stage-icon.locked';
                     if ( autoChampGirlInEvent && $(firstLockedLevelOfChampRequest).length > 0 )
                     {
-                        let firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
-                        let parsedFirstLockedLevelOfChamp = safeJsonParse<any>(firstLockedLevelOfChamp, null);
+                        const firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
+                        const parsedFirstLockedLevelOfChamp = safeJsonParse<any>(firstLockedLevelOfChamp, null);
                         if
                             (
                                 parsedFirstLockedLevelOfChamp !== null

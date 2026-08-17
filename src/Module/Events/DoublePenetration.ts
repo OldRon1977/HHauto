@@ -32,9 +32,9 @@ export class DoublePenetration {
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
+        const refreshTimer = randomInterval(3600, 4000);
 
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         let dpRemainingTime = 3600;
         if (timeLeft !== undefined && timeLeft.length) {
             dpRemainingTime = Number(convertTimeToInt(timeLeft));
@@ -71,7 +71,7 @@ export class DoublePenetration {
                 logHHAuto("Checking double penetration event for collectable rewards.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-                let buttonsToCollect:HTMLElement[] = [];
+                const buttonsToCollect:HTMLElement[] = [];
                 const listDpEventTiersToClaim = $(dPTierQuery);
 
                 for (let currentTier = 0 ; currentTier < listDpEventTiersToClaim.length ; currentTier++)

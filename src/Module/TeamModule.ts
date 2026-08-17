@@ -234,7 +234,7 @@ export class TeamModule {
 
         const estimatedCost = 5 * ((team.scrolls_mythic || 0) + (team.scrolls_legendary || 0) + (team.scrolls_epic || 0) + (team.scrolls_rare || 0) + (team.scrolls_common || 0));
 
-        let stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
+        const stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
             <div class="rowLine">
                 <p>${getTextForUI("StuffTeam", "tooltip")}</p>
             </div>
@@ -513,9 +513,9 @@ export class TeamModule {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i: number, best: boolean) {
-            let girlToSelect = best ? i : i + 7;
+            const girlToSelect = best ? i : i + 7;
             //console.log(i,girlToSelect,best);
-            let selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
+            const selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
             selectedGirl.click();
             //console.log(selectedGirl);
             if ($('.topNumber').length > girlToSelect && i < 7) {
@@ -536,15 +536,15 @@ export class TeamModule {
         }
 
         function assignToTeam(i = 1, best = false) {
-            let position = i - 1;
-            let selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
+            const position = i - 1;
+            const selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
             selectedPosition.click();
             //console.log(selectedPosition);
             setTimeout(function () { selectFromHaremBest(i, best) }, randomInterval(300, 600));
 
         }
 
-        let topNumbers = $('.topNumber')
+        const topNumbers = $('.topNumber')
         if (topNumbers.length > 0) {
             TeamModule.resetTeam();
             setTimeout(function () { assignToTeam(1, true); }, randomInterval(300, 600)); // wait for clear-team UI to settle before assigning
@@ -784,27 +784,27 @@ export class TeamModule {
     }
 
     private static setTopTeamLegacy(sumFormulaType: number) {
-        let arr = $('div[id_girl]');
+        const arr = $('div[id_girl]');
         let numTop = 16;
         if (numTop > arr.length) numTop = arr.length;
-        let deckID: number[] = [];
-        let deckStat: number[] = [];
+        const deckID: number[] = [];
+        const deckStat: number[] = [];
         for (let z = 0; z < numTop; z++) {
             deckID.push(-1);
             deckStat.push(-1);
         }
-        let levelPlayer = Number(HeroHelper.getLevel());
+        const levelPlayer = Number(HeroHelper.getLevel());
         for (let i = arr.length - 1; i > -1; i--) {
-            let gID = Number($(arr[i]).attr('id_girl'));
+            const gID = Number($(arr[i]).attr('id_girl'));
             const tooltipData = $('.girl_img', $(arr[i])).attr(<string>ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
             if (tooltipData == '') {
                 logHHAuto('ERROR, no girl information found');
                 return;
             }
-            let obj = JSON.parse(tooltipData);
-            let tempGrades = obj.graded2;
-            let countTotalGrades = (tempGrades.match(/<g/g) || []).length;
-            let countFreeGrades = (tempGrades.match(/grey/g) || []).length;
+            const obj = JSON.parse(tooltipData);
+            const tempGrades = obj.graded2;
+            const countTotalGrades = (tempGrades.match(/<g/g) || []).length;
+            const countFreeGrades = (tempGrades.match(/grey/g) || []).length;
             let currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
             if (sumFormulaType == 1) {
                 currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;

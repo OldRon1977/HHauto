@@ -33,8 +33,8 @@ export class ClubChampion {
         if (page==ConfigHelper.getHHScriptVars("pagesIDClub"))
         {
             let SecsToNextTimer = -1;
-            let restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
-            let restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
+            const restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
+            const restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
 
             if ($(restTeamFilter).length > 0)
             {
@@ -83,7 +83,7 @@ export class ClubChampion {
     static getRemainingRestTime(): number{
         let remainingRestTime = 0;
 
-        let timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
+        const timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
         if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
             remainingRestTime = Number(convertTimeToInt(timerElm));
         }
@@ -189,19 +189,19 @@ export class ClubChampion {
                 $("#club_champions_tab").trigger('click');
             }
 
-            let Started = $("div.club-champion-members-challenges .player-row").length === 1;
-            let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-            let noTimer = secsToNextTimer === -1;
+            const Started = $("div.club-champion-members-challenges .player-row").length === 1;
+            const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+            const noTimer = secsToNextTimer === -1;
 
             if ((Started || getStoredValue(HHStoredVarPrefixKey+SK.autoClubForceStart) === "true") && noTimer)
             {
                 let ticketUsed = 0;
-                let ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
+                const ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
                 if ($(ticketsUsedRequest).length >0)
                 {
                     ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
                 }
-                let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoClubChampMax));
+                const maxTickets = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoClubChampMax));
                 //console.log(maxTickets, ticketUsed);
                 if (maxTickets > ticketUsed )
                 {

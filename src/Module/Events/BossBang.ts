@@ -41,9 +41,9 @@ export class BossBang {
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData): any {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
+        const refreshTimer = randomInterval(3600, 4000);
 
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventBossBangGoing', Number(convertTimeToInt(timeLeft)));
         } else setTimer('eventBossBangGoing', refreshTimer);
@@ -53,14 +53,14 @@ export class BossBang {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
-        let teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
+        const teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
         let teamFound = false;
         const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
         if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
             // Do not trigger event if not all teams are set
             for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
                 // start with last team first
-                let teamz = $(teamEventz[currIndex]);
+                const teamz = $(teamEventz[currIndex]);
                 const teamIndex = teamz.data('slot-index');
                 const teamEgo = $('.boss-bang-team-ego', teamz);
                 if (teamEgo.length > 0 && parseInt(teamEgo.text()) > 0) {
@@ -176,7 +176,7 @@ export class BossBang {
     static async goToFightPage(bossbangEventID: string) {
         if(getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") ){
             const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey+TK.bossBangTeam));
-            let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
+            const bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
             if(teamIndexFound >= 0 && bangButton.length > 0) {
                 logHHAuto("Go to boss bang fight page");
                 // Use safeNavigateHref so any in-flight game AJAX completes

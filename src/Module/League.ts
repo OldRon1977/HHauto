@@ -132,8 +132,8 @@ export class LeagueHelper {
 
     static getSimPowerOpponent(heroFighter: any, opponents: KKLeagueOpponent): BDSMSimu {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        let leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
-        let simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
+        const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
+        const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
 
         const oppoPoints = simu.points;
         let expectedValue = 0;
@@ -289,7 +289,7 @@ export class LeagueHelper {
             const containsOcdScore = function(opponents: any) { return $('.matchRating', $('a[href*="id_opponent='+opponents.player.id_fighter+'"]').parent()).length > 0;}
             const opponentsToSimulate = opponents_list.filter((opponents: any) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
 
-            let SimPower = async function()
+            const SimPower = async function()
             {
                 if (allOpponentsSimDisplayed)
                 {
@@ -298,12 +298,12 @@ export class LeagueHelper {
                 }
                 if (debugEnabled) logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
 
-                let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+                const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
                 let opponentsPowerListChanged = false;
 
                 for(let opponentIndex = 0;opponentIndex < opponentsToSimulate.length ; opponentIndex++)
                 {
-                    let opponents:KKLeagueOpponent = opponentsToSimulate[opponentIndex];
+                    const opponents:KKLeagueOpponent = opponentsToSimulate[opponentIndex];
                     let simu;
                     let leagueOpponent;
                     if (debugEnabled) logHHAuto(`Simulating opponent ${opponentIndex+1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
@@ -348,13 +348,13 @@ export class LeagueHelper {
             SimPower();
         }
 
-        let listUpdateStatus='<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
+        const listUpdateStatus='<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
         if (document.getElementById("HHListUpdate") === null) {
             $(".leagues_middle_header_script").append(listUpdateStatus);
         }
 
         if(allOpponentsSimDisplayed || opponentSim.length <=1) {
-            let buttonLaunchList='<span class="tooltipHHtext">'+getTextForUI("RefreshOppoList","tooltip")+'</span><label style="width:100%;" class="myButton" id="RefreshOppoList">'+getTextForUI("RefreshOppoList","elementText")+'</label>';
+            const buttonLaunchList='<span class="tooltipHHtext">'+getTextForUI("RefreshOppoList","tooltip")+'</span><label style="width:100%;" class="myButton" id="RefreshOppoList">'+getTextForUI("RefreshOppoList","elementText")+'</label>';
             if (document.getElementById("RefreshOppoList") === null)
             {
                 $("#HHListUpdate").html('').append(buttonLaunchList);
@@ -370,14 +370,14 @@ export class LeagueHelper {
             $("#HHListUpdate").html('Building:' + opponentSim.length +"/"+ opponentButtons.length);
         }
 
-        let buttonSortList='<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("sortPowerCalc","tooltip")+'</span><label style="width:100%;" class="myButton" id="sortPowerCalc">'+getTextForUI("sortPowerCalc","elementText")+'</label></div>';
+        const buttonSortList='<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("sortPowerCalc","tooltip")+'</span><label style="width:100%;" class="myButton" id="sortPowerCalc">'+getTextForUI("sortPowerCalc","elementText")+'</label></div>';
         const league_table = $('.league_content .data-list');
         if (document.getElementById("sortPowerCalc") === null && $('.matchRatingNew',league_table).length >0)
         {
             $('.leagues_middle_header_script').append(buttonSortList);
             $("#sortPowerCalc").on("click", function ()
             {
-                let items = $('.data-row.body-row:visible',league_table).map((i, el) => el).toArray();
+                const items = $('.data-row.body-row:visible',league_table).map((i, el) => el).toArray();
                 items.sort(function(a, b)
                         {
                     //console.log($('#HHPowerCalcScore',$(a)));
@@ -396,7 +396,7 @@ export class LeagueHelper {
                     }
                 });
 
-                for (let item in items)
+                for (const item in items)
                 {
                     $(items[item]).detach();
                     league_table.append(items[item]);
@@ -442,7 +442,7 @@ export class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            let results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
                             for (let j=0; j<results.length; j++) {
                                 if (results[j].className == "result ") hide = false;
                             }
@@ -461,7 +461,7 @@ export class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            let results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
                             for (let j=0; j<results.length; j++) {
                                 if (results[j].className == "result ") hide = false;
                             }
@@ -503,7 +503,7 @@ export class LeagueHelper {
                 }
             });
 
-            let sort_by = document.querySelectorAll('.data-column.head-column');
+            const sort_by = document.querySelectorAll('.data-column.head-column');
             for (var sort of sort_by) {
                 sort.addEventListener('click', function() {
                     if (hideBeatenOppo == 1) removeBeatenOpponents();
@@ -514,7 +514,7 @@ export class LeagueHelper {
 
     static _getTempLeagueOpponentList() {
         const maxLeagueListDurationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
-        let opponentsPowerList = getStoredJSON<any>(HHStoredVarPrefixKey+TK.LeagueOpponentList, {expirationDate:0,opponentsList:[]});
+        const opponentsPowerList = getStoredJSON<any>(HHStoredVarPrefixKey+TK.LeagueOpponentList, {expirationDate:0,opponentsList:[]});
         if (Object.keys(opponentsPowerList.opponentsList).length === 0 ||  opponentsPowerList.expirationDate < new Date())
         {
             deleteStoredValue(HHStoredVarPrefixKey+TK.LeagueOpponentList);
@@ -531,7 +531,7 @@ export class LeagueHelper {
 
     static getLeagueOpponentListData(isFirstCall = true): LeagueOpponent[]
     { 
-        let Data:LeagueOpponent[] = [];
+        const Data:LeagueOpponent[] = [];
         let opponent_id: any;
         let fightButton;
         let opponentsPowerList: any;
@@ -731,7 +731,7 @@ export class LeagueHelper {
                 }
                 var currentRank = Number($('.data-list .data-row.body-row.player-row .data-column[column="place"]').text());
                 var currentScore = Number($('.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]').text().replace(/\D/g, ''));
-                let leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesSelectedIndex))+1;
+                const leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesSelectedIndex))+1;
                 if (leagueTargetValue < Number(getPlayerCurrentLevel))
                 {
                     var totalOpponents = Number($('.data-list .data-row.body-row').length)+1;
@@ -746,7 +746,7 @@ export class LeagueHelper {
                         rankDemote = totalOpponents - 15;
                     }
                     logHHAuto("Current league above target ("+Number(getPlayerCurrentLevel)+"/"+leagueTargetValue+"), needs to demote. max rank : "+rankDemote+"/"+totalOpponents);
-                    let getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankDemote+")").filter(function()
+                    const getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankDemote+")").filter(function()
                                                                                                                 {
                         return Number($(this).text().trim()) === rankDemote;
                     });
@@ -798,7 +798,7 @@ export class LeagueHelper {
                         rankStay = promotionCount;
                     }
                     logHHAuto("Current league is target ("+Number(getPlayerCurrentLevel)+"/"+leagueTargetValue+"), needs to stay. Promotion cutoff (higher of 15%/top20): "+promotionCount+", max rank : "+rankStay);
-                    let getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankStay+")").filter(function()
+                    const getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains("+rankStay+")").filter(function()
                                                                                                             {
                         return Number($(this).text().trim()) === rankStay;
                     });

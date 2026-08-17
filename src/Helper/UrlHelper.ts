@@ -10,7 +10,7 @@
 /** Extracts a single query parameter value from a query string. */
 export function queryStringGetParam(inQueryString: string, inParam: string)
 {
-    let urlParams = new URLSearchParams(inQueryString);
+    const urlParams = new URLSearchParams(inQueryString);
     return urlParams.get(inParam);
 }
 

@@ -95,7 +95,7 @@ export class Bundles {
                     if(freeBundlesNumber > 0)
                     {
                         logHHAuto("Free Bundles found: " + freeBundlesNumber);
-                        let buttonsToCollect:HTMLElement[] = [];
+                        const buttonsToCollect:HTMLElement[] = [];
                         for (let currentBundle = 0; currentBundle < freeBundlesNumber ; currentBundle++)
                         {
                             buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);

@@ -59,7 +59,7 @@ export class EventGirl {
         if (girlData.source) {
             if (girlData.source.name === 'event_troll') {
                 try {
-                    let parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
+                    const parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
                     this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
                     if (girlData.source.anchor_source.disabled) {
                         logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
@@ -67,7 +67,7 @@ export class EventGirl {
                     }
                 } catch (error) {
                     try {
-                        let parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
+                        const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
                         this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
                         if (girlData.source.anchor_win_from.disabled) {
                             logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
