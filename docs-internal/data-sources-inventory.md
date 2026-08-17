@@ -336,9 +336,9 @@ Alle anderen relevanten DOM-Reads. Aufgeteilt nach Domain.
 | `.data-column.head-column` (querySelectorAll) | Header-Zellen | Leaderboard | `Module/League.ts` | Sort-Listener |
 | `.body-row .data-column[column="power"]` `.first().html()/.text()` | Power-Spalte (matchRating-Erkennung) | Leaderboard | `Module/League.ts` | `League.hasVanillaPowerColumn()` |
 | `.data-list .data-row.body-row` | Alle Body-Rows | Leaderboard | `Module/League.ts` | `parseOpponents()` |
-| `.data-column[column="power"] .matchRating-expected .matchRating-value` `.text()` | Erwartete Power | Leaderboard | `Module/League.ts` | (auskommentierter `getPowerOrPoints`-Block) |
-| `.data-column[column="power"]` `.text()` (mit `parsePrice`) | Plain-Power | Leaderboard | `Module/League.ts` | (auskommentierter Block) |
 | `.data-list .data-row.body-row a` `.length` | Noch zu kaempfende Gegner | Leaderboard | `Module/League.ts` | `parseOpponents()` Logging |
+
+Entfernt am 2026-08-17: zwei Zeilen fuer `.matchRating-expected .matchRating-value` und die Plain-Power-Variante. Beide wurden ausschliesslich von einem auskommentierten `getPowerOrPoints`-Block gelesen; der Block ist geloescht (Commit `chore: delete commented-out code`), und ein `grep` bestaetigt, dass kein lebender Code die Selektoren anfasst.
 | `.data-list .data-row.body-row.player-row .data-column[column="place"]` `.text()` | Eigener Rank | Leaderboard | `Module/League.ts` | League-Stop-Logic |
 | `.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]` `.text()` | Eigener Score | Leaderboard | `Module/League.ts` | League-Stop-Logic |
 

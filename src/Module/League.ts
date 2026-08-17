@@ -583,7 +583,7 @@ export class LeagueHelper {
                         // Number($('.data-column[column="place"]', $(this)).text()),
                         $('.nickname', $(this)).text(),
                         // Number($('.data-column[column="level"]', $(this)).text()),
-                        opponents.power, // getPowerOrPoints(hasHHBdsmChangeBefore, $(this)),
+                        opponents.power,
                         // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
                         expectedPoints,
                         // $('.boosters', $(this)).children().length,

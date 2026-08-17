@@ -213,7 +213,7 @@ Liest team.girls[i].skill_tiers_info[4].skill_points_used, summiert alle Punkte 
 | Damage | +0.2% | wird im Schadensfall **exponentiell** mit der Rundenzahl multipliziert: atk * (1 + tier4.dmg)^turns |
 | Defense | nicht implementiert | Code initialisiert def: 0 und addiert nichts -- Tier-4-Defense-Skills werden ignoriert |
 
-Die alte calculateTier4SkillValue-Funktion (auskommentiert) haette beide Tier-4-Skills (Index 9 = dmg, Index 10 = def) gelesen, ist aber nicht aktiv.
+Eine `calculateTier4SkillValue`-Funktion haette beide Tier-4-Skills (Index 9 = dmg, Index 10 = def) gelesen. Sie war auskommentiert und wurde am 2026-08-17 geloescht (Commit `chore: delete commented-out code`); in der Git-Historie ist sie erhalten. Tier-4-Defense bleibt damit unimplementiert.
 
 ---
 
