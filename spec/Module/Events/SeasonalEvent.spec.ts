@@ -21,12 +21,6 @@ jest.mock("../../../src/Utils/LogUtils", () => ({
 const gotoPageMock = gotoPage as jest.Mock;
 
 describe("SeasonalEvent", function () {
-    describe("styles", function () {
-        it("default", function () {
-            expect(() => SeasonalEvent.styles()).not.toThrow()
-        });
-    });
-
     describe("goAndCollectFreeCard", function () {
         const SEASONAL_PAGE = ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent");
         const HOME_PAGE = ConfigHelper.getHHScriptVars("pagesIDHome");

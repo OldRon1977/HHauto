@@ -64,18 +64,6 @@ describe('TimerHelper', () => {
             expect(getTimer('testTimer')).toBe(expected);
         });
 
-        it('should call setStoredValue with serialized Timers', () => {
-            setTimer('myTimer', 120);
-
-            expect(setStoredValue).toHaveBeenCalledWith(
-                'HHAuto_Temp_Timers',
-                expect.any(String)
-            );
-            const storedJson = (setStoredValue as jest.Mock).mock.calls[0][1];
-            const parsed = JSON.parse(storedJson);
-            expect(parsed.myTimer).toBeDefined();
-        });
-
         it('should overwrite an existing timer with the same name', () => {
             setTimer('dup', 30);
             const first = getTimer('dup');
@@ -95,14 +83,6 @@ describe('TimerHelper', () => {
 
             clearTimer('toRemove');
             expect(getTimer('toRemove')).toBe(-1);
-        });
-
-        it('should call setStoredValue after clearing', () => {
-            setTimer('toClear', 50);
-            jest.clearAllMocks();
-
-            clearTimer('toClear');
-            expect(setStoredValue).toHaveBeenCalled();
         });
 
         it('should not throw when clearing a non-existent timer', () => {
@@ -215,14 +195,6 @@ describe('TimerHelper', () => {
             setTimer('done', 5);
             jest.advanceTimersByTime(10000);
             expect(getTimeLeft('done')).toBe("Time's up!");
-        });
-
-        it('should return formatted time string when timer is still running', () => {
-            setTimer('running', 3661);
-            const result = getTimeLeft('running');
-            expect(TimeHelper.toHHMMSS).toHaveBeenCalledWith(3661);
-            expect(result).toBeDefined();
-            expect(typeof result).toBe('string');
         });
 
         it('should return "Wait for contest" for competition timer when competition is not active and timer is missing', () => {

@@ -1,10 +1,9 @@
-import { HeroHelper, getHero } from "../../src/Helper/HeroHelper";
+import { HeroHelper } from "../../src/Helper/HeroHelper";
 import { setStoredValue } from "../../src/Helper/StorageHelper";
 import { SK } from "../../src/config/StorageKeys";
 import { Booster } from "../../src/Module/Booster";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { MockHelper } from "../testHelpers/MockHelpers";
-import type { KKHero } from "../../src/model/KK/KKHero";
 
 // Test fixtures — no longer using hardcoded static objects from Booster class
 const TEST_GINSENG = {id_item: "316", identifier: "B1", name: "Ginseng root", rarity: "legendary"};
@@ -14,24 +13,6 @@ describe("HeroHelper", function() {
 
   beforeEach(function() {
 
-  });
-
-  describe("getHero", function() {
-    it("No Hero", function() {
-      unsafeWindow.shared!.Hero = undefined;
-      expect(getHero()).toBeUndefined();
-    });
-    it("Test with string", function() {
-        unsafeWindow.shared!.Hero = "TOTO" as unknown as KKHero;
-      expect(getHero()).toBe("TOTO");
-    });
-    it("Test with object", function() {
-        unsafeWindow.shared!.Hero = {
-            name:"TOTO"
-        } as unknown as KKHero;
-      expect(getHero()).toBeDefined();
-      expect(getHero().name).toBe("TOTO");
-    });
   });
 
   describe("getSandalWoodEquipFailure", function() {

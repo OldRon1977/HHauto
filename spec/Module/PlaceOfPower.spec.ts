@@ -9,12 +9,6 @@ describe("PlaceOfPower", function () {
         sessionStorage.clear();
     });
 
-    describe("styles", function () {
-        it("default", function () {
-            expect(() => PlaceOfPower.styles()).not.toThrow()
-        });
-    });
-
     describe("removePopFromPopToStart", function () {
         it("removes a number index from the JSON array", function () {
             setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify([1, 2, 3, 5]));

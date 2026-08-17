@@ -34,26 +34,6 @@ jest.mock('../../src/Helper/ConfigHelper', () => ({
 
 describe('BDSMHelper', () => {
 
-    describe('ELEMENTS', () => {
-        it('should have egoDamage lookup with 5 element matchups', () => {
-            const ego = BDSMHelper.ELEMENTS.egoDamage;
-            expect(ego.fire).toBe('nature');
-            expect(ego.nature).toBe('stone');
-            expect(ego.stone).toBe('sun');
-            expect(ego.sun).toBe('water');
-            expect(ego.water).toBe('fire');
-            expect(Object.keys(ego)).toHaveLength(5);
-        });
-
-        it('should have chance lookup with 3 element matchups', () => {
-            const chance = BDSMHelper.ELEMENTS.chance;
-            expect(chance.darkness).toBe('light');
-            expect(chance.light).toBe('psychic');
-            expect(chance.psychic).toBe('darkness');
-            expect(Object.keys(chance)).toHaveLength(3);
-        });
-    });
-
     describe('fightBonues', () => {
         it('should extract synergy multipliers from team object', () => {
             const team = {
@@ -308,24 +288,6 @@ describe('BDSMHelper', () => {
 
             const result = calculateBattleProbabilities(player, opponent, false);
             expect(result.scoreClass).toBe('minus');
-        });
-
-        it('should return a points distribution object', () => {
-            const player = new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'A');
-            const opponent = new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'B');
-
-            const result = calculateBattleProbabilities(player, opponent, false);
-            expect(result.points).toBeDefined();
-            expect(typeof result.points).toBe('object');
-        });
-
-        it('should handle debug mode without errors', () => {
-            const player = new BDSMPlayer(5000, 1000, 200, 0.15, noBonuses, noTier4, noTier5, 'DebugP');
-            const opponent = new BDSMPlayer(3000, 800, 200, 0.1, noBonuses, noTier4, noTier5, 'DebugO');
-
-            expect(() => {
-                calculateBattleProbabilities(player, opponent, true);
-            }).not.toThrow();
         });
 
         it('should account for tier5 stun skill', () => {

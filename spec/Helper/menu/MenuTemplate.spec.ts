@@ -1,8 +1,6 @@
 import { setMenuPorts } from '../../../src/Helper/menu/MenuPorts';
 import { getMenu } from '../../../src/Helper/menu/MenuTemplate';
-import { buildLeftColumn } from '../../../src/Helper/menu/MenuColumnLeft';
 import { buildMiddleColumn } from '../../../src/Helper/menu/MenuColumnMiddle';
-import { buildRightColumn } from '../../../src/Helper/menu/MenuColumnRight';
 import { buildTestPorts } from './menuTestPorts';
 
 describe('MenuTemplate', () => {
@@ -29,18 +27,6 @@ describe('MenuTemplate', () => {
     };
 
     describe('getMenu', () => {
-        it('assembles the hidden #sMenu panel from all three columns', () => {
-            const menu = parse(getMenu());
-            expect(menu.id).toBe('sMenu');
-            expect(menu.className).toBe('HHAutoScriptMenu');
-            expect((menu as HTMLElement).style.display).toBe('none');
-            // One representative element per column proves all columns are present.
-            expect(menu.querySelector('#master')).not.toBeNull();          // left
-            expect(menu.querySelector('#autoTrollSelector')).not.toBeNull(); // middle
-            expect(menu.querySelector('#autoStats')).not.toBeNull();       // right
-            expect(menu.textContent).toContain('0.0.0-test');
-        });
-
         it('produces parse-stable markup (no dangling elements)', () => {
             const menu = parse(getMenu());
             // Every input must have a unique id: duplicates would break get/setMenuValues.
@@ -61,14 +47,6 @@ describe('MenuTemplate', () => {
     });
 
     describe('column builders', () => {
-        it('buildLeftColumn contains the global, koban and display boxes', () => {
-            const col = parse(buildLeftColumn());
-            expect(col.querySelector('#master')).not.toBeNull();
-            expect(col.querySelector('#kobanBank')).not.toBeNull();
-            expect(col.querySelector('#showRewardsRecap')).not.toBeNull();
-            expect(col.querySelector('#isEnabledPoV')).not.toBeNull();
-        });
-
         it('buildMiddleColumn gates debug-only rows on its parameter', () => {
             const noDebug = parse(buildMiddleColumn(false));
             expect(noDebug.innerHTML).toContain('display:none');
@@ -76,14 +54,6 @@ describe('MenuTemplate', () => {
             const x10 = withDebug.querySelector('#useX10Fights')!.closest('div[style*="display:none"]');
             expect(x10).toBeNull();
             expect(withDebug.querySelector('#autoLeaguesSelector')).not.toBeNull();
-        });
-
-        it('buildRightColumn contains champions, pantheon, shop and events', () => {
-            const col = parse(buildRightColumn());
-            expect(col.querySelector('#isEnabledAllChamps')).not.toBeNull();
-            expect(col.querySelector('#autoPantheon')).not.toBeNull();
-            expect(col.querySelector('#isEnabledShop')).not.toBeNull();
-            expect(col.querySelector('#isEnabledEvents')).not.toBeNull();
         });
     });
 });

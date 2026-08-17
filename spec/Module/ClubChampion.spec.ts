@@ -133,82 +133,8 @@ describe("Club Champion module", function () {
         });
     });
 
-    describe("_setTimer", function () {
-        const TIME_1 = 123;
-        const TIME_2 = 456;
-        const TIME_COOLDOWN = 3600;
-        it("default", function () {
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_1);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
-        });
-
-        it("autoChamps not aligned", function () {
-            setTimer('nextChampionTime', TIME_2);
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChamps", 'true');
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChampAlignTimer", 'false');
-
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_1);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
-        });
-
-        it("autoChampAlignTimer", function () {
-            setTimer('nextChampionTime', TIME_2);
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChamps", 'false');
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChampAlignTimer", 'true');
-
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_1);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
-        });
-
-        it("autoChampAlignTimer and autoChamps", function () {
-            setTimer('nextChampionTime', TIME_2);
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChamps", 'true');
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChampAlignTimer", 'true');
-
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_1);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_2);
-        });
-
-        it("autoChampAlignTimer and autoChamps cooldown", function () {
-            setTimer('nextChampionTime', TIME_COOLDOWN);
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChamps", 'true');
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChampAlignTimer", 'true');
-
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_1);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_1);
-        });
-
-        it("autoChampAlignTimer and autoChamps with club cooldown", function () {
-            setTimer('nextChampionTime', TIME_1);
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChamps", 'true');
-            localStorage.setItem(HHStoredVarPrefixKey + "Setting_autoChampAlignTimer", 'true');
-
-            let nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(0);
-            ClubChampion._setTimer(TIME_COOLDOWN);
-
-            nextChampionTime = getSecondsLeft('nextClubChampionTime');
-            expect(nextChampionTime).toBe(TIME_COOLDOWN);
-        });
-    });
+    // _setTimer alignment: covered spy-free by ClubChampion.pure.spec.ts
+    // (decideAlignedClubChampionTimer, nine cases including the strict
+    // boundaries). The adapter wrapper was removed in the spec triage
+    // (2026-08).
 });

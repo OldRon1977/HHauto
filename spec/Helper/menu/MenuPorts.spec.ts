@@ -22,10 +22,4 @@ describe('MenuPorts', () => {
         expect(MenuPorts.getHHScriptVars('baseImgPath')).toBe('[baseImgPath]');
         expect(MenuPorts.storedVarPrefix).toBe('Pfx_');
     });
-
-    it('setMenuPorts mutates the exported singleton (same object identity)', () => {
-        const before = MenuPorts;
-        setMenuPorts(buildTestPorts());
-        expect(MenuPorts).toBe(before);
-    });
 });

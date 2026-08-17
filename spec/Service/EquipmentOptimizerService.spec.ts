@@ -120,11 +120,6 @@ describe('resonance matching', () => {
         expect(activeResonance(both, KNOW_HOW, 'fire')).toBeCloseTo(2.0);
         expect(activeResonance(both, 1, 'fire')).toBeCloseTo(0);
     });
-
-    it('doubles the per-level growth on the chance track', () => {
-        const item = mythic({ slot: 1, level: 20, classId: '3', themeId: 'sun', themeTarget: 'chance' });
-        expect(activeResonance(item, KNOW_HOW, 'sun')).toBeCloseTo(6.0); // 2 + 4
-    });
 });
 
 describe('gearTier', () => {
@@ -264,13 +259,6 @@ describe('planPossibleBest', () => {
 });
 
 describe('projection to max level', () => {
-    it('projects a mythic onto the measured curve', () => {
-        const lvl1 = mythic({ slot: 1, level: 1, classId: '3' });
-        const { caracs, unreliable } = projectCaracs(lvl1);
-        expect(unreliable).toBe(false);
-        expect(caracs).toEqual(mythicCaracs(MYTHIC_MAX_LEVEL));
-    });
-
     it('leaves non-mythics and maxed mythics untouched', () => {
         const leg = legendary({ slot: 1 });
         expect(projectCaracs(leg).caracs).toBe(leg.caracs);

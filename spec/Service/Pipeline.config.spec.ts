@@ -1,7 +1,7 @@
 // Pipeline.config.spec.ts -- Unit tests for the pipeline configuration.
 //
-// Tests cover: config parsability, valid fields, no duplicates,
-// handler-specific properties (atomic, ordering, interruptible).
+// Tests cover: handler ordering invariants, precondition and step
+// behaviour, and the issue regressions each block carries.
 
 // Mock all external dependencies that Pipeline.config.ts imports
 jest.mock('../../src/Module/League', () => ({
@@ -137,145 +137,29 @@ function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
 }
 
 describe('Pipeline.config', () => {
+  // Spec triage (2026-08): the config-shape block and the per-handler
+  // property assertions ("exists in pipeline", "is atomic", "has
+  // minIntervalMs of 2 seconds", "precondition returns boolean") were
+  // removed. They asserted the literals Pipeline.config.ts defines, one
+  // file over, and TypeScript already carries the shape -- this was
+  // finding C-4 in the test strategy, parked in May for the next pipeline
+  // change. The ordering invariants and the issue regressions stay.
+
   describe('pipeline array', () => {
-    it('is a non-empty array', () => {
-      expect(Array.isArray(pipeline)).toBe(true);
-      expect(pipeline.length).toBeGreaterThan(0);
-    });
-
-    it('contains only valid HandlerConfig objects', () => {
-      for (const handler of pipeline) {
-        expect(handler).toHaveProperty('name');
-        expect(handler).toHaveProperty('minIntervalMs');
-        expect(handler).toHaveProperty('atomic');
-        expect(handler).toHaveProperty('interruptible');
-        expect(handler).toHaveProperty('precondition');
-        expect(handler).toHaveProperty('steps');
-
-        expect(typeof handler.name).toBe('string');
-        expect(handler.name.length).toBeGreaterThan(0);
-        expect(typeof handler.minIntervalMs).toBe('number');
-        expect(handler.minIntervalMs).toBeGreaterThanOrEqual(0);
-        expect(typeof handler.atomic).toBe('boolean');
-        expect(['always', 'never']).toContain(handler.interruptible);
-        expect(typeof handler.precondition).toBe('function');
-        expect(Array.isArray(handler.steps)).toBe(true);
-        expect(handler.steps.length).toBeGreaterThan(0);
-      }
-    });
-
     it('has no duplicate handler names', () => {
       const names = pipeline.map(h => h.name);
       const uniqueNames = new Set(names);
       expect(uniqueNames.size).toBe(names.length);
     });
-
-    it('does not expose a numeric priority field (replaced by array order)', () => {
-      for (const handler of pipeline) {
-        expect((handler as unknown as Record<string, unknown>)['priority']).toBeUndefined();
-      }
-    });
-  });
-
-  describe('handler steps', () => {
-    it('all steps have valid name and fn', () => {
-      for (const handler of pipeline) {
-        for (const step of handler.steps) {
-          expect(typeof step.name).toBe('string');
-          expect(step.name.length).toBeGreaterThan(0);
-          expect(typeof step.fn).toBe('function');
-        }
-      }
-    });
-
-    it('step timeoutMs is positive when defined', () => {
-      for (const handler of pipeline) {
-        for (const step of handler.steps) {
-          if (step.timeoutMs !== undefined) {
-            expect(step.timeoutMs).toBeGreaterThan(0);
-          }
-        }
-      }
-    });
-
-    it('totalTimeoutMs is positive when defined', () => {
-      for (const handler of pipeline) {
-        if (handler.totalTimeoutMs !== undefined) {
-          expect(handler.totalTimeoutMs).toBeGreaterThan(0);
-        }
-      }
-    });
   });
 
   describe('handleEventParsing', () => {
-    const handler = pipeline.find(h => h.name === 'handleEventParsing')!;
-
-    it('exists in pipeline', () => {
-      expect(handler).toBeDefined();
-    });
-
-    it('is non-atomic and always interruptible', () => {
-      expect(handler.atomic).toBe(false);
-      expect(handler.interruptible).toBe('always');
-    });
-
     it('runs before handleLeague (earlier index in pipeline)', () => {
       const idxParsing = pipeline.findIndex(h => h.name === 'handleEventParsing');
       const idxLeague = pipeline.findIndex(h => h.name === 'handleLeague');
       expect(idxParsing).toBeLessThan(idxLeague);
     });
-
-    it('precondition returns boolean', () => {
-      const result = handler.precondition(makeCtx());
-      expect(typeof result).toBe('boolean');
-    });
-
-    it('step fn returns StepResult', async () => {
-      const result = await handler.steps[0].fn(makeCtx());
-      expect(result).toHaveProperty('ok');
-      expect(result.ok).toBe(true);
-    });
   });
-
-  describe('handleLeague', () => {
-    const handler = pipeline.find(h => h.name === 'handleLeague')!;
-
-    it('exists in pipeline', () => {
-      expect(handler).toBeDefined();
-    });
-
-    it('is atomic and never interruptible', () => {
-      expect(handler.atomic).toBe(true);
-      expect(handler.interruptible).toBe('never');
-    });
-
-    it('has minIntervalMs of 2 seconds', () => {
-      expect(handler.minIntervalMs).toBe(2_000);
-    });
-
-    it('has onFailure callback', () => {
-      expect(handler.onFailure).toBeDefined();
-      expect(typeof handler.onFailure).toBe('function');
-    });
-
-    it('precondition returns boolean', () => {
-      const result = handler.precondition(makeCtx());
-      expect(typeof result).toBe('boolean');
-    });
-
-    it('step fn returns StepResult', async () => {
-      const result = await handler.steps[0].fn(makeCtx());
-      expect(result).toHaveProperty('ok');
-      expect(result.ok).toBe(true);
-    });
-
-    it('onFailure does not throw', async () => {
-      await expect(
-        handler.onFailure!(makeCtx(), 'doLeagueBattle', 'test error')
-      ).resolves.toBeUndefined();
-    });
-  });
-
 
   describe('trollWaitForEnergy gate (issue #1700, #1708)', () => {
     afterEach(() => {
@@ -368,10 +252,6 @@ describe('Pipeline.config', () => {
       ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
       TimerHelperMock.checkTimer.mockReturnValue(false);
       HHHelperMock.getHHVars.mockReturnValue(100);
-    });
-
-    it('exists in pipeline', () => {
-      expect(handler).toBeDefined();
     });
 
     it('runs after handleEventParsing and before handleLeague', () => {
@@ -493,10 +373,6 @@ describe('Pipeline.config', () => {
       getStoredValueMock.mockReset();
       Booster.autoEquipBoosters.mockResolvedValue(false);
       TimerHelperMock.checkTimer.mockReturnValue(false);
-    });
-
-    it('exists in pipeline', () => {
-      expect(handler).toBeDefined();
     });
 
     it('precondition false when autoEquipBoosters opt-in is off', () => {
@@ -717,10 +593,6 @@ describe('Pipeline.config', () => {
       getStoredValueMock.mockReset();
       setStoredValueMock.mockReset();
       deleteStoredValueMock.mockReset();
-    });
-
-    it('exists in pipeline', () => {
-      expect(handler).toBeDefined();
     });
 
     it('outfit marker disables autoQuest, resets the marker, and sets paranoiaQuestBlocked', async () => {

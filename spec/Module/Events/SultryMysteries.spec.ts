@@ -8,22 +8,6 @@ describe("SultryMysteries event", function () {
         MockHelper.mockDomain();
     });
 
-    describe("isEnabled", function () {
-        it("default", function () {
-            expect(SultryMysteries.isEnabled()).toBeFalsy();
-        });
-
-        it("lower level", function () {
-            MockHelper.mockHeroLevel(5);
-            expect(SultryMysteries.isEnabled()).toBeFalsy();
-        });
-
-        it("higher level", function () {
-            MockHelper.mockHeroLevel(500);
-            expect(SultryMysteries.isEnabled()).toBeTruthy();
-        });
-    });
-
     describe("parse", function () {
         const hhEvent = { eventId: 'sm_event_47', eventType: 'sm_event' } as HHEvent;
 

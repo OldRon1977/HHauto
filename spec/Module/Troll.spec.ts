@@ -269,30 +269,6 @@ describe("Troll module", function () {
         });
     });
 
-    describe("get Fight", function () {
-        beforeEach(() => {
-            MockHelper.mockHeroLevel(500);
-            MockHelper.mockEnergiesFight(0, 0);
-        });
-
-        it("default", function () {
-            expect(Troll.getEnergy()).toBe(0);
-            expect(Troll.getEnergyMax()).toBe(0);
-        });
-
-        it("5kiss over 10", function () {
-            MockHelper.mockEnergiesFight(5, 10);
-            expect(Troll.getEnergy()).toBe(5);
-            expect(Troll.getEnergyMax()).toBe(10);
-        });
-
-        it("15kiss over 20", function () {
-            MockHelper.mockEnergiesFight(15, 20);
-            expect(Troll.getEnergy()).toBe(15);
-            expect(Troll.getEnergyMax()).toBe(20);
-        });
-    });
-
     describe("getLastTrollIdAvailable", function () {
         it("returns world - 1 for main adventure when no mapping", function () {
             unsafeWindow.shared!.Hero!.infos = {

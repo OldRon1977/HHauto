@@ -122,15 +122,9 @@ describe('TeamScoringService', () => {
         });
     });
 
-    describe('getElementPowerCoeff', () => {
-        it('returns the empirical per-element strength values', () => {
-            expect(TeamScoringService.getElementPowerCoeff('darkness')).toBe(1.20);
-            expect(TeamScoringService.getElementPowerCoeff('fire')).toBe(1.12);
-            expect(TeamScoringService.getElementPowerCoeff('stone')).toBe(1.12);
-            expect(TeamScoringService.getElementPowerCoeff('light')).toBe(1.00);
-            expect(TeamScoringService.getElementPowerCoeff('sun')).toBe(1.00);
-        });
-    });
+    // getElementPowerCoeff: the removed test wrote the measured constant
+    // table from TeamScoringService back at itself. The values are only
+    // provable against the running game (spec triage 2026-08).
 
     describe('calculateTier3TeamBonus', () => {
         it('returns 0 for empty team', () => {

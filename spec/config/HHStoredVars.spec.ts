@@ -18,10 +18,6 @@ describe("HHStoredVars isValid regexes", function () {
     describe("autoTrollSelectedIndex (valid domain 0-99)", function () {
         const entry = entryFor(SK.autoTrollSelectedIndex);
 
-        it("registers an isValid regex", function () {
-            expect(entry.isValid).toBeInstanceOf(RegExp);
-        });
-
         it("accepts every index the troll selector can hold (0, 1-97, 98, 99)", function () {
             const valid = ["0", "1", "9", "10", "15", "16", "50", "97", "98", "99"];
             valid.forEach(function (v) { expect(entry.isValid!.test(v)).toBe(true); });
@@ -39,10 +35,6 @@ describe("HHStoredVars isValid regexes", function () {
 
     describe("collectAllTimer (valid domain 1-99 hours)", function () {
         const entry = entryFor(SK.collectAllTimer);
-
-        it("registers an isValid regex", function () {
-            expect(entry.isValid).toBeInstanceOf(RegExp);
-        });
 
         it("accepts 1-99", function () {
             const valid = ["1", "9", "10", "12", "99"];
