@@ -13,6 +13,12 @@ npm i --no-save playwright && npx playwright install chromium   # once
 HHAUTO_PROFILE=~/.config/hhauto-claude/profile node scripts/live-check/run.mjs
 ```
 
+`VAR=value cmd` is bash syntax. In fish, or to stay shell-agnostic, use `env`:
+
+```
+env HHAUTO_PROFILE=$HOME/.config/hhauto-claude/profile node scripts/live-check/run.mjs
+```
+
 | Variable | |
 |---|---|
 | `HHAUTO_PROFILE` | **required** — a browser profile that is logged into the game. Keep it outside this repository; it holds session cookies. |
