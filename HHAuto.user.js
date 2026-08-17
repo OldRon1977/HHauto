@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.8.0
+// @version      8.9.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -685,8 +685,8 @@ HHAuto_ToolTips.de['spendKobans0'] = { version: "5.6.24", elementText: "Fragwür
 HHAuto_ToolTips.de['kobanBank'] = { version: "5.6.24", elementText: "Koban Bank", tooltip: "(Integer)<br>Minimale Anzahl an Kobans die behalten werden sollen." };
 HHAuto_ToolTips.de['buyCombat'] = { version: "5.6.24", elementText: "Kaufe Kobans bei Events", tooltip: "'Kobans ausgeben Funktion'<br> Wenn aktiviert: <br> Kauft Kampfpunkte in den letzten X Stunden eines Events (Wenn es das Minimum nicht unterschreitet)" };
 HHAuto_ToolTips.de['buyCombTimer'] = { version: "5.6.24", elementText: "Stunden bis Kauf", tooltip: "(Ganze pos. Zahl)<br>X verbleibende Stunden des Events" };
-HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.24", elementText: "Kaufe Booster", tooltip: "'Koban ausgeben Funktion'<br>Erlaubt es Booster im Markt zu kaufen(Wenn es das Minimum nicht unterschreitet)" };
-HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.6.24", elementText: "Filter", tooltip: "(Werte getrennt durch ;)<br>Gib an welches Booster gekauft werden sollen, Reihenfolge wird beachtet (B1:Ginseng B2:Jujubes B3:Chlorella B4:Cordyceps)" };
+HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & leg. Booster", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p>Erlaubt den Kauf von Boostern im Markt (solange die Koban-Bank nicht unterschritten wird)." };
+HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(Werte getrennt durch ;)<br>Liste der Booster-Codes, die gekauft werden sollen; die Reihenfolge wird beachtet.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination" };
 HHAuto_ToolTips.de['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Überspringe drei Rote", tooltip: "'Koban ausgeben Funktion'<br>Benutze Kobans um Season Gegner zu tauschen wenn alle drei Rote sind" };
 HHAuto_ToolTips.de['showCalculatePower'] = { version: "6.8.0", elementText: "Zeige Kraftrechner", tooltip: "Zeige Kampfsimulationsindikator an für Liga, Kampf und Season" };
 //HHAuto_ToolTips.de['calculatePowerLimits'] = { version: "5.6.24", elementText: "Eigene Grenzen (rot;gelb)", tooltip: "(rot;gelb)<br>Definiere deine eigenen Grenzen für rote und orange Gegner<br> -6000;0 meint<br> <-6000 ist rot, zwischen -6000 und 0 ist orange und >=0 ist grün"};
@@ -698,9 +698,9 @@ HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Ei
 HHAuto_ToolTips.de['autoTrollBattle'] = { version: "7.35.4", elementText: "Standard Troll an/aus", tooltip: "Wenn aktiv: Macht automatisch Kämpfe gegen den Standard-Troll" };
 HHAuto_ToolTips.de['autoTrollSelector'] = { version: "5.6.24", elementText: "Troll Wähler", tooltip: "Wähle Trolle die bekämpfte werden sollen." };
 HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Trollpunkten die aufgehoben werden" };
-HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.24", elementText: "Event Troll Reihenfolge", tooltip: "Erlaubt eine Auswahl in welcher Reihenfolge die Trolle automatisch bekämpft werden" };
-HHAuto_ToolTips.de['plusEvent'] = { version: "5.6.24", elementText: "+Event", tooltip: "Wenn aktiv : Ignoriere ausgewählte Trolle währende eines Events, zugunsten des Events" };
-HHAuto_ToolTips.de['plusEventMythic'] = { version: "5.6.24", elementText: "+Mythisches Event", tooltip: "Erlaubt es Mädels beim mystischen Event abzugreifen, sollte sie nur versuchen wenn auch Teile vorhanden sind" };
+HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.38", elementText: "Event-Troll-Reihenfolge", tooltip: "(Werte getrennt durch ;)<br>Legt fest, in welcher Reihenfolge Event-Trolle automatisch bekämpft werden<br>1: Dark Lord<br>2: Ninja Spy<br>3: Gruntt<br>4: Edwarda<br>5: Donatien<br>6: Sylvanus<br>7: Bremen<br>8: Finalmecia" };
+HHAuto_ToolTips.de['plusEvent'] = { version: "7.32.1", elementText: "+Event", tooltip: "Kämpft gegen normale Event-Trolle unabhängig von Auto-Troll.<br>Die Energie-Schwelle wird beachtet." };
+HHAuto_ToolTips.de['plusEventMythic'] = { version: "7.32.1", elementText: "+Mythisches Event", tooltip: "Kämpft gegen Mythic-Event-Trolle unabhängig von Auto-Troll.<br>Übergeht die Energie-Schwelle. Hat Vorrang vor normalen Events." };
 HHAuto_ToolTips.de['raidStarsSelector'] = { version: "7.35.27", elementText: "+Raid Sterne", tooltip: "Kämpfe Love Raids nach Mädchen-Grad. Unabhängig von +Raid und Auto Troll.<br>Wählt automatisch den als nächstes endenden Raid mit passendem Grad (ignoriert das Raid selector-Dropdown).<br>Passende Raids werden von +Raid Sterne beansprucht; übrige Raids gehen an +Raid (falls aktiv).<br>Die Energie-Schwelle wird über den Schalter Reserve umgehen gesteuert." };
 HHAuto_ToolTips.de['raidStarsOff'] = { version: "7.35.5", elementText: "Aus" };
 HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "(up to 5 codes separated by ;)<br>Mythic boosters to keep equipped. The game offers 5 mythic slots (one equipped booster per kind): every listed booster you own that is not equipped yet is placed into a free slot, in list order (order = priority). Empty field = off.<br>Example: MB1;MB2;MB5;MB8;MB12<br>Equipped boosters are never replaced and nothing is bought (only equips from inventory).<br>The Sandalwood auto-equip keeps control of MB1: while active, MB1 on this list is skipped and one slot is kept free for Sandalwood." };
@@ -710,7 +710,6 @@ HHAuto_ToolTips.de['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 �
 //HHAuto_ToolTips.de['eventMythicPrio'] = { version: "5.6.24", elementText: "Priorisiere über Event Troll Reihenfolge", tooltip: "Mystische Event Mädels werden über die Event Troll Reihenfolge gestellt, sofern Teile erhältlich sind"};
 //HHAuto_ToolTips.de['autoTrollMythicByPassThreshold'] = { version: "5.6.24", elementText: "Mystische über Schwellenwert", tooltip: "Erlaubt es Punkt über den Schwellwert für das mystische Events zu nutzen"};
 HHAuto_ToolTips.de['autoTrollMythicByPassParanoia'] = { version: "5.6.24", elementText: "Mythisch über Paranoia", tooltip: "Wenn aktiv: Erlaubt es den Paranoia Modus zu übergehen. Wenn du noch kämpfen kannst oder dir Energie kaufen kannst, wird gekämpft. Sollte die nächste Welle an Splittern während der Ruhephase sein, wird der Modus unterbrochen und es wird gekämpft" };
-HHAuto_ToolTips.de['autoArenaCheckbox'] = { version: "5.6.24", elementText: "AutoArenaKampf", tooltip: "if enabled : Automatically do Arena (deprecated)" };
 HHAuto_ToolTips.de['autoSeason'] = { version: "5.6.24", elementText: "AutoSeason", tooltip: "Wenn aktiv : Kämpft automatisch in der Season (Gegner werden wie im Kraftrechner einstellt gewählt)" };
 HHAuto_ToolTips.de['autoSeasonCollect'] = { version: "5.6.24", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Seasongewinne ein (bei mehr als einem, wird eines pro Küssnutzung eingesammelt)" };
 HHAuto_ToolTips.de['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum Küsse die behalten bleiben" };
@@ -719,7 +718,7 @@ HHAuto_ToolTips.de['seasonFocusAll'] = { version: "8.5.0", elementText: "Alle K�
 HHAuto_ToolTips.de['seasonFocusGirl'] = { version: "8.5.0", elementText: "Event-Girl" };
 HHAuto_ToolTips.de['seasonFocusGirlSkin'] = { version: "8.5.0", elementText: "Girl + Skin" };
 HHAuto_ToolTips.de['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "MT hart", tooltip: "Nur relevant, wenn Max Tier aktiv ist:<br>AN: Max Tier ist eine harte Grenze — ab Erreichen kein Season-Kampf mehr, egal welcher Season-Fokus; darunter filtert der Season-Fokus jeden Kampf.<br>AUS (bisheriges Verhalten): unterhalb Max Tier wird ungefiltert geklettert, und ein Girl-Fokus kämpft über Max Tier hinaus weiter, solange gewünschte Girl-Belohnungen verfügbar sind" };
-HHAuto_ToolTips.de['autoQuest'] = { version: "5.6.24", elementText: "AutoQuest", tooltip: "Wenn aktiv : Macht automatisch Quests" };
+HHAuto_ToolTips.de['autoQuest'] = { version: "5.6.74", elementText: "Hauptquest", tooltip: "Wenn aktiv: Erledigt die Hauptquest automatisch." };
 HHAuto_ToolTips.de['autoQuestThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Energie die behalten bleibt" };
 HHAuto_ToolTips.de['autoContest'] = { version: "5.6.24", elementText: "AutoAufgabe", tooltip: "Wenn aktiv : Sammelt abgeschlossene Aufgabenbelohnungen ein" };
 HHAuto_ToolTips.de['autoFreePachinko'] = { version: "5.6.24", elementText: "AutoPachinko(Gratis)", tooltip: "Wenn aktiv : Sammelt freien Glücksspielgewinn ein" };
@@ -733,21 +732,331 @@ HHAuto_ToolTips.de['autoPowerPlaces'] = { version: "6.8.0", elementText: "Aktivi
 HHAuto_ToolTips.de['autoPowerPlacesIndexFilter'] = { version: "5.6.24", elementText: "Index Filter", tooltip: "Erlaubt es Filter zusetzen für Orte der Macht und eine Reihenfolge festzulegen (Reihenfolge wird beachtet, sollten mehrere zur gleichen Zeit fertig werden)" };
 HHAuto_ToolTips.de['autoPowerPlacesAll'] = { version: "5.6.24", elementText: "Mach alle", tooltip: "Wenn aktiv : ignoriere Filter und mache alle (aktualisiert den Filter mit korrekten IDs)" };
 HHAuto_ToolTips.de['autoChamps'] = { version: "5.6.24", elementText: "AutoChampions", tooltip: "Wenn aktiv : Macht automatisch Championkämpfe (nur wenn sie gestartet wurden und im Filter stehen)" };
-HHAuto_ToolTips.de['autoChampsUseEne'] = { version: "5.6.24", elementText: "Nutze Energie", tooltip: "Wenn aktiv : Nutze Energie und kaufe Champ. Tickets" };
+HHAuto_ToolTips.de['autoChampsUseEne'] = { version: "5.39.0", elementText: "Tickets kaufen", tooltip: "Wenn aktiv: Kauft Tickets mit Energie, unter Beachtung der Quest-Energie-Schwelle." };
 HHAuto_ToolTips.de['autoChampsFilter'] = { version: "5.6.24", elementText: "Filter", tooltip: "Erlaubt es Filter für zu bekämpfende Champions zu setzen" };
 HHAuto_ToolTips.de['autoClubChamp'] = { version: "5.6.24", elementText: "AutoChampions", tooltip: "Wenn aktiv : Macht automatisch ClubChampionkämpfe (nur wenn sie gestartet wurden und im Filter stehen)" };
 HHAuto_ToolTips.de['autoStats'] = { version: "5.6.24", elementText: "Min Geld verbleib", tooltip: "Kauft automatisch bessere Statuswerte im Markt mit überschüssigem Geld oberhalb des gesetzten Wertes" };
 HHAuto_ToolTips.de['autoExpW'] = { version: "5.6.24", elementText: "Kaufe Erfahrung", tooltip: "Wenn aktiv : Erlaube Erfahrung im Markt zu kaufen<br>Kauft nur wenn dein Geld über dem Wert liegt<br>Kauft nur wenn sich im Besitz befinden potentielle Erfahrung unter dem Wert liegt" };
 HHAuto_ToolTips.de['autoExp'] = { version: "5.6.24", elementText: "Min Geld verbleib", tooltip: "Minimum an Geld das behalten wird." };
-HHAuto_ToolTips.de['maxExp'] = { version: "5.6.24", elementText: "Max ErfahrKauf", tooltip: "Maximum Erfahrung die gekauft wird" };
+HHAuto_ToolTips.de['maxExp'] = { version: "7.29.13", elementText: "Max. Exp.", tooltip: "(Ganzzahl)<br>Höchstmenge an Exp, die gekauft wird.<br>Bei 0 gilt keine Grenze." };
 HHAuto_ToolTips.de['autoAffW'] = { version: "5.6.24", elementText: "KaufAnziehung", tooltip: "Wenn aktiv : Erlaube Anziehung im Markt zu kaufen<br>Kauft nur wenn dein Geld über dem Wert liegt<br>Kauft nur wenn sich im Besitz befinden potentielle Anziehung unter dem Wert liegt" };
 HHAuto_ToolTips.de['autoAff'] = { version: "5.6.24", elementText: "Min Geld verbleib", tooltip: "Minimum an Geld das behalten wird." };
-HHAuto_ToolTips.de['maxAff'] = { version: "5.6.24", elementText: "Max AnziehungKauf", tooltip: "Maximum an Anziehung die gekauft wird" };
+HHAuto_ToolTips.de['maxAff'] = { version: "7.29.13", elementText: "Max. Zun.", tooltip: "(Ganzzahl)<br>Höchstmenge an Zuneigung, die gekauft wird.<br>Bei 0 gilt keine Grenze." };
 HHAuto_ToolTips.de['OpponentListBuilding'] = { version: "5.6.24", elementText: "Gegnerliste wird erstellt", tooltip: "" };
 HHAuto_ToolTips.de['OpponentParsed'] = { version: "5.6.24", elementText: "Gegner analysiert", tooltip: "" };
 HHAuto_ToolTips.de['sandalwoodMinShardsThreshold'] = { version: "7.34.16", elementText: "SW min. Shards", tooltip: "Kein Sandalwood mehr ausrüsten, wenn verbleibende Shards diesen Wert erreichen oder unterschreiten. 0 = Sandalwood immer ausrüsten." };
 HHAuto_ToolTips.de['povTitle'] = { version: "5.20.3", elementText: "Pfad der Tapferkeit (PoV)" };
 HHAuto_ToolTips.de['pogTitle'] = { version: "5.20.3", elementText: "Pfad des Ruhmes (PoG)" };
+HHAuto_ToolTips.de['ReportBugs'] = { version: "5.7.1", elementText: "Fehler melden", tooltip: "Link zur GitHub-Issue-Liste, um Fehler zu melden und zu verfolgen." };
+HHAuto_ToolTips.de['noOtherScripts'] = { version: "6.15.8", elementText: "Bitte keine anderen Skripte verwenden, das kann zu Inkompatibilitäten führen (HH++ wird unterstützt)", tooltip: "" };
+HHAuto_ToolTips.de['globalTitle'] = { version: "5.6.24", elementText: "Globale Optionen" };
+HHAuto_ToolTips.de['waitforContest'] = { version: "6.10.0", elementText: "Auf Contest warten", tooltip: "Wenn aktiv, pausieren die meisten Aktivitäten, die Ressourcen verbrauchen, solange kein Contest läuft. Der Wert in Sekunden ist der Sicherheitsabstand vor und nach der echten Contest-Zeit." };
+HHAuto_ToolTips.de['displayTitle'] = { version: "5.6.24", elementText: "Anzeige-Optionen" };
+HHAuto_ToolTips.de['haremTitle'] = { version: "7.29.17", elementText: "Harem-Optionen" };
+HHAuto_ToolTips.de['showHaremAvatarMissingGirls'] = { version: "7.29.17", elementText: "Avatar zeigen", tooltip: "Zeigt im Harem den Avatar für fehlende Mädels." };
+HHAuto_ToolTips.de['showHaremTools'] = { version: "7.29.17", elementText: "Werkzeuge zeigen", tooltip: "Zeigt die Mädel-Werkzeuge im Harem." };
+HHAuto_ToolTips.de['showHaremSkillsButtons'] = { version: "7.29.17", elementText: "Skill-Knöpfe zeigen", tooltip: "Zeigt im Harem die Knöpfe zum Verbessern der Skills." };
+HHAuto_ToolTips.de['autoActivitiesTitle'] = { version: "5.6.24", elementText: "Aktivitäten" };
+HHAuto_ToolTips.de['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Anlegen", tooltip: "Legt legendäre Booster automatisch aus dem Inventar an, wenn ein Slot leer oder abgelaufen ist.<br>Kauft KEINE Booster, legt nur vorhandene an." };
+HHAuto_ToolTips.de['autoEquipBoostersSlots'] = { version: "7.30.0", elementText: "Slot-Konfiguration", tooltip: "(1-4 Werte, getrennt durch ;)<br>Legt fest, welcher Booster in welchen normalen Booster-Slot kommt.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Ginkgo" };
+HHAuto_ToolTips.de['showAdsBack'] = { version: "5.34.15", elementText: "Werbung nach hinten", tooltip: "Schiebt den Werbebereich in den Hintergrund." };
+HHAuto_ToolTips.de['showInfoLeft'] = { version: "5.23.0", elementText: "Info links zeigen", tooltip: "Zeigt die Info auf der linken statt auf der rechten Seite." };
+HHAuto_ToolTips.de['autoSalaryMinSalary'] = { version: "5.6.24", elementText: "Min. Gehalt", tooltip: "(Ganzzahl)<br>Mindestgehalt, ab dem eingesammelt wird." };
+HHAuto_ToolTips.de['compactMissions'] = { version: "5.24.0", elementText: "Kompakt", tooltip: "Stellt die Missionsanzeige kompakter dar." };
+HHAuto_ToolTips.de['invertMissions'] = { version: "7.16.2", elementText: "Umkehren", tooltip: "Beginnt mit der längeren statt mit der kürzeren Mission." };
+HHAuto_ToolTips.de['autoTrollTitle'] = { version: "5.6.24", elementText: "Troll-Kampf" };
+HHAuto_ToolTips.de['autoTrollRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Troll-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
+HHAuto_ToolTips.de['autoBuyTrollNumber'] = { version: "6.1.0", elementText: "Troll Auto-Kauf", tooltip: "Anzahl Kampfpunkte, die während eines Events gekauft werden." };
+HHAuto_ToolTips.de['autoBuyMythicTrollNumber'] = { version: "6.1.0", elementText: "Mythic Auto-Kauf", tooltip: "Anzahl Kampfpunkte, die während eines Mythic-Events gekauft werden." };
+HHAuto_ToolTips.de['firstTrollWithGirls'] = { version: "5.32.0", elementText: "Erster Troll mit Mädel" };
+HHAuto_ToolTips.de['lastTrollWithGirls'] = { version: "5.32.0", elementText: "Letzter Troll mit Mädel" };
+HHAuto_ToolTips.de['autoChampsForceStartEventGirl'] = { version: "5.6.98", elementText: "Event erzwingen", tooltip: "Wenn aktiv, wird auch gegen einen noch nicht gestarteten Champion gekämpft, sofern er ein Event-Mädel hat. Champions müssen aktiviert und im Filter sein." };
+HHAuto_ToolTips.de['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", tooltip: "Kämpft Love Raids unabhängig von Auto-Troll und Events.<br>Raids kommen nach Events, aber vor normalen Trollen." };
+HHAuto_ToolTips.de['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid-Auswahl", tooltip: "Wähle das Mädel, auf das im Love Raid gezielt wird.<br>Springt zurück auf 'Mädel wählen', sobald es gewonnen ist (und die Skins fertig sind oder +Mädel-Skins aus ist)." };
+HHAuto_ToolTips.de['plusGirlSkins'] = { version: "7.32.5", elementText: "+Mädel-Skins", tooltip: "Kämpft weiter, nachdem die Scherben komplett sind, um die Skins des Mädels zu sammeln.<br>Gilt für Events und Raids.<br>Wenn aus: Schluss, sobald die Scherben voll sind." };
+HHAuto_ToolTips.de['autoTrollLoveRaidByPassThreshold'] = { version: "7.35.27", elementText: "Reserve umgehen", tooltip: "Umgeht die Energie-Schwelle für +Raid- und +Raid-Sterne-Kämpfe, solange ein Raid-Mädel verfügbar ist.<br>Wenn aus, gilt die Troll-Schwelle auch hier." };
+HHAuto_ToolTips.de['buyLoveRaidCombat'] = { version: "7.25.6", elementText: "Kaufe Kämpfe für Raid", tooltip: "<p style = 'color:red'>/ !\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p > Wenn aktiv: Kauft Kampfpunkte während eines Love Raids." };
+HHAuto_ToolTips.de['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementText: "Raid Auto-Kauf", tooltip: "Anzahl Kampfpunkte, die während eines Love-Raid-Events gekauft werden." };
+HHAuto_ToolTips.de['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem LoveRaid-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Scherben zum Sieg fehlen.<br>Kauft nichts nach." };
+HHAuto_ToolTips.de['chooseARaid'] = { version: "7.32.5", elementText: "Mädel wählen" };
+HHAuto_ToolTips.de['firstEndingRaid'] = { version: "7.25.6", elementText: "Zuerst endender Raid" };
+HHAuto_ToolTips.de['loveRaidTitle'] = { version: "7.25.5", elementText: "Love Raid" };
+HHAuto_ToolTips.de['plusEventSandalWood'] = { version: "7.32.1", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem Event-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Scherben zum Sieg fehlen.<br>Kauft nichts nach." };
+HHAuto_ToolTips.de['plusEventMythicSandalWood'] = { version: "7.2.0", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem Mythic-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Scherben zum Sieg fehlen.<br>Kauft nichts nach." };
+HHAuto_ToolTips.de['eventCompleted'] = { version: "7.1.3", elementText: "Event abgeschlossen", tooltip: "Event abgeschlossen" };
+HHAuto_ToolTips.de['autoSeasonTitle'] = { version: "5.6.24", elementText: "Season" };
+HHAuto_ToolTips.de['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende der Season automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Max. Stufe", tooltip: "Stufe, bei der in der Season aufgehört wird.<br>Mit 'MT hart' aus kämpft ein Season-Fokus auf Mädels darüber hinaus weiter, solange gewünschte Mädel-Belohnungen erreichbar sind." };
+HHAuto_ToolTips.de['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Kuss-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
+HHAuto_ToolTips.de['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Season gekämpft." };
+HHAuto_ToolTips.de['autoSeasonSkipLowMojo'] = { version: "7.10.0", elementText: "Wenig Mojo überspringen", tooltip: "Wenn aktiv: Kein Kampf, wenn die Mojo-Belohnung unter 8 liegt und die Season-Stufe unter 63. Es wird trotzdem gekämpft, um nichts zu verlieren." };
+HHAuto_ToolTips.de['seasonDisplayPowerCalc'] = { version: "7.29.12", elementText: "PowerCalc anzeigen", tooltip: "Zeigt den PowerCalc in der Season.<br/>Wird bei Auto-Season ohnehin angezeigt." };
+HHAuto_ToolTips.de['autoPentaDrillTitle'] = { version: "7.26.0", elementText: "Penta Drill" };
+HHAuto_ToolTips.de['autoPentaDrill'] = { version: "7.26.0", elementText: "Aktiv", tooltip: "Wenn aktiv: Kämpft automatisch im Penta Drill (es wird der Gegner mit der geringsten Kraft gewählt)." };
+HHAuto_ToolTips.de['autoPentaDrillCollect'] = { version: "7.26.0", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt Penta-Drill-Belohnungen automatisch ein (bei mehreren wird eine pro Drill-Nutzung eingesammelt)." };
+HHAuto_ToolTips.de['autoPentaDrillCollectAll'] = { version: "7.26.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Penta Drills automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['autoPentaDrillThreshold'] = { version: "7.26.0", elementText: "Schwelle", tooltip: "Mindestanzahl Drills, die behalten werden." };
+HHAuto_ToolTips.de['autoPentaDrillRunThreshold'] = { version: "7.26.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Drill-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
+HHAuto_ToolTips.de['autoPentaDrillBoostedOnly'] = { version: "7.26.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster im Penta Drill gekämpft." };
+HHAuto_ToolTips.de['autoPentaDrillDelay'] = { version: "8.4.0", elementText: "PD-Verzögerung", tooltip: "Verzögerung in Sekunden zwischen Penta-Drill-Aktionen (tatsächlich gewartet wird ein Zufallswert zwischen X und X+3 Sekunden).<br>Erhöhe den Wert, wenn Aktionen zu früh ausgeführt werden." };
+HHAuto_ToolTips.de['autoSideQuest'] = { version: "5.6.83", elementText: "Nebenquests", tooltip: "Wenn aktiv: Erledigt automatisch die nächste verfügbare Nebenquest (eine aktivierte Hauptquest hat Vorrang)." };
+HHAuto_ToolTips.de['compactEndedContests'] = { version: "5.24.0", elementText: "Kompakt", tooltip: "Stellt die Anzeige beendeter Contests kompakter dar." };
+HHAuto_ToolTips.de['autoMythicPachinko'] = { version: "5.6.24", elementText: "Mythic Pachinko" };
+HHAuto_ToolTips.de['autoEquipmentPachinko'] = { version: "5.34.9", elementText: "Ausrüstungs-Pachinko" };
+HHAuto_ToolTips.de['autoLeaguesTitle'] = { version: "5.6.24", elementText: "Ligen" };
+HHAuto_ToolTips.de['leagueListDisplayPowerCalc'] = { version: "5.34.18", elementText: "PowerCalc anzeigen", tooltip: "Zeigt den PowerCalc in der Ligenliste (noch in Entwicklung)." };
+HHAuto_ToolTips.de['autoLeaguesRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Liga-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
+HHAuto_ToolTips.de['autoLeaguesForceOneFight'] = { version: "6.12.4", elementText: "Einzelkampf", tooltip: "Verbraucht in der Liga immer nur einen Kampf auf einmal." };
+HHAuto_ToolTips.de['autoLeaguesBoostedOnly'] = { version: "6.5.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Liga gekämpft." };
+HHAuto_ToolTips.de['boostMissing'] = { version: "6.5.0", elementText: "Kein Booster angelegt" };
+HHAuto_ToolTips.de['waitRunThreshold'] = { version: "6.8.0", elementText: "Warte auf Lauf-Schwelle" };
+HHAuto_ToolTips.de['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Sortierung", tooltip: "Wähle, wie Gegner sortiert werden. <br>Angezeigte Reihenfolge (empfohlen für HH++ OCD), <br>Kraftwert (empfohlen für HH++ BDSM oder ganz ohne Skript)<br>oder interne Sim-PowerCalc." };
+HHAuto_ToolTips.de['autoLeaguesdisplayedOrder'] = { version: "7.6.0", elementText: "Angezeigte Reihenfolge" };
+HHAuto_ToolTips.de['autoLeaguesPower'] = { version: "7.6.0", elementText: "Kraft nutzen" };
+HHAuto_ToolTips.de['autoLeaguesAllowWinCurrent'] = { version: "5.6.24", elementText: "Sieg erlauben", tooltip: "Wenn aktiv, darf die angepeilte Liga gewonnen werden; anschließend wird aus der nächsten Liga wieder abgestiegen, um in die angepeilte zurückzufallen." };
+HHAuto_ToolTips.de['autoLeaguesSecurityThreshold'] = { version: "5.18.0", elementText: "Sicherheits-Schwelle", tooltip: "(Ganzzahl)<br>Punktgrenze, ab der das Skript keine Liga-Kämpfe mehr macht, damit du in der angepeilten Liga bleibst." };
+HHAuto_ToolTips.de['autoPowerPlacesPrecision'] = { version: "5.6.103", elementText: "PoP Genauigkeit", tooltip: "Wenn aktiv: Nutzt ein aufwendigeres Verfahren zur Teamsuche statt der Automatik. Lohnt sich vor allem, wenn du viele Mädels hast." };
+HHAuto_ToolTips.de['autoPowerPlacesInverted'] = { version: "5.10.0", elementText: "PoP umgekehrt", tooltip: "Wenn aktiv: Befüllt die POPs beginnend beim letzten." };
+HHAuto_ToolTips.de['autoPowerPlacesWaitMax'] = { version: "5.20.0", elementText: "PoP max. warten", tooltip: "Wenn aktiv: POP wartet, bis alle POPs beendet sind, bevor ein neuer gestartet wird." };
+HHAuto_ToolTips.de['compactPowerPlace'] = { version: "5.24.0", elementText: "Kompakt", tooltip: "Stellt die Anzeige der Power Places kompakter dar." };
+HHAuto_ToolTips.de['autoChampsTitle'] = { version: "5.6.24", elementText: "Champions" };
+HHAuto_ToolTips.de['autoChampsForceStart'] = { version: "5.6.76", elementText: "Start erzwingen", tooltip: "Wenn aktiv: Kämpft gegen gefilterte Champions, auch wenn sie noch nicht gestartet sind." };
+HHAuto_ToolTips.de['autoChampAlignTimer'] = { version: "6.15.0", elementText: "Timer angleichen", tooltip: "Wenn aktiv: Gleicht die Timer von Champion und Club Champion aneinander an." };
+HHAuto_ToolTips.de['autoChampsTeamLoop'] = { version: "5.21.0", elementText: "Auto-Team Durchläufe", tooltip: "Anzahl der Durchläufe bei der Suche nach dem Champion-Team pro Knopfdruck." };
+HHAuto_ToolTips.de['autoChampsGirlThreshold'] = { version: "6.4.0", elementText: "Mädel Mindestkraft", tooltip: "Mindestkraft, ab der ein Mädel berücksichtigt wird (Kraft ohne Posen-Bonus, in Weiß)." };
+HHAuto_ToolTips.de['autoChampsTeamKeepSecondLine'] = { version: "5.27.0", elementText: "Zweite Reihe behalten", tooltip: "Wenn aktiv: Behält passende Mädels der zweiten Reihe, solange die erste Reihe nicht voll ist." };
+HHAuto_ToolTips.de['ChampTeamButton'] = { version: "5.8.0", elementText: "Teamreihenfolge anzeigen", tooltip: "Blendet Nummern für die bevorzugte Mädel-Reihenfolge im Champion-Kampf ein." };
+HHAuto_ToolTips.de['updateChampTeamButton'] = { version: "5.21.0", elementText: "Bestes Team suchen", tooltip: "" };
+HHAuto_ToolTips.de['orderTeam'] = { version: "7.29.10", elementText: "Team ordnen", tooltip: "" };
+HHAuto_ToolTips.de['autoBuildChampsTeam'] = { version: "7.29.10", elementText: "Team automatisch bauen", tooltip: "Wenn aktiv: Baut das Champion-Team beim automatischen Start selbst zusammen." };
+HHAuto_ToolTips.de['ChampGirlOrder'] = { version: "5.8.0", elementText: "", tooltip: "Mädel für diese Position" };
+HHAuto_ToolTips.de['ChampGirlLowOrder'] = { version: "5.11.0", elementText: "", tooltip: "Für das schlechteste Team: Mädel für diese Position" };
+HHAuto_ToolTips.de['goToClubChampions'] = { version: "5.25.0", elementText: "Zum Club Champion" };
+HHAuto_ToolTips.de['autoStatsSwitch'] = { version: "5.6.24", elementText: "Werte", tooltip: "Schaltet autoStats an und aus." };
+HHAuto_ToolTips.de['maxBooster'] = { version: "7.29.13", elementText: "Max. Booster", tooltip: "(Ganzzahl)<br>Höchstzahl zu kaufender Booster (Grenze je Booster-Typ).<br>Bei 0 gilt keine Grenze." };
+HHAuto_ToolTips.de['DebugMenu'] = { version: "5.6.24", elementText: "Debug-Menü", tooltip: "Optionen für die Fehlersuche" };
+HHAuto_ToolTips.de['DebugOptionsText'] = { version: "5.6.24", elementText: "Die Knöpfe unten verändern den Skript-Speicher. Mit Vorsicht benutzen.", tooltip: "" };
+HHAuto_ToolTips.de['DeleteTempVars'] = { version: "5.6.24", elementText: "Temporären Speicher löschen", tooltip: "Löscht den gesamten temporären Speicher des Skripts." };
+HHAuto_ToolTips.de['ResetAllVars'] = { version: "5.6.24", elementText: "Auf Standard zurücksetzen", tooltip: "Setzt alle Einstellungen auf die Standardwerte zurück." };
+HHAuto_ToolTips.de['DebugFileText'] = { version: "5.6.24", elementText: "Klicke auf den Knopf unten, um eine Debug-Logdatei zu erzeugen", tooltip: "" };
+HHAuto_ToolTips.de['OptionCancel'] = { version: "5.6.24", elementText: "Abbrechen", tooltip: "" };
+HHAuto_ToolTips.de['OptionStop'] = { version: "5.6.24", elementText: "Stopp", tooltip: "" };
+HHAuto_ToolTips.de['showClubButtonInPoa'] = { version: "6.15.8", elementText: "'Gehe zu' in Events", tooltip: "Wenn aktiv: Fügt bei Event-Zielen einen 'Gehe zu'-Knopf ein." };
+HHAuto_ToolTips.de['autoClubForceStart'] = { version: "5.6.24", elementText: "Start erzwingen", tooltip: "Wenn aktiv: Kämpft gegen den Club Champion, auch wenn er noch nicht gestartet ist." };
+HHAuto_ToolTips.de['buyMythicCombat'] = { version: "5.6.24", elementText: "Kaufe Kämpfe für Mythic-Event", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p> Wenn aktiv: Kauft Kampfpunkte während eines Mythic-Events." };
+HHAuto_ToolTips.de['buyMythicCombTimer'] = { version: "5.6.24", elementText: "Stunden für Mythic-Kauf", tooltip: "(Ganzzahl)<br>Die letzten X Stunden eines Mythic-Events." };
+HHAuto_ToolTips.de['DebugResetTimerText'] = { version: "5.6.24", elementText: "Mit der Auswahl unten lassen sich laufende Timer zurücksetzen", tooltip: "" };
+HHAuto_ToolTips.de['timerResetSelector'] = { version: "5.6.24", elementText: "Timer wählen", tooltip: "Wähle den Timer, den du zurücksetzen willst." };
+HHAuto_ToolTips.de['timerResetButton'] = { version: "5.6.24", elementText: "Zurücksetzen", tooltip: "Setzt den Timer auf 0." };
+HHAuto_ToolTips.de['timerLeftTime'] = { version: "5.6.24", elementText: "", tooltip: "Restzeit" };
+HHAuto_ToolTips.de['timerResetNoTimer'] = { version: "5.6.24", elementText: "Kein Timer gewählt", tooltip: "" };
+HHAuto_ToolTips.de['menuSell'] = { version: "5.6.24", elementText: "Verkaufen", tooltip: "Erlaubt das Verkaufen von Gegenständen." };
+HHAuto_ToolTips.de['menuSellText'] = { version: "5.6.126", elementText: "Verkauft die angegebene Anzahl Gegenstände in der angezeigten Reihenfolge (erst alles Nicht-Legendäre, dann Legendäres).<br>Commons werden vollständig verkauft.", tooltip: "" };
+HHAuto_ToolTips.de['menuSellNumber'] = { version: "5.6.24", elementText: "", tooltip: "Gib die Anzahl der Gegenstände ein, die verkauft werden sollen: " };
+HHAuto_ToolTips.de['menuSellButton'] = { version: "5.6.24", elementText: "Verkaufen", tooltip: "Startet den Verkauf." };
+HHAuto_ToolTips.de['menuSellCurrentCount'] = { version: "5.6.24", elementText: "Aktuell verkaufbare Gegenstände: ", tooltip: "" };
+HHAuto_ToolTips.de['menuSellMaskLocked'] = { version: "5.6.24", elementText: "Gesperrte ausblenden", tooltip: "Blendet gesperrte Gegenstände aus." };
+HHAuto_ToolTips.de['menuSoldText'] = { version: "5.6.24", elementText: "Verkaufte Gegenstände: ", tooltip: "" };
+HHAuto_ToolTips.de['menuSoldMessageReachNB'] = { version: "5.6.24", elementText: "Gewünschte Verkaufsmenge erreicht.", tooltip: "" };
+HHAuto_ToolTips.de['menuSoldMessageNoMore'] = { version: "5.6.24", elementText: " Keine verkaufbaren Gegenstände mehr.", tooltip: "" };
+HHAuto_ToolTips.de['menuSoldMessageErrorLoaded'] = { version: "6.16.0", elementText: " Fehler: Es wurden weitere Gegenstände nachgeladen, Neustart nötig.", tooltip: "" };
+HHAuto_ToolTips.de['menuDistribution'] = { version: "5.6.24", elementText: "Zu verwendende Gegenstände: ", tooltip: "" };
+HHAuto_ToolTips.de['Total'] = { version: "5.6.24", elementText: "Gesamt: ", tooltip: "" };
+HHAuto_ToolTips.de['menuAllowedExceed'] = { version: "5.6.42", elementText: "Überschreitung erlaubt um: ", tooltip: "" };
+HHAuto_ToolTips.de['menuDistributed'] = { version: "5.6.24", elementText: "Verwendete Gegenstände: ", tooltip: "" };
+HHAuto_ToolTips.de['autoClubChampMax'] = { version: "5.6.24", elementText: "Max. Tickets pro Lauf", tooltip: "Höchstzahl an Tickets, die pro Lauf beim Club Champion eingesetzt werden." };
+HHAuto_ToolTips.de['menuSellLock'] = { version: "5.6.24", elementText: "Sperren / Entsperren", tooltip: "Schaltet die Sperre um, damit der gewählte Gegenstand nicht verkauft wird." };
+HHAuto_ToolTips.de['Rarity'] = { version: "5.6.24", elementText: "Seltenheit", tooltip: "" };
+HHAuto_ToolTips.de['RarityCommon'] = { version: "5.6.24", elementText: "Gewöhnlich", tooltip: "" };
+HHAuto_ToolTips.de['RarityRare'] = { version: "5.6.24", elementText: "Selten", tooltip: "" };
+HHAuto_ToolTips.de['RarityEpic'] = { version: "5.6.24", elementText: "Episch", tooltip: "" };
+HHAuto_ToolTips.de['RarityLegendary'] = { version: "5.6.24", elementText: "Legendär", tooltip: "" };
+HHAuto_ToolTips.de['RarityMythic'] = { version: "5.6.126", elementText: "Mythisch", tooltip: "" };
+HHAuto_ToolTips.de['equipementHead'] = { version: "5.6.24", elementText: "Kopf", tooltip: "" };
+HHAuto_ToolTips.de['equipementBody'] = { version: "5.6.24", elementText: "Körper", tooltip: "" };
+HHAuto_ToolTips.de['equipementLegs'] = { version: "5.6.24", elementText: "Beine", tooltip: "" };
+HHAuto_ToolTips.de['equipementFlag'] = { version: "5.6.24", elementText: "Flagge", tooltip: "" };
+HHAuto_ToolTips.de['equipementPet'] = { version: "5.6.24", elementText: "Begleiter", tooltip: "" };
+HHAuto_ToolTips.de['equipementWeapon'] = { version: "5.6.24", elementText: "Waffe", tooltip: "" };
+HHAuto_ToolTips.de['equipementCaracs'] = { version: "5.6.24", elementText: "Werte", tooltip: "" };
+HHAuto_ToolTips.de['equipementType'] = { version: "5.6.24", elementText: "Typ", tooltip: "" };
+HHAuto_ToolTips.de['autoMissionKFirst'] = { version: "5.6.24", elementText: "Kobans zuerst", tooltip: "Beginnt mit den Missionen, die Kobans bringen." };
+HHAuto_ToolTips.de['affection'] = { version: "6.11.0", elementText: "Zuneigung" };
+HHAuto_ToolTips.de['experience'] = { version: "6.11.0", elementText: "Erfahrung" };
+HHAuto_ToolTips.de['upradable'] = { version: "6.11.0", elementText: "Aufwertbar" };
+HHAuto_ToolTips.de['skills'] = { version: "7.16.0", elementText: "Skills" };
+HHAuto_ToolTips.de['giveexperience'] = { version: "6.2.0", elementText: "Erfahrung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Erfahrung der aktuellen Stufe." };
+HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
+HHAuto_ToolTips.de['giveaffection'] = { version: "6.2.0", elementText: "Zuneigung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Zuneigung der aktuellen Stufe." };
+HHAuto_ToolTips.de['costaffection'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
+HHAuto_ToolTips.de['giveAllaffection'] = { version: "6.2.0", elementText: "Alle Zuneigung geben", tooltip: "Gibt dem gewählten Mädel automatisch die gesamte Zuneigung." };
+HHAuto_ToolTips.de['giveequipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Gibt dem gewählten Mädel automatisch die komplette Ausrüstung." };
+HHAuto_ToolTips.de['giveskills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Gibt dem gewählten Mädel automatisch alle Skills." };
+HHAuto_ToolTips.de['menuExp'] = { version: "6.2.0", elementText: "Exp geben", tooltip: "" };
+HHAuto_ToolTips.de['menuExpInfo'] = { version: "5.30.0", elementText: "Der Max-Knopf wird gedrückt, bis die gewünschte Stufe erreicht ist" };
+HHAuto_ToolTips.de['menuExpButton'] = { version: "5.30.0", elementText: "Los!", tooltip: "Startet die Exp-Vergabe." };
+HHAuto_ToolTips.de['menuExpLevel'] = { version: "5.30.00", elementText: "Ziel-Exp-Stufe eingeben:", tooltip: "Ziel-Exp-Stufe für das Mädel" };
+HHAuto_ToolTips.de['giveLastGirl'] = { version: "5.30.0", elementText: "Letztes Mädel, zurück zur Harem-Liste..." };
+HHAuto_ToolTips.de['giveMaxingOut'] = { version: "5.30.0", elementText: "Wird ausgereizt" };
+HHAuto_ToolTips.de['giveMaxedOut'] = { version: "5.30.0", elementText: "bereits am Maximum, wird übersprungen" };
+HHAuto_ToolTips.de['goToGirlPage'] = { version: "6.2.0", elementText: "Mädel-Seite", tooltip: "Öffnet die Verwaltungsseite des Mädels." };
+HHAuto_ToolTips.de['girlListMenu'] = { version: "6.2.0", elementText: "Mädel-Listenmenü", tooltip: "Öffnet das Menü der Mädel-Liste." };
+HHAuto_ToolTips.de['girlMenu'] = { version: "6.2.0", elementText: "Mädel-Menü", tooltip: "Öffnet das Mädel-Menü." };
+HHAuto_ToolTips.de['povpogTitle'] = { version: "5.6.133", elementText: "Path of Valor/Glory" };
+HHAuto_ToolTips.de['poaTitle'] = { version: "6.15.8", elementText: "Path of Attraction" };
+HHAuto_ToolTips.de['seasonalEventTitle'] = { version: "5.6.133", elementText: "Seasonal Event" };
+HHAuto_ToolTips.de['AllMaskRewards'] = { version: "7.26.0", elementText: "Abgeholte ausblenden", tooltip: "Blendet bereits abgeholte Belohnungen aus, bei Path of Attraction, Valor, Glory, Season usw." };
+HHAuto_ToolTips.de['rewardsToCollectTitle'] = { version: "5.37.0", elementText: "Abholbare Energien, XP und Währungen" };
+HHAuto_ToolTips.de['showRewardsRecap'] = { version: "5.37.0", elementText: "Belohnungsübersicht zeigen", tooltip: "Zeigt die Summen für Energien, XP und Währungen." };
+HHAuto_ToolTips.de['hideOwnedGirls'] = { version: "7.4.1", elementText: "Besessene Mädels ausblenden", tooltip: "Blendet auf der Event-Seite bereits besessene Mädels aus, wenn das Event mehr als 30 zu gewinnende Mädels hat." };
+HHAuto_ToolTips.de['bossBangEvent'] = { version: "5.20.3", elementText: "Aktiv", tooltip: "Führt Boss-Bang-Kämpfe aus; das Skript startet mit dem unten eingestellten Team." };
+HHAuto_ToolTips.de['bossBangEventTitle'] = { version: "5.20.3", elementText: "Boss Bang" };
+HHAuto_ToolTips.de['bossBangMinTeam'] = { version: "5.6.137", elementText: "Erstes Team", tooltip: "Team, mit dem begonnen wird.<br>Bei 5 wird mit dem letzten Team begonnen und bis zum ersten durchgegangen." };
+HHAuto_ToolTips.de['sultryMysteriesEventTitle'] = { version: "6.15.8", elementText: "Sultry Mysteries" };
+HHAuto_ToolTips.de['eventTitle'] = { version: "6.15.8", elementText: "Events" };
+HHAuto_ToolTips.de['doublePenetrationEventTitle'] = { version: "6.15.8", elementText: "DP" };
+HHAuto_ToolTips.de['autodpEventCollect'] = { version: "6.8.4", elementText: "Einsammeln", tooltip: "Sammelt die Belohnungen des Double-Penetration-Events ein." };
+HHAuto_ToolTips.de['autodpEventCollectAll'] = { version: "7.1.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Double-Penetration-Events automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['livelySceneEventTitle'] = { version: "7.21.0", elementText: "LivelyScene" };
+HHAuto_ToolTips.de['autoLivelySceneEventCollect'] = { version: "7.21.0", elementText: "Einsammeln", tooltip: "Sammelt die Belohnungen des Lively-Scene-Events ein." };
+HHAuto_ToolTips.de['autoLivelySceneEventCollectAll'] = { version: "7.21.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Lively-Scene-Events automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['sultryMysteriesEventRefreshShop'] = { version: "5.21.6", elementText: "Shop auffrischen", tooltip: "Öffnet den Sultry-Mysteries-Shop-Reiter, um die Shop-Aktualisierung auszulösen." };
+HHAuto_ToolTips.de['sultryMysteriesEventRefreshShopNext'] = { version: "5.22.5", elementText: "Sultry Shop" };
+HHAuto_ToolTips.de['sultryMysteriesAutoOpen'] = { version: "8.6.0", elementText: "Auto-Mystery", tooltip: "Öffnet Felder des Sultry-Mysteries-Gitters mit verfügbaren Schlüsseln und erzeugt ein neues Gitter, sobald mindestens 15 Felder offen sind." };
+HHAuto_ToolTips.de['sultryMysteriesAutoOpenCollectableText'] = { version: "8.6.0", elementText: "Wähle die Belohnungen, die gefunden sein müssen, bevor ein neues Gitter erzeugt wird. Wählst du nichts, wird ein neues Gitter erzeugt, sobald die Schwelle erreicht ist.", tooltip: "" };
+HHAuto_ToolTips.de['sultryMysteriesAutoOpenNext'] = { version: "8.6.0", elementText: "Auto-Mystery" };
+HHAuto_ToolTips.de['collectEventChest'] = { version: "5.28.0", elementText: "Event-Truhe einsammeln", tooltip: "Wenn aktiv: Sammelt die Event-Truhe ein, sobald alle Mädels gewonnen sind." };
+HHAuto_ToolTips.de['dailyMissionGirlTitle'] = { version: "6.5.2", elementText: "Erfülle die Täglichen Missionen, um mich zu bekommen!" };
+HHAuto_ToolTips.de['showTooltips'] = { version: "5.6.24", elementText: "Tooltips zeigen", tooltip: "Zeigt Tooltips im Menü." };
+HHAuto_ToolTips.de['showMarketTools'] = { version: "5.6.24", elementText: "Markt-Werkzeuge zeigen", tooltip: "Zeigt die Markt-Werkzeuge." };
+HHAuto_ToolTips.de['updateMarket'] = { version: "5.22.0", elementText: "Markt aktualisieren", tooltip: "Aktualisiert die Spielerdaten aus den Markt-Bildschirmen (Ausrüstung, Bücher und Geschenke im Besitz sowie die nächste Auffrischung)." };
+HHAuto_ToolTips.de['useX10Fights'] = { version: "5.6.24", elementText: "x10 nutzen", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p> Nutzt den x10-Knopf für Kämpfe." };
+HHAuto_ToolTips.de['useX50Fights'] = { version: "5.6.24", elementText: "x50 nutzen", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p> Nutzt den x50-Knopf für Kämpfe." };
+HHAuto_ToolTips.de['useX10FightsAllowNormalEvent'] = { version: "5.6.24", elementText: "x10 für Events", tooltip: "Wenn aus:<br>x10 wird nur bei Mythic-Events genutzt.<br>Wenn aktiv:<br>x10 ist auch bei normalen Events erlaubt." };
+HHAuto_ToolTips.de['useX50FightsAllowNormalEvent'] = { version: "5.6.24", elementText: "x50 für Events", tooltip: "Wenn aus:<br>x50 wird nur bei Mythic-Events genutzt.<br>Wenn aktiv:<br>x50 ist auch bei normalen Events erlaubt." };
+HHAuto_ToolTips.de['autoBuy'] = { version: "5.6.24", elementText: "Markt" };
+HHAuto_ToolTips.de['minShardsX50'] = { version: "5.6.24", elementText: "Min. Scherben x50", tooltip: "Der x50-Knopf wird nur genutzt, wenn beim aktuellen Mädel mindestens so viele Scherben fehlen." };
+HHAuto_ToolTips.de['minShardsX10'] = { version: "5.6.24", elementText: "Min. Scherben x10", tooltip: "Der x10-Knopf wird nur genutzt, wenn beim aktuellen Mädel mindestens so viele Scherben fehlen." };
+HHAuto_ToolTips.de['mythicGirlNext'] = { version: "5.6.24", elementText: "Mythic-Mädel-Welle" };
+HHAuto_ToolTips.de['RefreshOppoList'] = { version: "5.6.24", elementText: "Gegnerliste auffrischen", tooltip: "Erzwingt eine Aktualisierung der Gegnerliste." };
+HHAuto_ToolTips.de['HideBeatenOppo'] = { version: "5.7.1", elementText: "Ausblenden", tooltip: "Blendet bereits besiegte Gegner aus der Liste aus." };
+HHAuto_ToolTips.de['display'] = { version: "5.7.1", elementText: "Anzeige", tooltip: "" };
+HHAuto_ToolTips.de['PachinkoSelectorNoButtons'] = { version: "5.6.24", elementText: "Keine Orbs verfügbar.", tooltip: "" };
+HHAuto_ToolTips.de['PachinkoSelector'] = { version: "5.6.24", elementText: "", tooltip: "Pachinko-Auswahl." };
+HHAuto_ToolTips.de['PachinkoLeft'] = { version: "5.6.24", elementText: "", tooltip: "Derzeit verfügbare Orbs." };
+HHAuto_ToolTips.de['PachinkoXTimes'] = { version: "5.6.24", elementText: "Anzahl: ", tooltip: "Legt fest, wie viele Orbs beim gewählten Pachinko eingesetzt werden." };
+HHAuto_ToolTips.de['Launch'] = { version: "5.6.56", elementText: "Starten", tooltip: "" };
+HHAuto_ToolTips.de['PachinkoButton'] = { version: "5.6.24", elementText: "Pachinko nutzen", tooltip: "Nutzt das gewählte Pachinko automatisch. (Nur für Orb-Spiele.)" };
+HHAuto_ToolTips.de['PachinkoOrbsLeft'] = { version: "5.6.24", elementText: " Orbs übrig.", tooltip: "" };
+HHAuto_ToolTips.de['PachinkoInvalidOrbsNb'] = { version: "5.6.24", elementText: "Ungültige Orb-Anzahl" };
+HHAuto_ToolTips.de['PachinkoNoGirls'] = { version: "5.6.24", elementText: "Keine Mädels mehr verfügbar." };
+HHAuto_ToolTips.de['PachinkoFailure'] = { version: "7.21.3", elementText: "FEHLER: keine Antwort vom Server binnen 5 s." };
+HHAuto_ToolTips.de['PachinkoByPassNoGirls'] = { version: "5.6.24", elementText: "Warnung übergehen", tooltip: "Übergeht die Warnung, dass im Pachinko keine Mädels mehr zu holen sind." };
+HHAuto_ToolTips.de['PachinkoStopFirstGirl'] = { version: "5.35.00", elementText: "Stopp beim ersten Mädel", tooltip: "Hört auf, sobald ein Mädel gewonnen ist." };
+HHAuto_ToolTips.de['PachinkoFillOrbs'] = { version: "5.6.134", elementText: "Alle Orbs eintragen", tooltip: "Trägt alle verfügbaren Orbs in das Feld ein." };
+HHAuto_ToolTips.de['PachinkoOrbsSpent'] = { version: "7.3.5", elementText: "Verbrauchte Orbs:", tooltip: "" };
+HHAuto_ToolTips.de['ChangeTeamButton'] = { version: "5.6.24", elementText: "Aktuell Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team." };
+HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mögliches Bestes", tooltip: "Zeigt die 16 stärksten Mädels für dein Team, wenn sie auf max. Level und Zuneigung wären." };
+HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
+HHAuto_ToolTips.de['EquipAll'] = { version: "7.29.0", elementText: "Teams ausrüsten", tooltip: "Rüstet die Team-Mädels über den spieleigenen Ausrüsten-Knopf aus." };
+HHAuto_ToolTips.de['StuffTeam'] = { version: "7.30.0", elementText: "Team bestücken", tooltip: "Baut das Team automatisch auf, indem Ausrüstung und Skills gewählt werden. Kann anderen Mädels auch Skills wieder abnehmen." };
+HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
+HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
+HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
+HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
+HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
+HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
+HHAuto_ToolTips.de['StuffTeamSkills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Wählt die Mädel-Skills automatisch." };
+HHAuto_ToolTips.de['stuffTeamResetMythicGirls'] = { version: "7.30.0", elementText: "Mythic-Mädels zurücksetzen", tooltip: "Setzt Mythic-Mädels zurück, um mehr Orbs zu bekommen." };
+HHAuto_ToolTips.de['stuffTeamResetLegendaryGirls'] = { version: "7.30.0", elementText: "Legendäre Mädels zurücksetzen", tooltip: "Setzt legendäre Mädels zurück, um mehr Orbs zu bekommen." };
+HHAuto_ToolTips.de['stuffTeamResetEpicGirls'] = { version: "7.30.0", elementText: "Epische Mädels zurücksetzen", tooltip: "Setzt epische Mädels zurück, um mehr Orbs zu bekommen." };
+HHAuto_ToolTips.de['stuffTeamResetRareGirls'] = { version: "7.30.0", elementText: "Seltene Mädels zurücksetzen", tooltip: "Setzt seltene Mädels zurück, um mehr Orbs zu bekommen." };
+HHAuto_ToolTips.de['stuffTeamResetCommonGirls'] = { version: "7.30.0", elementText: "Gewöhnliche Mädels zurücksetzen", tooltip: "Setzt gewöhnliche Mädels zurück, um mehr Orbs zu bekommen." };
+HHAuto_ToolTips.de['unequipGirlsBefore'] = { version: "7.30.0", elementText: "Vorher alles ablegen", tooltip: "Nimmt den Mädels vor dem Start die gesamte Ausrüstung ab." };
+HHAuto_ToolTips.de['skillPointTooltipTitle'] = { version: "7.30.0", elementText: "Skillpunkte:<br/>(benötigt/vorhanden)" };
+HHAuto_ToolTips.de['skillPointTooltipDescription'] = { version: "7.30.0", elementText: "Haupt-Mädel bis zum 5. Skill<br />Andere Mädels bis zum 4. Skill" };
+HHAuto_ToolTips.de['enoughBulbsOwned'] = { version: "7.30.0", elementText: "Genug Birnen vorhanden" };
+HHAuto_ToolTips.de['AssignTopTeam'] = { version: "5.6.24", elementText: "Erste 7 übernehmen", tooltip: "Setzt die ersten 7 ins Team." };
+HHAuto_ToolTips.de['ExportGirlsData'] = { version: "5.6.24", elementText: "⤓", tooltip: "Exportiert die Mädel-Daten." };
+HHAuto_ToolTips.de['autoFreeBundlesCollect'] = { version: "5.16.0", elementText: "Gratis-Bundles einsammeln", tooltip: "Sammelt Gratis-Bundles ein." };
+HHAuto_ToolTips.de['mousePause'] = { version: "5.6.135", elementText: "Maus-Pause", tooltip: "Pausiert das Skript für 5 Sekunden, sobald eine Mausbewegung erkannt wird. Verhindert, dass das Skript dazwischenfunkt, während du selbst spielst." };
+HHAuto_ToolTips.de['saveDefaults'] = { version: "5.6.24", elementText: "Standard speichern", tooltip: "Speichert deine eigenen Standardwerte für neue Tabs." };
+HHAuto_ToolTips.de['settingsSurvey'] = { version: "7.33.1", elementText: "Einstellungs-Umfrage", tooltip: "Teile deine Einstellungen anonym, damit wir ungenutzte Funktionen erkennen können." };
+HHAuto_ToolTips.de['blockOrder'] = { version: "7.36.13", elementText: "Block-Reihenfolge", tooltip: "Ordnet die Blöcke des Skripts neu (ziehen oder Pfeile hoch/runter). Ausgegraute Blöcke liegen fest." };
+HHAuto_ToolTips.de['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline-Diagnose", tooltip: "Schreibt zusätzliche [PIPE]-Details je Schritt in die Konsole. Standardmäßig aus." };
+HHAuto_ToolTips.de['autoGiveAff'] = { version: "5.6.24", elementText: "Auto-Geben", tooltip: "Wenn aktiv: Gibt Mädels der Reihe nach automatisch Zuneigung (zum Filtern lässt sich das OCD-Skript nutzen)." };
+HHAuto_ToolTips.de['autoGiveExp'] = { version: "5.6.24", elementText: "Auto-Geben", tooltip: "Wenn aktiv: Gibt Mädels der Reihe nach automatisch Exp (zum Filtern lässt sich das OCD-Skript nutzen)." };
+HHAuto_ToolTips.de['autoPantheonTitle'] = { version: "5.6.24", elementText: "Pantheon", tooltip: "" };
+HHAuto_ToolTips.de['autoLabyrinth'] = { version: "7.19.0", elementText: "Labyrinth", tooltip: "Wenn aktiv: Spielt das Labyrinth im einfachen Modus.<br/>Wählt den leichtesten Gegner, ohne nach Belohnung zu schauen." };
+HHAuto_ToolTips.de['autoLabyHard'] = { version: "7.25.3", elementText: "Harter Modus", tooltip: "Wenn aktiv: Spielt das Labyrinth im harten Modus.<br/>Wählt die schwerste Gegnergruppe und damit die größere Belohnung." };
+HHAuto_ToolTips.de['autoLabySweep'] = { version: "7.25.3", elementText: "Sweep", tooltip: "Wenn aktiv: Nutzt den Sweep für die Labyrinth-Ebene, sobald er verfügbar ist." };
+HHAuto_ToolTips.de['autoLabyDifficulty'] = { version: "7.25.2", elementText: "Schwierigkeit", tooltip: "Labyrinth-Schwierigkeit, die vor dem Start gewählt wird." };
+HHAuto_ToolTips.de['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText: "Leicht" };
+HHAuto_ToolTips.de['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal" };
+HHAuto_ToolTips.de['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Schwer" };
+HHAuto_ToolTips.de['autoLabyCustomTeamBuilder'] = { version: "7.25.4", elementText: "Eigenes Team", tooltip: "Veraltet<br/>Wenn aktiv: Nutzt den Team-Bauer des Bots.<br/>Sonst wird die spieleigene Automatik verwendet." };
+HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinth" };
+HHAuto_ToolTips.de['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Team bauen", tooltip: "Wählt anhand der Auswahl ein vollständiges Team." };
+HHAuto_ToolTips.de['autoLabyrinthBuildTank'] = { version: "7.9.0", elementText: "Tanks", tooltip: "Wählt zwei Tanks für die vordere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildMage'] = { version: "7.9.0", elementText: "Magier", tooltip: "Wählt zwei Magier für die mittlere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildAttack'] = { version: "7.9.0", elementText: "Angriff", tooltip: "Wählt zwei Schadensausteiler für die hintere und einen für die mittlere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Hinten", tooltip: "Wählt den Mädel-Typ für die hintere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mitte", tooltip: "Wählt den Mädel-Typ für die mittlere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildFront'] = { version: "7.9.1", elementText: "Vorne", tooltip: "Wählt den Mädel-Typ für die vordere Reihe." };
+HHAuto_ToolTips.de['autoPantheon'] = { version: "6.8.0", elementText: "Pantheon", tooltip: "Wenn aktiv: Spielt das Pantheon automatisch." };
+HHAuto_ToolTips.de['autoPantheonThreshold'] = { version: "5.6.24", elementText: "Schwelle", tooltip: "Mindestmenge an Worship, die behalten wird<br>Max. 10" };
+HHAuto_ToolTips.de['autoPantheonRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestmenge an Worship, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
+HHAuto_ToolTips.de['autoPantheonBoostedOnly'] = { version: "6.7.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster im Pantheon gekämpft." };
+HHAuto_ToolTips.de['buttonSaveOpponent'] = { version: "5.6.24", elementText: "Gegnerdaten speichern", tooltip: "Speichert die Gegnerdaten für die Kampfsimulation im Markt." };
+HHAuto_ToolTips.de['SimResultMarketButton'] = { version: "5.6.24", elementText: "Sim.-Ergebnis", tooltip: "Simuliert das Ergebnis mit dem gespeicherten Liga-Gegner." };
+HHAuto_ToolTips.de['simResultMarketPreviousScore'] = { version: "5.6.24", elementText: "Vorheriger Wert:", tooltip: "" };
+HHAuto_ToolTips.de['simResultMarketScore'] = { version: "5.6.24", elementText: "Wert: ", tooltip: "" };
+HHAuto_ToolTips.de['none'] = { version: "5.6.24", elementText: "Keine", tooltip: "" };
+HHAuto_ToolTips.de['Name'] = { version: "5.6.24", elementText: "Name", tooltip: "" };
+HHAuto_ToolTips.de['sortPowerCalc'] = { version: "5.6.24", elementText: "Nach Wert sortieren", tooltip: "Sortiert die Gegner nach ihrem Wert." };
+HHAuto_ToolTips.de['translate'] = { version: "5.6.25", elementText: "Übersetzen", tooltip: "" };
+HHAuto_ToolTips.de['saveTranslation'] = { version: "5.6.25", elementText: "Übersetzung speichern" };
+HHAuto_ToolTips.de['saveTranslationText'] = { version: "5.6.25", elementText: "Unten findest du alle übersetzbaren Texte.<br>Zum Mitmachen die Übersetzung direkt in der Zelle ändern.", tooltip: "" };
+HHAuto_ToolTips.de['menuCollectable'] = { version: "5.6.47", elementText: "Einstellungen zum Einsammeln.", tooltip: "" };
+HHAuto_ToolTips.de['menuCollectableText'] = { version: "5.6.47", elementText: "Wähle aus, was automatisch eingesammelt werden soll.", tooltip: "" };
+HHAuto_ToolTips.de['menuDailyCollectableText'] = { version: "5.6.49", elementText: "Wähle aus, was sofort eingesammelt werden soll.", tooltip: "" };
+HHAuto_ToolTips.de['autoPoVCollect'] = { version: "6.15.8", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt den Path of Valor automatisch ein." };
+HHAuto_ToolTips.de['autoPoVCollectAll'] = { version: "6.15.8", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Path of Valor automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['autoSeasonalEventCollect'] = { version: "5.7.0", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt das Seasonal Event automatisch ein." };
+HHAuto_ToolTips.de['autoSeasonalEventCollectAll'] = { version: "5.7.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Seasonal Events automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['autoSeasonalBuyFreeCard'] = { version: "7.26.0", elementText: "Karte holen", tooltip: "Wenn aktiv: Holt die Gratis-Karte des Seasonal Events automatisch." };
+HHAuto_ToolTips.de['autoPoGCollect'] = { version: "6.15.8", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt den Path of Glory automatisch ein." };
+HHAuto_ToolTips.de['autoPoGCollectAll'] = { version: "6.15.8", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Path of Glory automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['autoPoACollect'] = { version: "6.16.0", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt das Path-of-Attraction-Event automatisch ein." };
+HHAuto_ToolTips.de['autoPoACollectAll'] = { version: "6.16.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Path-of-Attraction-Events automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
+HHAuto_ToolTips.de['dailyGoalsTitle'] = { version: "5.24.0", elementText: "Tagesziele" };
+HHAuto_ToolTips.de['autoDailyGoals'] = { version: "7.20.0", elementText: "Aktivieren", tooltip: "BETA: Erledigt unterstützte Tagesziele <br>(derzeit: Pantheon)." };
+HHAuto_ToolTips.de['autoDailyGoalsCollect'] = { version: "5.6.54", elementText: "Einsammeln", tooltip: "Sammelt die Tagesziele ein, falls das 2 Stunden vor Ende des HH-Tages noch nicht geschehen ist." };
+HHAuto_ToolTips.de['compactDailyGoals'] = { version: "5.24.0", elementText: "Kompakt", tooltip: "Stellt die Anzeige der Tagesziele kompakter dar." };
+HHAuto_ToolTips.de['DateAcquired'] = { version: "5.6.56", elementText: "Rekrutiert am", tooltip: "" };
+HHAuto_ToolTips.de['Grade'] = { version: "5.6.56", elementText: "Stufe", tooltip: "" };
+HHAuto_ToolTips.de['Level'] = { version: "5.6.56", elementText: "Level", tooltip: "" };
+HHAuto_ToolTips.de['Power'] = { version: "5.6.56", elementText: "Kraft", tooltip: "" };
+HHAuto_ToolTips.de['upgrade_cost'] = { version: "5.6.56", elementText: "Aufwertungskosten", tooltip: "" };
+HHAuto_ToolTips.de['haremGiveXP'] = { version: "6.2.0", elementText: "Aktuelle XP der gefilterten Mädels auffüllen", tooltip: "Nutzt den Max-Knopf für XP auf der aktuellen Stufe bei den gefilterten Mädels." };
+HHAuto_ToolTips.de['haremGiveMaxXP'] = { version: "7.28.0", elementText: "Alle XP der gefilterten Mädels auffüllen", tooltip: "Nutzt den Max-Alles-Knopf für XP bei den gefilterten Mädels." };
+HHAuto_ToolTips.de['haremGiveSkill'] = { version: "7.30.5", elementText: "Allen gefilterten Mädels diesen Skill geben", tooltip: "Wertet diesen Skill bei den gefilterten Mädels voll auf." };
+HHAuto_ToolTips.de['haremGiveGifts'] = { version: "6.2.0", elementText: "Aktuelle Zuneigung der gefilterten Mädels auffüllen", tooltip: "Nutzt den Max-Knopf für Zuneigung auf der aktuellen Stufe bei den gefilterten Mädels." };
+HHAuto_ToolTips.de['haremGiveMaxGifts'] = { version: "6.11.0", elementText: "Alle Zuneigung der gefilterten Mädels auffüllen", tooltip: "Gibt den gefilterten Mädels die gesamte Zuneigung und zahlt die nötigen Stufen." };
+HHAuto_ToolTips.de['haremUpgradeMax'] = { version: "6.11.0", elementText: "Gefilterte Mädels voll aufwerten", tooltip: "Führt bei den gefilterten Mädels alle Aufwertungen durch (auch die letzte) und gibt die nötige Zuneigung." };
+HHAuto_ToolTips.de['haremGirlGiveXP'] = { version: "5.30.0", elementText: "Mädel XP geben", tooltip: "Öffnet das Untermenü zum Vergeben von XP." };
+HHAuto_ToolTips.de['haremGirlGiveGifts'] = { version: "5.30.0", elementText: "Mädel Geschenke geben", tooltip: "" };
+HHAuto_ToolTips.de['haremGirlGiveMaxGifts'] = { version: "6.2.0", elementText: "Mädel max. Geschenke geben", tooltip: "Nutzt den Max-Knopf bis zur Höchststufe und zahlt die nötigen Stufen.<br>Zahlt nicht für die letzte." };
+HHAuto_ToolTips.de['haremGirlMaxSkill'] = { version: "7.16.0", elementText: "Mädel alle Skills geben", tooltip: "" };
+HHAuto_ToolTips.de['haremGirlUpSkill'] = { version: "7.21.0", elementText: "&#8593;", tooltip: "Wertet diesen Skill bei diesem Mädel voll auf." };
+HHAuto_ToolTips.de['haremGirlUpgradeMax'] = { version: "6.12.0", elementText: "Mädel voll aufwerten", tooltip: "Führt beim Mädel alle Aufwertungen durch (auch die letzte) und gibt die nötige Zuneigung." };
+HHAuto_ToolTips.de['collectAllTimer'] = { version: "5.7.0", elementText: "'Alles einsammeln'-Timer (in Stunden)", tooltip: "Stunde(n) vor Ende eines Events, ab der alle Belohnungen eingesammelt werden (ein knapper Wert ist riskant)." };
+HHAuto_ToolTips.de['collectAllButton'] = { version: "7.3.0", elementText: "Alles einsammeln", tooltip: "Sammelt alle Belohnungen automatisch ein." };
+HHAuto_ToolTips.de['spreadsheet'] = { version: "7.17.0", elementText: "Tabelle", tooltip: "" };
+HHAuto_ToolTips.de['latestTroll'] = { version: "7.23.0", elementText: "Letzter Troll des Hauptabenteuers", tooltip: "" };
+HHAuto_ToolTips.de['mainAdventure'] = { version: "7.23.0", elementText: "Hauptabenteuer", tooltip: "" };
+HHAuto_ToolTips.de['sideAdventure'] = { version: "7.23.0", elementText: "Nebenabenteuer", tooltip: "" };
+HHAuto_ToolTips.de['otherTrollOption'] = { version: "7.23.0", elementText: "Andere", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -889,16 +1198,16 @@ function getLanguageCode() {
     }
     return HHAuto_Lang;
 }
-/*
- 0: version strings are equal
- 1: version a is greater than b
--1: version b is greater than a
-*/
+/**
+ * Vergleicht zwei Versionsstrings.
+ *
+ * @returns `0` gleich, `1` a groesser als b, `-1` b groesser als a
+ */
 function cmpVersions(a, b) {
     return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 }
 function getTextForUI(id, type) {
-    let HHAuto_Lang = getLanguageCode();
+    const HHAuto_Lang = getLanguageCode();
     let defaultLanguageText = null;
     let defaultLanguageVersion = "0";
     //console.log(id);
@@ -952,7 +1261,7 @@ function manageTranslationPopUp() {
         + ' </thead>'
         + ' <tbody class="tItemsTBody">';
     const currentLanguage = getLanguageCode();
-    for (let item of Object.keys(HHAuto_ToolTips.en)) {
+    for (const item of Object.keys(HHAuto_ToolTips.en)) {
         let reworkedClass = "";
         translatePopUpContent += '  <tr id="' + HtmlIdPrefix + item + '">';
         let currentEnElementText = HHAuto_ToolTips.en[item].elementText;
@@ -1000,7 +1309,7 @@ function manageTranslationPopUp() {
         let translation = `Translated to : ${currentLanguage}\n`;
         translation += `From version : ${GM_info.version}\n`;
         let hasTranslation = false;
-        for (let item of Object.keys(HHAuto_ToolTips.en)) {
+        for (const item of Object.keys(HHAuto_ToolTips.en)) {
             const currentTranslatedElementText = $(`#${HtmlIdPrefix + item} [type="elementText"]`)[0].innerHTML;
             const currentTranslatedTooltip = $(`#${HtmlIdPrefix + item} [type="tooltip"]`)[0].innerHTML;
             let currentElementText = HHAuto_ToolTips[currentLanguage][item] ? HHAuto_ToolTips[currentLanguage][item].elementText : "";
@@ -1463,10 +1772,10 @@ class TimeHelper {
             .join(":");
     }
     static debugDate(sec_num) {
-        let days = Math.floor(sec_num / 86400);
-        let hours = Math.floor(sec_num / 3600) % 24;
-        let minutes = Math.floor(sec_num / 60) % 60;
-        let seconds = sec_num % 60;
+        const days = Math.floor(sec_num / 86400);
+        const hours = Math.floor(sec_num / 3600) % 24;
+        const minutes = Math.floor(sec_num / 60) % 60;
+        const seconds = sec_num % 60;
         return JSON.stringify({ days: days, hours: hours, minutes: minutes, seconds: seconds });
     }
     /**
@@ -1484,9 +1793,9 @@ function convertTimeToInt(remainingTimer, failSafe = true) {
     let newTimer = 0;
     if (remainingTimer && remainingTimer.length > 0) {
         try {
-            let splittedTime = remainingTimer.trim().split(' ');
+            const splittedTime = remainingTimer.trim().split(' ');
             for (let i = 0; i < splittedTime.length; i++) {
-                let timerSymbol = splittedTime[i].match(/[^0-9]+/)[0];
+                const timerSymbol = splittedTime[i].match(/[^0-9]+/)[0];
                 switch (timerSymbol) {
                     case timerDefinitions[hhTimerLocale].days:
                         newTimer += parseInt(splittedTime[i]) * 86400;
@@ -4414,7 +4723,7 @@ function logHHAuto(...args) {
     if (!(match && match.length >= 2))
         match = ['Unknown', 'Unknown'];
     const callerName = match[1];
-    let currDate = new Date();
+    const currDate = new Date();
     var prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":" + callerName;
     var text;
     var currentLoggingText;
@@ -4616,10 +4925,10 @@ function setMenuValues() {
         return;
     }
     setDefaults();
-    for (let i of Object.keys(HHStoredVars)) {
+    for (const i of Object.keys(HHStoredVars)) {
         if (HHStoredVars[i].storage !== undefined && HHStoredVars[i].HHType !== undefined) {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
-            let menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
+            const storageItem = getStorageItem(HHStoredVars[i].storage);
+            const menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
             const menuElement = document.getElementById(menuID);
             if (HHStoredVars[i].setMenu !== undefined
                 && storageItem[i] !== undefined
@@ -4656,10 +4965,10 @@ function getMenuValues() {
     if (isDisplayedHHPopUp() === 'loadConfig') {
         return;
     }
-    for (let i of Object.keys(HHStoredVars)) {
+    for (const i of Object.keys(HHStoredVars)) {
         if (HHStoredVars[i].storage !== undefined && HHStoredVars[i].HHType !== undefined) {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
-            let menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
+            const storageItem = getStorageItem(HHStoredVars[i].storage);
+            const menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
             const menuElement = document.getElementById(menuID);
             if (HHStoredVars[i].getMenu !== undefined
                 && document.getElementById(menuID) !== null
@@ -4667,7 +4976,7 @@ function getMenuValues() {
                 && HHStoredVars[i].valueType !== undefined
                 && HHStoredVars[i].menuType !== undefined
                 && menuElement != null) {
-                let currentValue = storageItem[i];
+                const currentValue = storageItem[i];
                 let menuValue = String(menuElement[HHStoredVars[i].menuType]);
                 switch (HHStoredVars[i].valueType) {
                     case "Long Integer":
@@ -4691,23 +5000,23 @@ function getMenuValues() {
 }
 function preventKobanUsingSwitchUnauthorized() {
     if (this.checked && !document.getElementById("spendKobans0").checked) {
-        let idToDisable = this.id;
+        const idToDisable = this.id;
         setTimeout(function () { document.getElementById(idToDisable).checked = false; }, 500);
     }
 }
 function addEventsOnMenuItems() {
     const { HHStoredVars, storedVarPrefix, setStoredValue } = MenuPorts;
-    for (let i of Object.keys(HHStoredVars)) {
+    for (const i of Object.keys(HHStoredVars)) {
         //console.log(i);
         if (HHStoredVars[i].HHType !== undefined) {
-            let menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
+            const menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
             const menuElement = document.getElementById(menuID);
             if (menuElement != null) {
                 if (HHStoredVars[i].valueType === "Long Integer") {
                     menuElement.addEventListener("keyup", add1000sSeparator1);
                 }
                 if (HHStoredVars[i].events !== undefined) {
-                    for (let event of Object.keys(HHStoredVars[i].events)) {
+                    for (const event of Object.keys(HHStoredVars[i].events)) {
                         menuElement.addEventListener(event, HHStoredVars[i].events[event]);
                     }
                 }
@@ -5113,7 +5422,7 @@ function getLocalStorageSize() {
 //          PageNavigationService (building navigation URLs)
 /** Extracts a single query parameter value from a query string. */
 function queryStringGetParam(inQueryString, inParam) {
-    let urlParams = new URLSearchParams(inQueryString);
+    const urlParams = new URLSearchParams(inQueryString);
     return urlParams.get(inParam);
 }
 function url_add_param(url, param, value) {
@@ -5996,7 +6305,7 @@ function getCallerFunction() {
     return callerName;
 }
 function getCallerCallerFunction() {
-    let stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
+    const stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
     let match;
     try {
         match = stackTrace.match(/at Object\.(\w+) \((\S+)\)/);
@@ -6006,18 +6315,11 @@ function getCallerCallerFunction() {
         // Firefox
         match = stackTrace.match(/\n(\w+)@(\S+)/);
     }
-    let [callerName, callerPlace] = [match[1], match[2]];
+    const [callerName, callerPlace] = [match[1], match[2]];
     try {
         console.log('Function ' + match[3] + ' at ' + match[4]);
     }
     catch (err) { }
-    /*
-    var callerName;
-    {
-        let re = /([^(]+)@|at ([^(]+) \(/g;
-        let aRegexResult = re.exec(new Error().stack);
-        callerName = aRegexResult[1] || aRegexResult[2];
-    }*/
     //console.log(callerName);
     return callerName;
     //return getCallerCallerFunction.caller.caller.name
@@ -6058,19 +6360,6 @@ function replaceCheatClick() {
 function getCurrentSorting() {
     return localStorage.sort_by;
 }
-/* Used ?
-export function waitForKeyElements (selectorTxt,maxMilliWaitTime)
-{
-    var targetNodes;
-    var timer= new Date().getTime() + maxMilliWaitTime;
-    targetNodes = jQuery(selectorTxt);
-
-    while ( targetNodes.length === 0 && Math.ceil(timer)-Math.ceil(new Date().getTime()) > 0)
-    {
-        targetNodes = jQuery(selectorTxt);
-    }
-    return targetNodes.length !== 0);
-}*/
 function myfileLoad_onChange(event) {
     $('#LoadConfError')[0].innerText = ' ';
     if (event.target.files.length == 0) {
@@ -6178,7 +6467,7 @@ function createHHPopUp() {
         + '#HHAutoPopupGlobalContent .HHAutoScriptMenu input:checked + .slider:before { -webkit-transform: translateX(20px); -ms-transform: translateX(20px); transform: translateX(20px); } '
         + '#HHAutoPopupGlobalContent .HHAutoScriptMenu .slider.round::before {  width: 22px; height: 22px; bottom: 5px; }'
         + '.PachinkoPlay {margin-top: 20px !important; }');
-    let popUp = '<div id="HHAutoPopupGlobal" class="HHAutoOverlay">'
+    const popUp = '<div id="HHAutoPopupGlobal" class="HHAutoOverlay">'
         + ' <div id="HHAutoPopupGlobalPopup">'
         + '   <h2 id="HHAutoPopupGlobalTitle">Here i am</h2>'
         + '   <a id="HHAutoPopupGlobalClose">&times;</a>'
@@ -6261,7 +6550,7 @@ function getHHVars(infoSearched, logging = true) {
         infoSearched = ConfigHelper.getHHScriptVars(infoSearched);
     }
     infoSearched = prefixIfNeeded(infoSearched);
-    let splittedInfoSearched = infoSearched.split(".");
+    const splittedInfoSearched = infoSearched.split(".");
     for (let i = 0; i < splittedInfoSearched.length; i++) {
         if (returnValue[splittedInfoSearched[i]] === undefined) {
             if (logging) {
@@ -6281,7 +6570,7 @@ function setHHVars(infoSearched, newValue) {
         infoSearched = ConfigHelper.getHHScriptVars(infoSearched);
     }
     infoSearched = prefixIfNeeded(infoSearched);
-    let splittedInfoSearched = infoSearched.split(".");
+    const splittedInfoSearched = infoSearched.split(".");
     for (let i = 0; i < splittedInfoSearched.length; i++) {
         if (returnValue[splittedInfoSearched[i]] === undefined) {
             logHHAuto("HH var not found : " + infoSearched + " (" + splittedInfoSearched[i] + " not defined).");
@@ -6670,54 +6959,6 @@ function parsePrice(princeStr) {
     }
     return ret;
 }
-/*
-export function manageUnits(inText)
-{
-    let units = ["firstUnit", "K", "M", "B"];
-    let textUnit= "";
-    for (let currUnit of units)
-    {
-        if (inText.includes(currUnit))
-        {
-            textUnit= currUnit;
-        }
-    }
-    if (textUnit !== "")
-    {
-        let integerPart;
-        let decimalPart;
-        if (inText.includes('.') )
-        {
-            inText = inText.replace(/[^0-9\.]/gi, '');
-            integerPart = inText.split('.')[0];
-            decimalPart = inText.split('.')[1];
-
-        }
-        else if (inText.includes(','))
-        {
-            inText = inText.replace(/[^0-9,]/gi, '');
-            integerPart = inText.split(',')[0];
-            decimalPart = inText.split(',')[1];
-        }
-        else
-        {
-            integerPart = inText.replace(/[^0-9]/gi, '');
-            decimalPart = "0";
-        }
-        //console.log(integerPart,decimalPart);
-        let decimalNumber = Number(integerPart)
-        if (Number(decimalPart) !== 0)
-        {
-            decimalNumber+= Number(decimalPart)/(10**decimalPart.length)
-        }
-        return decimalNumber*(1000**units.indexOf(textUnit));
-    }
-    else
-    {
-        return parseInt(inText.replace(/[^0-9]/gi, ''));
-    }
-}
-*/ 
 
 ;// ./src/config/InputPattern.ts
 // Regex patterns used for input validation in the HHAuto settings menu.
@@ -7906,7 +8147,7 @@ var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // the harem page UI interactions.
 //
 // Depends on: HaremGirl.ts (individual girl data)
-// Used by: Service/index.ts (main automation loop), EventModule.ts (girl tracking)
+// Used by: Module/PlaceOfPower.ts, Module/TeamModule.ts, Module/Troll.ts, Module/harem/HaremGirl.ts u. a.
 //
 
 
@@ -8999,11 +9240,11 @@ supportedGames.forEach(game => {
 HHKnownEnvironnements["www.hornyheroes.com"] = { name: "SH_prod", id: "hh_sexy" };
 const HHEnvVariables = {};
 HHEnvVariables["global"] = {};
-for (let i in HHKnownEnvironnements) {
+for (const i in HHKnownEnvironnements) {
     HHEnvVariables[HHKnownEnvironnements[i].name] = {};
     HHEnvVariables[HHKnownEnvironnements[i].name].gameID = HHKnownEnvironnements[i].id;
     HHEnvVariables[HHKnownEnvironnements[i].name].HHGameName = HHKnownEnvironnements[i].name;
-    let baseImgPath = HHKnownEnvironnements[i].baseImgPath ? HHKnownEnvironnements[i].baseImgPath : 'https://hh2.hh-content.com';
+    const baseImgPath = HHKnownEnvironnements[i].baseImgPath ? HHKnownEnvironnements[i].baseImgPath : 'https://hh2.hh-content.com';
     HHEnvVariables[HHKnownEnvironnements[i].name].baseImgPath = baseImgPath;
 }
 HHEnvVariables["global"].eventIDReg = "event_";
@@ -9542,8 +9783,8 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 class BossBang {
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventBossBangGoing', Number(convertTimeToInt(timeLeft)));
         }
@@ -9555,14 +9796,14 @@ class BossBang {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = $('#contains_all #events #boss_bang .completed-event').length > 0;
-        let teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
+        const teamEventz = $('#contains_all #events #boss_bang .boss-bang-teams-container .boss-bang-team-slot');
         let teamFound = false;
         const firstTeamToStartWith = getStoredValue(HHStoredVarPrefixKey + SK.bossBangMinTeam);
         if ($('.boss-bang-team-ego', teamEventz[firstTeamToStartWith - 1]).length > 0) {
             // Do not trigger event if not all teams are set
             for (let currIndex = teamEventz.length - 1; currIndex >= 0 && !teamFound; currIndex--) {
                 // start with last team first
-                let teamz = $(teamEventz[currIndex]);
+                const teamz = $(teamEventz[currIndex]);
                 const teamIndex = teamz.data('slot-index');
                 const teamEgo = $('.boss-bang-team-ego', teamz);
                 if (teamEgo.length > 0 && parseInt(teamEgo.text()) > 0) {
@@ -9684,7 +9925,7 @@ class BossBang {
         return BossBang_awaiter(this, void 0, void 0, function* () {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
                 const teamIndexFound = parseInt(getStoredValue(HHStoredVarPrefixKey + TK.bossBangTeam));
-                let bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
+                const bangButton = $('#contains_all #events #boss_bang .boss-bang-event-info #start-bang-button:not([disabled])');
                 if (teamIndexFound >= 0 && bangButton.length > 0) {
                     logHHAuto("Go to boss bang fight page");
                     // Use safeNavigateHref so any in-flight game AJAX completes
@@ -9739,8 +9980,8 @@ BossBang.PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-rewa
 class CumbackContests {
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventCumbackGoing', Number(convertTimeToInt(timeLeft)));
         }
@@ -9752,9 +9993,9 @@ class CumbackContests {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
+            const girlData = allEventGirlz[currIndex];
             if (girlData.shards < 100) {
                 eventList[eventID]["isCompleted"] = false;
             }
@@ -9831,14 +10072,14 @@ class BDSMHelper {
         const playerEgo = inHeroData.remaining_ego;
         const playerDef = inHeroData.defense;
         const playerCrit = inHeroData.chance;
-        let playerElements = [];
+        const playerElements = [];
         inHeroData.team.theme_elements.forEach((el) => playerElements.push(el.type));
         const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
         const opponentAtk = opponentData.damage;
         const opponentEgo = opponentData.remaining_ego;
         const opponentDef = opponentData.defense;
         const opponentCrit = opponentData.chance;
-        let opponentElements = [];
+        const opponentElements = [];
         opponentData.team.theme_elements.forEach((el) => opponentElements.push(el.type));
         const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
         const dominanceBonuses = calculateDominationBonuses(playerElements, opponentElements);
@@ -9977,22 +10218,22 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
             return opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
         }
         //Damage
-        let playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
+        const playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
         opponentHP -= playerDamage;
         opponentShield = Math.max(0, opponentShield - attack.damageAmount);
         //Tier 5 skill : Player Execute
         if (_player.tier5.id == 14) {
-            let opponentHPRate = opponentHP / _opponent.hp;
+            const opponentHPRate = opponentHP / _opponent.hp;
             if (opponentHPRate <= _player.tier5.value)
                 opponentHP = 0;
         }
         //Tier 5 skill : Opponent Reflect
-        let opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
+        const opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
         playerHP -= Math.max(0, (opponentReflectDmg - playerShield));
         playerShield = Math.max(0, playerShield - opponentReflectDmg);
         opponentReflect -= 1;
         //Heal on hit
-        let playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
+        const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
         playerHP = Math.min(_player.hp, playerHP + playerHeal);
         //Check win
         if (opponentHP <= 0) {
@@ -10028,22 +10269,22 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
             return playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
         }
         //Damage
-        let opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
+        const opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
         playerHP -= opponentDamage;
         playerShield = Math.max(0, playerShield - attack.damageAmount);
         //Tier 5 skill : Opponent Execute
         if (_opponent.tier5.id == 14) {
-            let playerHPRate = playerHP / _player.hp;
+            const playerHPRate = playerHP / _player.hp;
             if (playerHPRate <= _opponent.tier5.value)
                 playerHP = 0;
         }
         //Tier 5 skill : Player Reflect
-        let playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0;
+        const playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0;
         opponentHP -= Math.max(0, (playerReflectDmg - opponentShield));
         opponentShield = Math.max(0, opponentShield - playerReflectDmg);
         playerReflect -= 1;
         //Heal on hit
-        let opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
+        const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
         opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
         //Check loss
         if (playerHP <= 0) {
@@ -10058,41 +10299,19 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         }
     }
 }
-/*function calculateTier4SkillValue(teamGirlsArray): { dmg: number, def: number } {
-    let skill_tier_4 = { dmg: 0, def: 0 };
-
-    teamGirlsArray.forEach((girl) => {
-        if (girl.skills && girl.skills[9]) skill_tier_4.dmg += girl.skills[9].skill.percentage_value / 100;
-        if (girl.skills && girl.skills[10]) skill_tier_4.def += girl.skills[10].skill.percentage_value / 100;
-    })
-    return skill_tier_4;
-}*/
 /**
  * Estimate tier-4 skill bonuses from skill_tiers_info.
  * The exact skill data is not always available from the API, so we estimate
  * based on the number of skill points invested (0.2% per point for damage).
  */
 function estimateTier4SkillValue(teamGirlsArray) {
-    let skill_tier_4 = { dmg: 0, def: 0 };
+    const skill_tier_4 = { dmg: 0, def: 0 };
     teamGirlsArray.forEach((girl) => {
         if (girl.skill_tiers_info[4])
             skill_tier_4.dmg += girl.skill_tiers_info[4].skill_points_used * 0.002;
     });
     return skill_tier_4;
 }
-/*const tier5_Skill_Id = [11, 12, 13, 14];
-function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number } {
-    let skill_tier_5 = { id: 0, value: 0 };
-    const girl = teamGirlsArray[0];
-
-    tier5_Skill_Id.forEach((id) => {
-        if (girl.skills && girl.skills[id]) {
-            skill_tier_5.id = id;
-            skill_tier_5.value = (id == 11) ? parseInt(girl.skills[id].skill.display_value_text, 10) / 100 : girl.skills[id].skill.percentage_value / 100;
-        }
-    })
-    return skill_tier_5;
-}*/
 /**
  * Estimate the tier-5 (leader) skill from the first girl's element.
  * Tier-5 skills are element-dependent:
@@ -10103,7 +10322,7 @@ function calculateTier5SkillValue(teamGirlsArray): { id: number, value: number }
  * Values are estimated from skill points invested since exact data may be unavailable.
  */
 function estimateTier5SkillValue(teamGirlsArray) {
-    let skill_tier_5 = { id: 0, value: 0 };
+    const skill_tier_5 = { id: 0, value: 0 };
     const girl = teamGirlsArray[0];
     const skill5_girl = girl.skill_tiers_info[5];
     if (skill5_girl) {
@@ -10131,32 +10350,6 @@ function estimateTier5SkillValue(teamGirlsArray) {
     }
     return skill_tier_5;
 }
-/*
-commented        const girlDictionary
-replaced         const girlCount = girlDictionary.size || 800
-              by const girlCount = isJSON(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize"))?JSON.parse(getStoredValue(HHStoredVarPrefixKey+TK.HaremSize")).count:800;
-              *
-export function calculateSynergiesFromTeamMemberElements(elements) {
-    const counts = countElementsInTeam(elements)
-
-    // Only care about those not included in the stats already: fire, stone, sun and water
-    // Assume max harem synergy
-    //const girlDictionary = (typeof(localStorage.HHPNMap) == "undefined") ? new Map(): new Map(JSON.parse(localStorage.HHPNMap));
-    const girlCount = getStoredJSON(HHStoredVarPrefixKey+TK.HaremSize", {count:800}).count;
-    const girlsPerElement = Math.min(girlCount / 8, 100)
-
-    return {
-        critDamage: (0.0035 * girlsPerElement) + (0.1  * counts.fire),
-        critChance: (0.0007 * girlsPerElement) + (0.02 * counts.stone),
-        defReduce:  (0.0007 * girlsPerElement) + (0.02 * counts.sun),
-        healOnHit:  (0.001  * girlsPerElement) + (0.03 * counts.water)
-    }
-}
-*/
-/*
-replaced       ELEMENTS
-by ConfigHelper.getHHScriptVars("ELEMENTS")
-*/
 /**
  * Calculate elemental domination bonuses for both sides.
  * Each element on team A that dominates a matching element on team B
@@ -11674,7 +11867,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 //
 // Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
 //             EventModule.ts (event detection)
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 
 
@@ -12430,7 +12623,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // in the UI. Supports both regular and boosted fights.
 //
 // Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 
 
@@ -12525,8 +12718,8 @@ class LeagueHelper {
     }
     static getSimPowerOpponent(heroFighter, opponents) {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        let leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
-        let simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
+        const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
+        const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
         const oppoPoints = simu.points;
         let expectedValue = 0;
         for (let i = 25; i >= 3; i--) {
@@ -12626,18 +12819,6 @@ class LeagueHelper {
         }
         return decideShouldFight(state);
     }
-    /* static async _refreshSorting(){
-        const columnHeadSelector = '.league_content .data-list .data-column[sorting]';
-        if ($(columnHeadSelector).length > 0 && $(columnHeadSelector+"[column='can_fight']").length == 0) {
-            // No need of it in case HH++OCD sorting
-            await TimeHelper.sleep(randomInterval(200, 400));
-            logHHAuto("Click sort");
-            $(columnHeadSelector).trigger('click');
-            await TimeHelper.sleep(randomInterval(200, 400));
-            $(columnHeadSelector).trigger('click');
-            await TimeHelper.sleep(randomInterval(200, 400));
-        }
-    }*/
     static moduleSimLeague() {
         try {
             LeagueHelper.moduleSimLeagueHideBeatenOppo();
@@ -12662,7 +12843,7 @@ class LeagueHelper {
                 const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
                 const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
                 const opponentsToSimulate = opponents_list.filter((opponents) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
-                let SimPower = function () {
+                const SimPower = function () {
                     return League_awaiter(this, void 0, void 0, function* () {
                         if (allOpponentsSimDisplayed) {
                             // logHHAuto("Stop simu");
@@ -12670,10 +12851,10 @@ class LeagueHelper {
                         }
                         if (debugEnabled)
                             logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
-                        let opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+                        const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
                         let opponentsPowerListChanged = false;
                         for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
-                            let opponents = opponentsToSimulate[opponentIndex];
+                            const opponents = opponentsToSimulate[opponentIndex];
                             let simu;
                             let leagueOpponent;
                             if (debugEnabled)
@@ -12716,12 +12897,12 @@ class LeagueHelper {
                 };
                 SimPower();
             }
-            let listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
+            const listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
             if (document.getElementById("HHListUpdate") === null) {
                 $(".leagues_middle_header_script").append(listUpdateStatus);
             }
             if (allOpponentsSimDisplayed || opponentSim.length <= 1) {
-                let buttonLaunchList = '<span class="tooltipHHtext">' + getTextForUI("RefreshOppoList", "tooltip") + '</span><label style="width:100%;" class="myButton" id="RefreshOppoList">' + getTextForUI("RefreshOppoList", "elementText") + '</label>';
+                const buttonLaunchList = '<span class="tooltipHHtext">' + getTextForUI("RefreshOppoList", "tooltip") + '</span><label style="width:100%;" class="myButton" id="RefreshOppoList">' + getTextForUI("RefreshOppoList", "elementText") + '</label>';
                 if (document.getElementById("RefreshOppoList") === null) {
                     $("#HHListUpdate").html('').append(buttonLaunchList);
                     $("#RefreshOppoList").on("click", function () {
@@ -12735,12 +12916,12 @@ class LeagueHelper {
             else {
                 $("#HHListUpdate").html('Building:' + opponentSim.length + "/" + opponentButtons.length);
             }
-            let buttonSortList = '<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("sortPowerCalc", "tooltip") + '</span><label style="width:100%;" class="myButton" id="sortPowerCalc">' + getTextForUI("sortPowerCalc", "elementText") + '</label></div>';
+            const buttonSortList = '<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("sortPowerCalc", "tooltip") + '</span><label style="width:100%;" class="myButton" id="sortPowerCalc">' + getTextForUI("sortPowerCalc", "elementText") + '</label></div>';
             const league_table = $('.league_content .data-list');
             if (document.getElementById("sortPowerCalc") === null && $('.matchRatingNew', league_table).length > 0) {
                 $('.leagues_middle_header_script').append(buttonSortList);
                 $("#sortPowerCalc").on("click", function () {
-                    let items = $('.data-row.body-row:visible', league_table).map((i, el) => el).toArray();
+                    const items = $('.data-row.body-row:visible', league_table).map((i, el) => el).toArray();
                     items.sort(function (a, b) {
                         //console.log($('#HHPowerCalcScore',$(a)));
                         const score_a = $('#HHPowerCalcScore', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(a))[0].innerText);
@@ -12755,7 +12936,7 @@ class LeagueHelper {
                             return score_b - score_a;
                         }
                     });
-                    for (let item in items) {
+                    for (const item in items) {
                         $(items[item]).detach();
                         league_table.append(items[item]);
                     }
@@ -12794,7 +12975,7 @@ class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            let results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
                             for (let j = 0; j < results.length; j++) {
                                 if (results[j].className == "result ")
                                     hide = false;
@@ -12816,7 +12997,7 @@ class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            let results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
                             for (let j = 0; j < results.length; j++) {
                                 if (results[j].className == "result ")
                                     hide = false;
@@ -12856,7 +13037,7 @@ class LeagueHelper {
                     $('#HideBeatenOppo').html(getTextForUI("HideBeatenOppo", "elementText"));
                 }
             });
-            let sort_by = document.querySelectorAll('.data-column.head-column');
+            const sort_by = document.querySelectorAll('.data-column.head-column');
             for (var sort of sort_by) {
                 sort.addEventListener('click', function () {
                     if (hideBeatenOppo == 1)
@@ -12867,7 +13048,7 @@ class LeagueHelper {
     }
     static _getTempLeagueOpponentList() {
         const maxLeagueListDurationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
-        let opponentsPowerList = getStoredJSON(HHStoredVarPrefixKey + TK.LeagueOpponentList, { expirationDate: 0, opponentsList: [] });
+        const opponentsPowerList = getStoredJSON(HHStoredVarPrefixKey + TK.LeagueOpponentList, { expirationDate: 0, opponentsList: [] });
         if (Object.keys(opponentsPowerList.opponentsList).length === 0 || opponentsPowerList.expirationDate < new Date()) {
             deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
             opponentsPowerList.expirationDate = new Date().getTime() + maxLeagueListDurationSecs * 1000;
@@ -12881,7 +13062,7 @@ class LeagueHelper {
         return $('.body-row .data-column[column="power"]').first().html() == $('.body-row .data-column[column="power"]').first().text();
     }
     static getLeagueOpponentListData(isFirstCall = true) {
-        let Data = [];
+        const Data = [];
         let opponent_id;
         let fightButton;
         let opponentsPowerList;
@@ -12894,16 +13075,6 @@ class LeagueHelper {
         if (hasScriptChangedPowerBefore)
             logHHAuto('Power columned changed from vanilla game, can be HH++ BDSM or other script');
         const tableRow = $(".data-list .data-row.body-row");
-        /*var getPowerOrPoints = function (hasHHBdsmChangeBefore, oppoRow)
-        {
-            if(hasHHBdsmChangeBefore) {
-                // HH++ BDSM script exist
-                // As power information is removed and replaced by simulation score, we need to use the score
-                return Number($('.data-column[column="power"] .matchRating-expected .matchRating-value', oppoRow).text().replace(',', '.'));
-            } else {
-                return parsePrice($('.data-column[column="power"]', oppoRow).text());
-            }
-        }*/
         logHHAuto('Number of player in league:' + tableRow.length + '. Number of opponent not fought in league:' + $('.data-list .data-row.body-row a').length);
         const opponents_list = getHHVars("opponents_list");
         let heroFighter;
@@ -12952,7 +13123,7 @@ class LeagueHelper {
                     // Number($('.data-column[column="place"]', $(this)).text()),
                     $('.nickname', $(this)).text(), 
                     // Number($('.data-column[column="level"]', $(this)).text()),
-                    opponents.power, // getPowerOrPoints(hasHHBdsmChangeBefore, $(this)),
+                    opponents.power, 
                     // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
                     expectedPoints, 
                     // $('.boosters', $(this)).children().length,
@@ -13061,7 +13232,7 @@ class LeagueHelper {
                     }
                     var currentRank = Number($('.data-list .data-row.body-row.player-row .data-column[column="place"]').text());
                     var currentScore = Number($('.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]').text().replace(/\D/g, ''));
-                    let leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSelectedIndex)) + 1;
+                    const leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSelectedIndex)) + 1;
                     if (leagueTargetValue < Number(getPlayerCurrentLevel)) {
                         var totalOpponents = Number($('.data-list .data-row.body-row').length) + 1;
                         var maxDemote = 0;
@@ -13073,7 +13244,7 @@ class LeagueHelper {
                             rankDemote = totalOpponents - 15;
                         }
                         logHHAuto("Current league above target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to demote. max rank : " + rankDemote + "/" + totalOpponents);
-                        let getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankDemote + ")").filter(function () {
+                        const getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankDemote + ")").filter(function () {
                             return Number($(this).text().trim()) === rankDemote;
                         });
                         if (getRankDemote.length > 0) {
@@ -13116,7 +13287,7 @@ class LeagueHelper {
                             rankStay = promotionCount;
                         }
                         logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Promotion cutoff (higher of 15%/top20): " + promotionCount + ", max rank : " + rankStay);
-                        let getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankStay + ")").filter(function () {
+                        const getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankStay + ")").filter(function () {
                             return Number($(this).text().trim()) === rankStay;
                         });
                         if (getRankStay.length > 0) {
@@ -13285,7 +13456,7 @@ LeagueHelper.SORT_POWERCALC = LEAGUE_SORT.POWERCALC;
 // monitors goal completion status, claims available rewards, and manages
 // the refresh timer so goals are checked at appropriate intervals.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 
 
@@ -13362,9 +13533,9 @@ class DailyGoals {
                     logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                     const nextDailyGoalsTimer = DailyGoals.getNewGoalsTimer();
-                    let buttonsToCollect = [];
+                    const buttonsToCollect = [];
                     const listDailyGoalsTiersToClaim = $("#daily_goals .progress-section .progress-bar-rewards-container .progress-bar-reward");
-                    let potionsNum = Number($('.progress-section div.potions-total > div > p').text());
+                    const potionsNum = Number($('.progress-section div.potions-total > div > p').text());
                     for (let currentTier = 0; currentTier < listDailyGoalsTiersToClaim.length; currentTier++) {
                         const currentButton = $("button[rel='claim']", listDailyGoalsTiersToClaim[currentTier]);
                         if (currentButton.length > 0) {
@@ -13378,7 +13549,7 @@ class DailyGoals {
                             }
                             else {
                                 let validToCollect = true;
-                                for (let reward of currentRewardsList) {
+                                for (const reward of currentRewardsList) {
                                     const rewardType = RewardHelper.getRewardTypeByData(reward);
                                     if (!rewardsToCollect.includes(rewardType)) {
                                         logHHAuto(`Not adding for collection chest n° ${currentTierNb} because ${rewardType} is not in immediate collection list.`);
@@ -13476,7 +13647,7 @@ class DailyGoals {
         return supportedGoals;
     }
     static _isDailyGoalType(anchor, update) {
-        let dailyGoals = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
+        const dailyGoals = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
         let find = false;
         if (dailyGoals && dailyGoals.length > 0) {
             for (let currentTier = 0; currentTier < dailyGoals.length; currentTier++) {
@@ -13594,7 +13765,7 @@ function Pantheon_pure_decideShouldFight(state) {
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
 // Depends on: TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
 //
 
 
@@ -13696,8 +13867,8 @@ class Pantheon {
                 if (runThreshold > 0) {
                     setStoredValue(HHStoredVarPrefixKey + TK.PantheonHumanLikeRun, "true");
                 }
-                let pantheonButton = $("#pantheon_tab_container .bottom-container .blue_button_L.pantheon-pre-battle-btn");
-                let templeID = queryStringGetParam(new URL(pantheonButton[0].getAttribute("href") || '', window.location.origin).search, 'id_opponent');
+                const pantheonButton = $("#pantheon_tab_container .bottom-container .blue_button_L.pantheon-pre-battle-btn");
+                const templeID = queryStringGetParam(new URL(pantheonButton[0].getAttribute("href") || '', window.location.origin).search, 'id_opponent');
                 if (pantheonButton.length > 0 && templeID !== null) {
                     logHHAuto("Going to fight Temple : " + templeID);
                     if (DailyGoals.isAutoDailyGoalsActivated() && DailyGoals.incrementPantheonDailyGoal())
@@ -13724,9 +13895,9 @@ class Pantheon {
         }
         else if (page === ConfigHelper.getHHScriptVars("pagesIDPantheonPreBattle")) {
             logHHAuto("On pantheon-pre-battle page.");
-            let templeID = queryStringGetParam(window.location.search, 'id_opponent');
+            const templeID = queryStringGetParam(window.location.search, 'id_opponent');
             logHHAuto("Go and fight temple :" + templeID);
-            let pantheonTempleBattleButton = $("#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='" + templeID + "']");
+            const pantheonTempleBattleButton = $("#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='" + templeID + "']");
             if (pantheonTempleBattleButton.length > 0) {
                 //replaceCheatClick();
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
@@ -13780,7 +13951,7 @@ var PlaceOfPower_awaiter = (undefined && undefined.__awaiter) || function (thisA
 // module detects which PoPs are currently active, navigates to them, and
 // collects available rewards on a timed schedule.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/ParanoiaService.ts, Service/Pipeline.config.ts, Service/StartService.ts
 //
 
 
@@ -13943,7 +14114,7 @@ class PlaceOfPower {
                 }
                 setStoredValue(HHStoredVarPrefixKey + TK.currentlyAvailablePops, newFilter.substring(1));
                 //collect all
-                let buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
+                const buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
                 if ($(buttonClaimQuery).length > 0) {
                     // Issue #1598 / ADR-003: serialise the claim POST through
                     // the global mutex so AutoLoop and other handlers cannot
@@ -14021,10 +14192,10 @@ class PlaceOfPower {
                 var e;
                 clearTimer('minPowerPlacesTime');
                 clearTimer('maxPowerPlacesTime');
-                let popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
+                const popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
                 popListRemaining.each(function () {
-                    let $elem = $(this);
-                    let elementText = $elem.text();
+                    const $elem = $(this);
+                    const elementText = $elem.text();
                     currIndex = $elem.parents('.pop_thumb_expanded').attr('pop_id');
                     if (filteredPops.includes(currIndex) && !popUnableToStart.includes(currIndex)) {
                         currTime = convertTimeToInt($elem.text());
@@ -14075,9 +14246,9 @@ class PlaceOfPower {
         });
     }
     static girlPower(powerRemaining, girlList, selectedGirls) {
-        let subList = girlList;
+        const subList = girlList;
         if (subList.length > 0) {
-            let currentGirl = subList.pop();
+            const currentGirl = subList.pop();
             if (currentGirl.power <= powerRemaining) {
                 selectedGirls.push(currentGirl);
                 powerRemaining -= currentGirl.power;
@@ -14245,9 +14416,9 @@ class PlaceOfPower {
         const powerNeeded = PlaceOfPower.getPowerNeeded();
         // Goal is to select girls which add to required power without going over
         // Once completed, if the time will be under 7.5 hours, proceed
-        let girlsList = [];
+        const girlsList = [];
         if (document.querySelectorAll('[girl]').length > 0) {
-            let availGirls = document.querySelectorAll('[girl]');
+            const availGirls = document.querySelectorAll('[girl]');
             availGirls.forEach(girl => {
                 const girlObj = {
                     id: parseInt(girl.attributes["girl"].value),
@@ -14280,7 +14451,7 @@ class PlaceOfPower {
             logHHAuto("PoP power needed:" + powerText);
             startTime = performance.now();
         }
-        let girlOptions = [];
+        const girlOptions = [];
         for (let i = girlsList.length - 1; i >= 0; i--) {
             const loopGirls = girlsList.slice(0, i + 1);
             const loopPower = powerText;
@@ -14341,7 +14512,7 @@ class PlaceOfPower {
 // quest energy when configured to do so. Tracks quest completion and manages
 // the quest page navigation.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/Champion.ts, Module/ClubChampion.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
 //
 
 
@@ -14398,9 +14569,9 @@ class QuestHelper {
     static run() {
         //logHHAuto("Starting auto quest.");
         // Check if at correct page.
-        let page = getPage();
-        let mainQuestUrl = QuestHelper.getMainQuestUrl();
-        let doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
+        const page = getPage();
+        const mainQuestUrl = QuestHelper.getMainQuestUrl();
+        const doMainQuest = getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" && !mainQuestUrl.includes("world");
         if (!doMainQuest && page === 'side-quests' && ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true") {
             var quests = $('.side-quest:has(.slot) .side-quest-button');
             let navOk;
@@ -14542,7 +14713,7 @@ class QuestHelper {
             //proceedButtonMatch.click();
         }
         else if (proceedType === "end_play") {
-            let rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
+            const rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
             if (proceedButtonMatch.attr('disabled') && rewards.length > 0) {
                 logHHAuto("Reached end of current archive. Claim reward.");
                 rewards.click();
@@ -14867,22 +15038,6 @@ class ParanoiaService {
         setTimer('paranoiaSwitch', toNextSwitch);
         //force recheck non completed event after paranoia
         if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
-            /*
-            let eventList = getStoredJSON(HHStoredVarPrefixKey+TK.eventsList, {});
-            for (let eventID of Object.keys(eventList))
-            {
-                //console.log(eventID);
-                if (!eventList[eventID]["isCompleted"])
-                {
-                    eventList[eventID]["next_refresh"]=new Date().getTime()-1000;
-                    //console.log("expire");
-                    if(Object.keys(eventList).length >0)
-                    {
-                        setStoredValue(HHStoredVarPrefixKey+TK.eventsList, JSON.stringify(eventList));
-                    }
-                }
-            }
-            */
             //sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
@@ -14930,7 +15085,7 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // and collects milestone rewards. Handles the time-limited nature of Penta
 // Drill events.
 //
-// Used by: Service/index.ts (main automation loop), MonthlyCard.ts
+// Used by: Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts u. a.
 //
 
 
@@ -15263,7 +15418,7 @@ class PentaDrill {
 // implements the "wait for contest" feature that pauses other automation
 // when a contest requiring specific actions is active.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 
 
@@ -15327,8 +15482,8 @@ class Contest {
         }
         else {
             try {
-                let nextContestSelector = '#contests .next_contest .contest_timer span';
-                let remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
+                const nextContestSelector = '#contests .next_contest .contest_timer span';
+                const remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
                 let nextContestTime = unsafeWindow.contests_timer.next_contest;
                 const duration = unsafeWindow.contests_timer.duration;
                 let remaining_time = unsafeWindow.contests_timer.remaining_time;
@@ -15785,7 +15940,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 //
 // Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
 //             TeamModule.ts (team setup)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
 
 
@@ -16235,7 +16390,7 @@ function createPInfo() {
     const pInfo = $('<div id="pInfo" ></div>');
     if (pInfo != null) {
         pInfo.on("dblclick", function () {
-            let masterSwitch = document.getElementById("master");
+            const masterSwitch = document.getElementById("master");
             if (masterSwitch.checked === true) {
                 setStoredValue(HHStoredVarPrefixKey + SK.master, "false");
                 masterSwitch.checked = false;
@@ -16332,15 +16487,6 @@ function updateData() {
         if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) == "true") {
             Tegzd += PentaDrill.getPinfo();
         }
-        /*
-        if (ConfigHelper.getHHScriptVars('isEnabledPoV',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollect) =="true")
-        {
-            Tegzd += '<li>Collect POV : '+getTimeLeft('nextPoVCollectTime')+'</li>';
-        }
-        if (ConfigHelper.getHHScriptVars('isEnabledPoG',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) =="true")
-        {
-            Tegzd += '<li>Collect POG : '+getTimeLeft('nextPoGCollectTime')+'</li>';
-        }*/
         if (ConfigHelper.getHHScriptVars('isEnabledLeagues', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) == "true") {
             Tegzd += LeagueHelper.getPinfo();
         }
@@ -16554,7 +16700,7 @@ var Spreadsheet_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // spreadsheets) directly into the game interface. Listens for AJAX responses
 // to inject links at the right time when relevant pages load.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts
 //
 
 
@@ -17209,7 +17355,7 @@ var Champion_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // Champions feature. Manages fight energy (tickets), selects opponents, and
 // tracks cooldown timers between rounds.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Module/Champion.ts, Module/ClubChampion.ts, Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 
 
@@ -17278,7 +17424,7 @@ class Champion {
         const newDraftButtonQuery = ".champions-bottom__footer button.champions-bottom__make-draft";
         const confirmDraftButtonQuery = ".champions-bottom__footer button.champions-bottom__confirm-team";
         const buttonStyles = 'position: absolute;width:90px;z-index:10;left: 330px';
-        let updateChampTeamButton = '<div style="' + buttonStyles + ';top: 10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("updateChampTeamButton", "tooltip") + '</span><label class="myButton" id="updateChampTeamButton">' + getTextForUI("updateChampTeamButton", "elementText") + ' x' + maxLoops + '</label></div>';
+        const updateChampTeamButton = '<div style="' + buttonStyles + ';top: 10px" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("updateChampTeamButton", "tooltip") + '</span><label class="myButton" id="updateChampTeamButton">' + getTextForUI("updateChampTeamButton", "elementText") + ' x' + maxLoops + '</label></div>';
         $(".champions-top__inner-wrapper").append(updateChampTeamButton);
         if (freeDrafts == 0)
             $('#updateChampTeamButton').attr('disabled', 'disabled');
@@ -17309,7 +17455,7 @@ class Champion {
             for (var i = 0; i < 10; i++) {
                 var expectedPose = championRequiredPoses[i % 5];
                 if (girlsPerPose[expectedPose] && girlsPerPose[expectedPose].length > 0) {
-                    let color = 'gold'; // i >= 5 ? 'white' : 'gold';
+                    const color = 'gold'; // i >= 5 ? 'white' : 'gold';
                     girlsPerPose[expectedPose][0].htmlDom.append('<span class="hhgirlOrder best" title="' + getTextForUI("ChampGirlOrder", "tooltip") + ' ' + (i + 1) + '" style="position: absolute;top: 41px;left: 3px;z-index: 10;color:' + color + ';">' + (i + 1) + '</span>');
                     girlsPerPose[expectedPose].shift();
                 }
@@ -17323,7 +17469,7 @@ class Champion {
         $(document).on('click', newDraftButtonQuery, indicateBestTeam);
         $(document).on('click', confirmDraftButtonQuery, indicateBestTeam);
         var checkAjaxCompleteOnChampionPage = function (event, request, settings) {
-            let match = settings.data.match(/action=champion_team_draft/);
+            const match = settings.data.match(/action=champion_team_draft/);
             if (match === null)
                 return;
             champTeam = request.responseJSON.teamArray;
@@ -17505,7 +17651,7 @@ class Champion {
         const championWithEventGirl = autoChampsEventGirls.map(a => Number(a.champ_id));
         $('span.stage-bar-tier').each(function (i, tier) {
             const champion = new ChampionModel(i, (tier.getAttribute("hh_title") || '').split('/')[0].replace(/[^0-9]/gi, ''), Filter.includes(i + 1));
-            let timerElm = $($('a.champion-lair div.champion-lair-name')[i + 1]).find('span[rel=expires]').text();
+            const timerElm = $($('a.champion-lair div.champion-lair-name')[i + 1]).find('span[rel=expires]').text();
             if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
                 champion.timer = Number(convertTimeToInt(timerElm));
             }
@@ -17707,24 +17853,24 @@ class Champion {
                 const autoChampsEventGirls = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
                 const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
                 for (let i = 0; i < championMap.length; i++) {
-                    let OnTimer = championMap[i].timer > 0;
+                    const OnTimer = championMap[i].timer > 0;
                     let autoChampGirlInEvent = false;
                     let autoChampGirlOnChamp = false;
-                    let autoChampGirlsIds = [];
+                    const autoChampGirlsIds = [];
                     let autoChampGirlsEventsID;
                     if (autoChampsForceStartEventGirl) {
                         for (let ec = autoChampsEventGirls.length; ec > 0; ec--) {
-                            let idArray = Number(ec) - 1;
+                            const idArray = Number(ec) - 1;
                             if (Number(autoChampsEventGirls[idArray].champ_id) === i + 1) {
                                 autoChampGirlInEvent = true;
                                 autoChampGirlsIds.push(Number(autoChampsEventGirls[idArray].girl_id));
                                 autoChampGirlsEventsID = autoChampsEventGirls[idArray].event_id;
                             }
                         }
-                        let firstLockedLevelOfChampRequest = 'a.champion-lair[href*=' + Number(i + 1) + '] .stage-icon.locked';
+                        const firstLockedLevelOfChampRequest = 'a.champion-lair[href*=' + Number(i + 1) + '] .stage-icon.locked';
                         if (autoChampGirlInEvent && $(firstLockedLevelOfChampRequest).length > 0) {
-                            let firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
-                            let parsedFirstLockedLevelOfChamp = safeJsonParse(firstLockedLevelOfChamp, null);
+                            const firstLockedLevelOfChamp = $(firstLockedLevelOfChampRequest)[0].getAttribute("champion-rewards-tooltip");
+                            const parsedFirstLockedLevelOfChamp = safeJsonParse(firstLockedLevelOfChamp, null);
                             if (parsedFirstLockedLevelOfChamp !== null
                                 && parsedFirstLockedLevelOfChamp.stage.girl_shards
                                 && parsedFirstLockedLevelOfChamp.stage.girl_shards.length > 0) {
@@ -17817,7 +17963,7 @@ class Champion {
 // club-specific UI elements (e.g. Club Champion buttons). This ensures that
 // club features are only shown when the player has an active membership.
 //
-// Used by: Service/index.ts (main automation loop), ClubChampion.ts
+// Used by: Service/AutoLoopPageHandlers.ts, Service/StartService.ts
 //
 
 
@@ -17942,7 +18088,7 @@ var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisA
 // in club champion rounds. Requires active club membership (see Club.ts).
 //
 // Depends on: Club.ts (membership check), TeamModule.ts (team selection)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 
 
@@ -17963,8 +18109,8 @@ class ClubChampion {
         var page = getPage();
         if (page == ConfigHelper.getHHScriptVars("pagesIDClub")) {
             let SecsToNextTimer = -1;
-            let restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
-            let restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
+            const restTeamFilter = 'div.club_champions_details_container div.team_rest_timer span[rel="timer"]';
+            const restChampionFilter = 'div.club_champions_details_container div.champion_rest_timer span[rel="expires"]';
             if ($(restTeamFilter).length > 0) {
                 SecsToNextTimer = Number(convertTimeToInt($(restTeamFilter).text()));
                 logHHAuto("Team is resting for : " + TimeHelper.toHHMMSS(SecsToNextTimer));
@@ -18004,7 +18150,7 @@ class ClubChampion {
     /** From club champion page */
     static getRemainingRestTime() {
         let remainingRestTime = 0;
-        let timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
+        const timerElm = $('.champions-bottom__rest .timer span[rel=expires]').text();
         if (timerElm !== undefined && timerElm !== null && timerElm.length > 0) {
             remainingRestTime = Number(convertTimeToInt(timerElm));
         }
@@ -18101,16 +18247,16 @@ class ClubChampion {
                     logHHAuto('Click champions tab');
                     $("#club_champions_tab").trigger('click');
                 }
-                let Started = $("div.club-champion-members-challenges .player-row").length === 1;
-                let secsToNextTimer = ClubChampion.getNextClubChampionTimer();
-                let noTimer = secsToNextTimer === -1;
+                const Started = $("div.club-champion-members-challenges .player-row").length === 1;
+                const secsToNextTimer = ClubChampion.getNextClubChampionTimer();
+                const noTimer = secsToNextTimer === -1;
                 if ((Started || getStoredValue(HHStoredVarPrefixKey + SK.autoClubForceStart) === "true") && noTimer) {
                     let ticketUsed = 0;
-                    let ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
+                    const ticketsUsedRequest = "div.club-champion-members-challenges .player-row .data-column:nth-of-type(3)";
                     if ($(ticketsUsedRequest).length > 0) {
                         ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
                     }
-                    let maxTickets = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoClubChampMax));
+                    const maxTickets = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoClubChampMax));
                     //console.log(maxTickets, ticketUsed);
                     if (maxTickets > ticketUsed) {
                         logHHAuto("Let's do him!");
@@ -19589,8 +19735,8 @@ class LivelyScene {
     }
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         let remainingTime = 3600;
         if (timeLeft !== undefined && timeLeft.length) {
             remainingTime = Number(convertTimeToInt(timeLeft));
@@ -19708,7 +19854,7 @@ class LivelyScene {
                 for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
                     const puzzlePiece = puzzlePieces[currentReward];
                     if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                        let rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
+                        const rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
                         const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
                         const iconHref = RewardHelper.getRewardsIconHref(rewardType);
                         if ($puzzlePiece.length > 0 && iconHref) {
@@ -19790,11 +19936,11 @@ class PathOfAttraction {
     }
     static runOld() {
         //https://nutaku.haremheroes.com/path-of-attraction.html"
-        let array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
+        const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
         if (array.length == 0) {
             return;
         }
-        let lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
+        const lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
         for (let i = array.length - 1; i >= 0; i--) {
             if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
                 array[i].style.display = "none";
@@ -20055,7 +20201,7 @@ class PathOfGlory {
     }
     static getRewardButtonToCollect() {
         const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
-        let buttonsToCollect = [];
+        const buttonsToCollect = [];
         const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
         for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
@@ -20103,7 +20249,7 @@ class PathOfGlory {
                 logHHAuto("Checking Path of Glory for collectable rewards.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
+                const buttonsToCollect = PathOfGlory.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
                     function collectPoGRewards() {
                         if (buttonsToCollect.length > 0) {
@@ -20184,7 +20330,7 @@ class PathOfValue {
     }
     static getRewardButtonToCollect() {
         const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
-        let buttonsToCollect = [];
+        const buttonsToCollect = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
@@ -20232,7 +20378,7 @@ class PathOfValue {
                 logHHAuto("Checking Path of Valor for collectable rewards.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = PathOfValue.getRewardButtonToCollect();
+                const buttonsToCollect = PathOfValue.getRewardButtonToCollect();
                 if (buttonsToCollect.length > 0) {
                     function collectPoVRewards() {
                         if (buttonsToCollect.length > 0) {
@@ -20703,7 +20849,7 @@ var Pachinko_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // to the correct tab, and executes free pulls when available. Does not spend
 // premium currency -- only claims free pulls.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts, index.ts
 //
 
 
@@ -21268,7 +21414,7 @@ function decideCheckShop(state) {
 // desired equipment, sells unwanted items, and manages inventory slots.
 // Tracks shop refresh timers and available currency.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 
 
@@ -23506,7 +23652,7 @@ class TeamModule {
             <span>Needed: ${team['scrolls_' + rarity.toLowerCase()]}/Owned: ${heroCurrencies['scrolls_' + rarity.toLowerCase()]} <span><br/>`;
         };
         const estimatedCost = 5 * ((team.scrolls_mythic || 0) + (team.scrolls_legendary || 0) + (team.scrolls_epic || 0) + (team.scrolls_rare || 0) + (team.scrolls_common || 0));
-        let stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
+        const stuffTeamMenu = `<div style="padding:5px; display:flex;flex-direction:column;font-size:15px; max-width:550px" class="HHAutoScriptMenu">
             <div class="rowLine">
                 <p>${getTextForUI("StuffTeam", "tooltip")}</p>
             </div>
@@ -23772,9 +23918,9 @@ class TeamModule {
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
-            let girlToSelect = best ? i : i + 7;
+            const girlToSelect = best ? i : i + 7;
             //console.log(i,girlToSelect,best);
-            let selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
+            const selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
             selectedGirl.click();
             //console.log(selectedGirl);
             if ($('.topNumber').length > girlToSelect && i < 7) {
@@ -23793,13 +23939,13 @@ class TeamModule {
             }
         }
         function assignToTeam(i = 1, best = false) {
-            let position = i - 1;
-            let selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
+            const position = i - 1;
+            const selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
             selectedPosition.click();
             //console.log(selectedPosition);
             setTimeout(function () { selectFromHaremBest(i, best); }, randomInterval(300, 600));
         }
-        let topNumbers = $('.topNumber');
+        const topNumbers = $('.topNumber');
         if (topNumbers.length > 0) {
             TeamModule.resetTeam();
             setTimeout(function () { assignToTeam(1, true); }, randomInterval(300, 600)); // wait for clear-team UI to settle before assigning
@@ -24003,28 +24149,28 @@ class TeamModule {
         TeamModule.updateTeamUI(deckID, result);
     }
     static setTopTeamLegacy(sumFormulaType) {
-        let arr = $('div[id_girl]');
+        const arr = $('div[id_girl]');
         let numTop = 16;
         if (numTop > arr.length)
             numTop = arr.length;
-        let deckID = [];
-        let deckStat = [];
+        const deckID = [];
+        const deckStat = [];
         for (let z = 0; z < numTop; z++) {
             deckID.push(-1);
             deckStat.push(-1);
         }
-        let levelPlayer = Number(HeroHelper.getLevel());
+        const levelPlayer = Number(HeroHelper.getLevel());
         for (let i = arr.length - 1; i > -1; i--) {
-            let gID = Number($(arr[i]).attr('id_girl'));
+            const gID = Number($(arr[i]).attr('id_girl'));
             const tooltipData = $('.girl_img', $(arr[i])).attr(ConfigHelper.getHHScriptVars('girlToolTipData')) || '';
             if (tooltipData == '') {
                 logHHAuto('ERROR, no girl information found');
                 return;
             }
-            let obj = JSON.parse(tooltipData);
-            let tempGrades = obj.graded2;
-            let countTotalGrades = (tempGrades.match(/<g/g) || []).length;
-            let countFreeGrades = (tempGrades.match(/grey/g) || []).length;
+            const obj = JSON.parse(tooltipData);
+            const tempGrades = obj.graded2;
+            const countTotalGrades = (tempGrades.match(/<g/g) || []).length;
+            const countFreeGrades = (tempGrades.match(/grey/g) || []).length;
             let currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
             if (sumFormulaType == 1) {
                 currentStat = obj.caracs.carac1 + obj.caracs.carac2 + obj.caracs.carac3;
@@ -25264,8 +25410,8 @@ class DoublePenetration {
     }
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         let dpRemainingTime = 3600;
         if (timeLeft !== undefined && timeLeft.length) {
             dpRemainingTime = Number(convertTimeToInt(timeLeft));
@@ -25294,7 +25440,7 @@ class DoublePenetration {
                 logHHAuto("Checking double penetration event for collectable rewards.");
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                let buttonsToCollect = [];
+                const buttonsToCollect = [];
                 const listDpEventTiersToClaim = $(dPTierQuery);
                 for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
@@ -25441,8 +25587,8 @@ class DoublePenetration {
 class KinkyCumpetition {
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventKinkyCumpetitionGoing', Number(convertTimeToInt(timeLeft)));
         }
@@ -25454,9 +25600,9 @@ class KinkyCumpetition {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
+            const girlData = allEventGirlz[currIndex];
             if (girlData.shards < 100) {
                 eventList[eventID]["isCompleted"] = false;
             }
@@ -25484,16 +25630,6 @@ class EventGirl {
             this.parseSource(girlData);
         }
     }
-    /*
-    constructor(girl_id: number, troll_id: number, champ_id: number, girl_shards: number, girl_name: string, event_id: string, is_mythic: boolean = false) {
-        this.girl_id = girl_id;
-        this.troll_id = troll_id;
-        this.champ_id = champ_id;
-        this.girl_shards = girl_shards;
-        this.is_mythic = is_mythic;
-        this.girl_name = girl_name;
-        this.event_id = event_id;
-    }*/
     isOnTroll() {
         return this.troll_id > 0;
     }
@@ -25513,7 +25649,7 @@ class EventGirl {
         if (girlData.source) {
             if (girlData.source.name === 'event_troll') {
                 try {
-                    let parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
+                    const parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
                     this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
                     if (girlData.source.anchor_source.disabled) {
                         logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
@@ -25522,7 +25658,7 @@ class EventGirl {
                 }
                 catch (error) {
                     try {
-                        let parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
+                        const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
                         this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
                         if (girlData.source.anchor_win_from.disabled) {
                             logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
@@ -25590,9 +25726,9 @@ class EventGirl {
 class MythicEvent {
     static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
         const eventID = hhEvent.eventId;
-        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
         }
@@ -25605,14 +25741,14 @@ class MythicEvent {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
-            let ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
-            let timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
+            const girlData = allEventGirlz[currIndex];
+            const ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
+            const timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
             if ($(ShardsQuery).length > 0) {
-                let remShards = Number($(ShardsQuery)[0].innerText);
-                let nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
+                const remShards = Number($(ShardsQuery)[0].innerText);
+                const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
                 if (girlData.shards < 100) {
                     eventList[eventID]["isCompleted"] = false;
                     if (nextWave === -1) {
@@ -25666,9 +25802,9 @@ class MythicEvent {
 class PlusEvent {
     static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
         const eventID = hhEvent.eventId;
-        let Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        let refreshTimer = randomInterval(3600, 4000);
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         if (timeLeft !== undefined && timeLeft.length) {
             setTimer('eventGoing', Number(convertTimeToInt(timeLeft)));
         }
@@ -25680,9 +25816,9 @@ class PlusEvent {
         eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
         eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
         eventList[eventID]["isCompleted"] = true;
-        let allEventGirlz = hhEventData ? hhEventData.girls : [];
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            let girlData = allEventGirlz[currIndex];
+            const girlData = allEventGirlz[currIndex];
             if (girlData.shards < 100) {
                 eventList[eventID]["isCompleted"] = false;
                 const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
@@ -25887,13 +26023,13 @@ class SultryMysteries {
     }
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
-        let refreshTimer = randomInterval(3600, 4000);
+        const refreshTimer = randomInterval(3600, 4000);
         // Grid tab (shown by default on /event.html) doesn't render this
         // timer -- it only appears after switching to the shop tab -- so
         // sm_event_data.seconds_until_event_end (available on either tab)
         // is tried first; the DOM reading is a fallback for when that
         // global isn't there.
-        let timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
         const domSecondsLeft = timeLeft !== undefined && timeLeft.length ? Number(convertTimeToInt(timeLeft)) : null;
         const hhVarSecondsLeft = getHHVars('sm_event_data.seconds_until_event_end', false);
         const secondsLeft = resolveSultryMysteriesSecondsLeft(hhVarSecondsLeft, domSecondsLeft, 3600);
@@ -25914,7 +26050,7 @@ class SultryMysteries {
             const gridButton = $('#grid_tab');
             shopButton.trigger('click');
             setTimeout(function () {
-                let shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
+                const shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
                 setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
                 eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
                 setTimeout(function () { gridButton.trigger('click'); }, randomInterval(800, 1200));
@@ -26811,18 +26947,6 @@ class EventModule {
             // The collect logic on the actual event page checks availability before
             // acting; the toggle does not need to be in sync with the home banner.
         }
-        /*
-                if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent") || currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-                    const eventList = isJSON(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) ? JSON.parse(getStoredValue(HHStoredVarPrefixKey + TK.eventsList)) : {};
-                    for (const eventIDStored of Object.keys(eventList)) {
-                        //console.log(eventID);
-                        if (!ongoingEventIDs.includes(eventIDStored)) {
-                            logHHAuto(`Event ${eventIDStored} seems not available anymore, removing from store`);
-                            EventModule.clearEventData(eventIDStored);
-                        }
-                    }
-                }
-        */
         return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
     }
 }
@@ -26895,13 +27019,13 @@ class RewardHelper {
                 reward = 'event_cash';
             }
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
-                let objectData = $(inSlot).data("d");
+                const objectData = $(inSlot).data("d");
                 //console.log(currentIndicator+" : "+inSlot.getAttribute("rarity")+" "+objectData.item.type+" "+objectData.item.value);
                 reward = objectData.item.type;
             }
             else {
                 const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
-                for (let currentRewards of Object.keys(possibleRewards)) {
+                for (const currentRewards of Object.keys(possibleRewards)) {
                     if (inSlot.className.indexOf('slot_' + currentRewards) >= 0) {
                         reward = currentRewards;
                     }
@@ -27111,7 +27235,7 @@ class RewardHelper {
         }
     }
     static closeRewardPopupIfAny(logging = true, popupId = '') {
-        let rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
         if ($(rewardQuery).length > 0) {
             if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
                 logHHAuto("Redirect to harem button detected.");
@@ -27125,7 +27249,7 @@ class RewardHelper {
         return false;
     }
     static closeGirlRewardPopupIfAny(logging = true, popupId = '') {
-        let rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
         if ($(rewardQuery).length > 0) {
             if (logging)
                 logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
@@ -27135,16 +27259,16 @@ class RewardHelper {
         return false;
     }
     static ObserveAndGetGirlRewards() {
-        let inCaseTimer = setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 60000); //in case of issue
+        const inCaseTimer = setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 60000); //in case of issue
         function parseReward() {
             var _a, _b;
-            let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-            let eventGirl = EventModule.getEventGirl();
-            let eventMythicGirl = EventModule.getEventMythicGirl();
+            const eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+            const eventGirl = EventModule.getEventGirl();
+            const eventMythicGirl = EventModule.getEventMythicGirl();
             if (!eventsGirlz || eventsGirlz.length == 0) {
                 return -1;
             }
-            let foughtTrollId = Number(queryStringGetParam(window.location.search, 'id_opponent'));
+            const foughtTrollId = Number(queryStringGetParam(window.location.search, 'id_opponent'));
             const loveRaid = LoveRaidManager.getAllRaids();
             const foughtTrollFromLoveRaid = loveRaid.find(raid => raid.trollId === foughtTrollId);
             if (eventMythicGirl.troll_id && foughtTrollId != eventMythicGirl.troll_id && eventGirl.troll_id && foughtTrollId != eventGirl.troll_id && !foughtTrollFromLoveRaid) {
@@ -27161,11 +27285,11 @@ class RewardHelper {
             let renewEvent = "";
             let needLoveRaidUpdate = false;
             let loveRaidGirlWon = false;
-            let girlShardsWon = $('.shards_wrapper .slot_girl_shards');
+            const girlShardsWon = $('.shards_wrapper .slot_girl_shards');
             logHHAuto("Detected girl shard reward");
             for (var currGirl = 0; currGirl <= girlShardsWon.length; currGirl++) {
-                let girlIdSrc = $("img", girlShardsWon[currGirl]).attr("src") || '';
-                let girlId = Number(girlIdSrc.split('/')[5]);
+                const girlIdSrc = $("img", girlShardsWon[currGirl]).attr("src") || '';
+                const girlId = Number(girlIdSrc.split('/')[5]);
                 const previousGirlShards = Math.min(Number($('.shards[shards]', girlShardsWon[currGirl]).attr('shards')), 100);
                 let wonShards = Number($('.shards[shards]', girlShardsWon[currGirl]).text().replace(/^\D+/g, ''));
                 if (!(wonShards > 0)) {
@@ -27174,7 +27298,7 @@ class RewardHelper {
                 }
                 const girlShards = Math.min(previousGirlShards + wonShards, 100);
                 if (eventsGirlz.length > 0) {
-                    let girlIndex = eventsGirlz.findIndex((element) => element.girl_id === girlId);
+                    const girlIndex = eventsGirlz.findIndex((element) => element.girl_id === girlId);
                     if (girlIndex !== -1) {
                         eventsGirlz[girlIndex].shards = girlShards;
                         if (girlShards === 100) {
@@ -27244,7 +27368,7 @@ class RewardHelper {
                 return;
             }
         }
-        let observerReward = new MutationObserver(function (mutations) {
+        const observerReward = new MutationObserver(function (mutations) {
             mutations.forEach(parseReward);
         });
         if ($('#rewards_popup').length > 0) {
@@ -27262,9 +27386,9 @@ class RewardHelper {
                 parseReward();
             }
         }
-        let observerPass = new MutationObserver(function (mutations) {
+        const observerPass = new MutationObserver(function (mutations) {
             mutations.forEach(function (mutation) {
-                let querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
+                const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0
                     || $(querySkip)[0].style.display !== "block") {
                     return;
@@ -27306,7 +27430,7 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
 //
 // Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
 //
 
 
@@ -28945,7 +29069,7 @@ class HHMenu {
             const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
             if (Object.keys(sideTrollz).length > 0) {
                 trollOptions.add(this._createHtmlSeparator(getTextForUI("sideAdventure", "elementText")));
-                for (let i of Object.keys(sideTrollz)) {
+                for (const i of Object.keys(sideTrollz)) {
                     const option = this._createHtmlOption(i + '', sideTrollz[i]);
                     if (option.text !== 'EMPTY' && sideTrollz[i]) {
                         trollOptions.add(option);
@@ -29022,12 +29146,12 @@ class HHMenu {
 }
 HHMenu.BUTTON_MENU_ID = 'sMenuButton';
 function maskInactiveMenus() {
-    let menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
+    const menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
         "isEnabledSeasonalEvent", "isEnabledBossBangEvent", "isEnabledSultryMysteriesEvent",
         "isEnabledDailyRewards", "isEnabledFreeBundles", "isEnabledMission", "isEnabledContest",
         "isEnabledTrollBattle", "isEnabledPowerPlaces", "isEnabledSalary", "isEnabledPachinko", "isEnabledQuest", "isEnabledSideQuest", "isEnabledSeason", "isEnabledLeagues",
         "isEnabledAllChamps", "isEnabledChamps", "isEnabledClubChamp", "isEnabledPantheon", "isEnabledShop"];
-    for (let menu of menuIDList) {
+    for (const menu of menuIDList) {
         const menuElement = document.getElementById(menu);
         if (menuElement !== null && ConfigHelper.getHHScriptVars(menu, false) !== null && !ConfigHelper.getHHScriptVars(menu, false)) {
             menuElement.style.display = "none";
@@ -29059,7 +29183,7 @@ function switchHHMenuButton(isActive) {
 // via AJAX requests using the player's soft currency. Manages purchase
 // cooldowns and tracks spending to avoid over-buying.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/StartService.ts
 //
 
 
@@ -29114,7 +29238,7 @@ class Market {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoosters) === "true" && boosterFilter.length > 0) {
                 Was = shop[1].length;
                 for (var boost of boosterFilter) {
-                    let boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
+                    const boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
                     for (var n1 = shop[1].length - 1; n1 >= 0; n1--) {
                         if (kobans >= Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)) + Number(shop[1][n1].price_buy) && shop[1][n1].item.currency == "hc" && shop[1][n1].item.identifier == boost && (shop[1][n1].item.rarity == 'legendary' || shop[1][n1].item.rarity == 'mythic') && boosterOwned < MaxBooster) {
                             logHHAuto({ log: 'wanna buy ', object: shop[1][n1], owning: boosterOwned });
@@ -29325,7 +29449,7 @@ class MissionRewards {
 // mission automatically. Tracks mission durations and schedules collection
 // at the right time.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts, Service/StartService.ts
 //
 
 
@@ -29388,7 +29512,7 @@ class Missions {
                 if (RewardHelper.closeRewardPopupIfAny()) {
                     return true;
                 }
-                let canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
+                const canCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoMissionCollect) === "true" && $(".mission_button button:visible[rel='claim']").length > 0 && TimeHelper.canCollectCompetitionActive();
                 var { allGood, missions, missionOngoing } = Missions.parseMissions(canCollect);
                 if (debugEnabled)
                     logHHAuto("Missions parsed, mission list is:", missions);
@@ -29446,7 +29570,7 @@ class Missions {
                             return true;
                         }
                     }
-                    let time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
+                    const time = $('.end-gift-timer span[rel="expires"],.after_gift .new-missions-timer span[rel="expires"]').first().text();
                     if (time === undefined || time === null || time.length === 0) {
                         logHHAuto("New mission time was undefined... Setting it manually to 10min.");
                         setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
@@ -29637,7 +29761,7 @@ class Missions {
 // game features.
 //
 // Depends on: League.ts, Season.ts, Pantheon.ts, PentaDrill.ts (energy type checks)
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/StartService.ts
 //
 
 
@@ -29786,11 +29910,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.8.0";
+const FEATURE_POPUP_VERSION = "8.9.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.8.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.9.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -29814,6 +29938,7 @@ const FEATURE_POPUP_CONTENT = `
     </ul>
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Better team selection (new in 8.7.0)</p>
     <p style="margin-bottom:10px;">The picker no longer chases the <b>Total Power</b> the game prints &mdash; it has the game calculate each candidate team and fields the one that actually wins fights. Measured on one account: <b>88.9% &rarr; 92.2%</b> average win chance at identical Total Power. Press <b>1 Unequip All</b> first, or the team already wearing the gear wins the selection for its items.</p>
+    <p style="margin-bottom:10px;"><b>Deutsch:</b> Sprache Deutsch vervollst&auml;ndigt, Fehler gerne melden.</p>
     <p style="margin-bottom:0; font-size:11px; color:#888;">Nothing was removed and no settings are reset. The gear buttons need <b>Show market tools</b>. Full details in the CHANGELOG.</p>
   </div>
 `;
@@ -30866,7 +30991,7 @@ const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
 class StartService {
     static checkVersion() {
-        let previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
+        const previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
         if (previousScriptVersion != GM.info.script.version) {
             // run action on new script version
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
@@ -30913,9 +31038,9 @@ class StartService {
     }
 }
 function StartService_setDefaults(force = false) {
-    for (let i of Object.keys(HHStoredVars)) {
+    for (const i of Object.keys(HHStoredVars)) {
         if (HHStoredVars[i].storage !== undefined) {
-            let storageItem = getStorageItem(HHStoredVars[i].storage);
+            const storageItem = getStorageItem(HHStoredVars[i].storage);
             let isInvalid = false;
             //console.log(storageItem[i], storageItem[i] !== undefined);
             if (HHStoredVars[i].isValid !== undefined && storageItem[i] !== undefined) {
@@ -31194,14 +31319,14 @@ function start() {
     $("#git").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/wiki"); });
     $("#ReportBugs").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
     $("#loadConfig").on("click", function () {
-        let LoadDialog = '<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
+        const LoadDialog = '<p>After you select the file the settings will be automatically updated.</p><p> If nothing happened, then the selected file contains errors.</p><p id="LoadConfError"style="color:#f53939;"></p><p><label><input type="file" id="myfile" accept=".json" name="myfile"> </label></p>';
         fillHHPopUp("loadConfig", getTextForUI("loadConfig", "elementText"), LoadDialog);
         $('#myfile').on('change', myfileLoad_onChange);
     });
     $("#saveConfig").on("click", saveHHVarsSettingsAsJSON);
     $("#saveDefaults").on("click", saveHHStoredVarsDefaults);
     $("#DebugMenu").on("click", function () {
-        let debugDialog = '<div style="padding:10px; display:flex;flex-direction:column">'
+        const debugDialog = '<div style="padding:10px; display:flex;flex-direction:column">'
             + '<p>HHAuto : v' + GM_info.script.version + '</p>'
             + '<p>' + getTextForUI("DebugFileText", "elementText") + '</p>'
             + '<div style="display:flex;flex-direction:row">'
@@ -31234,7 +31359,7 @@ function start() {
         });
         $("#saveDebug").on("click", saveHHDebugLog);
         $("#timerResetButton").on("click", function () {
-            let timerSelector = document.getElementById("timerResetSelector");
+            const timerSelector = document.getElementById("timerResetSelector");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer", "elementText") && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector", "elementText")) {
                 const sMenu = document.getElementById("sMenu");
                 if (sMenu != null)
@@ -31245,7 +31370,7 @@ function start() {
             }
         });
         $(document).on('change', "#timerResetSelector", function () {
-            let timerSelector = document.getElementById("timerResetSelector");
+            const timerSelector = document.getElementById("timerResetSelector");
             const timerLeftTime = document.getElementById("timerLeftTime");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer", "elementText") && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector", "elementText")) {
                 $("#timerLeftTime").text(getTimeLeft(timerSelector.options[timerSelector.selectedIndex].text));
@@ -31255,15 +31380,15 @@ function start() {
             }
         });
         // Add Timer reset options //changed
-        let timerOptions = document.getElementById("timerResetSelector");
+        const timerOptions = document.getElementById("timerResetSelector");
         var countTimers = 0;
-        let optionElement = document.createElement("option");
+        const optionElement = document.createElement("option");
         optionElement.value = countTimers + '';
         optionElement.text = getTextForUI("timerResetSelector", "elementText");
         countTimers++;
         timerOptions.add(optionElement);
-        for (let i2 in Timers) {
-            let optionElement = document.createElement("option");
+        for (const i2 in Timers) {
+            const optionElement = document.createElement("option");
             optionElement.value = countTimers + '';
             countTimers++;
             optionElement.text = i2;
@@ -31271,7 +31396,7 @@ function start() {
         }
         ;
         if (countTimers === 1) {
-            let optionElement = document.createElement("option");
+            const optionElement = document.createElement("option");
             optionElement.value = countTimers + '';
             optionElement.text = getTextForUI("timerResetNoTimer", "elementText");
             timerOptions.add(optionElement);
@@ -31895,7 +32020,7 @@ function extractTimerText(rawText) {
 // detects available bundles, navigates to the shop page, and claims them
 // automatically on a timer-based schedule.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts
 //
 
 
@@ -31977,7 +32102,7 @@ class Bundles {
                     const freeBundlesNumber = $(freeButtonBundleQuery).length;
                     if (freeBundlesNumber > 0) {
                         logHHAuto("Free Bundles found: " + freeBundlesNumber);
-                        let buttonsToCollect = [];
+                        const buttonsToCollect = [];
                         for (let currentBundle = 0; currentBundle < freeBundlesNumber; currentBundle++) {
                             buttonsToCollect.push($(freeButtonBundleQuery)[currentBundle]);
                         }
@@ -32299,7 +32424,7 @@ var HaremSalary_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // periodically navigates to the harem page and collects accumulated salary
 // earnings, tracking collection timers to avoid unnecessary page loads.
 //
-// Used by: Service/index.ts (main automation loop)
+// Used by: Service/Pipeline.config.ts
 //
 
 
@@ -32378,7 +32503,7 @@ class HaremSalary {
 // reward drops. It acts as a shared handler for all battle outcomes rather
 // than being specific to one game mode.
 //
-// Used by: Service/index.ts (main automation loop), Troll.ts, League.ts,
+// Used by: Service/Pipeline.config.ts
 //          and other fight modules that navigate to battle pages
 //
 
@@ -32412,7 +32537,7 @@ class GenericBattle {
             }
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
                 const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
-                let troll_id = queryStringGetParam(window.location.search, 'id_opponent');
+                const troll_id = queryStringGetParam(window.location.search, 'id_opponent');
                 //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
                 if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
@@ -33390,8 +33515,8 @@ const handleTrollBattle = {
  * either fires too often (blocking event-parsing) or too rarely (issue #1700
  * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
  *
- * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (13 cases)
- *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (5 cases)
+ * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (9 cases)
+ *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (3 cases)
  * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
  */
 function wouldFightWithPower(eventGirl, eventMythicGirl, raidStarsRaid, loveRaid) {
