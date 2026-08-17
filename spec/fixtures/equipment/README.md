@@ -2,38 +2,41 @@
 
 ## Source
 
-- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T09-42-21-877Z.json`
-- Capture date: 2026-08-17T09:42Z, inspector v4.8.0
-- Path: `pages[28].girls_full["game.teamGirls"][n].armor[0]` (`/edit-team.html`)
+- Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-08-17T13-13-52-547Z.json`
+- Capture date: 2026-08-17T13:13Z, inspector v4.9.0
+- `hero-armor.json` — `pages[<shop>].market_equipment.equipped_armor` and
+  `.player_inventory.armor` (`/shop.html`)
+- `girl-armor.json` — `pages[<edit-team>].girls_full["game.teamGirls"][n].armor[0]`
 
 ## Files
 
-`girl-armor.json` — one equipped girl armor. Girl and hero equipment share the
+### `hero-armor.json`
+
+Three entries out of 6 worn and 204 stocked items (104 mythic, 100 legendary,
+all `wearer: "hero"`, evenly spread over the six slots):
+
+- `equipped` — a worn capped mythic with both resonance axes. It carries
+  `id_member_armor_equipped` and **no `id_member_armor` key at all**. That is
+  the shape that dropped all six worn items in August, and the reason
+  `parseArmorItem` has to be told which side an entry came from instead of
+  sniffing for a field.
+- `inventoryMythic` — a stocked mythic with both axes, the mirror case:
+  `id_member_armor` and no equipped id.
+- `inventoryLegendary` — a stocked legendary. Two things only real data shows:
+  `caracs.chance` arrives as the **string** `"4635.10"`, and
+  `resonance_bonuses` is **absent**, not an empty object. 100 of the 204
+  stocked items look like this.
+
+The capture also settles the two constants the optimiser's whole model rests
+on, asserted in `the model against the capture`: a level-20 mythic really
+carries 4000/4000/4000/4000/5000 (21,000 points), and resonance really grows
+at 0.1 per level, doubled where the theme axis lands on the chance track.
+
+### `girl-armor.json` — one equipped girl armor. Girl and hero equipment share the
 inventory the optimiser reads, so this is the entry it has to drop. It is the
 one shape that could not have been guessed: it carries
 `id_girl_armor_equipped` and `id_girl_item_armor` and no hero id at all, plus
 `skin.wearer === "girl"` and `skin.subtype === 3`.
-
-## What is missing, and why
-
-The hero's own armor is **not** in this dump. `equipped_armor` and
-`player_inventory.armor` exist as page globals on `/shop.html` — the inspector
-records their names and types in `globals_overview` but not their contents.
-Until it captures them, the positive cases in
-`spec/Service/EquipmentOptimizerService.spec.ts parseArmorItem` still run on a
-hand-written entry transcribed from the live objects measured on 2026-08-16.
-
-Capturing them is a small inspector change (add both globals to the captured
-buckets on the market page) or a one-off console read on `/shop.html`:
-
-```js
-JSON.stringify({ equipped: equipped_armor, inventory: player_inventory.armor.slice(0, 4) })
-```
-
-Both entry kinds are needed, because they differ: an item under `#equiped`
-carries only `id_member_armor_equipped`, an inventory entry only
-`id_member_armor`. Sniffing on the field instead of being told which is which
-is exactly what dropped all six worn items in August 2026.
 
 ## Redactions
 
@@ -45,5 +48,18 @@ is exactly what dropped all six worn items in August 2026.
 
 ## How to refresh
 
-Take any girl off the fielded team in a fresh dump and keep her first armor
-entry whole, minus the redactions above.
+Both files come out of one auto-tour dump; inspector v4.9.0 or newer is
+required, because capturing `equipped_armor` / `player_inventory` is what that
+version added.
+
+1. `hero-armor.json`: from the `/shop.html` page, take one entry out of
+   `equipped_armor` that has both resonance axes, one mythic out of
+   `player_inventory.armor` that has both, and one legendary whose
+   `caracs.chance` is a string.
+2. `girl-armor.json`: take any girl off the fielded team and keep her first
+   armor entry whole.
+3. Apply the redactions above.
+
+If a refreshed capture makes `the model against the capture` fail, the game
+rebalanced mythics — that is a finding about the optimiser's model, not a
+broken test. Fix the model first, then the fixture.

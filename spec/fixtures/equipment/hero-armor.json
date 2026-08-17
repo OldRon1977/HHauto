@@ -1,0 +1,175 @@
+{
+  "equipped": {
+    "id_member_armor_equipped": 2807558,
+    "id_member": 1,
+    "id_variation": 91,
+    "id_item_skin": 467,
+    "level": 20,
+    "skin": {
+      "release_date": "1900-01-01",
+      "id_item_skin": 467,
+      "id_skin_set": 10,
+      "identifier": "ET10",
+      "subtype": 1,
+      "wearer": "hero",
+      "weight": 3,
+      "name": "Helmet"
+    },
+    "item": {
+      "id_item_equip": null,
+      "id_equip": null,
+      "rarity": "mythic",
+      "carac1": null,
+      "carac2": null,
+      "carac3": null,
+      "endurance": null,
+      "chance": null,
+      "ego": null,
+      "damage": null,
+      "name_add": null,
+      "weight": null,
+      "currency": "sc",
+      "type": "armor",
+      "name": "Helmet"
+    },
+    "name": "Helmet",
+    "price_buy": 65117,
+    "price_sell": 726311,
+    "carac1_equip": 4000,
+    "carac2_equip": 4000,
+    "carac3_equip": 4000,
+    "chance_equip": 5000,
+    "endurance_equip": 4000,
+    "resonance_bonuses": {
+      "class": {
+        "identifier": "3",
+        "resonance": "damage",
+        "bonus": 2
+      },
+      "theme": {
+        "identifier": "darkness",
+        "resonance": "chance",
+        "bonus": 4
+      }
+    },
+    "caracs": {
+      "carac1": 4000,
+      "carac2": 4000,
+      "carac3": 4000,
+      "endurance": 4000,
+      "chance": 5000
+    }
+  },
+  "inventoryMythic": {
+    "id_member_armor": 6910032,
+    "id_member": 1,
+    "id_variation": 78,
+    "id_item_skin": 31,
+    "level": 20,
+    "skin": {
+      "release_date": "1900-01-01",
+      "id_item_skin": 31,
+      "id_skin_set": 4,
+      "identifier": "EA4",
+      "subtype": 6,
+      "wearer": "hero",
+      "weight": 5,
+      "name": "Laptop"
+    },
+    "item": {
+      "id_item_equip": null,
+      "id_equip": null,
+      "rarity": "mythic",
+      "carac1": null,
+      "carac2": null,
+      "carac3": null,
+      "endurance": null,
+      "chance": null,
+      "ego": null,
+      "damage": null,
+      "name_add": null,
+      "weight": null,
+      "currency": "sc",
+      "type": "armor",
+      "name": "Laptop"
+    },
+    "name": "Laptop",
+    "price_buy": 65117,
+    "price_sell": 726311,
+    "carac1_equip": 4000,
+    "carac2_equip": 4000,
+    "carac3_equip": 4000,
+    "chance_equip": 5000,
+    "endurance_equip": 4000,
+    "resonance_bonuses": {
+      "class": {
+        "identifier": "3",
+        "resonance": "damage",
+        "bonus": 2
+      },
+      "theme": {
+        "identifier": "nature",
+        "resonance": "defense",
+        "bonus": 2
+      }
+    },
+    "caracs": {
+      "carac1": 4000,
+      "carac2": 4000,
+      "carac3": 4000,
+      "endurance": 4000,
+      "chance": 5000
+    }
+  },
+  "inventoryLegendary": {
+    "id_member_armor": 2136283700,
+    "id_member": 1,
+    "id_item_equip": 66,
+    "id_item_skin": 329,
+    "level": 663,
+    "carac1_equip": 3472,
+    "carac2_equip": 3249,
+    "carac3_equip": 3353,
+    "endurance_equip": 3340,
+    "chance_equip": "4635.10",
+    "ego_equip": 0,
+    "name": "Super Sexy Ninja Doctor Shirt",
+    "item": {
+      "id_item_equip": 66,
+      "id_equip": "EQ-LE-06",
+      "rarity": "legendary",
+      "carac1": 2.0999999999999996,
+      "carac2": 2.0999999999999996,
+      "carac3": 2.0999999999999996,
+      "endurance": 2.0999999999999996,
+      "chance": 3.027682097416681,
+      "ego": 0,
+      "damage": 0,
+      "name_add": 16,
+      "weight": 80,
+      "currency": "sc",
+      "type": "armor",
+      "name": "Super Sexy Ninja Doctor Shirt"
+    },
+    "skin": {
+      "release_date": "1900-01-01",
+      "id_item_skin": 329,
+      "id_skin_set": 57,
+      "identifier": "EH57",
+      "subtype": 2,
+      "wearer": "hero",
+      "weight": 0,
+      "name": "Ninja Doctor Shirt"
+    },
+    "price_buy": 18029248,
+    "price_sell": 1983218,
+    "caracs": {
+      "carac1": 3472,
+      "carac2": 3249,
+      "carac3": 3353,
+      "endurance": 3340,
+      "chance": "4635.10",
+      "ego": 0
+    }
+  }
+}

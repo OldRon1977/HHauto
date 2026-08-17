@@ -19,6 +19,31 @@ import {
 import type { PlayerClass } from '../../src/Service/TeamScoringService';
 import { loadFixture } from '../testHelpers/Fixtures';
 
+/** The raw shape the game serves under equipped_armor / player_inventory.armor.
+ *  Optional where the game itself is optional: a worn entry has no
+ *  id_member_armor, a legendary has no resonance_bonuses key. */
+interface RawArmor {
+    id_member_armor?: number;
+    id_member_armor_equipped?: number;
+    level: number;
+    skin: { subtype: number; wearer: string; name?: string };
+    item: { rarity: string; type?: string };
+    caracs: {
+        carac1: number; carac2: number; carac3: number;
+        endurance: number; chance: number | string; ego?: number;
+    };
+    resonance_bonuses?: {
+        class?: { identifier: string; resonance: string; bonus: number };
+        theme?: { identifier: string; resonance: string; bonus: number };
+    };
+}
+
+interface HeroArmorFixture {
+    equipped: RawArmor;
+    inventoryMythic: RawArmor;
+    inventoryLegendary: RawArmor;
+}
+
 const KNOW_HOW: PlayerClass = 3;
 
 /** Caracs a mythic really has at the given level (measured curve). At level
@@ -333,71 +358,87 @@ describe('themeFromTeamData', () => {
     });
 });
 
-describe('parseArmorItem', () => {
-    // The hero's own armor is not in the dump: `equipped_armor` and
-    // `player_inventory.armor` exist as page globals on shop.html but the
-    // inspector captures their names, not their contents. The positive cases
-    // below therefore still use a hand-written entry, transcribed from the
-    // live objects measured on 2026-08-16. Capturing those two globals is the
-    // one thing missing before this block is fully fixture-fed.
-    const raw = {
-        id_member_armor: 6602031,
-        level: 20,
-        skin: { subtype: 1, wearer: 'hero', name: 'Dragon Helmet' },
-        item: { rarity: 'mythic', type: 'armor' },
-        caracs: { carac1: 4000, carac2: 4000, carac3: 4000, endurance: 4000, chance: 5000 },
-        resonance_bonuses: {
-            class: { identifier: '1', resonance: 'damage', bonus: 2 },
-            theme: { identifier: 'stone', resonance: 'defense', bonus: 2 },
-        },
-    };
+describe('the model against the capture', () => {
+    // The two claims the whole optimiser rests on used to be asserted against
+    // the test builder that encoded them -- deleted in the spec triage as
+    // tautological. They come back here measured against a real capped
+    // mythic, so a rebalance in the game fires the test instead of passing
+    // it. Source: /shop.html equipped_armor, 2026-08-17.
+    const hero = loadFixture('equipment', 'hero-armor') as HeroArmorFixture;
 
-    it('maps an inventory entry', () => {
-        const item = parseArmorItem(raw)!;
-        expect(item.slot).toBe(1);
-        expect(item.rarity).toBe('mythic');
-        expect(item.equipped).toBe(false);
-        expect(item.id_member_armor).toBe(6602031);
-        expect(item.id_member_armor_equipped).toBeNull();
-        expect(item.classResonance).toEqual({ identifier: '1', resonance: 'damage', bonus: 2 });
+    it('a capped mythic really carries the caracs the projection assumes', () => {
+        expect(hero.equipped.level).toBe(MYTHIC_MAX_LEVEL);
+        // Through the parser, so this is the tuple the optimiser works with.
+        const item = parseArmorItem(hero.equipped, true)!;
+        expect(item.caracs).toEqual(mythicCaracs(MYTHIC_MAX_LEVEL));
+        // 21,000 points -- the figure every tier comparison is scaled against.
         expect(caracSum(item.caracs)).toBe(21000);
     });
 
-    // An entry under #equiped carries id_member_armor_equipped and has no
-    // id_member_armor key at all. Sniffing on the field instead of being
-    // told dropped all six worn items.
-    const equippedRaw = (() => {
-        const { id_member_armor: _drop, ...rest } = raw;
-        return { ...rest, id_member_armor_equipped: 2806061 };
-    })();
+    it('resonance really grows at 0.1 per level, doubled on the chance track', () => {
+        const { level, resonance_bonuses: res } = hero.equipped;
+        expect(res!.class!.bonus).toBeCloseTo(0.1 * level);
+        // The theme axis pays double where it lands on chance rather than
+        // defense. This is the asymmetry the tier tie-break depends on.
+        const perLevel = res!.theme!.resonance === 'chance' ? 0.2 : 0.1;
+        expect(res!.theme!.bonus).toBeCloseTo(perLevel * level);
+    });
+});
 
-    it('maps an equipped entry, which has no id_member_armor at all', () => {
-        expect(parseArmorItem(equippedRaw)).toBeNull();
-        const item = parseArmorItem(equippedRaw, true)!;
+describe('parseArmorItem', () => {
+    // Real entries off /shop.html, captured 2026-08-17 with inspector v4.9.0:
+    // one worn item out of `equipped_armor`, one mythic and one legendary out
+    // of `player_inventory.armor` (6 worn, 204 in stock, 104 mythic).
+    const hero = loadFixture('equipment', 'hero-armor') as HeroArmorFixture;
+
+    it('maps a real inventory entry', () => {
+        const src = hero.inventoryMythic;
+        const item = parseArmorItem(src)!;
+        expect(item.slot).toBe(src.skin.subtype);
+        expect(item.rarity).toBe(src.item.rarity);
+        expect(item.equipped).toBe(false);
+        expect(item.id_member_armor).toBe(src.id_member_armor);
+        expect(item.id_member_armor_equipped).toBeNull();
+        expect(item.classResonance).toEqual(src.resonance_bonuses!.class);
+        expect(item.themeResonance).toEqual(src.resonance_bonuses!.theme);
+    });
+
+    // The capture settles what the August bug was about: an entry under
+    // `equipped_armor` carries id_member_armor_equipped and has no
+    // id_member_armor key at all. Sniffing on the field instead of being told
+    // dropped all six worn items.
+    it('maps a real equipped entry, which has no id_member_armor at all', () => {
+        const src = hero.equipped;
+        expect('id_member_armor' in src).toBe(false);
+        expect(typeof src.id_member_armor_equipped).toBe('number');
+
+        expect(parseArmorItem(src)).toBeNull();
+        const item = parseArmorItem(src, true)!;
         expect(item.equipped).toBe(true);
-        expect(item.id_member_armor).toBe(2806061);
-        expect(item.slot).toBe(1);
+        expect(item.id_member_armor).toBe(src.id_member_armor_equipped);
+        expect(item.slot).toBe(src.skin.subtype);
     });
 
-    it('accepts a chance value the game sends as a string', () => {
-        const item = parseArmorItem({
-            ...raw,
-            caracs: { carac1: 3606, carac2: 3619, carac3: 3467, endurance: 3474, chance: '4634.57' },
-        })!;
-        expect(item.caracs.chance).toBeCloseTo(4634.57);
+    it('accepts the chance value the game sends as a string', () => {
+        const src = hero.inventoryLegendary;
+        expect(typeof src.caracs.chance).toBe('string');
+        const item = parseArmorItem(src)!;
+        expect(item.caracs.chance).toBeCloseTo(Number(src.caracs.chance));
     });
 
-    it('reads a legendary with no resonance at all', () => {
-        const item = parseArmorItem({ ...raw, item: { rarity: 'legendary' }, resonance_bonuses: {} })!;
+    // 100 of the 204 stocked items look like this: `resonance_bonuses` is not
+    // an empty object, it is absent.
+    it('reads a real legendary, which carries no resonance key at all', () => {
+        const src = hero.inventoryLegendary;
+        expect(src.resonance_bonuses).toBeUndefined();
+        const item = parseArmorItem(src)!;
         expect(item.classResonance).toBeNull();
         expect(item.themeResonance).toBeNull();
         expect(gearTier(item, KNOW_HOW, 'sun', 'current')).toBe(5);
     });
 
-    // A real girl armor entry off the fielded team. Girl and hero equipment
-    // share the inventory, so this is the entry the optimiser must drop --
-    // and the one shape that could not be got wrong by hand, because it
-    // carries id_girl_armor_equipped instead of any hero id at all.
+    const raw = hero.inventoryMythic;
+
     it('rejects a real girl armor entry', () => {
         const girlArmor = loadFixture('equipment', 'girl-armor') as { skin: { wearer: string } };
         expect(girlArmor.skin.wearer).toBe('girl');
