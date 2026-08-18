@@ -101,6 +101,9 @@ GM_addStyle('#sMenu input.maxMoneyInputField {width:17ch; text-align:right;}');
 // Booster lists hold up to five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters) —
 // the example the tooltip itself gives.
 GM_addStyle('#sMenu input.menuListInput {width:21ch; text-align:center;}');
+// The Places of Power filter holds one entry per place, so it needs roughly
+// twice the room of a booster list.
+GM_addStyle('#sMenu input.menuListInput.menuListWide {width:32ch;}');
 // Footer
 GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
 GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');

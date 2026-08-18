@@ -127,7 +127,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
             + group('powerPlacesTitle',
                 hhMenuSwitch('autoPowerPlaces')
-                + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, 'width:100px')
+                + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
                 + hhMenuSwitch('autoPowerPlacesAll')
                 + hhMenuSwitch('autoPowerPlacesPrecision')
                 + hhMenuSwitch('autoPowerPlacesInverted')
