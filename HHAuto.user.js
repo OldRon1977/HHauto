@@ -101,6 +101,9 @@ GM_addStyle('#sMenu input.maxMoneyInputField {width:17ch; text-align:right;}');
 // Booster lists hold up to five codes ("MB1;MB2;MB5;MB8;MB12", 20 characters) —
 // the example the tooltip itself gives.
 GM_addStyle('#sMenu input.menuListInput {width:21ch; text-align:center;}');
+// The Places of Power filter holds one entry per place, so it needs roughly
+// twice the room of a booster list.
+GM_addStyle('#sMenu input.menuListInput.menuListWide {width:32ch;}');
 // Footer
 GM_addStyle('#sMenu .menuFoot {flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding:6px 10px; border-top:1px solid #ffa23e; background:#0d120b;}');
 GM_addStyle('#sMenu .menuFootRight {margin-left:auto; display:flex; flex-wrap:wrap; gap:4px;}');
@@ -865,18 +868,18 @@ HHAuto_ToolTips.de['autoBuyLoveRaidTrollNumber'] = { version: "7.25.6", elementT
 HHAuto_ToolTips.de['plusEventLoveRaidSandalWood'] = { version: "7.25.8", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem LoveRaid-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Shards zum Sieg fehlen.<br>Kauft nichts nach." };
 HHAuto_ToolTips.de['chooseARaid'] = { version: "7.32.5", elementText: "Mädel wählen" };
 HHAuto_ToolTips.de['firstEndingRaid'] = { version: "7.25.6", elementText: "Zuerst endender Raid" };
-HHAuto_ToolTips.de['loveRaidTitle'] = { version: "7.25.5", elementText: "Love Raid" };
+HHAuto_ToolTips.de['loveRaidTitle'] = { version: "8.10.0", elementText: "Liebesüberfall" };
 HHAuto_ToolTips.de['plusEventSandalWood'] = { version: "7.32.1", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem Event-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Shards zum Sieg fehlen.<br>Kauft nichts nach." };
 HHAuto_ToolTips.de['plusEventMythicSandalWood'] = { version: "7.2.0", elementText: "Sandalwood anlegen", tooltip: "Legt vor dem Mythic-Kampf Sandalwood an, wenn genug im Inventar ist.<br>Legt nichts an, wenn weniger als 10 Shards zum Sieg fehlen.<br>Kauft nichts nach." };
 HHAuto_ToolTips.de['eventCompleted'] = { version: "7.1.3", elementText: "Event abgeschlossen", tooltip: "Event abgeschlossen" };
-HHAuto_ToolTips.de['autoSeasonTitle'] = { version: "5.6.24", elementText: "Season" };
+HHAuto_ToolTips.de['autoSeasonTitle'] = { version: "8.10.0", elementText: "Saison" };
 HHAuto_ToolTips.de['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende der Season automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
 HHAuto_ToolTips.de['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Max. Stufe", tooltip: "Stufe, bei der in der Season aufgehört wird.<br>Mit 'MT hart' aus kämpft ein Season-Fokus auf Mädels darüber hinaus weiter, solange gewünschte Mädel-Belohnungen erreichbar sind." };
 HHAuto_ToolTips.de['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Kuss-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
 HHAuto_ToolTips.de['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Season gekämpft." };
 HHAuto_ToolTips.de['autoSeasonSkipLowMojo'] = { version: "7.10.0", elementText: "Wenig Mojo überspringen", tooltip: "Wenn aktiv: Kein Kampf, wenn die Mojo-Belohnung unter 8 liegt und die Season-Stufe unter 63. Es wird trotzdem gekämpft, um nichts zu verlieren." };
 HHAuto_ToolTips.de['seasonDisplayPowerCalc'] = { version: "7.29.12", elementText: "PowerCalc anzeigen", tooltip: "Zeigt den PowerCalc in der Season.<br/>Wird bei Auto-Season ohnehin angezeigt." };
-HHAuto_ToolTips.de['autoPentaDrillTitle'] = { version: "7.26.0", elementText: "Penta Drill" };
+HHAuto_ToolTips.de['autoPentaDrillTitle'] = { version: "8.10.0", elementText: "Penta-Drill" };
 HHAuto_ToolTips.de['autoPentaDrill'] = { version: "8.10.0", elementText: "Aktivieren", tooltip: "Wenn aktiv: Kämpft automatisch im Penta Drill (es wird der Gegner mit der geringsten Kraft gewählt)." };
 HHAuto_ToolTips.de['autoPentaDrillCollect'] = { version: "7.26.0", elementText: "Einsammeln", tooltip: "Wenn aktiv: Sammelt Penta-Drill-Belohnungen automatisch ein (bei mehreren wird eine pro Drill-Nutzung eingesammelt)." };
 HHAuto_ToolTips.de['autoPentaDrillCollectAll'] = { version: "7.26.0", elementText: "Alles einsammeln", tooltip: "Wenn aktiv: Sammelt vor Ende des Penta Drills automatisch alle Belohnungen ein (Zeitpunkt über 'Alles einsammeln'-Timer)." };
@@ -1080,7 +1083,7 @@ HHAuto_ToolTips.de['autoLabyDifficultyEasy'] = { version: "7.25.2", elementText:
 HHAuto_ToolTips.de['autoLabyDifficultyNormal'] = { version: "7.25.2", elementText: "Normal" };
 HHAuto_ToolTips.de['autoLabyDifficultyHard'] = { version: "7.25.2", elementText: "Schwer" };
 HHAuto_ToolTips.de['autoLabyCustomTeamBuilder'] = { version: "7.25.4", elementText: "Eigenes Team", tooltip: "Veraltet<br/>Wenn aktiv: Nutzt den Team-Bauer des Bots.<br/>Sonst wird die spieleigene Automatik verwendet." };
-HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinth" };
+HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "8.10.0", elementText: "Liebeslabyrinth" };
 HHAuto_ToolTips.de['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Team bauen", tooltip: "Wählt anhand der Auswahl ein vollständiges Team." };
 HHAuto_ToolTips.de['autoLabyrinthBuildTank'] = { version: "7.9.0", elementText: "Tanks", tooltip: "Wählt zwei Tanks für die vordere Reihe." };
 HHAuto_ToolTips.de['autoLabyrinthBuildMage'] = { version: "7.9.0", elementText: "Magier", tooltip: "Wählt zwei Magier für die mittlere Reihe." };
@@ -1147,10 +1150,10 @@ HHAuto_ToolTips.de['menuTabGlobal'] = { version: "8.10.0", elementText: "Global"
 HHAuto_ToolTips.de['menuTabDisplay'] = { version: "8.10.0", elementText: "Anzeige", tooltip: "" };
 HHAuto_ToolTips.de['menuTabDaily'] = { version: "8.10.0", elementText: "Tägliches", tooltip: "" };
 HHAuto_ToolTips.de['menuTabAdventure'] = { version: "8.10.0", elementText: "Abenteuer", tooltip: "" };
-HHAuto_ToolTips.de['menuTabSeason'] = { version: "8.10.0", elementText: "Season", tooltip: "" };
+HHAuto_ToolTips.de['menuTabSeason'] = { version: "8.10.0", elementText: "Saison", tooltip: "" };
 HHAuto_ToolTips.de['menuTabLeagues'] = { version: "8.10.0", elementText: "Ligen", tooltip: "" };
 HHAuto_ToolTips.de['menuTabChampions'] = { version: "8.10.0", elementText: "Champions", tooltip: "" };
-HHAuto_ToolTips.de['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Labyrinth", tooltip: "" };
+HHAuto_ToolTips.de['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Liebeslabyrinth", tooltip: "" };
 HHAuto_ToolTips.de['menuTabShop'] = { version: "8.10.0", elementText: "Markt", tooltip: "" };
 HHAuto_ToolTips.de['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
 HHAuto_ToolTips.de['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
@@ -28577,7 +28580,7 @@ function tabs(debugEnabled) {
                 + group('menuSecSalary', hhMenuSwitch('autoSalary')
                     + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
                 + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
-                    + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, 'width:100px')
+                    + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
                     + hhMenuSwitch('autoPowerPlacesAll')
                     + hhMenuSwitch('autoPowerPlacesPrecision')
                     + hhMenuSwitch('autoPowerPlacesInverted')
@@ -30555,23 +30558,133 @@ class PipelineOrderService {
 ;// ./src/Service/TooltipService.ts
 // TooltipService.ts
 //
-// Controls the visibility of help tooltips in the HHAuto settings
-// menu. Each menu item has a hidden tooltip span (.tooltipHHtext)
-// that becomes visible on hover when tooltips are enabled.
+// Controls the visibility and placement of help tooltips in the HHAuto settings
+// menu. Each menu item carries a hidden span (.tooltipHHtext) holding its help
+// text; hovering the surrounding .tooltipHH shows that text.
 //
-// The tooltip positioning logic prevents overflow: if a tooltip would
-// render above the viewport, it shifts down and to the right; if it
-// would extend past the menu's right edge, it shifts left.
+// Placement (8.10.0): the text is no longer shown inside the hovered element.
+// It is copied into a single floating box appended to <body>, which is placed
+// vertically centred and to the left of the settings panel — the same spot
+// every time, so the eye does not have to hunt for it.
 //
-// The `important` flag forces !important CSS when toggling tooltips
-// mid-session (vs. initial page load) to override previously injected
-// styles.
+// Two reasons it has to live outside the panel rather than inside the hovered
+// row, which is where it used to be drawn:
+//   - #sMenu is overflow:hidden and the pane scrolls, so a tooltip drawn inside
+//     was cut off at the panel edge;
+//   - it used to sit above its own row, which pushed the tooltips of the top
+//     rows off the screen entirely.
+// <body> is also outside the CSS transform the game puts on #contains_all, so
+// position:fixed means viewport coordinates here, with no scaling to undo.
+//
+// Tooltips outside the panel (harem tools, team buttons, popups) use the same
+// box, placed next to their anchor and clamped to the viewport.
+//
+// The `important` flag is kept for API compatibility with the callers in
+// StartService; visibility is now a plain flag, so no !important is needed.
 //
 // Used by: StartService (initial state), menu checkbox handler
 
 
 
 
+const TOOLTIP_ID = 'HHAutoTooltip';
+const GAP = 8;
+let tooltipsEnabled = false;
+let handlersBound = false;
+function styleOnce() {
+    if (document.getElementById(TOOLTIP_ID + 'Style') !== null)
+        return;
+    const style = document.createElement('style');
+    style.id = TOOLTIP_ID + 'Style';
+    style.textContent = '#' + TOOLTIP_ID + ' {'
+        + ' position:fixed; display:none; z-index:2147483000;'
+        + ' width:240px; max-height:60vh; overflow-y:auto;'
+        + ' padding:6px 8px; border:1px solid #ffa23e; border-radius:5px;'
+        + ' background:#fff; color:#000; opacity:.97;'
+        + ' font-size:11px; line-height:1.35; text-align:left;'
+        + ' pointer-events:none;}';
+    (document.head || document.documentElement).appendChild(style);
+}
+function box() {
+    let el = document.getElementById(TOOLTIP_ID);
+    if (el === null) {
+        styleOnce();
+        el = document.createElement('div');
+        el.id = TOOLTIP_ID;
+        document.body.appendChild(el);
+    }
+    return el;
+}
+function hide() {
+    const el = document.getElementById(TOOLTIP_ID);
+    if (el !== null)
+        el.style.display = 'none';
+}
+/** Same spot every time: vertically centred, just left of the settings panel. */
+function placeAgainstPanel(el, panel) {
+    const panelRect = panel.getBoundingClientRect();
+    const tip = el.getBoundingClientRect();
+    let x = panelRect.left - tip.width - GAP;
+    if (x < GAP)
+        x = panelRect.left + GAP; // no room outside: tuck inside
+    let y = panelRect.top + (panelRect.height - tip.height) / 2;
+    y = Math.max(GAP, Math.min(y, window.innerHeight - tip.height - GAP));
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+}
+/** Outside the panel: beside the anchor, flipped or pulled back to stay on screen. */
+function placeNearAnchor(el, anchor) {
+    const a = anchor.getBoundingClientRect();
+    const tip = el.getBoundingClientRect();
+    let x = Math.min(a.left, window.innerWidth - tip.width - GAP);
+    x = Math.max(GAP, x);
+    let y = a.bottom + GAP;
+    if (y + tip.height > window.innerHeight - GAP)
+        y = a.top - tip.height - GAP;
+    y = Math.max(GAP, y);
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+}
+function show(anchor) {
+    const source = anchor.querySelector('.tooltipHHtext');
+    const html = source === null ? '' : source.innerHTML.trim();
+    if (html === '') {
+        hide();
+        return;
+    }
+    const el = box();
+    el.innerHTML = html;
+    el.style.display = 'block';
+    el.style.left = '0px';
+    el.style.top = '0px'; // measure before placing
+    const panel = anchor.closest('#sMenu');
+    if (panel !== null) {
+        placeAgainstPanel(el, panel);
+    }
+    else {
+        placeNearAnchor(el, anchor);
+    }
+}
+function bindOnce() {
+    if (handlersBound)
+        return;
+    handlersBound = true;
+    // Delegated, so rows injected later are covered and nothing binds twice.
+    $(document).on('mouseenter', '.tooltipHH', (event) => {
+        if (!tooltipsEnabled)
+            return;
+        try {
+            show(event.currentTarget);
+        }
+        catch (err) {
+            logHHAuto('Error in tooltip construction');
+        }
+    });
+    $(document).on('mouseleave', '.tooltipHH', hide);
+    // The panel scrolls under a pinned tooltip, and closing it would strand one.
+    $(document).on('scroll', '#sMenuPanes', hide);
+    $(document).on('click', '#sMenuButton', hide);
+}
 function manageToolTipsDisplay(important = false) {
     if (getStoredValue(HHStoredVarPrefixKey + SK.showTooltips) === "true") {
         enableToolTipsDisplay(important);
@@ -30581,33 +30694,15 @@ function manageToolTipsDisplay(important = false) {
     }
 }
 function enableToolTipsDisplay(important = false) {
-    const importantAddendum = important ? '; !important' : '';
-    GM_addStyle('.tooltipHH:hover span.tooltipHHtext { '
-        + 'border:1px solid #ffa23e; border-radius:5px; padding:5px; display:block; z-index: 100; position: absolute; width: 150px; color:black; '
-        + 'text-align:center; background:white;  opacity:0.9; transform: translateY(-100%)' + importantAddendum + '}');
-    $(".tooltipHH").on('mouseover', (event) => {
-        try {
-            const tooltip = $('.tooltipHHtext', event.currentTarget);
-            let tipX = 0;
-            let tipY = -15;
-            tooltip.css({ top: tipY, left: tipX });
-            const tooltip_rect = tooltip[0].getBoundingClientRect();
-            if (tooltip_rect.y < 0) { // Out on the top
-                tipY = -tooltip_rect.y;
-                tipX = $(event.currentTarget).outerWidth() + 5;
-            }
-            if ((tooltip_rect.x + tooltip_rect.width) > $('#sMenu')[0].getBoundingClientRect().width) // Out on the right
-                tipX = -150;
-            tooltip.css({ top: tipY, left: tipX });
-        }
-        catch (err) {
-            logHHAuto('Error in tooltip construction');
-        }
-    });
+    void important;
+    tooltipsEnabled = true;
+    bindOnce();
 }
 function disableToolTipsDisplay(important = false) {
-    const importantAddendum = important ? '; !important' : '';
-    GM_addStyle('.tooltipHH:hover span.tooltipHHtext { display: none' + importantAddendum + '}');
+    void important;
+    tooltipsEnabled = false;
+    bindOnce();
+    hide();
 }
 
 ;// ./src/Service/ForbiddenBackoff.ts
