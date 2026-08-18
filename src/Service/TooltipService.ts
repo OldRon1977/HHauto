@@ -32,6 +32,9 @@ import { SK } from "../config/StorageKeys";
 
 const TOOLTIP_ID = 'HHAutoTooltip';
 const GAP = 8;
+/** Floor for the tooltip type; the game's zoom only ever scales it up. */
+const BASE_FONT = 11;
+const BASE_WIDTH = 240;
 
 let tooltipsEnabled = false;
 let handlersBound = false;
@@ -42,10 +45,10 @@ function styleOnce(): void {
     style.id = TOOLTIP_ID + 'Style';
     style.textContent = '#' + TOOLTIP_ID + ' {'
         + ' position:fixed; display:none; z-index:2147483000;'
-        + ' width:240px; max-height:60vh; overflow-y:auto;'
+        + ' width:' + BASE_WIDTH + 'px; max-height:60vh; overflow-y:auto;'
         + ' padding:6px 8px; border:1px solid #ffa23e; border-radius:5px;'
         + ' background:#fff; color:#000; opacity:.97;'
-        + ' font-size:11px; line-height:1.35; text-align:left;'
+        + ' font-size:' + BASE_FONT + 'px; line-height:1.35; text-align:left;'
         + ' pointer-events:none;}';
     (document.head || document.documentElement).appendChild(style);
 }
@@ -64,6 +67,17 @@ function box(): HTMLElement {
 function hide(): void {
     const el = document.getElementById(TOOLTIP_ID);
     if (el !== null) el.style.display = 'none';
+}
+
+/**
+ * How much the game is zooming this element. #contains_all carries a CSS
+ * transform, so everything inside it renders larger than its CSS pixels say.
+ * getBoundingClientRect reports the zoomed size, offsetWidth the plain one.
+ */
+function gameScale(el: HTMLElement): number {
+    if (el.offsetWidth <= 0) return 1;
+    const s = el.getBoundingClientRect().width / el.offsetWidth;
+    return (s > 0 && isFinite(s)) ? s : 1;
 }
 
 /** Same spot every time: vertically centred, just left of the settings panel. */
@@ -100,13 +114,20 @@ function show(anchor: HTMLElement): void {
     const html = source === null ? '' : source.innerHTML.trim();
     if (html === '') { hide(); return; }
 
+    const panel = anchor.closest('#sMenu') as HTMLElement | null;
     const el = box();
     el.innerHTML = html;
     el.style.display = 'block';
     el.style.left = '0px';
     el.style.top = '0px';                            // measure before placing
 
-    const panel = anchor.closest('#sMenu') as HTMLElement | null;
+    // This box hangs off <body>, outside the transform the game applies to
+    // #contains_all. Left at its CSS size it renders smaller than the menu it
+    // explains, so match the zoom the menu is drawn at.
+    const scale = gameScale(panel ?? anchor);
+    el.style.fontSize = Math.max(BASE_FONT, Math.round(BASE_FONT * scale)) + 'px';
+    el.style.width = Math.round(BASE_WIDTH * Math.max(1, scale)) + 'px';
+
     if (panel !== null) {
         placeAgainstPanel(el, panel);
     } else {
