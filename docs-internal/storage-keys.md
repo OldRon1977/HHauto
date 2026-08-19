@@ -665,20 +665,48 @@ Folgende 14 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStor
 
 ## Tote Keys (Cleanup-Kandidaten)
 
-Folgende Keys sind in src/config/StorageKeys.ts definiert, aber hatten in v7.35.21 **keinen Code-Zugriff** (kein setStoredValue, getStoredValue, getStoredJSON oder deleteStoredValue). Diese Analyse ist seit 2026-05-05 nicht wiederholt worden -- die Liste gilt fuer v7.35.21, nicht fuer v8.9.0:
+Nachgezaehlt 2026-08-19 gegen v8.9.0. Ein Key gilt hier als tot, wenn ihn
+ausserhalb seiner Definition in `StorageKeys.ts` und seiner Registrierung in
+`HHStoredVars.ts` **kein Code** anfasst -- auskommentierte Zeilen zaehlen
+nicht als Zugriff, `HHStoredVars.ts` selbst dagegen schon, weil dort
+`events`-Handler echte Schreibzugriffe enthalten.
 
-| Key | Annahme |
-|-----|---------|
-| SK.spendKobans0 | Master-Switch fuer Koban-Verbote war frueher mit kobanUsing-Pruefung in StorageHelper verbunden; aktuell auskommentiert |
-| SK.autoTrollMythicByPassThreshold | Mythic-Bypass-Threshold fuer Troll - laut Storage-Registry mit -- (ggf. fehlt der HHStoredVars-Eintrag) |
-| SK.autoFreeBundlesCollectablesList | Filter-Liste fuer Free-Bundles - aktuell nicht aktiv |
-| TK.trollToFight | naechster Troll-Index, im Code obsolet geworden |
-| TK.fought | gekaempft-Marker, ungenutzt |
-| TK.EventFightsBeforeRefresh | nur in Kommentaren in EventModule.ts |
-| TK.LeagueSavedData | League-Daten-Cache, nicht mehr verwendet |
-| TK.LeagueTempOpponentList | tempo Opponents-Liste, nicht mehr verwendet |
-| TK.leaguesTarget | League-Ziel-Threshold, ungenutzt |
-| TK.userLink | Externer User-Link, ungenutzt |
+**Wichtige Einschraenkung:** `setMenuValues` / `getMenuValues` in
+`Helper/menu/MenuSettings.ts` iterieren ueber *alle* Eintraege von
+`HHStoredVars` und lesen bzw. schreiben jeden, der `storage` und `HHType`
+gesetzt hat. Ein registrierter Key wird also bei jedem Menue-Vorgang
+angefasst, auch wenn ihn kein Feature-Code kennt. Die zwei registrierten
+Eintraege unten sind deshalb nicht folgenlos zu loeschen: erst der
+`HHStoredVars`-Eintrag, dann die Konstante.
 
-Cleanup-Empfehlung: bei naechstem Refactor diese Eintraege aus StorageKeys.ts und HHStoredVars.ts entfernen.
+| Key | registriert | Befund (v8.9.0) |
+|-----|-------------|-----------------|
+| SK.autoTrollMythicByPassThreshold | nein | Nur in einer auskommentierten Zeile in `ParanoiaService.ts:249` |
+| TK.trollToFight | nein | Keinerlei Vorkommen ausser der Definition |
+| TK.fought | **ja** | Registriert in `HHStoredVars.ts:2387`, sonst kein Vorkommen |
+| TK.EventFightsBeforeRefresh | nein | Nur auskommentiert (`RewardHelper.ts:386`, `EventModule.ts:34` und `:347`) |
+| TK.LeagueSavedData | **ja** | Registriert in `HHStoredVars.ts:2514`, sonst kein Vorkommen |
+| TK.LeagueTempOpponentList | nein | Keinerlei Vorkommen ausser der Definition |
+| TK.leaguesTarget | nein | Keinerlei Vorkommen ausser der Definition |
+| TK.userLink | nein | Keinerlei Vorkommen ausser der Definition |
 
+Keiner der acht wird in `spec/` benutzt, ein Entfernen bricht also keinen Test.
+
+### Aenderungen gegenueber der Analyse von 2026-05-05 (v7.35.21)
+
+Zwei der damals zehn Kandidaten leben wieder und sind aus der Liste raus:
+
+- **`SK.spendKobans0`** -- die alte Notiz "aktuell auskommentiert" stimmt nicht
+  mehr. `StorageHelper.ts:101` liest den Key wieder als `masterKey` fuer die
+  Koban-Sperre.
+- **`SK.autoFreeBundlesCollectablesList`** -- wird vom `events.change`-Handler
+  des benachbarten Free-Bundles-Schalters ueber
+  `getAndStoreCollectPreferences` beschrieben (`HHStoredVars.ts:1100`). Der
+  Zugriff liegt in `HHStoredVars.ts` selbst, weshalb eine Suche, die diese
+  Datei ausklammert, den Key faelschlich als tot meldet.
+
+Unter den 19 Keys, die seit 2026-05-05 dazugekommen sind, ist kein einziger
+toter -- die Liste ist seither nur kuerzer geworden.
+
+Cleanup-Empfehlung unveraendert: bei naechstem Refactor diese Eintraege aus
+`StorageKeys.ts` und (wo vorhanden) `HHStoredVars.ts` entfernen.
