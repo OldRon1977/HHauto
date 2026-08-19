@@ -52,6 +52,44 @@ c) TamperMonkey should automatically prompt you to install/update the script. If
 
 ⚠ **Use at your own risk.** As with all automation features, there is always a risk of being banned by Kinkoid. The script uses randomized timing to reduce the risk of detection, but no automation can guarantee safety. By installing and using this script you accept that responsibility.
 
+## Optional helper: automatic login
+
+A small companion userscript at `bonus-scripts/HHAuto-Login.user.js` fills in
+the ChibiPass login form for you and clicks through to the game. It is a pure
+convenience helper and completely optional — HHAuto works fine without it.
+
+**Read this before you install it.** The script asks you to write your e-mail
+and password into two constants at the top of its source. That is plain-text
+storage of your password inside your userscript manager, and it is the whole
+security consideration around this script.
+
+What it does *not* do: it sends nothing anywhere. Your credentials go into the
+input fields of the official ChibiPass login page and nowhere else — exactly
+where you would type them yourself. The script has no `fetch`, no
+`XMLHttpRequest`, no `sendBeacon`, no WebSocket, declares `@grant none`, and
+never touches cookies or storage. It is about 100 lines and you can read all of
+it in a minute.
+
+The risk is the file itself, not the traffic. Anything that can read your
+userscript storage can read your password: another person on the same machine,
+Tampermonkey or browser sync, a cloud backup, or a copy of the file you sent
+somewhere. **Keep the filled-in file local and you are fine.**
+
+1. Install the login userscript:
+   <https://github.com/OldRon1977/HHauto/raw/main/bonus-scripts/HHAuto-Login.user.js>
+2. Open it in the Tampermonkey editor and replace `YOUR_EMAIL` and
+   `YOUR_PASSWORD` with your ChibiPass credentials.
+3. Delete the `@match` lines for the games you do not play.
+4. Turn **off** userscript and browser sync for this script, so the filled-in
+   copy stays on this machine.
+5. Use a password unique to the game, so even a leak cannot spread further.
+
+Before you ever hand this file to anyone — including when attaching it to a bug
+report — reset the two constants back to `YOUR_EMAIL` and `YOUR_PASSWORD`.
+
+If that trade-off does not sit right with you, simply do not install it and log
+in by hand.
+
 ## Capturing a useful log with Pipeline Diagnostics
 
 If the script gets stuck, loops, or skips a feature, a plain debug log often

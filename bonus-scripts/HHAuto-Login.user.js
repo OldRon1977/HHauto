@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Login
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.1
+// @version      1.2
 // @description  HHAuto Login
 // @author       Zary
 // @match        https://connect.chibipass.com/*
@@ -18,22 +18,54 @@
 // @grant        none
 // ==/UserScript==
 
-// ============================== SECURITY WARNING ==============================
-// This script stores your game credentials IN PLAIN TEXT inside the userscript
-// source. Anyone with access to your browser profile, your userscript manager,
-// or a synced copy of either (Tampermonkey sync, browser sync, backups) can
-// read them and take over your account.
+// ============================== READ THIS FIRST ===============================
 //
-// Only use this script if you understand and accept that risk:
-//   - use it on private, single-user machines only
-//   - never share, sync, or commit this file once you filled in credentials
-//   - use a unique password for the game so a leak cannot spread further
+// WHAT THIS SCRIPT DOES
+// It types your ChibiPass e-mail and password into the login form for you and
+// clicks the login button, then clicks "enter game" on the game's landing page.
+// That is the whole feature. It is a convenience helper for logging in, nothing
+// more.
 //
-// The @match list is intentionally minimal: the ChibiPass login page (where
-// the credentials are entered) plus the landing page ("/") of each game
-// domain, where the "enter game" button lives. Do not widen it; every extra
-// page a credential-bearing script runs on increases exposure. Remove the
-// game domains you do not play.
+// IT SENDS NOTHING ANYWHERE
+// Your credentials go into the two input fields of the official ChibiPass login
+// page and nowhere else -- exactly where you would type them yourself. The
+// script contains no fetch, no XMLHttpRequest, no sendBeacon, no WebSocket, no
+// image or link tricks, and it declares "@grant none", so it has no access to
+// privileged userscript APIs at all. It does not read cookies, it does not touch
+// localStorage or sessionStorage, and it reports nothing to the author or to any
+// third party. You can verify every word of that by reading the 100 lines below.
+//
+// THE RISK, PLAINLY
+// The risk is not transmission. The risk is THE FILE ITSELF: once you fill in
+// the two constants below, this script contains your password in plain text and
+// lives inside your userscript manager's storage. Anyone or anything that can
+// read that storage can read your password:
+//   - another person using the same machine or user account
+//   - Tampermonkey sync, browser profile sync, or any cloud backup you enabled
+//   - a copy of this file you sent, uploaded, pasted, or committed somewhere
+//   - malware running under your user account
+//
+// SO: KEEP IT LOCAL AND YOU ARE FINE
+// This script is meant to run purely locally, on your own machine. If you keep
+// the filled-in file to yourself, the exposure is the same as writing the
+// password in a text file on your desktop -- acceptable to many people, and
+// entirely your call.
+//   - use it on a private, single-user machine
+//   - turn OFF userscript/browser sync for this script, or do not use it at all
+//   - never share, upload, paste, or commit this file after filling it in
+//   - use a password unique to the game, so even a leak cannot spread further
+//   - clear the two constants back to their placeholders before you hand the
+//     file to anyone, including when reporting a bug
+//
+// If you are not comfortable with that trade-off, do not use this script: log in
+// by hand. HHAuto itself works fine without it.
+//
+// SCOPE
+// The @match list is intentionally minimal: the ChibiPass login page (where the
+// credentials are entered) plus the landing page ("/") of each game domain,
+// where the "enter game" button lives. Do not widen it; every extra page a
+// credential-bearing script runs on increases exposure. Remove the game domains
+// you do not play.
 // ==============================================================================
 
 const userEmail = "YOUR_EMAIL";
