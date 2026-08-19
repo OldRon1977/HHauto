@@ -7,7 +7,7 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.10.7 - The status panel, readable
+### v8.10.8 - The status panel, readable
 
 The panel on the home page listing the timers was two centred columns, which
 left the longer rows cut off at the panel edge.
