@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.3
+// @version      8.10.4
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -52,7 +52,7 @@ GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: abso
             // one clipped line. Only the label may wrap; the time must not.
             + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
             + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
-GM_addStyle('#pInfo.left {left:220px; right:auto; width:18%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
+GM_addStyle('#pInfo.left {left:220px; right:auto; width:25%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px
@@ -30054,11 +30054,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.10.3";
+const FEATURE_POPUP_VERSION = "8.10.4";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.3";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.4";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
