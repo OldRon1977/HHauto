@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-17
-verified-against-version: 8.8.0
+last-verified: 2026-08-19
+verified-against-version: 8.9.0
 status: current
 ---
 
@@ -433,7 +433,6 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | SK.autoTrollRunThreshold | Setting_autoTrollRunThreshold | (no description) | - | Module/Troll.ts, Service/AutoLoopActions.ts | - |
 | SK.autoTrollSelectedIndex | Setting_autoTrollSelectedIndex | (no description) | - | Module/Troll.ts | - |
 | SK.autoTrollMythicByPassParanoia | Setting_autoTrollMythicByPassParanoia | (no description) | - | Service/ParanoiaService.ts | - |
-| SK.autoTrollMythicByPassThreshold | Setting_autoTrollMythicByPassThreshold | (no description) | - | - | - |
 | SK.eventTrollOrder | Setting_eventTrollOrder | (no description) | - | Module/Events/EventModule.ts, Module/Events/MythicEvent.ts, Module/Events/PlusEvents.ts | - |
 | SK.useX10Fights | Setting_useX10Fights | (no description) | - | Module/Troll.ts | - |
 | SK.useX10FightsAllowNormalEvent | Setting_useX10FightsAllowNormalEvent | (no description) | - | Module/Troll.ts | - |
@@ -644,7 +643,6 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | TK.TrollHumanLikeRun | Temp_TrollHumanLikeRun | (no description) | Module/Troll.ts, Service/AutoLoopActions.ts | Service/AutoLoopActions.ts | - |
 | TK.TrollInvalid | Temp_TrollInvalid | (no description) | Module/Troll.ts | Module/Troll.ts | - |
 | TK.trollPoints | Temp_trollPoints | (no description) | Module/Troll.ts | Module/Troll.ts | - |
-| TK.trollToFight | Temp_trollToFight | (no description) | - | - | - |
 | TK.trollWithGirls | Temp_trollWithGirls | (no description) | Module/Troll.ts | Module/Troll.ts | - |
 | TK.autoTrollBattleSaveQuest | Temp_autoTrollBattleSaveQuest | (no description) | Module/GenericBattle.ts, Service/AutoLoopActions.ts | Module/GenericBattle.ts, Module/Troll.ts, Service/AutoLoopActions.ts | - |
 | TK.questRequirement | Temp_questRequirement | (no description) | Module/Quest.ts, Module/Troll.ts, Service/AutoLoop.ts, Service/AutoLoopActions.ts | Module/Troll.ts, Service/AutoLoop.ts, Service/AutoLoopActions.ts | config/HHStoredVars.ts |
@@ -652,14 +650,12 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | TK.SideAdventureWorldID | Temp_SideAdventureWorldID | (no description) | Service/StartService.ts | - | - |
 | TK.battlePowerRequired | Temp_battlePowerRequired | (no description) | Module/Troll.ts, Service/AutoLoop.ts, Service/AutoLoopActions.ts | Service/AutoLoop.ts, Service/AutoLoopActions.ts | - |
 | TK.burst | Temp_burst | (no description) | Service/ParanoiaService.ts | Service/AutoLoop.ts, Service/ParanoiaService.ts | - |
-| TK.fought | Temp_fought | (no description) | - | - | - |
 | TK.lastActionPerformed | Temp_lastActionPerformed | (no description) | Module/TeamModule.ts, Module/harem/Harem.ts, Module/harem/HaremGirl.ts, Service/AutoLoop.ts | Module/harem/Harem.ts, Service/AutoLoop.ts | - |
 | TK.eventGirl | Temp_eventGirl | (no description) | Module/Events/EventModule.ts | - | - |
 | TK.eventMythicGirl | Temp_eventMythicGirl | (no description) | Module/Events/EventModule.ts | - | - |
 | TK.eventsGirlz | Temp_eventsGirlz | (no description) | Helper/RewardHelper.ts, Module/Events/EventModule.ts | Helper/RewardHelper.ts | - |
 | TK.eventsList | Temp_eventsList | (no description) | Module/Events/EventModule.ts, Service/ParanoiaService.ts | Module/Events/EventModule.ts, Service/ParanoiaService.ts, Service/Pipeline.config.ts | - |
 | TK.autoChampsEventGirls | Temp_autoChampsEventGirls | (no description) | Module/Events/EventModule.ts | Module/Champion.ts | - |
-| TK.EventFightsBeforeRefresh | Temp_EventFightsBeforeRefresh | (no description) | - | - | - |
 | TK.loveRaids | Temp_loveRaids | (no description) | Module/Events/LoveRaidManager.ts | Module/Events/LoveRaidManager.ts | config/HHStoredVars.ts |
 | TK.raidGirls | Temp_raidGirls | (no description) | - | Module/Events/LoveRaidManager.ts | - |
 | TK.bossBangTeam | Temp_bossBangTeam | (no description) | Module/Events/BossBang.ts | Module/Events/BossBang.ts | - |
@@ -669,9 +665,6 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | TK.clubChampLimitReached | Temp_clubChampLimitReached | (no description) | Module/ClubChampion.ts | Module/Champion.ts | Module/ClubChampion.ts |
 | TK.LeagueHumanLikeRun | Temp_LeagueHumanLikeRun | (no description) | Module/League.ts | Module/League.ts | - |
 | TK.LeagueOpponentList | Temp_LeagueOpponentList | (no description) | Module/League.ts | - | Module/League.ts, Service/StartService.ts, Utils/LogUtils.ts, config/HHStoredVars.ts |
-| TK.LeagueSavedData | Temp_LeagueSavedData | (no description) | - | - | - |
-| TK.LeagueTempOpponentList | Temp_LeagueTempOpponentList | (no description) | - | - | - |
-| TK.leaguesTarget | Temp_leaguesTarget | (no description) | - | - | - |
 | TK.hideBeatenOppo | Temp_hideBeatenOppo | (no description) | Module/League.ts | Module/League.ts | - |
 | TK.SeasonEndDate | Temp_SeasonEndDate | (no description) | Module/Events/Season.ts | Module/Events/Season.ts | - |
 | TK.SeasonHumanLikeRun | Temp_SeasonHumanLikeRun | (no description) | Module/Events/Season.ts, Service/AutoLoopActions.ts | Module/Events/Season.ts, Service/AutoLoopActions.ts | - |
@@ -694,7 +687,6 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | TK.sandalwoodFailure | Temp_sandalwoodFailure | (no description) | Helper/HeroHelper.ts, Module/Booster.ts | Helper/HeroHelper.ts | - |
 | TK.sandalwoodMaxUsages | Temp_sandalwoodMaxUsages | (no description) | Module/Booster.ts | - | - |
 | TK.unkownPagesList | Temp_unkownPagesList | (no description) | Helper/PageHelper.ts | Helper/PageHelper.ts | - |
-| TK.userLink | Temp_userLink | (no description) | - | - | - |
 | TK.surveyShown | Temp_surveyShown | (no description) | Service/SurveyService.ts | Service/SurveyService.ts | - |
 | TK.surveyDismissCount | Temp_surveyDismissCount | (no description) | Service/SurveyService.ts | Service/SurveyService.ts | - |
 | TK.surveyLastHash | Temp_surveyLastHash | (no description) | Service/SurveyService.ts | Service/SurveyService.ts | - |

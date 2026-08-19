@@ -2398,11 +2398,6 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollWithGirls] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
-HHStoredVars[HHStoredVarPrefixKey + TK.fought] =
-    {
-    storage:"sessionStorage",
-    HHType:"Temp"
-};
 HHStoredVars[HHStoredVarPrefixKey + TK.haveAff] =
     {
     storage:"sessionStorage",
@@ -2530,11 +2525,6 @@ HHStoredVars[HHStoredVarPrefixKey + TK.boosterIdMap] =
 HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodFailure] =
 {
     default:"0",
-    storage:"sessionStorage",
-    HHType:"Temp"
-};
-HHStoredVars[HHStoredVarPrefixKey + TK.LeagueSavedData] =
-    {
     storage:"sessionStorage",
     HHType:"Temp"
 };

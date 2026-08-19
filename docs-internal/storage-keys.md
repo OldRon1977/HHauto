@@ -8,9 +8,9 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-19, gegen v8.9.0 nachgezaehlt):** 186 SK- und 104
-TK-Konstanten in `StorageKeys.ts`; 14 davon sind nicht in `HHStoredVars.ts`
-registriert. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
+**Code-Stand (2026-08-19, gegen v8.9.0 nachgezaehlt):** 185 SK- und 97
+TK-Konstanten in `StorageKeys.ts`; 8 davon sind nicht in `HHStoredVars.ts`
+registriert. Am 2026-08-19 wurden die acht toten Keys entfernt (siehe unten). Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
 Registrierung jedes Keys gegen den Code -- die Beschreibungstexte der vor
 2026-08-19 bestehenden Zeilen stammen unveraendert aus der letzten
 vollstaendigen Verifikation vom 2026-05-05 gegen v7.35.21.
@@ -78,7 +78,7 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 
 > **Code-Referenzen:** Wo jeder Key gelesen, geschrieben oder geloescht wird, dokumentiert data-sources-inventory.md Sektion 7 (vollstaendige Read/Write/Delete-Tabelle, automatisch aus Code regeneriert).
 
-## SK -- Setting Keys (186 Konstanten)
+## SK -- Setting Keys (185 Konstanten)
 
 Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
 
@@ -101,7 +101,6 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | `autoTrollRunThreshold` | `Setting_autoTrollRunThreshold` | `Storage()` | `Setting` | Min. Runs |
 | `autoTrollSelectedIndex` | `Setting_autoTrollSelectedIndex` | `Storage()` | `Setting` | Ausgewaehlter Troll |
 | `autoTrollMythicByPassParanoia` | `Setting_autoTrollMythicByPassParanoia` | `Storage()` | `Setting` | Mythic ignoriert Paranoia |
-| `autoTrollMythicByPassThreshold` | `Setting_autoTrollMythicByPassThreshold` | `**--**` | `**--**` | Mythic Bypass-Schwelle |
 | `eventTrollOrder` | `Setting_eventTrollOrder` | `Storage()` | `Setting` | Event-Troll-Reihenfolge |
 | `useX10Fights` | `Setting_useX10Fights` | `Storage()` | `Setting` | x10 Kaempfe nutzen |
 | `useX10FightsAllowNormalEvent` | `Setting_useX10FightsAllowNormalEvent` | `Storage()` | `Setting` | x10 auch bei normalen Events |
@@ -421,7 +420,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ---
 
-## TK -- Temp Keys (104 Konstanten)
+## TK -- Temp Keys (97 Konstanten)
 
 ### (unsorted)
 
@@ -480,7 +479,6 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `TrollHumanLikeRun` | `Temp_TrollHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Troll Runs |
 | `TrollInvalid` | `Temp_TrollInvalid` | `sessionStorage` | `Temp` | Ungueltige Trolls |
 | `trollPoints` | `Temp_trollPoints` | `sessionStorage` | `Temp` | Troll-Punkte |
-| `trollToFight` | `Temp_trollToFight` | `**--**` | `**--**` | Naechster Troll |
 | `trollWithGirls` | `Temp_trollWithGirls` | `sessionStorage` | `Temp` | Trolls mit Girls |
 | `autoTrollBattleSaveQuest` | `Temp_autoTrollBattleSaveQuest` | `sessionStorage` | `Temp` | Quest-Save |
 
@@ -498,7 +496,6 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `battlePowerRequired` | `Temp_battlePowerRequired` | `sessionStorage` | `Temp` | Benoetigte Power |
 | `burst` | `Temp_burst` | `sessionStorage` | `Temp` | Burst-Modus |
-| `fought` | `Temp_fought` | `sessionStorage` | `Temp` | Gekämpft-Flag |
 | `lastActionPerformed` | `Temp_lastActionPerformed` | `sessionStorage` | `Temp` | Letzte Aktion |
 
 ### Events
@@ -510,7 +507,6 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `eventsGirlz` | `Temp_eventsGirlz` | `sessionStorage` | `Temp` | Event-Girls (JSON) |
 | `eventsList` | `Temp_eventsList` | `sessionStorage` | `Temp` | Aktive Events |
 | `autoChampsEventGirls` | `Temp_autoChampsEventGirls` | `sessionStorage` | `Temp` | Champion Event Girls |
-| `EventFightsBeforeRefresh` | `Temp_EventFightsBeforeRefresh` | `**--**` | `**--**` | Kaempfe vor Refresh |
 | `loveRaids` | `Temp_loveRaids` | `sessionStorage` | `Temp` | Love Raid Daten |
 | `raidGirls` | `Temp_raidGirls` | `sessionStorage` | `Temp` | Raid Girls |
 | `bossBangTeam` | `Temp_bossBangTeam` | `sessionStorage` | `Temp` | Boss Bang Team |
@@ -530,9 +526,6 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `LeagueHumanLikeRun` | `Temp_LeagueHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Liga Runs |
 | `LeagueOpponentList` | `Temp_LeagueOpponentList` | `sessionStorage` | `Temp` | Gegner-Liste |
-| `LeagueSavedData` | `Temp_LeagueSavedData` | `sessionStorage` | `Temp` | Gespeicherte Liga-Daten |
-| `LeagueTempOpponentList` | `Temp_LeagueTempOpponentList` | `**--**` | `**--**` | Temp Gegner-Liste |
-| `leaguesTarget` | `Temp_leaguesTarget` | `**--**` | `**--**` | Liga-Ziel |
 | `hideBeatenOppo` | `Temp_hideBeatenOppo` | `Storage()` | `Temp` | Besiegte ausblenden |
 
 ### Season
@@ -591,7 +584,6 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `sandalwoodMaxUsages` | `Temp_sandalwoodMaxUsages` | `sessionStorage` | `Temp` | Sandalwood Max |
 | `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `sessionStorage` | `Temp` | Mythic-Slot-Konflikte beim Auto-Equip (`Booster.ts`, JSON-Map) |
 | `unknownPagesList` | `Temp_unknownPagesList` | `sessionStorage` | `Temp` | Unbekannte Seiten |
-| `userLink` | `Temp_userLink` | `**--**` | `**--**` | User Link |
 
 ### Survey
 
@@ -654,10 +646,9 @@ Key-Praefix).
 
 ## Bekannte nicht registrierte Keys
 
-Folgende 14 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (nachgezaehlt 2026-08-19 gegen v8.9.0). Lesen liefert `undefined`, Schreiben verfaellt:
+Folgende 8 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (nachgezaehlt 2026-08-19 gegen v8.9.0, nach dem Entfernen der toten Keys). Lesen liefert `undefined`, Schreiben verfaellt:
 
 **SK:**
-- `SK.autoTrollMythicByPassThreshold`
 - `SK.PoAMaskRewards`
 - `SK.PoGMaskRewards`
 - `SK.PoVMaskRewards`
@@ -666,59 +657,48 @@ Folgende 14 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStor
 
 **TK:**
 - `TK.haremGirlSpent`
-- `TK.trollToFight`
-- `TK.EventFightsBeforeRefresh`
-- `TK.LeagueTempOpponentList`
-- `TK.leaguesTarget`
 - `TK.SeasonEndDate`
 - `TK.SeasonalEventEndDate`
-- `TK.userLink`
 
 
 ## Tote Keys (Cleanup-Kandidaten)
 
-Nachgezaehlt 2026-08-19 gegen v8.9.0. Ein Key gilt hier als tot, wenn ihn
-ausserhalb seiner Definition in `StorageKeys.ts` und seiner Registrierung in
-`HHStoredVars.ts` **kein Code** anfasst -- auskommentierte Zeilen zaehlen
-nicht als Zugriff, `HHStoredVars.ts` selbst dagegen schon, weil dort
-`events`-Handler echte Schreibzugriffe enthalten.
+**Keine.** Die Analyse vom 2026-08-19 gegen v8.9.0 hatte acht Keys ohne jeden
+Code-Zugriff gefunden; sie wurden am selben Tag entfernt:
 
-**Wichtige Einschraenkung:** `setMenuValues` / `getMenuValues` in
-`Helper/menu/MenuSettings.ts` iterieren ueber *alle* Eintraege von
-`HHStoredVars` und lesen bzw. schreiben jeden, der `storage` und `HHType`
-gesetzt hat. Ein registrierter Key wird also bei jedem Menue-Vorgang
-angefasst, auch wenn ihn kein Feature-Code kennt. Die zwei registrierten
-Eintraege unten sind deshalb nicht folgenlos zu loeschen: erst der
-`HHStoredVars`-Eintrag, dann die Konstante.
+| Key | war registriert | Befund |
+|-----|-----------------|--------|
+| SK.autoTrollMythicByPassThreshold | nein | Geparktes Feature: auskommentierter Block in `ParanoiaService.ts`, i18n-Eintraege in de/en/es ebenfalls auskommentiert (Versionsmarke 5.6.24) |
+| TK.trollToFight | nein | Waise, kein Vorkommen ausser der Definition |
+| TK.fought | ja | Nur die Registrierung, sonst nichts |
+| TK.EventFightsBeforeRefresh | nein | Geparktes Feature: auskommentiert in `RewardHelper.ts` und `EventModule.ts` (2x) |
+| TK.LeagueSavedData | ja | Nur die Registrierung, sonst nichts |
+| TK.LeagueTempOpponentList | nein | Waise |
+| TK.leaguesTarget | nein | Waise |
+| TK.userLink | nein | Waise |
 
-| Key | registriert | Befund (v8.9.0) |
-|-----|-------------|-----------------|
-| SK.autoTrollMythicByPassThreshold | nein | Nur in einer auskommentierten Zeile in `ParanoiaService.ts:249` |
-| TK.trollToFight | nein | Keinerlei Vorkommen ausser der Definition |
-| TK.fought | **ja** | Registriert in `HHStoredVars.ts:2387`, sonst kein Vorkommen |
-| TK.EventFightsBeforeRefresh | nein | Nur auskommentiert (`RewardHelper.ts:386`, `EventModule.ts:34` und `:347`) |
-| TK.LeagueSavedData | **ja** | Registriert in `HHStoredVars.ts:2514`, sonst kein Vorkommen |
-| TK.LeagueTempOpponentList | nein | Keinerlei Vorkommen ausser der Definition |
-| TK.leaguesTarget | nein | Keinerlei Vorkommen ausser der Definition |
-| TK.userLink | nein | Keinerlei Vorkommen ausser der Definition |
+Die auskommentierten Bloecke der beiden geparkten Features blieben bewusst
+stehen. Wer eines davon reaktiviert, muss die zugehoerige Konstante wieder
+anlegen -- eine Zeile.
 
-Keiner der acht wird in `spec/` benutzt, ein Entfernen bricht also keinen Test.
+### Methode fuer die naechste Wiederholung
 
-### Aenderungen gegenueber der Analyse von 2026-05-05 (v7.35.21)
+Ein Key gilt als tot, wenn ihn ausserhalb seiner Definition in
+`StorageKeys.ts` und seiner Registrierung in `HHStoredVars.ts` kein Code
+anfasst. Drei Fallen, die eine naive Suche stellt:
 
-Zwei der damals zehn Kandidaten leben wieder und sind aus der Liste raus:
+1. **Auskommentierter Code zaehlt nicht als Zugriff.** Ohne Kommentar-Stripping
+   erscheinen geparkte Features faelschlich als lebendig.
+2. **`HHStoredVars.ts` selbst muss durchsucht werden.** Dort stehen
+   `events`-Handler mit echten Schreibzugriffen -- so wird zum Beispiel
+   `SK.autoFreeBundlesCollectablesList` beschrieben.
+3. **`setMenuValues` / `getMenuValues` iterieren ueber die gesamte Registry**
+   und lesen bzw. schreiben jeden Eintrag mit `storage` und `HHType`. Ein
+   registrierter Key wird also bei jedem Menue-Vorgang angefasst, auch wenn ihn
+   kein Feature-Code kennt. Deshalb zuerst den `HHStoredVars`-Eintrag entfernen,
+   dann die Konstante.
 
-- **`SK.spendKobans0`** -- die alte Notiz "aktuell auskommentiert" stimmt nicht
-  mehr. `StorageHelper.ts:101` liest den Key wieder als `masterKey` fuer die
-  Koban-Sperre.
-- **`SK.autoFreeBundlesCollectablesList`** -- wird vom `events.change`-Handler
-  des benachbarten Free-Bundles-Schalters ueber
-  `getAndStoreCollectPreferences` beschrieben (`HHStoredVars.ts:1100`). Der
-  Zugriff liegt in `HHStoredVars.ts` selbst, weshalb eine Suche, die diese
-  Datei ausklammert, den Key faelschlich als tot meldet.
-
-Unter den 19 Keys, die seit 2026-05-05 dazugekommen sind, ist kein einziger
-toter -- die Liste ist seither nur kuerzer geworden.
-
-Cleanup-Empfehlung unveraendert: bei naechstem Refactor diese Eintraege aus
-`StorageKeys.ts` und (wo vorhanden) `HHStoredVars.ts` entfernen.
+Zwei weitere dynamische Konsumenten wurden geprueft und sind unkritisch:
+`SurveyService.buildSettingsExport` iteriert `Object.keys(SK)`, ueberspringt
+aber unregistrierte Keys (`if (!varDef) continue`), und `debugDeleteAllVars`
+iteriert die Registry statt SK/TK.
