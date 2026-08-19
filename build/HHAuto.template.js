@@ -52,7 +52,7 @@ GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: abso
             // one clipped line. Only the label may wrap; the time must not.
             + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
             + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
-GM_addStyle('#pInfo.left {left:220px; right:auto; width:25%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
+GM_addStyle('#pInfo.left {left:220px; right:auto; width:50%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px

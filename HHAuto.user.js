@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.4
+// @version      8.10.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -52,7 +52,7 @@ GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: abso
             // one clipped line. Only the label may wrap; the time must not.
             + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
             + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
-GM_addStyle('#pInfo.left {left:220px; right:auto; width:25%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
+GM_addStyle('#pInfo.left {left:220px; right:auto; width:50%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px
@@ -306,7 +306,7 @@ HHAuto_ToolTips.en['autoLeaguesCollect'] = { version: "5.6.24", elementText: "Co
 HHAuto_ToolTips.en['autoLeaguesRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum league fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoLeaguesForceOneFight'] = { version: "6.12.4", elementText: "One fight", tooltip: "Only use one fight at a time in league" };
 HHAuto_ToolTips.en['autoLeaguesBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in league" };
-HHAuto_ToolTips.en['boostMissing'] = { version: "6.5.0", elementText: "No booster Equipped" };
+HHAuto_ToolTips.en['boostMissing'] = { version: "8.10.5", elementText: "no booster" };
 HHAuto_ToolTips.en['waitRunThreshold'] = { version: "6.8.0", elementText: "Wait run threshold" };
 HHAuto_ToolTips.en['autoLeaguesSelector'] = { version: "5.6.24", elementText: "Target League", tooltip: "League to target, to try to demote, stay or go in higher league depending" };
 HHAuto_ToolTips.en['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Sorting", tooltip: "Select opponent sorting method. <br>Displayed order (prefered option for HH++ OCD users), <br>power value (prefered option for HH++ BDSM users or without script)<br>or internal sim powercalc." };
@@ -921,7 +921,7 @@ HHAuto_ToolTips.de['leagueListDisplayPowerCalc'] = { version: "5.34.18", element
 HHAuto_ToolTips.de['autoLeaguesRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Liga-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
 HHAuto_ToolTips.de['autoLeaguesForceOneFight'] = { version: "6.12.4", elementText: "Einzelkampf", tooltip: "Verbraucht in der Liga immer nur einen Kampf auf einmal." };
 HHAuto_ToolTips.de['autoLeaguesBoostedOnly'] = { version: "6.5.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Liga gekämpft." };
-HHAuto_ToolTips.de['boostMissing'] = { version: "6.5.0", elementText: "Kein Booster angelegt" };
+HHAuto_ToolTips.de['boostMissing'] = { version: "8.10.5", elementText: "kein Booster" };
 HHAuto_ToolTips.de['waitRunThreshold'] = { version: "6.8.0", elementText: "Warte auf Lauf-Schwelle" };
 HHAuto_ToolTips.de['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Sortierung", tooltip: "Wähle, wie Gegner sortiert werden. <br>Angezeigte Reihenfolge (empfohlen für HH++ OCD), <br>Kraftwert (empfohlen für HH++ BDSM oder ganz ohne Skript)<br>oder interne Sim-PowerCalc." };
 HHAuto_ToolTips.de['autoLeaguesdisplayedOrder'] = { version: "7.6.0", elementText: "Angezeigte Reihenfolge" };
@@ -30054,11 +30054,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.10.4";
+const FEATURE_POPUP_VERSION = "8.10.5";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.4";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.5";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

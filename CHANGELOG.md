@@ -7,7 +7,7 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.10.4 - The status panel, readable
+### v8.10.5 - The status panel, readable
 
 The panel on the home page listing the timers was two centred columns, which
 left the longer rows cut off at the panel edge.
@@ -16,6 +16,8 @@ left the longer rows cut off at the panel edge.
 - **Long names wrap** instead of disappearing under the next column.
 - **The contest row is now two rows**, "Contest end" and "Next contest", so it
   is clear which time is which.
+- **The missing-booster marker is just "no booster"** now, which leaves room on
+  the rows that carry it.
 - **Narrower panel and smaller type**, so the rows sit together instead of
   spanning half the screen. **Show info left** has a set width as well now --
   it used to stretch across almost the whole window whatever width the panel
