@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.2
+// @version      8.10.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -41,7 +41,7 @@ GM_addStyle('.HHAutoScriptMenu input:checked + .slider.kobans { background-color
             +'.HHAutoScriptMenu input:not(:checked) + .slider.round.kobans:before { background-color: red }'
             +'.HHAutoScriptMenu input:checked + .slider.round.kobans:before { background-color: white }')
 GM_addStyle('.HHAutoScriptMenu select option { font-size: medium; }')
-GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:72%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:8pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
+GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:auto; width:18%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:8pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
             // One column with the label left and the value flush right. Two
             // columns fitted more rows in but cut the longer ones off: the
             // value was part of the label's own text node, so there was
@@ -52,7 +52,7 @@ GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: abso
             // one clipped line. Only the label may wrap; the time must not.
             + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
             + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
-GM_addStyle('#pInfo.left {right: 250px; left:220px; top:12%;');
+GM_addStyle('#pInfo.left {left:220px; right:auto; width:18%; top:12%;}'); // width, not a second pixel offset: right:250px made this variant span almost the whole window and outrank the base rule (and the block was never closed)
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
 GM_addStyle('span.optionsBoxTitle {padding-left:5px}'); //; padding-bottom:2px
@@ -16623,10 +16623,10 @@ function createPInfo() {
             + '#pInfo:hover {'
             + '   padding-top : 22px;'
             + '   height : auto;'
-            + '   left : 43%;'
+            + '   left : auto;'
             + '}'
             + '#pInfo {'
-            + '   left : 84%;'
+            + '   left : auto;'
             + '   top : 8%;'
             + '   z-index : 1000;'
             + '   height : 22px;'
@@ -30054,11 +30054,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.10.2";
+const FEATURE_POPUP_VERSION = "8.10.3";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.2";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.3";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
