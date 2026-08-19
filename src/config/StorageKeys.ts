@@ -242,6 +242,7 @@ export const SK = {
     showClubButtonInPoa: "Setting_showClubButtonInPoa",
     showRewardsRecap: "Setting_showRewardsRecap",
     showTooltips: "Setting_showTooltips",
+    menuSingleColumn: "Setting_menuSingleColumn",
     showAdsBack: "Setting_showAdsBack",
     autoAdsClick: "Setting_autoAdsClick",
     mousePause: "Setting_mousePause",
@@ -416,6 +417,7 @@ export const TK = {
     blockAutoDisabled: "Temp_blockAutoDisabled",    // local: {blockId:{reason,sinceVersion}} (R5.5)
     blockFailureCount: "Temp_blockFailureCount",    // local: {signature: count} (R5.3)
     pipelineOrder: "Temp_pipelineOrder",            // local: effective block-id order (R2.5/R7.1)
+    menuOrder: "Temp_menuOrder",                  // local: user-defined order of the settings areas
     pipelineLogContext: "Temp_pipelineLogContext",  // local: non-rotating log context block (R6.16)
 
     // Troll wait-marker (issue #1708): set when handleTrollBattle is

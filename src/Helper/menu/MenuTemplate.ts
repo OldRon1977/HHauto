@@ -7,6 +7,9 @@
 // feedback. Pure string production; the returned markup is injected by
 // StartService.
 //
+// The panel carries the layout as a class (menuStacked, #1834) so the tab rail
+// and the stacked list share one markup and one set of element ids.
+//
 // The master switch lives in the header rather than in the Global tab: it is
 // the one control that has to be reachable from every area. There is still
 // exactly one of it — a second copy would mean a duplicate DOM id and break
@@ -17,7 +20,7 @@
 
 import { TK } from "../../config/StorageKeys";
 import { MenuPorts } from "./MenuPorts";
-import { buildTabbedBody } from "./MenuTabs";
+import { buildTabbedBody, isMenuStacked } from "./MenuTabs";
 import { hhButton, hhMenuSwitch } from "./MenuWidgets";
 
 export function getMenu() {
@@ -38,6 +41,7 @@ export function getMenu() {
         + hhButton('loadConfig', 'loadConfig')
         + hhButton('saveDefaults', 'saveDefaults')
         + hhButton('blockOrder', 'blockOrder')
+        + hhButton('menuOrder', 'menuOrder')
         + `<div class="menuFootRight">`
             + hhButton('settingsSurvey', 'settingsSurvey')
             + hhButton('gitHub', 'git')
@@ -46,7 +50,11 @@ export function getMenu() {
         + `</div>`
     + `</div>`;
 
-    return `<div id="sMenu" class="HHAutoScriptMenu" style="display: none;">`
+    // The layout is a class on the panel, not a different markup: see
+    // applyMenuLayout in MenuTabs.
+    const layoutClass = isMenuStacked() ? ' menuStacked' : '';
+
+    return `<div id="sMenu" class="HHAutoScriptMenu${layoutClass}" style="display: none;">`
         + header
         + buildTabbedBody(debugEnabled)
         + footer

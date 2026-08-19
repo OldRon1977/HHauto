@@ -81,6 +81,17 @@ GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.
 GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
 GM_addStyle('#sMenu .menuPane {display:none;}');
 GM_addStyle('#sMenu .menuPane.active {display:block;}');
+// Stacked layout (#1834): no rail, every area below the previous one in the
+// same scrolling column. One extra class on #sMenu switches it; the panes,
+// groups and rows are the same nodes with the same ids in both layouts.
+// The selector carries three classes so it outranks '.menuPane.active' above
+// regardless of which rule comes first.
+GM_addStyle('#sMenu.menuStacked .menuTabs {display:none;}');
+GM_addStyle('#sMenu.menuStacked .menuPanes .menuPane {display:block;}');
+GM_addStyle('#sMenu.menuStacked .menuPanes .menuPane + .menuPane {margin-top:12px;}');
+// An area whose every group is hidden on this game (maskInactiveMenus) would
+// otherwise show as a heading with nothing under it.
+GM_addStyle('#sMenu .menuPanes .menuPane.menuPaneEmpty {display:none;}');
 GM_addStyle('#sMenu .menuPaneTitle {font-size:14px; font-weight:bold; padding-bottom:4px; margin-bottom:6px; border-bottom:1px solid rgba(255,162,62,.3);}');
 GM_addStyle('#sMenu .menuGroups {display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:5px; align-items:start;}');
 GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-radius:4px; padding:4px 7px 5px;}');

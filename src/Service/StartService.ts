@@ -24,7 +24,7 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { safeReload } from "./PageNavigationService";
 import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
-import { addEventsOnMenuItems, getMenu, getMenuValues, HHMenu, initMenuTabs, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
+import { addEventsOnMenuItems, applyMenuLayout, getMenu, getMenuValues, HHMenu, initMenuTabs, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
 import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
@@ -51,6 +51,7 @@ import { createPInfo } from "./InfoService";
 import { FeaturePopupService } from "./FeaturePopupService";
 import { SurveyService } from "./SurveyService";
 import { PipelineOrderService } from "./PipelineOrderService";
+import { MenuOrderService } from "./MenuOrderService";
 import {
     bindMouseEvents
 } from "./MouseService";
@@ -656,6 +657,18 @@ export function start() {
     // Manual survey button
     $("#settingsSurvey").on("click", function() {
         SurveyService.showSurveyPopup();
+    });
+
+    // Settings-area order (menu reorder) button
+    $("#menuOrder").on("click", function() {
+        MenuOrderService.showPopup();
+    });
+
+    // Menu layout: tab rail vs one stacked list. Applied immediately -- the
+    // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
+    // itself is persisted by the generic binding in addEventsOnMenuItems.
+    $("#menuSingleColumn").on("change", function() {
+        applyMenuLayout((<HTMLInputElement>this).checked);
     });
 
     // Block order (pipeline reorder) button

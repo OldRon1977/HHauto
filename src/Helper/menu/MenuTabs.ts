@@ -17,12 +17,19 @@
 // by id, maskInactiveMenus() hides by id, and feature modules look rows up by
 // id. Only the arrangement moved.
 //
+// Two layouts share this markup (#1834): the tab rail, and -- with
+// SK.menuSingleColumn on -- every area stacked in one scrolling list, for
+// players who want the whole configuration under one pair of eyes. The stacked
+// layout is CSS only (#sMenu.menuStacked), so switching costs no rebuild and no
+// reload. The area order is the user's (TK.menuOrder) in both.
+//
 // Reads its storage/translation helpers from MenuPorts so this file stays a
 // graph leaf (see MenuPorts.ts).
 
 import { HHAuto_inputPattern } from "../../config/InputPattern";
-import { TK } from "../../config/StorageKeys";
+import { SK, TK } from "../../config/StorageKeys";
 import { MenuPorts } from "./MenuPorts";
+import { resolveMenuOrder } from "./MenuOrder";
 import { hhMenuInput, hhMenuInputWithImg, hhMenuSelect, hhMenuSwitch, hhMenuSwitchWithImg } from "./MenuWidgets";
 
 const t = (key: string): string => MenuPorts.getTextForUI(key, "elementText");
@@ -76,7 +83,8 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 hhMenuSwitch('paranoia')
                 + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
                 + hhMenuSwitch('settPerTab')
-                + hhMenuSwitch('showTooltips'))
+                + hhMenuSwitch('showTooltips')
+                + hhMenuSwitch('menuSingleColumn', '', false, true))
             + group('menuSecTiming',
                 hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
                 + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
@@ -326,9 +334,39 @@ function tabs(debugEnabled: boolean): TabDef[] {
     ];
 }
 
+/** Ids of every area this build has, in the order the code declares them. */
+export function menuAreaIds(): string[] {
+    return tabs(false).map(tab => tab.id);
+}
+
+/** Stored area order, or null when nothing was ever saved / the value is junk. */
+function storedMenuOrder(): unknown {
+    const raw = MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.menuOrder);
+    if (typeof raw !== "string" || raw === "") return null;
+    try {
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+/** The order to render in: the user's, repaired against this build's areas. */
+export function effectiveMenuOrder(defaultIds: readonly string[]): string[] {
+    return resolveMenuOrder(storedMenuOrder(), defaultIds);
+}
+
+/** True when the menu should render as one stacked list instead of tabs. */
+export function isMenuStacked(): boolean {
+    return MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + SK.menuSingleColumn) === "true";
+}
+
 /** The rail of area buttons plus one pane per area. */
 export function buildTabbedBody(debugEnabled: boolean): string {
-    const defs = tabs(debugEnabled);
+    const declared = tabs(debugEnabled);
+    const order = effectiveMenuOrder(declared.map(tab => tab.id));
+    const defs = order
+        .map(id => declared.find(tab => tab.id === id))
+        .filter((tab): tab is TabDef => tab !== undefined);
     const rail = defs.map(tab =>
         `<div class="menuTab" data-tab="${tab.id}">`
             + `<span class="menuTabIcon">${tab.icon}</span>`
@@ -388,10 +426,73 @@ export function initMenuTabs(): void {
             });
         } else {
             tabEl.style.display = 'none';
+            // The stacked layout shows every pane, so an area with all groups
+            // hidden has to be taken out there as well -- otherwise it renders
+            // as a heading with nothing underneath it.
+            if (pane !== null) pane.classList.add('menuPaneEmpty');
         }
     }
     if (available.length === 0) return;
 
     const remembered = String(MenuPorts.getStoredValue(tabStorageKey()) ?? '');
     selectTab(available.includes(remembered) ? remembered : available[0]);
+}
+
+/**
+ * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
+ * no reload: the panes keep their DOM, their bound inputs and their values. The
+ * remembered area stays selected underneath, which is what makes switching back
+ * land where the user left off.
+ */
+export function applyMenuLayout(stacked: boolean): void {
+    const menu = document.getElementById('sMenu');
+    if (menu === null) return;
+    menu.classList.toggle('menuStacked', stacked);
+    const panes = document.getElementById('sMenuPanes');
+    if (panes !== null) panes.scrollTop = 0;
+}
+
+/**
+ * Re-order rail and panes in place. appendChild on an element that is already a
+ * child moves it, so walking the order once leaves the DOM in exactly that
+ * sequence. Ids the DOM does not have (an area this game hides) are skipped.
+ */
+export function applyMenuOrder(order: readonly string[]): void {
+    const rail = document.getElementById('sMenuTabs');
+    const panes = document.getElementById('sMenuPanes');
+    if (rail === null || panes === null) return;
+    for (const id of order) {
+        const tab = rail.querySelector(`.menuTab[data-tab="${id}"]`);
+        if (tab !== null) rail.appendChild(tab);
+        const pane = panes.querySelector(`.menuPane[data-pane="${id}"]`);
+        if (pane !== null) panes.appendChild(pane);
+    }
+}
+
+export interface MenuAreaRow {
+    id: string;
+    label: string;
+}
+
+/**
+ * The areas the reorder popup lists: the ones actually on screen, in their
+ * current order. An area this game has no features for is left out -- offering
+ * a row for something the user cannot see would be noise. It is not lost
+ * either: resolveMenuOrder puts any unmentioned area back at its default
+ * position the next time the menu is built.
+ */
+export function visibleMenuAreas(): MenuAreaRow[] {
+    const rail = document.getElementById('sMenuTabs');
+    if (rail === null) return [];
+    const rows: MenuAreaRow[] = [];
+    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab')) as HTMLElement[]) {
+        const id = tabEl.dataset.tab;
+        if (id === undefined || tabEl.style.display === 'none') continue;
+        const iconEl = tabEl.querySelector('.menuTabIcon');
+        const nameEl = tabEl.querySelector('.menuTabName');
+        const icon = iconEl === null ? '' : String(iconEl.textContent ?? '');
+        const name = nameEl === null ? id : String(nameEl.textContent ?? id);
+        rows.push({ id, label: (icon + ' ' + name).trim() });
+    }
+    return rows;
 }

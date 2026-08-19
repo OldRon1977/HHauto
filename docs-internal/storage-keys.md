@@ -637,6 +637,18 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `trollWaitForEnergy` | `Temp_trollWaitForEnergy` | `sessionStorage` | `Temp` | Gesetzt, wenn `handleTrollBattle` auf Energie wartet, ein Kampfpfad aber feuern wuerde; `handleEventParsing` und `handleLeague` unterdruecken daraufhin ihre Navigation. Pro Tab. |
 
+### Settings-Menue (Layout, ab 8.10.0)
+
+| Konstante | Storage Key | Storage | HHType | Beschreibung |
+|-----------|-------------|---------|--------|--------------|
+| `menuSingleColumn` | `Setting_menuSingleColumn` | `localStorage` | `Setting` | Menue-Layout: `false` = Reiter-Leiste, `true` = alle Bereiche untereinander |
+| `menuOrder` | `Temp_menuOrder` | `localStorage` | `Setting` | Vom Nutzer festgelegte Reihenfolge der Menue-Bereiche (JSON-Array von Bereichs-IDs) |
+| `menuTab` | `Temp_menuTab` | `sessionStorage` | `Temp` | Zuletzt geoeffneter Bereich (nur Reiter-Layout) |
+
+`menuOrder` traegt trotz `Temp_`-Praefix `HHType: "Setting"` -- gleiche Entscheidung wie
+`Temp_pipelineOrder`: eine Nutzer-Entscheidung soll "Temp-Speicher loeschen" ueberleben und
+im JSON-Settings-Export enthalten sein (`extractHHVars` filtert nach `HHType`, nicht nach
+Key-Praefix).
 
 ---
 

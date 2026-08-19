@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.9.0
+// @version      8.10.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -81,6 +81,17 @@ GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.
 GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
 GM_addStyle('#sMenu .menuPane {display:none;}');
 GM_addStyle('#sMenu .menuPane.active {display:block;}');
+// Stacked layout (#1834): no rail, every area below the previous one in the
+// same scrolling column. One extra class on #sMenu switches it; the panes,
+// groups and rows are the same nodes with the same ids in both layouts.
+// The selector carries three classes so it outranks '.menuPane.active' above
+// regardless of which rule comes first.
+GM_addStyle('#sMenu.menuStacked .menuTabs {display:none;}');
+GM_addStyle('#sMenu.menuStacked .menuPanes .menuPane {display:block;}');
+GM_addStyle('#sMenu.menuStacked .menuPanes .menuPane + .menuPane {margin-top:12px;}');
+// An area whose every group is hidden on this game (maskInactiveMenus) would
+// otherwise show as a heading with nothing under it.
+GM_addStyle('#sMenu .menuPanes .menuPane.menuPaneEmpty {display:none;}');
 GM_addStyle('#sMenu .menuPaneTitle {font-size:14px; font-weight:bold; padding-bottom:4px; margin-bottom:6px; border-bottom:1px solid rgba(255,162,62,.3);}');
 GM_addStyle('#sMenu .menuGroups {display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:5px; align-items:start;}');
 GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-radius:4px; padding:4px 7px 5px;}');
@@ -485,6 +496,12 @@ HHAuto_ToolTips.en['autoFreeBundlesCollect'] = { version: "5.16.0", elementText:
 HHAuto_ToolTips.en['mousePause'] = { version: "5.6.135", elementText: "Mouse Pause", tooltip: "Pause script activity for 5 seconds when mouse movement is detected. Helps stop script from interrupting manual actions. (in ms, 5000ms=5s)" };
 HHAuto_ToolTips.en['saveDefaults'] = { version: "5.6.24", elementText: "Save defaults", tooltip: "Save your own defaults values for new tabs." };
 HHAuto_ToolTips.en['settingsSurvey'] = { version: "7.33.1", elementText: "Settings Survey", tooltip: "Share your settings anonymously to help us identify unused features." };
+HHAuto_ToolTips.en['menuOrder'] = { version: "8.10.0", elementText: "Menu Order", tooltip: "Reorder the areas of the settings menu (drag or up/down arrows). Applies to both the tabs and the single-page list." };
+HHAuto_ToolTips.en['menuOrderHint'] = { version: "8.10.0", elementText: "Drag a row, or use the &#x25B2;/&#x25BC; arrows, to put the settings areas in the order you want." };
+HHAuto_ToolTips.en['menuOrderReset'] = { version: "8.10.0", elementText: "Restore default" };
+HHAuto_ToolTips.en['menuOrderCancel'] = { version: "8.10.0", elementText: "Cancel" };
+HHAuto_ToolTips.en['menuOrderSave'] = { version: "8.10.0", elementText: "Save" };
+HHAuto_ToolTips.en['menuSingleColumn'] = { version: "8.10.0", elementText: "Single page menu", tooltip: "Show every area stacked in one scrolling list, without the tab rail on the left. Use Menu Order to arrange the areas." };
 HHAuto_ToolTips.en['blockOrder'] = { version: "7.36.13", elementText: "Block Order", tooltip: "Reorder the script's blocks (drag or up/down arrows). Greyed-out blocks are fixed." };
 HHAuto_ToolTips.en['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline Diagnostics", tooltip: "Log extra per-step [PIPE] detail to the console for debugging. Off by default; the basic pipeline trace is always logged." };
 HHAuto_ToolTips.en['autoGiveAff'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Aff to girls in order ( you can use OCD script to filter )." };
@@ -1070,6 +1087,12 @@ HHAuto_ToolTips.de['autoFreeBundlesCollect'] = { version: "5.16.0", elementText:
 HHAuto_ToolTips.de['mousePause'] = { version: "5.6.135", elementText: "Maus-Pause", tooltip: "Pausiert das Skript für 5 Sekunden, sobald eine Mausbewegung erkannt wird. Verhindert, dass das Skript dazwischenfunkt, während du selbst spielst." };
 HHAuto_ToolTips.de['saveDefaults'] = { version: "5.6.24", elementText: "Standard speichern", tooltip: "Speichert deine eigenen Standardwerte für neue Tabs." };
 HHAuto_ToolTips.de['settingsSurvey'] = { version: "7.33.1", elementText: "Einstellungs-Umfrage", tooltip: "Teile deine Einstellungen anonym, damit wir ungenutzte Funktionen erkennen können." };
+HHAuto_ToolTips.de['menuOrder'] = { version: "8.10.0", elementText: "Menü-Reihenfolge", tooltip: "Ordnet die Bereiche des Einstellungsmenüs neu (ziehen oder Pfeile hoch/runter). Gilt für Reiter und Liste." };
+HHAuto_ToolTips.de['menuOrderHint'] = { version: "8.10.0", elementText: "Ziehe eine Zeile oder nutze die Pfeile &#x25B2;/&#x25BC;, um die Bereiche in deine Reihenfolge zu bringen." };
+HHAuto_ToolTips.de['menuOrderReset'] = { version: "8.10.0", elementText: "Standard wiederherstellen" };
+HHAuto_ToolTips.de['menuOrderCancel'] = { version: "8.10.0", elementText: "Abbrechen" };
+HHAuto_ToolTips.de['menuOrderSave'] = { version: "8.10.0", elementText: "Speichern" };
+HHAuto_ToolTips.de['menuSingleColumn'] = { version: "8.10.0", elementText: "Alles auf einer Seite", tooltip: "Zeigt alle Bereiche untereinander in einer Liste, ohne Reiter-Leiste links. Die Reihenfolge legst du mit „Menü-Reihenfolge“ fest." };
 HHAuto_ToolTips.de['blockOrder'] = { version: "7.36.13", elementText: "Block-Reihenfolge", tooltip: "Ordnet die Blöcke des Skripts neu (ziehen oder Pfeile hoch/runter). Ausgegraute Blöcke liegen fest." };
 HHAuto_ToolTips.de['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline-Diagnose", tooltip: "Schreibt zusätzliche [PIPE]-Details je Schritt in die Konsole. Standardmäßig aus." };
 HHAuto_ToolTips.de['autoGiveAff'] = { version: "5.6.24", elementText: "Auto-Geben", tooltip: "Wenn aktiv: Gibt Mädels der Reihe nach automatisch Zuneigung (zum Filtern lässt sich das OCD-Skript nutzen)." };
@@ -1688,6 +1711,7 @@ const SK = {
     showClubButtonInPoa: "Setting_showClubButtonInPoa",
     showRewardsRecap: "Setting_showRewardsRecap",
     showTooltips: "Setting_showTooltips",
+    menuSingleColumn: "Setting_menuSingleColumn",
     showAdsBack: "Setting_showAdsBack",
     autoAdsClick: "Setting_autoAdsClick",
     mousePause: "Setting_mousePause",
@@ -1840,6 +1864,7 @@ const TK = {
     blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
     blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
     pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
+    menuOrder: "Temp_menuOrder", // local: user-defined order of the settings areas
     pipelineLogContext: "Temp_pipelineLogContext", // local: non-rotating log context block (R6.16)
     // Troll wait-marker (issue #1708): set when handleTrollBattle is
     // waiting for energy refill but a battle path WOULD fire if power
@@ -3817,6 +3842,20 @@ HHStoredVars[HHStoredVarPrefixKey + SK.showMarketTools] =
         menuType: "checked",
         kobanUsing: false
     };
+// Settings-menu layout: false = tab rail (default), true = every area stacked
+// in one scrolling list (#1834). localStorage so the choice does not depend on
+// settPerTab -- it describes the menu, not the automation.
+HHStoredVars[HHStoredVarPrefixKey + SK.menuSingleColumn] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
 HHStoredVars[HHStoredVarPrefixKey + SK.showTooltips] =
     {
         default: "true",
@@ -4704,6 +4743,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blockFailureCount] =
     {
         storage: "localStorage",
         HHType: "Temp"
+    };
+// User-defined order of the settings areas, written by the Menu Order popup.
+// Same storage/type choice as pipelineOrder below, for the same two reasons.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuOrder] =
+    {
+        storage: "localStorage",
+        HHType: "Setting" // user choice: survive "delete temp vars", be exported
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineOrder] =
     {
@@ -28387,6 +28433,70 @@ class Troll {
     }
 }
 
+;// ./src/Helper/menu/MenuOrder.ts
+// MenuOrder.ts
+//
+// Pure order resolution for the settings-menu areas (#1834). No DOM, no
+// storage, no imports: the stored order goes in, the effective order comes out,
+// so this is fully unit-testable (spec/Helper/menu/MenuOrder.spec.ts) and stays
+// a graph leaf.
+//
+// The contract mirrors OrderResolver for the pipeline blocks, minus the
+// constraints -- settings areas may sit in any order:
+//   - an id the build does not know any more is dropped (an area removed in a
+//     later version must not leave a hole in the menu);
+//   - an id the stored order does not mention is inserted after its nearest
+//     preceding neighbour from the default order (a NEW area shows up next to
+//     where it was designed to be, not appended at the bottom where nobody
+//     looks);
+//   - anything unusable (no array, wrong element types, empty after filtering)
+//     falls back to the default order.
+/**
+ * Effective area order from a stored order and the build's default order.
+ * `stored` is deliberately `unknown`: it comes from localStorage via
+ * JSON.parse and may be anything at all.
+ */
+function resolveMenuOrder(stored, defaultIds) {
+    const known = new Set(defaultIds);
+    const placed = new Set();
+    const result = [];
+    if (Array.isArray(stored)) {
+        for (const raw of stored) {
+            if (typeof raw !== "string")
+                continue;
+            if (!known.has(raw) || placed.has(raw))
+                continue;
+            placed.add(raw);
+            result.push(raw);
+        }
+    }
+    if (result.length === 0)
+        return [...defaultIds];
+    // Walking the default order forwards means a run of new areas keeps its
+    // relative order, because each one is already placed when the next looks
+    // for its preceding neighbour.
+    for (let i = 0; i < defaultIds.length; i++) {
+        const id = defaultIds[i];
+        if (placed.has(id))
+            continue;
+        let at = 0;
+        for (let j = i - 1; j >= 0; j--) {
+            const idx = result.indexOf(defaultIds[j]);
+            if (idx !== -1) {
+                at = idx + 1;
+                break;
+            }
+        }
+        result.splice(at, 0, id);
+        placed.add(id);
+    }
+    return result;
+}
+/** True when `order` is the build default -- then nothing needs to be stored. */
+function isDefaultMenuOrder(order, defaultIds) {
+    return order.length === defaultIds.length && order.every((id, i) => id === defaultIds[i]);
+}
+
 ;// ./src/Helper/menu/MenuWidgets.ts
 // MenuWidgets.ts
 //
@@ -28500,8 +28610,15 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
 // by id, maskInactiveMenus() hides by id, and feature modules look rows up by
 // id. Only the arrangement moved.
 //
+// Two layouts share this markup (#1834): the tab rail, and -- with
+// SK.menuSingleColumn on -- every area stacked in one scrolling list, for
+// players who want the whole configuration under one pair of eyes. The stacked
+// layout is CSS only (#sMenu.menuStacked), so switching costs no rebuild and no
+// reload. The area order is the user's (TK.menuOrder) in both.
+//
 // Reads its storage/translation helpers from MenuPorts so this file stays a
 // graph leaf (see MenuPorts.ts).
+
 
 
 
@@ -28543,7 +28660,8 @@ function tabs(debugEnabled) {
             groups: group('menuSecBasics', hhMenuSwitch('paranoia')
                 + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
                 + hhMenuSwitch('settPerTab')
-                + hhMenuSwitch('showTooltips'))
+                + hhMenuSwitch('showTooltips')
+                + hhMenuSwitch('menuSingleColumn', '', false, true))
                 + group('menuSecTiming', hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
                     + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
                     + hhMenuSwitch('paranoiaSpendsBefore')
@@ -28736,9 +28854,37 @@ function tabs(debugEnabled) {
         },
     ];
 }
+/** Ids of every area this build has, in the order the code declares them. */
+function menuAreaIds() {
+    return tabs(false).map(tab => tab.id);
+}
+/** Stored area order, or null when nothing was ever saved / the value is junk. */
+function storedMenuOrder() {
+    const raw = MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.menuOrder);
+    if (typeof raw !== "string" || raw === "")
+        return null;
+    try {
+        return JSON.parse(raw);
+    }
+    catch (_a) {
+        return null;
+    }
+}
+/** The order to render in: the user's, repaired against this build's areas. */
+function effectiveMenuOrder(defaultIds) {
+    return resolveMenuOrder(storedMenuOrder(), defaultIds);
+}
+/** True when the menu should render as one stacked list instead of tabs. */
+function isMenuStacked() {
+    return MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + SK.menuSingleColumn) === "true";
+}
 /** The rail of area buttons plus one pane per area. */
 function buildTabbedBody(debugEnabled) {
-    const defs = tabs(debugEnabled);
+    const declared = tabs(debugEnabled);
+    const order = effectiveMenuOrder(declared.map(tab => tab.id));
+    const defs = order
+        .map(id => declared.find(tab => tab.id === id))
+        .filter((tab) => tab !== undefined);
     const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
         + `<span class="menuTabIcon">${tab.icon}</span>`
         + `<span class="menuTabName">${t(tab.nameKey)}</span>`
@@ -28797,12 +28943,76 @@ function initMenuTabs() {
         }
         else {
             tabEl.style.display = 'none';
+            // The stacked layout shows every pane, so an area with all groups
+            // hidden has to be taken out there as well -- otherwise it renders
+            // as a heading with nothing underneath it.
+            if (pane !== null)
+                pane.classList.add('menuPaneEmpty');
         }
     }
     if (available.length === 0)
         return;
     const remembered = String((_a = MenuPorts.getStoredValue(tabStorageKey())) !== null && _a !== void 0 ? _a : '');
     selectTab(available.includes(remembered) ? remembered : available[0]);
+}
+/**
+ * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
+ * no reload: the panes keep their DOM, their bound inputs and their values. The
+ * remembered area stays selected underneath, which is what makes switching back
+ * land where the user left off.
+ */
+function applyMenuLayout(stacked) {
+    const menu = document.getElementById('sMenu');
+    if (menu === null)
+        return;
+    menu.classList.toggle('menuStacked', stacked);
+    const panes = document.getElementById('sMenuPanes');
+    if (panes !== null)
+        panes.scrollTop = 0;
+}
+/**
+ * Re-order rail and panes in place. appendChild on an element that is already a
+ * child moves it, so walking the order once leaves the DOM in exactly that
+ * sequence. Ids the DOM does not have (an area this game hides) are skipped.
+ */
+function applyMenuOrder(order) {
+    const rail = document.getElementById('sMenuTabs');
+    const panes = document.getElementById('sMenuPanes');
+    if (rail === null || panes === null)
+        return;
+    for (const id of order) {
+        const tab = rail.querySelector(`.menuTab[data-tab="${id}"]`);
+        if (tab !== null)
+            rail.appendChild(tab);
+        const pane = panes.querySelector(`.menuPane[data-pane="${id}"]`);
+        if (pane !== null)
+            panes.appendChild(pane);
+    }
+}
+/**
+ * The areas the reorder popup lists: the ones actually on screen, in their
+ * current order. An area this game has no features for is left out -- offering
+ * a row for something the user cannot see would be noise. It is not lost
+ * either: resolveMenuOrder puts any unmentioned area back at its default
+ * position the next time the menu is built.
+ */
+function visibleMenuAreas() {
+    var _a, _b;
+    const rail = document.getElementById('sMenuTabs');
+    if (rail === null)
+        return [];
+    const rows = [];
+    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
+        const id = tabEl.dataset.tab;
+        if (id === undefined || tabEl.style.display === 'none')
+            continue;
+        const iconEl = tabEl.querySelector('.menuTabIcon');
+        const nameEl = tabEl.querySelector('.menuTabName');
+        const icon = iconEl === null ? '' : String((_a = iconEl.textContent) !== null && _a !== void 0 ? _a : '');
+        const name = nameEl === null ? id : String((_b = nameEl.textContent) !== null && _b !== void 0 ? _b : id);
+        rows.push({ id, label: (icon + ' ' + name).trim() });
+    }
+    return rows;
 }
 
 ;// ./src/Helper/menu/MenuTemplate.ts
@@ -28814,6 +29024,9 @@ function initMenuTabs() {
 // `debugEnabled` (read from storage) gates rows that were hidden by survey
 // feedback. Pure string production; the returned markup is injected by
 // StartService.
+//
+// The panel carries the layout as a class (menuStacked, #1834) so the tab rail
+// and the stacked list share one markup and one set of element ids.
 //
 // The master switch lives in the header rather than in the Global tab: it is
 // the one control that has to be reachable from every area. There is still
@@ -28842,6 +29055,7 @@ function getMenu() {
         + hhButton('loadConfig', 'loadConfig')
         + hhButton('saveDefaults', 'saveDefaults')
         + hhButton('blockOrder', 'blockOrder')
+        + hhButton('menuOrder', 'menuOrder')
         + `<div class="menuFootRight">`
         + hhButton('settingsSurvey', 'settingsSurvey')
         + hhButton('gitHub', 'git')
@@ -28849,7 +29063,10 @@ function getMenu() {
         + hhButton('DebugMenu', 'DebugMenu')
         + `</div>`
         + `</div>`;
-    return `<div id="sMenu" class="HHAutoScriptMenu" style="display: none;">`
+    // The layout is a class on the panel, not a different markup: see
+    // applyMenuLayout in MenuTabs.
+    const layoutClass = isMenuStacked() ? ' menuStacked' : '';
+    return `<div id="sMenu" class="HHAutoScriptMenu${layoutClass}" style="display: none;">`
         + header
         + buildTabbedBody(debugEnabled)
         + footer
@@ -29815,18 +30032,24 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.9.0";
+const FEATURE_POPUP_VERSION = "8.10.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.9.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Gear for your hero</p>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">A settings menu that fits every language</p>
+    <p style="margin-bottom:6px;">The three fixed columns are gone. Settings are grouped by <b>game area</b>, every group carries a heading, and a label may be as long as its translation needs &mdash; no more text running under a switch.</p>
+    <ul style="margin-bottom:10px; font-size:12px;">
+      <li><b>Single page menu</b> &mdash; prefer everything in one view? Turn it on under <i>Global</i> and the areas stack into one scrolling list, no tabs.</li>
+      <li><b>Menu Order</b> &mdash; the button in the footer lets you drag the areas into your own order. Works in both layouts and travels with your settings export.</li>
+    </ul>
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Gear for your hero (8.9.0)</p>
     <p style="margin-bottom:6px;">Three new buttons on the <b>market page</b>, armor tab &mdash; laid out like the team workflow, so there is one mental model instead of two.</p>
     <ul style="margin-bottom:6px; font-size:12px;">
       <li><b>Current Best Gear</b> &mdash; puts on the best armor you own, as things stand today. It never makes you weaker.</li>
@@ -30555,6 +30778,142 @@ class PipelineOrderService {
     }
 }
 
+;// ./src/Service/MenuOrderService.ts
+// MenuOrderService.ts -- "Menu Order" reorder popup for the settings areas
+// (#1834).
+//
+// A footer button opens a popup where the user drags (or uses the up/down
+// arrows) to put the settings areas in the order they want. Unlike the pipeline
+// "Block Order" popup this has no constraints -- areas are independent, so every
+// row is movable and no order can be invalid.
+//
+// Two more differences to PipelineOrderService, both deliberate:
+//   - no reload on save. The pipeline order is read once at boot by the
+//     scheduler; the menu order is just DOM sequence, so applyMenuOrder moves
+//     the existing nodes and the user sees the result immediately, with every
+//     input still bound and still holding its value.
+//   - the labels are translated (the areas are named in the menu the user is
+//     looking at, so an English-only popup would be a step back from the i18n
+//     work this branch is about).
+//
+// The order is written to TK.menuOrder (localStorage, HHType "Setting"), so it
+// survives "delete temp vars" and is included in the JSON settings export.
+
+
+
+
+
+
+
+
+const MenuOrderService_POPUP_ID = "menuOrderPopup";
+function label(key) {
+    return getTextForUI(key, "elementText");
+}
+class MenuOrderService {
+    /** Open the reorder popup for the areas currently on screen. */
+    static showPopup() {
+        const rows = visibleMenuAreas();
+        if (rows.length === 0) {
+            logHHAuto("Menu order: the settings menu is not built yet.");
+            return;
+        }
+        fillHHPopUp(MenuOrderService_POPUP_ID, label("menuOrder"), MenuOrderService.buildContent(rows));
+        MenuOrderService.bindEvents();
+    }
+    // -- private --
+    static buildContent(rows) {
+        const list = rows.map((row) => '<div class="menuOrderRow" data-area-id="' + row.id + '" draggable="true"'
+            + ' style="display:flex; align-items:center; gap:6px; padding:5px 7px; margin:2px 0;'
+            + ' background:#f4f4f4; border:1px solid #ccc; border-radius:4px; cursor:grab;">'
+            + '<span style="flex:0 0 14px; color:#999;">&#x2630;</span>'
+            + '<span style="flex:1 1 auto;">' + row.label + '</span>'
+            + '<span class="menuOrderUp" style="cursor:pointer; padding:0 5px; user-select:none;">&#x25B2;</span>'
+            + '<span class="menuOrderDown" style="cursor:pointer; padding:0 5px; user-select:none;">&#x25BC;</span>'
+            + '</div>').join("");
+        return '<div style="padding:10px; max-width:440px; color:#333;">'
+            + '<p style="margin:0 0 10px; font-size:12px;">' + label("menuOrderHint") + '</p>'
+            + '<div id="menuOrderList" style="max-height:340px; overflow-y:auto; padding-right:4px;">' + list + '</div>'
+            + '<div style="display:flex; justify-content:space-between; gap:8px; margin-top:14px;">'
+            + '<label class="myButton" id="menuOrderReset" style="cursor:pointer; padding:6px 12px;">' + label("menuOrderReset") + '</label>'
+            + '<span style="flex:1 1 auto;"></span>'
+            + '<label class="myButton" id="menuOrderCancel" style="cursor:pointer; padding:6px 12px;">' + label("menuOrderCancel") + '</label>'
+            + '<label class="myButton" id="menuOrderSave" style="cursor:pointer; padding:6px 14px; font-weight:bold;">' + label("menuOrderSave") + '</label>'
+            + '</div>'
+            + '</div>';
+    }
+    static readSequence() {
+        const out = [];
+        $('#menuOrderList .menuOrderRow').each(function () {
+            const id = $(this).attr("data-area-id");
+            if (id)
+                out.push(id);
+        });
+        return out;
+    }
+    static bindEvents() {
+        const list = $('#menuOrderList');
+        list.off('click', '.menuOrderUp').on('click', '.menuOrderUp', function () {
+            const row = $(this).closest('.menuOrderRow');
+            const prev = row.prev('.menuOrderRow');
+            if (prev.length)
+                row.insertBefore(prev);
+        });
+        list.off('click', '.menuOrderDown').on('click', '.menuOrderDown', function () {
+            const row = $(this).closest('.menuOrderRow');
+            const next = row.next('.menuOrderRow');
+            if (next.length)
+                row.insertAfter(next);
+        });
+        // HTML5 drag-and-drop, same handling as the Block Order popup.
+        let dragged = null;
+        list.off('dragstart', '.menuOrderRow').on('dragstart', '.menuOrderRow', function (e) {
+            dragged = this;
+            const dt = e.originalEvent.dataTransfer;
+            if (dt)
+                dt.effectAllowed = "move";
+        });
+        list.off('dragover', '.menuOrderRow').on('dragover', '.menuOrderRow', function (e) {
+            e.preventDefault();
+            const target = this;
+            if (!dragged || dragged === target)
+                return;
+            const rect = target.getBoundingClientRect();
+            const after = e.originalEvent.clientY > rect.top + rect.height / 2;
+            if (after)
+                $(target).after(dragged);
+            else
+                $(target).before(dragged);
+        });
+        list.off('drop', '.menuOrderRow').on('drop', '.menuOrderRow', function (e) {
+            e.preventDefault();
+            dragged = null;
+        });
+        $('#menuOrderCancel').off('click').on('click', function () { maskHHPopUp(); });
+        $('#menuOrderReset').off('click').on('click', function () {
+            deleteStoredValue(HHStoredVarPrefixKey + TK.menuOrder);
+            applyMenuOrder(menuAreaIds());
+            logHHAuto("Menu order reset to default.");
+            maskHHPopUp();
+        });
+        $('#menuOrderSave').off('click').on('click', function () {
+            const defaultIds = menuAreaIds();
+            // The popup only lists the visible areas, so resolve puts the hidden
+            // ones back at their default positions before anything is stored.
+            const proposed = resolveMenuOrder(MenuOrderService.readSequence(), defaultIds);
+            if (isDefaultMenuOrder(proposed, defaultIds)) {
+                deleteStoredValue(HHStoredVarPrefixKey + TK.menuOrder);
+            }
+            else {
+                setStoredValue(HHStoredVarPrefixKey + TK.menuOrder, JSON.stringify(proposed));
+            }
+            applyMenuOrder(proposed);
+            logHHAuto("Menu order saved.");
+            maskHHPopUp();
+        });
+    }
+}
+
 ;// ./src/Service/TooltipService.ts
 // TooltipService.ts
 //
@@ -30941,6 +31300,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 // against missing jQuery and "Forbidden" error pages.
 //
 // Used by: src/index.ts (entry point)
+
 
 
 
@@ -31502,6 +31862,16 @@ function start() {
     // Manual survey button
     $("#settingsSurvey").on("click", function () {
         SurveyService.showSurveyPopup();
+    });
+    // Settings-area order (menu reorder) button
+    $("#menuOrder").on("click", function () {
+        MenuOrderService.showPopup();
+    });
+    // Menu layout: tab rail vs one stacked list. Applied immediately -- the
+    // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
+    // itself is persisted by the generic binding in addEventsOnMenuItems.
+    $("#menuSingleColumn").on("change", function () {
+        applyMenuLayout(this.checked);
     });
     // Block order (pipeline reorder) button
     $("#blockOrder").on("click", function () {

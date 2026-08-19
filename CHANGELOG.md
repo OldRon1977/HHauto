@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.0 - A menu that fits every language
+
+The settings menu is no longer three fixed-width columns. Options are grouped
+by game area, every group has a heading, and a label can be as long as its
+translation needs. Longer German, Spanish and French texts no longer run under
+their switch or off the edge of a box.
+
+- **Areas instead of columns.** One pane per game area, reachable from the rail
+  on the left, with the area you had open remembered.
+- **Single page menu.** A switch under *Global* drops the rail and stacks every
+  area in one scrolling list, for anyone who wants the whole configuration in
+  one view.
+- **Menu Order.** A new footer button reorders the areas by drag or arrows. It
+  applies to both layouts, is kept locally, and is part of the settings export.
+- **Number fields hold twelve digits** plus thousands separators, so large
+  amounts are readable instead of clipped.
+- **Places of Power filter widened** and menu tooltips no longer sit half
+  outside the panel or ignore the zoom the game draws the menu at.
+- **German terminology reviewed** against the English menu once more.
+
 ### v8.9.0 - German, in full
 
 The German menu is complete: every one of the 381 entries the English file

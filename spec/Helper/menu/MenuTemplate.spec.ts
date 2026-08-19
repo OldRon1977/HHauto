@@ -54,9 +54,17 @@ const CONTROL_IDS_BEFORE_8_10 = [
     'useX50Fights', 'useX50FightsAllowNormalEvent', 'waitforContest',
 ];
 
+/**
+ * Controls added after the tab layout landed. Kept separate from the list above
+ * so that stays a faithful record of the three-column menu.
+ */
+const CONTROL_IDS_ADDED_IN_8_10 = [
+    'menuSingleColumn',
+];
+
 /** Buttons wired by StartService via $("#id"). */
 const BUTTON_IDS = [
-    'saveConfig', 'loadConfig', 'saveDefaults', 'blockOrder',
+    'saveConfig', 'loadConfig', 'saveDefaults', 'blockOrder', 'menuOrder',
     'settingsSurvey', 'git', 'ReportBugs', 'DebugMenu',
 ];
 
@@ -98,7 +106,15 @@ describe('MenuTemplate', () => {
 
         it('still renders every control the three-column menu had', () => {
             const ids = Array.from(fullMenu().querySelectorAll('input, select')).map((el) => el.id);
-            expect([...ids].sort()).toEqual([...CONTROL_IDS_BEFORE_8_10].sort());
+            for (const id of CONTROL_IDS_BEFORE_8_10) {
+                expect(ids).toContain(id);
+            }
+        });
+
+        it('adds only the controls 8.10.0 introduced', () => {
+            const ids = Array.from(fullMenu().querySelectorAll('input, select')).map((el) => el.id);
+            const added = ids.filter((id) => !CONTROL_IDS_BEFORE_8_10.includes(id));
+            expect(added.sort()).toEqual([...CONTROL_IDS_ADDED_IN_8_10].sort());
         });
 
         it('renders each header and footer button exactly once', () => {

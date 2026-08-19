@@ -1784,6 +1784,20 @@ HHStoredVars[HHStoredVarPrefixKey + SK.showMarketTools] =
     menuType:"checked",
     kobanUsing:false
 };
+// Settings-menu layout: false = tab rail (default), true = every area stacked
+// in one scrolling list (#1834). localStorage so the choice does not depend on
+// settPerTab -- it describes the menu, not the automation.
+HHStoredVars[HHStoredVarPrefixKey + SK.menuSingleColumn] =
+    {
+    default:"false",
+    storage:"localStorage",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.showTooltips] =
     {
     default:"true",
@@ -2683,6 +2697,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blockFailureCount] =
     {
     storage:"localStorage",
     HHType:"Temp"
+};
+// User-defined order of the settings areas, written by the Menu Order popup.
+// Same storage/type choice as pipelineOrder below, for the same two reasons.
+HHStoredVars[HHStoredVarPrefixKey + TK.menuOrder] =
+    {
+    storage:"localStorage",
+    HHType:"Setting"   // user choice: survive "delete temp vars", be exported
 };
 HHStoredVars[HHStoredVarPrefixKey + TK.pipelineOrder] =
     {
