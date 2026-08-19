@@ -1,13 +1,19 @@
 ---
-last-verified: 2026-05-05
-verified-against-version: 7.35.21
+last-verified: 2026-08-19
+verified-against-version: 8.9.0
 status: current
 ---
 
 # Storage Keys Referenz
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
-Letzte vollstaendige Verifikation: 2026-05-05 gegen v7.35.21.
+
+**Code-Stand (2026-08-19, gegen v8.9.0 nachgezaehlt):** 186 SK- und 104
+TK-Konstanten in `StorageKeys.ts`; 14 davon sind nicht in `HHStoredVars.ts`
+registriert. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
+Registrierung jedes Keys gegen den Code -- die Beschreibungstexte der vor
+2026-08-19 bestehenden Zeilen stammen unveraendert aus der letzten
+vollstaendigen Verifikation vom 2026-05-05 gegen v7.35.21.
 
 ---
 
@@ -72,7 +78,7 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 
 > **Code-Referenzen:** Wo jeder Key gelesen, geschrieben oder geloescht wird, dokumentiert data-sources-inventory.md Sektion 7 (vollstaendige Read/Write/Delete-Tabelle, automatisch aus Code regeneriert).
 
-## SK -- Setting Keys (179 Konstanten)
+## SK -- Setting Keys (186 Konstanten)
 
 Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
 
@@ -187,6 +193,7 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 |-----------|-------------|---------|--------|--------------|
 | `autoPentaDrill` | `Setting_autoPentaDrill` | `Storage()` | `Setting` | Penta Drill aktiviert |
 | `autoPentaDrillThreshold` | `Setting_autoPentaDrillThreshold` | `Storage()` | `Setting` | Schwelle |
+| `autoPentaDrillDelay` | `Setting_autoPentaDrillDelay` | `Storage()` | `Setting` | Verzoegerung zwischen PentaDrill-Aktionen (3-20 s, Default 6) |
 | `autoPentaDrillRunThreshold` | `Setting_autoPentaDrillRunThreshold` | `Storage()` | `Setting` | Min. Runs |
 | `autoPentaDrillBoostedOnly` | `Setting_autoPentaDrillBoostedOnly` | `Storage()` | `Setting` | Nur mit Boost |
 | `autoPentaDrillCollect` | `Setting_autoPentaDrillCollect` | `Storage()` | `Setting` | Sammeln |
@@ -245,6 +252,7 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | `autoBuyBoostersFilter` | `Setting_autoBuyBoostersFilter` | `Storage()` | `Setting` | Booster-Filter |
 | `autoEquipBoosters` | `Setting_autoEquipBoosters` | `Storage()` | `Setting` | Booster ausruesten |
 | `autoEquipBoostersSlots` | `Setting_autoEquipBoostersSlots` | `Storage()` | `Setting` | Booster-Slots |
+| `autoEquipMythicBooster` | `Setting_autoEquipMythicBooster` | `Storage()` | `Setting` | Prioritaetsliste der Mythic-Booster fuer die freien Mythic-Slots |
 | `updateMarket` | `Setting_updateMarket` | `Storage()` | `Setting` | Markt aktualisieren |
 | `showMarketTools` | `Setting_showMarketTools` | `Storage()` | `Setting` | Markt-Tools anzeigen |
 
@@ -388,6 +396,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `showRewardsRecap` | `Setting_showRewardsRecap` | `Storage()` | `Setting` | Reward-Zusammenfassung |
 | `showTooltips` | `Setting_showTooltips` | `Storage()` | `Setting` | Tooltips anzeigen |
 | `showAdsBack` | `Setting_showAdsBack` | `Storage()` | `Setting` | Ads-Hintergrund |
+| `autoAdsClick` | `Setting_autoAdsClick` | `Storage()` | `Setting` | Reward-Ads der Home-Seite klicken und bestaetigen |
 | `mousePause` | `Setting_mousePause` | `Storage()` | `Setting` | Maus-Pause |
 | `mousePauseTimeout` | `Setting_mousePauseTimeout` | `Storage()` | `Setting` | Maus-Pause Timeout |
 | `collectAllTimer` | `Setting_collectAllTimer` | `Storage()` | `Setting` | Sammel-Timer |
@@ -397,6 +406,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `compactPowerPlace` | `Setting_compactPowerPlace` | `Storage()` | `Setting` | Kompakte PoP |
 | `invertMissions` | `Setting_invertMissions` | `Storage()` | `Setting` | Missions invertieren |
 | `saveDefaults` | `Setting_saveDefaults` | `localStorage` | `Setting` | Defaults speichern |
+| `pipelineDiagnose` | `Setting_pipelineDiagnose` | `localStorage` | `Setting` | Zusaetzliche `[PIPE]`-Details je Schritt ins Log (Default aus) |
 
 ### Reward Masks
 
@@ -411,7 +421,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ---
 
-## TK -- Temp Keys (90 Konstanten)
+## TK -- Temp Keys (104 Konstanten)
 
 ### (unsorted)
 
@@ -445,6 +455,10 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `haremTeamScrolls` | `Temp_haremTeamScrolls` | `sessionStorage` | `Temp` | Team-Scrolls |
 | `haremTeamSettings` | `Temp_haremTeamSettings` | `sessionStorage` | `Temp` | Team-Einstellungen |
 | `blessingsCache` | `Temp_blessingsCache` | `localStorage` | `Temp` | Blessing-API-Cache (`BlessingData` JSON), 12 h Lebensdauer, gesetzt in `BlessingService.fetchAndCache` |
+| `teamInfoCollapsed` | `Temp_teamInfoCollapsed` | `localStorage` | `Temp` | Team-Info-Panel eingeklappt (`TeamModule`) |
+| `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | Thema des zuletzt gebauten Teams; der Gear-Optimizer braucht es auf der Market-Seite, wo das Team nicht verfuegbar ist |
+| `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | Inventar-IDs der vom Gear-Optimizer abgelegten Items, damit ein Rollback moeglich bleibt (ID aendert sich bei jedem Unequip) |
+| `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | Items, die "Upgrade Gear" noch leveln muss; ueber die Navigationen zur Upgrade-Seite hinweg abgearbeitet |
 
 ### Resources
 
@@ -466,7 +480,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `TrollHumanLikeRun` | `Temp_TrollHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Troll Runs |
 | `TrollInvalid` | `Temp_TrollInvalid` | `sessionStorage` | `Temp` | Ungueltige Trolls |
 | `trollPoints` | `Temp_trollPoints` | `sessionStorage` | `Temp` | Troll-Punkte |
-| `trollToFight` | `Temp_trollToFight` | `sessionStorage` | `Temp` | Naechster Troll |
+| `trollToFight` | `Temp_trollToFight` | `**--**` | `**--**` | Naechster Troll |
 | `trollWithGirls` | `Temp_trollWithGirls` | `sessionStorage` | `Temp` | Trolls mit Girls |
 | `autoTrollBattleSaveQuest` | `Temp_autoTrollBattleSaveQuest` | `sessionStorage` | `Temp` | Quest-Save |
 
@@ -517,8 +531,8 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `LeagueHumanLikeRun` | `Temp_LeagueHumanLikeRun` | `sessionStorage` | `Temp` | Human-Like Liga Runs |
 | `LeagueOpponentList` | `Temp_LeagueOpponentList` | `sessionStorage` | `Temp` | Gegner-Liste |
 | `LeagueSavedData` | `Temp_LeagueSavedData` | `sessionStorage` | `Temp` | Gespeicherte Liga-Daten |
-| `LeagueTempOpponentList` | `Temp_LeagueTempOpponentList` | `sessionStorage` | `Temp` | Temp Gegner-Liste |
-| `leaguesTarget` | `Temp_leaguesTarget` | `sessionStorage` | `Temp` | Liga-Ziel |
+| `LeagueTempOpponentList` | `Temp_LeagueTempOpponentList` | `**--**` | `**--**` | Temp Gegner-Liste |
+| `leaguesTarget` | `Temp_leaguesTarget` | `**--**` | `**--**` | Liga-Ziel |
 | `hideBeatenOppo` | `Temp_hideBeatenOppo` | `Storage()` | `Temp` | Besiegte ausblenden |
 
 ### Season
@@ -575,8 +589,9 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `sandalwoodFailure` | `Temp_sandalwoodFailure` | `sessionStorage` | `Temp` | Sandalwood Fehler |
 | `sandalwoodMaxUsages` | `Temp_sandalwoodMaxUsages` | `sessionStorage` | `Temp` | Sandalwood Max |
-| `unkownPagesList` | `Temp_unkownPagesList` | `sessionStorage` | `Temp` | Unbekannte Seiten |
-| `userLink` | `Temp_userLink` | `sessionStorage` | `Temp` | User Link |
+| `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `sessionStorage` | `Temp` | Mythic-Slot-Konflikte beim Auto-Equip (`Booster.ts`, JSON-Map) |
+| `unknownPagesList` | `Temp_unknownPagesList` | `sessionStorage` | `Temp` | Unbekannte Seiten |
+| `userLink` | `Temp_userLink` | `**--**` | `**--**` | User Link |
 
 ### Survey
 
@@ -593,11 +608,41 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `featurePopupShown` | `Temp_featurePopupShown` | `localStorage` | `Temp` | Feature Popup angezeigt |
 | `featurePopupDismissCount` | `Temp_featurePopupDismissCount` | `localStorage` | `Temp` | Feature Popup Dismiss |
 
+### Mouse pause (issue #1774)
+
+| Konstante | Storage Key | Storage | HHType | Beschreibung |
+|-----------|-------------|---------|--------|--------------|
+| `mouseLastActivity` | `Temp_mouseLastActivity` | `sessionStorage` | `Temp` | Zeitstempel der letzten Mausaktivitaet (`MouseService`) |
+
+### Pipeline scheduler
+
+| Konstante | Storage Key | Storage | HHType | Beschreibung |
+|-----------|-------------|---------|--------|--------------|
+| `pipelineLastRunAt` | `Temp_pipelineLastRunAt` | `sessionStorage` | `Temp` | `{blockId: ts}` letzter Lauf je Block (`BlockPipeline`) |
+
+### Pipeline-Block-Architektur (v7.37.0, ADR-001)
+
+| Konstante | Storage Key | Storage | HHType | Beschreibung |
+|-----------|-------------|---------|--------|--------------|
+| `activeBlockRun` | `Temp_activeBlockRun` | `sessionStorage` | `Temp` | BlockRun-Fortschritt (R4.4/R4.12) |
+| `blockCooldownUntil` | `Temp_blockCooldownUntil` | `sessionStorage` | `Temp` | `{blockId: ts}` Cooldowns (R4.10/R5.2) |
+| `blockAutoDisabled` | `Temp_blockAutoDisabled` | `localStorage` | `Temp` | `{blockId:{reason,sinceVersion}}` automatisch abgeschaltete Bloecke (R5.5) |
+| `blockFailureCount` | `Temp_blockFailureCount` | `localStorage` | `Temp` | `{signature: count}` Fehlerzaehler (R5.3) |
+| `pipelineOrder` | `Temp_pipelineOrder` | `localStorage` | `Setting` | Effektive Block-ID-Reihenfolge (R2.5/R7.1); trotz `Temp_`-Prefix als `Setting` registriert |
+| `pipelineLogContext` | `Temp_pipelineLogContext` | `localStorage` | `Temp` | Nicht rotierender Log-Kontext-Block (R6.16) |
+
+### Troll wait-marker (issue #1708)
+
+| Konstante | Storage Key | Storage | HHType | Beschreibung |
+|-----------|-------------|---------|--------|--------------|
+| `trollWaitForEnergy` | `Temp_trollWaitForEnergy` | `sessionStorage` | `Temp` | Gesetzt, wenn `handleTrollBattle` auf Energie wartet, ein Kampfpfad aber feuern wuerde; `handleEventParsing` und `handleLeague` unterdruecken daraufhin ihre Navigation. Pro Tab. |
+
+
 ---
 
 ## Bekannte nicht registrierte Keys
 
-Folgende Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert. Lesen liefert `undefined`, Schreiben verfaellt:
+Folgende 14 Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredVars.ts` registriert (nachgezaehlt 2026-08-19 gegen v8.9.0). Lesen liefert `undefined`, Schreiben verfaellt:
 
 **SK:**
 - `SK.autoTrollMythicByPassThreshold`
@@ -609,14 +654,18 @@ Folgende Konstanten sind in `StorageKeys.ts` definiert, aber NICHT in `HHStoredV
 
 **TK:**
 - `TK.haremGirlSpent`
+- `TK.trollToFight`
 - `TK.EventFightsBeforeRefresh`
+- `TK.LeagueTempOpponentList`
+- `TK.leaguesTarget`
 - `TK.SeasonEndDate`
 - `TK.SeasonalEventEndDate`
+- `TK.userLink`
 
 
 ## Tote Keys (Cleanup-Kandidaten)
 
-Folgende Keys sind in src/config/StorageKeys.ts definiert, aber haben in v7.35.21 **keinen Code-Zugriff** (kein setStoredValue, getStoredValue, getStoredJSON oder deleteStoredValue):
+Folgende Keys sind in src/config/StorageKeys.ts definiert, aber hatten in v7.35.21 **keinen Code-Zugriff** (kein setStoredValue, getStoredValue, getStoredJSON oder deleteStoredValue). Diese Analyse ist seit 2026-05-05 nicht wiederholt worden -- die Liste gilt fuer v7.35.21, nicht fuer v8.9.0:
 
 | Key | Annahme |
 |-----|---------|
