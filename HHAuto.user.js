@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.8
+// @version      8.10.9
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -306,6 +306,14 @@ HHAuto_ToolTips.en['autoLeaguesCollect'] = { version: "5.6.24", elementText: "Co
 HHAuto_ToolTips.en['autoLeaguesRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum league fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoLeaguesForceOneFight'] = { version: "6.12.4", elementText: "One fight", tooltip: "Only use one fight at a time in league" };
 HHAuto_ToolTips.en['autoLeaguesBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in league" };
+HHAuto_ToolTips.en['pinfoDailyGoals'] = { version: "8.10.9", elementText: "Daily goals" };
+HHAuto_ToolTips.en['pinfoFreeBundles'] = { version: "8.10.9", elementText: "Free bundles" };
+HHAuto_ToolTips.en['pinfoBossBang'] = { version: "8.10.9", elementText: "Boss Bang" };
+HHAuto_ToolTips.en['pinfoSeasonCollect'] = { version: "8.10.9", elementText: "Season rewards" };
+HHAuto_ToolTips.en['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "Seasonal event" };
+HHAuto_ToolTips.en['pinfoPoVCollect'] = { version: "8.10.9", elementText: "PoV rewards" };
+HHAuto_ToolTips.en['pinfoPoGCollect'] = { version: "8.10.9", elementText: "PoG rewards" };
+HHAuto_ToolTips.en['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Penta Drill rewards" };
 HHAuto_ToolTips.en['boostMissing'] = { version: "8.10.5", elementText: "no booster" };
 HHAuto_ToolTips.en['waitRunThreshold'] = { version: "6.8.0", elementText: "Wait run threshold" };
 HHAuto_ToolTips.en['autoLeaguesSelector'] = { version: "5.6.24", elementText: "Target League", tooltip: "League to target, to try to demote, stay or go in higher league depending" };
@@ -921,6 +929,14 @@ HHAuto_ToolTips.de['leagueListDisplayPowerCalc'] = { version: "5.34.18", element
 HHAuto_ToolTips.de['autoLeaguesRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Liga-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
 HHAuto_ToolTips.de['autoLeaguesForceOneFight'] = { version: "6.12.4", elementText: "Einzelkampf", tooltip: "Verbraucht in der Liga immer nur einen Kampf auf einmal." };
 HHAuto_ToolTips.de['autoLeaguesBoostedOnly'] = { version: "6.5.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Liga gekämpft." };
+HHAuto_ToolTips.de['pinfoDailyGoals'] = { version: "8.10.9", elementText: "Tagesziele" };
+HHAuto_ToolTips.de['pinfoFreeBundles'] = { version: "8.10.9", elementText: "Gratis-Bundles" };
+HHAuto_ToolTips.de['pinfoBossBang'] = { version: "8.10.9", elementText: "Boss Bang" };
+HHAuto_ToolTips.de['pinfoSeasonCollect'] = { version: "8.10.9", elementText: "Season-Belohnung" };
+HHAuto_ToolTips.de['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "Seasonal-Event" };
+HHAuto_ToolTips.de['pinfoPoVCollect'] = { version: "8.10.9", elementText: "PoV-Belohnung" };
+HHAuto_ToolTips.de['pinfoPoGCollect'] = { version: "8.10.9", elementText: "PoG-Belohnung" };
+HHAuto_ToolTips.de['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Penta-Drill-Belohnung" };
 HHAuto_ToolTips.de['boostMissing'] = { version: "8.10.5", elementText: "kein Booster" };
 HHAuto_ToolTips.de['waitRunThreshold'] = { version: "6.8.0", elementText: "Warte auf Lauf-Schwelle" };
 HHAuto_ToolTips.de['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Sortierung", tooltip: "Wähle, wie Gegner sortiert werden. <br>Angezeigte Reihenfolge (empfohlen für HH++ OCD), <br>Kraftwert (empfohlen für HH++ BDSM oder ganz ohne Skript)<br>oder interne Sim-PowerCalc." };
@@ -16685,8 +16701,14 @@ function updateData() {
         if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) == "true") {
             Tegzd += Season.getPinfo();
         }
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonCollectAll) === "true" && getTimer('nextSeasonCollectAllTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoSeasonCollect", "elementText"), getTimeLeft('nextSeasonCollectAllTime'));
+        }
         if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrill) == "true") {
             Tegzd += PentaDrill.getPinfo();
+        }
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillCollectAll) === "true" && getTimer('nextPentaDrillCollectAllTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoPentaDrillCollect", "elementText"), getTimeLeft('nextPentaDrillCollectAllTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledLeagues', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) == "true") {
             Tegzd += LeagueHelper.getPinfo();
@@ -16715,6 +16737,12 @@ function updateData() {
         if (ConfigHelper.getHHScriptVars("isEnabledMission", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) == "true") {
             Tegzd += pInfoRow(getTextForUI("autoMission", "elementText"), getTimeLeft('nextMissionTime'));
         }
+        if (ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true" && getTimer('nextDailyGoalsCollectTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoDailyGoals", "elementText"), getTimeLeft('nextDailyGoalsCollectTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledFreeBundles", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreeBundlesCollect) === "true" && getTimer('nextFreeBundlesCollectTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoFreeBundles", "elementText"), getTimeLeft('nextFreeBundlesCollectTime'));
+        }
         if (ConfigHelper.getHHScriptVars("isEnabledContest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) == "true") {
             Tegzd += pInfoRow(getTextForUI("autoContest", "elementText"), getTimeLeft('nextContestCollectTime'));
         }
@@ -16740,6 +16768,18 @@ function updateData() {
         }
         if (getTimer('eventSultryMysteryAutoOpen') !== -1) {
             Tegzd += pInfoRow(getTextForUI("sultryMysteriesAutoOpenNext", "elementText"), getTimeLeft('eventSultryMysteryAutoOpen'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoBossBang", "elementText"), getTimeLeft('nextBossBangTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoSeasonalEvent", "elementText"), getTimeLeft('nextSeasonalEventCollectAllTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledPoV", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoPoVCollect", "elementText"), getTimeLeft('nextPoVCollectAllTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledPoG", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1) {
+            Tegzd += pInfoRow(getTextForUI("pinfoPoGCollect", "elementText"), getTimeLeft('nextPoGCollectAllTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveAff)) {
             Tegzd += pInfoRow(getTextForUI("autoAffW", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveAff)));
@@ -30054,11 +30094,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.10.8";
+const FEATURE_POPUP_VERSION = "8.10.9";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.8";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.9";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.

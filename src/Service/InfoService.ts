@@ -140,9 +140,17 @@ export function updateData() {
         {
             Tegzd += Season.getPinfo();
         }
+        if (ConfigHelper.getHHScriptVars('isEnabledSeason',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonCollectAll) === "true" && getTimer('nextSeasonCollectAllTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoSeasonCollect","elementText"), getTimeLeft('nextSeasonCollectAllTime'));
+        }
         if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrill) =="true")
         {
             Tegzd += PentaDrill.getPinfo();
+        }
+        if (ConfigHelper.getHHScriptVars('isEnabledPentaDrill', false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPentaDrillCollectAll) === "true" && getTimer('nextPentaDrillCollectAllTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoPentaDrillCollect","elementText"), getTimeLeft('nextPentaDrillCollectAllTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledLeagues',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoLeagues) =="true")
         {
@@ -180,6 +188,14 @@ export function updateData() {
         {
             Tegzd += pInfoRow(getTextForUI("autoMission","elementText"), getTimeLeft('nextMissionTime'));
         }
+        if (ConfigHelper.getHHScriptVars("isEnabledDailyGoals",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true" && getTimer('nextDailyGoalsCollectTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoDailyGoals","elementText"), getTimeLeft('nextDailyGoalsCollectTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledFreeBundles",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoFreeBundlesCollect) === "true" && getTimer('nextFreeBundlesCollectTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoFreeBundles","elementText"), getTimeLeft('nextFreeBundlesCollectTime'));
+        }
         if (ConfigHelper.getHHScriptVars("isEnabledContest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoContest) =="true")
         {
             Tegzd += pInfoRow(getTextForUI("autoContest", "elementText"), getTimeLeft('nextContestCollectTime'));
@@ -214,6 +230,22 @@ export function updateData() {
         if (getTimer('eventSultryMysteryAutoOpen') !== -1)
         {
             Tegzd += pInfoRow(getTextForUI("sultryMysteriesAutoOpenNext","elementText"), getTimeLeft('eventSultryMysteryAutoOpen'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledBossBangEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) === "true" && getTimer('nextBossBangTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoBossBang","elementText"), getTimeLeft('nextBossBangTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledSeasonalEvent",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true" && getTimer('nextSeasonalEventCollectAllTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoSeasonalEvent","elementText"), getTimeLeft('nextSeasonalEventCollectAllTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledPoV",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true" && getTimer('nextPoVCollectAllTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoPoVCollect","elementText"), getTimeLeft('nextPoVCollectAllTime'));
+        }
+        if (ConfigHelper.getHHScriptVars("isEnabledPoG",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true" && getTimer('nextPoGCollectAllTime') !== -1)
+        {
+            Tegzd += pInfoRow(getTextForUI("pinfoPoGCollect","elementText"), getTimeLeft('nextPoGCollectAllTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey+TK.haveAff))
         {
