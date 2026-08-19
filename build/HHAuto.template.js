@@ -41,9 +41,17 @@ GM_addStyle('.HHAutoScriptMenu input:checked + .slider.kobans { background-color
             +'.HHAutoScriptMenu input:not(:checked) + .slider.round.kobans:before { background-color: red }'
             +'.HHAutoScriptMenu input:checked + .slider.round.kobans:before { background-color: white }')
 GM_addStyle('.HHAutoScriptMenu select option { font-size: medium; }')
-GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:43%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:9pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
-            + '#pInfo ul {margin:0; padding:0; columns:2; list-style-type: none;}'
-            + '#pInfo ul li {margin:0}');
+GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:60%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:9pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
+            // One column with the label left and the value flush right. Two
+            // columns fitted more rows in but cut the longer ones off: the
+            // value was part of the label's own text node, so there was
+            // nothing to align and nothing to keep whole.
+            + '#pInfo ul {margin:0; padding:0; columns:1; list-style-type: none;}'
+            + '#pInfo ul li {margin:0; display:flex; align-items:baseline; justify-content:space-between; gap:12px;}'
+            // The panel sets white-space:pre, which would hold a long label on
+            // one clipped line. Only the label may wrap; the time must not.
+            + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
+            + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
 GM_addStyle('#pInfo.left {right: 250px; left:220px; top:12%;');
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;

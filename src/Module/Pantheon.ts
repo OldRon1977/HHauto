@@ -16,6 +16,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { gotoPage } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
@@ -43,28 +44,19 @@ export class Pantheon {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
 
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey+SK.autoPantheonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if(boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
-        }else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoPantheonTitle","elementText")+' '+Pantheon.getEnergy()+'/'+Pantheon.getEnergyMax();
+        let label = getTextForUI("autoPantheonTitle","elementText")+' '+Pantheon.getEnergy()+'/'+Pantheon.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' ('+threshold+'<'+Pantheon.getEnergy()+'<='+runThreshold+')';
-        }
-        if(runThreshold > 0  && Pantheon.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
-        }else {
-            Tegzd += ' : ' + getTimeLeft('nextPantheonTime');
+            label += ' ('+threshold+'<'+Pantheon.getEnergy()+'<='+runThreshold+')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing","elementText") + '</li>';
-        } else {
-            Tegzd += '</li>';
+            label += ' ' + getTextForUI("boostMissing","elementText");
         }
-        return Tegzd;
+        const waiting = runThreshold > 0 && Pantheon.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold","elementText") : getTimeLeft('nextPantheonTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing","elementText") }
+            : {});
     }
 
     static isEnabled(){

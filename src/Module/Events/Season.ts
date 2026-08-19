@@ -21,6 +21,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
+import { pInfoRow } from "../../Utils/PInfoRow";
 import { addNutakuSession, gotoPage, safeNavigateHref, safeReload } from "../../Service/PageNavigationService";
 import { ParanoiaService } from "../../Service/ParanoiaService";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -69,37 +70,34 @@ export class Season {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
 
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if(boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
-        }else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoSeasonTitle","elementText")+' '+Season.getEnergy()+'/'+Season.getEnergyMax();
-        if (runThreshold > 0) {
-            Tegzd += ' ('+threshold+'<'+Season.getEnergy()+'<='+runThreshold+')';
-        }
         const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
         const maxTierNb = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
-        if(runThreshold > 0  && Season.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
-        }else {
-            const timeLeft = getTimeLeft('nextSeasonTime');
-            Tegzd += ' : ' + timeLeft;
-            if (isMaxTierSet && timeLeft === "Time's up!") {
-                Tegzd += ' (Max Tier ' + maxTierNb + ')';
-            }
+
+        let label = getTextForUI("autoSeasonTitle","elementText")+' '+Season.getEnergy()+'/'+Season.getEnergyMax();
+        if (runThreshold > 0) {
+            label += ' ('+threshold+'<'+Season.getEnergy()+'<='+runThreshold+')';
         }
         if (isMaxTierSet) {
-            Tegzd += ' [≤T' + maxTierNb + ']';
+            label += ' [≤T' + maxTierNb + ']';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing","elementText") + '</li>';
-        } else {
-            Tegzd += '</li>';
+            label += ' ' + getTextForUI("boostMissing","elementText");
         }
-        return Tegzd;
+
+        let value: string;
+        if (runThreshold > 0 && Season.getEnergy() < runThreshold) {
+            value = getTextForUI("waitRunThreshold","elementText");
+        } else {
+            const timeLeft = getTimeLeft('nextSeasonTime');
+            value = timeLeft;
+            if (isMaxTierSet && timeLeft === "Time's up!") {
+                value += ' (Max Tier ' + maxTierNb + ')';
+            }
+        }
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing","elementText") }
+            : {});
     }
 
     static isTimeToFight() {

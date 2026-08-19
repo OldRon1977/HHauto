@@ -13,6 +13,7 @@ import { getPage } from "../../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
 import { randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer, getTimeLeft, clearTimer } from "../../Helper/TimerHelper";
+import { pInfoRow } from "../../Utils/PInfoRow";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
@@ -315,6 +316,6 @@ export class LoveRaidManager {
     }
 
     static getPinfo() {
-        return '<li>' + getTextForUI("loveRaidTitle", "elementText") + ' : ' + getTimeLeft('nextLoveRaidTime') + '</li>';
+        return pInfoRow(getTextForUI("loveRaidTitle", "elementText"), getTimeLeft('nextLoveRaidTime'));
     }
 }

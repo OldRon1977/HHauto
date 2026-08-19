@@ -16,6 +16,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { addNutakuSession, gotoPage, safeNavigateHref } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -61,28 +62,19 @@ export class PentaDrill {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
 
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey +SK.autoPentaDrillBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if(boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
-        }else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoPentaDrillTitle", "elementText") + ' ' + PentaDrill.getEnergy() + '/' + PentaDrill.getEnergyMax();
+        let label = getTextForUI("autoPentaDrillTitle", "elementText") + ' ' + PentaDrill.getEnergy() + '/' + PentaDrill.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + PentaDrill.getEnergy()+'<='+runThreshold+')';
-        }
-        if (runThreshold > 0 && PentaDrill.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
-        }else {
-            Tegzd += ' : ' + getTimeLeft('nextPentaDrillTime');
+            label += ' (' + threshold + '<' + PentaDrill.getEnergy()+'<='+runThreshold+')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing","elementText") + '</li>';
-        } else {
-            Tegzd += '</li>';
+            label += ' ' + getTextForUI("boostMissing","elementText");
         }
-        return Tegzd;
+        const waiting = runThreshold > 0 && PentaDrill.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold","elementText") : getTimeLeft('nextPentaDrillTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing","elementText") }
+            : {});
     }
 
     static isTimeToFight() {

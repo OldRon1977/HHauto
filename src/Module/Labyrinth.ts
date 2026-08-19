@@ -17,6 +17,7 @@ import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
 import { getTimeLeft } from "../Helper/TimerHelper";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { logHHAuto } from "../Utils/LogUtils";
 import { safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -53,7 +54,7 @@ export class Labyrinth {
     }
 
     static getPinfo() {
-        return '<li>' + getTextForUI("autoLabyrinthTitle", "elementText") + ' : ' + getTimeLeft('nextLabyrinthTime') + '</li>';
+        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), getTimeLeft('nextLabyrinthTime'));
     }
 
     static getCurrentFloorNumber(): number {

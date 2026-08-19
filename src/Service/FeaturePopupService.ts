@@ -37,12 +37,12 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION: string = "8.10.0";
+const FEATURE_POPUP_VERSION: string = "8.10.1";
 
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.1";
 
 /**
  * HTML content for the feature popup.
@@ -55,6 +55,7 @@ const FEATURE_POPUP_CONTENT = `
     <ul style="margin-bottom:10px; font-size:12px;">
       <li><b>Single page menu</b> &mdash; prefer everything in one view? Turn it on under <i>Global</i> and the areas stack into one scrolling list, no tabs.</li>
       <li><b>Menu Order</b> &mdash; the button in the footer lets you drag the areas into your own order. Works in both layouts and travels with your settings export.</li>
+      <li><b>The status panel</b> on the home page is a single column now, with the timer name on the left and its time flush right, so the longer rows are readable instead of cut off.</li>
     </ul>
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Gear for your hero (8.9.0)</p>
     <p style="margin-bottom:6px;">Three new buttons on the <b>market page</b>, armor tab &mdash; laid out like the team workflow, so there is one mental model instead of two.</p>

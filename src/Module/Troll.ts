@@ -28,6 +28,7 @@ import {
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
 import { logHHAuto } from "../Utils/LogUtils";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
@@ -87,16 +88,18 @@ export class Troll {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
 
-        let Tegzd = '<li>';
-        Tegzd += getTextForUI("autoTrollTitle","elementText")+' ' + Troll.getEnergy()+'/'+Troll.getEnergyMax()+contest;
+        let label = getTextForUI("autoTrollTitle","elementText")+' ' + Troll.getEnergy()+'/'+Troll.getEnergyMax()+contest;
+        let value = '';
         if (runThreshold > 0) {
-            Tegzd += ' ('+threshold+'<'+Troll.getEnergy()+'<='+runThreshold+')';
-            if(Troll.getEnergy() < runThreshold)  Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
+            label += ' ('+threshold+'<'+Troll.getEnergy()+'<='+runThreshold+')';
+            // This row has no timer of its own, so the wait notice is the only
+            // thing there is to put in the value column.
+            if (Troll.getEnergy() < runThreshold) value = getTextForUI("waitRunThreshold","elementText");
         }
-        Tegzd += '</li>';
+        let Tegzd = pInfoRow(label, value);
 
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        if (debugEnabled) Tegzd += '<li>'+Troll.debugNextTrollToFight() + '</li>';
+        if (debugEnabled) Tegzd += pInfoRow(Troll.debugNextTrollToFight());
         return Tegzd;
     }
 

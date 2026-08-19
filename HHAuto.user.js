@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.0
+// @version      8.10.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -41,9 +41,17 @@ GM_addStyle('.HHAutoScriptMenu input:checked + .slider.kobans { background-color
             +'.HHAutoScriptMenu input:not(:checked) + .slider.round.kobans:before { background-color: red }'
             +'.HHAutoScriptMenu input:checked + .slider.round.kobans:before { background-color: white }')
 GM_addStyle('.HHAutoScriptMenu select option { font-size: medium; }')
-GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:43%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:9pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
-            + '#pInfo ul {margin:0; padding:0; columns:2; list-style-type: none;}'
-            + '#pInfo ul li {margin:0}');
+GM_addStyle('#pInfo {padding-left:3px; z-index:1;white-space: pre;position: absolute;right: 5%; left:60%; height:auto; top:11%; overflow: hidden; border: 1px solid #ffa23e; background-color: rgba(0,0,0,.5); border-radius: 5px; font-size:9pt; user-select: none; -webkit-user-select: none; -moz-user-select: none;}'
+            // One column with the label left and the value flush right. Two
+            // columns fitted more rows in but cut the longer ones off: the
+            // value was part of the label's own text node, so there was
+            // nothing to align and nothing to keep whole.
+            + '#pInfo ul {margin:0; padding:0; columns:1; list-style-type: none;}'
+            + '#pInfo ul li {margin:0; display:flex; align-items:baseline; justify-content:space-between; gap:12px;}'
+            // The panel sets white-space:pre, which would hold a long label on
+            // one clipped line. Only the label may wrap; the time must not.
+            + '#pInfo .pInfoLabel {white-space:normal; overflow-wrap:anywhere;}'
+            + '#pInfo .pInfoValue {flex:none; white-space:nowrap; text-align:right;}');
 GM_addStyle('#pInfo.left {right: 250px; left:220px; top:12%;');
 GM_addStyle('span.HHMenuItemName {padding-bottom:2px; line-height:120%;}');
 GM_addStyle('div.optionsRow {display:flex; flex-direction:row; justify-content: space-between}'); //; padding:3px;
@@ -10203,6 +10211,49 @@ function getGoToClubChampionButton() {
     return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
 }
 
+;// ./src/Utils/PInfoRow.ts
+// PInfoRow.ts
+//
+// One row of the pInfo status panel: label on the left, value on the right
+// (#1834 follow-up). The panel used to be a two-column list of
+// "<li>Label : value</li>" strings, which cut off the longer rows -- the value
+// was part of the same text node, so there was nothing to align.
+//
+// A row is a flex line with two children, so the value column stays flush right
+// no matter how long the label gets, and the label may wrap instead of being
+// clipped (see the #pInfo CSS in build/HHAuto.template.js).
+//
+// Escaping: `label` and `value` are treated as HTML, because callers pass
+// markup (the watchdog row carries a [reactivate] span, others pass &lt;/&gt;
+// entities). `title` is attribute-escaped here, so callers must not escape it
+// themselves. This module imports nothing, so both InfoService and the feature
+// modules can use it without creating an import cycle between them.
+function attr(value) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+function openTag(attrs) {
+    let tag = "<li";
+    if (attrs.style !== undefined && attrs.style !== "")
+        tag += ' style="' + attr(attrs.style) + '"';
+    if (attrs.title !== undefined && attrs.title !== "")
+        tag += ' title="' + attr(attrs.title) + '"';
+    return tag + ">";
+}
+/**
+ * A label/value row. An empty `value` renders the label across the full width,
+ * which is what the rows without a time of their own need (watchdog errors, the
+ * troll energy line, debug output).
+ */
+function pInfoRow(label, value = "", attrs = {}) {
+    const left = '<span class="pInfoLabel">' + label + "</span>";
+    const right = value === "" ? "" : '<span class="pInfoValue">' + value + "</span>";
+    return openTag(attrs) + left + right + "</li>";
+}
+
 ;// ./src/model/BDSMPlayer.ts
 // Model for a player in the BDSM (battle simulation) system.
 // Holds combat stats (HP, attack, defense, crit, shields, stun, reflect, etc.)
@@ -10626,6 +10677,7 @@ class LoveRaid {
 
 
 
+
 class LoveRaidManager {
     static parse() {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDLoveRaid")) {
@@ -10926,7 +10978,7 @@ class LoveRaidManager {
         $('.love-raids-container').removeClass('height-for-ad');
     }
     static getPinfo() {
-        return '<li>' + getTextForUI("loveRaidTitle", "elementText") + ' : ' + getTimeLeft('nextLoveRaidTime') + '</li>';
+        return pInfoRow(getTextForUI("loveRaidTitle", "elementText"), getTimeLeft('nextLoveRaidTime'));
     }
 }
 
@@ -12073,6 +12125,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 
 
 
+
 class Season {
     static getRemainingTime() {
         const seasonTimer = unsafeWindow.season_sec_untill_event_end;
@@ -12099,40 +12152,33 @@ class Season {
     static getPinfo() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonRunThreshold)) || 0;
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if (boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="' + getTextForUI("boostMissing", "elementText") + '">';
-        }
-        else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoSeasonTitle", "elementText") + ' ' + Season.getEnergy() + '/' + Season.getEnergyMax();
-        if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + Season.getEnergy() + '<=' + runThreshold + ')';
-        }
         const isMaxTierSet = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTier) === "true";
         const maxTierNb = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierNb) || Season.LAST_SEASON_LEVEL;
+        let label = getTextForUI("autoSeasonTitle", "elementText") + ' ' + Season.getEnergy() + '/' + Season.getEnergyMax();
+        if (runThreshold > 0) {
+            label += ' (' + threshold + '<' + Season.getEnergy() + '<=' + runThreshold + ')';
+        }
+        if (isMaxTierSet) {
+            label += ' [≤T' + maxTierNb + ']';
+        }
+        if (boostLimited) {
+            label += ' ' + getTextForUI("boostMissing", "elementText");
+        }
+        let value;
         if (runThreshold > 0 && Season.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
+            value = getTextForUI("waitRunThreshold", "elementText");
         }
         else {
             const timeLeft = getTimeLeft('nextSeasonTime');
-            Tegzd += ' : ' + timeLeft;
+            value = timeLeft;
             if (isMaxTierSet && timeLeft === "Time's up!") {
-                Tegzd += ' (Max Tier ' + maxTierNb + ')';
+                value += ' (Max Tier ' + maxTierNb + ')';
             }
         }
-        if (isMaxTierSet) {
-            Tegzd += ' [≤T' + maxTierNb + ']';
-        }
-        if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing", "elementText") + '</li>';
-        }
-        else {
-            Tegzd += '</li>';
-        }
-        return Tegzd;
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
+            : {});
     }
     static isTimeToFight() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonThreshold)) || 0;
@@ -12831,6 +12877,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 
 
 
+
 class LeagueHelper {
     /* get time in sec */
     static getLeagueEndTime() {
@@ -12941,31 +12988,19 @@ class LeagueHelper {
     static getPinfo() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if (boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="' + getTextForUI("boostMissing", "elementText") + '">';
-        }
-        else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoLeaguesTitle", "elementText") + ' ' + LeagueHelper.getEnergy() + '/' + LeagueHelper.getEnergyMax();
+        let label = getTextForUI("autoLeaguesTitle", "elementText") + ' ' + LeagueHelper.getEnergy() + '/' + LeagueHelper.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + LeagueHelper.getEnergy() + '<=' + runThreshold + ')';
-        }
-        if (runThreshold > 0 && LeagueHelper.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
-        }
-        else {
-            Tegzd += ' : ' + getTimeLeft('nextLeaguesTime');
+            label += ' (' + threshold + '<' + LeagueHelper.getEnergy() + '<=' + runThreshold + ')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing", "elementText") + '</li>';
+            label += ' ' + getTextForUI("boostMissing", "elementText");
         }
-        else {
-            Tegzd += '</li>';
-        }
-        return Tegzd;
+        const waiting = runThreshold > 0 && LeagueHelper.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold", "elementText") : getTimeLeft('nextLeaguesTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
+            : {});
     }
     static isTimeToFight() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
@@ -13966,6 +14001,7 @@ function Pantheon_pure_decideShouldFight(state) {
 
 
 
+
 class Pantheon {
     static getEnergy() {
         return Number(getHHVars('Hero.energies.worship.amount'));
@@ -13976,31 +14012,19 @@ class Pantheon {
     static getPinfo() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonRunThreshold)) || 0;
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if (boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="' + getTextForUI("boostMissing", "elementText") + '">';
-        }
-        else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoPantheonTitle", "elementText") + ' ' + Pantheon.getEnergy() + '/' + Pantheon.getEnergyMax();
+        let label = getTextForUI("autoPantheonTitle", "elementText") + ' ' + Pantheon.getEnergy() + '/' + Pantheon.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + Pantheon.getEnergy() + '<=' + runThreshold + ')';
-        }
-        if (runThreshold > 0 && Pantheon.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
-        }
-        else {
-            Tegzd += ' : ' + getTimeLeft('nextPantheonTime');
+            label += ' (' + threshold + '<' + Pantheon.getEnergy() + '<=' + runThreshold + ')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing", "elementText") + '</li>';
+            label += ' ' + getTextForUI("boostMissing", "elementText");
         }
-        else {
-            Tegzd += '</li>';
-        }
-        return Tegzd;
+        const waiting = runThreshold > 0 && Pantheon.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold", "elementText") : getTimeLeft('nextPantheonTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
+            : {});
     }
     static isEnabled() {
         return decideIsEnabled({
@@ -15283,6 +15307,7 @@ var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
+
 class PentaDrill {
     static getRemainingTime() {
         var _a, _b;
@@ -15313,31 +15338,19 @@ class PentaDrill {
     static getPinfo() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillRunThreshold)) || 0;
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if (boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="' + getTextForUI("boostMissing", "elementText") + '">';
-        }
-        else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoPentaDrillTitle", "elementText") + ' ' + PentaDrill.getEnergy() + '/' + PentaDrill.getEnergyMax();
+        let label = getTextForUI("autoPentaDrillTitle", "elementText") + ' ' + PentaDrill.getEnergy() + '/' + PentaDrill.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + PentaDrill.getEnergy() + '<=' + runThreshold + ')';
-        }
-        if (runThreshold > 0 && PentaDrill.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
-        }
-        else {
-            Tegzd += ' : ' + getTimeLeft('nextPentaDrillTime');
+            label += ' (' + threshold + '<' + PentaDrill.getEnergy() + '<=' + runThreshold + ')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing", "elementText") + '</li>';
+            label += ' ' + getTextForUI("boostMissing", "elementText");
         }
-        else {
-            Tegzd += '</li>';
-        }
-        return Tegzd;
+        const waiting = runThreshold > 0 && PentaDrill.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold", "elementText") : getTimeLeft('nextPentaDrillTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
+            : {});
     }
     static isTimeToFight() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPentaDrillThreshold)) || 0;
@@ -15611,10 +15624,15 @@ class PentaDrill {
 
 
 
+
 class Contest {
     static getPinfo() {
         const color = getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
-        return `<li style='color:${color}'>Contest end : ${getTimeLeft('contestRemainingTime')}  / Next : ${getTimeLeft('nextContestTime')}</li>`;
+        // Two rows rather than one: the old single line carried two times, which
+        // leaves nothing to align right, and "Next" on its own did not say next
+        // what.
+        return pInfoRow('Contest end', getTimeLeft('contestRemainingTime'), { style: `color:${color}` })
+            + pInfoRow('Next contest', getTimeLeft('nextContestTime'), { style: `color:${color}` });
     }
     static getClaimsButton() {
         return $(".contest .ended button[rel='claim']");
@@ -16137,6 +16155,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 
 
 
+
 class LabyrinthOpponent {
 }
 class Labyrinth {
@@ -16147,7 +16166,7 @@ class Labyrinth {
         return $('.cleared-labyrinth-container').length > 0;
     }
     static getPinfo() {
-        return '<li>' + getTextForUI("autoLabyrinthTitle", "elementText") + ' : ' + getTimeLeft('nextLabyrinthTime') + '</li>';
+        return pInfoRow(getTextForUI("autoLabyrinthTitle", "elementText"), getTimeLeft('nextLabyrinthTime'));
     }
     static getCurrentFloorNumber() {
         const floorDom = $('#labyrinth-tabs .tab-switcher-fade-in .floor-number-text');
@@ -16568,6 +16587,7 @@ function reactivateBlock(blockId) {
 
 
 
+
 function createPInfo() {
     const pInfo = $('<div id="pInfo" ></div>');
     if (pInfo != null) {
@@ -16596,7 +16616,7 @@ function createPInfo() {
         });
     }
     if (getPage() == ConfigHelper.getHHScriptVars("pagesIDHome")) {
-        GM_addStyle('#pInfo:hover {max-height : none} #pInfo { max-height : 220px} @media only screen and (max-width: 1025px) {#pInfo { ;top:17% }}');
+        GM_addStyle('#pInfo:hover {max-height : none} #pInfo { max-height : 460px} @media only screen and (max-width: 1025px) {#pInfo { ;top:17% }}');
     }
     else {
         GM_addStyle(''
@@ -16646,13 +16666,12 @@ function updateData() {
         const disabledBlocks = getAutoDisabledBlocks();
         for (const blockId of Object.keys(disabledBlocks)) {
             const label = blockId.replace(/^handle/, '');
-            const tip = (disabledBlocks[blockId].reason + ' -- please share a debug logfile to report this.')
-                .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            Tegzd += '<li style="color:red" title="' + tip + '">&lt;ERROR&gt; ' + label
-                + ' <span data-reactivate-block="' + blockId + '" style="cursor:pointer;text-decoration:underline">[reactivate]</span></li>';
+            const tip = disabledBlocks[blockId].reason + ' -- please share a debug logfile to report this.';
+            Tegzd += pInfoRow('&lt;ERROR&gt; ' + label
+                + ' <span data-reactivate-block="' + blockId + '" style="cursor:pointer;text-decoration:underline">[reactivate]</span>', '', { style: 'color:red', title: tip });
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.paranoia) === "true") {
-            Tegzd += '<li>' + getStoredValue(HHStoredVarPrefixKey + TK.pinfo) + ': ' + getTimeLeft('paranoiaSwitch') + '</li>';
+            Tegzd += pInfoRow(String(getStoredValue(HHStoredVarPrefixKey + TK.pinfo)), getTimeLeft('paranoiaSwitch'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) === "true") {
             Tegzd += Contest.getPinfo();
@@ -16661,7 +16680,7 @@ function updateData() {
             Tegzd += Troll.getPinfo(contest);
         }
         if (ConfigHelper.getHHScriptVars("isEnabledSalary", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoSalary", "elementText") + ' : ' + getTimeLeft('nextSalaryTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoSalary", "elementText"), getTimeLeft('nextSalaryTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) == "true") {
             Tegzd += Season.getPinfo();
@@ -16673,10 +16692,10 @@ function updateData() {
             Tegzd += LeagueHelper.getPinfo();
         }
         if (ConfigHelper.getHHScriptVars("isEnabledChamps", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoChamps) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoChampsTitle", "elementText") + ' : ' + getTimeLeft('nextChampionTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoChampsTitle", "elementText"), getTimeLeft('nextChampionTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoClubChamp", "elementText") + ' : ' + getTimeLeft('nextClubChampionTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoClubChamp", "elementText"), getTimeLeft('nextClubChampionTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) == "true" || DailyGoals.isPantheonDailyGoal())) {
             Tegzd += Pantheon.getPinfo();
@@ -16688,45 +16707,45 @@ function updateData() {
             Tegzd += LoveRaidManager.getPinfo();
         }
         if (ConfigHelper.getHHScriptVars("isEnabledShop", false) && getStoredValue(HHStoredVarPrefixKey + SK.updateMarket) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoBuy", "elementText") + ' : ' + getTimeLeft('nextShopTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoBuy", "elementText"), getTimeLeft('nextShopTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoEquipBoosters", "elementText") + ' : ' + getTimeLeft('nextAutoEquipBoosterTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoEquipBoosters", "elementText"), getTimeLeft('nextAutoEquipBoosterTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledMission", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoMission", "elementText") + ' : ' + getTimeLeft('nextMissionTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoMission", "elementText"), getTimeLeft('nextMissionTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledContest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) == "true") {
-            Tegzd += '<li>' + getTextForUI("autoContest", "elementText") + ' : ' + getTimeLeft('nextContestCollectTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoContest", "elementText"), getTimeLeft('nextContestCollectTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlaces) == "true") {
-            Tegzd += '<li>' + getTextForUI("powerPlacesTitle", "elementText") + ' : ' + getTimeLeft('minPowerPlacesTime') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("powerPlacesTitle", "elementText"), getTimeLeft('minPowerPlacesTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) == "true") {
             if (getTimer('nextPachinkoTime') !== -1) {
-                Tegzd += '<li>' + getTextForUI("autoFreePachinko", "elementText") + ' : ' + getTimeLeft('nextPachinkoTime') + '</li>';
+                Tegzd += pInfoRow(getTextForUI("autoFreePachinko", "elementText"), getTimeLeft('nextPachinkoTime'));
             }
             if (getTimer('nextPachinko2Time') !== -1) {
-                Tegzd += '<li>' + getTextForUI("autoMythicPachinko", "elementText") + ' : ' + getTimeLeft('nextPachinko2Time') + '</li>';
+                Tegzd += pInfoRow(getTextForUI("autoMythicPachinko", "elementText"), getTimeLeft('nextPachinko2Time'));
             }
             if (getTimer('nextPachinkoEquipTime') !== -1) {
-                Tegzd += '<li>' + getTextForUI("autoEquipmentPachinko", "elementText") + ' : ' + getTimeLeft('nextPachinkoEquipTime') + '</li>';
+                Tegzd += pInfoRow(getTextForUI("autoEquipmentPachinko", "elementText"), getTimeLeft('nextPachinkoEquipTime'));
             }
         }
         if (getTimer('eventMythicNextWave') !== -1) {
-            Tegzd += '<li>' + getTextForUI("mythicGirlNext", "elementText") + ' : ' + getTimeLeft('eventMythicNextWave') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("mythicGirlNext", "elementText"), getTimeLeft('eventMythicNextWave'));
         }
         if (getTimer('eventSultryMysteryShopRefresh') !== -1) {
-            Tegzd += '<li>' + getTextForUI("sultryMysteriesEventRefreshShopNext", "elementText") + ' : ' + getTimeLeft('eventSultryMysteryShopRefresh') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("sultryMysteriesEventRefreshShopNext", "elementText"), getTimeLeft('eventSultryMysteryShopRefresh'));
         }
         if (getTimer('eventSultryMysteryAutoOpen') !== -1) {
-            Tegzd += '<li>' + getTextForUI("sultryMysteriesAutoOpenNext", "elementText") + ' : ' + getTimeLeft('eventSultryMysteryAutoOpen') + '</li>';
+            Tegzd += pInfoRow(getTextForUI("sultryMysteriesAutoOpenNext", "elementText"), getTimeLeft('eventSultryMysteryAutoOpen'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveAff)) {
-            Tegzd += '<li>' + getTextForUI("autoAffW", "elementText") + ' : ' + NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveAff)) + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoAffW", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveAff)));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveExp)) {
-            Tegzd += '<li>' + getTextForUI("autoExpW", "elementText") + ' : ' + NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveExp)) + '</li>';
+            Tegzd += pInfoRow(getTextForUI("autoExpW", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveExp)));
         }
         Tegzd += '</ul>';
         pInfo.style.display = 'block';
@@ -27632,6 +27651,7 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 
 
 
+
 class Troll {
     static getEnergy() {
         return Number(getHHVars('Hero.energies.fight.amount'));
@@ -27675,17 +27695,19 @@ class Troll {
     static getPinfo(contest) {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-        let Tegzd = '<li>';
-        Tegzd += getTextForUI("autoTrollTitle", "elementText") + ' ' + Troll.getEnergy() + '/' + Troll.getEnergyMax() + contest;
+        let label = getTextForUI("autoTrollTitle", "elementText") + ' ' + Troll.getEnergy() + '/' + Troll.getEnergyMax() + contest;
+        let value = '';
         if (runThreshold > 0) {
-            Tegzd += ' (' + threshold + '<' + Troll.getEnergy() + '<=' + runThreshold + ')';
+            label += ' (' + threshold + '<' + Troll.getEnergy() + '<=' + runThreshold + ')';
+            // This row has no timer of its own, so the wait notice is the only
+            // thing there is to put in the value column.
             if (Troll.getEnergy() < runThreshold)
-                Tegzd += ' ' + getTextForUI("waitRunThreshold", "elementText");
+                value = getTextForUI("waitRunThreshold", "elementText");
         }
-        Tegzd += '</li>';
+        let Tegzd = pInfoRow(label, value);
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
-            Tegzd += '<li>' + Troll.debugNextTrollToFight() + '</li>';
+            Tegzd += pInfoRow(Troll.debugNextTrollToFight());
         return Tegzd;
     }
     static isEnabled() {
@@ -30032,11 +30054,11 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-const FEATURE_POPUP_VERSION = "8.10.0";
+const FEATURE_POPUP_VERSION = "8.10.1";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.10.1";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
@@ -30048,6 +30070,7 @@ const FEATURE_POPUP_CONTENT = `
     <ul style="margin-bottom:10px; font-size:12px;">
       <li><b>Single page menu</b> &mdash; prefer everything in one view? Turn it on under <i>Global</i> and the areas stack into one scrolling list, no tabs.</li>
       <li><b>Menu Order</b> &mdash; the button in the footer lets you drag the areas into your own order. Works in both layouts and travels with your settings export.</li>
+      <li><b>The status panel</b> on the home page is a single column now, with the timer name on the left and its time flush right, so the longer rows are readable instead of cut off.</li>
     </ul>
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Gear for your hero (8.9.0)</p>
     <p style="margin-bottom:6px;">Three new buttons on the <b>market page</b>, armor tab &mdash; laid out like the team workflow, so there is one mental model instead of two.</p>

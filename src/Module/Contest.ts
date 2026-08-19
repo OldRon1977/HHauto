@@ -12,6 +12,7 @@ import { getPage } from "../Helper/PageHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt } from "../Helper/TimeHelper";
 import { checkTimer, checkTimerMustExist, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -20,7 +21,11 @@ import { SK } from "../config/StorageKeys";
 export class Contest {
     static getPinfo() {
         const color = getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
-        return `<li style='color:${color}'>Contest end : ${getTimeLeft('contestRemainingTime')}  / Next : ${getTimeLeft('nextContestTime')}</li>`;
+        // Two rows rather than one: the old single line carried two times, which
+        // leaves nothing to align right, and "Next" on its own did not say next
+        // what.
+        return pInfoRow('Contest end', getTimeLeft('contestRemainingTime'), { style: `color:${color}` })
+            + pInfoRow('Next contest', getTimeLeft('nextContestTime'), { style: `color:${color}` });
     }
     static getClaimsButton(){
         return $(".contest .ended button[rel='claim']");

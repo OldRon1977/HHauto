@@ -22,6 +22,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { pInfoRow } from "../Utils/PInfoRow";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { decideShouldFight, ShouldFightState, leaguePromotionCutoff } from './League.pure';
 import { autoLoop } from "../Service/AutoLoop";
@@ -182,28 +183,19 @@ export class LeagueHelper {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
         const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
 
-        let Tegzd = '';
         const boostLimited = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        if (boostLimited) {
-            Tegzd += '<li style="color:red!important;" title="'+getTextForUI("boostMissing","elementText")+'">';
-        } else {
-            Tegzd += '<li>';
-        }
-        Tegzd += getTextForUI("autoLeaguesTitle","elementText")+' ' + LeagueHelper.getEnergy()+'/'+LeagueHelper.getEnergyMax();
+        let label = getTextForUI("autoLeaguesTitle","elementText")+' ' + LeagueHelper.getEnergy()+'/'+LeagueHelper.getEnergyMax();
         if (runThreshold > 0) {
-            Tegzd += ' ('+threshold+'<'+LeagueHelper.getEnergy()+'<='+runThreshold+')';
-        }
-        if(runThreshold > 0  && LeagueHelper.getEnergy() < runThreshold) {
-            Tegzd += ' ' + getTextForUI("waitRunThreshold","elementText");
-        }else {
-            Tegzd += ' : ' + getTimeLeft('nextLeaguesTime');
+            label += ' ('+threshold+'<'+LeagueHelper.getEnergy()+'<='+runThreshold+')';
         }
         if (boostLimited) {
-            Tegzd += ' ' + getTextForUI("boostMissing","elementText") + '</li>';
-        } else {
-            Tegzd += '</li>';
+            label += ' ' + getTextForUI("boostMissing","elementText");
         }
-        return Tegzd;
+        const waiting = runThreshold > 0 && LeagueHelper.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold","elementText") : getTimeLeft('nextLeaguesTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing","elementText") }
+            : {});
     }
 
     static isTimeToFight(){
