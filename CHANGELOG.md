@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.18 - Mark the gear worth keeping
+
+- New **Mark Keepers** button on the market's armor tab. It puts a star on the
+  mythic pieces worth keeping, so everything unmarked is safe to spend by hand
+  as upgrade material -- which is the point: two helmets of the right class and
+  element mean one can level the other instead of being sold.
+- One piece is kept per slot and element. Which one: your own class first, then
+  damage before defence before ego before harmony, then the higher level, and
+  the lower id to break a dead heat so the star does not wander between page
+  loads. An element you only own on a foreign class keeps its best piece
+  anyway, otherwise that element would disappear from the slot.
+- Display only. Nothing is equipped, sold or consumed, and the automation still
+  never feeds mythics to anything.
+- Dropped the per-run level-up cap, which could not fire: the loop raises the
+  level on every pass, so the max-level check ends it after at most 19 passes
+  and the cap sat at 30.
+
 ### v8.10.17 - Tooltips you can actually read
 
 - **The help box now sizes itself to the text.** A one-line hint keeps the

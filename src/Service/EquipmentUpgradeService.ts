@@ -46,10 +46,6 @@ export function upgradePageUrl(target: { id_member_armor: number }): string {
     return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
 }
 
-/** Hard stop on level-ups per page load, so a misread response cannot spend
- *  an inventory. Each one costs money and material. */
-export const MAX_LEVELUPS_PER_PAGE = 30;
-
 /**
  * The worn items worth spending material on: mythics that are not yet at
  * the cap.
@@ -138,17 +134,20 @@ export type UpgradeStop =
  * Auto Select has managed to cover the requirement, so a disabled button
  * after Auto Select means the stock is spent. That is the signal this stops
  * on -- not an estimate of remaining material.
+ *
+ * There used to be a per-run cap here as a guard against a runaway loop. It
+ * could never fire: the caller passes `startLevel + performed` as the current
+ * level, so the level rises with every pass and the max-level check below is
+ * what ends the loop -- after at most 19 passes, since 1 -> 20 is the whole
+ * range the game allows. The cap sat at 30 and was therefore dead code that
+ * only read like a safeguard.
  */
 export function decideNextLevelUp(state: {
     currentLevel: number;
     levelUpEnabled: boolean;
-    performed: number;
 }): UpgradeStop {
     if (state.currentLevel >= MYTHIC_MAX_LEVEL) {
         return { go: false, reason: 'item is at max level', done: true };
-    }
-    if (state.performed >= MAX_LEVELUPS_PER_PAGE) {
-        return { go: false, reason: `hit the ${MAX_LEVELUPS_PER_PAGE}-level cap for one run`, done: false };
     }
     if (!state.levelUpEnabled) {
         return { go: false, reason: 'not enough material left for another level', done: false };

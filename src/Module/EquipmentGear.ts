@@ -21,6 +21,7 @@
 // page the Level-up button navigates to)
 
 import { ConfigHelper } from "../Helper/ConfigHelper";
+import { pickKeepers } from "../Service/EquipmentKeepService";
 import { HeroHelper } from "../Helper/HeroHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
@@ -125,17 +126,24 @@ export class EquipmentGear {
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
             + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
-            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}');
+            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}'
+            // The keep marker. Anchored to the slot itself so it rides along
+            // when the inventory re-renders a row.
+            + '#player-inventory-armor .slot{position:relative;}'
+            + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
+            + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
 
         host.append('<div id="HHGearButtons">'
             + gearButton('HHGearCurrentBest')
             + gearButton('HHGearPossibleBest')
             + gearButton('HHGearUpgrade')
+            + gearButton('HHGearMarkKeep')
             + '</div>');
 
         $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
         $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
         $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
+        $("#HHGearMarkKeep").on("click", () => { void EquipmentGear.markKeepers(); });
     }
 
     /**
@@ -485,6 +493,83 @@ export class EquipmentGear {
      * per item, so the preview lists the targets and the stock behind them
      * and leaves the arithmetic to the page that knows it.
      */
+    /**
+     * Mark the mythics worth keeping, so everything unmarked is safe to spend
+     * by hand as upgrade material.
+     *
+     * Display only: nothing is equipped, sold or consumed here, and the
+     * automation never feeds mythics to anything either. The rule lives in
+     * EquipmentKeepService -- one piece per slot and element.
+     */
+    private static async markKeepers(): Promise<void> {
+        if (EquipmentGear.running) return;
+        EquipmentGear.running = true;
+        try {
+            const rawClass = Number(HeroHelper.getClass());
+            if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
+                EquipmentGear.showMessage('Mark Keepers', 'Could not read the hero class.');
+                return;
+            }
+
+            EquipmentGear.showMessage('Mark Keepers', 'Reading the inventory...');
+            const inventory = await EquipmentGear.fetchInventory();
+            if (inventory === null) {
+                EquipmentGear.showMessage('Mark Keepers',
+                    'Could not read the inventory. Nothing was marked -- see the log.');
+                return;
+            }
+
+            const decision = pickKeepers(inventory, rawClass as PlayerClass);
+            const painted = EquipmentGear.paintKeepMarks(decision.keep);
+            const freed = inventory.filter(i =>
+                !i.equipped && i.rarity === 'mythic' && !decision.keep.has(i.id_member_armor)).length;
+
+            logHHAuto(`Gear [Mark Keepers]: ${decision.keep.size} mythic(s) marked to keep,`
+                + ` ${freed} free as material; ${painted} marker(s) drawn.`);
+            for (const g of decision.groups) {
+                if (g.freed > 0) {
+                    logHHAuto(`  slot ${g.slot} ${g.element}: keeping ${g.keptId}, ${g.freed} free`);
+                }
+            }
+
+            const rows = decision.groups
+                .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
+                .join('');
+            EquipmentGear.showMessage('Mark Keepers',
+                `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
+                + '<p>A marked piece is the one to keep for that slot and element.'
+                + ' Nothing was changed in the game.</p>'
+                + '<table id="HHGearPreview"><tr><th>Slot</th><th>Element</th><th>Free</th></tr>'
+                + rows + '</table>');
+        } catch (err) {
+            logHHAuto('Gear: Mark Keepers failed -- ' + String(err));
+        } finally {
+            EquipmentGear.running = false;
+        }
+    }
+
+    /**
+     * Draw the marker on every kept piece and clear it everywhere else.
+     * Returns how many markers ended up on screen, which is what tells the log
+     * whether the ids actually matched the rendered slots.
+     */
+    private static paintKeepMarks(keep: Set<number>): number {
+        $('.HHKeepMark').remove();
+        let painted = 0;
+        $('#player-inventory-armor .slot[id_item]').each(function () {
+            const id = Number((this as HTMLElement).getAttribute('id_item'));
+            if (!keep.has(id)) return;
+            const star = document.createElement('div');
+            star.className = 'HHKeepMark';
+            // The game's own star, same asset the market UI uses.
+            star.style.backgroundImage =
+                `url("${ConfigHelper.getHHScriptVars('baseImgPath')}/design/ic_star_orange.svg")`;
+            this.appendChild(star);
+            painted++;
+        });
+        return painted;
+    }
+
     private static async previewUpgrade(): Promise<void> {
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;
@@ -663,7 +748,7 @@ export class EquipmentGear {
                 const enabled = $('#level-up').length > 0
                     && !(document.getElementById('level-up') as HTMLButtonElement).disabled;
                 const verdict = decideNextLevelUp({
-                    currentLevel: startLevel + performed, levelUpEnabled: enabled, performed,
+                    currentLevel: startLevel + performed, levelUpEnabled: enabled,
                 });
                 if (!verdict.go) {
                     logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);

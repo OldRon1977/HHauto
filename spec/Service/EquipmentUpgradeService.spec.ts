@@ -1,5 +1,4 @@
 import {
-    MAX_LEVELUPS_PER_PAGE,
     countMaterialStock,
     decideNextLevelUp,
     parseRequirement,
@@ -116,30 +115,30 @@ describe('parseRequirement', () => {
 
 describe('decideNextLevelUp', () => {
     it('goes while the game says it can', () => {
-        expect(decideNextLevelUp({ currentLevel: 5, levelUpEnabled: true, performed: 0 }))
+        expect(decideNextLevelUp({ currentLevel: 5, levelUpEnabled: true }))
             .toEqual({ go: true });
     });
 
     // The button staying disabled after Auto Select is the game's own
     // verdict that the stock is spent -- nothing here counts material.
     it('stops when the button stays disabled', () => {
-        const d = decideNextLevelUp({ currentLevel: 5, levelUpEnabled: false, performed: 2 });
+        const d = decideNextLevelUp({ currentLevel: 5, levelUpEnabled: false });
         expect(d.go).toBe(false);
         expect(d).toMatchObject({ done: false });
         expect((d as any).reason).toMatch(/material/);
     });
 
     it('stops, and counts it as finished, at the cap', () => {
-        const d = decideNextLevelUp({ currentLevel: MYTHIC_MAX_LEVEL, levelUpEnabled: true, performed: 4 });
+        const d = decideNextLevelUp({ currentLevel: MYTHIC_MAX_LEVEL, levelUpEnabled: true });
         expect(d).toMatchObject({ go: false, done: true });
     });
 
-    // Each level costs money and material, so a misread response must not be
-    // able to spend an inventory.
-    it('stops at the per-run cap', () => {
-        const d = decideNextLevelUp({
-            currentLevel: 5, levelUpEnabled: true, performed: MAX_LEVELUPS_PER_PAGE,
-        });
-        expect(d).toMatchObject({ go: false, done: false });
+    // The loop is bounded by the level itself: the caller raises currentLevel
+    // on every pass, so 1 -> 20 ends it after at most 19 of them.
+    it('stops one pass after the last legal level', () => {
+        expect(decideNextLevelUp({ currentLevel: MYTHIC_MAX_LEVEL - 1, levelUpEnabled: true }))
+            .toEqual({ go: true });
+        expect(decideNextLevelUp({ currentLevel: MYTHIC_MAX_LEVEL, levelUpEnabled: true }))
+            .toMatchObject({ go: false, done: true });
     });
 });

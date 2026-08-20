@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.17
+// @version      8.10.18
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -512,6 +512,7 @@ HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team"
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
 HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
+HHAuto_ToolTips.en['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Mark Keepers", tooltip: "<p>Marks the mythic pieces worth keeping with a star, so <b>everything unmarked is safe to spend by hand as upgrade material</b>.</p><p>One piece is kept per slot and element. Which one: your own class first, then <code>damage</code> before <code>defence</code> before <code>ego</code> before <code>harmony</code>, then the higher level.</p><p>An element you own only on a foreign class keeps its best piece anyway -- otherwise that element would vanish from the slot entirely.</p><p>Display only: nothing is equipped, sold or consumed, and the automation never feeds mythics to anything.</p>" };
 HHAuto_ToolTips.en['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Estimated cost (5M per skill):", tooltip: "Estimated cost of the team stuff operation" };
 HHAuto_ToolTips.en['StuffTeamMoney'] = { version: "7.30.0", elementText: "Money to keep", tooltip: "(Integer)<br>Minimum money to keep." };
 HHAuto_ToolTips.en['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Auto select girl equipment." };
@@ -1112,6 +1113,7 @@ HHAuto_ToolTips.de['StuffTeam'] = { version: "7.30.0", elementText: "Team bestü
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
 HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
+HHAuto_ToolTips.de['HHGearMarkKeep'] = { version: "8.10.18", elementText: "Behalten markieren", tooltip: "<p>Markiert die mythischen Teile, die du behalten solltest, mit einem Stern &mdash; <b>alles Unmarkierte kannst du gefahrlos von Hand als Material verwenden</b>.</p><p>Behalten wird je Slot und Element genau eines. Welches: zuerst deine eigene Klasse, dann <code>damage</code> vor <code>defence</code> vor <code>ego</code> vor <code>harmony</code>, dann das höhere Level.</p><p>Ein Element, das du nur mit fremder Klasse besitzt, behält trotzdem sein bestes Teil &mdash; sonst würde das Element ganz aus dem Slot verschwinden.</p><p>Reine Anzeige: es wird nichts angelegt, verkauft oder verbraucht, und die Automatik fasst Mythics ohnehin nie an.</p>" };
 HHAuto_ToolTips.de['stuffTeaEstimatedCost'] = { version: "7.30.0", elementText: "Geschätzte Kosten (5 Mio. pro Skill):", tooltip: "Geschätzte Kosten für das Bestücken des Teams" };
 HHAuto_ToolTips.de['StuffTeamMoney'] = { version: "7.30.0", elementText: "Geld behalten", tooltip: "(Ganzzahl)<br>Mindestbetrag, der behalten wird." };
 HHAuto_ToolTips.de['StuffTeamEquipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Wählt die Mädel-Ausrüstung automatisch." };
@@ -18600,6 +18602,126 @@ class ClubChampion {
     }
 }
 
+;// ./src/Service/EquipmentKeepService.ts
+// EquipmentKeepService.ts -- Which inventory mythics are worth keeping, so the
+// rest can be spent by hand as upgrade material.
+//
+// The automation never feeds mythics to anything. This decides what to *show*
+// the player: marked means "keep", unmarked means "safe to use as material".
+//
+// The rule, agreed with the maintainer against his own inventory (207 pieces,
+// 107 of them mythic):
+//
+//   For each slot, for each element, keep exactly ONE piece.
+//
+// That one is picked in this order:
+//   1. the player's own class before any other class -- a class bonus for a
+//      class you do not play is worth nothing;
+//   2. class resonance: damage before ego;
+//   3. theme resonance: defense before chance;
+//   4. the higher level;
+//   5. the lower id, so the choice is stable across page loads rather than
+//      following DOM order.
+//
+// Steps 2 and 3 are one preference list in the maintainer's words -- damage,
+// then defence, then ego, then harmony. The two axes never overlap in
+// practice: a class resonance is only ever damage or ego, a theme resonance
+// only ever defense or chance (measured across all 107 mythics), so comparing
+// the class axis first and the theme axis second reproduces that single list.
+// "Harmony" is the game's name for what the API calls `chance`.
+//
+// Keeping one piece per ELEMENT, not one per resonance combination, is a
+// deliberate choice (variant A): an element you cannot field at all is the
+// real gap, a second bonus flavour of an element you already own is not.
+// It also means an element covered only by a foreign class still keeps its
+// best piece -- without that, an element could disappear from a slot entirely.
+//
+// Equipped pieces are not considered: they cannot be selected as material.
+//
+// Used by: Module/EquipmentGear.ts
+/** Preference among resonance targets, best first. `chance` is "Harmony". */
+const RESONANCE_RANK = {
+    damage: 1,
+    defense: 2,
+    ego: 3,
+    chance: 4,
+};
+function rank(target) {
+    var _a;
+    return target === undefined ? 99 : ((_a = RESONANCE_RANK[target]) !== null && _a !== void 0 ? _a : 99);
+}
+/**
+ * The element an item resonates on. `identifier: null` is Balanced -- a real
+ * element, not the absence of one -- so it gets its own group rather than
+ * being lumped in with the untyped pieces.
+ */
+function elementOf(item) {
+    const res = item.themeResonance;
+    if (!res)
+        return null;
+    return res.identifier === null ? 'balanced' : res.identifier;
+}
+/** Ordering inside one (slot, element) group. Lower sorts first = kept. */
+function compareKeepCandidates(a, b, playerClass) {
+    var _a, _b, _c, _d, _e, _f;
+    const ownA = String((_a = a.classResonance) === null || _a === void 0 ? void 0 : _a.identifier) === String(playerClass) ? 0 : 1;
+    const ownB = String((_b = b.classResonance) === null || _b === void 0 ? void 0 : _b.identifier) === String(playerClass) ? 0 : 1;
+    if (ownA !== ownB)
+        return ownA - ownB;
+    const clsA = rank((_c = a.classResonance) === null || _c === void 0 ? void 0 : _c.resonance);
+    const clsB = rank((_d = b.classResonance) === null || _d === void 0 ? void 0 : _d.resonance);
+    if (clsA !== clsB)
+        return clsA - clsB;
+    const thmA = rank((_e = a.themeResonance) === null || _e === void 0 ? void 0 : _e.resonance);
+    const thmB = rank((_f = b.themeResonance) === null || _f === void 0 ? void 0 : _f.resonance);
+    if (thmA !== thmB)
+        return thmA - thmB;
+    if (a.level !== b.level)
+        return b.level - a.level;
+    return a.id_member_armor - b.id_member_armor;
+}
+/**
+ * The pieces to mark as "keep". Everything mythic that is NOT in the returned
+ * set is free for the player to spend as material.
+ *
+ * Non-mythic items are never marked: legendary and epic carry no resonance at
+ * all and exist to be consumed.
+ */
+function pickKeepers(items, playerClass) {
+    const groups = new Map();
+    for (const item of items) {
+        if (item.equipped)
+            continue;
+        if (item.rarity !== 'mythic')
+            continue;
+        const element = elementOf(item);
+        if (element === null)
+            continue;
+        const key = item.slot + '|' + element;
+        const bucket = groups.get(key);
+        if (bucket === undefined)
+            groups.set(key, [item]);
+        else
+            bucket.push(item);
+    }
+    const keep = new Set();
+    const report = [];
+    for (const [key, bucket] of groups) {
+        bucket.sort((a, b) => compareKeepCandidates(a, b, playerClass));
+        const winner = bucket[0];
+        keep.add(winner.id_member_armor);
+        const [slot, element] = key.split('|');
+        report.push({
+            slot: Number(slot),
+            element,
+            keptId: winner.id_member_armor,
+            freed: bucket.length - 1,
+        });
+    }
+    report.sort((a, b) => a.slot - b.slot || a.element.localeCompare(b.element));
+    return { keep, groups: report };
+}
+
 ;// ./src/Service/EquipmentOptimizerService.ts
 // EquipmentOptimizerService.ts -- Pure ranking logic for the player's own
 // equipment (the six armor slots of the hero, not girl equipment).
@@ -19101,9 +19223,6 @@ const UPGRADE_PATH = '/mythic-equipment-upgrade.html';
 function upgradePageUrl(target) {
     return `${UPGRADE_PATH}?id_member_item_equipped=${target.id_member_armor}`;
 }
-/** Hard stop on level-ups per page load, so a misread response cannot spend
- *  an inventory. Each one costs money and material. */
-const MAX_LEVELUPS_PER_PAGE = 30;
 /**
  * The worn items worth spending material on: mythics that are not yet at
  * the cap.
@@ -19179,13 +19298,17 @@ function parseRequirement(pageText) {
  * Auto Select has managed to cover the requirement, so a disabled button
  * after Auto Select means the stock is spent. That is the signal this stops
  * on -- not an estimate of remaining material.
+ *
+ * There used to be a per-run cap here as a guard against a runaway loop. It
+ * could never fire: the caller passes `startLevel + performed` as the current
+ * level, so the level rises with every pass and the max-level check below is
+ * what ends the loop -- after at most 19 passes, since 1 -> 20 is the whole
+ * range the game allows. The cap sat at 30 and was therefore dead code that
+ * only read like a safeguard.
  */
 function decideNextLevelUp(state) {
     if (state.currentLevel >= (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
         return { go: false, reason: 'item is at max level', done: true };
-    }
-    if (state.performed >= MAX_LEVELUPS_PER_PAGE) {
-        return { go: false, reason: `hit the ${MAX_LEVELUPS_PER_PAGE}-level cap for one run`, done: false };
     }
     if (!state.levelUpEnabled) {
         return { go: false, reason: 'not enough material left for another level', done: false };
@@ -19224,6 +19347,7 @@ var EquipmentGear_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+
 
 
 
@@ -19297,15 +19421,22 @@ class EquipmentGear {
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
             + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
-            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}');
+            + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}'
+            // The keep marker. Anchored to the slot itself so it rides along
+            // when the inventory re-renders a row.
+            + '#player-inventory-armor .slot{position:relative;}'
+            + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
+            + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
         host.append('<div id="HHGearButtons">'
             + gearButton('HHGearCurrentBest')
             + gearButton('HHGearPossibleBest')
             + gearButton('HHGearUpgrade')
+            + gearButton('HHGearMarkKeep')
             + '</div>');
         $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
         $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
         $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
+        $("#HHGearMarkKeep").on("click", () => { void EquipmentGear.markKeepers(); });
     }
     /**
      * Forget an upgrade queue that is no longer being worked on.
@@ -19653,6 +19784,80 @@ class EquipmentGear {
      * per item, so the preview lists the targets and the stock behind them
      * and leaves the arithmetic to the page that knows it.
      */
+    /**
+     * Mark the mythics worth keeping, so everything unmarked is safe to spend
+     * by hand as upgrade material.
+     *
+     * Display only: nothing is equipped, sold or consumed here, and the
+     * automation never feeds mythics to anything either. The rule lives in
+     * EquipmentKeepService -- one piece per slot and element.
+     */
+    static markKeepers() {
+        return EquipmentGear_awaiter(this, void 0, void 0, function* () {
+            if (EquipmentGear.running)
+                return;
+            EquipmentGear.running = true;
+            try {
+                const rawClass = Number(HeroHelper.getClass());
+                if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
+                    EquipmentGear.showMessage('Mark Keepers', 'Could not read the hero class.');
+                    return;
+                }
+                EquipmentGear.showMessage('Mark Keepers', 'Reading the inventory...');
+                const inventory = yield EquipmentGear.fetchInventory();
+                if (inventory === null) {
+                    EquipmentGear.showMessage('Mark Keepers', 'Could not read the inventory. Nothing was marked -- see the log.');
+                    return;
+                }
+                const decision = pickKeepers(inventory, rawClass);
+                const painted = EquipmentGear.paintKeepMarks(decision.keep);
+                const freed = inventory.filter(i => !i.equipped && i.rarity === 'mythic' && !decision.keep.has(i.id_member_armor)).length;
+                logHHAuto(`Gear [Mark Keepers]: ${decision.keep.size} mythic(s) marked to keep,`
+                    + ` ${freed} free as material; ${painted} marker(s) drawn.`);
+                for (const g of decision.groups) {
+                    if (g.freed > 0) {
+                        logHHAuto(`  slot ${g.slot} ${g.element}: keeping ${g.keptId}, ${g.freed} free`);
+                    }
+                }
+                const rows = decision.groups
+                    .map(g => `<tr><td>${g.slot}</td><td>${g.element}</td><td class="num">${g.freed}</td></tr>`)
+                    .join('');
+                EquipmentGear.showMessage('Mark Keepers', `<p>${decision.keep.size} marked, ${freed} free to use as material by hand.</p>`
+                    + '<p>A marked piece is the one to keep for that slot and element.'
+                    + ' Nothing was changed in the game.</p>'
+                    + '<table id="HHGearPreview"><tr><th>Slot</th><th>Element</th><th>Free</th></tr>'
+                    + rows + '</table>');
+            }
+            catch (err) {
+                logHHAuto('Gear: Mark Keepers failed -- ' + String(err));
+            }
+            finally {
+                EquipmentGear.running = false;
+            }
+        });
+    }
+    /**
+     * Draw the marker on every kept piece and clear it everywhere else.
+     * Returns how many markers ended up on screen, which is what tells the log
+     * whether the ids actually matched the rendered slots.
+     */
+    static paintKeepMarks(keep) {
+        $('.HHKeepMark').remove();
+        let painted = 0;
+        $('#player-inventory-armor .slot[id_item]').each(function () {
+            const id = Number(this.getAttribute('id_item'));
+            if (!keep.has(id))
+                return;
+            const star = document.createElement('div');
+            star.className = 'HHKeepMark';
+            // The game's own star, same asset the market UI uses.
+            star.style.backgroundImage =
+                `url("${ConfigHelper.getHHScriptVars('baseImgPath')}/design/ic_star_orange.svg")`;
+            this.appendChild(star);
+            painted++;
+        });
+        return painted;
+    }
     static previewUpgrade() {
         return EquipmentGear_awaiter(this, void 0, void 0, function* () {
             if (EquipmentGear.running)
@@ -19816,7 +20021,7 @@ class EquipmentGear {
                     const enabled = $('#level-up').length > 0
                         && !document.getElementById('level-up').disabled;
                     const verdict = decideNextLevelUp({
-                        currentLevel: startLevel + performed, levelUpEnabled: enabled, performed,
+                        currentLevel: startLevel + performed, levelUpEnabled: enabled,
                     });
                     if (!verdict.go) {
                         logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
