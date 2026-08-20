@@ -7,6 +7,19 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.17 - Tooltips you can actually read
+
+- **The help box now sizes itself to the text.** A one-line hint keeps the
+  narrow box; a long explanation gets up to double the width before anything
+  else changes. Only if it still does not fit does the type shrink, so width is
+  spent before readability. It also places itself on whichever side of the panel
+  has room, instead of tucking over the rows it is explaining.
+- **The long texts have structure instead of one run of line breaks.**
+  Paragraphs, bulleted lists, bold for the thing being defined, and monospace
+  for the codes you type. The pure code tables -- Mythic Slot, Buy boosters,
+  Event troll order -- are laid out in two columns rather than sixteen short
+  rows down the side.
+
 ### v8.10.16 - Spelling out when the Mythic Slot list gets all five
 
 - The reserved slot and the skipping of MB1 apply only while one of the

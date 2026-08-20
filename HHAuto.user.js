@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.16
+// @version      8.10.17
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -222,7 +222,7 @@ HHAuto_ToolTips.en['master'] = { version: "5.6.24", elementText: "Master switch"
 HHAuto_ToolTips.en['waitforContest'] = { version: "6.10.0", elementText: "Wait for contest", tooltip: "If enabled, most of activities using ressources are pending when not contest is active, input in second represent the safe time to wait before and after real contest time" };
 HHAuto_ToolTips.en['settPerTab'] = { version: "5.6.24", elementText: "Settings per tab", tooltip: "Allow the settings to be set for this tab only" };
 HHAuto_ToolTips.en['paranoia'] = { version: "5.6.24", elementText: "Paranoia mode", tooltip: "Allow to simulate sleep, and human user (To be documented further)" };
-HHAuto_ToolTips.en['paranoiaSpendsBefore'] = { version: "5.6.24", elementText: "Spend points before", tooltip: "On will spend points for options (quest, Troll, Leagues and Season)<br>only if they are enabled<br>and spend points that would be above max limits<br>Ex : you have power for troll at 17, but going 4h45 in paranoia<br>it would mean having 17+10 points (rounded to higher int), thus being above the 20 max<br> it will then spend 8 points to fall back to 19 end of Paranoia, preventing to loose points." };
+HHAuto_ToolTips.en['paranoiaSpendsBefore'] = { version: "5.6.24", elementText: "Spend points before", tooltip: "<p>On: spend points for options (quest, Troll, Leagues and Season) &mdash; but only for options that are enabled, and only points that would end up above their max limit.</p><p><b>Example:</b> your Troll power is at 17 and you go into paranoia for 4h45. That would mean 17+10 points (rounded up), which is above the max of 20. So 8 points are spent to fall back to 19 by the end of paranoia, preventing the loss.</p>" };
 HHAuto_ToolTips.en['spendKobans0'] = { version: "8.10.0", elementText: "Spend Kobans", tooltip: "<p style='color:red'>/!\\ Allow Kobans spending /!\\</p>Security switch for koban usage. Must be ON before any function is allowed to spend kobans." };
 //HHAuto_ToolTips.en['spendKobans1'] = { version: "5.6.24", elementText: "Are you sure?", tooltip: "Second security switches for usage of kobans <br>Have to be activated after the first one.<br> All 3 needs to be active for Kobans spending functions"};
 //HHAuto_ToolTips.en['spendKobans2'] = { version: "5.6.24", elementText: "You\'ve been warned", tooltip: "Third security switches for usage of kobans <br>Have to be activated after the second one.<br> All 3 needs to be active for Kobans spending functions"};
@@ -236,10 +236,10 @@ HHAuto_ToolTips.en['autoActivitiesTitle'] = { version: "5.6.24", elementText: "A
 HHAuto_ToolTips.en['buyCombat'] = { version: "5.6.24", elementText: "Buy comb. for events", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>If enabled : <br>Buying combat point during last X hours of event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Event Combs.", tooltip: "(Integer)<br>X last hours of event" };
 HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & Leg. Boosters", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Allow to buy booster in the market (if not going under Koban bank value)" };
-HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(values separated by ;)<br>Set list of codes of booster to buy, order is respected.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura" };
+HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Values separated by ; &mdash; the order is respected.</span><p>Codes of the boosters to buy.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
 HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.30.0", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
-HHAuto_ToolTips.en['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "(codes separated by ; -- list as many as you like)<br>Mythic boosters to keep equipped, in priority order. The game has <b>5 mythic slots</b> (one booster per kind), so at most 5 of your list end up equipped -- the script walks the list from the top and fills every free slot with the first ones you own. Listing all 12 is fine and is the point: it just means \"take whichever of these I happen to have\". Empty field = off.<br>Example: MB1;MB2;MB5;MB8;MB12<br>Nothing is bought, and an already equipped booster is never replaced.<br>While any Sandalwood auto-equip (+Event / +Mythic / +Raid) is on, MB1 belongs to that automation: it is ignored in this list even if you type it, and one slot stays free so the automation can equip it when a fight needs it. Your list then fills at most 4 of the 5 slots. With all of them off there is no reservation and no skip: the list uses all 5 slots and MB1 counts as a normal entry, equipped in its listed position -- but then it just stays on instead of being put in for the fights that want it.<br>MB1 Sandalwood perfume &middot; MB2 All Mastery's Emblem &middot; MB3 Headband of determination &middot; MB4 Luxurious Watch &middot; MB5 Combative Cinnamon &middot; MB6 Alban's travel memories &middot; MB7 Angels' semen scent &middot; MB8 Leagues mastery emblem &middot; MB9 Seasons mastery emblem &middot; MB10 Gem Detector &middot; MB11 Banger &middot; MB12 Shiny Aura" };
+HHAuto_ToolTips.en['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "<span class=\"tipHint\">Codes separated by ; &mdash; list as many as you like.</span><p>Mythic boosters to keep equipped, <b>in priority order</b>. The game has <b>5 mythic slots</b> (one booster per kind), so at most 5 of your list end up on. The script walks the list from the top and fills every free slot with the first ones you own.</p><p>Listing all 12 is fine and is the point: it means <i>take whichever of these I happen to have</i>. An empty field turns it off.<br>Example: <code>MB1;MB2;MB5;MB8;MB12</code></p><p>Nothing is bought, and a booster already equipped is never replaced.</p><p><b>Sandalwood:</b> while any Sandalwood auto-equip (+Event / +Mythic / +Raid) is on, MB1 belongs to that automation &mdash; it is ignored here even if you type it, and one slot stays free. Your list then fills at most 4 of the 5. That is what guarantees a slot is available when Sandalwood is wanted, and that it is checked before the fight. With all those options off, MB1 is an ordinary entry and the list gets all five slots.</p><ul class=\"tipCodes\"><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pass 3 reds", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Use kobans to renew Season opponents if 3 reds" };
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
@@ -259,7 +259,7 @@ HHAuto_ToolTips.en['autoTrollBattle'] = { version: "7.35.4", elementText: "Stand
 HHAuto_ToolTips.en['autoTrollSelector'] = { version: "5.6.24", elementText: "Troll selector", tooltip: "Select troll to be fought." };
 HHAuto_ToolTips.en['autoTrollThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "(Integer 0 to 19)<br>Minimum troll fight to keep" };
 HHAuto_ToolTips.en['autoTrollRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum troll fights before script start spending<br> 0 to spend as soon as energy above threshold" };
-HHAuto_ToolTips.en['eventTrollOrder'] = { version: "5.6.38", elementText: "Event Troll Order", tooltip: "(values separated by ;)<br>Allow to select in which order event troll are automatically battled<br>1 : Dark Lord<br>2 : Ninja Spy<br>3 : Gruntt<br>4 : Edwarda<br>5 : Donatien<br>6 : Sylvanus<br>7 : Bremen<br>8 : Finalmecia<br>9 : Fredy Sih Roko<br>10 : Karole<br>11 : Jackson's Crew<br>12 : Pandora Witch<br>13 : Nike<br>14 : Sake<br>15 : WereBunny Police" };
+HHAuto_ToolTips.en['eventTrollOrder'] = { version: "5.6.38", elementText: "Event Troll Order", tooltip: "<span class=\"tipHint\">Values separated by ; &mdash; the order is respected.</span><p>The order in which event trolls are automatically battled.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Sylvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Fredy Sih Roko</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora Witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li></ul>" };
 HHAuto_ToolTips.en['autoBuyTrollNumber'] = { version: "6.1.0", elementText: "Troll auto buy", tooltip: "Number of combat points to be bought during an event" };
 HHAuto_ToolTips.en['autoBuyMythicTrollNumber'] = { version: "6.1.0", elementText: "Mythic auto buy", tooltip: "Number of combat points to be bought during a mythics event" };
 HHAuto_ToolTips.en['firstTrollWithGirls'] = { version: "5.32.0", elementText: "First troll with girl" };
@@ -269,7 +269,7 @@ HHAuto_ToolTips.en['plusLoveRaid'] = { version: "7.32.1", elementText: "+Raid", 
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)." };
 HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.35.27", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid and +Raid Stars fights as long as a raid girl is available.<br>When OFF, the troll threshold applies to raid fights too." };
-HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.27", elementText: "+Raid Stars", tooltip: "Fight Love Raids by girl grade. Independent from +Raid and Auto Troll.<br>Picks the first ending raid matching the selected grade (ignores the Raid selector dropdown).<br>Raids matching the grade are claimed by +Raid Stars; remaining raids go to +Raid (if enabled).<br>Energy threshold is controlled by the Bypass reserve toggle." };
+HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.27", elementText: "+Raid Stars", tooltip: "<p>Fight Love Raids by girl grade. Independent from <b>+Raid</b> and <b>Auto Troll</b>.</p><ul><li>Picks the first ending raid matching the selected grade (ignores the Raid selector dropdown).</li><li>Raids matching the grade are claimed by <b>+Raid Stars</b>; remaining raids go to <b>+Raid</b>, if enabled.</li><li>The energy threshold is controlled by the <b>Bypass reserve</b> toggle.</li></ul>" };
 HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.35.5", elementText: "Off" };
 HHAuto_ToolTips.en['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.en['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
@@ -291,13 +291,13 @@ HHAuto_ToolTips.en['autoSeasonTitle'] = { version: "5.6.24", elementText: "Seaso
 HHAuto_ToolTips.en['autoSeason'] = { version: "5.6.24", elementText: "Enable", tooltip: "if enabled : Automatically fight in Seasons (Opponent chosen following PowerCalculation)" };
 HHAuto_ToolTips.en['autoSeasonCollect'] = { version: "5.6.24", elementText: "Collect", tooltip: "if enabled : Automatically collect Seasons ( if multiple to collect, will collect one per kiss usage)" };
 HHAuto_ToolTips.en['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Collect all", tooltip: "if enabled : Automatically collect all items before end of season (configured with Collect all timer)" };
-HHAuto_ToolTips.en['seasonFocusSelector'] = { version: "8.5.0", elementText: "Season focus", tooltip: "Choose what the season fights should focus on (useful for love raids):<br>• All fights: no restriction, always fight.<br>• Event girl: only fight while the girl's shards are incomplete; skip opponents that only award skin shards.<br>• Girl + skin: fight while the girl or her skin can still be won.<br>Interaction with Max Tier is controlled by the MT hard switch. Skin detection uses the love-raid data parsed from the raids screen." };
+HHAuto_ToolTips.en['seasonFocusSelector'] = { version: "8.5.0", elementText: "Season focus", tooltip: "<span class=\"tipHint\">Useful for love raids.</span><p>Choose what the season fights should focus on:</p><ul><li><b>All fights</b> &mdash; no restriction, always fight.</li><li><b>Event girl</b> &mdash; only fight while the girl's shards are incomplete; skip opponents that only award skin shards.</li><li><b>Girl + skin</b> &mdash; fight while the girl or her skin can still be won.</li></ul><p>Interaction with Max Tier is controlled by the <b>MT hard</b> switch. Skin detection uses the love-raid data parsed from the raids screen.</p>" };
 HHAuto_ToolTips.en['seasonFocusAll'] = { version: "8.5.0", elementText: "All fights" };
 HHAuto_ToolTips.en['seasonFocusGirl'] = { version: "8.5.0", elementText: "Event girl" };
 HHAuto_ToolTips.en['seasonFocusGirlSkin'] = { version: "8.5.0", elementText: "Girl + skin" };
 HHAuto_ToolTips.en['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "Minimum kiss to keep" };
 HHAuto_ToolTips.en['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Max Tier", tooltip: "Maximum tier to stop at in season.<br>With MT hard off, a girl Season focus keeps fighting past it while wanted girl rewards are available" };
-HHAuto_ToolTips.en['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "MT hard", tooltip: "Only relevant while Max Tier is enabled:<br>ON: Max Tier is a hard limit — no season fight past it, whatever the Season focus; below it the Season focus filter applies to every fight.<br>OFF (legacy): fights run unfiltered while climbing below Max Tier, and a girl Season focus keeps fighting past Max Tier while wanted girl rewards are available" };
+HHAuto_ToolTips.en['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "MT hard", tooltip: "<span class=\"tipHint\">Only relevant while Max Tier is enabled.</span><p><b>ON</b> &mdash; Max Tier is a hard limit: no season fight past it, whatever the Season focus. Below it, the Season focus filter applies to every fight.</p><p><b>OFF</b> (legacy) &mdash; fights run unfiltered while climbing below Max Tier, and a girl Season focus keeps fighting past Max Tier while wanted girl rewards are available.</p>" };
 HHAuto_ToolTips.en['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum kiss fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in season" };
 HHAuto_ToolTips.en['autoSeasonSkipLowMojo'] = { version: "7.10.0", elementText: "Skip low Mojo", tooltip: "If enabled : Not fight when mojo reward is less than 8 and season level is less than 63. Will still fight to not loose kiss." };
@@ -819,7 +819,7 @@ HHAuto_ToolTips.de['master'] = { version: "8.10.0", elementText: "Master-Schalte
 HHAuto_ToolTips.de['autoAdsClick'] = { version: "8.10.0", elementText: "Auto-Belohnungswerbung", tooltip: "Klickt die Belohnungswerbung auf der Startseite („Jetzt testen\") automatisch an, schließt den geöffneten Werbe-Tab und bestätigt die Belohnung. Nimmt jede verfügbare Werbung mit. Setzt voraus, dass Werbeblocker aus sind. Läuft mit einer Abklingzeit." };
 HHAuto_ToolTips.de['settPerTab'] = { version: "8.10.0", elementText: "Einstellungen pro Tab", tooltip: "Speichert die Einstellungen nur für diesen Browser-Tab statt für alle." };
 HHAuto_ToolTips.de['paranoia'] = { version: "8.10.0", elementText: "Paranoia-Modus", tooltip: "Legt Pausen ein, die Schlaf und menschliches Spielverhalten nachahmen." };
-HHAuto_ToolTips.de['paranoiaSpendsBefore'] = { version: "8.10.0", elementText: "Gib Punkte aus vor...", tooltip: "Wenn gewollt, werden Punkte für Optionen ausgegeben (Quest, Troll, Liga und Saison)<br> nur wenn sie aktiviert sind<br>und gibt Punkt aus die über dem maximal Limit sind<br> z.B.: Du hast die Power für Troll von 17, gehst aber für 4h45 in den Paranoia Modus,<br> dass heißt 17+10 Punkte (aufgerundet), welches über dem Max von 20 wäre.<br> Es würden dann 9 Punkte ausgegeben, sodass du nur bei 19 Punkten bleibst bis zum Ende des Paranoia Modus um einen Verlust zu verhindern." };
+HHAuto_ToolTips.de['paranoiaSpendsBefore'] = { version: "8.10.0", elementText: "Gib Punkte aus vor...", tooltip: "<p>An: Punkte werden für Optionen ausgegeben (Quest, Troll, Liga und Saison) &mdash; aber nur für Optionen, die aktiviert sind, und nur Punkte, die über dem Maximum landen würden.</p><p><b>Beispiel:</b> Deine Troll-Power steht auf 17, du gehst für 4h45 in den Paranoia-Modus. Das wären 17+10 Punkte (aufgerundet) und damit über dem Maximum von 20. Es werden dann 9 Punkte ausgegeben, sodass du zum Ende des Paranoia-Modus bei 19 bleibst und nichts verlierst.</p>" };
 HHAuto_ToolTips.de['spendKobans0'] = { version: "8.10.0", elementText: "Kobans ausgeben", tooltip: "<p style='color:red'>/!\\ Erlaubt das Ausgeben von Kobans /!\\</p>Sicherheitsschalter für die Koban-Nutzung. Muss aktiv sein, damit überhaupt eine Funktion Kobans ausgeben darf." };
 //HHAuto_ToolTips.de['spendKobans1'] = { version: "5.6.24", elementText: "Biste sicher?", tooltip: "Zweiter Sicherheitsschalter für die Nutzung von Kobans.<br>Muss nach dem Ersten aktiviert werden.<br>Alle 3 müssen aktiviert sein und Kobans auszugeben."};
 //HHAuto_ToolTips.de['spendKobans2'] = { version: "5.6.24", elementText: "Du wurdest gewarnt!", tooltip: "Dritter Sicherheitsschalter für die Nutzung von Kobans <br>Muss nach dem Zweiten aktiviert werden.<br> Alle 3 müssen aktiviert sein und Kobans auszugeben."};
@@ -827,7 +827,7 @@ HHAuto_ToolTips.de['kobanBank'] = { version: "8.10.0", elementText: "Koban-Bank"
 HHAuto_ToolTips.de['buyCombat'] = { version: "8.10.0", elementText: "Kaufe Kämpfe für Events", tooltip: "'Kobans ausgeben'-Funktion<br>Wenn aktiv: kauft Kampfpunkte in den letzten X Stunden eines Events, solange die Koban-Bank nicht unterschritten wird." };
 HHAuto_ToolTips.de['buyCombTimer'] = { version: "5.6.24", elementText: "Stunden bis Kauf", tooltip: "(Ganze pos. Zahl)<br>X verbleibende Stunden des Events" };
 HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & leg. Booster", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p>Erlaubt den Kauf von Boostern im Markt (solange die Koban-Bank nicht unterschritten wird)." };
-HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(Werte getrennt durch ;)<br>Liste der Booster-Codes, die gekauft werden sollen; die Reihenfolge wird beachtet.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination" };
+HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird beachtet.</span><p>Codes der Booster, die gekauft werden sollen.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.de['autoSeasonPassReds'] = { version: "8.10.0", elementText: "Überspringe drei Rote", tooltip: "'Koban ausgeben Funktion'<br>Benutze Kobans um Saison Gegner zu tauschen wenn alle drei Rote sind" };
 HHAuto_ToolTips.de['showCalculatePower'] = { version: "8.10.0", elementText: "PowerCalc", tooltip: "Zeigt den Kampfsimulator bei Liga, Kampf und Saison an." };
 //HHAuto_ToolTips.de['calculatePowerLimits'] = { version: "5.6.24", elementText: "Eigene Grenzen (rot;gelb)", tooltip: "(rot;gelb)<br>Definiere deine eigenen Grenzen für rote und orange Gegner<br> -6000;0 meint<br> <-6000 ist rot, zwischen -6000 und 0 ist orange und >=0 ist grün"};
@@ -839,12 +839,12 @@ HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Ei
 HHAuto_ToolTips.de['autoTrollBattle'] = { version: "8.10.0", elementText: "Standard-Troll an/aus", tooltip: "Wenn aktiv: Macht automatisch Kämpfe gegen den Standard-Troll" };
 HHAuto_ToolTips.de['autoTrollSelector'] = { version: "8.10.0", elementText: "Troll-Auswahl", tooltip: "Wähle den Troll, gegen den gekämpft werden soll." };
 HHAuto_ToolTips.de['autoTrollThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Trollpunkten die aufgehoben werden" };
-HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.38", elementText: "Event-Troll-Reihenfolge", tooltip: "(Werte getrennt durch ;)<br>Legt fest, in welcher Reihenfolge Event-Trolle automatisch bekämpft werden<br>1: Dark Lord<br>2: Ninja Spy<br>3: Gruntt<br>4: Edwarda<br>5: Donatien<br>6: Sylvanus<br>7: Bremen<br>8: Finalmecia" };
+HHAuto_ToolTips.de['eventTrollOrder'] = { version: "5.6.38", elementText: "Event-Troll-Reihenfolge", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird beachtet.</span><p>Legt fest, in welcher Reihenfolge Event-Trolle automatisch bekämpft werden.</p><ul class=\"tipCodes\"><li><code>1</code> Dark Lord</li><li><code>2</code> Ninja Spy</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Sylvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Fredy Sih Roko</li><li><code>10</code> Karole</li><li><code>11</code> Jackson's Crew</li><li><code>12</code> Pandora Witch</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> WereBunny Police</li></ul>" };
 HHAuto_ToolTips.de['plusEvent'] = { version: "7.32.1", elementText: "+Event", tooltip: "Kämpft gegen normale Event-Trolle unabhängig von Auto-Troll.<br>Die Energie-Schwelle wird beachtet." };
 HHAuto_ToolTips.de['plusEventMythic'] = { version: "7.32.1", elementText: "+Mythisches Event", tooltip: "Kämpft gegen Mythic-Event-Trolle unabhängig von Auto-Troll.<br>Übergeht die Energie-Schwelle. Hat Vorrang vor normalen Events." };
-HHAuto_ToolTips.de['raidStarsSelector'] = { version: "8.10.0", elementText: "+Liebesüberfall-Sterne", tooltip: "Kämpfe Liebesüberfälle nach Mädchen-Grad. Unabhängig von +Liebesüberfall und Auto Troll.<br>Wählt automatisch den als nächstes endenden Liebesüberfall mit passendem Grad (ignoriert das Auswahl-Dropdown).<br>Passende Liebesüberfälle werden von +Liebesüberfall-Sterne beansprucht; übrige Liebesüberfälle gehen an +Liebesüberfall (falls aktiv).<br>Die Energie-Schwelle wird über den Schalter Reserve umgehen gesteuert." };
+HHAuto_ToolTips.de['raidStarsSelector'] = { version: "8.10.0", elementText: "+Liebesüberfall-Sterne", tooltip: "<p>Kämpfe Liebesüberfälle nach Mädchen-Grad. Unabhängig von <b>+Liebesüberfall</b> und <b>Auto Troll</b>.</p><ul><li>Wählt automatisch den als nächstes endenden Liebesüberfall mit passendem Grad (ignoriert das Auswahl-Dropdown).</li><li>Passende Liebesüberfälle werden von <b>+Liebesüberfall-Sterne</b> beansprucht; übrige gehen an <b>+Liebesüberfall</b>, falls aktiv.</li><li>Die Energie-Schwelle steuert der Schalter <b>Reserve umgehen</b>.</li></ul>" };
 HHAuto_ToolTips.de['raidStarsOff'] = { version: "7.35.5", elementText: "Aus" };
-HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.10.0", elementText: "Mythic-Slot", tooltip: "(Codes durch ; getrennt -- so viele wie du willst)<br>Mythische Booster, die angelegt bleiben sollen, in der Reihenfolge deiner Priorität. Das Spiel hat <b>5 mythische Slots</b> (ein Booster je Art), es sind also höchstens 5 gleichzeitig angelegt -- das Skript geht die Liste von oben durch und füllt jeden freien Slot mit den ersten, die du besitzt. Alle 12 einzutragen ist ausdrücklich sinnvoll: es heißt schlicht \"nimm davon, was ich gerade habe\". Leeres Feld = aus.<br>Beispiel: MB1;MB2;MB5;MB8;MB12<br>Es wird nichts gekauft, und ein bereits angelegter Booster wird nie ersetzt.<br>Solange eine der Sandelholz-Automatiken (+Event / +Mythisch / +Raid) aktiv ist, gehört MB1 ihr: MB1 wird in dieser Liste ignoriert, auch wenn du es einträgst, und ein Slot bleibt frei, damit die Automatik es anlegen kann, wenn ein Kampf es braucht. Deine Liste füllt dann höchstens 4 der 5 Slots. Sind sie alle aus, gibt es weder Reservierung noch Überspringen: die Liste nutzt alle 5 Slots und MB1 zählt als normaler Eintrag, angelegt an seiner Listenposition -- dann bleibt es aber schlicht dauerhaft an, statt für die Kämpfe eingesetzt zu werden, die es brauchen." };
+HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.10.0", elementText: "Mythic-Slot", tooltip: "<span class=\"tipHint\">Codes durch ; getrennt &mdash; so viele wie du willst.</span><p>Mythische Booster, die angelegt bleiben sollen, <b>in der Reihenfolge deiner Priorität</b>. Das Spiel hat <b>5 mythische Slots</b> (ein Booster je Art), es sind also höchstens 5 gleichzeitig an. Das Skript geht die Liste von oben durch und füllt jeden freien Slot mit den ersten, die du besitzt.</p><p>Alle 12 einzutragen ist sinnvoll und genau der Zweck: es heißt <i>nimm davon, was ich gerade habe</i>. Leeres Feld schaltet es aus.<br>Beispiel: <code>MB1;MB2;MB5;MB8;MB12</code></p><p>Es wird nichts gekauft, und ein bereits angelegter Booster wird nie ersetzt.</p><p><b>Sandelholz:</b> Solange eine der Sandelholz-Automatiken (+Event / +Mythisch / +Raid) aktiv ist, gehört MB1 ihr &mdash; es wird hier ignoriert, auch wenn du es einträgst, und ein Slot bleibt frei. Deine Liste füllt dann höchstens 4 der 5. Das sichert zu, dass ein Slot verfügbar ist, wenn Sandelholz gebraucht wird, und dass vor dem Kampf geprüft wird, ob es angelegt ist. Sind alle diese Optionen aus, ist MB1 ein normaler Eintrag und die Liste bekommt alle fünf Slots.</p>" };
 HHAuto_ToolTips.de['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.de['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
 HHAuto_ToolTips.de['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★" };
@@ -854,11 +854,11 @@ HHAuto_ToolTips.de['autoTrollMythicByPassParanoia'] = { version: "5.6.24", eleme
 HHAuto_ToolTips.de['autoSeason'] = { version: "8.10.0", elementText: "Aktivieren", tooltip: "Wenn aktiv : Kämpft automatisch in der Saison (Gegner werden wie im Kraftrechner einstellt gewählt)" };
 HHAuto_ToolTips.de['autoSeasonCollect'] = { version: "8.10.0", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Saisongewinne ein (bei mehr als einem, wird eines pro Küssnutzung eingesammelt)" };
 HHAuto_ToolTips.de['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum Küsse die behalten bleiben" };
-HHAuto_ToolTips.de['seasonFocusSelector'] = { version: "8.10.0", elementText: "Saison-Fokus", tooltip: "Wähle, worauf die Saison-Kämpfe ausgerichtet werden (nützlich für Liebesüberfälle):<br>• Alle Kämpfe: keine Einschränkung, es wird immer gekämpft.<br>• Event-Girl: nur kämpfen, solange die Splitter des Girls unvollständig sind; Gegner, die nur Skin-Splitter geben, werden übersprungen.<br>• Girl + Skin: kämpfen, solange das Girl oder sein Skin noch zu gewinnen ist.<br>Das Zusammenspiel mit Max Tier steuert der Schalter MT hart. Die Skin-Erkennung nutzt die Liebesüberfall-Daten der Liebesüberfall-Seite." };
+HHAuto_ToolTips.de['seasonFocusSelector'] = { version: "8.10.0", elementText: "Saison-Fokus", tooltip: "<span class=\"tipHint\">Nützlich für Liebesüberfälle.</span><p>Wähle, worauf die Saison-Kämpfe ausgerichtet werden:</p><ul><li><b>Alle Kämpfe</b> &mdash; keine Einschränkung, es wird immer gekämpft.</li><li><b>Event-Girl</b> &mdash; nur kämpfen, solange die Splitter des Girls unvollständig sind; Gegner, die nur Skin-Splitter geben, werden übersprungen.</li><li><b>Girl + Skin</b> &mdash; kämpfen, solange das Girl oder sein Skin noch zu gewinnen ist.</li></ul><p>Das Zusammenspiel mit Max Tier steuert der Schalter <b>MT hart</b>. Die Skin-Erkennung nutzt die Liebesüberfall-Daten der Liebesüberfall-Seite.</p>" };
 HHAuto_ToolTips.de['seasonFocusAll'] = { version: "8.5.0", elementText: "Alle Kämpfe" };
 HHAuto_ToolTips.de['seasonFocusGirl'] = { version: "8.5.0", elementText: "Event-Girl" };
 HHAuto_ToolTips.de['seasonFocusGirlSkin'] = { version: "8.5.0", elementText: "Girl + Skin" };
-HHAuto_ToolTips.de['autoSeasonMaxTierHard'] = { version: "8.10.0", elementText: "MT hart", tooltip: "Nur relevant, wenn Max Tier aktiv ist:<br>AN: Max Tier ist eine harte Grenze — ab Erreichen kein Saison-Kampf mehr, egal welcher Saison-Fokus; darunter filtert der Saison-Fokus jeden Kampf.<br>AUS (bisheriges Verhalten): unterhalb Max Tier wird ungefiltert geklettert, und ein Girl-Fokus kämpft über Max Tier hinaus weiter, solange gewünschte Girl-Belohnungen verfügbar sind" };
+HHAuto_ToolTips.de['autoSeasonMaxTierHard'] = { version: "8.10.0", elementText: "MT hart", tooltip: "<span class=\"tipHint\">Nur relevant, wenn Max Tier aktiv ist.</span><p><b>AN</b> &mdash; Max Tier ist eine harte Grenze: ab Erreichen kein Saison-Kampf mehr, egal welcher Saison-Fokus. Darunter filtert der Saison-Fokus jeden Kampf.</p><p><b>AUS</b> (bisheriges Verhalten) &mdash; unterhalb Max Tier wird ungefiltert geklettert, und ein Girl-Fokus kämpft über Max Tier hinaus weiter, solange gewünschte Girl-Belohnungen verfügbar sind.</p>" };
 HHAuto_ToolTips.de['autoQuest'] = { version: "5.6.74", elementText: "Hauptquest", tooltip: "Wenn aktiv: Erledigt die Hauptquest automatisch." };
 HHAuto_ToolTips.de['autoQuestThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum an Energie die behalten bleibt" };
 HHAuto_ToolTips.de['autoContest'] = { version: "8.10.0", elementText: "Wettbewerb abholen", tooltip: "Wenn aktiv: sammelt abgeschlossene Wettbewerbsbelohnungen ein." };
@@ -31257,6 +31257,12 @@ const GAP = 8;
 /** Floor for the tooltip type; the game's zoom only ever scales it up. */
 const BASE_FONT = 11;
 const BASE_WIDTH = 240;
+/** A long text may take up to twice the base width before the type shrinks. */
+const MAX_WIDTH_FACTOR = 2;
+/** Below this many characters the narrow box reads better than a wide one. */
+const NARROW_UP_TO = 160;
+/** From here on the text earns the full double width. */
+const WIDE_FROM = 600;
 /** Never squeeze the box below this, however short the window is. */
 const MIN_BOX_HEIGHT = 120;
 let tooltipsEnabled = false;
@@ -31271,8 +31277,22 @@ function styleOnce() {
         + ' width:' + BASE_WIDTH + 'px; overflow-y:auto;'
         + ' padding:6px 8px; border:1px solid #ffa23e; border-radius:5px;'
         + ' background:#fff; color:#000; opacity:.97;'
-        + ' font-size:' + BASE_FONT + 'px; line-height:1.35; text-align:left;'
+        + ' font-size:' + BASE_FONT + 'px; line-height:1.45; text-align:left;'
         + ' pointer-events:none;}';
+    // Structure inside the box. Most tooltips are a single sentence and are
+    // unaffected; the long ones use <p>/<ul> and would otherwise run together
+    // as one block of <br>-separated lines.
+    style.textContent += '#' + TOOLTIP_ID + ' p {margin:0 0 .6em 0;}'
+        + '#' + TOOLTIP_ID + ' p:last-child {margin-bottom:0;}'
+        + '#' + TOOLTIP_ID + ' ul {margin:.2em 0 .6em 0; padding-left:1.2em;}'
+        + '#' + TOOLTIP_ID + ' li {margin:.2em 0;}'
+        + '#' + TOOLTIP_ID + ' b, #' + TOOLTIP_ID + ' strong {color:#a04d00;}'
+        + '#' + TOOLTIP_ID + ' code {background:rgba(0,0,0,.07); padding:0 3px; border-radius:3px;}'
+        + '#' + TOOLTIP_ID + ' .tipHint {display:block; color:#555; font-style:italic; margin-bottom:.5em;}'
+        // Pure code tables are many very short rows; one column would run them
+        // down the whole box while the width sits unused.
+        + '#' + TOOLTIP_ID + ' ul.tipCodes {columns:2; column-gap:1.2em; list-style:none; padding-left:0;}'
+        + '#' + TOOLTIP_ID + ' ul.tipCodes li {break-inside:avoid;}';
     (document.head || document.documentElement).appendChild(style);
 }
 function box() {
@@ -31301,13 +31321,30 @@ function gameScale(el) {
     const s = el.getBoundingClientRect().width / el.offsetWidth;
     return (s > 0 && isFinite(s)) ? s : 1;
 }
-/** Same spot every time: vertically centred, just left of the settings panel. */
+/**
+ * Vertically centred beside the settings panel, on whichever side has room.
+ *
+ * Left is preferred so the box keeps one habitual place, but a wide box does
+ * not always fit there -- and tucking it over the panel hides the very rows it
+ * explains, so the right-hand gap is tried before falling back to that.
+ */
 function placeAgainstPanel(el, panel) {
     const panelRect = panel.getBoundingClientRect();
     const tip = el.getBoundingClientRect();
-    let x = panelRect.left - tip.width - GAP;
-    if (x < GAP)
-        x = panelRect.left + GAP; // no room outside: tuck inside
+    const roomLeft = panelRect.left - GAP;
+    const roomRight = window.innerWidth - panelRect.right - GAP;
+    let x;
+    if (tip.width + GAP <= roomLeft) {
+        x = panelRect.left - tip.width - GAP;
+    }
+    else if (tip.width + GAP <= roomRight) {
+        x = panelRect.right + GAP;
+    }
+    else {
+        // Neither gap takes it: sit on the roomier side and clamp on screen.
+        x = roomLeft >= roomRight ? panelRect.left - tip.width - GAP : panelRect.right + GAP;
+        x = Math.max(GAP, Math.min(x, window.innerWidth - tip.width - GAP));
+    }
     let y = panelRect.top + (panelRect.height - tip.height) / 2;
     y = Math.max(GAP, Math.min(y, window.innerHeight - tip.height - GAP));
     el.style.left = Math.round(x) + 'px';
@@ -31327,6 +31364,7 @@ function placeNearAnchor(el, anchor) {
     el.style.top = Math.round(y) + 'px';
 }
 function show(anchor) {
+    var _a;
     const source = anchor.querySelector('.tooltipHHtext');
     const html = source === null ? '' : source.innerHTML.trim();
     if (html === '') {
@@ -31343,7 +31381,20 @@ function show(anchor) {
     // #contains_all. Left at its CSS size it renders smaller than the menu it
     // explains, so match the zoom the menu is drawn at.
     const scale = gameScale(panel !== null && panel !== void 0 ? panel : anchor);
-    el.style.width = Math.round(BASE_WIDTH * Math.max(1, scale)) + 'px';
+    // Width follows the amount of text. A one-line hint in a 480px box looks
+    // broken, and a 900-character explanation in a 240px column turns into a
+    // narrow ribbon that is genuinely hard to read -- so short stays narrow and
+    // long earns up to double, before any type is sacrificed.
+    const plain = ((_a = el.textContent) !== null && _a !== void 0 ? _a : '').length;
+    const span = WIDE_FROM - NARROW_UP_TO;
+    const ratio = Math.min(1, Math.max(0, (plain - NARROW_UP_TO) / span));
+    let widthFactor = 1 + (MAX_WIDTH_FACTOR - 1) * ratio;
+    const applyWidth = () => {
+        const room = window.innerWidth - 2 * GAP;
+        const want = BASE_WIDTH * widthFactor * Math.max(1, scale);
+        el.style.width = Math.round(Math.min(want, room)) + 'px';
+    };
+    applyWidth();
     // The box is centred vertically beside the panel, so the whole viewport
     // height minus the two gaps is available. This used to be a static
     // max-height:60vh, which did not scale with the zoom while the type did --
@@ -31357,6 +31408,12 @@ function show(anchor) {
     // readable size and never a cut-off text.
     let font = Math.max(BASE_FONT, Math.round(BASE_FONT * scale));
     el.style.fontSize = font + 'px';
+    // Widening costs nothing legible, shrinking does -- so spend the width
+    // first and only then start taking the type down.
+    if (el.scrollHeight > maxHeight && widthFactor < MAX_WIDTH_FACTOR) {
+        widthFactor = MAX_WIDTH_FACTOR;
+        applyWidth();
+    }
     while (font > BASE_FONT && el.scrollHeight > maxHeight) {
         font -= 1;
         el.style.fontSize = font + 'px';
