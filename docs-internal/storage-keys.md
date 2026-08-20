@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-19
-verified-against-version: 8.9.0
+last-verified: 2026-08-20
+verified-against-version: 8.10.11
 status: current
 ---
 
@@ -8,9 +8,11 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-19, gegen v8.9.0 nachgezaehlt):** 185 SK- und 97
-TK-Konstanten in `StorageKeys.ts`; 8 davon sind nicht in `HHStoredVars.ts`
-registriert. Am 2026-08-19 wurden die acht toten Keys entfernt (siehe unten). Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
+**Code-Stand (2026-08-20, gegen v8.10.11 nachgezaehlt):** 186 SK- und 99
+TK-Konstanten in `StorageKeys.ts`, 277 davon registriert; 8 sind nicht in
+`HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
+entfernt (siehe unten); die drei Keys des neuen Settings-Menue-Layouts
+(`menuSingleColumn`, `menuOrder`, `menuTab`) sind seit v8.10.0 dazugekommen. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
 Registrierung jedes Keys gegen den Code -- die Beschreibungstexte der vor
 2026-08-19 bestehenden Zeilen stammen unveraendert aus der letzten
 vollstaendigen Verifikation vom 2026-05-05 gegen v7.35.21.
@@ -78,7 +80,7 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 
 > **Code-Referenzen:** Wo jeder Key gelesen, geschrieben oder geloescht wird, dokumentiert data-sources-inventory.md Sektion 7 (vollstaendige Read/Write/Delete-Tabelle, automatisch aus Code regeneriert).
 
-## SK -- Setting Keys (185 Konstanten)
+## SK -- Setting Keys (186 Konstanten)
 
 Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
 
@@ -420,7 +422,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ---
 
-## TK -- Temp Keys (97 Konstanten)
+## TK -- Temp Keys (99 Konstanten)
 
 ### (unsorted)
 
