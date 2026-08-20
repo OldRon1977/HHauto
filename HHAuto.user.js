@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.12
+// @version      8.10.13
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -11583,11 +11583,16 @@ class Booster {
     /**
      * Parses the mythic auto-equip setting into an ordered priority list of
      * booster identifiers (e.g. ["MB9", "MB2"]). The stored value is a
-     * ";"-separated list of up to 5 codes (MB1..MB12); surrounding whitespace is
-     * trimmed. An empty field means "off" and yields an empty list. Invalid
-     * codes are dropped and the list is capped at 5 entries. Order = priority:
-     * every listed booster that fits a free mythic slot is equipped (the game
-     * offers MYTHIC_SLOT_COUNT slots, one equipped booster per kind).
+     * ";"-separated list of codes (MB1..MB12); surrounding whitespace is
+     * trimmed, invalid codes are dropped, duplicates keep their first
+     * position. An empty field means "off" and yields an empty list.
+     *
+     * The list is NOT capped at the number of slots (8.10.12). It used to be,
+     * which conflated two different numbers: the game has MYTHIC_SLOT_COUNT
+     * slots, but the list is a preference order -- "take whichever of these I
+     * happen to own". Capping it meant a player who listed all twelve silently
+     * lost the last seven. Order = priority: the walk down the list stops when
+     * no slot is free.
      */
     static parseMythicBoosterList() {
         const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipMythicBooster);
@@ -11601,7 +11606,7 @@ class Booster {
         if (parsed.length === 0) {
             logHHAuto("Auto-equip mythic: no valid codes in '" + raw + "', treating as off.");
         }
-        return parsed.slice(0, 5);
+        return [...new Set(parsed)];
     }
     /**
      * True when any of the Sandalwood auto-equip automations is active. Mirrors
@@ -11650,16 +11655,28 @@ class Booster {
         return getStoredJSON(HHStoredVarPrefixKey + TK.mythicEquipConflicts, {});
     }
     /**
-     * True when the game refused this booster as conflicting while the SAME
-     * mythic loadout was equipped as now. Entries for outdated loadouts are
-     * pruned, so the booster is automatically re-tried once the equipped
-     * mythics change (e.g. the conflicting one expired).
+     * True when the game's refusal of this booster still applies.
+     *
+     * The refusal means "it clashes with something equipped at that moment".
+     * Only the disappearance of a booster can lift that -- adding one to a free
+     * slot cannot, because the clashing booster is still on. So the recorded
+     * loadout is compared as a SUBSET of the current one, not for equality:
+     * still contained means the refusal stands, something missing means re-try.
+     *
+     * Equality was the original rule and it churned. Every successful equip
+     * changed the signature and thereby invalidated every conflict remembered
+     * earlier in the same run, so those boosters were tried again on the next
+     * pass, refused again, and each pass ended in another conflict popup and
+     * another page reload. With a priority list longer than the five slots
+     * (8.10.12) that turned into a visible loop.
      */
     static isMythicConflictRemembered(identifier) {
         const conflicts = Booster.getMythicConflicts();
         if (!(identifier in conflicts))
             return false;
-        if (conflicts[identifier] === Booster.getMythicLoadoutSignature())
+        const recorded = conflicts[identifier] === '' ? [] : conflicts[identifier].split(",");
+        const equipped = Booster.getEquippedMythicIdentifiers();
+        if (recorded.every((id) => equipped.has(id)))
             return true;
         delete conflicts[identifier];
         setStoredValue(HHStoredVarPrefixKey + TK.mythicEquipConflicts, JSON.stringify(conflicts));
@@ -11724,6 +11741,7 @@ class Booster {
             }
             let anyEquipped = false;
             let conflictSeen = false;
+            let conflicts = 0;
             for (const identifier of priorityList) {
                 if (free <= 0) {
                     logHHAuto("Auto-equip mythic: no free slot left for the remaining list entries.");
@@ -11769,7 +11787,13 @@ class Booster {
                     // and keep equipping the rest of the list.
                     Booster.rememberMythicConflict(identifier);
                     conflictSeen = true;
+                    conflicts++;
                     logHHAuto("Auto-equip mythic: " + boosterObj.name + " conflicts with an already equipped mythic booster, skipping it until the equipped mythics change.");
+                    if (conflicts >= Booster.MYTHIC_CONFLICTS_PER_PASS) {
+                        logHHAuto("Auto-equip mythic: " + conflicts + " refusals this pass, stopping here."
+                            + " The remaining list entries are tried on the next pass, with these refusals remembered.");
+                        break;
+                    }
                     continue;
                 }
                 else {
@@ -12085,6 +12109,16 @@ Booster.MYTHIC_CONFLICT_TEXT = /conflicts? with another mythic booster/i;
 /** How long to wait for the conflict popup to render after a refused
  *  equip. A class field so tests can shorten it. */
 Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 2000;
+/**
+ * How many refusals one pass will provoke before it gives up and reloads.
+ *
+ * Every refusal costs a server request and a popup, and each one is
+ * remembered, so the remaining candidates are picked up on the next pass
+ * with the memory already in place -- nothing is lost by stopping early.
+ * Without this a priority list longer than the five slots (8.10.12) could
+ * fire a refusal for every remaining entry in a single pass.
+ */
+Booster.MYTHIC_CONFLICTS_PER_PASS = 3;
 
 ;// ./src/Module/Events/Season.pure.ts
 // Season.pure.ts -- Pure decision logic extracted from Season.isTimeToFight

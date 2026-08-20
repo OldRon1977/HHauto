@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.13 - The mythic conflict popup stops coming back
+
+- The game refuses a mythic booster that clashes with one already equipped, and
+  shows a popup that cannot be closed from a script, so the page is reloaded to
+  clear it. That refusal was remembered only for the *exact* set of boosters
+  equipped at the time, so any successful equip afterwards invalidated it: the
+  refused booster was tried again on the next pass, refused again, and the
+  popup and reload came back. It is now remembered against the boosters that
+  were on at the time and only re-tried when one of them is actually gone --
+  adding a booster to a free slot cannot resolve a clash, so it no longer
+  clears the memory.
+- A single pass now gives up after three refusals instead of walking the rest
+  of the list. Each refusal costs a request and a popup, and they are
+  remembered, so the remaining entries are picked up on the next pass with
+  nothing lost.
+- **The Mythic Slot list really does take all twelve codes now.** 8.10.12 raised
+  the input field but the parser still cut the list to five, so everything past
+  the fifth entry was dropped without a word. A repeated code is also ignored
+  instead of taking a second turn.
+
 ### v8.10.12 - Tab badges, readable tooltips, and a compact menu
 
 - **Each area in the tab rail now shows how many of its automations are on**,

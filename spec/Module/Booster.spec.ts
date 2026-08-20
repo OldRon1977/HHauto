@@ -416,9 +416,19 @@ describe("Booster", function() {
       MockHelper.mockSetting('autoEquipMythicBooster', 'B1;MB2;MB13');
       expect(Booster.parseMythicBoosterList()).toEqual(['MB2']);
     });
-    it("caps the list at 5 entries", function() {
-      MockHelper.mockSetting('autoEquipMythicBooster', 'MB1;MB2;MB3;MB4;MB5;MB6');
-      expect(Booster.parseMythicBoosterList()).toEqual(['MB1', 'MB2', 'MB3', 'MB4', 'MB5']);
+    it("keeps every listed code -- the 5 is the number of slots, not the list length", function() {
+      // Capping here used to silently drop everything past the fifth entry, so
+      // a player who listed all twelve lost seven of them without being told.
+      // The walk in autoEquipMythicBoosters stops when no slot is free, which
+      // is where the 5 actually belongs.
+      MockHelper.mockSetting('autoEquipMythicBooster', 'MB1;MB2;MB3;MB4;MB5;MB6;MB7;MB8;MB9;MB10;MB11;MB12');
+      expect(Booster.parseMythicBoosterList()).toEqual(
+        ['MB1', 'MB2', 'MB3', 'MB4', 'MB5', 'MB6', 'MB7', 'MB8', 'MB9', 'MB10', 'MB11', 'MB12']);
+    });
+
+    it("drops a repeated code instead of letting it take a second turn", function() {
+      MockHelper.mockSetting('autoEquipMythicBooster', 'MB2;MB5;MB2');
+      expect(Booster.parseMythicBoosterList()).toEqual(['MB2', 'MB5']);
     });
   });
 
@@ -609,6 +619,40 @@ describe("Booster", function() {
       expect(sentIdItems()).toEqual(['638']); // re-attempted after loadout change
     });
 
+    it("stops after MYTHIC_CONFLICTS_PER_PASS refusals instead of walking the whole list", async function() {
+      const savedWait = Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS;
+      Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 50;
+      try {
+        // Six owned codes, all refused. Without the cap every one of them would
+        // cost a server request and a popup in a single pass -- which is what a
+        // priority list longer than the five slots made possible.
+        const codes = ['MB2', 'MB9', 'MB3', 'MB4', 'MB5', 'MB6'];
+        setupBoosterIdMap(codes.map((id, i) => (
+          { id_item: String(700 + i), identifier: id, name: id, rarity: 'mythic' })));
+        sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_haveBooster",
+          JSON.stringify(Object.fromEntries(codes.map(c => [c, 1]))));
+        MockHelper.mockBoosterInventory({ mythic: [] });
+        ajaxSpy.mockImplementation((_params: unknown, successCb: (data: unknown) => void) => {
+          document.body.innerHTML =
+            `<div class="popup"><div class="text">You cannot equip this booster, it conflicts with another mythic booster already equipped.</div></div>`;
+          successCb({ success: false });
+        });
+        safeReloadMock.mockClear();
+
+        await Booster.autoEquipMythicBoosters(codes);
+
+        expect(sentIdItems()).toHaveLength(Booster.MYTHIC_CONFLICTS_PER_PASS);
+        expect(safeReloadMock).toHaveBeenCalledTimes(1); // one reload, not one per refusal
+        // Nothing is lost: the three refusals are remembered, so the next pass
+        // starts at the fourth entry.
+        expect(Booster.isMythicConflictRemembered('MB2')).toBeTruthy();
+        expect(Booster.isMythicConflictRemembered('MB4')).toBeFalsy();
+        document.body.innerHTML = "";
+      } finally {
+        Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = savedWait;
+      }
+    });
+
     it("an unknown equip failure (no conflict popup) still stops the pass", async function() {
       const savedWait = Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS;
       Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 50; // don't wait 2s in the test
@@ -673,6 +717,32 @@ describe("Booster", function() {
       // mirror that end state in storage: MB2 gone.
       MockHelper.mockBoosterInventory({ mythic: [] });
       expect(Booster.isMythicConflictRemembered('MB8')).toBeFalsy(); // pruned -> MB8 re-tried
+    });
+
+    it("equipping ANOTHER booster does not clear a remembered conflict", function() {
+      // The refusal means "MB8 clashes with something equipped right now".
+      // Adding MB5 to a free slot cannot resolve that -- the clashing booster
+      // is still on. Keying the memory on exact loadout equality used to prune
+      // here, so MB8 was re-tried on the next cycle, refused again, and the
+      // popup plus its page reload came back on every pass. With a longer
+      // priority list each successful equip invalidated every conflict
+      // remembered earlier in the same run, which is what made it look
+      // permanent.
+      MockHelper.mockBoosterInventory({ mythic: ['MB2'] });
+      Booster.rememberMythicConflict('MB8');
+
+      MockHelper.mockBoosterInventory({ mythic: ['MB2', 'MB5'] });
+      expect(Booster.isMythicConflictRemembered('MB8')).toBeTruthy();
+    });
+
+    it("clears once the booster it clashed with is gone, even if others were added since", function() {
+      MockHelper.mockBoosterInventory({ mythic: ['MB2'] });
+      Booster.rememberMythicConflict('MB8');
+
+      // MB2 expired, MB5 arrived: the recorded loadout is no longer contained
+      // in the current one, so the refusal may no longer hold -> re-try.
+      MockHelper.mockBoosterInventory({ mythic: ['MB5'] });
+      expect(Booster.isMythicConflictRemembered('MB8')).toBeFalsy();
     });
   });
 
