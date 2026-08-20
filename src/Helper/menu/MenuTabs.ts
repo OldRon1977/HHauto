@@ -30,6 +30,7 @@ import { HHAuto_inputPattern } from "../../config/InputPattern";
 import { SK, TK } from "../../config/StorageKeys";
 import { MenuPorts } from "./MenuPorts";
 import { resolveMenuOrder } from "./MenuOrder";
+import { countActive, formatBadge } from "./MenuBadge";
 import { hhMenuInput, hhMenuInputWithImg, hhMenuSelect, hhMenuSwitch, hhMenuSwitchWithImg } from "./MenuWidgets";
 
 const t = (key: string): string => MenuPorts.getTextForUI(key, "elementText");
@@ -70,6 +71,27 @@ interface TabDef {
     icon: string;
     nameKey: string;
     titleKey: string;
+    /**
+     * The switches in this area that make the script *act*, for the rail badge
+     * (see MenuBadge.ts for why a count and not a red/green marker).
+     *
+     * Curated on purpose, not derived by a name rule -- `autoLeagues` and
+     * `autoSeasonSkipLowMojo` both start with "auto" and only one of them does
+     * anything on its own. Seeded from the settings the pipeline actually gates
+     * its blocks on (`SK.` reads in Pipeline.config.ts) and then trimmed:
+     *
+     *   - modifiers are out. `plusEvent`, `useX10Fights`, `autoChampsUseEne`,
+     *     `autoLeaguesBoostedOnly` only steer a run the master switch starts.
+     *   - limiters are out. `paranoia` and `mousePause` restrain the script,
+     *     they never make it do something.
+     *   - display is out. Every `show*` / `hide*` / `compact*` / `invert*`.
+     *   - the `…CollectAll` variants are IN: the pipeline preconditions gate
+     *     them independently of their `…Collect` sibling, so either one alone
+     *     is enough to make the block run.
+     *
+     * An area with nothing to count (Harem is display-only) gets no badge.
+     */
+    masters: readonly string[];
     groups: string;
 }
 
@@ -78,13 +100,18 @@ function tabs(debugEnabled: boolean): TabDef[] {
     return [
     {
         id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
+        masters: [
+            'autoFreeBundlesCollect',
+            'collectEventChest',
+        ],
         groups:
             group('menuSecBasics',
                 hhMenuSwitch('paranoia')
                 + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
                 + hhMenuSwitch('settPerTab')
                 + hhMenuSwitch('showTooltips')
-                + hhMenuSwitch('menuSingleColumn', '', false, true))
+                + hhMenuSwitch('menuSingleColumn', '', false, true)
+                + hhMenuSwitch('menuCompact', '', false, true))
             + group('menuSecTiming',
                 hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
                 + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
@@ -100,6 +127,9 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
+        masters: [
+            'autoAdsClick',
+        ],
         groups:
             group('menuSecInfoPanel',
                 hhMenuSwitch('showInfo')
@@ -114,6 +144,22 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
+        masters: [
+            'autoMission',
+            'autoMissionCollect',
+            'autoContest',
+            'autoDailyGoals',
+            'autoDailyGoalsCollect',
+            'autoFreePachinko',
+            'autoSalary',
+            'autoPowerPlaces',
+            'autoQuest',
+            'autoSideQuest',
+            'autoPoVCollect',
+            'autoPoVCollectAll',
+            'autoPoGCollect',
+            'autoPoGCollectAll',
+        ],
         groups:
             group('autoActivitiesTitle',
                 hhMenuSwitch('autoMission')
@@ -154,6 +200,9 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
+        masters: [
+            'autoTrollBattle',
+        ],
         groups:
             group('menuSecStandardTroll',
                 hhMenuSwitch('autoTrollBattle')
@@ -195,6 +244,11 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
+        masters: [
+            'autoSeason',
+            'autoSeasonCollect',
+            'autoSeasonCollectAll',
+        ],
         groups:
             group('menuSecFightCollect',
                 hhMenuSwitch('autoSeason')
@@ -214,6 +268,10 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
+        masters: [
+            'autoLeagues',
+            'autoLeaguesCollect',
+        ],
         groups:
             group('menuSecFightCollect',
                 hhMenuSwitch('autoLeagues')
@@ -232,6 +290,11 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
+        masters: [
+            'autoChamps',
+            'autoClubChamp',
+            'autoPantheon',
+        ],
         groups:
             group('autoChampsTitle',
                 hhMenuSwitch('autoChamps')
@@ -258,6 +321,9 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
+        masters: [
+            'autoLabyrinth',
+        ],
         groups:
             group('autoLabyrinthTitle',
                 hhMenuSwitch('autoLabyrinth')
@@ -268,6 +334,11 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
+        masters: [
+            'autoStatsSwitch',
+            'autoBuyBoosters',
+            'autoEquipBoosters',
+        ],
         groups:
             group('menuSecStats',
                 hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
@@ -293,6 +364,23 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
+        masters: [
+            'autoPentaDrill',
+            'autoPentaDrillCollect',
+            'autoPentaDrillCollectAll',
+            'autoSeasonalEventCollect',
+            'autoSeasonalEventCollectAll',
+            'autoSeasonalBuyFreeCard',
+            'autodpEventCollect',
+            'autodpEventCollectAll',
+            'autoLivelySceneEventCollect',
+            'autoLivelySceneEventCollectAll',
+            'sultryMysteriesEventRefreshShop',
+            'sultryMysteriesAutoOpen',
+            'bossBangEvent',
+            'autoPoACollect',
+            'autoPoACollectAll',
+        ],
         groups:
             group('menuSecEventDisplay',
                 hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
@@ -325,6 +413,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
+        masters: [],
         groups:
             group('haremTitle',
                 hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
@@ -367,10 +456,13 @@ export function buildTabbedBody(debugEnabled: boolean): string {
     const defs = order
         .map(id => declared.find(tab => tab.id === id))
         .filter((tab): tab is TabDef => tab !== undefined);
+    // The badge is filled in by refreshTabBadges() once the checkboxes carry
+    // their stored state; rendering it here would always read "0/n".
     const rail = defs.map(tab =>
         `<div class="menuTab" data-tab="${tab.id}">`
             + `<span class="menuTabIcon">${tab.icon}</span>`
             + `<span class="menuTabName">${t(tab.nameKey)}</span>`
+            + (tab.masters.length > 0 ? `<span class="menuTabBadge" data-badge="${tab.id}"></span>` : ``)
         + `</div>`).join('');
     const panes = defs.map(tab =>
         `<div class="menuPane" data-pane="${tab.id}">`
@@ -444,6 +536,13 @@ export function initMenuTabs(): void {
  * remembered area stays selected underneath, which is what makes switching back
  * land where the user left off.
  */
+/** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
+export function applyMenuDensity(compact: boolean): void {
+    const menu = document.getElementById('sMenu');
+    if (menu === null) return;
+    menu.classList.toggle('menuCompact', compact);
+}
+
 export function applyMenuLayout(stacked: boolean): void {
     const menu = document.getElementById('sMenu');
     if (menu === null) return;
@@ -495,4 +594,45 @@ export function visibleMenuAreas(): MenuAreaRow[] {
         rows.push({ id, label: (icon + ' ' + name).trim() });
     }
     return rows;
+}
+
+/**
+ * Read a switch straight from the panel rather than from storage, so the badge
+ * follows a click immediately -- before the value is written. `undefined` means
+ * the row is not in this build's markup (see countActive).
+ */
+function switchState(key: string): boolean | undefined {
+    const el = document.getElementById(key);
+    return el === null ? undefined : (el as HTMLInputElement).checked;
+}
+
+/** Repaint every badge from the current checkbox states. */
+export function refreshTabBadges(debugEnabled = false): void {
+    for (const tab of tabs(debugEnabled)) {
+        if (tab.masters.length === 0) continue;
+        const el = document.querySelector(`[data-badge="${tab.id}"]`);
+        if (el === null) continue;
+        const count = countActive(tab.masters, switchState);
+        el.textContent = formatBadge(count);
+        el.classList.toggle('idle', count.on === 0);
+    }
+}
+
+let badgeHandlersBound = false;
+
+/**
+ * Keep the badges in step with the panel. Delegated on the panes container, so
+ * it survives a layout switch and covers rows built later; the debug flag is
+ * read per event because turning Debug on adds rows.
+ */
+export function bindTabBadgeUpdates(): void {
+    if (badgeHandlersBound) return;
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null) return;
+    badgeHandlersBound = true;
+    panes.addEventListener('change', (event) => {
+        const target = event.target as HTMLElement | null;
+        if (target === null || (target as HTMLInputElement).type !== 'checkbox') return;
+        refreshTabBadges(MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.Debug) === "true");
+    });
 }

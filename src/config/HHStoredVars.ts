@@ -1798,6 +1798,22 @@ HHStoredVars[HHStoredVarPrefixKey + SK.menuSingleColumn] =
     menuType:"checked",
     kobanUsing:false
 };
+// Denser rows and smaller type in the settings panel (#1834). The panel is a
+// fixed 820x540 CSS px inside the game's transformed container, so a bigger
+// screen renders it LARGER, not fuller -- more options per screen can only come
+// from less space per row. localStorage for the same reason as menuSingleColumn:
+// it describes the menu, not the automation.
+HHStoredVars[HHStoredVarPrefixKey + SK.menuCompact] =
+    {
+    default:"false",
+    storage:"localStorage",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.showTooltips] =
     {
     default:"true",

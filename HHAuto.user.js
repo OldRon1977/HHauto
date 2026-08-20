@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.11
+// @version      8.10.12
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -86,6 +86,25 @@ GM_addStyle('#sMenu .menuTabs {flex:none; width:158px; overflow-y:auto; padding:
 GM_addStyle('#sMenu .menuTab {display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; color:#98a191; font-size:12px; border-left:3px solid transparent;}');
 GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.06);}');
 GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
+GM_addStyle('#sMenu .menuTabBadge {margin-left:auto; padding:0 5px; border-radius:8px; font-size:10px; font-weight:normal;'
+            +' line-height:15px; min-width:26px; text-align:center; background:rgba(255,162,62,.18); color:#ffa23e;}');
+// 0/n stays legible but recedes: nothing running is a normal state, not a warning.
+GM_addStyle('#sMenu .menuTabBadge.idle {background:rgba(152,161,145,.14); color:#98a191;}');
+GM_addStyle('#sMenu.menuStacked .menuTabBadge {margin-left:8px;}');
+// Compact density (#1834). The panel is a fixed 820x540 CSS px inside the
+// game's transform, so a larger screen magnifies it instead of fitting more
+// in. Trading row height and type size is the only way to raise the number of
+// options on screen; it is opt-in so nobody has to live with the other camp's
+// preference.
+GM_addStyle('#sMenu.menuCompact {font-size:9px;}');
+GM_addStyle('#sMenu.menuCompact .HHMenuItemName {font-size:9px; line-height:1.15;}');
+GM_addStyle('#sMenu.menuCompact .labelAndButton {padding-top:1px; padding-bottom:1px;}');
+GM_addStyle('#sMenu.menuCompact .menuTab {padding:3px 8px; font-size:11px;}');
+GM_addStyle('#sMenu.menuCompact .menuPanes {padding:4px 6px;}');
+GM_addStyle('#sMenu.menuCompact .menuPaneTitle {font-size:11px;}');
+GM_addStyle('#sMenu.menuCompact .switch {width:28px; height:16px;}');
+GM_addStyle('#sMenu.menuCompact .slider.round:before {height:11px; width:11px; left:2px; bottom:2.5px;}');
+GM_addStyle('#sMenu.menuCompact input:checked + .slider:before {transform:translateX(11px);}');
 GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
 GM_addStyle('#sMenu .menuPane {display:none;}');
 GM_addStyle('#sMenu .menuPane.active {display:block;}');
@@ -220,7 +239,7 @@ HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth.
 HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "(values separated by ;)<br>Set list of codes of booster to buy, order is respected.<br>Code:Name<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura" };
 HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
 HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.30.0", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
-HHAuto_ToolTips.en['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "(up to 5 codes separated by ;)<br>Mythic boosters to keep equipped. The game offers 5 mythic slots (one equipped booster per kind): every listed booster you own that is not equipped yet is placed into a free slot, in list order (order = priority). Empty field = off.<br>Example: MB1;MB2;MB5;MB8;MB12<br>Code:Name<br>MB1:Sandalwood perfume<br>MB2:All Mastery's Emblem<br>MB3:Headband of determination<br>MB4:Luxurious Watch<br>MB5:Combative Cinnamon<br>MB6:Alban's travel memories<br>MB7:Angels' semen scent<br>MB8:Leagues mastery emblem<br>MB9:Seasons mastery emblem<br>MB10:Gem Detector<br>MB11:Banger<br>MB12:Shiny Aura<br>Equipped boosters are never replaced and nothing is bought (only equips from inventory).<br>The Sandalwood auto-equip (+Event / +Mythic / +Raid Sandalwood) keeps control of MB1: while active, MB1 on this list is skipped and one slot is kept free for Sandalwood." };
+HHAuto_ToolTips.en['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "(codes separated by ; -- list as many as you like)<br>Mythic boosters to keep equipped, in priority order. The game has <b>5 mythic slots</b> (one booster per kind), so at most 5 of your list end up equipped -- the script walks the list from the top and fills every free slot with the first ones you own. Listing all 12 is fine and is the point: it just means \"take whichever of these I happen to have\". Empty field = off.<br>Example: MB1;MB2;MB5;MB8;MB12<br>Nothing is bought, and an already equipped booster is never replaced.<br>While the Sandalwood auto-equip (+Event / +Mythic / +Raid) is on it owns MB1: MB1 is skipped here and one slot is kept free for it.<br>MB1 Sandalwood perfume &middot; MB2 All Mastery's Emblem &middot; MB3 Headband of determination &middot; MB4 Luxurious Watch &middot; MB5 Combative Cinnamon &middot; MB6 Alban's travel memories &middot; MB7 Angels' semen scent &middot; MB8 Leagues mastery emblem &middot; MB9 Seasons mastery emblem &middot; MB10 Gem Detector &middot; MB11 Banger &middot; MB12 Shiny Aura" };
 HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pass 3 reds", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Use kobans to renew Season opponents if 3 reds" };
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
@@ -518,6 +537,7 @@ HHAuto_ToolTips.en['menuOrderReset'] = { version: "8.10.0", elementText: "Restor
 HHAuto_ToolTips.en['menuOrderCancel'] = { version: "8.10.0", elementText: "Cancel" };
 HHAuto_ToolTips.en['menuOrderSave'] = { version: "8.10.0", elementText: "Save" };
 HHAuto_ToolTips.en['menuSingleColumn'] = { version: "8.10.0", elementText: "Single page menu", tooltip: "Show every area stacked in one scrolling list, without the tab rail on the left. Use Menu Order to arrange the areas." };
+HHAuto_ToolTips.en['menuCompact'] = { version: "8.10.12", elementText: "Compact menu", tooltip: "Denser rows and smaller type, so more options fit on screen at once. The panel has a fixed size inside the game, so a bigger monitor magnifies it rather than fitting more in -- this is the trade that actually adds rows. Off by default." };
 HHAuto_ToolTips.en['blockOrder'] = { version: "7.36.13", elementText: "Block Order", tooltip: "Reorder the script's blocks (drag or up/down arrows). Greyed-out blocks are fixed." };
 HHAuto_ToolTips.en['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline Diagnostics", tooltip: "Log extra per-step [PIPE] detail to the console for debugging. Off by default; the basic pipeline trace is always logged." };
 HHAuto_ToolTips.en['autoGiveAff'] = { version: "5.6.24", elementText: "Auto Give", tooltip: "If enabled, will automatically give Aff to girls in order ( you can use OCD script to filter )." };
@@ -824,7 +844,7 @@ HHAuto_ToolTips.de['plusEvent'] = { version: "7.32.1", elementText: "+Event", to
 HHAuto_ToolTips.de['plusEventMythic'] = { version: "7.32.1", elementText: "+Mythisches Event", tooltip: "Kämpft gegen Mythic-Event-Trolle unabhängig von Auto-Troll.<br>Übergeht die Energie-Schwelle. Hat Vorrang vor normalen Events." };
 HHAuto_ToolTips.de['raidStarsSelector'] = { version: "8.10.0", elementText: "+Liebesüberfall-Sterne", tooltip: "Kämpfe Liebesüberfälle nach Mädchen-Grad. Unabhängig von +Liebesüberfall und Auto Troll.<br>Wählt automatisch den als nächstes endenden Liebesüberfall mit passendem Grad (ignoriert das Auswahl-Dropdown).<br>Passende Liebesüberfälle werden von +Liebesüberfall-Sterne beansprucht; übrige Liebesüberfälle gehen an +Liebesüberfall (falls aktiv).<br>Die Energie-Schwelle wird über den Schalter Reserve umgehen gesteuert." };
 HHAuto_ToolTips.de['raidStarsOff'] = { version: "7.35.5", elementText: "Aus" };
-HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.10.0", elementText: "Mythic-Slot", tooltip: "(bis zu 5 Codes, getrennt durch ;)<br>Mythische Booster, die angelegt bleiben sollen. Das Spiel bietet 5 mythische Slots (ein angelegter Booster je Art): Jeder aufgeführte Booster, den du besitzt und der noch nicht angelegt ist, kommt in einen freien Slot — in der Reihenfolge der Liste, die zugleich die Priorität ist. Leeres Feld bedeutet aus.<br>Beispiel: MB1;MB2;MB5;MB8;MB12<br>Bereits angelegte Booster werden nie ersetzt, und es wird nichts gekauft — es wird nur aus dem Inventar angelegt.<br>Das automatische Anlegen von Sandelholz behält die Kontrolle über MB1: Solange es aktiv ist, wird MB1 in dieser Liste übersprungen und ein Slot für Sandelholz frei gehalten." };
+HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.10.0", elementText: "Mythic-Slot", tooltip: "(Codes durch ; getrennt -- so viele wie du willst)<br>Mythische Booster, die angelegt bleiben sollen, in der Reihenfolge deiner Priorität. Das Spiel hat <b>5 mythische Slots</b> (ein Booster je Art), es sind also höchstens 5 gleichzeitig angelegt -- das Skript geht die Liste von oben durch und füllt jeden freien Slot mit den ersten, die du besitzt. Alle 12 einzutragen ist ausdrücklich sinnvoll: es heißt schlicht \"nimm davon, was ich gerade habe\". Leeres Feld = aus.<br>Beispiel: MB1;MB2;MB5;MB8;MB12<br>Es wird nichts gekauft, und ein bereits angelegter Booster wird nie ersetzt.<br>Solange das automatische Anlegen von Sandelholz (+Event / +Mythisch / +Raid) aktiv ist, gehört MB1 ihm: MB1 wird hier übersprungen und ein Slot für Sandelholz frei gehalten." };
 HHAuto_ToolTips.de['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.de['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
 HHAuto_ToolTips.de['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★" };
@@ -1117,6 +1137,7 @@ HHAuto_ToolTips.de['menuOrderReset'] = { version: "8.10.0", elementText: "Standa
 HHAuto_ToolTips.de['menuOrderCancel'] = { version: "8.10.0", elementText: "Abbrechen" };
 HHAuto_ToolTips.de['menuOrderSave'] = { version: "8.10.0", elementText: "Speichern" };
 HHAuto_ToolTips.de['menuSingleColumn'] = { version: "8.10.0", elementText: "Alles auf einer Seite", tooltip: "Zeigt alle Bereiche untereinander in einer Liste, ohne Reiter-Leiste links. Die Reihenfolge legst du mit „Menü-Reihenfolge“ fest." };
+HHAuto_ToolTips.de['menuCompact'] = { version: "8.10.12", elementText: "Kompaktes Menü", tooltip: "Engere Zeilen und kleinere Schrift, damit mehr Optionen gleichzeitig auf den Bildschirm passen. Das Panel hat im Spiel eine feste Größe — ein größerer Monitor vergrößert es nur, statt mehr hineinzupacken; dies ist der Tausch, der wirklich Zeilen bringt. Standardmäßig aus." };
 HHAuto_ToolTips.de['blockOrder'] = { version: "7.36.13", elementText: "Block-Reihenfolge", tooltip: "Ordnet die Blöcke des Skripts neu (ziehen oder Pfeile hoch/runter). Ausgegraute Blöcke liegen fest." };
 HHAuto_ToolTips.de['pipelineDiagnose'] = { version: "7.36.15", elementText: "Pipeline-Diagnose", tooltip: "Schreibt zusätzliche [PIPE]-Details je Schritt in die Konsole. Standardmäßig aus." };
 HHAuto_ToolTips.de['autoGiveAff'] = { version: "5.6.24", elementText: "Auto-Geben", tooltip: "Wenn aktiv: Gibt Mädels der Reihe nach automatisch Zuneigung (zum Filtern lässt sich das OCD-Skript nutzen)." };
@@ -1735,6 +1756,7 @@ const SK = {
     showRewardsRecap: "Setting_showRewardsRecap",
     showTooltips: "Setting_showTooltips",
     menuSingleColumn: "Setting_menuSingleColumn",
+    menuCompact: "Setting_menuCompact",
     showAdsBack: "Setting_showAdsBack",
     autoAdsClick: "Setting_autoAdsClick",
     mousePause: "Setting_mousePause",
@@ -3862,6 +3884,22 @@ HHStoredVars[HHStoredVarPrefixKey + SK.showMarketTools] =
 // in one scrolling list (#1834). localStorage so the choice does not depend on
 // settPerTab -- it describes the menu, not the automation.
 HHStoredVars[HHStoredVarPrefixKey + SK.menuSingleColumn] =
+    {
+        default: "false",
+        storage: "localStorage",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+// Denser rows and smaller type in the settings panel (#1834). The panel is a
+// fixed 820x540 CSS px inside the game's transformed container, so a bigger
+// screen renders it LARGER, not fuller -- more options per screen can only come
+// from less space per row. localStorage for the same reason as menuSingleColumn:
+// it describes the menu, not the automation.
+HHStoredVars[HHStoredVarPrefixKey + SK.menuCompact] =
     {
         default: "false",
         storage: "localStorage",
@@ -7160,7 +7198,7 @@ const HHAuto_inputPattern = {
     buyMythicCombTimer: "[0-9]+",
     autoBuyBoostersFilter: "(B[1-4]|MB[1-9]|MB1[1-2])(;B[1-4]|;MB[1-9]|;MB1[1-2])*",
     autoEquipBoostersSlots: "B[1-4](;B[1-4]){0,3}",
-    autoEquipMythicBooster: "(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,4})?",
+    autoEquipMythicBooster: "(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout: "[0-9]+",
     safeSecondsForContest: "[0-9]+",
@@ -28554,6 +28592,55 @@ function isDefaultMenuOrder(order, defaultIds) {
     return order.length === defaultIds.length && order.every((id, i) => id === defaultIds[i]);
 }
 
+;// ./src/Helper/menu/MenuBadge.ts
+// MenuBadge.ts
+//
+// Counts how many of an area's *acting* switches are on, for the badge on the
+// tab rail (#1834). No DOM, no storage, no imports: the caller supplies a
+// reader, so this stays fully unit-testable and a graph leaf.
+//
+// Why a count and not the red/green tab colour that was proposed:
+//
+//   - "at least one switch is ticked" is not the same as "this area does
+//     something". Measured against the factory defaults, 7 of the 11 areas
+//     would light up green out of the box -- through `showInfo`,
+//     `showRewardsRecap`, `showClubButtonInPoa`, `hideOwnedGirls` and friends,
+//     which are pure display options. Green would mean "some checkbox is set".
+//   - The reverse case is worse and realistic: `adventure` has 17 switches of
+//     which exactly one, `autoTrollBattle`, makes the script act. With
+//     `plusEvent` ticked and `autoTrollBattle` off, a binary marker reports
+//     green while nothing runs -- precisely the forgotten-toggle case it was
+//     meant to catch.
+//   - A number says *how much* is on, which is what you need when comparing
+//     the same area across several accounts.
+//   - Red/green as the only channel fails for red-green colour deficiency.
+//     A count works without colour; colour can tint the badge on top.
+/**
+ * Count the acting switches of one area.
+ *
+ * `isOn` returns `undefined` for a switch that is not in the DOM at all --
+ * debug-only rows, or a switch a later version dropped. Those are left out of
+ * both numbers rather than counted as off, so the badge never claims a
+ * capability the panel does not show.
+ */
+function countActive(masters, isOn) {
+    let on = 0;
+    let total = 0;
+    for (const key of masters) {
+        const state = isOn(key);
+        if (state === undefined)
+            continue;
+        total++;
+        if (state)
+            on++;
+    }
+    return { on, total };
+}
+/** `2/6`, or an empty string for an area with nothing to count (e.g. Harem). */
+function formatBadge(count) {
+    return count.total === 0 ? '' : count.on + '/' + count.total;
+}
+
 ;// ./src/Helper/menu/MenuWidgets.ts
 // MenuWidgets.ts
 //
@@ -28680,6 +28767,7 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
 
 
 
+
 const t = (key) => MenuPorts.getTextForUI(key, "elementText");
 /**
  * One settings group. `maskId` goes on the group element so the existing
@@ -28714,11 +28802,16 @@ function tabs(debugEnabled) {
     return [
         {
             id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
+            masters: [
+                'autoFreeBundlesCollect',
+                'collectEventChest',
+            ],
             groups: group('menuSecBasics', hhMenuSwitch('paranoia')
                 + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
                 + hhMenuSwitch('settPerTab')
                 + hhMenuSwitch('showTooltips')
-                + hhMenuSwitch('menuSingleColumn', '', false, true))
+                + hhMenuSwitch('menuSingleColumn', '', false, true)
+                + hhMenuSwitch('menuCompact', '', false, true))
                 + group('menuSecTiming', hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
                     + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
                     + hhMenuSwitch('paranoiaSpendsBefore')
@@ -28731,6 +28824,9 @@ function tabs(debugEnabled) {
         },
         {
             id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
+            masters: [
+                'autoAdsClick',
+            ],
             groups: group('menuSecInfoPanel', hhMenuSwitch('showInfo')
                 + hhMenuSwitch('showInfoLeft', '', false, true)
                 + hhMenuSwitch('showCalculatePower'))
@@ -28741,6 +28837,22 @@ function tabs(debugEnabled) {
         },
         {
             id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
+            masters: [
+                'autoMission',
+                'autoMissionCollect',
+                'autoContest',
+                'autoDailyGoals',
+                'autoDailyGoalsCollect',
+                'autoFreePachinko',
+                'autoSalary',
+                'autoPowerPlaces',
+                'autoQuest',
+                'autoSideQuest',
+                'autoPoVCollect',
+                'autoPoVCollectAll',
+                'autoPoGCollect',
+                'autoPoGCollectAll',
+            ],
             groups: group('autoActivitiesTitle', hhMenuSwitch('autoMission')
                 + hhMenuSwitch('autoMissionCollect')
                 + hhMenuSwitch('autoMissionKFirst')
@@ -28771,6 +28883,9 @@ function tabs(debugEnabled) {
         },
         {
             id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
+            masters: [
+                'autoTrollBattle',
+            ],
             groups: group('menuSecStandardTroll', hhMenuSwitch('autoTrollBattle')
                 + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
                 + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
@@ -28805,6 +28920,11 @@ function tabs(debugEnabled) {
         },
         {
             id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
+            masters: [
+                'autoSeason',
+                'autoSeasonCollect',
+                'autoSeasonCollectAll',
+            ],
             groups: group('menuSecFightCollect', hhMenuSwitch('autoSeason')
                 + hhMenuSwitch('autoSeasonCollect')
                 + hhMenuSwitch('autoSeasonCollectAll')
@@ -28820,6 +28940,10 @@ function tabs(debugEnabled) {
         },
         {
             id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
+            masters: [
+                'autoLeagues',
+                'autoLeaguesCollect',
+            ],
             groups: group('menuSecFightCollect', hhMenuSwitch('autoLeagues')
                 + hhMenuSwitch('autoLeaguesCollect')
                 + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true)
@@ -28834,6 +28958,11 @@ function tabs(debugEnabled) {
         },
         {
             id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
+            masters: [
+                'autoChamps',
+                'autoClubChamp',
+                'autoPantheon',
+            ],
             groups: group('autoChampsTitle', hhMenuSwitch('autoChamps')
                 + hhMenuSwitch('autoChampsForceStart')
                 + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
@@ -28855,6 +28984,9 @@ function tabs(debugEnabled) {
         },
         {
             id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
+            masters: [
+                'autoLabyrinth',
+            ],
             groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
                 + hhMenuSwitch('autoLabyHard')
@@ -28863,6 +28995,11 @@ function tabs(debugEnabled) {
         },
         {
             id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
+            masters: [
+                'autoStatsSwitch',
+                'autoBuyBoosters',
+                'autoEquipBoosters',
+            ],
             groups: group('menuSecStats', hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
                 + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop')
                 + group('menuSecBooks', hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
@@ -28882,6 +29019,23 @@ function tabs(debugEnabled) {
         },
         {
             id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
+            masters: [
+                'autoPentaDrill',
+                'autoPentaDrillCollect',
+                'autoPentaDrillCollectAll',
+                'autoSeasonalEventCollect',
+                'autoSeasonalEventCollectAll',
+                'autoSeasonalBuyFreeCard',
+                'autodpEventCollect',
+                'autodpEventCollectAll',
+                'autoLivelySceneEventCollect',
+                'autoLivelySceneEventCollectAll',
+                'sultryMysteriesEventRefreshShop',
+                'sultryMysteriesAutoOpen',
+                'bossBangEvent',
+                'autoPoACollect',
+                'autoPoACollectAll',
+            ],
             groups: group('menuSecEventDisplay', hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
                 + group('autoPentaDrillTitle', hhMenuSwitch('autoPentaDrill')
                     + hhMenuSwitch('autoPentaDrillCollect')
@@ -28905,6 +29059,7 @@ function tabs(debugEnabled) {
         },
         {
             id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
+            masters: [],
             groups: group('haremTitle', hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
                 + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
                 + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')),
@@ -28942,9 +29097,12 @@ function buildTabbedBody(debugEnabled) {
     const defs = order
         .map(id => declared.find(tab => tab.id === id))
         .filter((tab) => tab !== undefined);
+    // The badge is filled in by refreshTabBadges() once the checkboxes carry
+    // their stored state; rendering it here would always read "0/n".
     const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
         + `<span class="menuTabIcon">${tab.icon}</span>`
         + `<span class="menuTabName">${t(tab.nameKey)}</span>`
+        + (tab.masters.length > 0 ? `<span class="menuTabBadge" data-badge="${tab.id}"></span>` : ``)
         + `</div>`).join('');
     const panes = defs.map(tab => `<div class="menuPane" data-pane="${tab.id}">`
         + `<div class="menuPaneTitle">${t(tab.titleKey)}</div>`
@@ -29018,6 +29176,13 @@ function initMenuTabs() {
  * remembered area stays selected underneath, which is what makes switching back
  * land where the user left off.
  */
+/** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
+function applyMenuDensity(compact) {
+    const menu = document.getElementById('sMenu');
+    if (menu === null)
+        return;
+    menu.classList.toggle('menuCompact', compact);
+}
 function applyMenuLayout(stacked) {
     const menu = document.getElementById('sMenu');
     if (menu === null)
@@ -29070,6 +29235,48 @@ function visibleMenuAreas() {
         rows.push({ id, label: (icon + ' ' + name).trim() });
     }
     return rows;
+}
+/**
+ * Read a switch straight from the panel rather than from storage, so the badge
+ * follows a click immediately -- before the value is written. `undefined` means
+ * the row is not in this build's markup (see countActive).
+ */
+function switchState(key) {
+    const el = document.getElementById(key);
+    return el === null ? undefined : el.checked;
+}
+/** Repaint every badge from the current checkbox states. */
+function refreshTabBadges(debugEnabled = false) {
+    for (const tab of tabs(debugEnabled)) {
+        if (tab.masters.length === 0)
+            continue;
+        const el = document.querySelector(`[data-badge="${tab.id}"]`);
+        if (el === null)
+            continue;
+        const count = countActive(tab.masters, switchState);
+        el.textContent = formatBadge(count);
+        el.classList.toggle('idle', count.on === 0);
+    }
+}
+let badgeHandlersBound = false;
+/**
+ * Keep the badges in step with the panel. Delegated on the panes container, so
+ * it survives a layout switch and covers rows built later; the debug flag is
+ * read per event because turning Debug on adds rows.
+ */
+function bindTabBadgeUpdates() {
+    if (badgeHandlersBound)
+        return;
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null)
+        return;
+    badgeHandlersBound = true;
+    panes.addEventListener('change', (event) => {
+        const target = event.target;
+        if (target === null || target.type !== 'checkbox')
+            return;
+        refreshTabBadges(MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.Debug) === "true");
+    });
 }
 
 ;// ./src/Helper/menu/MenuTemplate.ts
@@ -31008,6 +31215,8 @@ const GAP = 8;
 /** Floor for the tooltip type; the game's zoom only ever scales it up. */
 const BASE_FONT = 11;
 const BASE_WIDTH = 240;
+/** Never squeeze the box below this, however short the window is. */
+const MIN_BOX_HEIGHT = 120;
 let tooltipsEnabled = false;
 let handlersBound = false;
 function styleOnce() {
@@ -31017,7 +31226,7 @@ function styleOnce() {
     style.id = TOOLTIP_ID + 'Style';
     style.textContent = '#' + TOOLTIP_ID + ' {'
         + ' position:fixed; display:none; z-index:2147483000;'
-        + ' width:' + BASE_WIDTH + 'px; max-height:60vh; overflow-y:auto;'
+        + ' width:' + BASE_WIDTH + 'px; overflow-y:auto;'
         + ' padding:6px 8px; border:1px solid #ffa23e; border-radius:5px;'
         + ' background:#fff; color:#000; opacity:.97;'
         + ' font-size:' + BASE_FONT + 'px; line-height:1.35; text-align:left;'
@@ -31092,8 +31301,24 @@ function show(anchor) {
     // #contains_all. Left at its CSS size it renders smaller than the menu it
     // explains, so match the zoom the menu is drawn at.
     const scale = gameScale(panel !== null && panel !== void 0 ? panel : anchor);
-    el.style.fontSize = Math.max(BASE_FONT, Math.round(BASE_FONT * scale)) + 'px';
     el.style.width = Math.round(BASE_WIDTH * Math.max(1, scale)) + 'px';
+    // The box is centred vertically beside the panel, so the whole viewport
+    // height minus the two gaps is available. This used to be a static
+    // max-height:60vh, which did not scale with the zoom while the type did --
+    // at a high zoom a long text overflowed, and overflow here is unreadable
+    // by construction: the box is pointer-events:none, so its scrollbar cannot
+    // be grabbed, and it hides as soon as the pointer leaves the row.
+    const maxHeight = Math.max(MIN_BOX_HEIGHT, window.innerHeight - 2 * GAP);
+    el.style.maxHeight = maxHeight + 'px';
+    // Shrink to fit rather than clip. The floor is BASE_FONT, the size the box
+    // used before it started following the zoom, so the worst case is the old
+    // readable size and never a cut-off text.
+    let font = Math.max(BASE_FONT, Math.round(BASE_FONT * scale));
+    el.style.fontSize = font + 'px';
+    while (font > BASE_FONT && el.scrollHeight > maxHeight) {
+        font -= 1;
+        el.style.fontSize = font + 'px';
+    }
     if (panel !== null) {
         placeAgainstPanel(el, panel);
     }
@@ -31357,6 +31582,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 // against missing jQuery and "Forbidden" error pages.
 //
 // Used by: src/index.ts (entry point)
+
 
 
 
@@ -31752,6 +31978,11 @@ function start() {
     hhAutoMenu.fillLabyDifficultyMenu();
     setMenuValues();
     getMenuValues();
+    // Only now do the checkboxes carry their stored state, so this is the
+    // earliest point at which the rail badges can show real numbers.
+    refreshTabBadges(getStoredValue(HHStoredVarPrefixKey + TK.Debug) === "true");
+    bindTabBadgeUpdates();
+    applyMenuDensity(getStoredValue(HHStoredVarPrefixKey + SK.menuCompact) === "true");
     manageToolTipsDisplay();
     $("#git").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/wiki"); });
     $("#ReportBugs").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc"); });
@@ -31927,6 +32158,9 @@ function start() {
     // Menu layout: tab rail vs one stacked list. Applied immediately -- the
     // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
     // itself is persisted by the generic binding in addEventsOnMenuItems.
+    $("#menuCompact").on("change", function () {
+        applyMenuDensity(this.checked);
+    });
     $("#menuSingleColumn").on("change", function () {
         applyMenuLayout(this.checked);
     });

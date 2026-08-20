@@ -1,6 +1,6 @@
 ---
 last-verified: 2026-08-20
-verified-against-version: 8.10.11
+verified-against-version: 8.10.12
 status: current
 ---
 
@@ -8,8 +8,8 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-20, gegen v8.10.11 nachgezaehlt):** 186 SK- und 99
-TK-Konstanten in `StorageKeys.ts`, 277 davon registriert; 8 sind nicht in
+**Code-Stand (2026-08-20, gegen v8.10.12 nachgezaehlt):** 187 SK- und 99
+TK-Konstanten in `StorageKeys.ts`, 278 davon registriert; 8 sind nicht in
 `HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
 entfernt (siehe unten); die drei Keys des neuen Settings-Menue-Layouts
 (`menuSingleColumn`, `menuOrder`, `menuTab`) sind seit v8.10.0 dazugekommen. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
@@ -80,7 +80,7 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 
 > **Code-Referenzen:** Wo jeder Key gelesen, geschrieben oder geloescht wird, dokumentiert data-sources-inventory.md Sektion 7 (vollstaendige Read/Write/Delete-Tabelle, automatisch aus Code regeneriert).
 
-## SK -- Setting Keys (186 Konstanten)
+## SK -- Setting Keys (187 Konstanten)
 
 Vollstaendige Liste aller SK-Konstanten in der Reihenfolge wie in `StorageKeys.ts`. Quelle: Code, automatisch generiert. Beschreibungen aus der vorigen Doku-Version uebernommen.
 
@@ -636,6 +636,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | Konstante | Storage Key | Storage | HHType | Beschreibung |
 |-----------|-------------|---------|--------|--------------|
 | `menuSingleColumn` | `Setting_menuSingleColumn` | `localStorage` | `Setting` | Menue-Layout: `false` = Reiter-Leiste, `true` = alle Bereiche untereinander |
+| `menuCompact` | `Setting_menuCompact` | `localStorage` | `Setting` | Dichte: `true` = engere Zeilen und kleinere Schrift (ab 8.10.12) |
 | `menuOrder` | `Temp_menuOrder` | `localStorage` | `Setting` | Vom Nutzer festgelegte Reihenfolge der Menue-Bereiche (JSON-Array von Bereichs-IDs) |
 | `menuTab` | `Temp_menuTab` | `sessionStorage` | `Temp` | Zuletzt geoeffneter Bereich (nur Reiter-Layout) |
 

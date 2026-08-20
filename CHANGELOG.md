@@ -7,6 +7,29 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.12 - Tab badges, readable tooltips, and a compact menu
+
+- **Each area in the tab rail now shows how many of its automations are on**,
+  as `2/6`. Franck-75 asked for a red/green marker; a count says *how much* is
+  running rather than only *whether anything* is, which is what you need when
+  comparing the same area across accounts -- and it does not depend on telling
+  red from green. Only switches that actually make the script act are counted,
+  so an area does not look busy because a display option is ticked. Areas with
+  nothing to count (Harem) show no badge.
+- **Long tooltips are no longer cut off.** The box grew with the game's zoom
+  while its height limit did not, and once it overflowed the text could not be
+  reached: the box ignores the mouse, so its scrollbar was untouchable, and it
+  closed as soon as the pointer left the row. It now uses the full window
+  height and shrinks its type until the whole text fits.
+- **The Mythic Slot list is no longer capped at 5 entries.** The field took at
+  most 5 codes, which read as "5 is the limit" -- but 5 is the number of slots
+  in the game, not a sensible length for a priority list. You can now list all
+  twelve; the script fills whatever slots are free with the first ones you own.
+  The help text says so, and spells out the difference.
+- **New "Compact menu" switch** under Global -> Basics: denser rows and smaller
+  type for more options per screen. Off by default, so nothing changes unless
+  you ask for it.
+
 ### v8.10.11 - Boss Bang no longer reports "Time's up!" after the event ends
 
 - When a Boss Bang event finished, the status panel kept showing a Boss Bang

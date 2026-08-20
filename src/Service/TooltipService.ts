@@ -35,6 +35,8 @@ const GAP = 8;
 /** Floor for the tooltip type; the game's zoom only ever scales it up. */
 const BASE_FONT = 11;
 const BASE_WIDTH = 240;
+/** Never squeeze the box below this, however short the window is. */
+const MIN_BOX_HEIGHT = 120;
 
 let tooltipsEnabled = false;
 let handlersBound = false;
@@ -45,7 +47,7 @@ function styleOnce(): void {
     style.id = TOOLTIP_ID + 'Style';
     style.textContent = '#' + TOOLTIP_ID + ' {'
         + ' position:fixed; display:none; z-index:2147483000;'
-        + ' width:' + BASE_WIDTH + 'px; max-height:60vh; overflow-y:auto;'
+        + ' width:' + BASE_WIDTH + 'px; overflow-y:auto;'
         + ' padding:6px 8px; border:1px solid #ffa23e; border-radius:5px;'
         + ' background:#fff; color:#000; opacity:.97;'
         + ' font-size:' + BASE_FONT + 'px; line-height:1.35; text-align:left;'
@@ -125,8 +127,26 @@ function show(anchor: HTMLElement): void {
     // #contains_all. Left at its CSS size it renders smaller than the menu it
     // explains, so match the zoom the menu is drawn at.
     const scale = gameScale(panel ?? anchor);
-    el.style.fontSize = Math.max(BASE_FONT, Math.round(BASE_FONT * scale)) + 'px';
     el.style.width = Math.round(BASE_WIDTH * Math.max(1, scale)) + 'px';
+
+    // The box is centred vertically beside the panel, so the whole viewport
+    // height minus the two gaps is available. This used to be a static
+    // max-height:60vh, which did not scale with the zoom while the type did --
+    // at a high zoom a long text overflowed, and overflow here is unreadable
+    // by construction: the box is pointer-events:none, so its scrollbar cannot
+    // be grabbed, and it hides as soon as the pointer leaves the row.
+    const maxHeight = Math.max(MIN_BOX_HEIGHT, window.innerHeight - 2 * GAP);
+    el.style.maxHeight = maxHeight + 'px';
+
+    // Shrink to fit rather than clip. The floor is BASE_FONT, the size the box
+    // used before it started following the zoom, so the worst case is the old
+    // readable size and never a cut-off text.
+    let font = Math.max(BASE_FONT, Math.round(BASE_FONT * scale));
+    el.style.fontSize = font + 'px';
+    while (font > BASE_FONT && el.scrollHeight > maxHeight) {
+        font -= 1;
+        el.style.fontSize = font + 'px';
+    }
 
     if (panel !== null) {
         placeAgainstPanel(el, panel);

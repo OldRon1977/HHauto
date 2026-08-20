@@ -86,6 +86,25 @@ GM_addStyle('#sMenu .menuTabs {flex:none; width:158px; overflow-y:auto; padding:
 GM_addStyle('#sMenu .menuTab {display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; color:#98a191; font-size:12px; border-left:3px solid transparent;}');
 GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.06);}');
 GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
+GM_addStyle('#sMenu .menuTabBadge {margin-left:auto; padding:0 5px; border-radius:8px; font-size:10px; font-weight:normal;'
+            +' line-height:15px; min-width:26px; text-align:center; background:rgba(255,162,62,.18); color:#ffa23e;}');
+// 0/n stays legible but recedes: nothing running is a normal state, not a warning.
+GM_addStyle('#sMenu .menuTabBadge.idle {background:rgba(152,161,145,.14); color:#98a191;}');
+GM_addStyle('#sMenu.menuStacked .menuTabBadge {margin-left:8px;}');
+// Compact density (#1834). The panel is a fixed 820x540 CSS px inside the
+// game's transform, so a larger screen magnifies it instead of fitting more
+// in. Trading row height and type size is the only way to raise the number of
+// options on screen; it is opt-in so nobody has to live with the other camp's
+// preference.
+GM_addStyle('#sMenu.menuCompact {font-size:9px;}');
+GM_addStyle('#sMenu.menuCompact .HHMenuItemName {font-size:9px; line-height:1.15;}');
+GM_addStyle('#sMenu.menuCompact .labelAndButton {padding-top:1px; padding-bottom:1px;}');
+GM_addStyle('#sMenu.menuCompact .menuTab {padding:3px 8px; font-size:11px;}');
+GM_addStyle('#sMenu.menuCompact .menuPanes {padding:4px 6px;}');
+GM_addStyle('#sMenu.menuCompact .menuPaneTitle {font-size:11px;}');
+GM_addStyle('#sMenu.menuCompact .switch {width:28px; height:16px;}');
+GM_addStyle('#sMenu.menuCompact .slider.round:before {height:11px; width:11px; left:2px; bottom:2.5px;}');
+GM_addStyle('#sMenu.menuCompact input:checked + .slider:before {transform:translateX(11px);}');
 GM_addStyle('#sMenu .menuPanes {flex:1; overflow-y:auto; padding:6px 8px;}');
 GM_addStyle('#sMenu .menuPane {display:none;}');
 GM_addStyle('#sMenu .menuPane.active {display:block;}');

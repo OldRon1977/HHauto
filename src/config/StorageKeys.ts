@@ -242,6 +242,7 @@ export const SK = {
     showRewardsRecap: "Setting_showRewardsRecap",
     showTooltips: "Setting_showTooltips",
     menuSingleColumn: "Setting_menuSingleColumn",
+    menuCompact: "Setting_menuCompact",
     showAdsBack: "Setting_showAdsBack",
     autoAdsClick: "Setting_autoAdsClick",
     mousePause: "Setting_mousePause",

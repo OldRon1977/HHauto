@@ -12,7 +12,7 @@ export const HHAuto_inputPattern = {
     buyMythicCombTimer:"[0-9]+",
     autoBuyBoostersFilter:"(B[1-4]|MB[1-9]|MB1[1-2])(;B[1-4]|;MB[1-9]|;MB1[1-2])*",
     autoEquipBoostersSlots:"B[1-4](;B[1-4]){0,3}",
-    autoEquipMythicBooster:"(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,4})?",
+    autoEquipMythicBooster:"(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout:"[0-9]+",
     safeSecondsForContest:"[0-9]+",

@@ -25,6 +25,7 @@ import { safeReload } from "./PageNavigationService";
 import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { addEventsOnMenuItems, applyMenuLayout, getMenu, getMenuValues, HHMenu, initMenuTabs, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
+import { applyMenuDensity, bindTabBadgeUpdates, refreshTabBadges } from "../Helper/menu/MenuTabs";
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
 import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
@@ -464,6 +465,11 @@ export function start() {
 
     setMenuValues();
     getMenuValues();
+    // Only now do the checkboxes carry their stored state, so this is the
+    // earliest point at which the rail badges can show real numbers.
+    refreshTabBadges(getStoredValue(HHStoredVarPrefixKey + TK.Debug) === "true");
+    bindTabBadgeUpdates();
+    applyMenuDensity(getStoredValue(HHStoredVarPrefixKey + SK.menuCompact) === "true");
     manageToolTipsDisplay();
 
     $("#git").on("click", function(){ window.open("https://github.com/OldRon1977/HHauto/wiki"); });
@@ -667,6 +673,9 @@ export function start() {
     // Menu layout: tab rail vs one stacked list. Applied immediately -- the
     // panes keep their DOM, so nothing has to be rebuilt or reloaded. The value
     // itself is persisted by the generic binding in addEventsOnMenuItems.
+    $("#menuCompact").on("change", function() {
+        applyMenuDensity((<HTMLInputElement>this).checked);
+    });
     $("#menuSingleColumn").on("change", function() {
         applyMenuLayout((<HTMLInputElement>this).checked);
     });

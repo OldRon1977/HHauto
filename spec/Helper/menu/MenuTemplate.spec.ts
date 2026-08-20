@@ -60,6 +60,7 @@ const CONTROL_IDS_BEFORE_8_10 = [
  */
 const CONTROL_IDS_ADDED_IN_8_10 = [
     'menuSingleColumn',
+    'menuCompact',
 ];
 
 /** Buttons wired by StartService via $("#id"). */
