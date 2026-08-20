@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.19
+// @version      8.10.20
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -509,6 +509,7 @@ HHAuto_ToolTips.en['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Pos
 HHAuto_ToolTips.en['UnequipAll'] = { version: "7.22.0", elementText: "Unequip All", tooltip: "Unequip all girls equipment" };
 HHAuto_ToolTips.en['EquipAll'] = { version: "7.29.0", elementText: "Equip Teams", tooltip: "Equip team girls equipment with ingame girl equip button" };
 HHAuto_ToolTips.en['StuffTeam'] = { version: "7.30.0", elementText: "Stuff Team", tooltip: "Auto build the team by selecting equipment and skills. Can also remove skills from other girls if needed. Money limit will be considered" };
+HHAuto_ToolTips.en['HHGearMenu'] = { version: "8.10.20", elementText: "HH Gear", tooltip: "Opens the gear tools: best gear now, best gear once levelled, upgrade the worn mythics, and mark the ones worth keeping. They live in a menu because four buttons do not fit beside the game\u0027s own." };
 HHAuto_ToolTips.en['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Current Best Gear", tooltip: "Equip the strongest armor you own for each of the six hero slots, judged by today's stats. Raw stats decide, resonance breaks ties -- this never makes you weaker." };
 HHAuto_ToolTips.en['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Possible Best Gear", tooltip: "Equip the armor that will be strongest once it is levelled to the max, matching your class and your team's theme. Shows what the switch costs you today." };
 HHAuto_ToolTips.en['HHGearUpgrade'] = { version: "8.8.0", elementText: "Upgrade Gear", tooltip: "Level the mythic items you are wearing towards the cap, using legendary and epic items as material. Mythics are never consumed. Shows what it costs before anything is spent." };
@@ -1110,6 +1111,7 @@ HHAuto_ToolTips.de['ChangeTeamButton2'] = { version: "5.6.24", elementText: "Mö
 HHAuto_ToolTips.de['UnequipAll'] = { version: "7.22.0", elementText: "Alles ablegen", tooltip: "Nimmt allen Mädels die Ausrüstung ab." };
 HHAuto_ToolTips.de['EquipAll'] = { version: "7.29.0", elementText: "Teams ausrüsten", tooltip: "Rüstet die Team-Mädels über den spieleigenen Ausrüsten-Knopf aus." };
 HHAuto_ToolTips.de['StuffTeam'] = { version: "7.30.0", elementText: "Team bestücken", tooltip: "Baut das Team automatisch auf, indem Ausrüstung und Skills gewählt werden. Kann anderen Mädels auch Skills wieder abnehmen." };
+HHAuto_ToolTips.de['HHGearMenu'] = { version: "8.10.20", elementText: "HH Ausrüstung", tooltip: "Öffnet die Ausrüstungs-Werkzeuge: beste Ausrüstung jetzt, beste nach dem Leveln, getragene Mythics aufwerten und die Behalter markieren. Sie stecken in einem Menü, weil vier Knöpfe neben den spieleigenen nicht hinpassen." };
 HHAuto_ToolTips.de['HHGearCurrentBest'] = { version: "8.8.0", elementText: "Aktuell beste Ausrüstung", tooltip: "Legt für jeden der sechs Helden-Slots die stärkste Rüstung an, die du besitzt, gemessen an den heutigen Werten." };
 HHAuto_ToolTips.de['HHGearPossibleBest'] = { version: "8.8.0", elementText: "Mögliche beste Ausrüstung", tooltip: "Legt die Rüstung an, die nach vollem Aufleveln die stärkste wäre, passend zu deiner Klasse und deinem Team-Thema." };
 HHAuto_ToolTips.de['HHGearUpgrade'] = { version: "8.8.0", elementText: "Ausrüstung aufwerten", tooltip: "Levelt die getragenen Mythic-Teile Richtung Maximum und nutzt legendäre und epische Teile als Material." };
@@ -19415,12 +19417,17 @@ class EquipmentGear {
         // Two columns, not one: a fourth button in a single column overflowed
         // the bottom of .bottom-container and the last one was cut off. The
         // width is there, the height is not.
-        GM_addStyle('#HHGearButtons{display:grid;grid-template-columns:repeat(2,auto);'
-            + 'gap:4px;margin-left:10px;align-content:center;justify-content:start;}'
-            + '#HHGearButtons .tooltipHH{width:100%;margin:0;padding:0;}'
+        GM_addStyle('#HHGearButtons{display:flex;margin-left:10px;align-items:center;}'
+            + '#HHGearButtons .tooltipHH{margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
-            + 'box-sizing:border-box;width:150px;height:32px;margin:0;padding:2px 6px;'
-            + 'font-size:11px;line-height:13px;text-align:center;overflow:hidden;}'
+            + 'box-sizing:border-box;width:90px;height:34px;margin:0;padding:2px 4px;'
+            + 'font-size:11px;line-height:12px;text-align:center;overflow:hidden;}'
+            + '#HHGearMenuList{list-style:none;margin:0;padding:0;}'
+            + '#HHGearMenuList li{padding:0;margin:0 0 6px 0;}'
+            + '#HHGearMenuList a{display:block;padding:7px 10px;border:1px solid #ffa23e;'
+            + 'border-radius:4px;color:#e9e7dd;text-decoration:none;cursor:pointer;}'
+            + '#HHGearMenuList a:hover{background:rgba(255,162,62,.15);}'
+            + '#HHGearMenuList .sub{display:block;color:#98a191;font-size:11px;margin-top:2px;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
             + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
@@ -19430,16 +19437,27 @@ class EquipmentGear {
             + '#player-inventory-armor .slot{position:relative;}'
             + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
             + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
-        host.append('<div id="HHGearButtons">'
-            + gearButton('HHGearCurrentBest')
-            + gearButton('HHGearPossibleBest')
-            + gearButton('HHGearUpgrade')
-            + gearButton('HHGearMarkKeep')
-            + '</div>');
-        $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
-        $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
-        $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
-        $("#HHGearMarkKeep").on("click", () => { void EquipmentGear.markKeepers(); });
+        // One button, not four. Measured on the live page: between the game's
+        // own Level-up/Equip buttons and the right edge of .bottom-container
+        // there are 150 device px (~98 CSS px) of width and 115 (~75) of
+        // height -- room for two buttons, not four, and the fourth was drawn
+        // over the Equipped Items panel where it could not be clicked. The
+        // actions moved into a menu, which also means the next one costs no
+        // space at all.
+        host.append('<div id="HHGearButtons">' + gearButton('HHGearMenu') + '</div>');
+        $("#HHGearMenu").on("click", () => { EquipmentGear.showMenu(); });
+        // Delegated: the entries live in the popup, which is rebuilt each time.
+        $(document).off('click.hhgear').on('click.hhgear', '#HHGearPreview [data-gear-action]', function () {
+            const action = this.dataset.gearAction;
+            if (action === 'current')
+                void EquipmentGear.preview('current');
+            else if (action === 'possible')
+                void EquipmentGear.preview('possible');
+            else if (action === 'upgrade')
+                void EquipmentGear.previewUpgrade();
+            else if (action === 'keep')
+                void EquipmentGear.markKeepers();
+        });
     }
     /**
      * Forget an upgrade queue that is no longer being worked on.
@@ -19718,6 +19736,17 @@ class EquipmentGear {
     }
     static describe(item) {
         return `${item.name} (${item.rarity} lvl${item.level}, id ${item.id_member_armor})`;
+    }
+    /** The four gear actions as a list, since they no longer fit as buttons. */
+    static showMenu() {
+        const entry = (action, key) => `<li><a data-gear-action="${action}">${esc(getTextForUI(key, 'elementText'))}`
+            + `<span class="sub">${esc(stripTags(getTextForUI(key, 'tooltip')))}</span></a></li>`;
+        EquipmentGear.showMessage(getTextForUI('HHGearMenu', 'elementText'), '<ul id="HHGearMenuList">'
+            + entry('current', 'HHGearCurrentBest')
+            + entry('possible', 'HHGearPossibleBest')
+            + entry('upgrade', 'HHGearUpgrade')
+            + entry('keep', 'HHGearMarkKeep')
+            + '</ul>');
     }
     static showMessage(title, message) {
         fillHHPopUp('HHGearPreview', title, `<div id="HHGearPreview" style="padding:10px;max-width:640px;font-size:13px;">${message}</div>`);
@@ -20132,6 +20161,10 @@ function gearButton(id) {
         + `<span class="tooltipHHtext">${getTextForUI(id, "tooltip")}</span>`
         + `<label class="myButton" id="${id}">${getTextForUI(id, "elementText")}</label>`
         + `</div>`;
+}
+/** Tooltips carry markup now; the menu wants a one-line plain summary. */
+function stripTags(value) {
+    return String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 function esc(value) {
     return String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

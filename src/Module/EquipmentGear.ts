@@ -120,12 +120,17 @@ export class EquipmentGear {
         // Two columns, not one: a fourth button in a single column overflowed
         // the bottom of .bottom-container and the last one was cut off. The
         // width is there, the height is not.
-        GM_addStyle('#HHGearButtons{display:grid;grid-template-columns:repeat(2,auto);'
-            + 'gap:4px;margin-left:10px;align-content:center;justify-content:start;}'
-            + '#HHGearButtons .tooltipHH{width:100%;margin:0;padding:0;}'
+        GM_addStyle('#HHGearButtons{display:flex;margin-left:10px;align-items:center;}'
+            + '#HHGearButtons .tooltipHH{margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
-            + 'box-sizing:border-box;width:150px;height:32px;margin:0;padding:2px 6px;'
-            + 'font-size:11px;line-height:13px;text-align:center;overflow:hidden;}'
+            + 'box-sizing:border-box;width:90px;height:34px;margin:0;padding:2px 4px;'
+            + 'font-size:11px;line-height:12px;text-align:center;overflow:hidden;}'
+            + '#HHGearMenuList{list-style:none;margin:0;padding:0;}'
+            + '#HHGearMenuList li{padding:0;margin:0 0 6px 0;}'
+            + '#HHGearMenuList a{display:block;padding:7px 10px;border:1px solid #ffa23e;'
+            + 'border-radius:4px;color:#e9e7dd;text-decoration:none;cursor:pointer;}'
+            + '#HHGearMenuList a:hover{background:rgba(255,162,62,.15);}'
+            + '#HHGearMenuList .sub{display:block;color:#98a191;font-size:11px;margin-top:2px;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
             + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
@@ -136,17 +141,24 @@ export class EquipmentGear {
             + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
             + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
 
-        host.append('<div id="HHGearButtons">'
-            + gearButton('HHGearCurrentBest')
-            + gearButton('HHGearPossibleBest')
-            + gearButton('HHGearUpgrade')
-            + gearButton('HHGearMarkKeep')
-            + '</div>');
+        // One button, not four. Measured on the live page: between the game's
+        // own Level-up/Equip buttons and the right edge of .bottom-container
+        // there are 150 device px (~98 CSS px) of width and 115 (~75) of
+        // height -- room for two buttons, not four, and the fourth was drawn
+        // over the Equipped Items panel where it could not be clicked. The
+        // actions moved into a menu, which also means the next one costs no
+        // space at all.
+        host.append('<div id="HHGearButtons">' + gearButton('HHGearMenu') + '</div>');
+        $("#HHGearMenu").on("click", () => { EquipmentGear.showMenu(); });
 
-        $("#HHGearCurrentBest").on("click", () => { void EquipmentGear.preview('current'); });
-        $("#HHGearPossibleBest").on("click", () => { void EquipmentGear.preview('possible'); });
-        $("#HHGearUpgrade").on("click", () => { void EquipmentGear.previewUpgrade(); });
-        $("#HHGearMarkKeep").on("click", () => { void EquipmentGear.markKeepers(); });
+        // Delegated: the entries live in the popup, which is rebuilt each time.
+        $(document).off('click.hhgear').on('click.hhgear', '#HHGearPreview [data-gear-action]', function () {
+            const action = (this as HTMLElement).dataset.gearAction;
+            if (action === 'current') void EquipmentGear.preview('current');
+            else if (action === 'possible') void EquipmentGear.preview('possible');
+            else if (action === 'upgrade') void EquipmentGear.previewUpgrade();
+            else if (action === 'keep') void EquipmentGear.markKeepers();
+        });
     }
 
     /**
@@ -420,6 +432,20 @@ export class EquipmentGear {
 
     private static describe(item: ArmorItem): string {
         return `${item.name} (${item.rarity} lvl${item.level}, id ${item.id_member_armor})`;
+    }
+
+    /** The four gear actions as a list, since they no longer fit as buttons. */
+    private static showMenu(): void {
+        const entry = (action: string, key: string) =>
+            `<li><a data-gear-action="${action}">${esc(getTextForUI(key, 'elementText'))}`
+            + `<span class="sub">${esc(stripTags(getTextForUI(key, 'tooltip')))}</span></a></li>`;
+        EquipmentGear.showMessage(getTextForUI('HHGearMenu', 'elementText'),
+            '<ul id="HHGearMenuList">'
+            + entry('current', 'HHGearCurrentBest')
+            + entry('possible', 'HHGearPossibleBest')
+            + entry('upgrade', 'HHGearUpgrade')
+            + entry('keep', 'HHGearMarkKeep')
+            + '</ul>');
     }
 
     private static showMessage(title: string, message: string): void {
@@ -855,6 +881,11 @@ function gearButton(id: string): string {
         + `<span class="tooltipHHtext">${getTextForUI(id, "tooltip")}</span>`
         + `<label class="myButton" id="${id}">${getTextForUI(id, "elementText")}</label>`
         + `</div>`;
+}
+
+/** Tooltips carry markup now; the menu wants a one-line plain summary. */
+function stripTags(value: string): string {
+    return String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function esc(value: string): string {

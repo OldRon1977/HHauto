@@ -1,6 +1,6 @@
 {
   "name": "hhauto",
-  "version": "8.10.19",
+  "version": "8.10.20",
   "description": "Tampermonkey userscript automating the Harem Heroes game family",
   "main": "HHAuto.user.js",
   "scripts": {

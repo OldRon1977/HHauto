@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.20 - The gear tools move into a menu
+
+- Four buttons never fit beside the game's own Level-up and Equip. Measured on
+  the live page, the space left in that row is 150x115 device pixels, which
+  holds two of them -- the fourth was being drawn over the Equipped Items panel
+  where it could not be clicked at all. There is now a single **HH Gear**
+  button that opens the four actions as a list, each with its one-line
+  description. One extra click for the three you already knew, and the next
+  tool costs no space at all.
+
 ### v8.10.19 - The gear buttons fit again
 
 - The fourth button pushed the block past the bottom of its container and the
