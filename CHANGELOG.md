@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.24 - "Change team" actually goes to the team page
+
+- The Change team button on the league page linked to a bare `/teams.html`,
+  which the game redirects straight to the home page. So it never arrived, and
+  the gear tools never got the chance to note which theme your team runs --
+  which is what made Current/Possible Best Gear ask you to build a team first.
+  The link carries the battle type now, like the game's own links do.
+- The message those buttons show when the theme is still unknown said "build a
+  team first". Nothing has to be built: opening the team page once is enough,
+  and it now says so.
+
 ### v8.10.23 - The HH Gear popup is readable
 
 - The popup sits on white, but the menu entries were drawn in the menu's own

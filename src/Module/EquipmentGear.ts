@@ -357,8 +357,10 @@ export class EquipmentGear {
         try {
             const theme = EquipmentGear.resolveTheme();
             if (!theme) {
-                const msg = 'No team theme available. Build a team first (Current Best / Possible Best'
-                    + ' on the team page) -- picking gear on a guessed theme would equip the wrong items.';
+                const msg = 'No team theme known yet. Open your team page once -- the "Change team"'
+                    + ' button on the league page gets you there -- and the theme is picked up on the'
+                    + ' way in. Nothing needs to be built. Picking gear on a guessed theme would equip'
+                    + ' the wrong items, which is why this stops instead.';
                 logHHAuto('Gear: ' + msg + ' Nothing was changed.');
                 EquipmentGear.showMessage(modeName, msg);
                 return;
@@ -697,8 +699,10 @@ export class EquipmentGear {
             const theme = EquipmentGear.resolveTheme();
             if (!theme) {
                 EquipmentGear.showMessage('Upgrade Gear',
-                    'No team theme available. Build a team first -- without it the tiers'
-                    + ' below would be guesses, and material spent on the wrong slot is gone.');
+                    'No team theme known yet. Open your team page once ("Change team" on the'
+                    + ' league page) -- nothing needs to be built, the theme is read on the way in.'
+                    + ' Without it the tiers below would be guesses, and material spent on the wrong'
+                    + ' slot is gone.');
                 logHHAuto('Gear: Upgrade Gear aborted, no team theme. Nothing was changed.');
                 return;
             }

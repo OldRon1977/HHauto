@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.23
+// @version      8.10.24
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -10264,9 +10264,20 @@ class CumbackContests {
  */
 
 
-function getGoToChangeTeamButton() {
-    // TODO change href and translate
-    return '<div class="change_team_container"><a id="change_team" href="/teams.html" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
+/**
+ * Link to the team page for one battle type.
+ *
+ * The battle type is not optional: measured 2026-08-21, a bare /teams.html
+ * redirects straight to home.html and `teams_data` never exists there. The
+ * game's own links carry it too (leagues.html links to
+ * ?battle_type=leagues, season-arena.html to ?battle_type=seasons). Landing on
+ * home instead of the team page also meant the gear optimiser never got to
+ * record the team's theme, which it does on that page.
+ */
+function getGoToChangeTeamButton(battleType = 'leagues') {
+    // TODO translate
+    return '<div class="change_team_container"><a id="change_team" href="/teams.html?battle_type='
+        + battleType + '" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
 }
 function getGoToClubChampionButton() {
     return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
@@ -19720,8 +19731,10 @@ class EquipmentGear {
             try {
                 const theme = EquipmentGear.resolveTheme();
                 if (!theme) {
-                    const msg = 'No team theme available. Build a team first (Current Best / Possible Best'
-                        + ' on the team page) -- picking gear on a guessed theme would equip the wrong items.';
+                    const msg = 'No team theme known yet. Open your team page once -- the "Change team"'
+                        + ' button on the league page gets you there -- and the theme is picked up on the'
+                        + ' way in. Nothing needs to be built. Picking gear on a guessed theme would equip'
+                        + ' the wrong items, which is why this stops instead.';
                     logHHAuto('Gear: ' + msg + ' Nothing was changed.');
                     EquipmentGear.showMessage(modeName, msg);
                     return;
@@ -20045,8 +20058,10 @@ class EquipmentGear {
             try {
                 const theme = EquipmentGear.resolveTheme();
                 if (!theme) {
-                    EquipmentGear.showMessage('Upgrade Gear', 'No team theme available. Build a team first -- without it the tiers'
-                        + ' below would be guesses, and material spent on the wrong slot is gone.');
+                    EquipmentGear.showMessage('Upgrade Gear', 'No team theme known yet. Open your team page once ("Change team" on the'
+                        + ' league page) -- nothing needs to be built, the theme is read on the way in.'
+                        + ' Without it the tiers below would be guesses, and material spent on the wrong'
+                        + ' slot is gone.');
                     logHHAuto('Gear: Upgrade Gear aborted, no team theme. Nothing was changed.');
                     return;
                 }

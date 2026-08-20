@@ -8,9 +8,20 @@
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 
-export function getGoToChangeTeamButton() {
-    // TODO change href and translate
-    return '<div class="change_team_container"><a id="change_team" href="/teams.html" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
+/**
+ * Link to the team page for one battle type.
+ *
+ * The battle type is not optional: measured 2026-08-21, a bare /teams.html
+ * redirects straight to home.html and `teams_data` never exists there. The
+ * game's own links carry it too (leagues.html links to
+ * ?battle_type=leagues, season-arena.html to ?battle_type=seasons). Landing on
+ * home instead of the team page also meant the gear optimiser never got to
+ * record the team's theme, which it does on that page.
+ */
+export function getGoToChangeTeamButton(battleType = 'leagues') {
+    // TODO translate
+    return '<div class="change_team_container"><a id="change_team" href="/teams.html?battle_type='
+        + battleType + '" class="blue_button_L" anim-step="afterStartButton"><div>Change team</div></a></div>';
 }
 
 export function getGoToClubChampionButton() {
