@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.15 - The Sandalwood slot stays reserved
+
+- With any of the Sandalwood auto-equips on, MB1 belongs to that automation:
+  it is ignored in the Mythic Slot list even if you type it, and one slot stays
+  free so the automation can equip it when a fight needs it. Your list fills at
+  most four of the five. This is unchanged behaviour -- the help text now says
+  so plainly instead of leaving you to work it out from an empty slot.
+
 ### v8.10.14 - Mythic conflicts are remembered across sessions
 
 - Which mythic boosters clash with each other can only be learned by being

@@ -529,16 +529,49 @@ describe("Booster", function() {
       expect(ajaxSpy).not.toHaveBeenCalled();
     });
 
-    it("Sandalwood active: MB1 on the list is skipped, others still equip", async function() {
+    it("Sandalwood active and MB1 already equipped: the rest of the list fills the free slots", async function() {
+      // NOTE: MB1 is already equipped here, so the loop skips it as "already
+      // on" -- this case does NOT exercise the Sandalwood skip. The two tests
+      // below are the ones that pin that rule down.
       MockHelper.mockSetting('plusEventMythic', 'true');
       MockHelper.mockSetting('plusEventMythicSandalWood', 'true');
-      // MB1 already equipped by the Sandalwood automation; MB1 also listed.
       MockHelper.mockBoosterInventory({ mythic: ['MB1'] });
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{"MB1":1,"MB2":1,"MB9":1}');
       const result = await Booster.autoEquipMythicBoosters(['MB1', 'MB2', 'MB9']);
       expect(result).toBeTruthy();
-      // MB1 left to the Sandalwood logic; MB2 and MB9 equipped alongside it.
       expect(sentIdItems()).toEqual(['633', '638']);
+    });
+
+    it("Sandalwood active: MB1 in the list is skipped even when it is NOT equipped yet", async function() {
+      // The rule the maintainer wants kept: with a Sandalwood auto-equip on,
+      // MB1 belongs to that automation. Listing it must not make the priority
+      // list equip it -- the automation puts it on when a fight needs it, and
+      // it only has 11 uses, so holding it permanently would spend them on
+      // whatever happens to run.
+      MockHelper.mockSetting('plusEventMythic', 'true');
+      MockHelper.mockSetting('plusEventMythicSandalWood', 'true');
+      MockHelper.mockBoosterInventory({ mythic: [] }); // MB1 not equipped
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{"MB1":1,"MB2":1}');
+
+      const result = await Booster.autoEquipMythicBoosters(['MB1', 'MB2']);
+
+      expect(result).toBeTruthy();
+      expect(sentIdItems()).toEqual(['633']); // MB2 only; MB1 left to the automation
+    });
+
+    it("Sandalwood active: listing MB1 does not free up the reserved slot either", async function() {
+      // 4 of 5 taken. The fifth stays held for Sandalwood whether or not MB1
+      // appears in the list, so the list equips nothing here.
+      MockHelper.mockSetting('plusEventMythic', 'true');
+      MockHelper.mockSetting('plusEventMythicSandalWood', 'true');
+      MockHelper.mockBoosterInventory({ mythic: ['MB3', 'MB4', 'MB5', 'MB10'] });
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", '{"MB1":1,"MB2":1}');
+
+      const result = await Booster.autoEquipMythicBoosters(['MB1', 'MB2']);
+
+      expect(result).toBeFalsy();
+      expect(ajaxSpy).not.toHaveBeenCalled();
+      expect(Booster.getFreeMythicSlots()).toBe(0); // 5 - 4 - 1 reserved
     });
 
     it("Sandalwood active + MB1 not equipped: one slot stays reserved", async function() {
