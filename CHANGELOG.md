@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.21 - One HH Gear button, not a row of them
+
+- 8.10.20 broke the check that stops the gear button being injected twice: it
+  tested for an id that the menu rewrite had just removed, so every switch back
+  to the armor tab added another copy. It now tests for the container itself,
+  and sweeps up any extras a page already collected instead of needing a
+  reload.
+
 ### v8.10.20 - The gear tools move into a menu
 
 - Four buttons never fit beside the game's own Level-up and Equip. Measured on

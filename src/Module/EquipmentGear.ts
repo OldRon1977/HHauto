@@ -115,11 +115,23 @@ export class EquipmentGear {
         // the dead tree, where they existed but could never be clicked.
         const host = $('#my-hero-equipement-tab-container .bottom-container');
         if (host.length === 0) return;
-        if (document.getElementById("HHGearCurrentBest") !== null) return;
+        // Already injected? Then stop -- and clear any extra copies first.
+        //
+        // This used to test for #HHGearCurrentBest, an id that stopped existing
+        // when the four buttons became one menu. The check silently never fired
+        // again, so every tab switch appended another block and the row filled
+        // up with copies. Testing for the container itself cannot go stale the
+        // same way, and sweeping the extras means a page that already collected
+        // some repairs itself instead of needing a reload.
+        const existing = document.querySelectorAll('#HHGearButtons');
+        if (existing.length > 0) {
+            for (let i = 1; i < existing.length; i++) existing[i].remove();
+            return;
+        }
 
-        // Two columns, not one: a fourth button in a single column overflowed
-        // the bottom of .bottom-container and the last one was cut off. The
-        // width is there, the height is not.
+        // One narrow button: measured on the live page there are only 150
+        // device px of width and 115 of height left in this row beside the
+        // game's own buttons, so the actions live in a menu (see showMenu).
         GM_addStyle('#HHGearButtons{display:flex;margin-left:10px;align-items:center;}'
             + '#HHGearButtons .tooltipHH{margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
