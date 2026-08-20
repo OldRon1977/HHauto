@@ -63,6 +63,9 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
     // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
     // on its own.
     if (EquipmentGear.isUpgradePage()) {
+        // Marks first: this is the page where material is picked by hand, so
+        // the stars have to be there whether or not a queued run follows.
+        EquipmentGear.markKeepersOnUpgradePage();
         await EquipmentGear.runUpgradePage();
         return;
     }

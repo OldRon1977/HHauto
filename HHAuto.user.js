@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.21
+// @version      8.10.22
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1819,6 +1819,7 @@ const TK = {
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
+    gearKeepKeys: "Temp_gearKeepKeys",
     // Resources
     haveAff: "Temp_haveAff",
     haveBooster: "Temp_haveBooster",
@@ -4465,6 +4466,18 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
         default: "[]",
         storage: "localStorage",
         HHType: "Temp"
+    };
+// The pieces "Mark Keepers" decided to keep, as level-independent identity
+// keys (see EquipmentKeepService.keepKey). localStorage and HHType Setting for
+// the same reason as pipelineOrder: it is a user decision, so it has to
+// survive "clear temp storage" and belongs in the settings export. It is what
+// lets the marks reappear on the upgrade page, which is a different page and
+// where the material is actually picked.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearKeepKeys] =
+    {
+        default: "[]",
+        storage: "localStorage",
+        HHType: "Setting"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
@@ -18683,6 +18696,52 @@ function compareKeepCandidates(a, b, playerClass) {
     return a.id_member_armor - b.id_member_armor;
 }
 /**
+ * A stable identity for one piece, independent of its level.
+ *
+ * Level and every carac value are a pure function of the level (measured: at
+ * level 1 all mythics read 2100/2100/2100/2100/3100, at 20 all read
+ * 4000/4000/4000/4000/5000), so a key containing either would break the moment
+ * the piece is levelled -- which is exactly what HH++ OCD's favourites do.
+ * Skin, slot, rarity and the two resonance axes do not move.
+ *
+ * Measured against the maintainer's 107 mythics: 107 distinct keys, no
+ * collisions. Two truly identical pieces would share one, and those are
+ * interchangeable by definition.
+ */
+function keepKey(item) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    return [
+        (_a = item.skin) !== null && _a !== void 0 ? _a : '',
+        item.slot,
+        item.rarity,
+        (_c = (_b = item.classResonance) === null || _b === void 0 ? void 0 : _b.identifier) !== null && _c !== void 0 ? _c : '',
+        (_e = (_d = item.classResonance) === null || _d === void 0 ? void 0 : _d.resonance) !== null && _e !== void 0 ? _e : '',
+        (_g = (_f = item.themeResonance) === null || _f === void 0 ? void 0 : _f.identifier) !== null && _g !== void 0 ? _g : 'balanced',
+        (_j = (_h = item.themeResonance) === null || _h === void 0 ? void 0 : _h.resonance) !== null && _j !== void 0 ? _j : '',
+    ].join('_');
+}
+function keepKeyFromRaw(raw) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+    if (raw === null || typeof raw !== 'object')
+        return null;
+    const a = raw;
+    const slot = Number((_a = a.skin) === null || _a === void 0 ? void 0 : _a.subtype);
+    if (!Number.isInteger(slot) || slot < 1 || slot > 6)
+        return null;
+    if (((_b = a.skin) === null || _b === void 0 ? void 0 : _b.wearer) !== undefined && a.skin.wearer !== 'hero')
+        return null;
+    const res = (_c = a.resonance_bonuses) !== null && _c !== void 0 ? _c : {};
+    return [
+        String((_e = (_d = a.skin) === null || _d === void 0 ? void 0 : _d.identifier) !== null && _e !== void 0 ? _e : ''),
+        slot,
+        String((_g = (_f = a.item) === null || _f === void 0 ? void 0 : _f.rarity) !== null && _g !== void 0 ? _g : ''),
+        (_j = (_h = res.class) === null || _h === void 0 ? void 0 : _h.identifier) !== null && _j !== void 0 ? _j : '',
+        (_l = (_k = res.class) === null || _k === void 0 ? void 0 : _k.resonance) !== null && _l !== void 0 ? _l : '',
+        (_o = (_m = res.theme) === null || _m === void 0 ? void 0 : _m.identifier) !== null && _o !== void 0 ? _o : 'balanced',
+        (_q = (_p = res.theme) === null || _p === void 0 ? void 0 : _p.resonance) !== null && _q !== void 0 ? _q : '',
+    ].join('_');
+}
+/**
  * The pieces to mark as "keep". Everything mythic that is NOT in the returned
  * set is free for the player to spend as material.
  *
@@ -19157,7 +19216,7 @@ function toResonance(raw) {
  * mis-classification here would equip the wrong thing.
  */
 function parseArmorItem(raw, isEquipped = false) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     if (!raw || typeof raw !== 'object')
         return null;
     const slot = Number((_a = raw === null || raw === void 0 ? void 0 : raw.skin) === null || _a === void 0 ? void 0 : _a.subtype);
@@ -19183,7 +19242,8 @@ function parseArmorItem(raw, isEquipped = false) {
         level: Number(raw.level) || 0,
         slot,
         rarity: String((_f = (_e = raw === null || raw === void 0 ? void 0 : raw.item) === null || _e === void 0 ? void 0 : _e.rarity) !== null && _f !== void 0 ? _f : ''),
-        name: String((_h = (_g = raw === null || raw === void 0 ? void 0 : raw.skin) === null || _g === void 0 ? void 0 : _g.name) !== null && _h !== void 0 ? _h : ''),
+        skin: String((_h = (_g = raw === null || raw === void 0 ? void 0 : raw.skin) === null || _g === void 0 ? void 0 : _g.identifier) !== null && _h !== void 0 ? _h : ''),
+        name: String((_k = (_j = raw === null || raw === void 0 ? void 0 : raw.skin) === null || _j === void 0 ? void 0 : _j.name) !== null && _k !== void 0 ? _k : ''),
         caracs,
         classResonance: toResonance(res.class),
         themeResonance: toResonance(res.theme),
@@ -19854,6 +19914,13 @@ class EquipmentGear {
                     return;
                 }
                 const decision = pickKeepers(inventory, rawClass);
+                // Stored as level-independent keys, not ids: ids change when a
+                // piece is unequipped, and the marks have to survive both the walk
+                // to the upgrade page and the levelling itself.
+                const keys = inventory
+                    .filter(i => decision.keep.has(i.id_member_armor))
+                    .map(keepKey);
+                setStoredValue(HHStoredVarPrefixKey + TK.gearKeepKeys, JSON.stringify(keys));
                 const painted = EquipmentGear.paintKeepMarks(decision.keep);
                 const freed = inventory.filter(i => !i.equipped && i.rarity === 'mythic' && !decision.keep.has(i.id_member_armor)).length;
                 logHHAuto(`Gear [Mark Keepers]: ${decision.keep.size} mythic(s) marked to keep,`
@@ -19879,6 +19946,68 @@ class EquipmentGear {
                 EquipmentGear.running = false;
             }
         });
+    }
+    /** The stored keep keys, or an empty set when nothing was marked yet. */
+    static storedKeepKeys() {
+        const raw = getStoredJSON(HHStoredVarPrefixKey + TK.gearKeepKeys, []);
+        return new Set(Array.isArray(raw) ? raw.map(String) : []);
+    }
+    /**
+     * Redraw the keep marks in the upgrade page's material list.
+     *
+     * This is the page where the material is actually chosen by hand, so it is
+     * where the marks matter most -- and it is a different document, so the
+     * ones painted on the market are gone. Matching is by key rather than by
+     * id: the two pages hand out different id spaces, and a levelled piece
+     * keeps its key but changes everything else.
+     *
+     * The list loads lazily while scrolling (measured: 100 slots on arrival,
+     * 299 after scrolling to the end), so this observes the container instead
+     * of running once.
+     */
+    static markKeepersOnUpgradePage() {
+        const keys = EquipmentGear.storedKeepKeys();
+        if (keys.size === 0)
+            return;
+        const paint = () => {
+            let painted = 0;
+            document.querySelectorAll('.slot[data-d]').forEach(el => {
+                var _a;
+                if (el.querySelector('.HHKeepMark') !== null)
+                    return;
+                const raw = safeJsonParse((_a = el.dataset.d) !== null && _a !== void 0 ? _a : '', null);
+                const key = raw ? keepKeyFromRaw(raw) : null;
+                if (key === null || !keys.has(key))
+                    return;
+                const star = document.createElement('div');
+                star.className = 'HHKeepMark';
+                star.style.backgroundImage =
+                    `url("${ConfigHelper.getHHScriptVars('baseImgPath')}/design/ic_star_orange.svg")`;
+                el.appendChild(star);
+                painted++;
+            });
+            return painted;
+        };
+        GM_addStyle('.slot{position:relative;}'
+            + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
+            + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
+        paint();
+        // The page handler runs on every AutoLoop tick, so this says its piece
+        // once. It deliberately reports no count: the material list arrives
+        // lazily (measured: 100 slots on load, 299 after scrolling to the end),
+        // so any number taken here would be the number of pieces that happened
+        // to be rendered in the first second, not the number that will be
+        // marked.
+        if (!EquipmentGear.upgradeMarksLogged) {
+            EquipmentGear.upgradeMarksLogged = true;
+            logHHAuto(`Gear: ${keys.size} piece(s) marked to keep; the material list`
+                + ' loads while you scroll and gets its markers as it does.');
+        }
+        const list = document.querySelector('.items-container');
+        if (list === null || EquipmentGear.upgradeObserver !== null)
+            return;
+        EquipmentGear.upgradeObserver = new MutationObserver(() => { paint(); });
+        EquipmentGear.upgradeObserver.observe(list, { childList: true, subtree: true });
     }
     /**
      * Draw the marker on every kept piece and clear it everywhere else.
@@ -20165,6 +20294,8 @@ class EquipmentGear {
 /** Guards against a second injection when the page handler runs again. */
 EquipmentGear.running = false;
 EquipmentGear.tabWatcherBound = false;
+EquipmentGear.upgradeObserver = null;
+EquipmentGear.upgradeMarksLogged = false;
 /** Same markup hhButton produces, built here so this module does not have to
  *  import HHMenuHelper -- that import closes an AutoLoopPageHandlers cycle
  *  (ADR-002). Shop.ts inlines its market buttons for the same reason. */
@@ -25448,6 +25579,9 @@ function handlePageSpecific(ctx) {
         // is a no-op unless "Upgrade Gear" filled the queue, so this cannot fire
         // on its own.
         if (EquipmentGear.isUpgradePage()) {
+            // Marks first: this is the page where material is picked by hand, so
+            // the stars have to be there whether or not a queued run follows.
+            EquipmentGear.markKeepersOnUpgradePage();
             yield EquipmentGear.runUpgradePage();
             return;
         }

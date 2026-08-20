@@ -8,7 +8,7 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-20, gegen v8.10.12 nachgezaehlt):** 187 SK- und 99
+**Code-Stand (2026-08-20, gegen v8.10.22 nachgezaehlt):** 187 SK- und 100
 TK-Konstanten in `StorageKeys.ts`, 278 davon registriert; 8 sind nicht in
 `HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
 entfernt (siehe unten); die drei Keys des neuen Settings-Menue-Layouts
@@ -422,7 +422,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 
 ---
 
-## TK -- Temp Keys (99 Konstanten)
+## TK -- Temp Keys (100 Konstanten)
 
 ### (unsorted)
 
@@ -460,6 +460,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `teamTheme` | `Temp_teamTheme` | `localStorage` | `Temp` | Thema des zuletzt gebauten Teams; der Gear-Optimizer braucht es auf der Market-Seite, wo das Team nicht verfuegbar ist |
 | `gearSwapLog` | `Temp_gearSwapLog` | `localStorage` | `Temp` | Inventar-IDs der vom Gear-Optimizer abgelegten Items, damit ein Rollback moeglich bleibt (ID aendert sich bei jedem Unequip) |
 | `gearUpgradeQueue` | `Temp_gearUpgradeQueue` | `localStorage` | `Temp` | Items, die "Upgrade Gear" noch leveln muss; ueber die Navigationen zur Upgrade-Seite hinweg abgearbeitet |
+| `gearKeepKeys` | `Temp_gearKeepKeys` | `localStorage` | `Setting` | Von "Behalten markieren" bestimmte Teile als levelunabhaengige Identitaets-Schluessel; trotz `Temp_`-Prefix `Setting`, weil es eine Nutzer-Entscheidung ist (ab 8.10.22) |
 
 ### Resources
 

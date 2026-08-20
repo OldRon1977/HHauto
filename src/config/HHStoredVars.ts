@@ -2376,6 +2376,18 @@ HHStoredVars[HHStoredVarPrefixKey + TK.gearUpgradeQueue] =
     storage:"localStorage",
     HHType:"Temp"
 };
+// The pieces "Mark Keepers" decided to keep, as level-independent identity
+// keys (see EquipmentKeepService.keepKey). localStorage and HHType Setting for
+// the same reason as pipelineOrder: it is a user decision, so it has to
+// survive "clear temp storage" and belongs in the settings export. It is what
+// lets the marks reappear on the upgrade page, which is a different page and
+// where the material is actually picked.
+HHStoredVars[HHStoredVarPrefixKey + TK.gearKeepKeys] =
+    {
+    default:"[]",
+    storage:"localStorage",
+    HHType:"Setting"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.loveRaids] =
     {
     storage:"sessionStorage",

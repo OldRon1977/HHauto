@@ -21,7 +21,7 @@
 // page the Level-up button navigates to)
 
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { pickKeepers } from "../Service/EquipmentKeepService";
+import { keepKey, keepKeyFromRaw, pickKeepers } from "../Service/EquipmentKeepService";
 import { HeroHelper } from "../Helper/HeroHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
@@ -561,6 +561,13 @@ export class EquipmentGear {
             }
 
             const decision = pickKeepers(inventory, rawClass as PlayerClass);
+            // Stored as level-independent keys, not ids: ids change when a
+            // piece is unequipped, and the marks have to survive both the walk
+            // to the upgrade page and the levelling itself.
+            const keys = inventory
+                .filter(i => decision.keep.has(i.id_member_armor))
+                .map(keepKey);
+            setStoredValue(HHStoredVarPrefixKey + TK.gearKeepKeys, JSON.stringify(keys));
             const painted = EquipmentGear.paintKeepMarks(decision.keep);
             const freed = inventory.filter(i =>
                 !i.equipped && i.rarity === 'mythic' && !decision.keep.has(i.id_member_armor)).length;
@@ -588,6 +595,72 @@ export class EquipmentGear {
             EquipmentGear.running = false;
         }
     }
+
+    /** The stored keep keys, or an empty set when nothing was marked yet. */
+    private static storedKeepKeys(): Set<string> {
+        const raw = getStoredJSON<string[]>(HHStoredVarPrefixKey + TK.gearKeepKeys, []);
+        return new Set(Array.isArray(raw) ? raw.map(String) : []);
+    }
+
+    /**
+     * Redraw the keep marks in the upgrade page's material list.
+     *
+     * This is the page where the material is actually chosen by hand, so it is
+     * where the marks matter most -- and it is a different document, so the
+     * ones painted on the market are gone. Matching is by key rather than by
+     * id: the two pages hand out different id spaces, and a levelled piece
+     * keeps its key but changes everything else.
+     *
+     * The list loads lazily while scrolling (measured: 100 slots on arrival,
+     * 299 after scrolling to the end), so this observes the container instead
+     * of running once.
+     */
+    static markKeepersOnUpgradePage(): void {
+        const keys = EquipmentGear.storedKeepKeys();
+        if (keys.size === 0) return;
+
+        const paint = () => {
+            let painted = 0;
+            document.querySelectorAll('.slot[data-d]').forEach(el => {
+                if (el.querySelector('.HHKeepMark') !== null) return;
+                const raw = safeJsonParse<unknown>((el as HTMLElement).dataset.d ?? '', null);
+                const key = raw ? keepKeyFromRaw(raw) : null;
+                if (key === null || !keys.has(key)) return;
+                const star = document.createElement('div');
+                star.className = 'HHKeepMark';
+                star.style.backgroundImage =
+                    `url("${ConfigHelper.getHHScriptVars('baseImgPath')}/design/ic_star_orange.svg")`;
+                el.appendChild(star);
+                painted++;
+            });
+            return painted;
+        };
+
+        GM_addStyle('.slot{position:relative;}'
+            + '.HHKeepMark{position:absolute;top:0;right:0;width:22px;height:22px;z-index:5;'
+            + 'pointer-events:none;background-repeat:no-repeat;background-size:22px 22px;}');
+
+        paint();
+        // The page handler runs on every AutoLoop tick, so this says its piece
+        // once. It deliberately reports no count: the material list arrives
+        // lazily (measured: 100 slots on load, 299 after scrolling to the end),
+        // so any number taken here would be the number of pieces that happened
+        // to be rendered in the first second, not the number that will be
+        // marked.
+        if (!EquipmentGear.upgradeMarksLogged) {
+            EquipmentGear.upgradeMarksLogged = true;
+            logHHAuto(`Gear: ${keys.size} piece(s) marked to keep; the material list`
+                + ' loads while you scroll and gets its markers as it does.');
+        }
+
+        const list = document.querySelector('.items-container');
+        if (list === null || EquipmentGear.upgradeObserver !== null) return;
+        EquipmentGear.upgradeObserver = new MutationObserver(() => { paint(); });
+        EquipmentGear.upgradeObserver.observe(list, { childList: true, subtree: true });
+    }
+
+    private static upgradeObserver: MutationObserver | null = null;
+    private static upgradeMarksLogged = false;
 
     /**
      * Draw the marker on every kept piece and clear it everywhere else.

@@ -81,6 +81,7 @@ function mythic(opts: {
         level,
         slot: opts.slot,
         rarity: 'mythic',
+        skin: 'TEST1',
         name: opts.name ?? 'Mythic item',
         caracs: mythicCaracs(level),
         classResonance: opts.classId === undefined ? null : {
@@ -109,6 +110,7 @@ function legendary(opts: {
         level: 660,
         slot: opts.slot,
         rarity: 'legendary',
+        skin: 'TEST2',
         name: opts.name ?? 'Legendary item',
         caracs: {
             carac1: 3606, carac2: 3619, carac3: 3467,

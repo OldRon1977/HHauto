@@ -26,6 +26,7 @@ function item(opts: {
         level: opts.level,
         slot: opts.slot ?? 1,
         rarity: opts.rarity,
+        skin: 'TEST1',
         name: opts.name ?? `${opts.rarity} item`,
         caracs: { carac1: 100, carac2: 100, carac3: 100, endurance: 100, chance: 100 },
         classResonance: opts.classId === undefined ? null

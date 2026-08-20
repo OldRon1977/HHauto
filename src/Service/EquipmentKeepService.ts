@@ -83,6 +83,67 @@ export function compareKeepCandidates(
     return a.id_member_armor - b.id_member_armor;
 }
 
+/**
+ * A stable identity for one piece, independent of its level.
+ *
+ * Level and every carac value are a pure function of the level (measured: at
+ * level 1 all mythics read 2100/2100/2100/2100/3100, at 20 all read
+ * 4000/4000/4000/4000/5000), so a key containing either would break the moment
+ * the piece is levelled -- which is exactly what HH++ OCD's favourites do.
+ * Skin, slot, rarity and the two resonance axes do not move.
+ *
+ * Measured against the maintainer's 107 mythics: 107 distinct keys, no
+ * collisions. Two truly identical pieces would share one, and those are
+ * interchangeable by definition.
+ */
+export function keepKey(item: ArmorItem): string {
+    return [
+        item.skin ?? '',
+        item.slot,
+        item.rarity,
+        item.classResonance?.identifier ?? '',
+        item.classResonance?.resonance ?? '',
+        item.themeResonance?.identifier ?? 'balanced',
+        item.themeResonance?.resonance ?? '',
+    ].join('_');
+}
+
+/**
+ * The same key straight off the game's raw item object.
+ *
+ * The upgrade page needs this: its item objects carry `id_item` and no
+ * `id_member_armor` at all, so parseArmorItem rejects every one of them and the
+ * typed path cannot be used there. None of the fields the key is built from
+ * depend on the id, so reading them directly is exact rather than a
+ * workaround -- keepKey and this must always agree, which a test pins down.
+ *
+ * Returns null for anything that is not hero armor.
+ */
+interface RawResonance { identifier?: string | null; resonance?: string }
+interface RawArmor {
+    skin?: { identifier?: string; subtype?: number; wearer?: string };
+    item?: { rarity?: string };
+    resonance_bonuses?: { class?: RawResonance; theme?: RawResonance };
+}
+
+export function keepKeyFromRaw(raw: unknown): string | null {
+    if (raw === null || typeof raw !== 'object') return null;
+    const a = raw as RawArmor;
+    const slot = Number(a.skin?.subtype);
+    if (!Number.isInteger(slot) || slot < 1 || slot > 6) return null;
+    if (a.skin?.wearer !== undefined && a.skin.wearer !== 'hero') return null;
+    const res = a.resonance_bonuses ?? {};
+    return [
+        String(a.skin?.identifier ?? ''),
+        slot,
+        String(a.item?.rarity ?? ''),
+        res.class?.identifier ?? '',
+        res.class?.resonance ?? '',
+        res.theme?.identifier ?? 'balanced',
+        res.theme?.resonance ?? '',
+    ].join('_');
+}
+
 export interface KeepDecision {
     /** id_member_armor of every piece to mark. */
     keep: Set<number>;

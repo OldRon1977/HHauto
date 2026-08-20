@@ -73,6 +73,9 @@ export interface ArmorItem {
     level: number;
     /** skin.subtype, 1..6. An item only fits its own slot. */
     slot: number;
+    /** skin.identifier, e.g. "EA23". Stable across levels and equips, which is
+     *  what makes a level-independent identity possible (EquipmentKeepService). */
+    skin: string;
     rarity: string;
     name: string;
     caracs: ArmorCaracs;
@@ -628,6 +631,7 @@ export function parseArmorItem(raw: any, isEquipped = false): ArmorItem | null {
         level: Number(raw.level) || 0,
         slot,
         rarity: String(raw?.item?.rarity ?? ''),
+        skin: String(raw?.skin?.identifier ?? ''),
         name: String(raw?.skin?.name ?? ''),
         caracs,
         classResonance: toResonance(res.class),

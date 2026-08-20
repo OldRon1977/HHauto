@@ -304,6 +304,7 @@ export const TK = {
     // Items "Upgrade Gear" still has to level, worked off across the
     // navigations to the upgrade page.
     gearUpgradeQueue: "Temp_gearUpgradeQueue",
+    gearKeepKeys: "Temp_gearKeepKeys",
 
     // Resources
     haveAff: "Temp_haveAff",

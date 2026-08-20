@@ -7,6 +7,21 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.22 - The keep marks survive the trip to the level-up page
+
+- Marking was drawn on the market page and gone the moment you walked to the
+  level-up page -- which is the page where the material is actually picked, so
+  it was gone exactly where it mattered. The decision is now stored and the
+  stars reappear there.
+- What is stored is an identity that does not move: skin, slot, rarity and the
+  two resonance axes. Deliberately not the level or the stats, both of which
+  are a pure function of the level -- a key built on those breaks the instant a
+  piece is levelled, which is what happens to HH++ OCD's favourites. And not
+  the item id either: the market and the level-up page hand out different id
+  spaces, and ids change when a piece is unequipped.
+- The material list loads while you scroll, so the markers are added as it
+  does rather than once on arrival.
+
 ### v8.10.21 - One HH Gear button, not a row of them
 
 - 8.10.20 broke the check that stops the gear button being injected twice: it
