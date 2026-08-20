@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.19 - The gear buttons fit again
+
+- The fourth button pushed the block past the bottom of its container and the
+  last one was cut off. The four now sit in two columns instead of one, which
+  halves the height (measured in the running game: 215px down to 111px). The
+  width was never the constraint.
+
 ### v8.10.18 - Mark the gear worth keeping
 
 - New **Mark Keepers** button on the market's armor tab. It puts a star on the

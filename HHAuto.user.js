@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.18
+// @version      8.10.19
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -19412,8 +19412,11 @@ class EquipmentGear {
             return;
         if (document.getElementById("HHGearCurrentBest") !== null)
             return;
-        GM_addStyle('#HHGearButtons{display:flex;flex-direction:column;gap:4px;'
-            + 'margin-left:10px;justify-content:center;}'
+        // Two columns, not one: a fourth button in a single column overflowed
+        // the bottom of .bottom-container and the last one was cut off. The
+        // width is there, the height is not.
+        GM_addStyle('#HHGearButtons{display:grid;grid-template-columns:repeat(2,auto);'
+            + 'gap:4px;margin-left:10px;align-content:center;justify-content:start;}'
             + '#HHGearButtons .tooltipHH{width:100%;margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
             + 'box-sizing:border-box;width:150px;height:32px;margin:0;padding:2px 6px;'
