@@ -140,12 +140,18 @@ export class EquipmentGear {
             + '#HHGearMenuList{list-style:none;margin:0;padding:0;}'
             + '#HHGearMenuList li{padding:0;margin:0 0 6px 0;}'
             + '#HHGearMenuList a{display:block;padding:7px 10px;border:1px solid #ffa23e;'
-            + 'border-radius:4px;color:#e9e7dd;text-decoration:none;cursor:pointer;}'
-            + '#HHGearMenuList a:hover{background:rgba(255,162,62,.15);}'
-            + '#HHGearMenuList .sub{display:block;color:#98a191;font-size:11px;margin-top:2px;}'
+            + 'border-radius:4px;color:#000;font-weight:bold;text-decoration:none;cursor:pointer;}'
+            + '#HHGearMenuList a:hover{background:rgba(255,162,62,.18);}'
+            + '#HHGearMenuList .sub{display:block;color:#444;font-weight:normal;'
+            + 'font-size:11px;margin-top:2px;}'
+            // The popup sits on white (measured: #HHAutoPopupGlobalPopup is
+            // rgb(255,255,255)), so everything in here is dark on light. The
+            // borders used to be white on white and simply did not show.
+            + '#HHGearPreview{color:#000;}'
+            + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
             + '#HHGearPreview th,#HHGearPreview td{padding:2px 6px;text-align:left;'
-            + 'border-bottom:1px solid rgba(255,255,255,0.15);}'
+            + 'border-bottom:1px solid rgba(0,0,0,0.15);}'
             + '#HHGearPreview td.num{text-align:right;font-variant-numeric:tabular-nums;}'
             // The keep marker. Anchored to the slot itself so it rides along
             // when the inventory re-renders a row.

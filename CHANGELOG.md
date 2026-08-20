@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.23 - The HH Gear popup is readable
+
+- The popup sits on white, but the menu entries were drawn in the menu's own
+  near-white and the descriptions in a pale grey-green -- unreadable on that
+  background. Entries are black now, descriptions dark grey.
+- The table lines in the same popup were white on white and never showed at
+  all, which also affected the Current/Possible/Upgrade previews.
+
 ### v8.10.22 - The keep marks survive the trip to the level-up page
 
 - Marking was drawn on the market page and gone the moment you walked to the
