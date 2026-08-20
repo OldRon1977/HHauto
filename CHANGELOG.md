@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.11 - Boss Bang no longer reports "Time's up!" after the event ends
+
+- When a Boss Bang event finished, the status panel kept showing a Boss Bang
+  row stuck on "Time's up!" for an event that no longer existed. The
+  automation was right not to act on it -- it never tried to navigate there --
+  but the row stayed until the browser tab was closed. The script now drops
+  the Boss Bang timers as soon as the event widget is gone from the home page,
+  the same way it already did for Sultry Mysteries, and the row disappears
+  with the event.
+
 ### v8.10.10 - The status panel, readable
 
 The panel on the home page listing the timers was two centred columns, which

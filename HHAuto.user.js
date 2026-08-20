@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.10
+// @version      8.10.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -27164,6 +27164,19 @@ class EventModule {
                 // event is over -- keys are reset at the end of a Sultry
                 // Mysteries event, so a pending key check is meaningless
                 clearTimer("eventSultryMysteryAutoOpen");
+            }
+            if ($(bossBangEventQuery).length <= 0 && (getTimer('nextBossBangTime') !== -1 || getTimer('eventBossBangGoing') !== -1)) {
+                // Event is over. Unlike the collect-all timers of PoV/PoG/
+                // Seasonal -- which their own block re-arms on every run and
+                // which therefore only ever show a countdown -- nextBossBangTime
+                // is armed by goToFightPage even on a finished event (see the
+                // note on the bossBang precondition in Pipeline.config.ts) and
+                // is then never re-armed, because the precondition can no
+                // longer be met once the event is gone. Without this the timer
+                // stays expired forever and the status panel keeps reporting
+                // "Time's up!" for an event that does not exist.
+                clearTimer('nextBossBangTime');
+                clearTimer('eventBossBangGoing');
             }
             parseForEventId(dpEventQuery, eventIDs);
             if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0) {

@@ -789,6 +789,20 @@ export class EventModule {
                 // Mysteries event, so a pending key check is meaningless
                 clearTimer("eventSultryMysteryAutoOpen");
             }
+            if ($(bossBangEventQuery).length <= 0 && (getTimer('nextBossBangTime') !== -1 || getTimer('eventBossBangGoing') !== -1))
+            {
+                // Event is over. Unlike the collect-all timers of PoV/PoG/
+                // Seasonal -- which their own block re-arms on every run and
+                // which therefore only ever show a countdown -- nextBossBangTime
+                // is armed by goToFightPage even on a finished event (see the
+                // note on the bossBang precondition in Pipeline.config.ts) and
+                // is then never re-armed, because the precondition can no
+                // longer be met once the event is gone. Without this the timer
+                // stays expired forever and the status panel keeps reporting
+                // "Time's up!" for an event that does not exist.
+                clearTimer('nextBossBangTime');
+                clearTimer('eventBossBangGoing');
+            }
             parseForEventId(dpEventQuery,eventIDs);
 
             if(getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0)

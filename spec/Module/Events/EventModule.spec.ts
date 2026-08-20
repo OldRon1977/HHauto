@@ -1,4 +1,4 @@
-import { setTimers } from "../../../src/Helper/TimerHelper";
+import { getTimer, setTimer, setTimers } from "../../../src/Helper/TimerHelper";
 import { EventModule } from '../../../src/Module/Events/EventModule';
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 import { MockHelper } from "../../testHelpers/MockHelpers";
@@ -209,4 +209,53 @@ describe("Event Module", function() {
             expect(bossBangEventIDs).toEqual([]);
         });
     });
+
+    describe("boss bang timer cleanup on the home page", function () {
+        // The home page is what carries the event widgets; parsePageForEventId
+        // only evaluates the widget queries there.
+        const HOME_START = `<!DOCTYPE html><div id="hh_hentai" page="home"><p>Hello world</p></div>`;
+
+        function homeWithBossBang(present: boolean) {
+            document.body.innerHTML = HOME_START
+                + `<div id="contains_all"><div id="homepage"><div class="event-widget">`
+                + (present ? `<a rel="boss_bang_event" href="/event.html?tab=boss_bang_event_5"><span>Boss Bang</span></a>` : ``)
+                + `</div></div></div>`;
+        }
+
+        it("clears nextBossBangTime once the event widget is gone", function () {
+            homeWithBossBang(false);
+            setTimer('nextBossBangTime', 1);
+            setTimer('eventBossBangGoing', 1);
+
+            EventModule.parsePageForEventId();
+
+            expect(getTimer('nextBossBangTime')).toEqual(-1);
+            expect(getTimer('eventBossBangGoing')).toEqual(-1);
+        });
+
+        it("keeps the timers while the event is still running", function () {
+            homeWithBossBang(true);
+            setTimer('nextBossBangTime', 3600);
+            setTimer('eventBossBangGoing', 3600);
+
+            EventModule.parsePageForEventId();
+
+            expect(getTimer('nextBossBangTime')).not.toEqual(-1);
+            expect(getTimer('eventBossBangGoing')).not.toEqual(-1);
+        });
+
+        it("leaves the PoV/PoG/Seasonal collect-all timers alone -- their own block re-arms them", function () {
+            homeWithBossBang(false);
+            setTimer('nextPoVCollectAllTime', 1);
+            setTimer('nextPoGCollectAllTime', 1);
+            setTimer('nextSeasonalEventCollectAllTime', 1);
+
+            EventModule.parsePageForEventId();
+
+            expect(getTimer('nextPoVCollectAllTime')).not.toEqual(-1);
+            expect(getTimer('nextPoGCollectAllTime')).not.toEqual(-1);
+            expect(getTimer('nextSeasonalEventCollectAllTime')).not.toEqual(-1);
+        });
+    });
+
 });
