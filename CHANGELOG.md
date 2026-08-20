@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.16 - Spelling out when the Mythic Slot list gets all five
+
+- The reserved slot and the skipping of MB1 apply only while one of the
+  Sandalwood auto-equips is switched on. With all of them off the list uses all
+  five slots and MB1 is a normal entry, equipped in the position you gave it --
+  it then simply stays on rather than being put in for the fights that want it.
+  Unchanged behaviour; the help text says it now, and tests hold it in place.
+
 ### v8.10.15 - The Sandalwood slot stays reserved
 
 - With any of the Sandalwood auto-equips on, MB1 belongs to that automation:

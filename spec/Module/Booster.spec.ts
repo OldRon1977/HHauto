@@ -574,6 +574,41 @@ describe("Booster", function() {
       expect(Booster.getFreeMythicSlots()).toBe(0); // 5 - 4 - 1 reserved
     });
 
+    it("Sandalwood NOT active: MB1 is a normal list entry and all 5 slots are usable", async function() {
+      // The reservation and the skip are both tied to the automation being on.
+      // With every Sandalwood option off, MB1 is just another code: it is
+      // equipped from the list in its position, and nothing is held back.
+      // What the player gives up is the event-driven handling -- MB1 then sits
+      // there permanently instead of being put on when a fight needs it.
+      MockHelper.mockSetting('plusEventMythic', 'false');
+      MockHelper.mockSetting('plusEventMythicSandalWood', 'false');
+      MockHelper.mockSetting('plusEvent', 'false');
+      MockHelper.mockSetting('plusEventSandalWood', 'false');
+      MockHelper.mockBoosterInventory({ mythic: [] });
+      sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_haveBooster", '{"MB1":1,"MB2":1}');
+
+      expect(Booster.isSandalwoodAutomationActive()).toBeFalsy();
+      expect(Booster.getFreeMythicSlots()).toBe(5); // no slot held back
+
+      const result = await Booster.autoEquipMythicBoosters(['MB1', 'MB2']);
+
+      expect(result).toBeTruthy();
+      expect(sentIdItems().map(String)).toEqual(['632', '633']); // MB1 first, then MB2
+    });
+
+    it("Sandalwood NOT active: 4 already equipped leaves the fifth slot to the list", async function() {
+      MockHelper.mockSetting('plusEventMythic', 'false');
+      MockHelper.mockSetting('plusEventMythicSandalWood', 'false');
+      MockHelper.mockBoosterInventory({ mythic: ['MB3', 'MB4', 'MB5', 'MB10'] });
+      sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_haveBooster", '{"MB2":1}');
+
+      const result = await Booster.autoEquipMythicBoosters(['MB2']);
+
+      expect(result).toBeTruthy();
+      expect(Booster.getFreeMythicSlots()).toBe(0); // the fifth was just taken
+      expect(sentIdItems()).toEqual(['633']);
+    });
+
     it("Sandalwood active + MB1 not equipped: one slot stays reserved", async function() {
       MockHelper.mockSetting('plusEventMythic', 'true');
       MockHelper.mockSetting('plusEventMythicSandalWood', 'true');
