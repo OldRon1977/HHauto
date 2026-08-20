@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.13
+// @version      8.10.14
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -3398,9 +3398,17 @@ HHStoredVars[HHStoredVarPrefixKey + TK.sandalwoodMaxUsages] =
 // refusal time. Survives page navigations (the userscript restarts on every
 // page) so a permanently conflicting booster is not re-tried every cycle --
 // it is re-tried as soon as the equipped mythic loadout changes.
+// localStorage, not session: this is *learned* knowledge. The game gives no
+// machine-readable statement of what a mythic booster does -- every stat field
+// on a mythic item is 0, unlike the legendary boosters -- so which ones clash
+// can only be found out by being refused, and each refusal costs a request, a
+// popup and a page reload. Throwing that away when the tab closes meant
+// re-discovering the same clashes in every new session. The entry prunes
+// itself once the booster it clashed with is no longer equipped, so a stale
+// one cannot outlive its reason.
 HHStoredVars[HHStoredVarPrefixKey + TK.mythicEquipConflicts] =
     {
-        storage: "sessionStorage",
+        storage: "localStorage",
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.updateMarket] =

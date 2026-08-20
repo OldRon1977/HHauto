@@ -584,7 +584,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `sandalwoodFailure` | `Temp_sandalwoodFailure` | `sessionStorage` | `Temp` | Sandalwood Fehler |
 | `sandalwoodMaxUsages` | `Temp_sandalwoodMaxUsages` | `sessionStorage` | `Temp` | Sandalwood Max |
-| `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `sessionStorage` | `Temp` | Mythic-Slot-Konflikte beim Auto-Equip (`Booster.ts`, JSON-Map) |
+| `mythicEquipConflicts` | `Temp_mythicEquipConflicts` | `localStorage` | `Temp` | Gelernte Mythic-Slot-Konflikte (`Booster.ts`, JSON-Map: Code -> Loadout bei der Absage). Ab 8.10.13 `localStorage`, damit das Gelernte die Sitzung ueberlebt |
 | `unknownPagesList` | `Temp_unknownPagesList` | `sessionStorage` | `Temp` | Unbekannte Seiten |
 
 ### Survey

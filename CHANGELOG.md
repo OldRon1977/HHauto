@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.14 - Mythic conflicts are remembered across sessions
+
+- Which mythic boosters clash with each other can only be learned by being
+  refused: the game sends no description of what a mythic booster does. Every
+  clash therefore costs a request, a popup and a page reload to find out. That
+  knowledge was kept only for the current browser tab, so every new session
+  paid the whole price again. It now survives, and still clears itself once the
+  booster it clashed with is gone.
+
 ### v8.10.13 - The mythic conflict popup stops coming back
 
 - The game refuses a mythic booster that clashes with one already equipped, and
