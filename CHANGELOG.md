@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.26 - The Adventure heading matches its tab
+
+- The area is called Adventure in the menu rail and every other area says the
+  same thing on both sides, but the heading beside it read "Battle Troll" --
+  the script's word for what it does there, not the game's word for the place.
+  Both say Adventure now. The energy label on the adventure page itself is
+  unchanged.
+
 ### v8.10.25 - Every block says whether it is running
 
 - Each block in the settings menu (Salary, Daily Goals, Champions, ...) now

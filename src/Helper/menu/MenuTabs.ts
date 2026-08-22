@@ -184,7 +184,12 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 'isEnabledPoG', false, block(['autoPoGCollect', 'autoPoGCollectAll'])),
     },
     {
-        id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
+        // Both names are the game's own area (#1834): the rail and the pane
+        // heading say the same thing in every other area, and 'Battle Troll'
+        // was the script's word for what it does there, not the game's word
+        // for the place. The key itself stays -- Troll.ts still labels the
+        // energy bar with it on the adventure page.
+        id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'menuTabAdventure',
         groups:
             group('menuSecStandardTroll',
                 hhMenuSwitch('autoTrollBattle')
