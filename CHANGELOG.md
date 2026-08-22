@@ -7,6 +7,22 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.27 - One activity is finished before the next one starts
+
+- The script hopped between activities: one troll fight, one season fight, one
+  pantheon fight, round and round (#1841). It now stays on an activity until
+  that activity is done -- out of energy, threshold reached, timer set -- and
+  only then moves to the next one.
+- The cause was a single word meaning two things. A fight block hands its
+  battle-result page to the reward parser (#1740) by reporting "not me" for
+  that page, and the scheduler read that as "finished" and released the slot
+  after every single fight. It now tells "not yet" and "done" apart.
+- The collect blocks still cut in whenever they are due. Their rewards expire
+  with the event they belong to, so they never queue behind a fight.
+- Fixed on the way: another block could start on a battle-result page and
+  navigate away before the reward had been read. Only the troll block guarded
+  that page; now the running activity holds it whatever is fighting.
+
 ### v8.10.26 - The Adventure heading matches its tab
 
 - The area is called Adventure in the menu rail and every other area says the

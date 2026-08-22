@@ -12,7 +12,7 @@
 // Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10,
 //               5.1, 5.2, 5.3, 5.4, 5.5, 5.7, 5.8, 5.9
 import { AutoLoopContext } from "./AutoLoopContext";
-import { Block, BlockOrder, BlockRegistry, BlockRun, Step } from "./BlockTypes";
+import { Block, BlockFocus, BlockOrder, BlockRegistry, BlockRun, Step } from "./BlockTypes";
 
 export interface DisabledEntry { reason: string; sinceVersion: string; }
 
@@ -35,6 +35,9 @@ export interface SchedulerPorts {
   setAutoDisabled(v: Record<string, DisabledEntry>): void;
   getLastRunAt(): Record<string, number>;
   setLastRunAt(v: Record<string, number>): void;
+  /** Focused activity (#1841); null = the pipeline is free to pick anything. */
+  getFocus(): BlockFocus | null;
+  setFocus(v: BlockFocus | null): void;
   /** Structured log sink. Task 7 supplies the [PIPE] formatter. */
   log(event: Record<string, unknown>): void;
 }
@@ -58,6 +61,18 @@ export interface SchedulerConfig {
   // well above the normal autoLoop cadence (~1s) so a healthy busy run is never
   // rebased; only real dormancy crosses it.
   dormantGapMs: number;
+  // How long the pipeline waits for the focused block before giving the slot
+  // back to the order (#1841). It only ever waits out a block's own
+  // minInterval/cool-down -- 4 s for trolls, 2 s for most others -- so this is
+  // a backstop, not the normal cadence. Too small and the switching returns;
+  // too large and a block that quietly stopped being ready stalls everything.
+  focusWaitMs: number;
+  // Backstop against a focus that can never be served: an interrupter that
+  // stays ready forever would keep being offered the slot and the activity
+  // would never end. If the focused block has not managed a run in this long,
+  // the focus is stale and the order takes over -- which is exactly the
+  // behaviour before #1841, so the worst case degrades to the old one.
+  focusStaleMs: number;
 }
 
 const DEFAULT_CONFIG: SchedulerConfig = {
@@ -65,6 +80,8 @@ const DEFAULT_CONFIG: SchedulerConfig = {
   noProgressMs: 300_000,   // 5 min without any step progress -> treat as hung
   cooldownMs: 60_000,
   dormantGapMs: 30_000,    // 30s gap (>>1s cadence) = scheduler was dormant
+  focusWaitMs: 30_000,     // backstop; real waits are the blocks' 2-4s intervals
+  focusStaleMs: 300_000,   // 5 min without the focused block running = give up
 };
 
 /** Short signature of a failure reason for the per-signature failure counter. */
@@ -153,6 +170,7 @@ export class BlockScheduler {
         this.run = null;
         this.ports.clearRun();
       }
+      this.releaseFocus("master-off");
       return;
     }
 
@@ -298,9 +316,16 @@ export class BlockScheduler {
 
   private complete(block: Block, run: BlockRun): void {
     this.emit({ ev: "done", block: block.id, detail: "run complete" });
+    const now = this.ports.now();
     const last = this.ports.getLastRunAt();
-    last[block.id] = this.ports.now();
+    last[block.id] = now;
     this.ports.setLastRunAt(last);
+    // #1841: finishing a run does not mean the activity is finished. A troll
+    // run ends the moment the fight lands on the result page -- the block has
+    // energy left and wants to go again. Keep the pipeline on it and let the
+    // block's own precondition decide when it is really done (no energy,
+    // threshold reached, timer set). Helpers never take the focus.
+    if (block.holdsFocus !== false) this.ports.setFocus({ blockId: block.id, lastRunAt: now });
     this.resetFailureCounts(block.id);  // success resets the block's counter
     this.run = null;
     this.ports.clearRun();
@@ -333,7 +358,90 @@ export class BlockScheduler {
 
     this.run = null;
     this.ports.clearRun();
+    this.releaseFocus("run aborted");
     await this.ports.routeHome();  // safe ground state (R4.10)
+  }
+
+  /**
+   * Why a block cannot be picked right now.
+   *  - 'ready'   -- go.
+   *  - 'waiting' -- only its own clock is in the way (cool-down, minInterval).
+   *                 It will be ready again shortly; worth waiting for.
+   *  - 'no'      -- it is disabled or does not want to run. Nothing to wait for.
+   * The three-way answer is what lets the focus tell "not yet" apart from
+   * "finished" (#1841); the order of the checks is unchanged from R4.3.
+   */
+  private eligibility(
+    block: Block, ctx: AutoLoopContext, now: number,
+    disabled: Record<string, DisabledEntry>,
+    cooldowns: Record<string, number>,
+    last: Record<string, number>,
+  ): 'ready' | 'waiting' | 'no' {
+    if (disabled[block.id]) return 'no';
+    if ((cooldowns[block.id] ?? 0) > now) return 'waiting';
+    if (now - (last[block.id] ?? 0) < block.minIntervalMs) return 'waiting';
+    return block.precondition(ctx) ? 'ready' : 'no';
+  }
+
+  /** Drop the focused activity, so the order decides again. */
+  private releaseFocus(reason: string): void {
+    const focus = this.ports.getFocus();
+    if (!focus) return;
+    this.ports.setFocus(null);
+    this.emit({ ev: "focus", block: focus.blockId, detail: "released: " + reason });
+  }
+
+  /**
+   * Selection while one activity has the focus (#1841).
+   *
+   * Returns the block to run, `null` to wait a tick without giving the slot
+   * away, or `undefined` for "no focus applies -- decide by the order".
+   *
+   * The pipeline used to leave an activity the moment one run ended, which is
+   * every single fight: the fight lands on a battle-result page, the block
+   * yields that page so the reward popup is parsed (#1740), and the next block
+   * in the order took the slot and navigated away. One troll fight, one season
+   * fight, one pantheon fight, round and round. Holding the focus keeps the
+   * pipeline on the same activity across that detour until the block itself
+   * says it is done.
+   */
+  private pickUnderFocus(
+    ctx: AutoLoopContext, focus: BlockFocus, now: number,
+    disabled: Record<string, DisabledEntry>,
+    cooldowns: Record<string, number>,
+    last: Record<string, number>,
+  ): Block | null | undefined {
+    const block = this.registry[focus.blockId];
+    if (!block) { this.releaseFocus("block gone"); return undefined; }
+    if (now - focus.lastRunAt > this.cfg.focusStaleMs) {
+      this.releaseFocus("stale");
+      return undefined;
+    }
+
+    // Checked BEFORE the focused block, not only when it stalls: the collect
+    // blocks gather rewards that expire with their event, and they must never
+    // queue behind a fight that runs for as long as there is energy. They are
+    // short, they set their own next-time timer, and they never take the focus,
+    // so the activity continues right after. The other block marked this way is
+    // handleGenericBattle -- the battle-result page a fight block hands over
+    // (#1740) is exactly where the focused block is stuck, so the helper is
+    // what puts it back on its feet.
+    for (const id of this.order) {
+      const helper = this.registry[id];
+      if (!helper?.runsDuringFocus) continue;
+      if (this.eligibility(helper, ctx, now, disabled, cooldowns, last) === 'ready') return helper;
+    }
+
+    const state = this.eligibility(block, ctx, now, disabled, cooldowns, last);
+    if (state === 'ready') return block;
+
+    // Only its own cool-down is in the way, and we have not waited long: hold
+    // the slot idle rather than handing it to the next block for one tick and
+    // taking it back -- that hand-over IS the switching being fixed.
+    if (state === 'waiting' && now - focus.lastRunAt < this.cfg.focusWaitMs) return null;
+
+    this.releaseFocus(state === 'waiting' ? "waited too long" : "nothing left to do");
+    return undefined;
   }
 
   /** Idle block selection (R4.3): order + enabled + not-disabled + cooldown + min-interval + precondition. */
@@ -342,13 +450,17 @@ export class BlockScheduler {
     const disabled = this.ports.getAutoDisabled();
     const cooldowns = this.ports.getCooldowns();
     const last = this.ports.getLastRunAt();
+
+    const focus = this.ports.getFocus();
+    if (focus) {
+      const focused = this.pickUnderFocus(ctx, focus, now, disabled, cooldowns, last);
+      if (focused !== undefined) return focused;
+    }
+
     for (const id of this.order) {
       const block = this.registry[id];
       if (!block) continue;
-      if (disabled[id]) continue;
-      if ((cooldowns[id] ?? 0) > now) continue;
-      if (now - (last[id] ?? 0) < block.minIntervalMs) continue;
-      if (!block.precondition(ctx)) continue;
+      if (this.eligibility(block, ctx, now, disabled, cooldowns, last) !== 'ready') continue;
       return block;
     }
     return null;

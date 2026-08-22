@@ -19,7 +19,7 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { logHHAuto } from "../Utils/LogUtils";
 import { BlockScheduler, DisabledEntry, SchedulerPorts } from "./BlockScheduler";
-import { Block, BlockOrder, BlockRegistry, BlockRun, BlockStepResult, OrderConstraint } from "./BlockTypes";
+import { Block, BlockFocus, BlockOrder, BlockRegistry, BlockRun, BlockStepResult, OrderConstraint } from "./BlockTypes";
 import { gotoPage } from "./PageNavigationService";
 import { resolveOrder } from "./OrderResolver";
 import { loadBlockRun, saveBlockRun, clearBlockRun } from "./BlockRunStore";
@@ -50,6 +50,31 @@ export function applySlotHold(r: BlockStepResult, busy: boolean): BlockStepResul
 
 // Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
 const INFRA_BLOCKS = new Set<string>(["handleEventParsing", "handleGoHome"]);
+
+/**
+ * Blocks that may run while another activity holds the focus, and that never
+ * take the focus themselves (#1841, Block.runsDuringFocus).
+ *
+ *  - the six collect blocks: their rewards expire with the event they belong
+ *    to (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions),
+ *    so they must never wait for a fight that runs until the energy is gone.
+ *    Each sets its own next-time timer, so it cannot starve the activity.
+ *  - handleGenericBattle: parses the reward popup on a battle-result page
+ *    (#1740). A fight block hands that page over and is stuck there until the
+ *    parse is done -- locking this out would deadlock the focus.
+ */
+const FOCUS_INTERRUPTERS = new Set<string>([
+  "handleSeasonCollect",
+  "handlePentaDrillCollect",
+  "handleSeasonalEventCollect",
+  "handleSeasonalRankCollect",
+  "handlePoVCollect",
+  "handlePoGCollect",
+  "handleGenericBattle",
+]);
+
+/** Infra that serves other blocks and must not become the focused activity. */
+const NEVER_FOCUS = new Set<string>([...INFRA_BLOCKS, ...FOCUS_INTERRUPTERS]);
 
 // Hard ordering constraints (design.md "Abhaengigkeitsgraph", R3.1), declared on
 // the block; OrderResolver.validateOrder enforces them on any user reorder
@@ -84,6 +109,8 @@ function toBlock(c: HandlerConfig): Block {
     })),
     userMovable: !INFRA_BLOCKS.has(c.name),   // R3.7: infra pinned, rest reorderable
     constraints: BLOCK_CONSTRAINTS[c.name],   // R3.1: hard ordering constraints
+    holdsFocus: !NEVER_FOCUS.has(c.name),          // #1841
+    runsDuringFocus: FOCUS_INTERRUPTERS.has(c.name),
     minIntervalMs: c.minIntervalMs,
     totalTimeoutMs: c.totalTimeoutMs,
   };
@@ -127,6 +154,11 @@ export const blockPorts: SchedulerPorts = {
   setAutoDisabled: (v) => saveMap(TK.blockAutoDisabled, v),
   getLastRunAt: () => loadMap<number>(TK.pipelineLastRunAt),
   setLastRunAt: (v) => saveMap(TK.pipelineLastRunAt, v),
+  getFocus: (): BlockFocus | null => {
+    const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockFocus, null);
+    return (v && typeof v === "object" && typeof (v as BlockFocus).blockId === "string") ? (v as BlockFocus) : null;
+  },
+  setFocus: (v) => setStoredValue(HHStoredVarPrefixKey + TK.blockFocus, v === null ? "" : JSON.stringify(v)),
   // Structured [PIPE] logging through the existing log pipeline (task 7).
   log: (e: Record<string, unknown>) => logEvent(e as unknown as PipeFields),
 };

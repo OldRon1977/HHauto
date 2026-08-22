@@ -88,6 +88,44 @@ export interface Block {
   stepTimeoutMs?: number;
   /** Watchdog: max ms for the whole block-run (R5.1). */
   totalTimeoutMs?: number;
+  /**
+   * Whether finishing a run makes this block the focused activity (#1841).
+   * Default true: a block that just did a piece of work keeps the pipeline's
+   * attention until it has nothing left to do, so one activity is finished
+   * before the next is started. False for infra that only serves other blocks
+   * (go-home, event parsing, the battle-result handler) -- letting those take
+   * the focus would park the pipeline on a helper.
+   */
+  holdsFocus?: boolean;
+  /**
+   * Whether this block may run while ANOTHER block holds the focus (#1841),
+   * and is offered the slot before the focused block itself.
+   *
+   * Two kinds qualify. The collect blocks gather rewards that expire when
+   * their event ends, so they must not queue behind a fight that runs for as
+   * long as there is energy. And handleGenericBattle parses the reward popup
+   * on a battle-result page (#1740) -- the page a fight block hands over, and
+   * therefore exactly where the focused block is stuck.
+   *
+   * Everything marked this way must also set `holdsFocus: false`, or it would
+   * take the focus from the activity it just interrupted.
+   */
+  runsDuringFocus?: boolean;
+}
+
+/**
+ * The activity the pipeline is currently seeing through (#1841).
+ *
+ * Persisted (sessionStorage) because the interesting case spans reloads: a
+ * fight ends on a battle-result page, the page reloads, and the focus is what
+ * brings the same block back afterwards instead of letting the next one in the
+ * order take over.
+ */
+export interface BlockFocus {
+  /** Id of the focused block. */
+  blockId: string;
+  /** When that block last completed a run -- bounds how long the focus waits. */
+  lastRunAt: number;
 }
 
 /**

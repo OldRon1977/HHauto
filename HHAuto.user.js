@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.26
+// @version      8.10.27
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1937,6 +1937,7 @@ const TK = {
     // Pipeline-block architecture (v7.37.0, ADR-001)
     activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress (R4.4/R4.12)
     blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts} (R4.10/R5.2)
+    blockFocus: "Temp_blockFocus", // session: {blockId,lastRunAt} focused activity (#1841)
     blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
     blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
     pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
@@ -4832,6 +4833,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+HHStoredVars[HHStoredVarPrefixKey + TK.blockFocus] =
     {
         storage: "sessionStorage",
         HHType: "Temp"
@@ -32783,6 +32789,8 @@ const DEFAULT_CONFIG = {
     noProgressMs: 300000, // 5 min without any step progress -> treat as hung
     cooldownMs: 60000,
     dormantGapMs: 30000, // 30s gap (>>1s cadence) = scheduler was dormant
+    focusWaitMs: 30000, // backstop; real waits are the blocks' 2-4s intervals
+    focusStaleMs: 300000, // 5 min without the focused block running = give up
 };
 /** Short signature of a failure reason for the per-signature failure counter. */
 function shortSig(reason) {
@@ -32865,6 +32873,7 @@ class BlockScheduler {
                     this.run = null;
                     this.ports.clearRun();
                 }
+                this.releaseFocus("master-off");
                 return;
             }
             if (!this.run)
@@ -33019,9 +33028,17 @@ class BlockScheduler {
     }
     complete(block, run) {
         this.emit({ ev: "done", block: block.id, detail: "run complete" });
+        const now = this.ports.now();
         const last = this.ports.getLastRunAt();
-        last[block.id] = this.ports.now();
+        last[block.id] = now;
         this.ports.setLastRunAt(last);
+        // #1841: finishing a run does not mean the activity is finished. A troll
+        // run ends the moment the fight lands on the result page -- the block has
+        // energy left and wants to go again. Keep the pipeline on it and let the
+        // block's own precondition decide when it is really done (no energy,
+        // threshold reached, timer set). Helpers never take the focus.
+        if (block.holdsFocus !== false)
+            this.ports.setFocus({ blockId: block.id, lastRunAt: now });
         this.resetFailureCounts(block.id); // success resets the block's counter
         this.run = null;
         this.ports.clearRun();
@@ -33051,27 +33068,104 @@ class BlockScheduler {
             this.ports.setCooldowns(cooldowns);
             this.run = null;
             this.ports.clearRun();
+            this.releaseFocus("run aborted");
             yield this.ports.routeHome(); // safe ground state (R4.10)
         });
     }
+    /**
+     * Why a block cannot be picked right now.
+     *  - 'ready'   -- go.
+     *  - 'waiting' -- only its own clock is in the way (cool-down, minInterval).
+     *                 It will be ready again shortly; worth waiting for.
+     *  - 'no'      -- it is disabled or does not want to run. Nothing to wait for.
+     * The three-way answer is what lets the focus tell "not yet" apart from
+     * "finished" (#1841); the order of the checks is unchanged from R4.3.
+     */
+    eligibility(block, ctx, now, disabled, cooldowns, last) {
+        var _a, _b;
+        if (disabled[block.id])
+            return 'no';
+        if (((_a = cooldowns[block.id]) !== null && _a !== void 0 ? _a : 0) > now)
+            return 'waiting';
+        if (now - ((_b = last[block.id]) !== null && _b !== void 0 ? _b : 0) < block.minIntervalMs)
+            return 'waiting';
+        return block.precondition(ctx) ? 'ready' : 'no';
+    }
+    /** Drop the focused activity, so the order decides again. */
+    releaseFocus(reason) {
+        const focus = this.ports.getFocus();
+        if (!focus)
+            return;
+        this.ports.setFocus(null);
+        this.emit({ ev: "focus", block: focus.blockId, detail: "released: " + reason });
+    }
+    /**
+     * Selection while one activity has the focus (#1841).
+     *
+     * Returns the block to run, `null` to wait a tick without giving the slot
+     * away, or `undefined` for "no focus applies -- decide by the order".
+     *
+     * The pipeline used to leave an activity the moment one run ended, which is
+     * every single fight: the fight lands on a battle-result page, the block
+     * yields that page so the reward popup is parsed (#1740), and the next block
+     * in the order took the slot and navigated away. One troll fight, one season
+     * fight, one pantheon fight, round and round. Holding the focus keeps the
+     * pipeline on the same activity across that detour until the block itself
+     * says it is done.
+     */
+    pickUnderFocus(ctx, focus, now, disabled, cooldowns, last) {
+        const block = this.registry[focus.blockId];
+        if (!block) {
+            this.releaseFocus("block gone");
+            return undefined;
+        }
+        if (now - focus.lastRunAt > this.cfg.focusStaleMs) {
+            this.releaseFocus("stale");
+            return undefined;
+        }
+        // Checked BEFORE the focused block, not only when it stalls: the collect
+        // blocks gather rewards that expire with their event, and they must never
+        // queue behind a fight that runs for as long as there is energy. They are
+        // short, they set their own next-time timer, and they never take the focus,
+        // so the activity continues right after. The other block marked this way is
+        // handleGenericBattle -- the battle-result page a fight block hands over
+        // (#1740) is exactly where the focused block is stuck, so the helper is
+        // what puts it back on its feet.
+        for (const id of this.order) {
+            const helper = this.registry[id];
+            if (!(helper === null || helper === void 0 ? void 0 : helper.runsDuringFocus))
+                continue;
+            if (this.eligibility(helper, ctx, now, disabled, cooldowns, last) === 'ready')
+                return helper;
+        }
+        const state = this.eligibility(block, ctx, now, disabled, cooldowns, last);
+        if (state === 'ready')
+            return block;
+        // Only its own cool-down is in the way, and we have not waited long: hold
+        // the slot idle rather than handing it to the next block for one tick and
+        // taking it back -- that hand-over IS the switching being fixed.
+        if (state === 'waiting' && now - focus.lastRunAt < this.cfg.focusWaitMs)
+            return null;
+        this.releaseFocus(state === 'waiting' ? "waited too long" : "nothing left to do");
+        return undefined;
+    }
     /** Idle block selection (R4.3): order + enabled + not-disabled + cooldown + min-interval + precondition. */
     findNext(ctx) {
-        var _a, _b;
         const now = this.ports.now();
         const disabled = this.ports.getAutoDisabled();
         const cooldowns = this.ports.getCooldowns();
         const last = this.ports.getLastRunAt();
+        const focus = this.ports.getFocus();
+        if (focus) {
+            const focused = this.pickUnderFocus(ctx, focus, now, disabled, cooldowns, last);
+            if (focused !== undefined)
+                return focused;
+        }
         for (const id of this.order) {
             const block = this.registry[id];
             if (!block)
                 continue;
-            if (disabled[id])
-                continue;
-            if (((_a = cooldowns[id]) !== null && _a !== void 0 ? _a : 0) > now)
-                continue;
-            if (now - ((_b = last[id]) !== null && _b !== void 0 ? _b : 0) < block.minIntervalMs)
-                continue;
-            if (!block.precondition(ctx))
+            if (this.eligibility(block, ctx, now, disabled, cooldowns, last) !== 'ready')
                 continue;
             return block;
         }
@@ -35880,6 +35974,29 @@ function applySlotHold(r, busy) {
 }
 // Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
 const INFRA_BLOCKS = new Set(["handleEventParsing", "handleGoHome"]);
+/**
+ * Blocks that may run while another activity holds the focus, and that never
+ * take the focus themselves (#1841, Block.runsDuringFocus).
+ *
+ *  - the six collect blocks: their rewards expire with the event they belong
+ *    to (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions),
+ *    so they must never wait for a fight that runs until the energy is gone.
+ *    Each sets its own next-time timer, so it cannot starve the activity.
+ *  - handleGenericBattle: parses the reward popup on a battle-result page
+ *    (#1740). A fight block hands that page over and is stuck there until the
+ *    parse is done -- locking this out would deadlock the focus.
+ */
+const FOCUS_INTERRUPTERS = new Set([
+    "handleSeasonCollect",
+    "handlePentaDrillCollect",
+    "handleSeasonalEventCollect",
+    "handleSeasonalRankCollect",
+    "handlePoVCollect",
+    "handlePoGCollect",
+    "handleGenericBattle",
+]);
+/** Infra that serves other blocks and must not become the focused activity. */
+const NEVER_FOCUS = new Set([...INFRA_BLOCKS, ...FOCUS_INTERRUPTERS]);
 // Hard ordering constraints (design.md "Abhaengigkeitsgraph", R3.1), declared on
 // the block; OrderResolver.validateOrder enforces them on any user reorder
 // (task 15). The current defaultOrder already satisfies all of these (build-test
@@ -35912,6 +36029,8 @@ function toBlock(c) {
         })),
         userMovable: !INFRA_BLOCKS.has(c.name), // R3.7: infra pinned, rest reorderable
         constraints: BLOCK_CONSTRAINTS[c.name], // R3.1: hard ordering constraints
+        holdsFocus: !NEVER_FOCUS.has(c.name), // #1841
+        runsDuringFocus: FOCUS_INTERRUPTERS.has(c.name),
         minIntervalMs: c.minIntervalMs,
         totalTimeoutMs: c.totalTimeoutMs,
     };
@@ -35951,6 +36070,11 @@ const blockPorts = {
     setAutoDisabled: (v) => saveMap(TK.blockAutoDisabled, v),
     getLastRunAt: () => loadMap(TK.pipelineLastRunAt),
     setLastRunAt: (v) => saveMap(TK.pipelineLastRunAt, v),
+    getFocus: () => {
+        const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockFocus, null);
+        return (v && typeof v === "object" && typeof v.blockId === "string") ? v : null;
+    },
+    setFocus: (v) => setStoredValue(HHStoredVarPrefixKey + TK.blockFocus, v === null ? "" : JSON.stringify(v)),
     // Structured [PIPE] logging through the existing log pipeline (task 7).
     log: (e) => logEvent(e),
 };

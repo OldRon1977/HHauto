@@ -1,5 +1,5 @@
 import { BlockScheduler, SchedulerPorts } from "../../src/Service/BlockScheduler";
-import { Block, BlockRun, BlockStepResult, Step } from "../../src/Service/BlockTypes";
+import { Block, BlockFocus, BlockRun, BlockStepResult, Step } from "../../src/Service/BlockTypes";
 import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
 
 const CTX = {} as AutoLoopContext;
@@ -20,6 +20,7 @@ function makePorts(initial: Partial<BlockRun> | null = null) {
         failures: {} as Record<string, number>,
         disabled: {} as Record<string, { reason: string; sinceVersion: string }>,
         lastRunAt: {} as Record<string, number>,
+        focus: null as BlockFocus | null,
     };
     const logs: Record<string, unknown>[] = [];
     const routeHome = jest.fn(() => undefined);
@@ -37,6 +38,8 @@ function makePorts(initial: Partial<BlockRun> | null = null) {
         getFailureCounts: () => state.failures, setFailureCounts: (v) => { state.failures = v; },
         getAutoDisabled: () => state.disabled, setAutoDisabled: (v) => { state.disabled = v; },
         getLastRunAt: () => state.lastRunAt, setLastRunAt: (v) => { state.lastRunAt = v; },
+        getFocus: () => (state.focus ? { ...state.focus } : null),
+        setFocus: (v) => { state.focus = v; },
         log: (e) => logs.push(e),
     };
     return { ctl, state, logs, ports, routeHome };
@@ -358,5 +361,193 @@ describe("BlockScheduler -- auto-disable reset", () => {
         s.reactivate("A");
         expect(h.state.disabled["A"]).toBeUndefined();
         expect(h.state.failures["A:step:x"]).toBeUndefined();
+    });
+});
+
+// #1841: the pipeline used to leave an activity after every single run, which
+// for a fight block is after every single fight -- one troll, one season, one
+// pantheon, round and round. These pin the focus that keeps it on one activity.
+describe("BlockScheduler -- focused activity (#1841)", () => {
+    /** A block whose readiness the test drives. */
+    function gated(id: string, ready: { v: boolean }, ran: string[], over: Partial<Block> = {}): Block {
+        return block(id, [{ name: id + ":s", fn: async () => { ran.push(id); return { ok: true }; } }],
+            { precondition: () => ready.v, ...over });
+    }
+
+    it("stays on the block that just ran instead of taking the next in the order", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const first = { v: false }, second = { v: true };
+        const B = gated("B", first, ran);      // earlier in the order
+        const A = gated("A", second, ran);
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+
+        await s.tick(CTX);                     // B not ready yet -> A runs
+        expect(ran).toEqual(["A"]);
+        first.v = true;                        // B becomes ready
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["A", "A"]);       // the activity continues
+        expect(h.state.focus?.blockId).toBe("A");
+    });
+
+    it("hands the pipeline on once the focused block has nothing left to do", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const bReady = { v: true }, aReady = { v: true };
+        const B = gated("B", bReady, ran);
+        const A = gated("A", aReady, ran);
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+
+        await s.tick(CTX);                     // B first in the order
+        expect(ran).toEqual(["B"]);
+        bReady.v = false;                      // B is done (no energy, timer set, ...)
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["B", "A"]);
+        expect(h.state.focus?.blockId).toBe("A");
+    });
+
+    it("waits out the focused block's own cool-down rather than letting another in", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const bReady = { v: false }, aReady = { v: true };
+        const B = gated("B", bReady, ran);
+        const A = gated("A", aReady, ran, { minIntervalMs: 5_000 });
+        h.ctl.time = 3_600_000;                // past every block's first interval
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["A"]);
+        bReady.v = true;
+
+        h.ctl.time += 1_000;                   // inside A's interval
+        await s.tick(CTX);
+        expect(ran).toEqual(["A"]);            // nothing ran: the slot was held
+
+        h.ctl.time += 5_000;                   // A is due again
+        await s.tick(CTX);
+        expect(ran).toEqual(["A", "A"]);
+    });
+
+    it("gives up on a focused block that stays unavailable too long", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const bReady = { v: false }, aReady = { v: true };
+        const B = gated("B", bReady, ran);
+        const A = gated("A", aReady, ran, { minIntervalMs: 10 * 60_000 });
+        h.ctl.time = 3_600_000;                // past every block's first interval
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports, { focusWaitMs: 30_000 });
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["A"]);
+        bReady.v = true;
+
+        h.ctl.time += 31_000;                  // waited past the backstop
+        await s.tick(CTX);
+        expect(ran).toEqual(["A", "B"]);
+        expect(h.state.focus?.blockId).toBe("B");
+    });
+
+    it("lets a collect block through before the focused block, without losing the focus", async () => {
+        // The collect blocks gather rewards that expire with their event; they
+        // must not queue behind a fight that runs while there is energy.
+        const h = makePorts();
+        const ran: string[] = [];
+        const aReady = { v: true }, cReady = { v: false };
+        const A = gated("A", aReady, ran);
+        const C = gated("C", cReady, ran, { runsDuringFocus: true, holdsFocus: false });
+        const s = new BlockScheduler(reg(A, C), ["A", "C"], h.ports);
+
+        await s.tick(CTX);
+        expect(h.state.focus?.blockId).toBe("A");
+        cReady.v = true;                       // a collect becomes due
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["A", "C"]);       // it goes first
+        expect(h.state.focus?.blockId).toBe("A");   // and the activity survives it
+
+        cReady.v = false;
+        await s.tick(CTX);
+        expect(ran).toEqual(["A", "C", "A"]);
+    });
+
+    it("lets the helper clear a page the focused block handed over", async () => {
+        // The real case: a fight lands on a battle-result page, the fight block
+        // yields it so the reward popup is parsed (#1740), and only then can it
+        // fight again. Without the helper the focus would deadlock there.
+        const h = makePorts();
+        const ran: string[] = [];
+        const onResultPage = { v: false };
+        const A = block("A", [{ name: "fight", fn: async () => { ran.push("A"); onResultPage.v = true; return { ok: true }; } }],
+            { precondition: () => !onResultPage.v });
+        const H = block("H", [{ name: "parse", fn: async () => { ran.push("H"); onResultPage.v = false; return { ok: true }; } }],
+            { precondition: () => onResultPage.v, runsDuringFocus: true, holdsFocus: false });
+        const s = new BlockScheduler(reg(A, H), ["A", "H"], h.ports);
+
+        await s.tick(CTX);                     // fight -> result page
+        await s.tick(CTX);                     // helper parses the reward
+        await s.tick(CTX);                     // and the same activity goes again
+        expect(ran).toEqual(["A", "H", "A"]);
+        expect(h.state.focus?.blockId).toBe("A");
+    });
+
+    it("keeps the activity across a reload", async () => {
+        // The whole point of persisting it: a fight ends on a result page, the
+        // page reloads, and a fresh scheduler must come back to the same block.
+        const h = makePorts();
+        const ran: string[] = [];
+        const bReady = { v: false }, aReady = { v: true };
+        const s1 = new BlockScheduler(reg(gated("B", bReady, ran), gated("A", aReady, ran)), ["B", "A"], h.ports);
+        await s1.tick(CTX);
+        expect(ran).toEqual(["A"]);
+        bReady.v = true;
+
+        const s2 = new BlockScheduler(reg(gated("B", bReady, ran), gated("A", aReady, ran)), ["B", "A"], h.ports);
+        await s2.tick(CTX);
+        expect(ran).toEqual(["A", "A"]);
+    });
+
+    it("abandons an activity that can never be served", async () => {
+        // An interrupter that stays ready forever would keep being offered the
+        // slot; without a backstop the activity would never end.
+        const h = makePorts();
+        const ran: string[] = [];
+        const A = gated("A", { v: false }, ran);                 // never ready again
+        const C = gated("C", { v: true }, ran, { runsDuringFocus: true, holdsFocus: false });
+        const s = new BlockScheduler(reg(A, C), ["A", "C"], h.ports, { focusStaleMs: 60_000 });
+        h.state.focus = { blockId: "A", lastRunAt: h.ctl.time };
+
+        await s.tick(CTX);
+        expect(h.state.focus?.blockId).toBe("A");                // still trying
+
+        h.ctl.time += 61_000;
+        await s.tick(CTX);
+        expect(h.state.focus).toBeNull();
+    });
+
+    it("drops the activity when the master switch goes off", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const s = new BlockScheduler(reg(gated("A", { v: true }, ran)), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(h.state.focus?.blockId).toBe("A");
+        h.ctl.masterOff = true;
+        await s.tick(CTX);
+        expect(h.state.focus).toBeNull();
+    });
+
+    it("drops the activity when its run is aborted", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        const A = gated("A", { v: true }, ran);
+        const F = block("F", [step("boom", { ok: false, reason: "nope", retryable: true })]);
+        const s = new BlockScheduler(reg(A, F), ["A", "F"], h.ports);
+        await s.tick(CTX);
+        expect(h.state.focus?.blockId).toBe("A");
+
+        const s2 = new BlockScheduler(reg(F), ["F"], h.ports);   // A gone -> F runs and fails
+        await s2.tick(CTX);
+        expect(h.state.focus).toBeNull();
     });
 });

@@ -2714,6 +2714,11 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+HHStoredVars[HHStoredVarPrefixKey + TK.blockFocus] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
     {
     storage:"localStorage",
