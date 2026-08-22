@@ -7,6 +7,27 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.0 - Every block says whether it is running
+
+- Each block in the settings menu (Salary, Daily Goals, Champions, ...) now
+  carries a coloured dot on its heading: **green** it runs, **red** nothing in
+  it is switched on, **amber** it is set up but will not run. Blocks that
+  cannot be on or off at all -- thresholds, opponent filters, team settings,
+  display options -- stay unmarked, because "on" would mean nothing there.
+- Amber is the case a plain on/off marker gets backwards: +Event configured
+  down to the buying while Auto troll battle is off, or Labyrinth hard mode set
+  with Labyrinth itself off. Nothing runs there, and it is not a decision --
+  it is the forgotten toggle. The same applies to the mythic and love-raid
+  blocks, which all need Auto troll battle to do anything.
+- The count on the tab rail counts **blocks** now instead of single switches,
+  so "3/9" reads in the same units the areas are named in. It takes the same
+  three colours, and amber wins for the whole area even when other blocks in it
+  run -- so a forgotten toggle is visible on the rail without opening the area.
+- Books and Gifts in the shop count as running blocks now. Both spend money the
+  moment they are on, exactly like Boosters, and were missing from the count.
+- A block for a feature this game does not have (no Pachinko, no Labyrinth) no
+  longer sits in the denominator of the count. It was hidden but still counted.
+
 ### v8.10.24 - "Change team" actually goes to the team page
 
 - The Change team button on the league page linked to a bare `/teams.html`,

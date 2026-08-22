@@ -88,9 +88,20 @@ GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.0
 GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
 GM_addStyle('#sMenu .menuTabBadge {margin-left:auto; padding:0 5px; border-radius:8px; font-size:10px; font-weight:normal;'
             +' line-height:15px; min-width:26px; text-align:center; background:rgba(255,162,62,.18); color:#ffa23e;}');
-// 0/n stays legible but recedes: nothing running is a normal state, not a warning.
-GM_addStyle('#sMenu .menuTabBadge.idle {background:rgba(152,161,145,.14); color:#98a191;}');
-GM_addStyle('#sMenu.menuStacked .menuTabBadge {margin-left:8px;}');
+// An area with nothing that can be on (Harem) gets no pill at all.
+GM_addStyle('#sMenu .menuTabBadge:empty {display:none;}');
+// The three states (#1834), same vocabulary on the rail and on every block
+// heading: green it runs, amber it is set up but will not run, red nothing is
+// on here. Amber wins for the whole area even when something else in it runs --
+// it is the only one of the three that asks the user to do anything, and the
+// point of it is to be visible before the area is opened.
+GM_addStyle('#sMenu .menuTabBadge[data-state="on"] {background:rgba(122,199,122,.20); color:#8bd17c;}');
+GM_addStyle('#sMenu .menuTabBadge[data-state="conflict"] {background:rgba(255,192,67,.24); color:#ffc043;}');
+GM_addStyle('#sMenu .menuTabBadge[data-state="off"] {background:rgba(224,122,118,.18); color:#e07a76;}');
+// The rail is gone in the stacked layout, so the count moves to the area
+// heading there -- and stays out of the way while the rail is showing it.
+GM_addStyle('#sMenu .menuPaneBadge {display:none;}');
+GM_addStyle('#sMenu.menuStacked .menuPaneBadge:not(:empty) {display:inline-block; margin-left:8px; vertical-align:middle;}');
 // Compact density (#1834). The panel is a fixed 820x540 CSS px inside the
 // game's transform, so a larger screen magnifies it instead of fitting more
 // in. Trading row height and type size is the only way to raise the number of
@@ -125,6 +136,22 @@ GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-ra
 GM_addStyle('#sMenu .menuGroup.wide {grid-column:1/-1;}');
 GM_addStyle('#sMenu .menuGroup.wide > .menuGroupRows {display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); column-gap:18px;}');
 GM_addStyle('#sMenu .menuGroupTitle {color:#ffa23e; font-weight:bold; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;}');
+// Block state (#1834). Only groups that can actually be running carry a dot
+// and a coloured heading; thresholds, opponent filters and display options
+// keep the plain orange, because "on" would mean nothing there. The dot takes
+// the heading colour, so red/green colour deficiency still leaves the marker
+// readable by position and by the count on the rail.
+GM_addStyle('#sMenu .menuBlockDot {display:inline-block; width:7px; height:7px; border-radius:50%;'
+            +' margin-right:5px; vertical-align:middle; background:currentColor;}');
+GM_addStyle('#sMenu .menuGroup[data-state="on"] > .menuGroupTitle {color:#8bd17c;}');
+GM_addStyle('#sMenu .menuGroup[data-state="conflict"] > .menuGroupTitle {color:#ffc043;}');
+GM_addStyle('#sMenu .menuGroup[data-state="off"] > .menuGroupTitle {color:#e07a76;}');
+GM_addStyle('#sMenu .menuGroup[data-state="on"] {border-color:rgba(139,209,124,.55);}');
+// Off is the resting state of most blocks, so its border stays faint: a panel
+// of loud red borders would be as unreadable as no marking at all.
+GM_addStyle('#sMenu .menuGroup[data-state="off"] {border-color:rgba(224,122,118,.30);}');
+GM_addStyle('#sMenu .menuGroup[data-state="conflict"] {border-color:rgba(255,192,67,.75); background:rgba(255,192,67,.07);}');
+GM_addStyle('#sMenu.menuCompact .menuBlockDot {width:6px; height:6px; margin-right:4px;}');
 // The row: flexible label column, fixed control column.
 GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:21px; padding:1px 0;}');
 GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');

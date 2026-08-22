@@ -25,7 +25,7 @@ import { safeReload } from "./PageNavigationService";
 import { doStatUpgrades } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { addEventsOnMenuItems, applyMenuLayout, getMenu, getMenuValues, HHMenu, initMenuTabs, maskInactiveMenus, setMenuValues } from "../Helper/HHMenuHelper";
-import { applyMenuDensity, bindTabBadgeUpdates, refreshTabBadges } from "../Helper/menu/MenuTabs";
+import { applyMenuDensity, bindMenuStateUpdates, refreshMenuState } from "../Helper/menu/MenuTabs";
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
 import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
@@ -466,9 +466,9 @@ export function start() {
     setMenuValues();
     getMenuValues();
     // Only now do the checkboxes carry their stored state, so this is the
-    // earliest point at which the rail badges can show real numbers.
-    refreshTabBadges(getStoredValue(HHStoredVarPrefixKey + TK.Debug) === "true");
-    bindTabBadgeUpdates();
+    // earliest point at which the block marks and rail badges can be real.
+    refreshMenuState();
+    bindMenuStateUpdates();
     applyMenuDensity(getStoredValue(HHStoredVarPrefixKey + SK.menuCompact) === "true");
     manageToolTipsDisplay();
 

@@ -32,6 +32,7 @@ import { getTextForUI } from "./LanguageHelper";
 import { getPage } from './PageHelper';
 import { getStoredValue } from "./StorageHelper";
 import { getMenuValues, setMenuValues } from "./menu/MenuSettings";
+import { refreshMenuState } from "./menu/MenuTabs";
 
 export { getMenu } from "./menu/MenuTemplate";
 export { applyMenuLayout, initMenuTabs } from "./menu/MenuTabs";
@@ -94,6 +95,10 @@ export class HHMenu {
             if (sMenu != null) {
                 if (sMenu.style.display === "none") {
                     setMenuValues();
+                    // setMenuValues() rewrites every input from storage, so a
+                    // settings import or a reset since the last open would
+                    // otherwise leave the marks showing the old configuration.
+                    refreshMenuState();
                     sMenu.style.display = "flex";
                     $('#contains_all')[0].style.zIndex = '9';
                 }

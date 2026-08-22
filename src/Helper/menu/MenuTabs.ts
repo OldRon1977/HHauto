@@ -30,7 +30,7 @@ import { HHAuto_inputPattern } from "../../config/InputPattern";
 import { SK, TK } from "../../config/StorageKeys";
 import { MenuPorts } from "./MenuPorts";
 import { resolveMenuOrder } from "./MenuOrder";
-import { countActive, formatBadge } from "./MenuBadge";
+import { areaState, blockState, countBlocks, formatBadge, BlockState } from "./MenuBadge";
 import { hhMenuInput, hhMenuInputWithImg, hhMenuSelect, hhMenuSwitch, hhMenuSwitchWithImg } from "./MenuWidgets";
 
 const t = (key: string): string => MenuPorts.getTextForUI(key, "elementText");
@@ -42,11 +42,28 @@ const t = (key: string): string => MenuPorts.getTextForUI(key, "elementText");
  * used where a row holds a dropdown or a long text field that will not fit
  * beside a label in a single narrow column.
  */
-function group(titleKey: string, rows: string, maskId = '', wide = false): string {
-    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}>`
-        + `<div class="menuGroupTitle">${t(titleKey)}</div>`
+function group(titleKey: string, rows: string, maskId = '', wide = false, state = ''): string {
+    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}${state}>`
+        + `<div class="menuGroupTitle">${state ? `<span class="menuBlockDot"></span>` : ``}${t(titleKey)}</div>`
         + `<div class="menuGroupRows">${rows}</div>`
         + `</div>`;
+}
+
+/**
+ * Declares a group to be a *block*: something that is either running or not,
+ * so its heading can say so (#1834). The definition is carried on the element
+ * as data attributes rather than in a second table beside the markup, so a
+ * block and its switches can only ever be edited in one place, and the repaint
+ * reads exactly what is on screen -- a group this game hides is skipped
+ * because it is not there, not because a list remembered to leave it out.
+ *
+ * The three lists and why a switch lands in one or the other: see BlockDef in
+ * MenuBadge.ts.
+ */
+function block(masters: readonly string[], requires: readonly string[] = [], options: readonly string[] = []): string {
+    return ` data-block="${masters.join(',')}"`
+        + (requires.length > 0 ? ` data-requires="${requires.join(',')}"` : ``)
+        + (options.length > 0 ? ` data-options="${options.join(',')}"` : ``);
 }
 
 /** A row the widgets cannot build: a switch with its own number field next to it. */
@@ -71,27 +88,6 @@ interface TabDef {
     icon: string;
     nameKey: string;
     titleKey: string;
-    /**
-     * The switches in this area that make the script *act*, for the rail badge
-     * (see MenuBadge.ts for why a count and not a red/green marker).
-     *
-     * Curated on purpose, not derived by a name rule -- `autoLeagues` and
-     * `autoSeasonSkipLowMojo` both start with "auto" and only one of them does
-     * anything on its own. Seeded from the settings the pipeline actually gates
-     * its blocks on (`SK.` reads in Pipeline.config.ts) and then trimmed:
-     *
-     *   - modifiers are out. `plusEvent`, `useX10Fights`, `autoChampsUseEne`,
-     *     `autoLeaguesBoostedOnly` only steer a run the master switch starts.
-     *   - limiters are out. `paranoia` and `mousePause` restrain the script,
-     *     they never make it do something.
-     *   - display is out. Every `show*` / `hide*` / `compact*` / `invert*`.
-     *   - the `…CollectAll` variants are IN: the pipeline preconditions gate
-     *     them independently of their `…Collect` sibling, so either one alone
-     *     is enough to make the block run.
-     *
-     * An area with nothing to count (Harem is display-only) gets no badge.
-     */
-    masters: readonly string[];
     groups: string;
 }
 
@@ -100,10 +96,6 @@ function tabs(debugEnabled: boolean): TabDef[] {
     return [
     {
         id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
-        masters: [
-            'autoFreeBundlesCollect',
-            'collectEventChest',
-        ],
         groups:
             group('menuSecBasics',
                 hhMenuSwitch('paranoia')
@@ -123,13 +115,11 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
             + group('menuSecAutoCollect',
                 hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
-                + hhMenuSwitch('collectEventChest')),
+                + hhMenuSwitch('collectEventChest'),
+                '', false, block(['autoFreeBundlesCollect', 'collectEventChest'])),
     },
     {
         id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
-        masters: [
-            'autoAdsClick',
-        ],
         groups:
             group('menuSecInfoPanel',
                 hhMenuSwitch('showInfo')
@@ -140,45 +130,35 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('AllMaskRewards', '', false, true))
             + group('menuSecAds',
                 hhMenuSwitch('showAdsBack', '', false, true)
-                + hhMenuSwitch('autoAdsClick')),
+                + hhMenuSwitch('autoAdsClick'),
+                '', false, block(['autoAdsClick'])),
     },
     {
         id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
-        masters: [
-            'autoMission',
-            'autoMissionCollect',
-            'autoContest',
-            'autoDailyGoals',
-            'autoDailyGoalsCollect',
-            'autoFreePachinko',
-            'autoSalary',
-            'autoPowerPlaces',
-            'autoQuest',
-            'autoSideQuest',
-            'autoPoVCollect',
-            'autoPoVCollectAll',
-            'autoPoGCollect',
-            'autoPoGCollectAll',
-        ],
         groups:
             group('autoActivitiesTitle',
                 hhMenuSwitch('autoMission')
                 + hhMenuSwitch('autoMissionCollect')
                 + hhMenuSwitch('autoMissionKFirst')
                 + hhMenuSwitch('compactMissions', '', false, true)
-                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission')
+                + hhMenuSwitch('invertMissions', '', false, true),
+                'isEnabledMission', false, block(['autoMission', 'autoMissionCollect'], [], ['autoMissionKFirst']))
             + group('menuSecContests',
                 hhMenuSwitch('autoContest')
-                + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest')
+                + hhMenuSwitch('compactEndedContests', '', false, true),
+                'isEnabledContest', false, block(['autoContest']))
             + group('dailyGoalsTitle',
                 debugOnly(debugEnabled, hhMenuSwitch('autoDailyGoals'))
                 + hhMenuSwitch('autoDailyGoalsCollect')
-                + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals')
+                + hhMenuSwitch('compactDailyGoals', '', false, true),
+                'isEnabledDailyGoals', false, block(['autoDailyGoals', 'autoDailyGoalsCollect']))
             + group('menuSecPachinko',
-                hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko')
+                hhMenuSwitch('autoFreePachinko'),
+                'isEnabledPachinko', false, block(['autoFreePachinko']))
             + group('menuSecSalary',
                 hhMenuSwitch('autoSalary')
-                + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
+                + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'),
+                'isEnabledSalary', false, block(['autoSalary']))
             + group('powerPlacesTitle',
                 hhMenuSwitch('autoPowerPlaces')
                 + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
@@ -186,43 +166,49 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('autoPowerPlacesPrecision')
                 + hhMenuSwitch('autoPowerPlacesInverted')
                 + hhMenuSwitch('autoPowerPlacesWaitMax')
-                + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true)
+                + hhMenuSwitch('compactPowerPlace', '', false, true),
+                'isEnabledPowerPlaces', true, block(['autoPowerPlaces'], [],
+                    ['autoPowerPlacesAll', 'autoPowerPlacesPrecision', 'autoPowerPlacesInverted', 'autoPowerPlacesWaitMax']))
             + group('menuSecQuests',
                 hhMenuSwitch('autoQuest')
                 + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
-                + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest')
+                + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'),
+                'isEnabledQuest', false, block(['autoQuest', 'autoSideQuest']))
             + group('povTitle',
                 hhMenuSwitch('autoPoVCollect')
-                + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV')
+                + hhMenuSwitch('autoPoVCollectAll'),
+                'isEnabledPoV', false, block(['autoPoVCollect', 'autoPoVCollectAll']))
             + group('pogTitle',
                 hhMenuSwitch('autoPoGCollect')
-                + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG'),
+                + hhMenuSwitch('autoPoGCollectAll'),
+                'isEnabledPoG', false, block(['autoPoGCollect', 'autoPoGCollectAll'])),
     },
     {
         id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
-        masters: [
-            'autoTrollBattle',
-        ],
         groups:
             group('menuSecStandardTroll',
                 hhMenuSwitch('autoTrollBattle')
                 + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
                 + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
-                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true)
+                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'),
+                'isEnabledTrollBattle', true, block(['autoTrollBattle']))
             + group('menuSecEventTrolls',
                 hhMenuSwitch('plusEvent')
                 + hhMenuInput('eventTrollOrder', P.eventTrollOrder, 'width:150px')
                 + hhMenuSwitch('buyCombat', '', true)
                 + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
                 + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                + hhMenuSwitch('plusEventSandalWood'), '', true)
+                + hhMenuSwitch('plusEventSandalWood'),
+                '', true, block(['plusEvent'], ['autoTrollBattle'], ['buyCombat', 'plusEventSandalWood']))
             + group('menuSecMythicEvent',
                 hhMenuSwitch('plusEventMythic')
                 + hhMenuSwitch('autoTrollMythicByPassParanoia')
                 + hhMenuSwitch('buyMythicCombat', '', true)
                 + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                 + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
-                + hhMenuSwitch('plusEventMythicSandalWood'), '', true)
+                + hhMenuSwitch('plusEventMythicSandalWood'),
+                '', true, block(['plusEventMythic'], ['autoTrollBattle'],
+                    ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
             + group('loveRaidTitle',
                 hhMenuSwitch('plusLoveRaid')
                 + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
@@ -230,7 +216,9 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
                 + hhMenuSwitch('buyLoveRaidCombat', '', true)
                 + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true)
+                + hhMenuSwitch('plusEventLoveRaidSandalWood'),
+                '', true, block(['plusLoveRaid'], ['autoTrollBattle'],
+                    ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
             + group('menuSecShardsSkins',
                 hhMenuSwitch('plusGirlSkins')
                 + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
@@ -244,17 +232,13 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
-        masters: [
-            'autoSeason',
-            'autoSeasonCollect',
-            'autoSeasonCollectAll',
-        ],
         groups:
             group('menuSecFightCollect',
                 hhMenuSwitch('autoSeason')
                 + hhMenuSwitch('autoSeasonCollect')
                 + hhMenuSwitch('autoSeasonCollectAll')
-                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true)
+                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'),
+                'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
             + group('menuSecOpponents',
                 hhMenuSwitch('autoSeasonBoostedOnly')
                 + hhMenuSwitch('autoSeasonSkipLowMojo')
@@ -268,15 +252,12 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
-        masters: [
-            'autoLeagues',
-            'autoLeaguesCollect',
-        ],
         groups:
             group('menuSecFightCollect',
                 hhMenuSwitch('autoLeagues')
                 + hhMenuSwitch('autoLeaguesCollect')
-                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true)
+                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'),
+                'isEnabledLeagues', true, block(['autoLeagues', 'autoLeaguesCollect']))
             + group('menuSecOpponents',
                 hhMenuSelect('autoLeaguesSortMode', 'max-width:130px;')
                 + hhMenuSwitch('autoLeaguesBoostedOnly')
@@ -290,24 +271,22 @@ function tabs(debugEnabled: boolean): TabDef[] {
     },
     {
         id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
-        masters: [
-            'autoChamps',
-            'autoClubChamp',
-            'autoPantheon',
-        ],
         groups:
             group('autoChampsTitle',
                 hhMenuSwitch('autoChamps')
                 + hhMenuSwitch('autoChampsForceStart')
                 + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
                 + hhMenuInput('autoChampsFilter', P.autoChampsFilter, 'text-align:center; width:70px')
-                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps')
+                + hhMenuSwitch('autoChampsForceStartEventGirl'),
+                'isEnabledChamps', false, block(['autoChamps'], [],
+                    ['autoChampsForceStart', 'autoChampsUseEne', 'autoChampsForceStartEventGirl']))
             + group('menuSecClubChamp',
                 hhMenuSwitch('autoClubChamp')
                 + hhMenuSwitch('autoClubForceStart')
                 + hhMenuInputWithImg('autoClubChampMax', P.autoClubChampMax, 'text-align:center; width:50px', 'pictures/design/champion_ticket.png', 'numeric')
                 + hhMenuSwitch('showClubButtonInPoa')
-                + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp')
+                + hhMenuSwitch('autoChampAlignTimer'),
+                'isEnabledClubChamp', false, block(['autoClubChamp'], [], ['autoClubForceStart', 'autoChampAlignTimer']))
             + group('menuSecTeam',
                 hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
                 + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
@@ -317,70 +296,52 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 hhMenuSwitch('autoPantheon')
                 + hhMenuInputWithImg('autoPantheonThreshold', P.autoPantheonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
                 + hhMenuInputWithImg('autoPantheonRunThreshold', P.autoPantheonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
-                + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon'),
+                + hhMenuSwitch('autoPantheonBoostedOnly'),
+                'isEnabledPantheon', false, block(['autoPantheon'], [], ['autoPantheonBoostedOnly'])),
     },
     {
         id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
-        masters: [
-            'autoLabyrinth',
-        ],
         groups:
             group('autoLabyrinthTitle',
                 hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
                 + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
-                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true),
+                + hhMenuSwitch('autoLabyCustomTeamBuilder'),
+                'isEnabledLabyrinth', true, block(['autoLabyrinth'], [],
+                    ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
     },
     {
         id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
-        masters: [
-            'autoStatsSwitch',
-            'autoBuyBoosters',
-            'autoEquipBoosters',
-        ],
         groups:
             group('menuSecStats',
                 hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
-                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop')
+                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'),
+                'isEnabledShop', false, block(['autoStatsSwitch']))
             + group('menuSecBooks',
                 hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
                 + hhMenuInput('maxExp', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'),
+                '', false, block(['autoExpW']))
             + group('menuSecGifts',
                 hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
                 + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'),
+                '', false, block(['autoAffW']))
             + group('menuSecBoosters',
                 hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
                 + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                 + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                 + hhMenuSwitch('autoEquipBoosters')
                 + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
-                + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true)
+                + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'),
+                '', true, block(['autoBuyBoosters', 'autoEquipBoosters']))
             + group('menuSecMarketTools',
                 hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                 + hhMenuSwitch('updateMarket')),
     },
     {
         id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
-        masters: [
-            'autoPentaDrill',
-            'autoPentaDrillCollect',
-            'autoPentaDrillCollectAll',
-            'autoSeasonalEventCollect',
-            'autoSeasonalEventCollectAll',
-            'autoSeasonalBuyFreeCard',
-            'autodpEventCollect',
-            'autodpEventCollectAll',
-            'autoLivelySceneEventCollect',
-            'autoLivelySceneEventCollectAll',
-            'sultryMysteriesEventRefreshShop',
-            'sultryMysteriesAutoOpen',
-            'bossBangEvent',
-            'autoPoACollect',
-            'autoPoACollectAll',
-        ],
         groups:
             group('menuSecEventDisplay',
                 hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
@@ -390,30 +351,38 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('autoPentaDrillCollectAll')
                 + hhMenuSwitch('autoPentaDrillBoostedOnly')
                 + hhMenuInputWithImg('autoPentaDrillThreshold', P.autoPentaDrillThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric')
-                + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true)
+                + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'),
+                'isEnabledPentaDrill', true, block(['autoPentaDrill', 'autoPentaDrillCollect', 'autoPentaDrillCollectAll'], [],
+                    ['autoPentaDrillBoostedOnly']))
             + group('seasonalEventTitle',
                 hhMenuSwitch('autoSeasonalEventCollect')
                 + hhMenuSwitch('autoSeasonalEventCollectAll')
-                + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent')
+                + hhMenuSwitch('autoSeasonalBuyFreeCard'),
+                'isEnabledSeasonalEvent', false,
+                block(['autoSeasonalEventCollect', 'autoSeasonalEventCollectAll', 'autoSeasonalBuyFreeCard']))
             + group('doublePenetrationEventTitle',
                 hhMenuSwitch('autodpEventCollect')
-                + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent')
+                + hhMenuSwitch('autodpEventCollectAll'),
+                'isEnabledDPEvent', false, block(['autodpEventCollect', 'autodpEventCollectAll']))
             + group('livelySceneEventTitle',
                 hhMenuSwitch('autoLivelySceneEventCollect')
-                + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent')
+                + hhMenuSwitch('autoLivelySceneEventCollectAll'),
+                'isEnabledLivelySceneEvent', false, block(['autoLivelySceneEventCollect', 'autoLivelySceneEventCollectAll']))
             + group('sultryMysteriesEventTitle',
                 hhMenuSwitch('sultryMysteriesEventRefreshShop')
-                + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent')
+                + hhMenuSwitch('sultryMysteriesAutoOpen'),
+                'isEnabledSultryMysteriesEvent', false, block(['sultryMysteriesEventRefreshShop', 'sultryMysteriesAutoOpen']))
             + group('bossBangEventTitle',
                 hhMenuSwitch('bossBangEvent')
-                + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent')
+                + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'),
+                'isEnabledBossBangEvent', false, block(['bossBangEvent']))
             + group('poaTitle',
                 hhMenuSwitch('autoPoACollect')
-                + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa'),
+                + hhMenuSwitch('autoPoACollectAll'),
+                'isEnabledPoa', false, block(['autoPoACollect', 'autoPoACollectAll'])),
     },
     {
         id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
-        masters: [],
         groups:
             group('haremTitle',
                 hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
@@ -456,17 +425,22 @@ export function buildTabbedBody(debugEnabled: boolean): string {
     const defs = order
         .map(id => declared.find(tab => tab.id === id))
         .filter((tab): tab is TabDef => tab !== undefined);
-    // The badge is filled in by refreshTabBadges() once the checkboxes carry
-    // their stored state; rendering it here would always read "0/n".
+    // The badge is filled in by refreshMenuState() once the checkboxes carry
+    // their stored state; rendering it here would always read "0/n". An area
+    // with nothing to count (Harem) has its badge emptied and hidden there,
+    // for the same reason: only the repaint knows what this game shows.
     const rail = defs.map(tab =>
         `<div class="menuTab" data-tab="${tab.id}">`
             + `<span class="menuTabIcon">${tab.icon}</span>`
             + `<span class="menuTabName">${t(tab.nameKey)}</span>`
-            + (tab.masters.length > 0 ? `<span class="menuTabBadge" data-badge="${tab.id}"></span>` : ``)
+            + `<span class="menuTabBadge" data-badge="${tab.id}"></span>`
         + `</div>`).join('');
+    // The stacked layout hides the rail, so the area count needs a second home
+    // there: the pane heading. Same data-badge, so one repaint fills both.
     const panes = defs.map(tab =>
         `<div class="menuPane" data-pane="${tab.id}">`
-            + `<div class="menuPaneTitle">${t(tab.titleKey)}</div>`
+            + `<div class="menuPaneTitle">${t(tab.titleKey)}`
+                + `<span class="menuTabBadge menuPaneBadge" data-badge="${tab.id}"></span></div>`
             + `<div class="menuGroups">${tab.groups}</div>`
         + `</div>`).join('');
     return `<div class="menuBody">`
@@ -597,42 +571,100 @@ export function visibleMenuAreas(): MenuAreaRow[] {
 }
 
 /**
- * Read a switch straight from the panel rather than from storage, so the badge
- * follows a click immediately -- before the value is written. `undefined` means
- * the row is not in this build's markup (see countActive).
+ * Read a switch straight from the panel rather than from storage, so the marks
+ * follow a click immediately -- before the value is written. `undefined` means
+ * the row is not in this build's markup (see blockState).
  */
 function switchState(key: string): boolean | undefined {
     const el = document.getElementById(key);
     return el === null ? undefined : (el as HTMLInputElement).checked;
 }
 
-/** Repaint every badge from the current checkbox states. */
-export function refreshTabBadges(debugEnabled = false): void {
-    for (const tab of tabs(debugEnabled)) {
-        if (tab.masters.length === 0) continue;
-        const el = document.querySelector(`[data-badge="${tab.id}"]`);
-        if (el === null) continue;
-        const count = countActive(tab.masters, switchState);
-        el.textContent = formatBadge(count);
-        el.classList.toggle('idle', count.on === 0);
+/** `data-block="a,b"` as a list; `[]` when the attribute is absent or empty. */
+function attrList(el: HTMLElement, name: string): string[] {
+    const raw = el.getAttribute(name);
+    return raw === null || raw === '' ? [] : raw.split(',');
+}
+
+/**
+ * Whether the game hid this group.
+ *
+ * maskInactiveMenus() sets display:none on the group element of a feature this
+ * game does not have, and debugOnly() wraps whole groups in a hidden div --
+ * both leave the switches in the DOM with their stored values. Counting those
+ * would put a block in the denominator that the player cannot see, so the walk
+ * goes up to the pane looking for either kind of hiding.
+ */
+function isHidden(el: HTMLElement): boolean {
+    for (let node: HTMLElement | null = el; node !== null; node = node.parentElement) {
+        if (node.style.display === 'none') return true;
+        if (node.classList.contains('menuPane')) break;
+    }
+    return false;
+}
+
+/** Which label explains which colour, for the tooltip on a block's dot. */
+const STATE_TEXT_KEY: Record<'on' | 'conflict' | 'off', string> = {
+    on: 'menuBlockOn',
+    conflict: 'menuBlockConflict',
+    off: 'menuBlockOff',
+};
+
+/**
+ * Repaint every block heading and every area count from the current checkbox
+ * states (#1834).
+ *
+ * Everything is read off the panel: which blocks exist, which the game hides,
+ * and what each switch is set to. Nothing here has to be kept in step with the
+ * markup by hand.
+ */
+export function refreshMenuState(): void {
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null) return;
+    for (const paneEl of Array.from(panes.querySelectorAll('.menuPane')) as HTMLElement[]) {
+        const states: BlockState[] = [];
+        for (const groupEl of Array.from(paneEl.querySelectorAll('.menuGroup[data-block]')) as HTMLElement[]) {
+            const state = isHidden(groupEl) ? 'none' : blockState({
+                masters: attrList(groupEl, 'data-block'),
+                requires: attrList(groupEl, 'data-requires'),
+                options: attrList(groupEl, 'data-options'),
+            }, switchState);
+            states.push(state);
+            if (state === 'none') {
+                groupEl.removeAttribute('data-state');
+                continue;
+            }
+            groupEl.setAttribute('data-state', state);
+            // What the colour means, in words, for anyone who does not read a
+            // dot the way the panel intends it.
+            const dot = groupEl.querySelector('.menuBlockDot');
+            if (dot !== null) dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
+        }
+        const count = countBlocks(states);
+        const text = formatBadge(count);
+        const state = areaState(count);
+        for (const badge of Array.from(
+            panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`)) as HTMLElement[]) {
+            badge.textContent = text;
+            badge.setAttribute('data-state', state);
+        }
     }
 }
 
-let badgeHandlersBound = false;
+let stateHandlersBound = false;
 
 /**
- * Keep the badges in step with the panel. Delegated on the panes container, so
- * it survives a layout switch and covers rows built later; the debug flag is
- * read per event because turning Debug on adds rows.
+ * Keep the marks in step with the panel. Delegated on the panes container, so
+ * it survives a layout switch and covers rows built later.
  */
-export function bindTabBadgeUpdates(): void {
-    if (badgeHandlersBound) return;
+export function bindMenuStateUpdates(): void {
+    if (stateHandlersBound) return;
     const panes = document.getElementById('sMenuPanes');
     if (panes === null) return;
-    badgeHandlersBound = true;
+    stateHandlersBound = true;
     panes.addEventListener('change', (event) => {
         const target = event.target as HTMLElement | null;
         if (target === null || (target as HTMLInputElement).type !== 'checkbox') return;
-        refreshTabBadges(MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.Debug) === "true");
+        refreshMenuState();
     });
 }

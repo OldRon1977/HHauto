@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.24
+// @version      8.11.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -88,9 +88,20 @@ GM_addStyle('#sMenu .menuTab:hover {color:#e9e7dd; background:rgba(255,162,62,.0
 GM_addStyle('#sMenu .menuTab.active {color:#e9e7dd; background:rgba(255,162,62,.12); border-left-color:#ffa23e; font-weight:bold;}');
 GM_addStyle('#sMenu .menuTabBadge {margin-left:auto; padding:0 5px; border-radius:8px; font-size:10px; font-weight:normal;'
             +' line-height:15px; min-width:26px; text-align:center; background:rgba(255,162,62,.18); color:#ffa23e;}');
-// 0/n stays legible but recedes: nothing running is a normal state, not a warning.
-GM_addStyle('#sMenu .menuTabBadge.idle {background:rgba(152,161,145,.14); color:#98a191;}');
-GM_addStyle('#sMenu.menuStacked .menuTabBadge {margin-left:8px;}');
+// An area with nothing that can be on (Harem) gets no pill at all.
+GM_addStyle('#sMenu .menuTabBadge:empty {display:none;}');
+// The three states (#1834), same vocabulary on the rail and on every block
+// heading: green it runs, amber it is set up but will not run, red nothing is
+// on here. Amber wins for the whole area even when something else in it runs --
+// it is the only one of the three that asks the user to do anything, and the
+// point of it is to be visible before the area is opened.
+GM_addStyle('#sMenu .menuTabBadge[data-state="on"] {background:rgba(122,199,122,.20); color:#8bd17c;}');
+GM_addStyle('#sMenu .menuTabBadge[data-state="conflict"] {background:rgba(255,192,67,.24); color:#ffc043;}');
+GM_addStyle('#sMenu .menuTabBadge[data-state="off"] {background:rgba(224,122,118,.18); color:#e07a76;}');
+// The rail is gone in the stacked layout, so the count moves to the area
+// heading there -- and stays out of the way while the rail is showing it.
+GM_addStyle('#sMenu .menuPaneBadge {display:none;}');
+GM_addStyle('#sMenu.menuStacked .menuPaneBadge:not(:empty) {display:inline-block; margin-left:8px; vertical-align:middle;}');
 // Compact density (#1834). The panel is a fixed 820x540 CSS px inside the
 // game's transform, so a larger screen magnifies it instead of fitting more
 // in. Trading row height and type size is the only way to raise the number of
@@ -125,6 +136,22 @@ GM_addStyle('#sMenu .menuGroup {border:1px solid rgba(255,162,62,.55); border-ra
 GM_addStyle('#sMenu .menuGroup.wide {grid-column:1/-1;}');
 GM_addStyle('#sMenu .menuGroup.wide > .menuGroupRows {display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); column-gap:18px;}');
 GM_addStyle('#sMenu .menuGroupTitle {color:#ffa23e; font-weight:bold; text-transform:uppercase; letter-spacing:.06em; margin-bottom:2px;}');
+// Block state (#1834). Only groups that can actually be running carry a dot
+// and a coloured heading; thresholds, opponent filters and display options
+// keep the plain orange, because "on" would mean nothing there. The dot takes
+// the heading colour, so red/green colour deficiency still leaves the marker
+// readable by position and by the count on the rail.
+GM_addStyle('#sMenu .menuBlockDot {display:inline-block; width:7px; height:7px; border-radius:50%;'
+            +' margin-right:5px; vertical-align:middle; background:currentColor;}');
+GM_addStyle('#sMenu .menuGroup[data-state="on"] > .menuGroupTitle {color:#8bd17c;}');
+GM_addStyle('#sMenu .menuGroup[data-state="conflict"] > .menuGroupTitle {color:#ffc043;}');
+GM_addStyle('#sMenu .menuGroup[data-state="off"] > .menuGroupTitle {color:#e07a76;}');
+GM_addStyle('#sMenu .menuGroup[data-state="on"] {border-color:rgba(139,209,124,.55);}');
+// Off is the resting state of most blocks, so its border stays faint: a panel
+// of loud red borders would be as unreadable as no marking at all.
+GM_addStyle('#sMenu .menuGroup[data-state="off"] {border-color:rgba(224,122,118,.30);}');
+GM_addStyle('#sMenu .menuGroup[data-state="conflict"] {border-color:rgba(255,192,67,.75); background:rgba(255,192,67,.07);}');
+GM_addStyle('#sMenu.menuCompact .menuBlockDot {width:6px; height:6px; margin-right:4px;}');
 // The row: flexible label column, fixed control column.
 GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:21px; padding:1px 0;}');
 GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
@@ -628,6 +655,9 @@ HHAuto_ToolTips.en['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Laby
 HHAuto_ToolTips.en['menuTabShop'] = { version: "8.10.0", elementText: "Market", tooltip: "" };
 HHAuto_ToolTips.en['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
 HHAuto_ToolTips.en['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockOn'] = { version: "8.11.0", elementText: "Running: this block is switched on", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockConflict'] = { version: "8.11.0", elementText: "Set up but not running: something here is configured while the switch that starts it is off", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockOff'] = { version: "8.11.0", elementText: "Off: nothing here is switched on", tooltip: "" };
 HHAuto_ToolTips.en['menuSecBasics'] = { version: "8.10.0", elementText: "Basics", tooltip: "" };
 HHAuto_ToolTips.en['menuSecTiming'] = { version: "8.10.0", elementText: "Timing & safety", tooltip: "" };
 HHAuto_ToolTips.en['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Auto collect", tooltip: "" };
@@ -1229,6 +1259,9 @@ HHAuto_ToolTips.de['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Lieb
 HHAuto_ToolTips.de['menuTabShop'] = { version: "8.10.0", elementText: "Markt", tooltip: "" };
 HHAuto_ToolTips.de['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
 HHAuto_ToolTips.de['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockOn'] = { version: "8.11.0", elementText: "Läuft: dieser Block ist eingeschaltet", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockConflict'] = { version: "8.11.0", elementText: "Eingestellt, läuft aber nicht: hier ist etwas konfiguriert, der Schalter, der es startet, ist aus", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockOff'] = { version: "8.11.0", elementText: "Aus: hier ist nichts eingeschaltet", tooltip: "" };
 HHAuto_ToolTips.de['menuSecBasics'] = { version: "8.10.0", elementText: "Grundlagen", tooltip: "" };
 HHAuto_ToolTips.de['menuSecTiming'] = { version: "8.10.0", elementText: "Zeiten & Sicherheit", tooltip: "" };
 HHAuto_ToolTips.de['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Automatisch einsammeln", tooltip: "" };
@@ -29045,46 +29078,81 @@ function isDefaultMenuOrder(order, defaultIds) {
 ;// ./src/Helper/menu/MenuBadge.ts
 // MenuBadge.ts
 //
-// Counts how many of an area's *acting* switches are on, for the badge on the
-// tab rail (#1834). No DOM, no storage, no imports: the caller supplies a
-// reader, so this stays fully unit-testable and a graph leaf.
+// The run-state of one settings block, and the roll-up of an area's blocks for
+// the badge on the tab rail (#1834). No DOM, no storage, no imports: the caller
+// supplies a reader, so this stays fully unit-testable and a graph leaf.
 //
-// Why a count and not the red/green tab colour that was proposed:
+// What the three states mean, and why not simply "a checkbox is ticked":
 //
-//   - "at least one switch is ticked" is not the same as "this area does
+//   - "at least one switch is ticked" is not the same as "this block does
 //     something". Measured against the factory defaults, 7 of the 11 areas
-//     would light up green out of the box -- through `showInfo`,
-//     `showRewardsRecap`, `showClubButtonInPoa`, `hideOwnedGirls` and friends,
-//     which are pure display options. Green would mean "some checkbox is set".
-//   - The reverse case is worse and realistic: `adventure` has 17 switches of
-//     which exactly one, `autoTrollBattle`, makes the script act. With
-//     `plusEvent` ticked and `autoTrollBattle` off, a binary marker reports
-//     green while nothing runs -- precisely the forgotten-toggle case it was
-//     meant to catch.
-//   - A number says *how much* is on, which is what you need when comparing
-//     the same area across several accounts.
-//   - Red/green as the only channel fails for red-green colour deficiency.
-//     A count works without colour; colour can tint the badge on top.
+//     would light up out of the box -- through `showInfo`, `showRewardsRecap`,
+//     `showClubButtonInPoa`, `hideOwnedGirls` and friends, which are pure
+//     display options. Only a block's *acting* switches (`masters`) count.
+//   - The reverse case is the one testers actually run into: `plusEvent` on,
+//     `autoTrollBattle` off. The event-troll block is configured in every
+//     detail and still never runs, because the switch that starts the fighting
+//     is off. A plain on/off marker reports "off" there, which reads as a
+//     deliberate choice rather than the forgotten toggle it is. That case gets
+//     its own state, `conflict`.
+//   - A block that cannot act at all -- thresholds, opponent filters, team
+//     settings, anything display-only -- gets `none` and no marker. Colouring
+//     it would claim it can be on or off when it cannot.
+//
+// So: `on` the block runs, `conflict` it is set up but will not run, `off`
+// nothing is set, `none` there is nothing to be on about.
 /**
- * Count the acting switches of one area.
+ * The state of one block.
  *
  * `isOn` returns `undefined` for a switch that is not in the DOM at all --
- * debug-only rows, or a switch a later version dropped. Those are left out of
- * both numbers rather than counted as off, so the badge never claims a
- * capability the panel does not show.
+ * debug-only rows, or a switch a later version dropped. A block whose masters
+ * are all missing is `none` rather than `off`, so the marker never claims a
+ * capability the panel does not show. A missing *prerequisite* does not block:
+ * a build without that row cannot have the user turn it on.
  */
-function countActive(masters, isOn) {
+function blockState(def, isOn) {
+    var _a, _b;
+    const present = def.masters.filter(key => isOn(key) !== undefined);
+    if (present.length === 0)
+        return 'none';
+    const mastersOn = present.some(key => isOn(key) === true);
+    const blocked = ((_a = def.requires) !== null && _a !== void 0 ? _a : []).some(key => isOn(key) === false);
+    if (mastersOn)
+        return blocked ? 'conflict' : 'on';
+    const configured = ((_b = def.options) !== null && _b !== void 0 ? _b : []).some(key => isOn(key) === true);
+    return configured ? 'conflict' : 'off';
+}
+/** Roll one area's block states up into the numbers behind its badge. */
+function countBlocks(states) {
     let on = 0;
     let total = 0;
-    for (const key of masters) {
-        const state = isOn(key);
-        if (state === undefined)
+    let conflicts = 0;
+    for (const state of states) {
+        if (state === 'none')
             continue;
         total++;
-        if (state)
+        if (state === 'on')
             on++;
+        else if (state === 'conflict')
+            conflicts++;
     }
-    return { on, total };
+    return { on, total, conflicts };
+}
+/**
+ * The colour of the whole area, in the same vocabulary as a single block.
+ *
+ * A conflict wins over everything else: it is the only state that asks the user
+ * to do something, and it has to be visible on the rail, or the point of having
+ * it -- spotting the forgotten toggle without opening the area first -- is
+ * lost. Otherwise anything running makes the area `on`; the count next to it
+ * says how much.
+ */
+function areaState(count) {
+    if (count.total === 0)
+        return 'none';
+    if (count.conflicts > 0)
+        return 'conflict';
+    return count.on > 0 ? 'on' : 'off';
 }
 /** `2/6`, or an empty string for an area with nothing to count (e.g. Harem). */
 function formatBadge(count) {
@@ -29226,11 +29294,27 @@ const t = (key) => MenuPorts.getTextForUI(key, "elementText");
  * used where a row holds a dropdown or a long text field that will not fit
  * beside a label in a single narrow column.
  */
-function group(titleKey, rows, maskId = '', wide = false) {
-    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}>`
-        + `<div class="menuGroupTitle">${t(titleKey)}</div>`
+function group(titleKey, rows, maskId = '', wide = false, state = '') {
+    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}${state}>`
+        + `<div class="menuGroupTitle">${state ? `<span class="menuBlockDot"></span>` : ``}${t(titleKey)}</div>`
         + `<div class="menuGroupRows">${rows}</div>`
         + `</div>`;
+}
+/**
+ * Declares a group to be a *block*: something that is either running or not,
+ * so its heading can say so (#1834). The definition is carried on the element
+ * as data attributes rather than in a second table beside the markup, so a
+ * block and its switches can only ever be edited in one place, and the repaint
+ * reads exactly what is on screen -- a group this game hides is skipped
+ * because it is not there, not because a list remembered to leave it out.
+ *
+ * The three lists and why a switch lands in one or the other: see BlockDef in
+ * MenuBadge.ts.
+ */
+function block(masters, requires = [], options = []) {
+    return ` data-block="${masters.join(',')}"`
+        + (requires.length > 0 ? ` data-requires="${requires.join(',')}"` : ``)
+        + (options.length > 0 ? ` data-options="${options.join(',')}"` : ``);
 }
 /** A row the widgets cannot build: a switch with its own number field next to it. */
 function switchWithInput(switchId, inputId, pattern, width) {
@@ -29252,10 +29336,6 @@ function tabs(debugEnabled) {
     return [
         {
             id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
-            masters: [
-                'autoFreeBundlesCollect',
-                'collectEventChest',
-            ],
             groups: group('menuSecBasics', hhMenuSwitch('paranoia')
                 + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
                 + hhMenuSwitch('settPerTab')
@@ -29270,95 +29350,73 @@ function tabs(debugEnabled) {
                 + group('menuSecKobans', hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
                     + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
                 + group('menuSecAutoCollect', hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
-                    + hhMenuSwitch('collectEventChest')),
+                    + hhMenuSwitch('collectEventChest'), '', false, block(['autoFreeBundlesCollect', 'collectEventChest'])),
         },
         {
             id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
-            masters: [
-                'autoAdsClick',
-            ],
             groups: group('menuSecInfoPanel', hhMenuSwitch('showInfo')
                 + hhMenuSwitch('showInfoLeft', '', false, true)
                 + hhMenuSwitch('showCalculatePower'))
                 + group('menuSecRewards', hhMenuSwitch('showRewardsRecap')
                     + hhMenuSwitch('AllMaskRewards', '', false, true))
                 + group('menuSecAds', hhMenuSwitch('showAdsBack', '', false, true)
-                    + hhMenuSwitch('autoAdsClick')),
+                    + hhMenuSwitch('autoAdsClick'), '', false, block(['autoAdsClick'])),
         },
         {
             id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
-            masters: [
-                'autoMission',
-                'autoMissionCollect',
-                'autoContest',
-                'autoDailyGoals',
-                'autoDailyGoalsCollect',
-                'autoFreePachinko',
-                'autoSalary',
-                'autoPowerPlaces',
-                'autoQuest',
-                'autoSideQuest',
-                'autoPoVCollect',
-                'autoPoVCollectAll',
-                'autoPoGCollect',
-                'autoPoGCollectAll',
-            ],
             groups: group('autoActivitiesTitle', hhMenuSwitch('autoMission')
                 + hhMenuSwitch('autoMissionCollect')
                 + hhMenuSwitch('autoMissionKFirst')
                 + hhMenuSwitch('compactMissions', '', false, true)
-                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission')
+                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission', false, block(['autoMission', 'autoMissionCollect'], [], ['autoMissionKFirst']))
                 + group('menuSecContests', hhMenuSwitch('autoContest')
-                    + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest')
+                    + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest', false, block(['autoContest']))
                 + group('dailyGoalsTitle', debugOnly(debugEnabled, hhMenuSwitch('autoDailyGoals'))
                     + hhMenuSwitch('autoDailyGoalsCollect')
-                    + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals')
-                + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko')
+                    + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals', false, block(['autoDailyGoals', 'autoDailyGoalsCollect']))
+                + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko', false, block(['autoFreePachinko']))
                 + group('menuSecSalary', hhMenuSwitch('autoSalary')
-                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary')
+                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary', false, block(['autoSalary']))
                 + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
                     + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
                     + hhMenuSwitch('autoPowerPlacesAll')
                     + hhMenuSwitch('autoPowerPlacesPrecision')
                     + hhMenuSwitch('autoPowerPlacesInverted')
                     + hhMenuSwitch('autoPowerPlacesWaitMax')
-                    + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true)
+                    + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true, block(['autoPowerPlaces'], [], ['autoPowerPlacesAll', 'autoPowerPlacesPrecision', 'autoPowerPlacesInverted', 'autoPowerPlacesWaitMax']))
                 + group('menuSecQuests', hhMenuSwitch('autoQuest')
                     + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
-                    + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest')
+                    + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest', false, block(['autoQuest', 'autoSideQuest']))
                 + group('povTitle', hhMenuSwitch('autoPoVCollect')
-                    + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV')
+                    + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV', false, block(['autoPoVCollect', 'autoPoVCollectAll']))
                 + group('pogTitle', hhMenuSwitch('autoPoGCollect')
-                    + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG'),
+                    + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG', false, block(['autoPoGCollect', 'autoPoGCollectAll'])),
         },
         {
             id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'autoTrollTitle',
-            masters: [
-                'autoTrollBattle',
-            ],
             groups: group('menuSecStandardTroll', hhMenuSwitch('autoTrollBattle')
                 + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
                 + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
-                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true)
+                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true, block(['autoTrollBattle']))
                 + group('menuSecEventTrolls', hhMenuSwitch('plusEvent')
                     + hhMenuInput('eventTrollOrder', P.eventTrollOrder, 'width:150px')
                     + hhMenuSwitch('buyCombat', '', true)
                     + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
                     + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventSandalWood'), '', true)
+                    + hhMenuSwitch('plusEventSandalWood'), '', true, block(['plusEvent'], ['autoTrollBattle'], ['buyCombat', 'plusEventSandalWood']))
                 + group('menuSecMythicEvent', hhMenuSwitch('plusEventMythic')
                     + hhMenuSwitch('autoTrollMythicByPassParanoia')
                     + hhMenuSwitch('buyMythicCombat', '', true)
                     + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                     + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
-                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true)
+                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true, block(['plusEventMythic'], ['autoTrollBattle'], ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
                 + group('loveRaidTitle', hhMenuSwitch('plusLoveRaid')
                     + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
                     + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
                     + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
                     + hhMenuSwitch('buyLoveRaidCombat', '', true)
                     + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true)
+                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], ['autoTrollBattle'], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
                 + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
                     + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
                 + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)
@@ -29370,15 +29428,10 @@ function tabs(debugEnabled) {
         },
         {
             id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
-            masters: [
-                'autoSeason',
-                'autoSeasonCollect',
-                'autoSeasonCollectAll',
-            ],
             groups: group('menuSecFightCollect', hhMenuSwitch('autoSeason')
                 + hhMenuSwitch('autoSeasonCollect')
                 + hhMenuSwitch('autoSeasonCollectAll')
-                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true)
+                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
                 + group('menuSecOpponents', hhMenuSwitch('autoSeasonBoostedOnly')
                     + hhMenuSwitch('autoSeasonSkipLowMojo')
                     + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
@@ -29390,13 +29443,9 @@ function tabs(debugEnabled) {
         },
         {
             id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
-            masters: [
-                'autoLeagues',
-                'autoLeaguesCollect',
-            ],
             groups: group('menuSecFightCollect', hhMenuSwitch('autoLeagues')
                 + hhMenuSwitch('autoLeaguesCollect')
-                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true)
+                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true, block(['autoLeagues', 'autoLeaguesCollect']))
                 + group('menuSecOpponents', hhMenuSelect('autoLeaguesSortMode', 'max-width:130px;')
                     + hhMenuSwitch('autoLeaguesBoostedOnly')
                     + hhMenuSwitch('autoLeaguesAllowWinCurrent')
@@ -29408,21 +29457,16 @@ function tabs(debugEnabled) {
         },
         {
             id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
-            masters: [
-                'autoChamps',
-                'autoClubChamp',
-                'autoPantheon',
-            ],
             groups: group('autoChampsTitle', hhMenuSwitch('autoChamps')
                 + hhMenuSwitch('autoChampsForceStart')
                 + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
                 + hhMenuInput('autoChampsFilter', P.autoChampsFilter, 'text-align:center; width:70px')
-                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps')
+                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps', false, block(['autoChamps'], [], ['autoChampsForceStart', 'autoChampsUseEne', 'autoChampsForceStartEventGirl']))
                 + group('menuSecClubChamp', hhMenuSwitch('autoClubChamp')
                     + hhMenuSwitch('autoClubForceStart')
                     + hhMenuInputWithImg('autoClubChampMax', P.autoClubChampMax, 'text-align:center; width:50px', 'pictures/design/champion_ticket.png', 'numeric')
                     + hhMenuSwitch('showClubButtonInPoa')
-                    + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp')
+                    + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp', false, block(['autoClubChamp'], [], ['autoClubForceStart', 'autoChampAlignTimer']))
                 + group('menuSecTeam', hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
                     + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuSwitch('autoChampsTeamKeepSecondLine')
@@ -29430,86 +29474,60 @@ function tabs(debugEnabled) {
                 + group('autoPantheonTitle', hhMenuSwitch('autoPantheon')
                     + hhMenuInputWithImg('autoPantheonThreshold', P.autoPantheonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
                     + hhMenuInputWithImg('autoPantheonRunThreshold', P.autoPantheonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
-                    + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon'),
+                    + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon', false, block(['autoPantheon'], [], ['autoPantheonBoostedOnly'])),
         },
         {
             id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
-            masters: [
-                'autoLabyrinth',
-            ],
             groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
                 + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
                 + hhMenuSwitch('autoLabyHard')
                 + hhMenuSwitch('autoLabySweep')
-                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true),
+                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
         },
         {
             id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
-            masters: [
-                'autoStatsSwitch',
-                'autoBuyBoosters',
-                'autoEquipBoosters',
-            ],
             groups: group('menuSecStats', hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
-                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop')
+                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop', false, block(['autoStatsSwitch']))
                 + group('menuSecBooks', hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
                     + hhMenuInput('maxExp', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                    + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                    + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoExpW']))
                 + group('menuSecGifts', hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
                     + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                    + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'))
+                    + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoAffW']))
                 + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
                     + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                     + hhMenuSwitch('autoEquipBoosters')
                     + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
-                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true)
+                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true, block(['autoBuyBoosters', 'autoEquipBoosters']))
                 + group('menuSecMarketTools', hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
                     + hhMenuSwitch('updateMarket')),
         },
         {
             id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
-            masters: [
-                'autoPentaDrill',
-                'autoPentaDrillCollect',
-                'autoPentaDrillCollectAll',
-                'autoSeasonalEventCollect',
-                'autoSeasonalEventCollectAll',
-                'autoSeasonalBuyFreeCard',
-                'autodpEventCollect',
-                'autodpEventCollectAll',
-                'autoLivelySceneEventCollect',
-                'autoLivelySceneEventCollectAll',
-                'sultryMysteriesEventRefreshShop',
-                'sultryMysteriesAutoOpen',
-                'bossBangEvent',
-                'autoPoACollect',
-                'autoPoACollectAll',
-            ],
             groups: group('menuSecEventDisplay', hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
                 + group('autoPentaDrillTitle', hhMenuSwitch('autoPentaDrill')
                     + hhMenuSwitch('autoPentaDrillCollect')
                     + hhMenuSwitch('autoPentaDrillCollectAll')
                     + hhMenuSwitch('autoPentaDrillBoostedOnly')
                     + hhMenuInputWithImg('autoPentaDrillThreshold', P.autoPentaDrillThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric')
-                    + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true)
+                    + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true, block(['autoPentaDrill', 'autoPentaDrillCollect', 'autoPentaDrillCollectAll'], [], ['autoPentaDrillBoostedOnly']))
                 + group('seasonalEventTitle', hhMenuSwitch('autoSeasonalEventCollect')
                     + hhMenuSwitch('autoSeasonalEventCollectAll')
-                    + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent')
+                    + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent', false, block(['autoSeasonalEventCollect', 'autoSeasonalEventCollectAll', 'autoSeasonalBuyFreeCard']))
                 + group('doublePenetrationEventTitle', hhMenuSwitch('autodpEventCollect')
-                    + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent')
+                    + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent', false, block(['autodpEventCollect', 'autodpEventCollectAll']))
                 + group('livelySceneEventTitle', hhMenuSwitch('autoLivelySceneEventCollect')
-                    + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent')
+                    + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent', false, block(['autoLivelySceneEventCollect', 'autoLivelySceneEventCollectAll']))
                 + group('sultryMysteriesEventTitle', hhMenuSwitch('sultryMysteriesEventRefreshShop')
-                    + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent')
+                    + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent', false, block(['sultryMysteriesEventRefreshShop', 'sultryMysteriesAutoOpen']))
                 + group('bossBangEventTitle', hhMenuSwitch('bossBangEvent')
-                    + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent')
+                    + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent', false, block(['bossBangEvent']))
                 + group('poaTitle', hhMenuSwitch('autoPoACollect')
-                    + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa'),
+                    + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa', false, block(['autoPoACollect', 'autoPoACollectAll'])),
         },
         {
             id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
-            masters: [],
             groups: group('haremTitle', hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
                 + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
                 + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')),
@@ -29547,15 +29565,20 @@ function buildTabbedBody(debugEnabled) {
     const defs = order
         .map(id => declared.find(tab => tab.id === id))
         .filter((tab) => tab !== undefined);
-    // The badge is filled in by refreshTabBadges() once the checkboxes carry
-    // their stored state; rendering it here would always read "0/n".
+    // The badge is filled in by refreshMenuState() once the checkboxes carry
+    // their stored state; rendering it here would always read "0/n". An area
+    // with nothing to count (Harem) has its badge emptied and hidden there,
+    // for the same reason: only the repaint knows what this game shows.
     const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
         + `<span class="menuTabIcon">${tab.icon}</span>`
         + `<span class="menuTabName">${t(tab.nameKey)}</span>`
-        + (tab.masters.length > 0 ? `<span class="menuTabBadge" data-badge="${tab.id}"></span>` : ``)
+        + `<span class="menuTabBadge" data-badge="${tab.id}"></span>`
         + `</div>`).join('');
+    // The stacked layout hides the rail, so the area count needs a second home
+    // there: the pane heading. Same data-badge, so one repaint fills both.
     const panes = defs.map(tab => `<div class="menuPane" data-pane="${tab.id}">`
-        + `<div class="menuPaneTitle">${t(tab.titleKey)}</div>`
+        + `<div class="menuPaneTitle">${t(tab.titleKey)}`
+        + `<span class="menuTabBadge menuPaneBadge" data-badge="${tab.id}"></span></div>`
         + `<div class="menuGroups">${tab.groups}</div>`
         + `</div>`).join('');
     return `<div class="menuBody">`
@@ -29687,45 +29710,101 @@ function visibleMenuAreas() {
     return rows;
 }
 /**
- * Read a switch straight from the panel rather than from storage, so the badge
- * follows a click immediately -- before the value is written. `undefined` means
- * the row is not in this build's markup (see countActive).
+ * Read a switch straight from the panel rather than from storage, so the marks
+ * follow a click immediately -- before the value is written. `undefined` means
+ * the row is not in this build's markup (see blockState).
  */
 function switchState(key) {
     const el = document.getElementById(key);
     return el === null ? undefined : el.checked;
 }
-/** Repaint every badge from the current checkbox states. */
-function refreshTabBadges(debugEnabled = false) {
-    for (const tab of tabs(debugEnabled)) {
-        if (tab.masters.length === 0)
-            continue;
-        const el = document.querySelector(`[data-badge="${tab.id}"]`);
-        if (el === null)
-            continue;
-        const count = countActive(tab.masters, switchState);
-        el.textContent = formatBadge(count);
-        el.classList.toggle('idle', count.on === 0);
+/** `data-block="a,b"` as a list; `[]` when the attribute is absent or empty. */
+function attrList(el, name) {
+    const raw = el.getAttribute(name);
+    return raw === null || raw === '' ? [] : raw.split(',');
+}
+/**
+ * Whether the game hid this group.
+ *
+ * maskInactiveMenus() sets display:none on the group element of a feature this
+ * game does not have, and debugOnly() wraps whole groups in a hidden div --
+ * both leave the switches in the DOM with their stored values. Counting those
+ * would put a block in the denominator that the player cannot see, so the walk
+ * goes up to the pane looking for either kind of hiding.
+ */
+function isHidden(el) {
+    for (let node = el; node !== null; node = node.parentElement) {
+        if (node.style.display === 'none')
+            return true;
+        if (node.classList.contains('menuPane'))
+            break;
+    }
+    return false;
+}
+/** Which label explains which colour, for the tooltip on a block's dot. */
+const STATE_TEXT_KEY = {
+    on: 'menuBlockOn',
+    conflict: 'menuBlockConflict',
+    off: 'menuBlockOff',
+};
+/**
+ * Repaint every block heading and every area count from the current checkbox
+ * states (#1834).
+ *
+ * Everything is read off the panel: which blocks exist, which the game hides,
+ * and what each switch is set to. Nothing here has to be kept in step with the
+ * markup by hand.
+ */
+function refreshMenuState() {
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null)
+        return;
+    for (const paneEl of Array.from(panes.querySelectorAll('.menuPane'))) {
+        const states = [];
+        for (const groupEl of Array.from(paneEl.querySelectorAll('.menuGroup[data-block]'))) {
+            const state = isHidden(groupEl) ? 'none' : blockState({
+                masters: attrList(groupEl, 'data-block'),
+                requires: attrList(groupEl, 'data-requires'),
+                options: attrList(groupEl, 'data-options'),
+            }, switchState);
+            states.push(state);
+            if (state === 'none') {
+                groupEl.removeAttribute('data-state');
+                continue;
+            }
+            groupEl.setAttribute('data-state', state);
+            // What the colour means, in words, for anyone who does not read a
+            // dot the way the panel intends it.
+            const dot = groupEl.querySelector('.menuBlockDot');
+            if (dot !== null)
+                dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
+        }
+        const count = countBlocks(states);
+        const text = formatBadge(count);
+        const state = areaState(count);
+        for (const badge of Array.from(panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`))) {
+            badge.textContent = text;
+            badge.setAttribute('data-state', state);
+        }
     }
 }
-let badgeHandlersBound = false;
+let stateHandlersBound = false;
 /**
- * Keep the badges in step with the panel. Delegated on the panes container, so
- * it survives a layout switch and covers rows built later; the debug flag is
- * read per event because turning Debug on adds rows.
+ * Keep the marks in step with the panel. Delegated on the panes container, so
+ * it survives a layout switch and covers rows built later.
  */
-function bindTabBadgeUpdates() {
-    if (badgeHandlersBound)
+function bindMenuStateUpdates() {
+    if (stateHandlersBound)
         return;
     const panes = document.getElementById('sMenuPanes');
     if (panes === null)
         return;
-    badgeHandlersBound = true;
+    stateHandlersBound = true;
     panes.addEventListener('change', (event) => {
         const target = event.target;
         if (target === null || target.type !== 'checkbox')
             return;
-        refreshTabBadges(MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.Debug) === "true");
+        refreshMenuState();
     });
 }
 
@@ -29824,6 +29903,7 @@ function getMenu() {
 
 
 
+
 class HHMenu {
     createMenuButton() {
         if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
@@ -29866,6 +29946,10 @@ class HHMenu {
             if (sMenu != null) {
                 if (sMenu.style.display === "none") {
                     setMenuValues();
+                    // setMenuValues() rewrites every input from storage, so a
+                    // settings import or a reset since the last open would
+                    // otherwise leave the marks showing the old configuration.
+                    refreshMenuState();
                     sMenu.style.display = "flex";
                     $('#contains_all')[0].style.zIndex = '9';
                 }
@@ -32486,9 +32570,9 @@ function start() {
     setMenuValues();
     getMenuValues();
     // Only now do the checkboxes carry their stored state, so this is the
-    // earliest point at which the rail badges can show real numbers.
-    refreshTabBadges(getStoredValue(HHStoredVarPrefixKey + TK.Debug) === "true");
-    bindTabBadgeUpdates();
+    // earliest point at which the block marks and rail badges can be real.
+    refreshMenuState();
+    bindMenuStateUpdates();
     applyMenuDensity(getStoredValue(HHStoredVarPrefixKey + SK.menuCompact) === "true");
     manageToolTipsDisplay();
     $("#git").on("click", function () { window.open("https://github.com/OldRon1977/HHauto/wiki"); });
