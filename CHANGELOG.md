@@ -7,7 +7,7 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.11.0 - Every block says whether it is running
+### v8.10.25 - Every block says whether it is running
 
 - Each block in the settings menu (Salary, Daily Goals, Champions, ...) now
   carries a coloured dot on its heading: **green** it runs, **red** nothing in

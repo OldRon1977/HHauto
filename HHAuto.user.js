@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.11.0
+// @version      8.10.25
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -655,9 +655,9 @@ HHAuto_ToolTips.en['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Laby
 HHAuto_ToolTips.en['menuTabShop'] = { version: "8.10.0", elementText: "Market", tooltip: "" };
 HHAuto_ToolTips.en['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
 HHAuto_ToolTips.en['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
-HHAuto_ToolTips.en['menuBlockOn'] = { version: "8.11.0", elementText: "Running: this block is switched on", tooltip: "" };
-HHAuto_ToolTips.en['menuBlockConflict'] = { version: "8.11.0", elementText: "Set up but not running: something here is configured while the switch that starts it is off", tooltip: "" };
-HHAuto_ToolTips.en['menuBlockOff'] = { version: "8.11.0", elementText: "Off: nothing here is switched on", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockOn'] = { version: "8.10.25", elementText: "Running: this block is switched on", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockConflict'] = { version: "8.10.25", elementText: "Set up but not running: something here is configured while the switch that starts it is off", tooltip: "" };
+HHAuto_ToolTips.en['menuBlockOff'] = { version: "8.10.25", elementText: "Off: nothing here is switched on", tooltip: "" };
 HHAuto_ToolTips.en['menuSecBasics'] = { version: "8.10.0", elementText: "Basics", tooltip: "" };
 HHAuto_ToolTips.en['menuSecTiming'] = { version: "8.10.0", elementText: "Timing & safety", tooltip: "" };
 HHAuto_ToolTips.en['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Auto collect", tooltip: "" };
@@ -1259,9 +1259,9 @@ HHAuto_ToolTips.de['menuTabLabyrinth'] = { version: "8.10.0", elementText: "Lieb
 HHAuto_ToolTips.de['menuTabShop'] = { version: "8.10.0", elementText: "Markt", tooltip: "" };
 HHAuto_ToolTips.de['menuTabEvents'] = { version: "8.10.0", elementText: "Events", tooltip: "" };
 HHAuto_ToolTips.de['menuTabHarem'] = { version: "8.10.0", elementText: "Harem", tooltip: "" };
-HHAuto_ToolTips.de['menuBlockOn'] = { version: "8.11.0", elementText: "Läuft: dieser Block ist eingeschaltet", tooltip: "" };
-HHAuto_ToolTips.de['menuBlockConflict'] = { version: "8.11.0", elementText: "Eingestellt, läuft aber nicht: hier ist etwas konfiguriert, der Schalter, der es startet, ist aus", tooltip: "" };
-HHAuto_ToolTips.de['menuBlockOff'] = { version: "8.11.0", elementText: "Aus: hier ist nichts eingeschaltet", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockOn'] = { version: "8.10.25", elementText: "Läuft: dieser Block ist eingeschaltet", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockConflict'] = { version: "8.10.25", elementText: "Eingestellt, läuft aber nicht: hier ist etwas konfiguriert, der Schalter, der es startet, ist aus", tooltip: "" };
+HHAuto_ToolTips.de['menuBlockOff'] = { version: "8.10.25", elementText: "Aus: hier ist nichts eingeschaltet", tooltip: "" };
 HHAuto_ToolTips.de['menuSecBasics'] = { version: "8.10.0", elementText: "Grundlagen", tooltip: "" };
 HHAuto_ToolTips.de['menuSecTiming'] = { version: "8.10.0", elementText: "Zeiten & Sicherheit", tooltip: "" };
 HHAuto_ToolTips.de['menuSecAutoCollect'] = { version: "8.10.0", elementText: "Automatisch einsammeln", tooltip: "" };
