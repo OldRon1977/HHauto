@@ -144,11 +144,17 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
                 if (EventModule.getEvent(eventID).isPoa)
                 {
                     PathOfAttraction.styles();
-                    if (getStoredValue(HHStoredVarPrefixKey+SK.showClubButtonInPoa) === "true")
-                    {
-                        PathOfAttraction.run = callItOnce(PathOfAttraction.run);
-                        PathOfAttraction.run();
-                    }
+                    // #1816: run() is the auto-collect. It used to be reached
+                    // only with showClubButtonInPoa on -- a display option for
+                    // a shortcut button -- so switching that button off
+                    // silently switched off collecting Path of Attraction
+                    // rewards as well. The Collect all button kept working
+                    // because it calls goAndCollect directly, which is exactly
+                    // the "works when I press it, never on its own" report.
+                    // The club button now decides only about itself, inside
+                    // run().
+                    PathOfAttraction.run = callItOnce(PathOfAttraction.run);
+                    PathOfAttraction.run();
                 }
 
                 if (EventModule.getEvent(eventID).isDPEvent && DoublePenetration.isEnabled())

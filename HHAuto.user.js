@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.27
+// @version      8.10.28
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -20715,7 +20715,10 @@ class PathOfAttraction {
         return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg'))) {
                 logHHAuto("On path of attraction event.");
-                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
+                // The shortcut to the club champion is a display choice and gates
+                // nothing but itself (#1816).
+                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
+                    && getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true") {
                     if ($(".hh-club-poa").length <= 0) {
                         const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
                         championsGoal.append(getGoToClubChampionButton());
@@ -25710,10 +25713,17 @@ function handlePageSpecific(ctx) {
                     }
                     if (EventModule.getEvent(eventID).isPoa) {
                         PathOfAttraction.styles();
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true") {
-                            PathOfAttraction.run = callItOnce(PathOfAttraction.run);
-                            PathOfAttraction.run();
-                        }
+                        // #1816: run() is the auto-collect. It used to be reached
+                        // only with showClubButtonInPoa on -- a display option for
+                        // a shortcut button -- so switching that button off
+                        // silently switched off collecting Path of Attraction
+                        // rewards as well. The Collect all button kept working
+                        // because it calls goAndCollect directly, which is exactly
+                        // the "works when I press it, never on its own" report.
+                        // The club button now decides only about itself, inside
+                        // run().
+                        PathOfAttraction.run = callItOnce(PathOfAttraction.run);
+                        PathOfAttraction.run();
                     }
                     if (EventModule.getEvent(eventID).isDPEvent && DoublePenetration.isEnabled()) {
                         DoublePenetration.run = callItOnce(DoublePenetration.run);

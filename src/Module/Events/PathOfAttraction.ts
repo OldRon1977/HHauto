@@ -91,7 +91,10 @@ export class PathOfAttraction {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab="+ConfigHelper.getHHScriptVars('poaEventIDReg')))
         {
             logHHAuto("On path of attraction event.");
-            if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
+            // The shortcut to the club champion is a display choice and gates
+            // nothing but itself (#1816).
+            if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
+                && getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true") {
                 if($(".hh-club-poa").length <= 0) {
                     const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
                     championsGoal.append(getGoToClubChampionButton());

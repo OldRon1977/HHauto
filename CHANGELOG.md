@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.28 - Path of Attraction collects on its own again
+
+- Collecting Path of Attraction rewards was tied to the "Go to in Events"
+  switch (#1816). That switch adds a convenience link on one PoA objective and
+  has nothing to do with collecting -- but the auto-collect sat inside the same
+  branch, so turning the link off silently turned collecting off with it, and
+  nothing said so. The Collect all button kept working, because it collects
+  directly, which is why this looked like "it works when I press it, never on
+  its own". The switch now decides only about the link.
+
 ### v8.10.27 - One activity is finished before the next one starts
 
 - The script hopped between activities: one troll fight, one season fight, one

@@ -1,6 +1,8 @@
 import { handlePageSpecific } from "../../src/Service/AutoLoopPageHandlers";
 import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
 import { Season } from "../../src/Module/Events/Season";
+import { EventModule } from "../../src/Module/Events/EventModule";
+import { PathOfAttraction } from "../../src/Module/Events/PathOfAttraction";
 import { ConfigHelper } from "../../src/Helper/ConfigHelper";
 import { MockHelper } from "../testHelpers/MockHelpers";
 
@@ -65,3 +67,52 @@ describe("handlePageSpecific season_arena (issue #1722)", function () {
         expect(simSpy).not.toHaveBeenCalled();
     });
 });
+
+// Regression guard for issue #1816.
+//
+// PathOfAttraction.run() IS the auto-collect: it reads autoPoACollect /
+// autoPoACollectAll and calls goAndCollect. It used to be reached only when
+// showClubButtonInPoa was on -- a display option for a shortcut button to the
+// club champion. Switching that button off therefore switched off collecting
+// Path of Attraction rewards, with nothing in the log to say so. The Collect
+// all button kept working, because it calls goAndCollect directly, which is
+// exactly what the reporter saw: "it works when I press it, never on its own".
+describe("handlePageSpecific path of attraction (issue #1816)", function () {
+
+    beforeEach(() => {
+        MockHelper.mockDomain();
+        MockHelper.mockPage("event");
+        jest.spyOn(EventModule, "getDisplayedIdEventPage").mockReturnValue("path_event_1");
+        jest.spyOn(EventModule, "getEvent").mockReturnValue(
+            { isPoa: true } as ReturnType<typeof EventModule.getEvent>);
+        jest.spyOn(PathOfAttraction, "styles").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    const runHandler = async () => {
+        const ctx = makeCtx(ConfigHelper.getHHScriptVars("pagesIDEvent"), "none");
+        await handlePageSpecific(ctx);
+    };
+
+    it("collects even with the club shortcut button switched off", async () => {
+        const runSpy = jest.spyOn(PathOfAttraction, "run").mockResolvedValue(undefined);
+        MockHelper.mockSetting("showClubButtonInPoa", "false");
+
+        await runHandler();
+
+        expect(runSpy).toHaveBeenCalled();
+    });
+
+    it("still collects with the club shortcut button on", async () => {
+        const runSpy = jest.spyOn(PathOfAttraction, "run").mockResolvedValue(undefined);
+        MockHelper.mockSetting("showClubButtonInPoa", "true");
+
+        await runHandler();
+
+        expect(runSpy).toHaveBeenCalled();
+    });
+});
+
