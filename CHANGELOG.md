@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.29 - Fixes the pipeline stall in 8.10.27
+
+- 8.10.27 could park the pipeline on one block. A block's settings say it may
+  run, not that it has anything to do: troll battle comes through its gate
+  every few seconds and falls through when the power is below the threshold.
+  Such an empty run kept the activity anyway, so nothing else was even offered
+  a turn, and the five-minute safety net could never fire because it measured
+  from that same empty run.
+- An activity is now only kept by a run that actually did something -- fought,
+  collected, navigated. A block that comes up empty hands the pipeline straight
+  back, exactly as before 8.10.27.
+
 ### v8.10.28 - Path of Attraction collects on its own again
 
 - Collecting Path of Attraction rewards was tied to the "Go to in Events"

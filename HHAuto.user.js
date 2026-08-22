@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.28
+// @version      8.10.29
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -33005,6 +33005,9 @@ class BlockScheduler {
             if (result.ok) {
                 run.dispatched = false;
                 if (result.repeat) {
+                    // Holding the slot is the handler saying it acted (ADR-002); that is
+                    // what makes this run worth keeping the focus for (#1841).
+                    run.acted = true;
                     run.stepStartedAt = this.ports.now();
                     this.ports.saveRun(run);
                     this.emit({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
@@ -33037,6 +33040,7 @@ class BlockScheduler {
         this.emit({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
     }
     complete(block, run) {
+        var _a;
         this.emit({ ev: "done", block: block.id, detail: "run complete" });
         const now = this.ports.now();
         const last = this.ports.getLastRunAt();
@@ -33047,8 +33051,19 @@ class BlockScheduler {
         // energy left and wants to go again. Keep the pipeline on it and let the
         // block's own precondition decide when it is really done (no energy,
         // threshold reached, timer set). Helpers never take the focus.
-        if (block.holdsFocus !== false)
+        //
+        // Only a run that ACTED counts. A precondition says a block may run, not
+        // that it has work: troll battle passes its gate and falls through when
+        // the power is below the threshold. Such a run renewing the focus would
+        // park the pipeline on a block that does nothing, every few seconds,
+        // forever -- and the stale backstop could never fire, because the focus
+        // kept being refreshed.
+        if (block.holdsFocus !== false && run.acted === true) {
             this.ports.setFocus({ blockId: block.id, lastRunAt: now });
+        }
+        else if (((_a = this.ports.getFocus()) === null || _a === void 0 ? void 0 : _a.blockId) === block.id) {
+            this.releaseFocus("ran without doing anything");
+        }
         this.resetFailureCounts(block.id); // success resets the block's counter
         this.run = null;
         this.ports.clearRun();

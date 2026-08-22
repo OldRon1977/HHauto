@@ -366,44 +366,107 @@ describe("BlockScheduler -- auto-disable reset", () => {
 
 // #1841: the pipeline used to leave an activity after every single run, which
 // for a fight block is after every single fight -- one troll, one season, one
-// pantheon, round and round. These pin the focus that keeps it on one activity.
+// pantheon, round and round. These pin the focus that keeps it on one activity,
+// and the limits that keep it from parking the pipeline on one block.
 describe("BlockScheduler -- focused activity (#1841)", () => {
-    /** A block whose readiness the test drives. */
-    function gated(id: string, ready: { v: boolean }, ran: string[], over: Partial<Block> = {}): Block {
+    /**
+     * A block that DOES something: it holds the slot once (as a handler does
+     * when it navigates) and finishes on the next tick. One run = two ticks,
+     * the same shape a real fight has.
+     */
+    function acting(id: string, ready: { v: boolean }, ran: string[], over: Partial<Block> = {}): Block {
+        let holding = false;
+        return block(id, [{ name: id + ":s", fn: async () => {
+            if (!holding) { holding = true; ran.push(id); return { ok: true, repeat: true }; }
+            holding = false;
+            return { ok: true };
+        } }], { precondition: () => ready.v, ...over });
+    }
+
+    /**
+     * A block that may run but has nothing to do -- troll battle with the power
+     * below the threshold. It never holds the slot, so it never acts.
+     */
+    function idle(id: string, ready: { v: boolean }, ran: string[], over: Partial<Block> = {}): Block {
         return block(id, [{ name: id + ":s", fn: async () => { ran.push(id); return { ok: true }; } }],
             { precondition: () => ready.v, ...over });
     }
+
+    /** One full run of an acting block. */
+    const runOnce = async (s: BlockScheduler) => { await s.tick(CTX); await s.tick(CTX); };
 
     it("stays on the block that just ran instead of taking the next in the order", async () => {
         const h = makePorts();
         const ran: string[] = [];
         const first = { v: false }, second = { v: true };
-        const B = gated("B", first, ran);      // earlier in the order
-        const A = gated("A", second, ran);
+        const B = acting("B", first, ran);      // earlier in the order
+        const A = acting("A", second, ran);
         const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
 
-        await s.tick(CTX);                     // B not ready yet -> A runs
+        await runOnce(s);                      // B not ready yet -> A runs
         expect(ran).toEqual(["A"]);
+        expect(h.state.focus?.blockId).toBe("A");
         first.v = true;                        // B becomes ready
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A", "A"]);       // the activity continues
+    });
+
+    it("does not keep the focus for a run that did nothing", async () => {
+        // The .27 hang: troll battle passes its gate every few seconds and
+        // falls through because the power is below the threshold. Renewing the
+        // focus on such a run parks the pipeline on it -- others are not even
+        // offered the slot while it waits out its cool-down, and the stale
+        // backstop can never fire because the focus keeps being refreshed.
+        const h = makePorts();
+        const ran: string[] = [];
+        const B = acting("B", { v: true }, ran);
+        const A = idle("A", { v: true }, ran);
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+        h.state.focus = { blockId: "A", lastRunAt: h.ctl.time };   // A acted earlier
+
+        await s.tick(CTX);                     // focus picks A; it does nothing
+        expect(ran).toEqual(["A"]);
+        expect(h.state.focus).toBeNull();
+
+        await runOnce(s);                      // so B is reachable again
+        expect(ran).toEqual(["A", "B"]);
+    });
+
+    it("gives the focus up when the focused block stops finding work", async () => {
+        const h = makePorts();
+        const ran: string[] = [];
+        let hasWork = true;
+        let holding = false;
+        const A = block("A", [{ name: "a", fn: async () => {
+            if (hasWork && !holding) { holding = true; ran.push("A"); return { ok: true, repeat: true }; }
+            holding = false;
+            return { ok: true };
+        } }], { precondition: () => true });
+        const B = acting("B", { v: true }, ran);
+        const s = new BlockScheduler(reg(A, B), ["A", "B"], h.ports);
+
+        await runOnce(s);
         expect(h.state.focus?.blockId).toBe("A");
+        hasWork = false;                       // out of energy
+
+        await s.tick(CTX);                     // A runs once more, does nothing
+        expect(h.state.focus).toBeNull();
     });
 
     it("hands the pipeline on once the focused block has nothing left to do", async () => {
         const h = makePorts();
         const ran: string[] = [];
         const bReady = { v: true }, aReady = { v: true };
-        const B = gated("B", bReady, ran);
-        const A = gated("A", aReady, ran);
+        const B = acting("B", bReady, ran);
+        const A = acting("A", aReady, ran);
         const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
 
-        await s.tick(CTX);                     // B first in the order
+        await runOnce(s);                      // B first in the order
         expect(ran).toEqual(["B"]);
-        bReady.v = false;                      // B is done (no energy, timer set, ...)
+        bReady.v = false;                      // B is done (timer set, ...)
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["B", "A"]);
         expect(h.state.focus?.blockId).toBe("A");
     });
@@ -412,12 +475,12 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         const h = makePorts();
         const ran: string[] = [];
         const bReady = { v: false }, aReady = { v: true };
-        const B = gated("B", bReady, ran);
-        const A = gated("A", aReady, ran, { minIntervalMs: 5_000 });
+        const B = acting("B", bReady, ran);
+        const A = acting("A", aReady, ran, { minIntervalMs: 5_000 });
         h.ctl.time = 3_600_000;                // past every block's first interval
         const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A"]);
         bReady.v = true;
 
@@ -426,7 +489,7 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         expect(ran).toEqual(["A"]);            // nothing ran: the slot was held
 
         h.ctl.time += 5_000;                   // A is due again
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A", "A"]);
     });
 
@@ -434,17 +497,17 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         const h = makePorts();
         const ran: string[] = [];
         const bReady = { v: false }, aReady = { v: true };
-        const B = gated("B", bReady, ran);
-        const A = gated("A", aReady, ran, { minIntervalMs: 10 * 60_000 });
-        h.ctl.time = 3_600_000;                // past every block's first interval
+        const B = acting("B", bReady, ran);
+        const A = acting("A", aReady, ran, { minIntervalMs: 10 * 60_000 });
+        h.ctl.time = 3_600_000;
         const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports, { focusWaitMs: 30_000 });
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A"]);
         bReady.v = true;
 
         h.ctl.time += 31_000;                  // waited past the backstop
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A", "B"]);
         expect(h.state.focus?.blockId).toBe("B");
     });
@@ -455,20 +518,20 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         const h = makePorts();
         const ran: string[] = [];
         const aReady = { v: true }, cReady = { v: false };
-        const A = gated("A", aReady, ran);
-        const C = gated("C", cReady, ran, { runsDuringFocus: true, holdsFocus: false });
+        const A = acting("A", aReady, ran);
+        const C = acting("C", cReady, ran, { runsDuringFocus: true, holdsFocus: false });
         const s = new BlockScheduler(reg(A, C), ["A", "C"], h.ports);
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(h.state.focus?.blockId).toBe("A");
         cReady.v = true;                       // a collect becomes due
 
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A", "C"]);       // it goes first
         expect(h.state.focus?.blockId).toBe("A");   // and the activity survives it
 
         cReady.v = false;
-        await s.tick(CTX);
+        await runOnce(s);
         expect(ran).toEqual(["A", "C", "A"]);
     });
 
@@ -479,14 +542,19 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         const h = makePorts();
         const ran: string[] = [];
         const onResultPage = { v: false };
-        const A = block("A", [{ name: "fight", fn: async () => { ran.push("A"); onResultPage.v = true; return { ok: true }; } }],
-            { precondition: () => !onResultPage.v });
-        const H = block("H", [{ name: "parse", fn: async () => { ran.push("H"); onResultPage.v = false; return { ok: true }; } }],
-            { precondition: () => onResultPage.v, runsDuringFocus: true, holdsFocus: false });
+        const A = block("A", [{ name: "fight", fn: async () => {
+            ran.push("A"); onResultPage.v = true; return { ok: true, repeat: true };
+        } }], { precondition: () => !onResultPage.v });
+        const H = block("H", [{ name: "parse", fn: async () => {
+            ran.push("H"); onResultPage.v = false; return { ok: true, repeat: true };
+        } }], { precondition: () => onResultPage.v, runsDuringFocus: true, holdsFocus: false });
         const s = new BlockScheduler(reg(A, H), ["A", "H"], h.ports);
 
-        await s.tick(CTX);                     // fight -> result page
+        await s.tick(CTX);                     // fight -> holds, lands on the result page
+        await s.tick(CTX);                     // precondition gone -> run ends, focus kept
+        expect(h.state.focus?.blockId).toBe("A");
         await s.tick(CTX);                     // helper parses the reward
+        await s.tick(CTX);                     // helper finishes
         await s.tick(CTX);                     // and the same activity goes again
         expect(ran).toEqual(["A", "H", "A"]);
         expect(h.state.focus?.blockId).toBe("A");
@@ -498,13 +566,14 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         const h = makePorts();
         const ran: string[] = [];
         const bReady = { v: false }, aReady = { v: true };
-        const s1 = new BlockScheduler(reg(gated("B", bReady, ran), gated("A", aReady, ran)), ["B", "A"], h.ports);
-        await s1.tick(CTX);
+        const s1 = new BlockScheduler(reg(acting("B", bReady, ran), acting("A", aReady, ran)), ["B", "A"], h.ports);
+        await runOnce(s1);
         expect(ran).toEqual(["A"]);
+        expect(h.state.focus?.blockId).toBe("A");
         bReady.v = true;
 
-        const s2 = new BlockScheduler(reg(gated("B", bReady, ran), gated("A", aReady, ran)), ["B", "A"], h.ports);
-        await s2.tick(CTX);
+        const s2 = new BlockScheduler(reg(acting("B", bReady, ran), acting("A", aReady, ran)), ["B", "A"], h.ports);
+        await runOnce(s2);
         expect(ran).toEqual(["A", "A"]);
     });
 
@@ -513,8 +582,8 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         // slot; without a backstop the activity would never end.
         const h = makePorts();
         const ran: string[] = [];
-        const A = gated("A", { v: false }, ran);                 // never ready again
-        const C = gated("C", { v: true }, ran, { runsDuringFocus: true, holdsFocus: false });
+        const A = acting("A", { v: false }, ran);                 // never ready again
+        const C = idle("C", { v: true }, ran, { runsDuringFocus: true, holdsFocus: false });
         const s = new BlockScheduler(reg(A, C), ["A", "C"], h.ports, { focusStaleMs: 60_000 });
         h.state.focus = { blockId: "A", lastRunAt: h.ctl.time };
 
@@ -529,8 +598,8 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
     it("drops the activity when the master switch goes off", async () => {
         const h = makePorts();
         const ran: string[] = [];
-        const s = new BlockScheduler(reg(gated("A", { v: true }, ran)), ["A"], h.ports);
-        await s.tick(CTX);
+        const s = new BlockScheduler(reg(acting("A", { v: true }, ran)), ["A"], h.ports);
+        await runOnce(s);
         expect(h.state.focus?.blockId).toBe("A");
         h.ctl.masterOff = true;
         await s.tick(CTX);
@@ -540,10 +609,10 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
     it("drops the activity when its run is aborted", async () => {
         const h = makePorts();
         const ran: string[] = [];
-        const A = gated("A", { v: true }, ran);
+        const A = acting("A", { v: true }, ran);
         const F = block("F", [step("boom", { ok: false, reason: "nope", retryable: true })]);
         const s = new BlockScheduler(reg(A, F), ["A", "F"], h.ports);
-        await s.tick(CTX);
+        await runOnce(s);
         expect(h.state.focus?.blockId).toBe("A");
 
         const s2 = new BlockScheduler(reg(F), ["F"], h.ports);   // A gone -> F runs and fails

@@ -284,6 +284,9 @@ export class BlockScheduler {
     if (result.ok) {
       run.dispatched = false;
       if (result.repeat) {
+        // Holding the slot is the handler saying it acted (ADR-002); that is
+        // what makes this run worth keeping the focus for (#1841).
+        run.acted = true;
         run.stepStartedAt = this.ports.now();
         this.ports.saveRun(run);
         this.emit({ ev: "done", block: block.id, step: step.name, detail: "repeat" });
@@ -325,7 +328,18 @@ export class BlockScheduler {
     // energy left and wants to go again. Keep the pipeline on it and let the
     // block's own precondition decide when it is really done (no energy,
     // threshold reached, timer set). Helpers never take the focus.
-    if (block.holdsFocus !== false) this.ports.setFocus({ blockId: block.id, lastRunAt: now });
+    //
+    // Only a run that ACTED counts. A precondition says a block may run, not
+    // that it has work: troll battle passes its gate and falls through when
+    // the power is below the threshold. Such a run renewing the focus would
+    // park the pipeline on a block that does nothing, every few seconds,
+    // forever -- and the stale backstop could never fire, because the focus
+    // kept being refreshed.
+    if (block.holdsFocus !== false && run.acted === true) {
+      this.ports.setFocus({ blockId: block.id, lastRunAt: now });
+    } else if (this.ports.getFocus()?.blockId === block.id) {
+      this.releaseFocus("ran without doing anything");
+    }
     this.resetFailureCounts(block.id);  // success resets the block's counter
     this.run = null;
     this.ports.clearRun();

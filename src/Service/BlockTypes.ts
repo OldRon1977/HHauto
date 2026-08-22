@@ -147,6 +147,19 @@ export interface BlockRun {
   dispatched: boolean;
   /** Repeat cursor + cross-step state, persisted with the run (R4.5). */
   data: Record<string, unknown>;
+  /**
+   * Whether this run ever actually did something (#1841).
+   *
+   * A block's precondition says it MAY run, not that it has work: troll battle
+   * passes its gate and then falls through when the power is below the
+   * threshold or there is no event girl -- measured at 47 such ticks in 75 on
+   * a live 7.35.61 session. Such a run must not keep the pipeline's focus, or
+   * a block that has nothing to do parks the whole pipeline on itself.
+   *
+   * Set when a step holds the slot (`repeat`), which is the slot-hold signal
+   * that the handler acted -- navigated, fought, collected.
+   */
+  acted?: boolean;
 }
 
 /** Registry: all block definitions, keyed by stable id (R2.1). */

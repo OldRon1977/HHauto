@@ -72,9 +72,24 @@ uebernehmen den Fokus nie):
 - **`handleGenericBattle`.** Die Kampfergebnis-Seite ist genau der Ort, an dem
   der fokussierte Block feststeckt; ihn auszusperren waere ein Deadlock.
 
-Gegen einen Fokus, der nie bedient werden kann, gibt es `focusStaleMs` (5 min
-ohne Run des fokussierten Blocks): dann faellt der Fokus, und das Verhalten
-degradiert exakt auf den Stand vor diesem ADR.
+**Nur ein Run, der etwas getan hat, haelt den Fokus.** Eine Precondition sagt,
+dass ein Block laufen DARF, nicht dass er Arbeit hat: `handleTrollBattle` kommt
+durch sein Tor und faellt durch, wenn die Kampfkraft unter der Schwelle liegt
+oder kein Event-Maedchen da ist -- live gemessen 47 solche Ticks von 75
+(Kommentar am Handler). Ein solcher Leerlauf-Run darf den Fokus nicht erneuern.
+Als "getan" zaehlt, dass ein Step den Slot gehalten hat (`repeat`) -- das
+Slot-Hold-Signal aus ADR-002, mit dem der Handler sagt, dass er navigiert,
+gekaempft oder gesammelt hat (`BlockRun.acted`).
+
+Das ist nicht theoretisch: ohne diese Bedingung parkte 8.10.27 die Pipeline auf
+`handleTrollBattle`. Der Block lief alle vier Sekunden an, tat nichts, erneuerte
+dabei den Fokus -- womit auch `focusStaleMs` nie greifen konnte, weil es an
+genau diesem Zeitstempel haengt -- und in den Pausen dazwischen bekam kein
+anderer Block den Slot ueberhaupt angeboten.
+
+Gegen einen Fokus, der nie bedient werden kann, gibt es zusaetzlich
+`focusStaleMs` (5 min ohne Run des fokussierten Blocks): dann faellt der Fokus,
+und das Verhalten degradiert exakt auf den Stand vor diesem ADR.
 
 ## Kein Sonderfall fuer Uhrzeiten
 
