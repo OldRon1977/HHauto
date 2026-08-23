@@ -588,6 +588,25 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         expect(ran).toEqual([]);                    // and B did not slip in
     });
 
+    it("keeps the activity for a step that acted without holding the slot", async () => {
+        // handleLeague's shape: it fights, arms its timer and releases on
+        // purpose. The run completes before the page reloads, so there is no
+        // resume to learn from -- the step has to say so itself.
+        const h = makePorts();
+        const ran: string[] = [];
+        const B = acting("B", { v: true }, ran);
+        const A = block("A", [{ name: "fight", fn: async () => {
+            ran.push("A");
+            return { ok: true, acted: true };
+        } }], { precondition: () => true });
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+        h.state.focus = { blockId: "A", lastRunAt: h.ctl.time };
+
+        await s.tick(CTX);
+        expect(ran).toEqual(["A"]);
+        expect(h.state.focus?.blockId).toBe("A");   // B did not get the leaderboard
+    });
+
     it("keeps the activity across a reload", async () => {
         // The whole point of persisting it: a fight ends on a result page, the
         // page reloads, and a fresh scheduler must come back to the same block.

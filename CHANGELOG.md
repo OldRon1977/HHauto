@@ -7,6 +7,20 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.31 - Leagues no longer loses its turn mid-session
+
+- After the league block launched its fights, another block could take the
+  leaderboard page and navigate away before they were done. Seen in a
+  ten-minute session: three league fights started, and Season went to the
+  season arena instead.
+- The league block hands the slot back on purpose after arming its timer — that
+  part is right, it is what lets the fight results be read. What was missing is
+  that it had just done something, so the pipeline treated the turn as an empty
+  one and gave it to the next block.
+- A block that switches the automation loop off is now counted as having acted,
+  which is what every handler does just before the page reloads. The block still
+  hands the slot back; it simply gets its turn back afterwards.
+
 ### v8.10.30 - The activity survives a fight again
 
 - 8.10.29 still let another block cut in right after a fight, on the result

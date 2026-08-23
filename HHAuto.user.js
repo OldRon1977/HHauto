@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.30
+// @version      8.10.31
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -33014,6 +33014,8 @@ class BlockScheduler {
             }
             if (result.ok) {
                 run.dispatched = false;
+                if (result.acted)
+                    run.acted = true; // acted without holding the slot (#1841)
                 if (result.repeat) {
                     // Holding the slot is the handler saying it acted (ADR-002); that is
                     // what makes this run worth keeping the focus for (#1841).
@@ -35994,18 +35996,31 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
  *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
  *    done: release the slot.
  */
-function applySlotHold(r, busy) {
+function applySlotHold(r, busy, autoLoopOff = false) {
     if (!r.ok)
         return r;
+    // A handler that switched the auto-loop off is mid-action: that is what
+    // gotoPage, safeReload and the fight paths do right before the page goes
+    // away. It does not necessarily hold the slot -- handleLeague deliberately
+    // releases it after arming its timer, and holding on a battle-result page
+    // would starve handleGenericBattle (#1796) -- but it did DO something, and
+    // the activity must survive it (#1841). Measured live in 8.10.30: the league
+    // block launched three fights, released, and handleSeason navigated off the
+    // leaderboard mid-session.
+    const acted = autoLoopOff || r.acted === true;
     // An explicit repeat from the step wins (issue #1796): steps use it to hold
     // the slot when busy is not set -- e.g. handleLeague right after launching
     // a leaderboard navigation, or handleSeason waiting in-slot through the
     // short inter-fight pause. Without this passthrough those holds were
     // silently stripped and the released slot opened the one-tick window in
     // which another block navigated away mid-session.
+    // The returned shapes are unchanged apart from the flag, so the hold
+    // decision itself stays exactly as it was.
     if (r.repeat)
-        return r;
-    return busy ? { ok: true, repeat: true } : { ok: true };
+        return acted ? Object.assign(Object.assign({}, r), { acted: true }) : r;
+    if (busy)
+        return acted ? { ok: true, repeat: true, acted: true } : { ok: true, repeat: true };
+    return acted ? { ok: true, acted: true } : { ok: true };
 }
 // Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
 const INFRA_BLOCKS = new Set(["handleEventParsing", "handleGoHome"]);
@@ -36059,7 +36074,11 @@ function toBlock(c) {
             name: s.name,
             // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
             // navigating handler holds the run until it goes idle (ADR-002).
-            fn: (ctx) => BlockPipeline_awaiter(this, void 0, void 0, function* () { return applySlotHold(yield s.fn(ctx), ctx.busy); }),
+            fn: (ctx) => BlockPipeline_awaiter(this, void 0, void 0, function* () {
+                const result = yield s.fn(ctx);
+                const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== "true";
+                return applySlotHold(result, ctx.busy, autoLoopOff);
+            }),
             timeoutMs: s.timeoutMs,
         })),
         userMovable: !INFRA_BLOCKS.has(c.name), // R3.7: infra pinned, rest reorderable

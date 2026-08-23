@@ -36,16 +36,28 @@ import { HandlerConfig, pipeline } from "./Pipeline.config";
  *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
  *    done: release the slot.
  */
-export function applySlotHold(r: BlockStepResult, busy: boolean): BlockStepResult {
+export function applySlotHold(r: BlockStepResult, busy: boolean, autoLoopOff = false): BlockStepResult {
   if (!r.ok) return r;
+  // A handler that switched the auto-loop off is mid-action: that is what
+  // gotoPage, safeReload and the fight paths do right before the page goes
+  // away. It does not necessarily hold the slot -- handleLeague deliberately
+  // releases it after arming its timer, and holding on a battle-result page
+  // would starve handleGenericBattle (#1796) -- but it did DO something, and
+  // the activity must survive it (#1841). Measured live in 8.10.30: the league
+  // block launched three fights, released, and handleSeason navigated off the
+  // leaderboard mid-session.
+  const acted = autoLoopOff || r.acted === true;
   // An explicit repeat from the step wins (issue #1796): steps use it to hold
   // the slot when busy is not set -- e.g. handleLeague right after launching
   // a leaderboard navigation, or handleSeason waiting in-slot through the
   // short inter-fight pause. Without this passthrough those holds were
   // silently stripped and the released slot opened the one-tick window in
   // which another block navigated away mid-session.
-  if (r.repeat) return r;
-  return busy ? { ok: true, repeat: true } : { ok: true };
+  // The returned shapes are unchanged apart from the flag, so the hold
+  // decision itself stays exactly as it was.
+  if (r.repeat) return acted ? { ...r, acted: true } : r;
+  if (busy) return acted ? { ok: true, repeat: true, acted: true } : { ok: true, repeat: true };
+  return acted ? { ok: true, acted: true } : { ok: true };
 }
 
 // Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
@@ -104,7 +116,11 @@ function toBlock(c: HandlerConfig): Block {
       name: s.name,
       // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
       // navigating handler holds the run until it goes idle (ADR-002).
-      fn: async (ctx: Parameters<typeof s.fn>[0]) => applySlotHold(await s.fn(ctx), ctx.busy),
+      fn: async (ctx: Parameters<typeof s.fn>[0]) => {
+        const result = await s.fn(ctx);
+        const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== "true";
+        return applySlotHold(result, ctx.busy, autoLoopOff);
+      },
       timeoutMs: s.timeoutMs,
     })),
     userMovable: !INFRA_BLOCKS.has(c.name),   // R3.7: infra pinned, rest reorderable

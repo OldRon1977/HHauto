@@ -293,6 +293,7 @@ export class BlockScheduler {
 
     if (result.ok) {
       run.dispatched = false;
+      if (result.acted) run.acted = true;   // acted without holding the slot (#1841)
       if (result.repeat) {
         // Holding the slot is the handler saying it acted (ADR-002); that is
         // what makes this run worth keeping the focus for (#1841).

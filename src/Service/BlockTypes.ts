@@ -20,7 +20,7 @@ import { AutoLoopContext } from "./AutoLoopContext";
  * whether the watchdog should treat the failure as transient.
  */
 export type BlockStepResult =
-  | { ok: true; done?: boolean; repeat?: boolean }
+  | { ok: true; done?: boolean; repeat?: boolean; acted?: boolean }
   | { ok: false; reason: string; retryable: boolean };
 
 /**

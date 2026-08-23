@@ -101,6 +101,20 @@ zurueckkehren, bevor sie navigieren) und **beim gueltigen Resume nach einem
 Reload** -- denn wieder da zu sein beweist, dass navigiert wurde. Die zweite
 Stelle schreibt auf einer frischen Seite und ueberlebt daher.
 
+**Dritte Stelle: der Handler, der handelt und den Slot trotzdem abgibt.**
+`handleLeague` startet seine Kaempfe, stellt `nextLeaguesTime` und gibt danach
+absichtlich frei -- Halten auf der Kampfergebnis-Seite wuerde
+`handleGenericBattle` aushungern (#1796). Der Run ist beendet, bevor der Reload
+kommt, es gibt also auch kein Resume, an dem der Marker haengen koennte.
+Gemessen in 8.10.30: League startete drei Kaempfe, gab frei, und `handleSeason`
+navigierte von der Leaderboard-Seite weg.
+
+Signal dafuer ist der ausgeschaltete Auto-Loop: `gotoPage`, `safeReload` und die
+Kampfpfade setzen ihn ab, kurz bevor die Seite verschwindet. `applySlotHold`
+liest ihn nach dem Step und setzt `acted`, **ohne** die Halte-Entscheidung zu
+aendern -- der Block gibt weiter frei, aber die Aktivitaet ueberlebt es und der
+Fokus holt ihn nach dem Reload zurueck.
+
 Gegen einen Fokus, der nie bedient werden kann, gibt es zusaetzlich
 `focusStaleMs` (5 min ohne Run des fokussierten Blocks): dann faellt der Fokus,
 und das Verhalten degradiert exakt auf den Stand vor diesem ADR.

@@ -15,6 +15,22 @@ describe("applySlotHold (ADR-002 gate-hold-return)", () => {
         expect(r.repeat).toBeUndefined();
     });
 
+    it("marks a step that switched the auto-loop off as having acted", () => {
+        // handleLeague launches its fights, arms its timer and deliberately
+        // releases the slot -- holding it on a battle-result page would starve
+        // handleGenericBattle (#1796). It still DID something, and the activity
+        // has to survive it (#1841): measured live, the league block fought and
+        // handleSeason then navigated off the leaderboard mid-session.
+        const r = applySlotHold({ ok: true }, false, true) as { ok: true; repeat?: boolean; acted?: boolean };
+        expect(r.acted).toBe(true);
+        expect(r.repeat).toBeUndefined();      // released, as the handler intends
+    });
+
+    it("leaves an idle step alone while the auto-loop is running", () => {
+        const r = applySlotHold({ ok: true }, false, false) as { ok: true; acted?: boolean };
+        expect(r.acted).toBeUndefined();
+    });
+
     it("passes a failure through unchanged (watchdog handles it)", () => {
         const fail: BlockStepResult = { ok: false, reason: "boom", retryable: true };
         expect(applySlotHold(fail, true)).toEqual(fail);
