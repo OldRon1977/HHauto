@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.29
+// @version      8.10.30
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -32926,6 +32926,7 @@ class BlockScheduler {
                     this.emit({ ev: "resume", block: block.id, detail: "dispatched step skipped" });
                     run.stepIdx++;
                     run.dispatched = false;
+                    run.acted = true; // it dispatched before the reload (#1841)
                     run.stepStartedAt = this.ports.now();
                     this.ports.saveRun(run);
                     if (run.stepIdx >= block.steps.length) {
@@ -32942,6 +32943,15 @@ class BlockScheduler {
                     // from run start and kills legit long work after noProgressMs (observed
                     // live: PoP killed mid-run at ~5 min, v7.36.10). Reset on every live
                     // re-entry so the watchdog only fires when the block stops resuming.
+                    // Coming back after a reload IS proof that the block acted (#1841):
+                    // only navigating gets you a new page. This is the ONLY place the flag
+                    // can be set for a fighting handler. Its step awaits the battle POST,
+                    // the response navigates, and the step never returns -- so the write
+                    // in executeStep dies with the page and the run comes back looking
+                    // like it did nothing. Measured on 8.10.29: a troll run that had just
+                    // crushed an opponent released the activity as "ran without doing
+                    // anything", and handleLeague took the slot on the battle-result page.
+                    run.acted = true;
                     run.stepStartedAt = this.ports.now();
                     this.ports.saveRun(run);
                     this.emit({ ev: "resume", block: block.id, step: next === null || next === void 0 ? void 0 : next.name, detail: "valid" });

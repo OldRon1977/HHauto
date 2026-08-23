@@ -87,6 +87,20 @@ dabei den Fokus -- womit auch `focusStaleMs` nie greifen konnte, weil es an
 genau diesem Zeitstempel haengt -- und in den Pausen dazwischen bekam kein
 anderer Block den Slot ueberhaupt angeboten.
 
+**Wo `acted` gesetzt wird, ist nicht beliebig.** Der naheliegende Ort -- nach
+der Rueckkehr des Steps -- reicht nicht: ein kaempfender Handler `await`et den
+Kampf-POST, dessen Antwort die Seite navigiert, und der Step kehrt nie zurueck.
+Der Schreibvorgang stirbt mit der Seite, der Run kommt nach dem Reload ohne
+Marker zurueck und wird als Leerlauf behandelt. Gemessen in 8.10.29: drei
+Troll-Runs gaben nach einem echten Kampf den Fokus als "ran without doing
+anything" frei, und genau drei fremde Bloecke (League, Quest, Season) starteten
+danach auf `troll-battle`.
+
+Deshalb wird der Marker an zwei Stellen gesetzt: beim `repeat` (Handler, die
+zurueckkehren, bevor sie navigieren) und **beim gueltigen Resume nach einem
+Reload** -- denn wieder da zu sein beweist, dass navigiert wurde. Die zweite
+Stelle schreibt auf einer frischen Seite und ueberlebt daher.
+
 Gegen einen Fokus, der nie bedient werden kann, gibt es zusaetzlich
 `focusStaleMs` (5 min ohne Run des fokussierten Blocks): dann faellt der Fokus,
 und das Verhalten degradiert exakt auf den Stand vor diesem ADR.

@@ -560,6 +560,34 @@ describe("BlockScheduler -- focused activity (#1841)", () => {
         expect(h.state.focus?.blockId).toBe("A");
     });
 
+    it("keeps the activity for a step that never returned because the page reloaded", async () => {
+        // The case 8.10.29 got wrong, and the one the whole issue is about. A
+        // fighting handler awaits the battle POST; the response navigates, the
+        // step never returns, and the write that marks the run as having acted
+        // dies with the page. Measured live: the troll run came back looking
+        // idle, released the activity, and another block took the slot on the
+        // battle-result page.
+        const h = makePorts();
+        const ran: string[] = [];
+        let onResultPage = false;
+        const A = block("A", [{ name: "fight", fn: async () => {
+            ran.push("A");
+            return { ok: true };            // never reached in reality
+        } }], { precondition: () => !onResultPage });
+        const B = acting("B", { v: true }, ran);
+
+        // The step navigated: the run is in storage, the page is gone.
+        h.state.run = { blockId: "A", stepIdx: 0, startedAt: h.ctl.time,
+            stepStartedAt: h.ctl.time, dispatched: false, data: {} } as BlockRun;
+        onResultPage = true;
+
+        const s = new BlockScheduler(reg(B, A), ["B", "A"], h.ports);
+        await s.tick(CTX);                  // resumes, precondition gone, completes
+
+        expect(h.state.focus?.blockId).toBe("A");   // the activity survives
+        expect(ran).toEqual([]);                    // and B did not slip in
+    });
+
     it("keeps the activity across a reload", async () => {
         // The whole point of persisting it: a fight ends on a result page, the
         // page reloads, and a fresh scheduler must come back to the same block.

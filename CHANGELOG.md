@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.30 - The activity survives a fight again
+
+- 8.10.29 still let another block cut in right after a fight, on the result
+  page, before the reward had been read. Three times in a seven-minute session,
+  each time with League, Quest or Season taking over on the troll battle page.
+- The reason was where the script noted that a block had done something: after
+  the handler returned. A fighting handler never returns — it waits for the
+  battle, and the answer loads the next page, so the note died with the page.
+  The run came back looking as if it had done nothing and gave the activity up.
+- It is now noted when a run comes back after a page load, which is proof that
+  it navigated. That note is written on the new page and survives.
+
 ### v8.10.29 - Fixes the pipeline stall in 8.10.27
 
 - 8.10.27 could park the pipeline on one block. A block's settings say it may
