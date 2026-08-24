@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.36
+// @version      8.10.37
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -1619,7 +1619,6 @@ HHAuto_ToolTips.es['plusEvent'] = { version: "7.32.1", elementText: "+Evento", t
 HHAuto_ToolTips.es['plusEventMythic'] = { version: "7.32.1", elementText: "+Evento mítico", tooltip: "Combate contra los villanos de evento míticos con independencia de Auto villano.<br>Ignora el umbral de energía. Tiene prioridad sobre los eventos normales." };
 //HHAuto_ToolTips.es['eventMythicPrio'] = { version: "5.6.24", elementText: "Prioriza sobre el orden de evento de villano", tooltip: "La chica del evento mítico es prioritaria sobre el orden del evento de villanos si hay fragmentos disponibles"};
 //HHAuto_ToolTips.es['autoTrollMythicByPassThreshold'] = { version: "5.6.24", elementText: "Mítico supera límite", tooltip: "Permite que el evento mítico supere el límite de villano"};
-HHAuto_ToolTips.es['autoArenaCheckbox'] = { version: "5.6.24", elementText: "AutoBatallaArena", tooltip: "Si habilitado: Combate en Arena de manera automática (obsoleta)" };
 HHAuto_ToolTips.es['autoSeason'] = { version: "5.6.24", elementText: "Temporada automática", tooltip: "Si habilitado: Combate en emporadas de manera automática (Oponente elegido según Calculadora de energía)" };
 HHAuto_ToolTips.es['autoSeasonCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Se habilitado: Recauda temporadas de manera automática (Si multiples para recaudar, recaudará uno por cada uso de beso)" };
 HHAuto_ToolTips.es['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Límite", tooltip: "Mínimos besos a conservar" };
@@ -29548,7 +29547,6 @@ class Troll {
                             logHHAuto("Battle Button was undefined. Disabling all auto-battle.");
                             document.getElementById("autoTrollBattle").checked = false;
                             setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
-                            //document.getElementById("autoArenaCheckbox").checked = false;
                             if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
                                 document.getElementById("autoQuest").checked = false;
                                 setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");

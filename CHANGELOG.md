@@ -7,6 +7,13 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.37 - The last trace of the Arena is gone
+
+- The Spanish file still carried a translation for the old Arena switch, the
+  PvP mode the game replaced with Seasons. The translator had already marked it
+  obsolete in the tooltip. Nothing read it: no setting, no stored value, and
+  the only mention in the code was a commented-out line. Both are gone.
+
 ### v8.10.36 - The event troll list is complete and correct
 
 - bjaume's proofread of the Spanish menu is in, including the labels that were

@@ -33,7 +33,6 @@ HHAuto_ToolTips.es['plusEvent'] = { version: "7.32.1", elementText: "+Evento", t
 HHAuto_ToolTips.es['plusEventMythic'] = { version: "7.32.1", elementText: "+Evento mítico", tooltip: "Combate contra los villanos de evento míticos con independencia de Auto villano.<br>Ignora el umbral de energía. Tiene prioridad sobre los eventos normales."};
 //HHAuto_ToolTips.es['eventMythicPrio'] = { version: "5.6.24", elementText: "Prioriza sobre el orden de evento de villano", tooltip: "La chica del evento mítico es prioritaria sobre el orden del evento de villanos si hay fragmentos disponibles"};
 //HHAuto_ToolTips.es['autoTrollMythicByPassThreshold'] = { version: "5.6.24", elementText: "Mítico supera límite", tooltip: "Permite que el evento mítico supere el límite de villano"};
-HHAuto_ToolTips.es['autoArenaCheckbox'] = { version: "5.6.24", elementText: "AutoBatallaArena", tooltip: "Si habilitado: Combate en Arena de manera automática (obsoleta)"};
 HHAuto_ToolTips.es['autoSeason'] = { version: "5.6.24", elementText: "Temporada automática", tooltip: "Si habilitado: Combate en emporadas de manera automática (Oponente elegido según Calculadora de energía)"};
 HHAuto_ToolTips.es['autoSeasonCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Se habilitado: Recauda temporadas de manera automática (Si multiples para recaudar, recaudará uno por cada uso de beso)"};
 HHAuto_ToolTips.es['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Límite", tooltip: "Mínimos besos a conservar"};

@@ -698,7 +698,6 @@ export class Troll {
                         (<HTMLInputElement>document.getElementById("autoTrollBattle")).checked = false;
                         setStoredValue(HHStoredVarPrefixKey+SK.autoTrollBattle, "false");
 
-                        //document.getElementById("autoArenaCheckbox").checked = false;
                         if (getStoredValue(HHStoredVarPrefixKey+TK.questRequirement) === "battle")
                         {
                             (<HTMLInputElement>document.getElementById("autoQuest")).checked = false;
