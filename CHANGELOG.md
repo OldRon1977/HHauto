@@ -7,6 +7,20 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.36 - The event troll list is complete and correct
+
+- bjaume's proofread of the Spanish menu is in, including the labels that were
+  still abbreviated from the days when space was tight (AutoSal., AutoMision
+  and friends), and "Senda" changed to "Camino" — what the Spanish client
+  actually calls the Paths.
+- The list of event trolls in the tooltip was five short in every language and
+  three of the names were wrong. It is now generated from the list the script
+  itself uses, so it cannot drift again: 1-19 and 22, with a note that 20 and
+  21 are side-adventure trolls and have no name.
+- Fixed on the way: the French file defined the troll-order entry twice. The
+  second one won, and its list ended in a placeholder — with a version high
+  enough that it never fell back to English, so French players saw it.
+
 ### v8.10.35 - The menu speaks French
 
 - Same for French as the previous release did for Spanish: it was 151 of 446
