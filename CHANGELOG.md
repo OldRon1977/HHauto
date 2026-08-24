@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.35 - The menu speaks French
+
+- Same for French as the previous release did for Spanish: it was 151 of 446
+  entries, with nine more translated but invisible because an entry older than
+  its English counterpart is ignored by design. Both are done, and a dozen
+  entries that had been sitting there in English were translated as well.
+- Like the Spanish file, it is written to be proofread. Villain names and a few
+  in-game terms were left as they are rather than invented.
+
 ### v8.10.34 - The menu speaks Spanish
 
 - The Spanish menu was 81 of 446 entries, so most of it fell back to English —
