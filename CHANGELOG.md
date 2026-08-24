@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.34 - The menu speaks Spanish
+
+- The Spanish menu was 81 of 446 entries, so most of it fell back to English —
+  and nine further entries were translated but invisible, because an entry
+  older than its English counterpart is ignored by design. Both are done: 366
+  new entries, the nine refreshed, nothing missing.
+- Written to be proofread rather than trusted. Names of villains and a few
+  in-game terms were left as they are rather than invented.
+
 ### v8.10.33 - +Girl Skins now works for event villains too
 
 - With +Girl Skins on, the script kept fighting love raids for a girl it
