@@ -222,12 +222,6 @@ export class HHMenu {
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.NORMAL, getTextForUI("autoLabyDifficultyNormal", "elementText")));
         sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.HARD, getTextForUI("autoLabyDifficultyHard", "elementText")));
     }
-
-    // replaceMenuIconWithWarning() {
-    //     $('#' + HHMenu.BUTTON_MENU_ID + ' img')
-    //         .attr('src', 'https://i.postimg.cc/3JCgVBdK/Opponent-orange.png')
-    //         .attr('title', getTextForUI("scriptWarning", "tooltip"));
-    // }
 }
 
 export function maskInactiveMenus()

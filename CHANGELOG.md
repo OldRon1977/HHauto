@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.38 - Three French labels were overwriting the English ones
+
+- Three entries in the French file were assigned to the English bucket by
+  mistake, so "Main adventure", "Side adventure" and "Others" in the troll
+  selector showed up in French for everyone — including players of every other
+  language, since they fall back to English. Present since #1381. They are
+  French entries now, and English reads English again.
+- The Warning text is gone from all files. It belonged to a function that has
+  been commented out for a long time, so nothing ever showed it; the commented
+  function went with it.
+
 ### v8.10.37 - The last trace of the Arena is gone
 
 - The Spanish file still carried a translation for the old Arena switch, the

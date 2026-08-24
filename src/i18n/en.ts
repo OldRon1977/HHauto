@@ -404,8 +404,7 @@ HHAuto_ToolTips.en['latestTroll'] = { version: "7.23.0", elementText: "Latest tr
 HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Main adventure", tooltip: ""};
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Side adventure", tooltip: ""};
 HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Others", tooltip: ""};
-//HHAuto_ToolTips.en['scriptWarning'] = { version: "7.4.0", elementText: "Warning", tooltip: "An issue is detected in bot execution, open menu and logs for more info"};
-
+//
 // Tab rail names and group headings of the settings menu (8.10.0)
 HHAuto_ToolTips.en['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: ""};
 HHAuto_ToolTips.en['menuTabDisplay'] = { version: "8.10.0", elementText: "Display", tooltip: ""};

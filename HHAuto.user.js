@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.37
+// @version      8.10.38
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -642,7 +642,7 @@ HHAuto_ToolTips.en['latestTroll'] = { version: "7.23.0", elementText: "Latest tr
 HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Main adventure", tooltip: "" };
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Side adventure", tooltip: "" };
 HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Others", tooltip: "" };
-//HHAuto_ToolTips.en['scriptWarning'] = { version: "7.4.0", elementText: "Warning", tooltip: "An issue is detected in bot execution, open menu and logs for more info"};
+//
 // Tab rail names and group headings of the settings menu (8.10.0)
 HHAuto_ToolTips.en['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: "" };
 HHAuto_ToolTips.en['menuTabDisplay'] = { version: "8.10.0", elementText: "Display", tooltip: "" };
@@ -835,9 +835,9 @@ HHAuto_ToolTips.fr['PachinkoFillOrbs'] = { version: "5.6.134", elementText: 'Rem
 HHAuto_ToolTips.fr['collectAllTimer'] = { version: "6.15.8", elementText: "Timer Tout collecter (en heure)", tooltip: "Nombre d'heure avant la fin de l'evenement pour collecter toutes les récompenses (Faible temps peu entrainer un echec de collecte), Nécéssite une activation sur chaque évenement (POV, POG, season)" };
 HHAuto_ToolTips.fr['collectAllButton'] = { version: "7.3.0", elementText: "Tout réclamer", tooltip: "Réclame toutes les récompenses de manière automatique" };
 HHAuto_ToolTips.fr['latestTroll'] = { version: "7.23.0", elementText: "Dernier troll de l'aventure principale", tooltip: "" };
-HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Aventure principale", tooltip: "" };
-HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Aventure secondaire", tooltip: "" };
-HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Autre options", tooltip: "" };
+HHAuto_ToolTips.fr['mainAdventure'] = { version: "7.23.0", elementText: "Aventure principale", tooltip: "" };
+HHAuto_ToolTips.fr['sideAdventure'] = { version: "7.23.0", elementText: "Aventure secondaire", tooltip: "" };
+HHAuto_ToolTips.fr['otherTrollOption'] = { version: "7.23.0", elementText: "Autres", tooltip: "" };
 HHAuto_ToolTips.fr['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Emplacement mythique", tooltip: "<span class=\"tipHint\">Codes séparés par ; &mdash; indiquez-en autant que vous voulez.</span><p>Boosters mythiques à garder équipés, <b>par ordre de priorité</b>. Le jeu dispose de <b>5 emplacements mythiques</b> (un booster par type) : au plus 5 de votre liste seront donc portés. Le script parcourt la liste depuis le haut et remplit chaque emplacement libre avec les premiers que vous possédez.</p><p>Mettre les 12 ne pose aucun problème, c'est même l'idée : cela signifie <i>prends ceux que j'ai parmi ceux-là</i>. Un champ vide désactive la fonction.<br>Exemple : <code>MB1;MB2;MB5;MB8;MB12</code></p><p>Rien n'est acheté, et un booster déjà équipé n'est jamais remplacé.</p><p><b>Santal :</b> tant qu'un équipement automatique du santal est actif (+Événement / +Mythique / +Raid), MB1 appartient à cette automatisation &mdash; il est ignoré ici même si vous le saisissez, et un emplacement reste libre. Votre liste ne remplit alors que 4 des 5 au plus. C'est ce qui garantit qu'un emplacement est disponible quand le santal est voulu, et qu'il est vérifié avant le combat. Avec toutes ces options désactivées, MB1 redevient une entrée ordinaire et la liste dispose des cinq emplacements.</p><ul class=\"tipCodes\"><li><code>MB1</code> Parfum de santal</li><li><code>MB2</code> Emblème de maîtrise totale</li><li><code>MB3</code> Bandeau de la détermination</li><li><code>MB4</code> Montre luxueuse</li><li><code>MB5</code> Cannelle combative</li><li><code>MB6</code> Souvenirs de voyage d'Alban</li><li><code>MB7</code> Parfum de sperme d'anges</li><li><code>MB8</code> Emblème de maîtrise des ligues</li><li><code>MB9</code> Emblème de maîtrise des saisons</li><li><code>MB10</code> Détecteur de gemmes</li><li><code>MB11</code> Pétard</li><li><code>MB12</code> Aura brillante</li></ul>" };
 HHAuto_ToolTips.fr['ReportBugs'] = { version: "5.7.1", elementText: "Signaler un bug", tooltip: "Lien vers la liste des tickets GitHub pour ouvrir et suivre les bugs." };
 HHAuto_ToolTips.fr['noOtherScripts'] = { version: "6.15.8", elementText: "Merci de ne pas utiliser d'autres scripts, cela peut créer des incompatibilités (HH++ est supporté)", tooltip: "" };
@@ -1092,7 +1092,6 @@ HHAuto_ToolTips.fr['haremGirlMaxSkill'] = { version: "7.16.0", elementText: "Don
 HHAuto_ToolTips.fr['haremGirlUpSkill'] = { version: "7.21.0", elementText: "&#8593;", tooltip: "Améliore au maximum cette compétence pour cette fille." };
 HHAuto_ToolTips.fr['haremGirlUpgradeMax'] = { version: "6.12.0", elementText: "Amélioration complète de la fille", tooltip: "Effectue toutes les améliorations de la fille (y compris la dernière) et donne l'affection nécessaire." };
 HHAuto_ToolTips.fr['spreadsheet'] = { version: "7.17.0", elementText: "Tableur", tooltip: "" };
-HHAuto_ToolTips.fr['scriptWarning'] = { version: "7.4.0", elementText: "Avertissement", tooltip: "Un problème a été détecté dans l'exécution du bot ; ouvrez le menu et les journaux pour en savoir plus." };
 HHAuto_ToolTips.fr['menuTabGlobal'] = { version: "8.10.0", elementText: "Général", tooltip: "" };
 HHAuto_ToolTips.fr['menuTabDisplay'] = { version: "8.10.0", elementText: "Affichage", tooltip: "" };
 HHAuto_ToolTips.fr['menuTabDaily'] = { version: "8.10.0", elementText: "Quotidien", tooltip: "" };
@@ -1835,7 +1834,6 @@ HHAuto_ToolTips.es['latestTroll'] = { version: "7.23.0", elementText: "Último v
 HHAuto_ToolTips.es['mainAdventure'] = { version: "7.23.0", elementText: "Aventura principal", tooltip: "" };
 HHAuto_ToolTips.es['sideAdventure'] = { version: "7.23.0", elementText: "Aventura secundaria", tooltip: "" };
 HHAuto_ToolTips.es['otherTrollOption'] = { version: "7.23.0", elementText: "Otros", tooltip: "" };
-HHAuto_ToolTips.es['scriptWarning'] = { version: "7.4.0", elementText: "Aviso", tooltip: "Se ha detectado un problema en la ejecución del bot; abre el menú y los registros para más información." };
 HHAuto_ToolTips.es['menuTabGlobal'] = { version: "8.10.0", elementText: "General", tooltip: "" };
 HHAuto_ToolTips.es['menuTabDisplay'] = { version: "8.10.0", elementText: "Pantalla", tooltip: "" };
 HHAuto_ToolTips.es['menuTabDaily'] = { version: "8.10.0", elementText: "Diario", tooltip: "" };

@@ -249,7 +249,6 @@ HHAuto_ToolTips.es['latestTroll'] = { version: "7.23.0", elementText: "Último v
 HHAuto_ToolTips.es['mainAdventure'] = { version: "7.23.0", elementText: "Aventura principal", tooltip: ""};
 HHAuto_ToolTips.es['sideAdventure'] = { version: "7.23.0", elementText: "Aventura secundaria", tooltip: ""};
 HHAuto_ToolTips.es['otherTrollOption'] = { version: "7.23.0", elementText: "Otros", tooltip: ""};
-HHAuto_ToolTips.es['scriptWarning'] = { version: "7.4.0", elementText: "Aviso", tooltip: "Se ha detectado un problema en la ejecución del bot; abre el menú y los registros para más información."};
 HHAuto_ToolTips.es['menuTabGlobal'] = { version: "8.10.0", elementText: "General", tooltip: ""};
 HHAuto_ToolTips.es['menuTabDisplay'] = { version: "8.10.0", elementText: "Pantalla", tooltip: ""};
 HHAuto_ToolTips.es['menuTabDaily'] = { version: "8.10.0", elementText: "Diario", tooltip: ""};
