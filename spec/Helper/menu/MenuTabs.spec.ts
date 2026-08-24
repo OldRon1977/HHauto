@@ -106,11 +106,22 @@ describe('refreshMenuState', () => {
     });
 
     it('marks a block that is set up but cannot run as a conflict', () => {
-        // +Event without the switch that starts the fighting.
-        set('plusEvent', true);
+        // Hard mode and sweep chosen, Labyrinth itself never switched on.
+        set('autoLabyrinth', false);
+        set('autoLabyHard', true);
+        refreshMenuState();
+        expect(blockOf('autoLabyrinth').getAttribute('data-state')).toBe('conflict');
+    });
+
+    it('does not call a working configuration a conflict (#1842)', () => {
+        // +Mythic fights on its own: Troll.isTrollFightActivated() and
+        // wouldFightWithPower() are OR chains, so Auto troll battle being off
+        // says nothing about it. Marking this amber told a user his correct
+        // setup was broken.
+        set('plusEventMythic', true);
         set('autoTrollBattle', false);
         refreshMenuState();
-        expect(blockOf('plusEvent').getAttribute('data-state')).toBe('conflict');
+        expect(blockOf('plusEventMythic').getAttribute('data-state')).toBe('on');
     });
 
     it('leaves a group that cannot act unmarked', () => {
@@ -146,10 +157,10 @@ describe('refreshMenuState', () => {
     });
 
     it('shows a conflict on the rail even while the area runs', () => {
-        set('autoTrollBattle', false);
-        set('plusLoveRaid', true);
+        set('autoLabyrinth', false);
+        set('autoLabySweep', true);      // configured, never armed
         refreshMenuState();
-        expect(badgeOf('adventure').getAttribute('data-state')).toBe('conflict');
+        expect(badgeOf('labyrinth').getAttribute('data-state')).toBe('conflict');
     });
 
     it('leaves the badge of a display-only area empty', () => {

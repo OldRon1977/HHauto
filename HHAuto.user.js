@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.31
+// @version      8.10.32
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -29424,20 +29424,20 @@ function tabs(debugEnabled) {
                     + hhMenuSwitch('buyCombat', '', true)
                     + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
                     + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventSandalWood'), '', true, block(['plusEvent'], ['autoTrollBattle'], ['buyCombat', 'plusEventSandalWood']))
+                    + hhMenuSwitch('plusEventSandalWood'), '', true, block(['plusEvent'], [], ['buyCombat', 'plusEventSandalWood']))
                 + group('menuSecMythicEvent', hhMenuSwitch('plusEventMythic')
                     + hhMenuSwitch('autoTrollMythicByPassParanoia')
                     + hhMenuSwitch('buyMythicCombat', '', true)
                     + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                     + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
-                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true, block(['plusEventMythic'], ['autoTrollBattle'], ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
+                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true, block(['plusEventMythic'], [], ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
                 + group('loveRaidTitle', hhMenuSwitch('plusLoveRaid')
                     + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
                     + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
                     + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
                     + hhMenuSwitch('buyLoveRaidCombat', '', true)
                     + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], ['autoTrollBattle'], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
+                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], [], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
                 + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
                     + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
                 + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)

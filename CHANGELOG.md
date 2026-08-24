@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.32 - +Mythic, +Event and +Raid are not marked as broken any more
+
+- Since 8.10.25 the menu marked the Event trolls, Mythic event and Love Raid
+  blocks amber — "set up but will not run" — whenever Auto troll battle was
+  off. That was wrong: each of those three switches makes the script fight on
+  its own, and a correct configuration was being reported as a mistake (#1842).
+- They are green on their own now. The amber state stays for what it was built
+  for: options set on a block whose own switch is off.
+
 ### v8.10.31 - Leagues no longer loses its turn mid-session
 
 - After the league block launched its fights, another block could take the

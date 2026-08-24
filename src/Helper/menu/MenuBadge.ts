@@ -43,9 +43,16 @@ export interface BlockDef {
      */
     masters: readonly string[];
     /**
-     * Switches elsewhere that must ALSO be on or nothing happens here. The
-     * event-troll, mythic and love-raid blocks all need `autoTrollBattle`:
-     * they only steer a run that switch starts.
+     * Switches elsewhere that must ALSO be on or nothing happens here.
+     *
+     * No block declares one today. The event-troll, mythic and love-raid
+     * blocks did until 8.10.32, on the reading that they only steer a run
+     * `autoTrollBattle` starts -- wrong: `Troll.isTrollFightActivated()` and
+     * `wouldFightWithPower()` are OR chains, so each of those switches makes
+     * the script fight on its own. The marker called a working configuration
+     * a conflict (#1842). Kept because the concept is right where it does
+     * apply; add one only against a measured AND, never against one term of
+     * a disjunction.
      */
     requires?: readonly string[];
     /**

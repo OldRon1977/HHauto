@@ -204,7 +204,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
                 + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                 + hhMenuSwitch('plusEventSandalWood'),
-                '', true, block(['plusEvent'], ['autoTrollBattle'], ['buyCombat', 'plusEventSandalWood']))
+                '', true, block(['plusEvent'], [], ['buyCombat', 'plusEventSandalWood']))
             + group('menuSecMythicEvent',
                 hhMenuSwitch('plusEventMythic')
                 + hhMenuSwitch('autoTrollMythicByPassParanoia')
@@ -212,7 +212,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                 + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
                 + hhMenuSwitch('plusEventMythicSandalWood'),
-                '', true, block(['plusEventMythic'], ['autoTrollBattle'],
+                '', true, block(['plusEventMythic'], [],
                     ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
             + group('loveRaidTitle',
                 hhMenuSwitch('plusLoveRaid')
@@ -222,7 +222,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 + hhMenuSwitch('buyLoveRaidCombat', '', true)
                 + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                 + hhMenuSwitch('plusEventLoveRaidSandalWood'),
-                '', true, block(['plusLoveRaid'], ['autoTrollBattle'],
+                '', true, block(['plusLoveRaid'], [],
                     ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
             + group('menuSecShardsSkins',
                 hhMenuSwitch('plusGirlSkins')
