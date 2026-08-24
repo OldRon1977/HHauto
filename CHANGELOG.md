@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.33 - +Girl Skins now works for event villains too
+
+- With +Girl Skins on, the script kept fighting love raids for a girl it
+  already owned but stopped at event villains, mythic ones included (#1842).
+  Reported by bjaume, whose settings were right all along — the feature simply
+  did not exist outside raids.
+- Event girls now stay a target while a skin of theirs is still outstanding.
+  The game says so on the girl itself, so this is read, not guessed: each skin
+  carries whether it is released and whether you own it.
+- Unreleased skins are ignored. Farming something nobody can win yet would
+  never end.
+
 ### v8.10.32 - +Mythic, +Event and +Raid are not marked as broken any more
 
 - Since 8.10.25 the menu marked the Event trolls, Mythic event and Love Raid

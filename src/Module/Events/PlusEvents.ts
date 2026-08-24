@@ -18,6 +18,7 @@ import { EventGirl } from "../../model/EventGirl";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { KKEventGirl } from "../../model/KK/KKEventGirl";
 import { EventModule } from "./EventModule";
+import { GirlWithSkins, isStillWorthFighting } from "./GirlSkins.pure";
 
 export class PlusEvent {
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
@@ -38,7 +39,10 @@ export class PlusEvent {
         const allEventGirlz = hhEventData ? hhEventData.girls as any[] : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
             const girlData: KKEventGirl = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
+            // Same as the mythic path (#1842): an owned girl may still owe a
+            // skin, and +Girl Skins says the user wants it.
+            const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+            if (isStillWorthFighting(girlData.shards, wantsSkins, girlData as unknown as GirlWithSkins)) {
                 eventList[eventID]["isCompleted"] = false;
                 const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"] as number);
 

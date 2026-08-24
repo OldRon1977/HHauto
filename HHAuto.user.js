@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.32
+// @version      8.10.33
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -26370,6 +26370,51 @@ class KinkyCumpetition {
     }
 }
 
+;// ./src/Module/Events/GirlSkins.pure.ts
+// GirlSkins.pure.ts
+//
+// "Does this event girl still have a skin to win?" -- the question that decides
+// whether the script keeps fighting a villain for a girl it already owns
+// (#1842). Pure and dependency-free so it can be unit-tested without the game.
+//
+// Measured on a live mythic event (event.html?tab=mythic_event_528, girl fully
+// owned with shards=100): the game ships the answer with the girl.
+//
+//   girl.preview.grade_skins_data = [{
+//       id_girl_grade_skin: 305, grade_skin_name: "White Dominatrix Ananke",
+//       is_released: true, is_owned: false, shards_count: 0, is_selected: false }]
+//
+// `is_owned` is the event-side equivalent of LoveRaid.skin_to_win, which is why
+// the raid path could already do this and the event paths could not. The "0/33"
+// the game draws is `shards_count` against a target that is NOT in the payload
+// -- and is not needed: is_owned answers it outright.
+//
+// Unreleased skins are ignored: a skin the game has not published yet cannot be
+// farmed, and treating it as outstanding would keep the script fighting for
+// something nobody can win.
+/**
+ * Whether a released skin of this girl is still unowned.
+ *
+ * Absent data reads as "nothing to win" -- an event without skins, or a build
+ * of the game that does not send them, must not turn into endless fighting.
+ */
+function hasSkinToWin(girl) {
+    var _a;
+    const skins = (_a = girl === null || girl === void 0 ? void 0 : girl.preview) === null || _a === void 0 ? void 0 : _a.grade_skins_data;
+    if (!Array.isArray(skins))
+        return false;
+    return skins.some(skin => (skin === null || skin === void 0 ? void 0 : skin.is_released) === true && (skin === null || skin === void 0 ? void 0 : skin.is_owned) !== true);
+}
+/**
+ * Whether this girl is still worth fighting for.
+ *
+ * Shards below 100 means the girl herself is not won yet. Above that it is only
+ * worth it when the user asked for skins AND one is actually outstanding.
+ */
+function isStillWorthFighting(shards, wantsSkins, girl) {
+    return shards < 100 || (wantsSkins && hasSkinToWin(girl));
+}
+
 ;// ./src/model/EventGirl.ts
 // Model representing a girl obtainable during an in-game event.
 // Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
@@ -26483,6 +26528,7 @@ class EventGirl {
 
 
 
+
 class MythicEvent {
     static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
         const eventID = hhEvent.eventId;
@@ -26509,7 +26555,12 @@ class MythicEvent {
             if ($(ShardsQuery).length > 0) {
                 const remShards = Number($(ShardsQuery)[0].innerText);
                 const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
-                if (girlData.shards < 100) {
+                // A girl you already own can still owe you a skin (#1842). The
+                // game says so on the girl itself -- preview.grade_skins_data
+                // carries is_released/is_owned per skin -- so +Girl Skins works
+                // here the same way it already worked for love raids.
+                const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+                if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
                     eventList[eventID]["isCompleted"] = false;
                     if (nextWave === -1) {
                         clearTimer('eventMythicNextWave');
@@ -26559,6 +26610,7 @@ class MythicEvent {
 
 
 
+
 class PlusEvent {
     static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
         const eventID = hhEvent.eventId;
@@ -26579,7 +26631,10 @@ class PlusEvent {
         const allEventGirlz = hhEventData ? hhEventData.girls : [];
         for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
             const girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
+            // Same as the mythic path (#1842): an owned girl may still owe a
+            // skin, and +Girl Skins says the user wants it.
+            const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+            if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
                 eventList[eventID]["isCompleted"] = false;
                 const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
                 if (eventGirl.isOnTroll()) {

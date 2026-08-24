@@ -10,6 +10,7 @@
 //          Troll.ts (reads event troll priorities)
 //
 import { getStoredValue } from "../../Helper/StorageHelper";
+import { GirlWithSkins, isStillWorthFighting } from "./GirlSkins.pure";
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { clearTimer, setTimer } from "../../Helper/TimerHelper";
 import { logHHAuto } from "../../Utils/LogUtils";
@@ -44,7 +45,12 @@ export class MythicEvent {
             if ($(ShardsQuery).length > 0) {
                 const remShards = Number($(ShardsQuery)[0].innerText);
                 const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
-                if (girlData.shards < 100) {
+                // A girl you already own can still owe you a skin (#1842). The
+                // game says so on the girl itself -- preview.grade_skins_data
+                // carries is_released/is_owned per skin -- so +Girl Skins works
+                // here the same way it already worked for love raids.
+                const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+                if (isStillWorthFighting(girlData.shards, wantsSkins, girlData as unknown as GirlWithSkins)) {
                     eventList[eventID]["isCompleted"] = false;
                     if (nextWave === -1) {
                         clearTimer('eventMythicNextWave');
