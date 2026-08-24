@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.39 - 36 dead texts removed from the language files
+
+- 36 entries had no reference anywhere in the script: leftovers from the two
+  extra koban safety switches, the old Path of Valor/Glory heading, the
+  labyrinth team builder, the market fight simulator, several harem buttons and
+  a "upradable" typo. None of them could ever appear on screen.
+- Removed from all four languages, 144 entries in total. Every language now
+  holds the same 409 keys, and a scan finds no key without a use.
+
 ### v8.10.38 - Three French labels were overwriting the English ones
 
 - Three entries in the French file were assigned to the English bucket by
