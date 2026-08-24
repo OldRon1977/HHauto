@@ -7,6 +7,14 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.40 - What's New popup prepared for the release
+
+- The popup text is written and in place: the pipeline sticking to one activity,
+  the colour marks in the menu, +Girl Skins reaching event villains, and an
+  invitation to correct the three menu languages.
+- It is gated on the version this branch will be released as, so it stays quiet
+  through the remaining branch builds and appears once on the release.
+
 ### v8.10.39 - 36 dead texts removed from the language files
 
 - 36 entries had no reference anywhere in the script: leftovers from the two
