@@ -7,6 +7,22 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.45 - Stop fighting a girl you have already won
+
+- A troll fight reports the girl's new shard count, but the script only read
+  that number when a Sandalwood was equipped. Between completing a girl and the
+  next visit to the event page it therefore kept fighting her -- in the log that
+  reported this, five times for nothing. The count is now read after every
+  fight.
+- At 100/100 with +Girl Skins off, the girl is dropped as a fight target
+  immediately. With +Girl Skins on, fighting continues and the event page is
+  re-read once, since only that page says whether a skin is still outstanding.
+- New switch "Equip Sandalwood" under Shards & skins, off by default. The three
+  Equip Sandalwood switches next to +Event, +Mythic Event and +Raid mean "while
+  winning the girl"; once she is won they no longer apply. This one decides
+  whether a fresh Sandalwood may be equipped for a skin, in every fight where a
+  skin can be won.
+
 ### v8.10.44 - A "Forbidden" leaves a trace in the debug log
 
 - When the game answers Forbidden, the script counts it and waits longer before

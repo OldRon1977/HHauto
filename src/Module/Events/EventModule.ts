@@ -408,6 +408,22 @@ export class EventModule {
         return getStoredJSON<EventGirl>(HHStoredVarPrefixKey + TK.eventGirl, {} as EventGirl)
     }
 
+    /**
+     * Mark one event as due for a re-read (#1843).
+     *
+     * handleEventParsing picks up any event whose next_refresh has passed, so
+     * setting it to zero is enough to have the pipeline visit the event page on
+     * its next pass -- no extra navigation, and no effect on anyone who is not
+     * in the skin phase.
+     */
+    static markEventStale(eventId: string): void {
+        if (!eventId) return;
+        const list = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
+        if (!list || !list[eventId]) return;
+        list[eventId]["next_refresh"] = 0;
+        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
+    }
+
     static getEventMythicGirl(): EventGirl{
         return getStoredJSON<EventGirl>(HHStoredVarPrefixKey + TK.eventMythicGirl, {} as EventGirl)
     }

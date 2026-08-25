@@ -12,6 +12,7 @@ import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
 import { EventModule } from "./Events/EventModule";
+import { isSkinPhase, shardTotalAfterFight, ShardDrop } from "./Events/GirlSkins.pure";
 import { LoveRaidManager } from "./Events/LoveRaidManager";
 
 const DEFAULT_BOOSTERS: { normal: any[]; mythic: any[] } = {normal: [], mythic:[]};
@@ -136,6 +137,16 @@ export class Booster {
                     let sandalwoodEnded = false;
 
                     const sandalwood: any = boosterStatus.mythic.find((booster) => booster.item?.identifier === 'MB1');
+
+                    // The girl's shard count comes back with every troll fight,
+                    // but until #1843 it was only read when a Sandalwood was
+                    // equipped -- the block below used to be the only reader.
+                    // Without it the script kept fighting a girl it had already
+                    // completed, because the stored count only refreshed on the
+                    // next visit to the event page.
+                    if (action === 'do_battles_trolls') {
+                        Booster.updateEventGirlShards(response);
+                    }
 
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles||'') > 1
@@ -1041,6 +1052,7 @@ export class Booster {
         if (!eventGirl?.girl_id || eventGirl.is_mythic) return false;
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
+        if (Booster.skinPhaseBlocksSandalwood(Number(eventGirl.shards))) return false;
         const remainingShards = Number(100 - Number(eventGirl.shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {
@@ -1050,9 +1062,74 @@ export class Booster {
         return activated && correctTrollTargetted && remainingShards > threshold;
     }
 
+    /**
+     * Write the shard count from a battle response back into the stored event
+     * girl (#1843).
+     *
+     * The decision "is there still something to fight for here" reads that
+     * stored object, and it was only ever refreshed by parsing the event page.
+     * Fights happen on the troll pages, so between completing a girl and the
+     * next event-page visit the script fought on -- five times in the log that
+     * reported this, each one for nothing.
+     *
+     * When the girl is complete and the user wants skins, the event entry is
+     * marked stale so the pipeline re-reads the event page: the battle
+     * response says nothing about skin progress, so that is the only place the
+     * "skin done" answer can come from.
+     */
+    static updateEventGirlShards(response: { rewards?: { data?: { shards?: readonly ShardDrop[] } } }): void {
+        const drops = response?.rewards?.data?.shards;
+        if (!Array.isArray(drops) || drops.length === 0) return;
+        for (const [key, girl] of [
+            [TK.eventMythicGirl, EventModule.getEventMythicGirl()],
+            [TK.eventGirl, EventModule.getEventGirl()],
+        ] as [string, EventGirl][]) {
+            if (!girl?.girl_id) continue;
+            const before = Number(girl.shards);
+            const after = shardTotalAfterFight(drops, before);
+            if (after === null) continue;
+            if (after !== before) {
+                girl.shards = after;
+                setStoredValue(HHStoredVarPrefixKey + key, JSON.stringify(girl));
+                logHHAuto(`[SKIN] girl ${girl.girl_id} shards ${before} -> ${after}`);
+            }
+            if (after < 100) continue;
+
+            if (isSkinPhase(after, getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true')) {
+                // Keep fighting, but only the event page knows whether a skin
+                // is still outstanding -- the stored girl carries no skin data.
+                EventModule.markEventStale(girl.event_id);
+                logHHAuto(`[SKIN] girl ${girl.girl_id} complete, re-checking event ${girl.event_id} for skins`);
+            } else {
+                // Nothing left to win here. Drop the target now instead of
+                // waiting for the next event-page visit (#1843).
+                sessionStorage.removeItem(HHStoredVarPrefixKey + key);
+                logHHAuto(`[SKIN] girl ${girl.girl_id} complete, dropping her as a fight target`);
+            }
+        }
+    }
+
+    /**
+     * True when the only thing left here is a skin and the user has not asked
+     * for a perfume in that phase (#1843).
+     *
+     * The three per-path Equip Sandalwood switches mean "while winning the
+     * girl". Once she is won they no longer apply; plusSkinSandalWood is the
+     * one that does, and it is off by default because a perfume is a mythic
+     * booster.
+     */
+    static skinPhaseBlocksSandalwood(shards: number): boolean {
+        const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true';
+        if (!isSkinPhase(shards, wantsSkins)) return shards >= 100;   // girl done, skins off -> nothing to fight for
+        return getStoredValue(HHStoredVarPrefixKey + SK.plusSkinSandalWood) !== 'true';
+    }
+
     static needSandalWoodMythic(nextTrollChoosen: number, eventMythicGirl: EventGirl = null as any): boolean {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-        const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
+        const correctTrollTargetted = eventMythicGirl.is_mythic === true && eventMythicGirl.troll_id == nextTrollChoosen;
+        // Skin phase: the girl is done and we only keep fighting for her skin.
+        // No fresh perfume unless the user asked for it separately (#1843).
+        if (Booster.skinPhaseBlocksSandalwood(Number(eventMythicGirl.shards))) return false;
         const remainingShards = Number(100 - Number(eventMythicGirl.shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {
@@ -1065,6 +1142,7 @@ export class Booster {
         if (!loveRaid) return false;
         const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
+        if (Booster.skinPhaseBlocksSandalwood(Number(loveRaid.girl_shards))) return false;
         const remainingShards = Number(100 - Number(loveRaid.girl_shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {

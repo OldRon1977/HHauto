@@ -61,6 +61,7 @@ const CONTROL_IDS_BEFORE_8_10 = [
 const CONTROL_IDS_ADDED_IN_8_10 = [
     'menuSingleColumn',
     'menuCompact',
+    'plusSkinSandalWood',   // #1843
 ];
 
 /** Buttons wired by StartService via $("#id"). */

@@ -1360,6 +1360,20 @@ HHStoredVars[HHStoredVarPrefixKey + SK.plusGirlSkins] =
     menuType:"checked",
     kobanUsing:false
 };
+// Sandalwood during the skin phase (#1843). Off by default: it spends a mythic
+// booster, which nobody should get without asking. The three per-path Equip
+// Sandalwood switches cover the girl phase; this one covers what comes after.
+HHStoredVars[HHStoredVarPrefixKey + SK.plusSkinSandalWood] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold] =
     {
     default:"false",

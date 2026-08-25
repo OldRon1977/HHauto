@@ -181,6 +181,7 @@ export const SK = {
 
     // Girl Skins (applies to Events and Raids)
     plusGirlSkins: "Setting_plusGirlSkins",
+    plusSkinSandalWood: "Setting_plusSkinSandalWood",
 
     // Boosters / Events
     plusEvent: "Setting_plusEvent",

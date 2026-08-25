@@ -59,3 +59,42 @@ export function isStillWorthFighting(
 ): boolean {
     return shards < 100 || (wantsSkins && hasSkinToWin(girl));
 }
+
+/** One entry of `rewards.data.shards` in a battle response. */
+export interface ShardDrop {
+    previous_value?: number;
+    value?: number;
+}
+
+/**
+ * The girl's new shard total after a fight, or null when the response says
+ * nothing about her (#1843).
+ *
+ * A response can carry several shard entries -- a normal event girl and a
+ * mythic one drop in the same batch. Attribution is by the value the girl had
+ * before the fight: the entry whose `previous_value` matches is hers. With a
+ * single entry and no match we take it anyway, which is the ordinary case of
+ * one girl and a stale stored count.
+ */
+export function shardTotalAfterFight(
+    drops: readonly ShardDrop[] | null | undefined,
+    shardsBefore: number,
+): number | null {
+    if (!Array.isArray(drops) || drops.length === 0) return null;
+    const matched = drops.find(d => d?.previous_value === shardsBefore);
+    const entry = matched ?? (drops.length === 1 ? drops[0] : undefined);
+    const value = entry?.value;
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Whether the only thing left to win here is a skin: the girl is complete and
+ * the user asked to keep going for skins.
+ *
+ * This is the state in which the fighting continues but the Sandalwood
+ * automation must not put a fresh perfume on -- that is what the separate
+ * switch in "Shards & skins" is for (#1843).
+ */
+export function isSkinPhase(shards: number, wantsSkins: boolean): boolean {
+    return shards >= 100 && wantsSkins;
+}

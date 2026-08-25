@@ -1,4 +1,4 @@
-import { hasSkinToWin, isStillWorthFighting } from '../../../src/Module/Events/GirlSkins.pure';
+import { hasSkinToWin, isSkinPhase, isStillWorthFighting, shardTotalAfterFight } from '../../../src/Module/Events/GirlSkins.pure';
 
 // Shapes taken from a live mythic event (#1842): the girl was fully owned
 // (shards 100) and the game still listed an unowned, released skin.
@@ -50,5 +50,52 @@ describe('isStillWorthFighting', () => {
 
     it('stops once the skin is owned too', () => {
         expect(isStillWorthFighting(100, true, noSkin)).toBe(false);
+    });
+});
+
+// #1843: the script kept fighting a girl it had already completed, because the
+// stored shard count was only refreshed by parsing the event page. The battle
+// response carries the new count -- these pin how it is read.
+describe('shardTotalAfterFight', () => {
+    it('takes the entry that starts where the stored count is', () => {
+        const drops = [{ previous_value: 40, value: 42 }, { previous_value: 98, value: 100 }];
+        expect(shardTotalAfterFight(drops, 98)).toBe(100);
+        expect(shardTotalAfterFight(drops, 40)).toBe(42);
+    });
+
+    it('takes a lone entry even when the stored count has drifted', () => {
+        // The ordinary case: one girl, and the stored number is behind.
+        expect(shardTotalAfterFight([{ previous_value: 96, value: 100 }], 90)).toBe(100);
+    });
+
+    it('reports the completed girl the reporter saw', () => {
+        // previous=100, value=100 -- the fight that produced nothing.
+        expect(shardTotalAfterFight([{ previous_value: 100, value: 100 }], 100)).toBe(100);
+    });
+
+    it('says nothing rather than guessing when several entries and none match', () => {
+        const drops = [{ previous_value: 10, value: 12 }, { previous_value: 50, value: 52 }];
+        expect(shardTotalAfterFight(drops, 90)).toBeNull();
+    });
+
+    it('reads missing or malformed data as no answer', () => {
+        expect(shardTotalAfterFight(undefined, 10)).toBeNull();
+        expect(shardTotalAfterFight([], 10)).toBeNull();
+        expect(shardTotalAfterFight([{}], 10)).toBeNull();
+        expect(shardTotalAfterFight('nope' as never, 10)).toBeNull();
+    });
+});
+
+describe('isSkinPhase', () => {
+    it('is the state where only the skin is left and the user wants it', () => {
+        expect(isSkinPhase(100, true)).toBe(true);
+    });
+
+    it('is not the state while the girl is incomplete', () => {
+        expect(isSkinPhase(99, true)).toBe(false);
+    });
+
+    it('is not the state when skins are switched off', () => {
+        expect(isSkinPhase(100, false)).toBe(false);
     });
 });

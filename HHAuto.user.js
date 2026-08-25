@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.44
+// @version      8.10.45
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -291,6 +291,7 @@ HHAuto_ToolTips.en['autoChampsForceStartEventGirl'] = { version: "8.10.42", elem
 HHAuto_ToolTips.en['plusLoveRaid'] = { version: "8.10.42", elementText: "Enabled", tooltip: "Fight Love Raids independently from Auto Troll and Events.<br>Raids are prioritized after Events but before normal Trolls." };
 HHAuto_ToolTips.en['loveRaidSelector'] = { version: "7.32.5", elementText: "Raid selector", tooltip: "Select girl to be targeted during Love Raid.<br>Resets to 'Choose a girl' when girl is won (and skins are done or +Girl Skins is OFF)." };
 HHAuto_ToolTips.en['plusGirlSkins'] = { version: "7.32.5", elementText: "+Girl Skins", tooltip: "Continue fighting after girl shards are complete to collect girl skins.<br>Applies to both Events and Raids.<br>When OFF: stops fighting once girl is won (100 shards).<br>When ON: continues if skin shards are still available." };
+HHAuto_ToolTips.en['plusSkinSandalWood'] = { version: "8.10.45", elementText: "Equip Sandalwood", tooltip: "Equip a fresh Sandalwood while fighting only for a girl's skin, once she is already won.<br>The Equip Sandalwood switches next to +Event, +Mythic Event and +Raid cover winning the girl; this one covers what comes after.<br>Off by default: a Sandalwood is a mythic booster." };
 HHAuto_ToolTips.en['autoTrollLoveRaidByPassThreshold'] = { version: "7.35.27", elementText: "Bypass reserve", tooltip: "Bypass energy threshold for +Raid and +Raid Stars fights as long as a raid girl is available.<br>When OFF, the troll threshold applies to raid fights too." };
 HHAuto_ToolTips.en['raidStarsSelector'] = { version: "7.35.27", elementText: "+Raid Stars", tooltip: "<p>Fight Love Raids by girl grade. Independent from <b>+Raid</b> and <b>Auto Troll</b>.</p><ul><li>Picks the first ending raid matching the selected grade (ignores the Raid selector dropdown).</li><li>Raids matching the grade are claimed by <b>+Raid Stars</b>; remaining raids go to <b>+Raid</b>, if enabled.</li><li>The energy threshold is controlled by the <b>Bypass reserve</b> toggle.</li></ul>" };
 HHAuto_ToolTips.en['raidStarsOff'] = { version: "7.35.5", elementText: "Off" };
@@ -821,6 +822,7 @@ HHAuto_ToolTips.fr['autoChampsForceStartEventGirl'] = { version: "8.10.42", elem
 HHAuto_ToolTips.fr['plusLoveRaid'] = { version: "8.10.42", elementText: "Activé", tooltip: "Combat les Raids amoureux indépendamment d'Auto Troll et des événements.<br>Les raids passent après les événements mais avant les trolls normaux." };
 HHAuto_ToolTips.fr['loveRaidSelector'] = { version: "7.32.5", elementText: "Sélection du raid", tooltip: "Choisit la fille visée pendant le Raid amoureux.<br>Revient à « Choisir une fille » quand la fille est gagnée (et que les skins sont terminés ou que +Skins de fille est désactivé)." };
 HHAuto_ToolTips.fr['plusGirlSkins'] = { version: "7.32.5", elementText: "+Skins de fille", tooltip: "Continue à combattre une fois les fragments de la fille complets, pour récupérer ses skins.<br>S'applique aux événements comme aux raids.<br>Désactivé : s'arrête dès que la fille est gagnée (100 fragments).<br>Activé : continue tant qu'il reste des fragments de skin à obtenir." };
+HHAuto_ToolTips.fr['plusSkinSandalWood'] = { version: "8.10.45", elementText: "Équiper le santal", tooltip: "Équipe un santal frais lorsque le combat ne vise plus que le skin d'une fille déjà gagnée.<br>Les interrupteurs à côté de +Événement, +Événement mythique et +Raid concernent la fille elle-même ; celui-ci concerne la suite.<br>Désactivé par défaut : le santal est un booster mythique." };
 HHAuto_ToolTips.fr['autoTrollLoveRaidByPassThreshold'] = { version: "7.35.27", elementText: "Ignorer la réserve", tooltip: "Ignore le seuil d'énergie pour les combats +Raid et +Raid étoiles tant qu'une fille de raid est disponible.<br>Désactivé : le seuil des trolls s'applique aussi aux raids." };
 HHAuto_ToolTips.fr['raidStarsSelector'] = { version: "7.35.27", elementText: "+Raid étoiles", tooltip: "<p>Combat les Raids amoureux selon le grade de la fille. Indépendant de <b>+Raid</b> et d'<b>Auto Troll</b>.</p><ul><li>Prend le premier raid qui se termine et correspondant au grade choisi (ignore la liste Sélection du raid).</li><li>Les raids correspondant au grade sont pris par <b>+Raid étoiles</b> ; les autres reviennent à <b>+Raid</b>, s'il est activé.</li><li>Le seuil d'énergie est piloté par l'option <b>Ignorer la réserve</b>.</li></ul>" };
 HHAuto_ToolTips.fr['raidStarsOff'] = { version: "7.35.5", elementText: "Désactivé", tooltip: "" };
@@ -1170,6 +1172,7 @@ HHAuto_ToolTips.de['autoChampsForceStartEventGirl'] = { version: "8.10.42", elem
 HHAuto_ToolTips.de['plusLoveRaid'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Kämpft Liebesüberfälle unabhängig von Auto-Troll und Events.<br>Liebesüberfälle kommen nach Events, aber vor normalen Trollen." };
 HHAuto_ToolTips.de['loveRaidSelector'] = { version: "8.10.0", elementText: "Liebesüberfall-Auswahl", tooltip: "Wähle das Mädel, auf das im Liebesüberfall gezielt wird.<br>Springt zurück auf 'Mädel wählen', sobald es gewonnen ist (und die Skins fertig sind oder +Mädel-Skins aus ist)." };
 HHAuto_ToolTips.de['plusGirlSkins'] = { version: "8.10.0", elementText: "+Mädel-Skins", tooltip: "Kämpft weiter, nachdem die Splitter komplett sind, um die Skins des Mädels zu sammeln.<br>Gilt für Events und Liebesüberfälle.<br>Wenn aus: Schluss, sobald die Splitter voll sind." };
+HHAuto_ToolTips.de['plusSkinSandalWood'] = { version: "8.10.45", elementText: "Sandelholz anlegen", tooltip: "Legt frisches Sandelholz an, wenn nur noch um den Skin eines bereits gewonnenen Mädels gekämpft wird.<br>Die Schalter neben +Event, +Mythisches Event und +Raid gelten für das Mädel selbst, dieser für die Zeit danach.<br>Standardmäßig aus: Sandelholz ist ein mythischer Booster." };
 HHAuto_ToolTips.de['autoTrollLoveRaidByPassThreshold'] = { version: "8.10.0", elementText: "Reserve umgehen", tooltip: "Umgeht die Energie-Schwelle für +Liebesüberfall- und +Liebesüberfall-Sterne-Kämpfe, solange ein Liebesüberfall-Mädel verfügbar ist.<br>Wenn aus, gilt die Troll-Schwelle auch hier." };
 HHAuto_ToolTips.de['buyLoveRaidCombat'] = { version: "8.10.42", elementText: "Kämpfe kaufen (Raid)", tooltip: "<p style = 'color:red'>/ !\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p > Wenn aktiv: Kauft Kampfpunkte während eines Liebesüberfalls." };
 HHAuto_ToolTips.de['autoBuyLoveRaidTrollNumber'] = { version: "8.10.0", elementText: "Liebesüberfall Auto-Kauf", tooltip: "Anzahl Kampfpunkte, die während eines Liebesüberfalls gekauft werden." };
@@ -1590,6 +1593,7 @@ HHAuto_ToolTips.es['autoChampsForceStartEventGirl'] = { version: "8.10.42", elem
 HHAuto_ToolTips.es['plusLoveRaid'] = { version: "8.10.42", elementText: "Activado", tooltip: "Combate en las Incursiones de Amor con independencia de Auto villano y de los eventos.<br>Las incursiones tienen prioridad después de los eventos y antes de los villanos normales." };
 HHAuto_ToolTips.es['loveRaidSelector'] = { version: "7.32.5", elementText: "Selector de incursión", tooltip: "Elige la chica objetivo durante la Incursión de Amor.<br>Vuelve a «Elige una chica» cuando la chica se ha conseguido (y sus skins están completas o +Skins de chica está apagado)." };
 HHAuto_ToolTips.es['plusGirlSkins'] = { version: "7.32.5", elementText: "+Skins de chica", tooltip: "Sigue combatiendo después de completar los fragmentos de la chica para conseguir sus skins.<br>Se aplica tanto a eventos como a incursiones.<br>Apagado: se detiene en cuanto la chica está conseguida (100 fragmentos).<br>Encendido: continúa si aún quedan fragmentos de skin disponibles." };
+HHAuto_ToolTips.es['plusSkinSandalWood'] = { version: "8.10.45", elementText: "Equipar sándalo", tooltip: "Equipa un sándalo nuevo cuando ya sólo se combate por el skin de una chica que ya has conseguido.<br>Los interruptores junto a +Evento, +Evento mítico y +Incursión valen para la chica; éste vale para lo que viene después.<br>Desactivado por defecto: el sándalo es un potenciador mítico." };
 HHAuto_ToolTips.es['autoTrollLoveRaidByPassThreshold'] = { version: "7.35.27", elementText: "Ignorar reserva", tooltip: "Ignora el umbral de energía en los combates de +Incursión y +Incursión estrellas mientras haya una chica de incursión disponible.<br>Apagado: el umbral de villanos se aplica también a las incursiones." };
 HHAuto_ToolTips.es['raidStarsSelector'] = { version: "7.35.27", elementText: "+Incursión estrellas", tooltip: "<p>Combate en las Incursiones de Amor según el grado de la chica. Independiente de <b>+Incursión</b> y de <b>Auto villano</b>.</p><ul><li>Elige la primera incursión que termina y coincide con el grado seleccionado (ignora el desplegable Selector de incursión).</li><li>Las incursiones que coinciden con el grado las toma <b>+Incursión estrellas</b>; el resto pasa a <b>+Incursión</b>, si está activada.</li><li>El umbral de energía lo controla el interruptor <b>Ignorar reserva</b>.</li></ul>" };
 HHAuto_ToolTips.es['raidStarsOff'] = { version: "7.35.5", elementText: "Apagado", tooltip: "" };
@@ -2270,6 +2274,7 @@ const SK = {
     paranoiaSpendsBefore: "Setting_paranoiaSpendsBefore",
     // Girl Skins (applies to Events and Raids)
     plusGirlSkins: "Setting_plusGirlSkins",
+    plusSkinSandalWood: "Setting_plusSkinSandalWood",
     // Boosters / Events
     plusEvent: "Setting_plusEvent",
     plusEventMythic: "Setting_plusEventMythic",
@@ -4024,6 +4029,20 @@ HHStoredVars[HHStoredVarPrefixKey + SK.paranoiaSpendsBefore] =
         kobanUsing: false
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.plusGirlSkins] =
+    {
+        default: "false",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+// Sandalwood during the skin phase (#1843). Off by default: it spends a mythic
+// booster, which nobody should get without asking. The three per-path Equip
+// Sandalwood switches cover the girl phase; this one covers what comes after.
+HHStoredVars[HHStoredVarPrefixKey + SK.plusSkinSandalWood] =
     {
         default: "false",
         storage: "Storage()",
@@ -11308,6 +11327,80 @@ class SeasonOpponent {
     }
 }
 
+;// ./src/Module/Events/GirlSkins.pure.ts
+// GirlSkins.pure.ts
+//
+// "Does this event girl still have a skin to win?" -- the question that decides
+// whether the script keeps fighting a villain for a girl it already owns
+// (#1842). Pure and dependency-free so it can be unit-tested without the game.
+//
+// Measured on a live mythic event (event.html?tab=mythic_event_528, girl fully
+// owned with shards=100): the game ships the answer with the girl.
+//
+//   girl.preview.grade_skins_data = [{
+//       id_girl_grade_skin: 305, grade_skin_name: "White Dominatrix Ananke",
+//       is_released: true, is_owned: false, shards_count: 0, is_selected: false }]
+//
+// `is_owned` is the event-side equivalent of LoveRaid.skin_to_win, which is why
+// the raid path could already do this and the event paths could not. The "0/33"
+// the game draws is `shards_count` against a target that is NOT in the payload
+// -- and is not needed: is_owned answers it outright.
+//
+// Unreleased skins are ignored: a skin the game has not published yet cannot be
+// farmed, and treating it as outstanding would keep the script fighting for
+// something nobody can win.
+/**
+ * Whether a released skin of this girl is still unowned.
+ *
+ * Absent data reads as "nothing to win" -- an event without skins, or a build
+ * of the game that does not send them, must not turn into endless fighting.
+ */
+function hasSkinToWin(girl) {
+    var _a;
+    const skins = (_a = girl === null || girl === void 0 ? void 0 : girl.preview) === null || _a === void 0 ? void 0 : _a.grade_skins_data;
+    if (!Array.isArray(skins))
+        return false;
+    return skins.some(skin => (skin === null || skin === void 0 ? void 0 : skin.is_released) === true && (skin === null || skin === void 0 ? void 0 : skin.is_owned) !== true);
+}
+/**
+ * Whether this girl is still worth fighting for.
+ *
+ * Shards below 100 means the girl herself is not won yet. Above that it is only
+ * worth it when the user asked for skins AND one is actually outstanding.
+ */
+function isStillWorthFighting(shards, wantsSkins, girl) {
+    return shards < 100 || (wantsSkins && hasSkinToWin(girl));
+}
+/**
+ * The girl's new shard total after a fight, or null when the response says
+ * nothing about her (#1843).
+ *
+ * A response can carry several shard entries -- a normal event girl and a
+ * mythic one drop in the same batch. Attribution is by the value the girl had
+ * before the fight: the entry whose `previous_value` matches is hers. With a
+ * single entry and no match we take it anyway, which is the ordinary case of
+ * one girl and a stale stored count.
+ */
+function shardTotalAfterFight(drops, shardsBefore) {
+    if (!Array.isArray(drops) || drops.length === 0)
+        return null;
+    const matched = drops.find(d => (d === null || d === void 0 ? void 0 : d.previous_value) === shardsBefore);
+    const entry = matched !== null && matched !== void 0 ? matched : (drops.length === 1 ? drops[0] : undefined);
+    const value = entry === null || entry === void 0 ? void 0 : entry.value;
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+/**
+ * Whether the only thing left to win here is a skin: the girl is complete and
+ * the user asked to keep going for skins.
+ *
+ * This is the state in which the fighting continues but the Sandalwood
+ * automation must not put a fresh perfume on -- that is what the separate
+ * switch in "Shards & skins" is for (#1843).
+ */
+function isSkinPhase(shards, wantsSkins) {
+    return shards >= 100 && wantsSkins;
+}
+
 ;// ./src/model/LoveRaid.ts
 // Model representing a Love Raid event instance.
 // Contains the raid target (girl), associated troll/champion/season module,
@@ -11664,6 +11757,7 @@ var Booster_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
 
 
 
+
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
 /**
  * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
@@ -11766,6 +11860,15 @@ class Booster {
                     let mythicUpdated = false;
                     let sandalwoodEnded = false;
                     const sandalwood = boosterStatus.mythic.find((booster) => { var _a; return ((_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1'; });
+                    // The girl's shard count comes back with every troll fight,
+                    // but until #1843 it was only read when a Sandalwood was
+                    // equipped -- the block below used to be the only reader.
+                    // Without it the script kept fighting a girl it had already
+                    // completed, because the stored count only refreshed on the
+                    // next visit to the event page.
+                    if (action === 'do_battles_trolls') {
+                        Booster.updateEventGirlShards(response);
+                    }
                     if (sandalwood && action === 'do_battles_trolls') {
                         const isMultibattle = parseInt(number_of_battles || '') > 1;
                         const dosesBeforeFight = sandalwood.usages_remaining;
@@ -12591,6 +12694,8 @@ class Booster {
             return false;
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventSandalWood) === "true";
         const correctTrollTargetted = eventGirl.troll_id == nextTrollChoosen;
+        if (Booster.skinPhaseBlocksSandalwood(Number(eventGirl.shards)))
+            return false;
         const remainingShards = Number(100 - Number(eventGirl.shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {
@@ -12598,9 +12703,79 @@ class Booster {
         }
         return activated && correctTrollTargetted && remainingShards > threshold;
     }
+    /**
+     * Write the shard count from a battle response back into the stored event
+     * girl (#1843).
+     *
+     * The decision "is there still something to fight for here" reads that
+     * stored object, and it was only ever refreshed by parsing the event page.
+     * Fights happen on the troll pages, so between completing a girl and the
+     * next event-page visit the script fought on -- five times in the log that
+     * reported this, each one for nothing.
+     *
+     * When the girl is complete and the user wants skins, the event entry is
+     * marked stale so the pipeline re-reads the event page: the battle
+     * response says nothing about skin progress, so that is the only place the
+     * "skin done" answer can come from.
+     */
+    static updateEventGirlShards(response) {
+        var _a, _b;
+        const drops = (_b = (_a = response === null || response === void 0 ? void 0 : response.rewards) === null || _a === void 0 ? void 0 : _a.data) === null || _b === void 0 ? void 0 : _b.shards;
+        if (!Array.isArray(drops) || drops.length === 0)
+            return;
+        for (const [key, girl] of [
+            [TK.eventMythicGirl, EventModule.getEventMythicGirl()],
+            [TK.eventGirl, EventModule.getEventGirl()],
+        ]) {
+            if (!(girl === null || girl === void 0 ? void 0 : girl.girl_id))
+                continue;
+            const before = Number(girl.shards);
+            const after = shardTotalAfterFight(drops, before);
+            if (after === null)
+                continue;
+            if (after !== before) {
+                girl.shards = after;
+                setStoredValue(HHStoredVarPrefixKey + key, JSON.stringify(girl));
+                logHHAuto(`[SKIN] girl ${girl.girl_id} shards ${before} -> ${after}`);
+            }
+            if (after < 100)
+                continue;
+            if (isSkinPhase(after, getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true')) {
+                // Keep fighting, but only the event page knows whether a skin
+                // is still outstanding -- the stored girl carries no skin data.
+                EventModule.markEventStale(girl.event_id);
+                logHHAuto(`[SKIN] girl ${girl.girl_id} complete, re-checking event ${girl.event_id} for skins`);
+            }
+            else {
+                // Nothing left to win here. Drop the target now instead of
+                // waiting for the next event-page visit (#1843).
+                sessionStorage.removeItem(HHStoredVarPrefixKey + key);
+                logHHAuto(`[SKIN] girl ${girl.girl_id} complete, dropping her as a fight target`);
+            }
+        }
+    }
+    /**
+     * True when the only thing left here is a skin and the user has not asked
+     * for a perfume in that phase (#1843).
+     *
+     * The three per-path Equip Sandalwood switches mean "while winning the
+     * girl". Once she is won they no longer apply; plusSkinSandalWood is the
+     * one that does, and it is off by default because a perfume is a mythic
+     * booster.
+     */
+    static skinPhaseBlocksSandalwood(shards) {
+        const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true';
+        if (!isSkinPhase(shards, wantsSkins))
+            return shards >= 100; // girl done, skins off -> nothing to fight for
+        return getStoredValue(HHStoredVarPrefixKey + SK.plusSkinSandalWood) !== 'true';
+    }
     static needSandalWoodMythic(nextTrollChoosen, eventMythicGirl = null) {
         const activated = getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythicSandalWood) === "true";
-        const correctTrollTargetted = eventMythicGirl.is_mythic && eventMythicGirl.troll_id == nextTrollChoosen;
+        const correctTrollTargetted = eventMythicGirl.is_mythic === true && eventMythicGirl.troll_id == nextTrollChoosen;
+        // Skin phase: the girl is done and we only keep fighting for her skin.
+        // No fresh perfume unless the user asked for it separately (#1843).
+        if (Booster.skinPhaseBlocksSandalwood(Number(eventMythicGirl.shards)))
+            return false;
         const remainingShards = Number(100 - Number(eventMythicGirl.shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {
@@ -12613,6 +12788,8 @@ class Booster {
             return false;
         const activated = LoveRaidManager.isAnyActivated() && getStoredValue(HHStoredVarPrefixKey + SK.plusEventLoveRaidSandalWood) === "true";
         const correctTrollTargetted = loveRaid.girl_to_win && loveRaid.trollId == nextTrollChoosen;
+        if (Booster.skinPhaseBlocksSandalwood(Number(loveRaid.girl_shards)))
+            return false;
         const remainingShards = Number(100 - Number(loveRaid.girl_shards));
         const threshold = Booster.getSandalwoodMinShardsThreshold();
         if (remainingShards <= threshold) {
@@ -26918,51 +27095,6 @@ class KinkyCumpetition {
     }
 }
 
-;// ./src/Module/Events/GirlSkins.pure.ts
-// GirlSkins.pure.ts
-//
-// "Does this event girl still have a skin to win?" -- the question that decides
-// whether the script keeps fighting a villain for a girl it already owns
-// (#1842). Pure and dependency-free so it can be unit-tested without the game.
-//
-// Measured on a live mythic event (event.html?tab=mythic_event_528, girl fully
-// owned with shards=100): the game ships the answer with the girl.
-//
-//   girl.preview.grade_skins_data = [{
-//       id_girl_grade_skin: 305, grade_skin_name: "White Dominatrix Ananke",
-//       is_released: true, is_owned: false, shards_count: 0, is_selected: false }]
-//
-// `is_owned` is the event-side equivalent of LoveRaid.skin_to_win, which is why
-// the raid path could already do this and the event paths could not. The "0/33"
-// the game draws is `shards_count` against a target that is NOT in the payload
-// -- and is not needed: is_owned answers it outright.
-//
-// Unreleased skins are ignored: a skin the game has not published yet cannot be
-// farmed, and treating it as outstanding would keep the script fighting for
-// something nobody can win.
-/**
- * Whether a released skin of this girl is still unowned.
- *
- * Absent data reads as "nothing to win" -- an event without skins, or a build
- * of the game that does not send them, must not turn into endless fighting.
- */
-function hasSkinToWin(girl) {
-    var _a;
-    const skins = (_a = girl === null || girl === void 0 ? void 0 : girl.preview) === null || _a === void 0 ? void 0 : _a.grade_skins_data;
-    if (!Array.isArray(skins))
-        return false;
-    return skins.some(skin => (skin === null || skin === void 0 ? void 0 : skin.is_released) === true && (skin === null || skin === void 0 ? void 0 : skin.is_owned) !== true);
-}
-/**
- * Whether this girl is still worth fighting for.
- *
- * Shards below 100 means the girl herself is not won yet. Above that it is only
- * worth it when the user asked for skins AND one is actually outstanding.
- */
-function isStillWorthFighting(shards, wantsSkins, girl) {
-    return shards < 100 || (wantsSkins && hasSkinToWin(girl));
-}
-
 ;// ./src/model/EventGirl.ts
 // Model representing a girl obtainable during an in-game event.
 // Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
@@ -27955,6 +28087,23 @@ class EventModule {
     }
     static getEventGirl() {
         return getStoredJSON(HHStoredVarPrefixKey + TK.eventGirl, {});
+    }
+    /**
+     * Mark one event as due for a re-read (#1843).
+     *
+     * handleEventParsing picks up any event whose next_refresh has passed, so
+     * setting it to zero is enough to have the pipeline visit the event page on
+     * its next pass -- no extra navigation, and no effect on anyone who is not
+     * in the skin phase.
+     */
+    static markEventStale(eventId) {
+        if (!eventId)
+            return;
+        const list = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        if (!list || !list[eventId])
+            return;
+        list[eventId]["next_refresh"] = 0;
+        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
     }
     static getEventMythicGirl() {
         return getStoredJSON(HHStoredVarPrefixKey + TK.eventMythicGirl, {});
@@ -30041,6 +30190,7 @@ function tabs(debugEnabled) {
                     + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
                     + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], [], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
                 + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
+                    + hhMenuSwitch('plusSkinSandalWood')
                     + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
                 + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)
                     + hhMenuSwitch('useX10FightsAllowNormalEvent')

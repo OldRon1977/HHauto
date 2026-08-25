@@ -6,6 +6,7 @@ import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 import { Timers, setTimer, checkTimer, clearTimer, getSecondsLeft } from '../../src/Helper/TimerHelper';
 import { safeReload } from '../../src/Service/PageNavigationService';
 import { MockHelper } from "../testHelpers/MockHelpers";
+import { EventGirl } from '../../src/model/EventGirl';
 
 // Booster reloads the page after a mythic conflict (the game's conflict popup
 // cannot be closed programmatically); mock navigation so tests never touch
@@ -249,6 +250,84 @@ describe("Booster", function() {
       localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
       Booster.setEquipCooldown(300);
       expect(Booster.needSandalWoodEquipped(1)).toBeFalsy();
+    });
+  });
+
+  // #1843: the log showed five fights on a girl that already had 100/100 --
+  // with +Girl Skins off, so there was nothing left to win. The shard count is
+  // now read out of every battle response instead of only from the event page.
+  describe("shard read-back after a fight (#1843)", function() {
+    const MYTHIC_KEY = HHStoredVarPrefixKey + "Temp_eventMythicGirl";
+    const response = (previous_value: number, value: number) => ({ rewards: { data: { shards: [{ previous_value, value }] } } });
+
+    function storeMythicGirl(shards: number) {
+      sessionStorage.setItem(MYTHIC_KEY, JSON.stringify({ girl_id: 42, troll_id: 7, shards, is_mythic: true, event_id: 'me_1' }));
+      sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_eventsList", JSON.stringify({ me_1: { id: 'me_1', next_refresh: 999999 } }));
+    }
+
+    it("writes the new count into the stored girl", function() {
+      storeMythicGirl(90);
+      Booster.updateEventGirlShards(response(90, 94));
+      expect(JSON.parse(sessionStorage.getItem(MYTHIC_KEY) as string).shards).toBe(94);
+    });
+
+    it("drops the girl as a target once she is complete and skins are off", function() {
+      storeMythicGirl(98);
+      Booster.updateEventGirlShards(response(98, 100));
+      expect(sessionStorage.getItem(MYTHIC_KEY)).toBeNull();
+    });
+
+    it("drops her even when the fight added nothing, because she was already complete", function() {
+      // This is the situation from the report: 100/100, and the script kept going.
+      storeMythicGirl(100);
+      Booster.updateEventGirlShards(response(100, 100));
+      expect(sessionStorage.getItem(MYTHIC_KEY)).toBeNull();
+    });
+
+    it("keeps her and re-checks the event page when skins are wanted", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      storeMythicGirl(98);
+      Booster.updateEventGirlShards(response(98, 100));
+      expect(sessionStorage.getItem(MYTHIC_KEY)).not.toBeNull();
+      // next_refresh cleared -> the pipeline visits the event page, which is the
+      // only place that knows whether a skin is still outstanding.
+      expect(JSON.parse(sessionStorage.getItem(HHStoredVarPrefixKey + "Temp_eventsList") as string).me_1.next_refresh).toBe(0);
+    });
+
+    it("leaves everything alone when the response carries no shard data", function() {
+      storeMythicGirl(90);
+      Booster.updateEventGirlShards({ rewards: { data: {} } });
+      expect(JSON.parse(sessionStorage.getItem(MYTHIC_KEY) as string).shards).toBe(90);
+    });
+  });
+
+  describe("sandalwood in the skin phase (#1843)", function() {
+    it("is blocked once the girl is complete", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      expect(Booster.skinPhaseBlocksSandalwood(100)).toBe(true);
+    });
+
+    it("is allowed in the skin phase when Equip Sandalwood is switched on", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusSkinSandalWood", 'true');
+      expect(Booster.skinPhaseBlocksSandalwood(100)).toBe(false);
+    });
+
+    it("stays blocked with skins off, whatever the new switch says", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusSkinSandalWood", 'true');
+      expect(Booster.skinPhaseBlocksSandalwood(100)).toBe(true);
+    });
+
+    it("does not interfere while the girl is still incomplete", function() {
+      expect(Booster.skinPhaseBlocksSandalwood(99)).toBe(false);
+    });
+
+    it("stops needSandalWoodMythic from equipping a perfume for a finished girl", function() {
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythic", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusEventMythicSandalWood", 'true');
+      localStorage.setItem(HHStoredVarPrefixKey + "Setting_plusGirlSkins", 'true');
+      const girl = { girl_id: 42, troll_id: 7, shards: 100, is_mythic: true, event_id: 'me_1' } as unknown as EventGirl;
+      expect(Booster.needSandalWoodMythic(7, girl)).toBe(false);
     });
   });
 

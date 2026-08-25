@@ -226,6 +226,7 @@ function tabs(debugEnabled: boolean): TabDef[] {
                     ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
             + group('menuSecShardsSkins',
                 hhMenuSwitch('plusGirlSkins')
+                + hhMenuSwitch('plusSkinSandalWood')
                 + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
             + debugOnly(debugEnabled, group('menuSecMultiFights',
                 hhMenuSwitch('useX10Fights', '', true)
