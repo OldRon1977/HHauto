@@ -347,6 +347,12 @@ export class BlockScheduler {
     // forever -- and the stale backstop could never fire, because the focus
     // kept being refreshed.
     if (block.holdsFocus !== false && run.acted === true) {
+      // Logged, not just stored: without this the dump shows when the focus
+      // was given up but never when it was taken, and "did the pipeline stay
+      // on one activity" cannot be read out of it (#1841).
+      if (this.ports.getFocus()?.blockId !== block.id) {
+        this.emit({ ev: "focus", block: block.id, detail: "taken" });
+      }
       this.ports.setFocus({ blockId: block.id, lastRunAt: now });
     } else if (this.ports.getFocus()?.blockId === block.id) {
       this.releaseFocus("ran without doing anything");

@@ -70,8 +70,8 @@ function parseOr<T>(raw: string | null, fallback: T): T {
 
 let pending: string[] = [];
 let pendingBytes = 0;
-let lastFlush = 0;
 let hooked = false;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function readIndex(): RingIndex {
     const raw = sessionStorage.getItem(idxKey());
@@ -133,11 +133,11 @@ function advance(idx: RingIndex): void {
 
 /** Push everything pending into storage. Called on a timer, and on page exit. */
 export function flushLog(): void {
+    if (flushTimer !== null) { clearTimeout(flushTimer); flushTimer = null; }
     if (pending.length === 0) return;
     const text = pending.join("");
     pending = [];
     pendingBytes = 0;
-    lastFlush = Date.now();
 
     const idx = readIndex();
     const current = sessionStorage.getItem(chunkKey(idx.cur)) ?? "";
@@ -165,14 +165,25 @@ function installExitHook(): void {
     });
 }
 
-/** Append one line. This is the hot path: no storage access, no serialising. */
+/**
+ * Append one line. This is the hot path: no storage access, no serialising.
+ *
+ * The one-second deadline is a real timer, not a check on the next call. A
+ * context that logs a line and then goes quiet -- the game's own iframes do
+ * exactly that -- would otherwise sit on it until it was unloaded, and the
+ * line would land in the ring long after the ones around it. Measured on the
+ * 8.10.47 night log: 14 lines out of 5588 arrived up to 53 minutes late.
+ */
 export function appendLog(epochMs: number, caller: string, text: string): void {
     installExitHook();
     const line = epochMs.toString(36) + "\t" + caller + "\t"
         + String(text).replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
     pending.push(line);
     pendingBytes += line.length;
-    if (pendingBytes >= FLUSH_BYTES || Date.now() - lastFlush >= FLUSH_MS) flushLog();
+    if (pendingBytes >= FLUSH_BYTES) { flushLog(); return; }
+    if (flushTimer === null && typeof setTimeout === "function") {
+        flushTimer = setTimeout(flushLog, FLUSH_MS);
+    }
 }
 
 /** The whole ring as raw text, oldest line first. */
@@ -190,6 +201,10 @@ export function readLogText(): string {
  */
 export function readLogAsObject(): Record<string, string> {
     const out: Record<string, string> = {};
+    // Sorted by time, not by position in the ring: a frame that flushes late
+    // would otherwise drop an old line in the middle of newer ones and make
+    // the log look like it jumped backwards.
+    const decoded: Array<[number, string, string]> = [];
     for (const line of readLogText().split("\n")) {
         if (!line) continue;
         const first = line.indexOf("\t");
@@ -200,6 +215,10 @@ export function readLogAsObject(): Record<string, string> {
         const caller = line.slice(first + 1, second);
         // One pass, so an escaped backslash is not re-read as an escape.
         const text = line.slice(second + 1).replace(/\\(.)/g, (_m, c) => (c === "n" ? "\n" : c));
+        decoded.push([ms, caller, text]);
+    }
+    decoded.sort((a, b) => a[0] - b[0]);
+    for (const [ms, caller, text] of decoded) {
         const d = new Date(ms);
         const base = d.toLocaleString() + "." + d.getMilliseconds() + ":" + caller;
         let key = base;

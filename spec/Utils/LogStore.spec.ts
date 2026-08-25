@@ -134,3 +134,36 @@ describe('LogStore', () => {
         expect(readLogText()).toBe('');
     });
 });
+
+describe('LogStore deadlines (found in the 8.10.47 night log)', () => {
+    beforeEach(() => { sessionStorage.clear(); clearLog(); });
+
+    it('writes a single quiet line after a second, without waiting for the next one', () => {
+        // The game runs the script in its own iframes. Such a context logs one
+        // line and then says nothing -- and that line used to sit in memory
+        // until the frame was unloaded, which was up to 53 minutes later.
+        jest.useFakeTimers();
+        try {
+            appendLog(1_700_000_000_000, 'start', 'Not a game page (/), skipping init in this frame.');
+            const written = () => Object.keys(sessionStorage)
+                .filter(k => k.startsWith(HHStoredVarPrefixKey + 'Temp_Log') && !k.endsWith('Idx'))
+                .map(k => sessionStorage.getItem(k) ?? '').join('');
+            expect(written()).toBe('');
+            jest.advanceTimersByTime(1000);
+            expect(written()).toContain('skipping init in this frame');
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    it('puts a late line back where it belongs in time', () => {
+        appendLog(1_700_000_000_000, 'fn', 'first');
+        flushLog();
+        appendLog(1_700_000_009_000, 'fn', 'last');
+        flushLog();
+        // arrives now, but happened between the two
+        appendLog(1_700_000_005_000, 'start', 'late from a frame');
+        flushLog();
+        expect(Object.values(readLogAsObject())).toEqual(['first', 'late from a frame', 'last']);
+    });
+});

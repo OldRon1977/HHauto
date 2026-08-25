@@ -7,6 +7,19 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.48 - Two things the first night of the new log showed
+
+- A line was written when the next one arrived, not one second later. The game
+  runs the script inside its own frames, and such a frame logs one line and
+  then goes quiet -- so that line waited until the frame was unloaded. In the
+  first night's log 14 lines arrived up to 53 minutes late and turned up in
+  the middle of much newer ones. The deadline is a real timer now.
+- The export is sorted by time, so a line that still arrives late cannot make
+  the log look as if it jumped backwards.
+- The log also says when a block *takes* the pipeline, not only when it gives
+  it up. Without that, a dump shows the releases and leaves the question the
+  focus was built for -- did one activity run to its end -- unanswerable.
+
 ### v8.10.47 - The debug log holds a night instead of half an hour
 
 - The log kept everything in one JSON object. Every single line read that

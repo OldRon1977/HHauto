@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.47
+// @version      8.10.48
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -5608,8 +5608,8 @@ function parseOr(raw, fallback) {
 }
 let pending = [];
 let pendingBytes = 0;
-let lastFlush = 0;
 let hooked = false;
+let flushTimer = null;
 function readIndex() {
     const raw = sessionStorage.getItem(idxKey());
     const idx = parseOr(raw, { cur: 0, used: [0] });
@@ -5670,12 +5670,15 @@ function advance(idx) {
 /** Push everything pending into storage. Called on a timer, and on page exit. */
 function flushLog() {
     var _a;
+    if (flushTimer !== null) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+    }
     if (pending.length === 0)
         return;
     const text = pending.join("");
     pending = [];
     pendingBytes = 0;
-    lastFlush = Date.now();
     const idx = readIndex();
     const current = (_a = sessionStorage.getItem(chunkKey(idx.cur))) !== null && _a !== void 0 ? _a : "";
     if (current.length + text.length > CHUNK_BYTES && current.length > 0) {
@@ -5703,15 +5706,28 @@ function installExitHook() {
             flushLog();
     });
 }
-/** Append one line. This is the hot path: no storage access, no serialising. */
+/**
+ * Append one line. This is the hot path: no storage access, no serialising.
+ *
+ * The one-second deadline is a real timer, not a check on the next call. A
+ * context that logs a line and then goes quiet -- the game's own iframes do
+ * exactly that -- would otherwise sit on it until it was unloaded, and the
+ * line would land in the ring long after the ones around it. Measured on the
+ * 8.10.47 night log: 14 lines out of 5588 arrived up to 53 minutes late.
+ */
 function appendLog(epochMs, caller, text) {
     installExitHook();
     const line = epochMs.toString(36) + "\t" + caller + "\t"
         + String(text).replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
     pending.push(line);
     pendingBytes += line.length;
-    if (pendingBytes >= FLUSH_BYTES || Date.now() - lastFlush >= FLUSH_MS)
+    if (pendingBytes >= FLUSH_BYTES) {
         flushLog();
+        return;
+    }
+    if (flushTimer === null && typeof setTimeout === "function") {
+        flushTimer = setTimeout(flushLog, FLUSH_MS);
+    }
 }
 /** The whole ring as raw text, oldest line first. */
 function readLogText() {
@@ -5727,6 +5743,10 @@ function readLogText() {
  */
 function readLogAsObject() {
     const out = {};
+    // Sorted by time, not by position in the ring: a frame that flushes late
+    // would otherwise drop an old line in the middle of newer ones and make
+    // the log look like it jumped backwards.
+    const decoded = [];
     for (const line of readLogText().split("\n")) {
         if (!line)
             continue;
@@ -5740,6 +5760,10 @@ function readLogAsObject() {
         const caller = line.slice(first + 1, second);
         // One pass, so an escaped backslash is not re-read as an escape.
         const text = line.slice(second + 1).replace(/\\(.)/g, (_m, c) => (c === "n" ? "\n" : c));
+        decoded.push([ms, caller, text]);
+    }
+    decoded.sort((a, b) => a[0] - b[0]);
+    for (const [ms, caller, text] of decoded) {
         const d = new Date(ms);
         const base = d.toLocaleString() + "." + d.getMilliseconds() + ":" + caller;
         let key = base;
@@ -34067,7 +34091,7 @@ class BlockScheduler {
         this.emit({ ev: "start", block: block.id, page: this.ports.getCurrentPage() });
     }
     complete(block, run) {
-        var _a;
+        var _a, _b;
         this.emit({ ev: "done", block: block.id, detail: "run complete" });
         const now = this.ports.now();
         const last = this.ports.getLastRunAt();
@@ -34086,9 +34110,15 @@ class BlockScheduler {
         // forever -- and the stale backstop could never fire, because the focus
         // kept being refreshed.
         if (block.holdsFocus !== false && run.acted === true) {
+            // Logged, not just stored: without this the dump shows when the focus
+            // was given up but never when it was taken, and "did the pipeline stay
+            // on one activity" cannot be read out of it (#1841).
+            if (((_a = this.ports.getFocus()) === null || _a === void 0 ? void 0 : _a.blockId) !== block.id) {
+                this.emit({ ev: "focus", block: block.id, detail: "taken" });
+            }
             this.ports.setFocus({ blockId: block.id, lastRunAt: now });
         }
-        else if (((_a = this.ports.getFocus()) === null || _a === void 0 ? void 0 : _a.blockId) === block.id) {
+        else if (((_b = this.ports.getFocus()) === null || _b === void 0 ? void 0 : _b.blockId) === block.id) {
             this.releaseFocus("ran without doing anything");
         }
         this.resetFailureCounts(block.id); // success resets the block's counter
