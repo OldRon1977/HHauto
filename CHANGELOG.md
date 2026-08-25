@@ -7,6 +7,17 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.42 - The menu labels follow one rule now
+
+- A switch that turns a block on reads **Enabled**; a switch that collects
+  reads **Collect**; **Collect all** stays what it was. Before this, the same
+  thing was called "Enable" in one place, "Pachinko" in another and "Normal" in
+  a third, which made it hard to describe what you had changed.
+- 50 labels changed in English, and German, French and Spanish followed. The
+  wording was taken from what those files already used for the same idea, not
+  invented: Einsammeln / Collecter / Recoger.
+- Nothing else moved: same settings, same order, same behaviour.
+
 ### v8.10.41 - Four labels read "not found", and nine texts came back
 
 - Reported by bjaume with screenshots: the minimum salary and the Season
