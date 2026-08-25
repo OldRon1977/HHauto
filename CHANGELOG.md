@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.41 - Four labels read "not found", and nine texts came back
+
+- Reported by bjaume with screenshots: the minimum salary and the Season
+  heading showed `en/.../elementText not found`. Two more were in the same
+  state without being noticed: the Kobans bank and Show info. All four were
+  commented out in the English file, some of them for years — English has no
+  fallback, so the raw error text reached the screen. Every commented-out entry
+  in all four languages is active again.
+- Nine texts removed in 8.10.39 are back. They are built at runtime by joining
+  strings — "give"+affection, "stuffTeamReset"+rarity+"Girls" — so the search
+  for the finished key found nothing and called them dead. They were not.
+
 ### v8.10.40 - What's New popup prepared for the release
 
 - The popup text is written and in place: the pipeline sticking to one activity,

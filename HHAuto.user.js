@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.40
+// @version      8.10.41
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -251,7 +251,7 @@ HHAuto_ToolTips.en['settPerTab'] = { version: "5.6.24", elementText: "Settings p
 HHAuto_ToolTips.en['paranoia'] = { version: "5.6.24", elementText: "Paranoia mode", tooltip: "Allow to simulate sleep, and human user (To be documented further)" };
 HHAuto_ToolTips.en['paranoiaSpendsBefore'] = { version: "5.6.24", elementText: "Spend points before", tooltip: "<p>On: spend points for options (quest, Troll, Leagues and Season) &mdash; but only for options that are enabled, and only points that would end up above their max limit.</p><p><b>Example:</b> your Troll power is at 17 and you go into paranoia for 4h45. That would mean 17+10 points (rounded up), which is above the max of 20. So 8 points are spent to fall back to 19 by the end of paranoia, preventing the loss.</p>" };
 HHAuto_ToolTips.en['spendKobans0'] = { version: "8.10.0", elementText: "Spend Kobans", tooltip: "<p style='color:red'>/!\\ Allow Kobans spending /!\\</p>Security switch for koban usage. Must be ON before any function is allowed to spend kobans." };
-////HHAuto_ToolTips.en['kobanBank'] = { version: "5.6.24", elementText: "Kobans Bank", tooltip: "(Integer)<br>Minimum Kobans kept when using Kobans spending functions"};
+HHAuto_ToolTips.en['kobanBank'] = { version: "5.6.24", elementText: "Kobans Bank", tooltip: "(Integer)<br>Minimum Kobans kept when using Kobans spending functions" };
 HHAuto_ToolTips.en['displayTitle'] = { version: "5.6.24", elementText: "Display options" };
 HHAuto_ToolTips.en['haremTitle'] = { version: "7.29.17", elementText: "Harem options" };
 HHAuto_ToolTips.en['showHaremAvatarMissingGirls'] = { version: "7.29.17", elementText: "Show Avatar", tooltip: "Show Avatar for missing girls in Harem" };
@@ -269,10 +269,10 @@ HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pa
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
 HHAuto_ToolTips.en['autoAdsClick'] = { version: "8.2.0", elementText: "Auto reward ads", tooltip: "Automatically click the Home-page reward ads (\"Try it now\"), close the ad tab they open and confirm the reward (OK). Clicks every available reward ad. Requires ad blockers to be disabled. Rate-limited by a cooldown." };
-//HHAuto_ToolTips.en['showInfo'] = { version: "5.6.24", elementText: "Show info", tooltip: "if enabled : show info on script values and next runs"};
+HHAuto_ToolTips.en['showInfo'] = { version: "5.6.24", elementText: "Show info", tooltip: "if enabled : show info on script values and next runs" };
 HHAuto_ToolTips.en['showInfoLeft'] = { version: "5.23.0", elementText: "Show info Left", tooltip: "Show info on left side vs on right side" };
 HHAuto_ToolTips.en['autoSalary'] = { version: "5.6.24", elementText: "Salary", tooltip: "(Integer)<br>if enabled :<br>Collect salaries every X secs" };
-//HHAuto_ToolTips.en['autoSalaryMinSalary'] = { version: "5.6.24", elementText: "Min. salary", tooltip: "(Integer)<br>Minium salary to start collection"};
+HHAuto_ToolTips.en['autoSalaryMinSalary'] = { version: "5.6.24", elementText: "Min. salary", tooltip: "(Integer)<br>Minium salary to start collection" };
 HHAuto_ToolTips.en['autoMission'] = { version: "5.6.24", elementText: "Mission", tooltip: "if enabled : Automatically do missions" };
 HHAuto_ToolTips.en['autoMissionCollect'] = { version: "5.6.24", elementText: "Collect", tooltip: "if enabled : Automatically collect missions after start of new competition." };
 HHAuto_ToolTips.en['compactMissions'] = { version: "5.24.0", elementText: "Compact", tooltip: "Add styles to compact missions display" };
@@ -308,7 +308,7 @@ HHAuto_ToolTips.en['plusEventMythic'] = { version: "7.32.1", elementText: "+Myth
 HHAuto_ToolTips.en['plusEventSandalWood'] = { version: "7.32.1", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before event fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };
 HHAuto_ToolTips.en['plusEventMythicSandalWood'] = { version: "7.2.0", elementText: "Equip Sandalwood", tooltip: "Will equip sandalwood before mythic fight if enough in inventory<br>Do not equip if less than 10 shards to win<br>Will not buy any." };
 HHAuto_ToolTips.en['eventCompleted'] = { version: "7.1.3", elementText: "Event completed", tooltip: "Event completed" };
-////HHAuto_ToolTips.en['autoSeasonTitle'] = { version: "5.6.24", elementText: "Season"};
+HHAuto_ToolTips.en['autoSeasonTitle'] = { version: "5.6.24", elementText: "Season" };
 HHAuto_ToolTips.en['autoSeason'] = { version: "5.6.24", elementText: "Enable", tooltip: "if enabled : Automatically fight in Seasons (Opponent chosen following PowerCalculation)" };
 HHAuto_ToolTips.en['autoSeasonCollect'] = { version: "5.6.24", elementText: "Collect", tooltip: "if enabled : Automatically collect Seasons ( if multiple to collect, will collect one per kiss usage)" };
 HHAuto_ToolTips.en['autoSeasonCollectAll'] = { version: "5.7.0", elementText: "Collect all", tooltip: "if enabled : Automatically collect all items before end of season (configured with Collect all timer)" };
@@ -649,6 +649,10 @@ HHAuto_ToolTips.en['menuSecGifts'] = { version: "8.10.0", elementText: "Gifts", 
 HHAuto_ToolTips.en['menuSecBoosters'] = { version: "8.10.0", elementText: "Boosters", tooltip: "" };
 HHAuto_ToolTips.en['menuSecMarketTools'] = { version: "8.10.0", elementText: "Market tools", tooltip: "" };
 HHAuto_ToolTips.en['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Event display", tooltip: "" };
+HHAuto_ToolTips.en['giveaffection'] = { version: "6.2.0", elementText: "Give Affection", tooltip: "Automatically give max current range affection to selected girl." };
+HHAuto_ToolTips.en['giveexperience'] = { version: "6.2.0", elementText: "Give experience", tooltip: "Automatically give max current range Exp to selected girl." };
+HHAuto_ToolTips.en['costaffection'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
+HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
 
@@ -670,10 +674,10 @@ HHAuto_ToolTips.fr['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pa
 HHAuto_ToolTips.fr['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Affiche l'indicateur de simulation de combat pour les ligues, les combats et les saisons." };
 HHAuto_ToolTips.fr['showAdsBack'] = { version: "5.34.15", elementText: "Publicités à l'arrière-plan", tooltip: "Envoie la section des publicités à l'arrière-plan." };
 HHAuto_ToolTips.fr['autoAdsClick'] = { version: "8.2.0", elementText: "Publicités à récompense auto.", tooltip: "Clique automatiquement sur les publicités à récompense de la page d'accueil (« Try it now »), ferme l'onglet publicitaire qu'elles ouvrent et valide la récompense (OK). Clique sur toutes les publicités à récompense disponibles. Nécessite de désactiver les bloqueurs de publicité. Limité par un temps d'attente." };
-//HHAuto_ToolTips.fr['showInfo'] = { version: "5.6.24", elementText: "Infos", tooltip: "Si activé : affiche une fenêtre d'informations sur le script."};
+HHAuto_ToolTips.fr['showInfo'] = { version: "5.6.24", elementText: "Infos", tooltip: "Si activé : affiche une fenêtre d'informations sur le script." };
 HHAuto_ToolTips.fr['showInfoLeft'] = { version: "5.23.0", elementText: "Infos à gauche", tooltip: "Affiche la fenêtre d'information à gauche plutot qu'à droite" };
 HHAuto_ToolTips.fr['autoSalary'] = { version: "5.6.24", elementText: "Salaire", tooltip: "Si activé :<br>Collecte les salaires toutes les X secondes." };
-//HHAuto_ToolTips.fr['autoSalaryMinSalary'] = { version: "5.20.3", elementText: "Salaire mini", tooltip: "(Integer)<br>Salare minium pour démarrer la collecte"};
+HHAuto_ToolTips.fr['autoSalaryMinSalary'] = { version: "5.20.3", elementText: "Salaire mini", tooltip: "(Integer)<br>Salare minium pour démarrer la collecte" };
 HHAuto_ToolTips.fr['autoMission'] = { version: "5.6.24", elementText: "Missions", tooltip: "Si activé : lance automatiquement les missions." };
 HHAuto_ToolTips.fr['autoMissionCollect'] = { version: "5.6.24", elementText: "Collecter", tooltip: "Si activé : collecte automatiquement les récompenses des missions." };
 HHAuto_ToolTips.fr['compactMissions'] = { version: "5.24.0", elementText: "Compacter", tooltip: "Compacter l'affichage des missions" };
@@ -1061,6 +1065,10 @@ HHAuto_ToolTips.fr['menuSecGifts'] = { version: "8.10.0", elementText: "Cadeaux"
 HHAuto_ToolTips.fr['menuSecBoosters'] = { version: "8.10.0", elementText: "Boosters", tooltip: "" };
 HHAuto_ToolTips.fr['menuSecMarketTools'] = { version: "8.10.0", elementText: "Outils du marché", tooltip: "" };
 HHAuto_ToolTips.fr['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Affichage des événements", tooltip: "" };
+HHAuto_ToolTips.fr['giveaffection'] = { version: "6.2.0", elementText: "Donner de l'affection", tooltip: "Donne automatiquement le maximum d'affection du palier actuel à la fille sélectionnée." };
+HHAuto_ToolTips.fr['giveexperience'] = { version: "6.2.0", elementText: "Donner de l'expérience", tooltip: "Donne automatiquement le maximum d'expérience du palier actuel à la fille sélectionnée." };
+HHAuto_ToolTips.fr['costaffection'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
+HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
 
 ;// ./src/i18n/de.ts
 
@@ -1074,16 +1082,16 @@ HHAuto_ToolTips.de['settPerTab'] = { version: "8.10.0", elementText: "Einstellun
 HHAuto_ToolTips.de['paranoia'] = { version: "8.10.0", elementText: "Paranoia-Modus", tooltip: "Legt Pausen ein, die Schlaf und menschliches Spielverhalten nachahmen." };
 HHAuto_ToolTips.de['paranoiaSpendsBefore'] = { version: "8.10.0", elementText: "Gib Punkte aus vor...", tooltip: "<p>An: Punkte werden für Optionen ausgegeben (Quest, Troll, Liga und Saison) &mdash; aber nur für Optionen, die aktiviert sind, und nur Punkte, die über dem Maximum landen würden.</p><p><b>Beispiel:</b> Deine Troll-Power steht auf 17, du gehst für 4h45 in den Paranoia-Modus. Das wären 17+10 Punkte (aufgerundet) und damit über dem Maximum von 20. Es werden dann 9 Punkte ausgegeben, sodass du zum Ende des Paranoia-Modus bei 19 bleibst und nichts verlierst.</p>" };
 HHAuto_ToolTips.de['spendKobans0'] = { version: "8.10.0", elementText: "Kobans ausgeben", tooltip: "<p style='color:red'>/!\\ Erlaubt das Ausgeben von Kobans /!\\</p>Sicherheitsschalter für die Koban-Nutzung. Muss aktiv sein, damit überhaupt eine Funktion Kobans ausgeben darf." };
-////HHAuto_ToolTips.de['kobanBank'] = { version: "8.10.0", elementText: "Koban-Bank", tooltip: "(Ganze Zahl)<br>So viele Kobans werden nie ausgegeben."};
+HHAuto_ToolTips.de['kobanBank'] = { version: "8.10.0", elementText: "Koban-Bank", tooltip: "(Ganze Zahl)<br>So viele Kobans werden nie ausgegeben." };
 HHAuto_ToolTips.de['buyCombat'] = { version: "8.10.0", elementText: "Kaufe Kämpfe für Events", tooltip: "'Kobans ausgeben'-Funktion<br>Wenn aktiv: kauft Kampfpunkte in den letzten X Stunden eines Events, solange die Koban-Bank nicht unterschritten wird." };
 HHAuto_ToolTips.de['buyCombTimer'] = { version: "5.6.24", elementText: "Stunden bis Kauf", tooltip: "(Ganze pos. Zahl)<br>X verbleibende Stunden des Events" };
 HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & leg. Booster", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p>Erlaubt den Kauf von Boostern im Markt (solange die Koban-Bank nicht unterschritten wird)." };
 HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird beachtet.</span><p>Codes der Booster, die gekauft werden sollen.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.de['autoSeasonPassReds'] = { version: "8.10.0", elementText: "Überspringe drei Rote", tooltip: "'Koban ausgeben Funktion'<br>Benutze Kobans um Saison Gegner zu tauschen wenn alle drei Rote sind" };
 HHAuto_ToolTips.de['showCalculatePower'] = { version: "8.10.0", elementText: "PowerCalc", tooltip: "Zeigt den Kampfsimulator bei Liga, Kampf und Saison an." };
-//HHAuto_ToolTips.de['showInfo'] = { version: "5.6.24", elementText: "Zeige Info", tooltip: "Wenn aktiv : zeige Information auf Skriptwerten und nächsten Durchläufen"};
+HHAuto_ToolTips.de['showInfo'] = { version: "5.6.24", elementText: "Zeige Info", tooltip: "Wenn aktiv : zeige Information auf Skriptwerten und nächsten Durchläufen" };
 HHAuto_ToolTips.de['autoSalary'] = { version: "8.10.0", elementText: "Einkommen", tooltip: "Wenn aktiv :<br>Sammelt das gesamte Einkommen alle X Sek." };
-//HHAuto_ToolTips.de['autoMission'] = { version: "8.10.0", elementText: "Mission", tooltip: "Wenn aktiv : Macht automatisch Missionen"};
+HHAuto_ToolTips.de['autoMission'] = { version: "8.10.0", elementText: "Mission", tooltip: "Wenn aktiv : Macht automatisch Missionen" };
 HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Missionsgewinne" };
 HHAuto_ToolTips.de['autoTrollBattle'] = { version: "8.10.0", elementText: "Standard-Troll an/aus", tooltip: "Wenn aktiv: Macht automatisch Kämpfe gegen den Standard-Troll" };
 HHAuto_ToolTips.de['autoTrollSelector'] = { version: "8.10.0", elementText: "Troll-Auswahl", tooltip: "Wähle den Troll, gegen den gekämpft werden soll." };
@@ -1097,7 +1105,7 @@ HHAuto_ToolTips.de['autoEquipMythicBooster'] = { version: "8.10.0", elementText:
 HHAuto_ToolTips.de['raidStarsExact3'] = { version: "7.35.5", elementText: "=3 ★★★" };
 HHAuto_ToolTips.de['raidStarsMin3'] = { version: "7.35.5", elementText: "≥3 ★★★" };
 HHAuto_ToolTips.de['raidStarsExact5'] = { version: "7.35.5", elementText: "=5 ★★★★★" };
-////HHAuto_ToolTips.de['autoTrollMythicByPassParanoia'] = { version: "5.6.24", elementText: "Mythisch über Paranoia", tooltip: "Wenn aktiv: Erlaubt es den Paranoia Modus zu übergehen. Wenn du noch kämpfen kannst oder dir Energie kaufen kannst, wird gekämpft. Sollte die nächste Welle an Splittern während der Ruhephase sein, wird der Modus unterbrochen und es wird gekämpft"};
+HHAuto_ToolTips.de['autoTrollMythicByPassParanoia'] = { version: "5.6.24", elementText: "Mythisch über Paranoia", tooltip: "Wenn aktiv: Erlaubt es den Paranoia Modus zu übergehen. Wenn du noch kämpfen kannst oder dir Energie kaufen kannst, wird gekämpft. Sollte die nächste Welle an Splittern während der Ruhephase sein, wird der Modus unterbrochen und es wird gekämpft" };
 HHAuto_ToolTips.de['autoSeason'] = { version: "8.10.0", elementText: "Aktivieren", tooltip: "Wenn aktiv : Kämpft automatisch in der Saison (Gegner werden wie im Kraftrechner einstellt gewählt)" };
 HHAuto_ToolTips.de['autoSeasonCollect'] = { version: "8.10.0", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Saisongewinne ein (bei mehr als einem, wird eines pro Küssnutzung eingesammelt)" };
 HHAuto_ToolTips.de['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Schwellwert", tooltip: "Minimum Küsse die behalten bleiben" };
@@ -1474,6 +1482,10 @@ HHAuto_ToolTips.de['menuSecGifts'] = { version: "8.10.0", elementText: "Geschenk
 HHAuto_ToolTips.de['menuSecBoosters'] = { version: "8.10.0", elementText: "Booster", tooltip: "" };
 HHAuto_ToolTips.de['menuSecMarketTools'] = { version: "8.10.0", elementText: "Markt-Werkzeuge", tooltip: "" };
 HHAuto_ToolTips.de['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Event-Anzeige", tooltip: "" };
+HHAuto_ToolTips.de['giveaffection'] = { version: "6.2.0", elementText: "Zuneigung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Zuneigung der aktuellen Stufe." };
+HHAuto_ToolTips.de['giveexperience'] = { version: "6.2.0", elementText: "Erfahrung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Erfahrung der aktuellen Stufe." };
+HHAuto_ToolTips.de['costaffection'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
+HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
 
 ;// ./src/i18n/es.ts
 
@@ -1487,16 +1499,16 @@ HHAuto_ToolTips.es['settPerTab'] = { version: "5.6.24", elementText: "Configurac
 HHAuto_ToolTips.es['paranoia'] = { version: "5.6.24", elementText: "Modo Paranoia", tooltip: "Permite simular sueño, y un usuario humano (Pendiente de documentación)" };
 HHAuto_ToolTips.es['paranoiaSpendsBefore'] = { version: "5.6.24", elementText: "Gasta puntos antes", tooltip: "\'On\' gastará puntos para opciones (aventura, villanos, ligas y temporada) sólo si éstos están habilitados y gasta puntos que estarían por encima de los límites máximos.<br>Ej : Tienes energia para 17 combates de villanos, pero estarás 4h45m en paranoia.<br> Esto es tener 17+10 combates (redondeado al entero superior), estando así por encima del máximo de 20<br> gastará 8 combates para quedar con 19 al final de la Paranoia, evitando perder puntos." };
 HHAuto_ToolTips.es['spendKobans0'] = { version: "8.10.0", elementText: "Kobans securidad", tooltip: "Interruptor de seguridad para el uso de kobans,tienen que estar activados para las funciones de gasto de Kobans" };
-////HHAuto_ToolTips.es['kobanBank'] = { version: "5.6.24", elementText: "Banco de Kobans", tooltip: "(Entero)<br>Minimo de Kobans a conservar cuando se usan funciones de gasto de Kobans"};
+HHAuto_ToolTips.es['kobanBank'] = { version: "5.6.24", elementText: "Banco de Kobans", tooltip: "(Entero)<br>Minimo de Kobans a conservar cuando se usan funciones de gasto de Kobans" };
 HHAuto_ToolTips.es['buyCombat'] = { version: "5.6.24", elementText: "Compra comb. en eventos", tooltip: "Funciones de gasto de Kobans<br>Si habilitado: <br>Compra puntos de combate durante las últimas X horas del evento (si no se baja del valor de Banco de Kobans)" };
 HHAuto_ToolTips.es['buyCombTimer'] = { version: "5.6.24", elementText: "Horas para comprar Comb", tooltip: "(Entero)<br>X últimas horas del evento" };
 HHAuto_ToolTips.es['autoBuyBoosters'] = { version: "5.6.25", elementText: "Potenciadores mít. y leg.", tooltip: "<p style='color:red'>/!\\ Función que gasta Kobans /!\\<br>(" + HHAuto_ToolTips.es['spendKobans0'].elementText + " debe estar activado)</p>Permite comprar potenciadores en el mercado (si no se baja del valor del banco de Kobans)." };
 HHAuto_ToolTips.es['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filtro", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Códigos de los potenciadores a comprar.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Azufaifas</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Perfume de sándalo</li><li><code>MB2</code> Emblema de dominio total</li><li><code>MB3</code> Cinta de la determinación</li><li><code>MB4</code> Reloj lujoso</li><li><code>MB5</code> Canela combativa</li><li><code>MB6</code> Recuerdos de viaje de Alban</li><li><code>MB7</code> Aroma de semen de ángeles</li><li><code>MB8</code> Emblema de dominio de ligas</li><li><code>MB9</code> Emblema de dominio de temporadas</li><li><code>MB10</code> Detector de gemas</li><li><code>MB11</code> Petardo</li><li><code>MB12</code> Aura brillante</li></ul>" };
 HHAuto_ToolTips.es['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pasa 3 rojos", tooltip: "Funciones de gasto de Kobans<br>Usa kobans para renovar oponentes si los 3 rojos" };
 HHAuto_ToolTips.es['showCalculatePower'] = { version: "6.8.0", elementText: "Mostar PowerCalc", tooltip: "Muestra simulador de batalla para Liga, batallas, Temporadas " };
-//HHAuto_ToolTips.es['showInfo'] = { version: "5.6.24", elementText: "Muestra info", tooltip: "Si habilitado: muestra información de los valores del script y siguientes ejecuciones"};
+HHAuto_ToolTips.es['showInfo'] = { version: "5.6.24", elementText: "Muestra info", tooltip: "Si habilitado: muestra información de los valores del script y siguientes ejecuciones" };
 HHAuto_ToolTips.es['autoSalary'] = { version: "5.6.24", elementText: "Salario", tooltip: "(Entero)<br>Si habilitado:<br>Recauda salario cada X segundos" };
-//HHAuto_ToolTips.es['autoMission'] = { version: "5.6.24", elementText: "Misión", tooltip: "Si habilitado: Juega misiones de manera automática"};
+HHAuto_ToolTips.es['autoMission'] = { version: "5.6.24", elementText: "Misión", tooltip: "Si habilitado: Juega misiones de manera automática" };
 HHAuto_ToolTips.es['autoMissionCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Si habilitado: Recauda misiones de manera automática" };
 HHAuto_ToolTips.es['autoTrollBattle'] = { version: "7.35.4", elementText: "Villano estándar on/off", tooltip: "Si habilitado: Combate automáticamente el villano estándar seleccionado" };
 HHAuto_ToolTips.es['autoTrollSelector'] = { version: "5.6.24", elementText: "Selector villano", tooltip: "Selecciona villano para luchar." };
@@ -1504,7 +1516,7 @@ HHAuto_ToolTips.es['autoTrollThreshold'] = { version: "5.6.24", elementText: "L�
 HHAuto_ToolTips.es['eventTrollOrder'] = { version: "8.10.36", elementText: "Orden de villanos de evento", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Orden en el que se combate automáticamente contra los villanos de evento.</p><ul class=\"tipCodes\"><li><code>1</code> Señor Oscuro</li><li><code>2</code> Ninja espía</li><li><code>3</code> Gruntt</li><li><code>4</code> Edwarda</li><li><code>5</code> Donatien</li><li><code>6</code> Silvanus</li><li><code>7</code> Bremen</li><li><code>8</code> Finalmecia</li><li><code>9</code> Roko Sensei</li><li><code>10</code> Karole</li><li><code>11</code> La tripulación de Jackson</li><li><code>12</code> Pandora Bruja</li><li><code>13</code> Nike</li><li><code>14</code> Sake</li><li><code>15</code> Policía hombres-conejo</li><li><code>16</code> Auga</li><li><code>17</code> Bruto</li><li><code>18</code> Harriet</li><li><code>19</code> Darth Excitador</li><li><code>22</code> Daddy</li></ul><p>Los números 20 y 21 son villanos de las aventuras secundarias y no tienen nombre.</p>" };
 HHAuto_ToolTips.es['plusEvent'] = { version: "7.32.1", elementText: "+Evento", tooltip: "Combate contra los villanos de evento normales con independencia de Auto villano.<br>Respeta el umbral de energía." };
 HHAuto_ToolTips.es['plusEventMythic'] = { version: "7.32.1", elementText: "+Evento mítico", tooltip: "Combate contra los villanos de evento míticos con independencia de Auto villano.<br>Ignora el umbral de energía. Tiene prioridad sobre los eventos normales." };
-////HHAuto_ToolTips.es['autoSeason'] = { version: "5.6.24", elementText: "Temporada automática", tooltip: "Si habilitado: Combate en emporadas de manera automática (Oponente elegido según Calculadora de energía)"};
+HHAuto_ToolTips.es['autoSeason'] = { version: "5.6.24", elementText: "Temporada automática", tooltip: "Si habilitado: Combate en emporadas de manera automática (Oponente elegido según Calculadora de energía)" };
 HHAuto_ToolTips.es['autoSeasonCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Se habilitado: Recauda temporadas de manera automática (Si multiples para recaudar, recaudará uno por cada uso de beso)" };
 HHAuto_ToolTips.es['autoSeasonThreshold'] = { version: "5.6.24", elementText: "Límite", tooltip: "Mínimos besos a conservar" };
 HHAuto_ToolTips.es['autoQuest'] = { version: "5.6.74", elementText: "Misión principal", tooltip: "Si habilitado: hace la misión principal automáticamente." };
@@ -1886,6 +1898,10 @@ HHAuto_ToolTips.es['haremGiveMaxGifts'] = { version: "6.11.0", elementText: "Rel
 HHAuto_ToolTips.es['menuSecEventDisplay'] = { version: "8.10.0", elementText: "Pantalla de eventos", tooltip: "" };
 HHAuto_ToolTips.es['useX10Fights'] = { version: "5.6.24", elementText: "Usar x10", tooltip: "<p style='color:red'>/!\\ Función que gasta Kobans /!\\<br>(" + HHAuto_ToolTips.es['spendKobans0'].elementText + " debe estar activado)</p>Si habilitado: <br>Usa el botón x10 cuando quedan 10 combates o más (si no se baja del valor del banco de Kobans).<br>x50 tiene prioridad sobre x10 si se cumplen todas las condiciones." };
 HHAuto_ToolTips.es['useX50Fights'] = { version: "5.6.24", elementText: "Usar x50", tooltip: "<p style='color:red'>/!\\ Función que gasta Kobans /!\\<br>(" + HHAuto_ToolTips.es['spendKobans0'].elementText + " debe estar activado)</p>Si habilitado: <br>Usa el botón x50 cuando quedan 50 combates o más (si no se baja del valor del banco de Kobans).<br>Tiene prioridad sobre x10 si se cumplen todas las condiciones." };
+HHAuto_ToolTips.es['giveaffection'] = { version: "6.2.0", elementText: "Dar afecto", tooltip: "Da automáticamente el máximo de afecto del rango actual a la chica seleccionada." };
+HHAuto_ToolTips.es['giveexperience'] = { version: "6.2.0", elementText: "Dar experiencia", tooltip: "Da automáticamente el máximo de experiencia del rango actual a la chica seleccionada." };
+HHAuto_ToolTips.es['costaffection'] = { version: "7.18.0", elementText: "Por un coste total de ", tooltip: "" };
+HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un coste total de", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts
 // LanguageHelper.ts
