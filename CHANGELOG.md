@@ -7,6 +7,11 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.43 - Show info follows the same rule
+
+- The switch under Info panel still read "Enable" while the other seventeen
+  read "Enabled". It says Enabled now, in all four languages.
+
 ### v8.10.42 - The menu labels follow one rule now
 
 - A switch that turns a block on reads **Enabled**; a switch that collects

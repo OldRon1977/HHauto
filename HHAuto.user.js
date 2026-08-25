@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.42
+// @version      8.10.43
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -269,7 +269,7 @@ HHAuto_ToolTips.en['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pa
 HHAuto_ToolTips.en['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Display battle simulation indicator for Leagues, battle, Seasons " };
 HHAuto_ToolTips.en['showAdsBack'] = { version: "5.34.15", elementText: "Move ads to the back", tooltip: "Move the ads section to the background." };
 HHAuto_ToolTips.en['autoAdsClick'] = { version: "8.10.42", elementText: "Enabled", tooltip: "Automatically click the Home-page reward ads (\"Try it now\"), close the ad tab they open and confirm the reward (OK). Clicks every available reward ad. Requires ad blockers to be disabled. Rate-limited by a cooldown." };
-HHAuto_ToolTips.en['showInfo'] = { version: "8.10.42", elementText: "Enable", tooltip: "if enabled : show info on script values and next runs" };
+HHAuto_ToolTips.en['showInfo'] = { version: "8.10.43", elementText: "Enabled", tooltip: "if enabled : show info on script values and next runs" };
 HHAuto_ToolTips.en['showInfoLeft'] = { version: "8.10.42", elementText: "Show info left", tooltip: "Show info on left side vs on right side" };
 HHAuto_ToolTips.en['autoSalary'] = { version: "8.10.42", elementText: "Collect", tooltip: "(Integer)<br>if enabled :<br>Collect salaries every X secs" };
 HHAuto_ToolTips.en['autoSalaryMinSalary'] = { version: "5.6.24", elementText: "Min. salary", tooltip: "(Integer)<br>Minium salary to start collection" };
@@ -674,7 +674,7 @@ HHAuto_ToolTips.fr['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pa
 HHAuto_ToolTips.fr['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Affiche l'indicateur de simulation de combat pour les ligues, les combats et les saisons." };
 HHAuto_ToolTips.fr['showAdsBack'] = { version: "5.34.15", elementText: "Publicités à l'arrière-plan", tooltip: "Envoie la section des publicités à l'arrière-plan." };
 HHAuto_ToolTips.fr['autoAdsClick'] = { version: "8.10.42", elementText: "Activé", tooltip: "Clique automatiquement sur les publicités à récompense de la page d'accueil (« Try it now »), ferme l'onglet publicitaire qu'elles ouvrent et valide la récompense (OK). Clique sur toutes les publicités à récompense disponibles. Nécessite de désactiver les bloqueurs de publicité. Limité par un temps d'attente." };
-HHAuto_ToolTips.fr['showInfo'] = { version: "8.10.42", elementText: "Activer", tooltip: "Si activé : affiche une fenêtre d'informations sur le script." };
+HHAuto_ToolTips.fr['showInfo'] = { version: "8.10.43", elementText: "Activé", tooltip: "Si activé : affiche une fenêtre d'informations sur le script." };
 HHAuto_ToolTips.fr['showInfoLeft'] = { version: "5.23.0", elementText: "Infos à gauche", tooltip: "Affiche la fenêtre d'information à gauche plutot qu'à droite" };
 HHAuto_ToolTips.fr['autoSalary'] = { version: "8.10.42", elementText: "Collecter", tooltip: "Si activé :<br>Collecte les salaires toutes les X secondes." };
 HHAuto_ToolTips.fr['autoSalaryMinSalary'] = { version: "5.20.3", elementText: "Salaire mini", tooltip: "(Integer)<br>Salare minium pour démarrer la collecte" };
@@ -1089,7 +1089,7 @@ HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth.
 HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird beachtet.</span><p>Codes der Booster, die gekauft werden sollen.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.de['autoSeasonPassReds'] = { version: "8.10.0", elementText: "Überspringe drei Rote", tooltip: "'Koban ausgeben Funktion'<br>Benutze Kobans um Saison Gegner zu tauschen wenn alle drei Rote sind" };
 HHAuto_ToolTips.de['showCalculatePower'] = { version: "8.10.0", elementText: "PowerCalc", tooltip: "Zeigt den Kampfsimulator bei Liga, Kampf und Saison an." };
-HHAuto_ToolTips.de['showInfo'] = { version: "8.10.42", elementText: "Aktivieren", tooltip: "Wenn aktiv : zeige Information auf Skriptwerten und nächsten Durchläufen" };
+HHAuto_ToolTips.de['showInfo'] = { version: "8.10.43", elementText: "Aktiviert", tooltip: "Wenn aktiv : zeige Information auf Skriptwerten und nächsten Durchläufen" };
 HHAuto_ToolTips.de['autoSalary'] = { version: "8.10.42", elementText: "Einsammeln", tooltip: "Wenn aktiv :<br>Sammelt das gesamte Einkommen alle X Sek." };
 HHAuto_ToolTips.de['autoMission'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv : Macht automatisch Missionen" };
 HHAuto_ToolTips.de['autoMissionCollect'] = { version: "5.6.24", elementText: "Einsammeln", tooltip: "Wenn aktiv : Sammelt automatisch Missionsgewinne" };
@@ -1506,7 +1506,7 @@ HHAuto_ToolTips.es['autoBuyBoosters'] = { version: "5.6.25", elementText: "Poten
 HHAuto_ToolTips.es['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filtro", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Códigos de los potenciadores a comprar.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Azufaifas</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Perfume de sándalo</li><li><code>MB2</code> Emblema de dominio total</li><li><code>MB3</code> Cinta de la determinación</li><li><code>MB4</code> Reloj lujoso</li><li><code>MB5</code> Canela combativa</li><li><code>MB6</code> Recuerdos de viaje de Alban</li><li><code>MB7</code> Aroma de semen de ángeles</li><li><code>MB8</code> Emblema de dominio de ligas</li><li><code>MB9</code> Emblema de dominio de temporadas</li><li><code>MB10</code> Detector de gemas</li><li><code>MB11</code> Petardo</li><li><code>MB12</code> Aura brillante</li></ul>" };
 HHAuto_ToolTips.es['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pasa 3 rojos", tooltip: "Funciones de gasto de Kobans<br>Usa kobans para renovar oponentes si los 3 rojos" };
 HHAuto_ToolTips.es['showCalculatePower'] = { version: "6.8.0", elementText: "Mostar PowerCalc", tooltip: "Muestra simulador de batalla para Liga, batallas, Temporadas " };
-HHAuto_ToolTips.es['showInfo'] = { version: "8.10.42", elementText: "Activar", tooltip: "Si habilitado: muestra información de los valores del script y siguientes ejecuciones" };
+HHAuto_ToolTips.es['showInfo'] = { version: "8.10.43", elementText: "Activado", tooltip: "Si habilitado: muestra información de los valores del script y siguientes ejecuciones" };
 HHAuto_ToolTips.es['autoSalary'] = { version: "8.10.42", elementText: "Recoger", tooltip: "(Entero)<br>Si habilitado:<br>Recauda salario cada X segundos" };
 HHAuto_ToolTips.es['autoMission'] = { version: "8.10.42", elementText: "Activado", tooltip: "Si habilitado: Juega misiones de manera automática" };
 HHAuto_ToolTips.es['autoMissionCollect'] = { version: "5.6.24", elementText: "Recaudar", tooltip: "Si habilitado: Recauda misiones de manera automática" };
