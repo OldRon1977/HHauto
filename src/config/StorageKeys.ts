@@ -1,4 +1,13 @@
 /**
+ * Prefix every HHauto key carries. It lives here, in the leaf module, and not
+ * in HHStoredVars: that file pulls in LanguageHelper, StorageHelper and
+ * TimerHelper, so importing it just to read a string drags a module into
+ * their import cycles (see the lesson zirkulaerer-import-tdz-crash).
+ * HHStoredVars re-exports it, so existing imports keep working.
+ */
+export const HHStoredVarPrefixKey: string = "HHAuto_"; // default HHAuto_
+
+/**
  * Centralized storage key constants.
  * Use these instead of raw strings like HHStoredVarPrefixKey+"Setting_autoTrollBattle"
  * to get autocomplete, refactoring safety, and typo prevention.

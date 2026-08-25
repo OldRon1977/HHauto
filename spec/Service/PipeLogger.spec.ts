@@ -8,12 +8,12 @@ import {
 import { getStoredValue, setStoredValue } from "../../src/Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { SK, TK } from "../../src/config/StorageKeys";
+import { clearLog, readLogAsObject } from '../../src/Utils/LogStore';
 
 function loggedLines(): string[] {
-    const raw = getStoredValue(HHStoredVarPrefixKey + TK.Logging);
-    if (!raw || !String(raw).startsWith("{")) return [];
-    const obj = JSON.parse(raw);
-    return Object.values(obj) as string[];
+    // The log lives in the ring buffer since 8.10.47; readLogAsObject is the
+    // way to read it, and it returns the same shape the export always had.
+    return Object.values(readLogAsObject());
 }
 function pipeLines(): string[] {
     return loggedLines().filter((l) => l.includes("[PIPE]"));
@@ -51,6 +51,7 @@ describe("PipeLogger.logEvent", () => {
     beforeEach(() => {
         localStorage.clear();
         sessionStorage.clear();
+        clearLog();
         _resetPipeLoggerForTests();
     });
 

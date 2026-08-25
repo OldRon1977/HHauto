@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.47 - The debug log holds a night instead of half an hour
+
+- The log kept everything in one JSON object. Every single line read that
+  object out of storage, parsed it, pruned it, serialised it and wrote all of
+  it back -- half a megabyte of JSON, about three times a second. That is why
+  the cap had to stay at 5000 lines, which is 30 minutes: long enough for a
+  crash report, useless for a question that only shows itself over a night.
+- Lines now go into an in-memory list and are written in batches into a ring
+  of text blocks, so a line costs a list append instead of a full rewrite.
+  Measured on the same work: 5.18 ms per line before, 0.002 ms after.
+- The buffer is no longer a fixed line count. It grows to about 8 MB and gives
+  the oldest block back when the browser runs out of room, so it uses whatever
+  is actually available -- six hours and more of a busy session.
+- The debug export looks exactly as it did, so existing logs and every reader
+  of them keep working. A log written by an older version is carried over on
+  the first load instead of being thrown away.
+
 ### v8.10.46 - The labyrinth row selectors have their labels back
 
 - The three drop-downs on the labyrinth team page (Back, Mid, Front) and the

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.46
+// @version      8.10.47
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2131,6 +2131,14 @@ function manageTranslationPopUp() {
 
 ;// ./src/config/StorageKeys.ts
 /**
+ * Prefix every HHauto key carries. It lives here, in the leaf module, and not
+ * in HHStoredVars: that file pulls in LanguageHelper, StorageHelper and
+ * TimerHelper, so importing it just to read a string drags a module into
+ * their import cycles (see the lesson zirkulaerer-import-tdz-crash).
+ * HHStoredVars re-exports it, so existing imports keep working.
+ */
+const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
+/**
  * Centralized storage key constants.
  * Use these instead of raw strings like HHStoredVarPrefixKey+"Setting_autoTrollBattle"
  * to get autocomplete, refactoring safety, and typo prevention.
@@ -2734,7 +2742,9 @@ function cleanTempPopToStart() {
 }
 const HHStoredVars = {};
 //Settings Vars
-const HHStoredVarPrefixKey = "HHAuto_"; // default HHAuto_
+// Defined in the leaf module StorageKeys.ts; re-exported so the many
+// `from "../config/HHStoredVars"` imports keep working unchanged.
+
 //Do not move, has to be first one
 HHStoredVars[HHStoredVarPrefixKey + SK.settPerTab] =
     {
@@ -5531,16 +5541,261 @@ function getBrowserData(nav) {
 }
 ;
 
+;// ./src/Utils/LogStore.ts
+/**
+ * Ring buffer for the debug log.
+ *
+ * The old buffer kept the log as one JSON object under a single key. Every
+ * single line read that object back out of sessionStorage, parsed it, pruned
+ * it, serialised it and wrote all of it again -- measured on the #1815 report:
+ * 5000 lines, 525 KB, and roughly three lines a second, so half a megabyte of
+ * JSON was parsed and rebuilt three times per second. The cost grew with the
+ * buffer, which is why the cap had to stay at 5000 lines: 30 minutes. A night
+ * of evidence for a pipeline question was impossible to collect.
+ *
+ * This store writes plain text into a ring of chunks:
+ *
+ *   - a line is pushed into an in-memory array (no storage access at all),
+ *   - the array is flushed after 4 KB or one second, whichever comes first,
+ *   - a flush appends to the CURRENT chunk only, so one write moves at most
+ *     CHUNK_BYTES, not the whole log,
+ *   - when a chunk is full the next one is taken and cleared. The oldest
+ *     content falls out of the ring, exactly like the old line cap, but in
+ *     chunk-sized steps instead of line by line.
+ *
+ * The buffer size is not a guess: the ring is generous, and a quota error
+ * drops the oldest chunk and retries. The log therefore grows to whatever the
+ * browser actually allows -- roughly 4-8 MB, six hours or more of a busy
+ * session, against 30 minutes before.
+ *
+ * On disk a line is `<epoch-ms base36> TAB <caller> TAB <text>`, newlines in
+ * the text escaped. That is about 60 bytes where the old format needed 108,
+ * most of it a repeated, human-readable date string. The export rebuilds
+ * exactly the old shape (`"<date>.<ms>:<caller>": text`), so every existing
+ * debug log reader keeps working.
+ *
+ * Storage access here is deliberately direct rather than through
+ * getStoredValue/setStoredValue: those route through the registry and the
+ * quota-retry path, and the quota-retry path clears the log -- which is this
+ * module. Keeping it out of that cycle is the point.
+ */
+
+/** Chunks in the ring. The ring shrinks by itself when the browser refuses. */
+const MAX_CHUNKS = 64;
+/** Bytes per chunk. One flush rewrites at most this much. */
+const CHUNK_BYTES = 128000;
+/** Flush thresholds: whichever is reached first. */
+const FLUSH_BYTES = 4000;
+const FLUSH_MS = 1000;
+// Both computed at call time, never at module scope: a top-level read of
+// the prefix crashes on a circular import (lesson zirkulaerer-import-tdz-crash).
+const idxKey = () => HHStoredVarPrefixKey + "Temp_LogIdx";
+const chunkKey = (i) => HHStoredVarPrefixKey + "Temp_Log" + i;
+/**
+ * Local instead of Utils.safeJsonParse: that module reaches StorageHelper,
+ * and the logger must not depend on the thing whose quota errors it recovers
+ * from (it would also add an import cycle).
+ */
+function parseOr(raw, fallback) {
+    if (!raw)
+        return fallback;
+    try {
+        return JSON.parse(raw);
+    }
+    catch (_a) {
+        return fallback;
+    }
+}
+let pending = [];
+let pendingBytes = 0;
+let lastFlush = 0;
+let hooked = false;
+function readIndex() {
+    const raw = sessionStorage.getItem(idxKey());
+    const idx = parseOr(raw, { cur: 0, used: [0] });
+    if (!idx || typeof idx.cur !== "number" || !Array.isArray(idx.used) || idx.used.length === 0) {
+        return { cur: 0, used: [0] };
+    }
+    return idx;
+}
+function writeIndex(idx) {
+    sessionStorage.setItem(idxKey(), JSON.stringify(idx));
+}
+/** Drop the oldest chunk. Returns false when only the current one is left. */
+function dropOldest(idx) {
+    if (idx.used.length <= 1)
+        return false;
+    const oldest = idx.used.shift();
+    sessionStorage.removeItem(chunkKey(oldest));
+    return true;
+}
+/**
+ * Write `text` into the current chunk, making room by dropping older chunks
+ * when the browser refuses. Returns false only when even an empty ring cannot
+ * take the write -- then the log gives up rather than fighting the page for
+ * storage.
+ */
+function writeChunk(idx, text) {
+    for (;;) {
+        try {
+            sessionStorage.setItem(chunkKey(idx.cur), text);
+            return true;
+        }
+        catch (_a) {
+            if (!dropOldest(idx)) {
+                // Nothing left to sacrifice: keep the newest lines, lose the rest.
+                try {
+                    sessionStorage.setItem(chunkKey(idx.cur), text.slice(-FLUSH_BYTES));
+                    return true;
+                }
+                catch (_b) {
+                    return false;
+                }
+            }
+            writeIndex(idx);
+        }
+    }
+}
+/** Move to the next chunk of the ring and clear it. */
+function advance(idx) {
+    idx.cur = (idx.cur + 1) % MAX_CHUNKS;
+    sessionStorage.removeItem(chunkKey(idx.cur));
+    // A chunk that comes round again is both the newest and, until it is
+    // written, no longer the old one: take it out of the age order first.
+    idx.used = idx.used.filter(i => i !== idx.cur);
+    idx.used.push(idx.cur);
+    if (idx.used.length > MAX_CHUNKS)
+        dropOldest(idx);
+}
+/** Push everything pending into storage. Called on a timer, and on page exit. */
+function flushLog() {
+    var _a;
+    if (pending.length === 0)
+        return;
+    const text = pending.join("");
+    pending = [];
+    pendingBytes = 0;
+    lastFlush = Date.now();
+    const idx = readIndex();
+    const current = (_a = sessionStorage.getItem(chunkKey(idx.cur))) !== null && _a !== void 0 ? _a : "";
+    if (current.length + text.length > CHUNK_BYTES && current.length > 0) {
+        advance(idx);
+        writeChunk(idx, text);
+    }
+    else {
+        writeChunk(idx, current + text);
+    }
+    writeIndex(idx);
+}
+/**
+ * The page is about to go away -- and it goes away constantly, because the
+ * script navigates. Without this the last second of lines would be lost on
+ * every single page change, which is precisely where the interesting ones are.
+ */
+function installExitHook() {
+    if (hooked || typeof window === "undefined" || !window.addEventListener)
+        return;
+    hooked = true;
+    window.addEventListener("pagehide", flushLog);
+    window.addEventListener("beforeunload", flushLog);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden")
+            flushLog();
+    });
+}
+/** Append one line. This is the hot path: no storage access, no serialising. */
+function appendLog(epochMs, caller, text) {
+    installExitHook();
+    const line = epochMs.toString(36) + "\t" + caller + "\t"
+        + String(text).replace(/\\/g, "\\\\").replace(/\n/g, "\\n") + "\n";
+    pending.push(line);
+    pendingBytes += line.length;
+    if (pendingBytes >= FLUSH_BYTES || Date.now() - lastFlush >= FLUSH_MS)
+        flushLog();
+}
+/** The whole ring as raw text, oldest line first. */
+function readLogText() {
+    flushLog();
+    const idx = readIndex();
+    return idx.used.map(i => { var _a; return (_a = sessionStorage.getItem(chunkKey(i))) !== null && _a !== void 0 ? _a : ""; }).join("");
+}
+/**
+ * The log in the shape the debug export has always had:
+ * `{ "<locale date>.<ms>:<caller>": text }`, duplicates within one
+ * millisecond suffixed `-1`, `-2`, ... Existing readers of a debug log --
+ * including the ones in the issue threads -- keep working unchanged.
+ */
+function readLogAsObject() {
+    const out = {};
+    for (const line of readLogText().split("\n")) {
+        if (!line)
+            continue;
+        const first = line.indexOf("\t");
+        const second = line.indexOf("\t", first + 1);
+        if (first < 0 || second < 0)
+            continue;
+        const ms = parseInt(line.slice(0, first), 36);
+        if (!Number.isFinite(ms))
+            continue;
+        const caller = line.slice(first + 1, second);
+        // One pass, so an escaped backslash is not re-read as an escape.
+        const text = line.slice(second + 1).replace(/\\(.)/g, (_m, c) => (c === "n" ? "\n" : c));
+        const d = new Date(ms);
+        const base = d.toLocaleString() + "." + d.getMilliseconds() + ":" + caller;
+        let key = base;
+        for (let n = 1; Object.prototype.hasOwnProperty.call(out, key) && n < 10; n++)
+            key = base + "-" + n;
+        out[key] = text;
+    }
+    return out;
+}
+/** Drop the whole log. Used by the quota-recovery path, which must not write. */
+function clearLog() {
+    pending = [];
+    pendingBytes = 0;
+    const idx = readIndex();
+    for (const i of idx.used)
+        sessionStorage.removeItem(chunkKey(i));
+    sessionStorage.removeItem(idxKey());
+    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.Logging);
+}
+/**
+ * Carry a log written by 8.10.46 or older into the ring, once. The old buffer
+ * lives in the same tab, so on the reload that brings the new version in, it
+ * still holds the running session -- throwing it away would lose exactly the
+ * history the user was collecting.
+ */
+function importLegacyLog() {
+    const legacyKey = HHStoredVarPrefixKey + TK.Logging;
+    const raw = sessionStorage.getItem(legacyKey);
+    if (!raw || !raw.startsWith("{"))
+        return;
+    const old = parseOr(raw, {});
+    sessionStorage.removeItem(legacyKey);
+    if (!old)
+        return;
+    // Key shape: "<locale date>.<ms>:<caller>". The date is not worth
+    // re-parsing across locales -- the order is what matters, so the imported
+    // lines get synthetic stamps that keep their order and stay distinct,
+    // ending just before now.
+    const entries = Object.entries(old);
+    const base = Date.now() - entries.length;
+    entries.forEach(([key, text], i) => {
+        const caller = key.slice(key.lastIndexOf(":") + 1);
+        appendLog(base + i, caller || "imported", String(text));
+    });
+    flushLog();
+}
+
 ;// ./src/Utils/LogUtils.ts
 /**
  * Logging and debug-export utilities for HHAuto.
  *
- * All log entries are persisted in the browser's storage (localStorage /
- * GM storage) as a JSON object keyed by timestamp + caller name. This
- * allows the user to review the automation history even after a page reload.
- *
- * The log is capped at MAX_LINES entries; older entries are pruned on each
- * write to keep storage usage bounded.
+ * Log entries are persisted by LogStore, a ring of text chunks in
+ * sessionStorage, so the automation history survives the constant page
+ * reloads. Writing a line costs an array push; the ring is flushed in
+ * batches and shrinks by itself when the browser runs out of room (see
+ * LogStore for why the old single-JSON-object buffer had to go).
  *
  * Also provides a one-click debug log exporter that bundles all stored
  * settings, browser info, and log entries into a downloadable JSON file
@@ -5551,9 +5806,6 @@ function getBrowserData(nav) {
 
 
 
-/** Maximum number of log entries kept in storage before old ones are pruned.
- * ~132 bytes/entry observed, so 5000 entries is roughly 0.65 MB in sessionStorage. */
-const MAX_LINES = 5000;
 /**
  * Wipe all existing log entries from storage and free up large temp
  * caches. Called from setStoredValue's quota-error catch path, so this
@@ -5573,7 +5825,7 @@ const MAX_LINES = 5000;
  */
 function cleanLogsInStorage() {
     const sizeBefore = getLocalStorageSize();
-    deleteStoredValue(HHStoredVarPrefixKey + TK.Logging);
+    clearLog();
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
     console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
@@ -5589,7 +5841,6 @@ function cleanLogsInStorage() {
  * Duplicate keys within the same millisecond get a numeric suffix.
  */
 function logHHAuto(...args) {
-    var _a;
     const stackTrace = (new Error()).stack || '';
     let match;
     const regExps = [/at Object\.([\w_.]+) \((\S+)\)/, /\n([\w_.]+)@(\S+)/, /\)\n    at ([\w_.]+) \((\S+)\)/];
@@ -5601,10 +5852,9 @@ function logHHAuto(...args) {
         match = ['Unknown', 'Unknown'];
     const callerName = match[1];
     const currDate = new Date();
-    var prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":" + callerName;
+    // The console keeps the readable stamp; storage gets the compact one.
+    const prefix = currDate.toLocaleString() + "." + currDate.getMilliseconds() + ":" + callerName;
     var text;
-    var currentLoggingText;
-    var nbLines;
     // JSON.stringify replacer that tracks seen objects to avoid
     // "Converting circular structure to JSON" errors.
     const getCircularReplacer = () => {
@@ -5630,35 +5880,8 @@ function logHHAuto(...args) {
     else {
         text = JSON.stringify(args, getCircularReplacer(), 2);
     }
-    currentLoggingText = (_a = getStoredValue(HHStoredVarPrefixKey + TK.Logging)) !== null && _a !== void 0 ? _a : "reset";
-    //console.log("debug : ",currentLoggingText);
-    if (!currentLoggingText.startsWith("{")) {
-        //console.log("debug : delete currentLog");
-        currentLoggingText = {};
-    }
-    else {
-        currentLoggingText = safeJsonParse(currentLoggingText, {});
-    }
-    nbLines = Object.keys(currentLoggingText).length;
-    //console.log("Debug : Counting log lines : "+nbLines);
-    if (nbLines > MAX_LINES) {
-        var keys = Object.keys(currentLoggingText);
-        //console.log("Debug : removing old lines");
-        for (var i = 0; i < nbLines - MAX_LINES; i++) {
-            //console.log("debug delete : "+currentLoggingText[keys[i]]);
-            delete currentLoggingText[keys[i]];
-        }
-    }
-    let count = 1;
-    let newPrefix = prefix;
-    while (currentLoggingText.hasOwnProperty(newPrefix) && count < 10) {
-        newPrefix = prefix + "-" + count;
-        count++;
-    }
-    prefix = newPrefix;
     console.log(prefix + ":" + text);
-    currentLoggingText[prefix] = text;
-    setStoredValue(HHStoredVarPrefixKey + TK.Logging, JSON.stringify(currentLoggingText));
+    appendLog(currDate.getTime(), callerName, text);
 }
 /**
  * Bundle all HHAuto settings, browser info, script version, and the
@@ -5959,6 +6182,7 @@ function addEventsOnMenuItems() {
 
 
 
+
 // Import from the leaf module directly (not the HHMenuHelper facade) so this
 // helper does not join HHMenuHelper's import cycles (ARCH-001).
 
@@ -6053,7 +6277,9 @@ function extractHHVars(dataToSave, extractLog = false, extractTemp = true, extra
         }
     }
     if (extractLog) {
-        dataToSave[HHStoredVarPrefixKey + TK.Logging] = safeJsonParse(sessionStorage.getItem(HHStoredVarPrefixKey + 'Temp_Logging'), {});
+        // Same shape as before the ring buffer (8.10.47): the export stays
+        // readable by every existing debug-log reader.
+        dataToSave[HHStoredVarPrefixKey + TK.Logging] = readLogAsObject();
     }
     return dataToSave;
 }
@@ -6614,7 +6840,7 @@ const POST_SETTLE_FACTOR = 4;
 // after installAjaxTracker() so the dependency edge runs in the right
 // direction.
 let onAjaxForbidden = null;
-let pending = 0;
+let AjaxTracker_pending = 0;
 let installed = false;
 let restoreSend = null;
 let restoreOpen = null;
@@ -6674,7 +6900,7 @@ function installAjaxTracker() {
         return origOpen.apply(this, [method, url, ...rest]);
     };
     xhrCtor.prototype.send = function (...args) {
-        pending++;
+        AjaxTracker_pending++;
         const isAjaxPost = !!this.__hhIsAjaxPost;
         if (isAjaxPost)
             pendingAjaxPosts++;
@@ -6683,8 +6909,8 @@ function installAjaxTracker() {
             if (decremented)
                 return;
             decremented = true;
-            if (pending > 0)
-                pending--;
+            if (AjaxTracker_pending > 0)
+                AjaxTracker_pending--;
             if (isAjaxPost && pendingAjaxPosts > 0)
                 pendingAjaxPosts--;
         };
@@ -6732,7 +6958,7 @@ function setOnAjaxForbidden(cb) {
 }
 /** Number of in-flight XMLHttpRequests. Returns 0 if tracker is not installed. */
 function pendingAjaxCount() {
-    return pending;
+    return AjaxTracker_pending;
 }
 /**
  * Resolve when AJAX is idle (no pending XHRs) or after timeoutMs.
@@ -6749,12 +6975,12 @@ function waitForAjaxIdle() {
             return true;
         }
         const deadline = Date.now() + timeoutMs;
-        while (pending > 0 && Date.now() < deadline) {
+        while (AjaxTracker_pending > 0 && Date.now() < deadline) {
             yield sleep(50);
         }
-        const reachedIdle = pending === 0;
+        const reachedIdle = AjaxTracker_pending === 0;
         if (!reachedIdle) {
-            logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${pending} request(s) still pending`);
+            logHHAuto(`[AjaxTracker] waitForAjaxIdle timeout, ${AjaxTracker_pending} request(s) still pending`);
         }
         if (settleMs > 0) {
             yield sleep(settleMs);
@@ -6856,7 +7082,7 @@ function _resetAjaxTrackerForTests() {
     }
     restoreSend = null;
     restoreOpen = null;
-    pending = 0;
+    AjaxTracker_pending = 0;
     pendingAjaxPosts = 0;
     postMutexHeld = false;
     postMutexHolder = "";
@@ -33015,6 +33241,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 
 
 
+
 var started = false;
 var debugMenuID;
 var heroRetryTimer = null;
@@ -33274,6 +33501,10 @@ function start() {
     MonthlyCards.updateInputPattern();
     replaceCheatClick();
     migrateHHVars();
+    // A log written by 8.10.46 or older lives in the same tab as the reload
+    // that brings this version in -- carry it into the ring instead of
+    // dropping the session the user was collecting (#1841 log volume).
+    importLegacyLog();
     const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
     const id_world = getHHVars('Hero.infos.questing.id_world');
     if (isMainAdventure)

@@ -431,7 +431,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `autoLoop` | `Temp_autoLoop` | `sessionStorage` | `Temp` | AutoLoop aktiv |
 | `autoLoopTimeMili` | `Temp_autoLoopTimeMili` | `Storage()` | `Temp` | Loop-Intervall (ms) |
 | `Debug` | `Temp_Debug` | `sessionStorage` | `Temp` | Debug-Modus |
-| `Logging` | `Temp_Logging` | `sessionStorage` | `Temp` | Logging aktiviert |
+| `Logging` | `Temp_Logging` | `sessionStorage` | `Temp` | **Nur noch Export-Name.** Seit 8.10.47 liegt der Log im Ringpuffer (siehe unten); der Schluessel selbst wird beim Start einmal eingelesen und geloescht. |
 | `Timers` | `Temp_Timers` | `sessionStorage` | `Temp` | Timer-State (JSON) |
 | `LastPageCalled` | `Temp_LastPageCalled` | `sessionStorage` | `Temp` | Letzte aufgerufene Seite |
 | `CheckSpentPoints` | `Temp_CheckSpentPoints` | `sessionStorage` | `Temp` | Ausgegebene Punkte pruefen |
@@ -709,3 +709,25 @@ Zwei weitere dynamische Konsumenten wurden geprueft und sind unkritisch:
 `SurveyService.buildSettingsExport` iteriert `Object.keys(SK)`, ueberspringt
 aber unregistrierte Keys (`if (!varDef) continue`), und `debugDeleteAllVars`
 iteriert die Registry statt SK/TK.
+
+## Log-Ringpuffer (seit 8.10.47)
+
+Der Debug-Log liegt nicht mehr als ein JSON-Objekt unter `Temp_Logging`,
+sondern als Ring aus Textbloecken. Diese Schluessel werden **bewusst nicht** in
+`HHStoredVars` registriert: sie sind kein Zustand des Skripts, sondern der
+Speicher des Loggers selbst, und der Registry-Pfad (`setStoredValue`) raeumt
+im Quota-Fehlerfall genau diesen Log auf -- eine Schleife, die `LogStore`
+vermeidet, indem er direkt auf `sessionStorage` schreibt.
+
+| Schluessel | Speicher | Inhalt |
+|---|---|---|
+| `Temp_LogIdx` | `sessionStorage` | `{cur, used[]}` -- aktueller Block und Altersreihenfolge |
+| `Temp_Log0` .. `Temp_Log63` | `sessionStorage` | je bis zu 128 KB Logtext, `<ms base36>\t<caller>\t<text>` je Zeile |
+
+Der Ring belegt nominal 8 MB und schrumpft von selbst: verweigert der Browser
+einen Schreibvorgang, faellt der aelteste Block heraus und der Schreibvorgang
+wird wiederholt. Der Debug-Export baut daraus wieder die alte Form
+(`{"<Datum>.<ms>:<caller>": text}`), damit vorhandene Log-Leser unveraendert
+funktionieren.
+
+`clearLog()` (aus dem Quota-Notpfad `cleanLogsInStorage`) leert den ganzen Ring.

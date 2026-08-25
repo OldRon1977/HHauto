@@ -42,6 +42,7 @@ import { MonthlyCards } from "../Module/MonthlyCard";
 import { PlaceOfPower } from "../Module/PlaceOfPower";
 import { Troll } from "../Module/Troll";
 import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
+import { importLegacyLog } from "../Utils/LogStore";
 import { logHHAuto, saveHHDebugLog } from "../Utils/LogUtils";
 import { callItOnce, isJSON, myfileLoad_onChange, replaceCheatClick } from "../Utils/Utils";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
@@ -341,6 +342,10 @@ export function start() {
     MonthlyCards.updateInputPattern();
     replaceCheatClick();
     migrateHHVars();
+    // A log written by 8.10.46 or older lives in the same tab as the reload
+    // that brings this version in -- carry it into the ring instead of
+    // dropping the session the user was collecting (#1841 log volume).
+    importLegacyLog();
     
     const isMainAdventure = getHHVars('Hero.infos.questing.choices_adventure') == 0;
     const id_world = getHHVars('Hero.infos.questing.id_world');

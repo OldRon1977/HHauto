@@ -1,27 +1,22 @@
 /**
  * Logging and debug-export utilities for HHAuto.
  *
- * All log entries are persisted in the browser's storage (localStorage /
- * GM storage) as a JSON object keyed by timestamp + caller name. This
- * allows the user to review the automation history even after a page reload.
- *
- * The log is capped at MAX_LINES entries; older entries are pruned on each
- * write to keep storage usage bounded.
+ * Log entries are persisted by LogStore, a ring of text chunks in
+ * sessionStorage, so the automation history survives the constant page
+ * reloads. Writing a line costs an array push; the ring is flushed in
+ * batches and shrinks by itself when the browser runs out of room (see
+ * LogStore for why the old single-JSON-object buffer had to go).
  *
  * Also provides a one-click debug log exporter that bundles all stored
  * settings, browser info, and log entries into a downloadable JSON file
  * for sharing in bug reports.
  */
 
-import { deleteStoredValue, extractHHVars, getLocalStorageSize, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { deleteStoredValue, extractHHVars, getLocalStorageSize } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
 import { getBrowserData } from "./BrowserUtils";
-import { safeJsonParse } from './Utils';
-
-/** Maximum number of log entries kept in storage before old ones are pruned.
- * ~132 bytes/entry observed, so 5000 entries is roughly 0.65 MB in sessionStorage. */
-const MAX_LINES = 5000
+import { appendLog, clearLog } from './LogStore';
 
 /**
  * Wipe all existing log entries from storage and free up large temp
@@ -42,7 +37,7 @@ const MAX_LINES = 5000
  */
 export function cleanLogsInStorage() {
     const sizeBefore = getLocalStorageSize();
-    deleteStoredValue(HHStoredVarPrefixKey + TK.Logging);
+    clearLog();
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
     console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
@@ -72,10 +67,9 @@ export function logHHAuto(...args: any[])
     const callerName = match[1];
 
     const currDate = new Date();
-    var prefix = currDate.toLocaleString()+"."+currDate.getMilliseconds()+":"+callerName;
+    // The console keeps the readable stamp; storage gets the compact one.
+    const prefix = currDate.toLocaleString()+"."+currDate.getMilliseconds()+":"+callerName;
     var text:any;
-    var currentLoggingText:any;
-    var nbLines:number;
 
     // JSON.stringify replacer that tracks seen objects to avoid
     // "Converting circular structure to JSON" errors.
@@ -106,42 +100,8 @@ export function logHHAuto(...args: any[])
     {
         text = JSON.stringify(args, getCircularReplacer(), 2);
     }
-    currentLoggingText = getStoredValue(HHStoredVarPrefixKey+TK.Logging) ?? "reset";
-    //console.log("debug : ",currentLoggingText);
-    if (!currentLoggingText.startsWith("{"))
-    {
-        //console.log("debug : delete currentLog");
-        currentLoggingText={};
-    }
-    else
-    {
-
-        currentLoggingText = safeJsonParse(currentLoggingText, {});
-    }
-    nbLines = Object.keys(currentLoggingText).length;
-    //console.log("Debug : Counting log lines : "+nbLines);
-    if (nbLines > MAX_LINES)
-    {
-        var keys=Object.keys(currentLoggingText);
-        //console.log("Debug : removing old lines");
-        for (var i = 0; i < nbLines - MAX_LINES; i++)
-        {
-            //console.log("debug delete : "+currentLoggingText[keys[i]]);
-            delete currentLoggingText[keys[i]];
-        }
-    }
-    let count=1;
-    let newPrefix = prefix;
-    while (currentLoggingText.hasOwnProperty(newPrefix) && count < 10)
-    {
-        newPrefix = prefix + "-" + count;
-        count++;
-    }
-    prefix=newPrefix;
-    console.log(prefix+":"+text);
-    currentLoggingText[prefix]=text;
-
-    setStoredValue(HHStoredVarPrefixKey+TK.Logging, JSON.stringify(currentLoggingText));
+    console.log(prefix + ":" + text);
+    appendLog(currDate.getTime(), callerName, text);
 
 }
 

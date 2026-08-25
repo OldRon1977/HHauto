@@ -40,6 +40,7 @@
 import { fillHHPopUp } from "../Utils/HHPopup";
 import { cleanLogsInStorage, logHHAuto } from "../Utils/LogUtils";
 import { safeJsonParse } from "../Utils/Utils";
+import { readLogAsObject } from "../Utils/LogStore";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { ConfigHelper } from "./ConfigHelper";
@@ -147,7 +148,9 @@ export function extractHHVars(dataToSave: Record<string, any>,extractLog = false
     }
     if (extractLog)
     {
-        dataToSave[HHStoredVarPrefixKey+TK.Logging] = safeJsonParse(sessionStorage.getItem(HHStoredVarPrefixKey+'Temp_Logging'), {});
+        // Same shape as before the ring buffer (8.10.47): the export stays
+        // readable by every existing debug-log reader.
+        dataToSave[HHStoredVarPrefixKey+TK.Logging] = readLogAsObject();
     }
     return dataToSave;
 }

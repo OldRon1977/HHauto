@@ -4,7 +4,7 @@
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { deleteStoredValue, getAndStoreCollectPreferences } from "../Helper/StorageHelper";
 import { clearTimer } from "../Helper/TimerHelper";
-import { SK, TK } from './StorageKeys';
+import { HHStoredVarPrefixKey, SK, TK } from './StorageKeys';
 
 // Local copy of PlaceOfPower.cleanTempPopToStart: deletes the temporary POP
 // scheduling state so it is rebuilt after a PoP setting change. Importing
@@ -18,7 +18,9 @@ function cleanTempPopToStart() {
 
 export const HHStoredVars: Record<string, any> = {};
 //Settings Vars
-export const HHStoredVarPrefixKey: string = "HHAuto_"; // default HHAuto_
+// Defined in the leaf module StorageKeys.ts; re-exported so the many
+// `from "../config/HHStoredVars"` imports keep working unchanged.
+export { HHStoredVarPrefixKey };
 //Do not move, has to be first one
 HHStoredVars[HHStoredVarPrefixKey + SK.settPerTab] =
     {
