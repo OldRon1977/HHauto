@@ -622,6 +622,8 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `activeBlockRun` | `Temp_activeBlockRun` | `sessionStorage` | `Temp` | BlockRun-Fortschritt (R4.4/R4.12) |
 | `blockCooldownUntil` | `Temp_blockCooldownUntil` | `sessionStorage` | `Temp` | `{blockId: ts}` Cooldowns (R4.10/R5.2) |
 | `blockFocus` | `Temp_blockFocus` | `sessionStorage` | `Temp` | `{blockId,lastRunAt}` fokussierte Aktivitaet, haelt die Pipeline bei einem Block (#1841) |
+| `forbiddenCount` | `Temp_forbiddenCount` | `sessionStorage` | `Temp` | aufeinanderfolgende 403-Antworten, steuert den Backoff (#1598) |
+| `forbiddenLastAt` | `Temp_forbiddenLastAt` | `localStorage` | `Temp` | Zeitpunkt des letzten 403; bewusst dauerhaft, damit er im Debug-Export nach einem Tab-Neustart noch da ist |
 | `blockAutoDisabled` | `Temp_blockAutoDisabled` | `localStorage` | `Temp` | `{blockId:{reason,sinceVersion}}` automatisch abgeschaltete Bloecke (R5.5) |
 | `blockFailureCount` | `Temp_blockFailureCount` | `localStorage` | `Temp` | `{signature: count}` Fehlerzaehler (R5.3) |
 | `pipelineOrder` | `Temp_pipelineOrder` | `localStorage` | `Setting` | Effektive Block-ID-Reihenfolge (R2.5/R7.1); trotz `Temp_`-Prefix als `Setting` registriert |

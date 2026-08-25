@@ -6,6 +6,9 @@ import {
     FORBIDDEN_MIN_DELAY_SECONDS,
     FORBIDDEN_JITTER_RANGE,
     FORBIDDEN_STREAK_WINDOW_MS,
+    FORBIDDEN_COUNT_KEY,
+    FORBIDDEN_LAST_AT_KEY,
+    recordForbidden,
 } from "../../src/Service/ForbiddenBackoff";
 
 describe("nextForbiddenDelaySeconds", () => {
@@ -94,5 +97,42 @@ describe("nextStreakCount", () => {
         const atBoundary = now - FORBIDDEN_STREAK_WINDOW_MS;
         // <= window means streak continues
         expect(nextStreakCount(2, atBoundary, now)).toBe(3);
+    });
+});
+
+// The two counters were invisible in the debug export: extractHHVars walks
+// HHStoredVars, so a key that is not registered there is never dumped, whatever
+// prefix it carries. They are registered now, and the timestamp lives in
+// localStorage so "when did this last happen" survives a tab restart.
+describe('Forbidden counters are exportable', () => {
+    it('records the streak and the timestamp in separate storages', () => {
+        const session = new Map<string, string>();
+        const local = new Map<string, string>();
+        const wrap = (m: Map<string, string>) => ({
+            getItem: (k: string) => m.get(k) ?? null,
+            setItem: (k: string, v: string) => { m.set(k, v); },
+        });
+
+        const count = recordForbidden(wrap(session), () => 1_000_000, wrap(local));
+
+        expect(count).toBe(1);
+        expect(session.get(FORBIDDEN_COUNT_KEY)).toBe('1');
+        expect(local.get(FORBIDDEN_LAST_AT_KEY)).toBe('1000000');
+        expect(session.has(FORBIDDEN_LAST_AT_KEY)).toBe(false);
+    });
+
+    it('starts a fresh streak when the count is gone but the timestamp is not', () => {
+        // Exactly what a tab restart looks like now: sessionStorage empty,
+        // localStorage still holding the old timestamp. Must not resume a
+        // streak, or the first Forbidden after a restart would wait far too
+        // long.
+        const session = new Map<string, string>();
+        const local = new Map<string, string>([[FORBIDDEN_LAST_AT_KEY, '999000']]);
+        const wrap = (m: Map<string, string>) => ({
+            getItem: (k: string) => m.get(k) ?? null,
+            setItem: (k: string, v: string) => { m.set(k, v); },
+        });
+
+        expect(recordForbidden(wrap(session), () => 1_000_000, wrap(local))).toBe(1);
     });
 });

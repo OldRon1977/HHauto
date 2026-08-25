@@ -115,6 +115,7 @@ export interface ForbiddenStreakStorage {
 export function recordForbidden(
     storage: ForbiddenStreakStorage | null = defaultStorage(),
     now: () => number = Date.now,
+    atStorage: ForbiddenStreakStorage | null = defaultAtStorage(),
 ): number {
     if (!storage) {
         logHHAuto('[ForbiddenBackoff] storage unavailable, Forbidden not recorded');
@@ -126,7 +127,7 @@ export function recordForbidden(
         const rawCount = storage.getItem(FORBIDDEN_COUNT_KEY);
         prevCount = rawCount ? parseInt(rawCount, 10) : 0;
         if (!Number.isFinite(prevCount) || prevCount < 0) prevCount = 0;
-        const rawAt = storage.getItem(FORBIDDEN_LAST_AT_KEY);
+        const rawAt = (atStorage ?? storage).getItem(FORBIDDEN_LAST_AT_KEY);
         prevAt = rawAt ? parseInt(rawAt, 10) : 0;
         if (!Number.isFinite(prevAt) || prevAt < 0) prevAt = 0;
     } catch (e) {
@@ -137,13 +138,21 @@ export function recordForbidden(
     const count = nextStreakCount(prevCount, prevAt, t);
     try {
         storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
-        storage.setItem(FORBIDDEN_LAST_AT_KEY, String(t));
+        (atStorage ?? storage).setItem(FORBIDDEN_LAST_AT_KEY, String(t));
     } catch (e) {
         logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
         return -1;
     }
     logHHAuto('[ForbiddenBackoff] XHR 403 recorded (streak #' + count + ')');
     return count;
+}
+
+/** Where the timestamp lives: localStorage, so it survives a tab restart. */
+function defaultAtStorage(): ForbiddenStreakStorage | null {
+    try {
+        if (typeof localStorage !== 'undefined') return localStorage;
+    } catch { /* localStorage may throw in restricted contexts */ }
+    return null;
 }
 
 function defaultStorage(): ForbiddenStreakStorage | null {

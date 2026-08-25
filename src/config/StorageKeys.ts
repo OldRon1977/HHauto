@@ -409,6 +409,8 @@ export const TK = {
     activeBlockRun: "Temp_activeBlockRun",          // session: BlockRun progress (R4.4/R4.12)
     blockCooldownUntil: "Temp_blockCooldownUntil",  // session: {blockId: ts} (R4.10/R5.2)
     blockFocus: "Temp_blockFocus",                  // session: {blockId,lastRunAt} focused activity (#1841)
+    forbiddenCount: "Temp_forbiddenCount",       // session: consecutive 403s (#1598)
+    forbiddenLastAt: "Temp_forbiddenLastAt",     // local: when the last 403 was seen
     blockAutoDisabled: "Temp_blockAutoDisabled",    // local: {blockId:{reason,sinceVersion}} (R5.5)
     blockFailureCount: "Temp_blockFailureCount",    // local: {signature: count} (R5.3)
     pipelineOrder: "Temp_pipelineOrder",            // local: effective block-id order (R2.5/R7.1)

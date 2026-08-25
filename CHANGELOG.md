@@ -7,6 +7,16 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.44 - A "Forbidden" leaves a trace in the debug log
+
+- When the game answers Forbidden, the script counts it and waits longer before
+  each retry. Those two counters were never in the debug export, so afterwards
+  there was no way to tell that it had happened at all, let alone how often.
+  They are in the export now.
+- The time of the last Forbidden is also kept beyond the browser tab, so it is
+  still there after a restart. The streak itself still starts fresh with the
+  tab, exactly as before.
+
 ### v8.10.43 - Show info follows the same rule
 
 - The switch under Info panel still read "Enable" while the other seventeen

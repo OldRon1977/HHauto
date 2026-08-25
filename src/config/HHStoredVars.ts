@@ -2719,6 +2719,23 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blockFocus] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// Forbidden backoff (#1598). Registered so the debug export carries them --
+// extractHHVars walks HHStoredVars, not the storage, so an unregistered key is
+// invisible there no matter which prefix it uses.
+HHStoredVars[HHStoredVarPrefixKey + TK.forbiddenCount] =
+    {
+    storage:"sessionStorage",
+    HHType:"Temp"
+};
+// localStorage on purpose: the streak itself is per session, but "when did this
+// last happen" is the part worth having after a tab restart. Behaviour is
+// unchanged -- nextStreakCount restarts at 1 whenever the count is missing,
+// which it always is after a restart.
+HHStoredVars[HHStoredVarPrefixKey + TK.forbiddenLastAt] =
+    {
+    storage:"localStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
     {
     storage:"localStorage",

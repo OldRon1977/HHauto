@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.43
+// @version      8.10.44
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2467,6 +2467,8 @@ const TK = {
     activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress (R4.4/R4.12)
     blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts} (R4.10/R5.2)
     blockFocus: "Temp_blockFocus", // session: {blockId,lastRunAt} focused activity (#1841)
+    forbiddenCount: "Temp_forbiddenCount", // session: consecutive 403s (#1598)
+    forbiddenLastAt: "Temp_forbiddenLastAt", // local: when the last 403 was seen
     blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
     blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
     pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
@@ -5369,6 +5371,23 @@ HHStoredVars[HHStoredVarPrefixKey + TK.blockCooldownUntil] =
 HHStoredVars[HHStoredVarPrefixKey + TK.blockFocus] =
     {
         storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// Forbidden backoff (#1598). Registered so the debug export carries them --
+// extractHHVars walks HHStoredVars, not the storage, so an unregistered key is
+// invisible there no matter which prefix it uses.
+HHStoredVars[HHStoredVarPrefixKey + TK.forbiddenCount] =
+    {
+        storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// localStorage on purpose: the streak itself is per session, but "when did this
+// last happen" is the part worth having after a tab restart. Behaviour is
+// unchanged -- nextStreakCount restarts at 1 whenever the count is missing,
+// which it always is after a restart.
+HHStoredVars[HHStoredVarPrefixKey + TK.forbiddenLastAt] =
+    {
+        storage: "localStorage",
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.blockAutoDisabled] =
@@ -32658,7 +32677,7 @@ function nextStreakCount(prevCount, prevTimestamp, now) {
  * Returns the new streak count (or -1 if storage was unavailable and
  * the counter could not be updated).
  */
-function recordForbidden(storage = defaultStorage(), now = Date.now) {
+function recordForbidden(storage = defaultStorage(), now = Date.now, atStorage = defaultAtStorage()) {
     if (!storage) {
         logHHAuto('[ForbiddenBackoff] storage unavailable, Forbidden not recorded');
         return -1;
@@ -32670,7 +32689,7 @@ function recordForbidden(storage = defaultStorage(), now = Date.now) {
         prevCount = rawCount ? parseInt(rawCount, 10) : 0;
         if (!Number.isFinite(prevCount) || prevCount < 0)
             prevCount = 0;
-        const rawAt = storage.getItem(FORBIDDEN_LAST_AT_KEY);
+        const rawAt = (atStorage !== null && atStorage !== void 0 ? atStorage : storage).getItem(FORBIDDEN_LAST_AT_KEY);
         prevAt = rawAt ? parseInt(rawAt, 10) : 0;
         if (!Number.isFinite(prevAt) || prevAt < 0)
             prevAt = 0;
@@ -32682,7 +32701,7 @@ function recordForbidden(storage = defaultStorage(), now = Date.now) {
     const count = nextStreakCount(prevCount, prevAt, t);
     try {
         storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
-        storage.setItem(FORBIDDEN_LAST_AT_KEY, String(t));
+        (atStorage !== null && atStorage !== void 0 ? atStorage : storage).setItem(FORBIDDEN_LAST_AT_KEY, String(t));
     }
     catch (e) {
         logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
@@ -32690,6 +32709,15 @@ function recordForbidden(storage = defaultStorage(), now = Date.now) {
     }
     logHHAuto('[ForbiddenBackoff] XHR 403 recorded (streak #' + count + ')');
     return count;
+}
+/** Where the timestamp lives: localStorage, so it survives a tab restart. */
+function defaultAtStorage() {
+    try {
+        if (typeof localStorage !== 'undefined')
+            return localStorage;
+    }
+    catch ( /* localStorage may throw in restricted contexts */_a) { /* localStorage may throw in restricted contexts */ }
+    return null;
 }
 function defaultStorage() {
     try {
@@ -32960,7 +32988,7 @@ function hardened_start() {
                     prevCount = rawCount ? parseInt(rawCount, 10) : 0;
                     if (!Number.isFinite(prevCount) || prevCount < 0)
                         prevCount = 0;
-                    const rawAt = sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY);
+                    const rawAt = localStorage.getItem(FORBIDDEN_LAST_AT_KEY);
                     prevAt = rawAt ? parseInt(rawAt, 10) : 0;
                     if (!Number.isFinite(prevAt) || prevAt < 0)
                         prevAt = 0;
@@ -32970,7 +32998,7 @@ function hardened_start() {
                 const count = nextStreakCount(prevCount, prevAt, now);
                 try {
                     sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
-                    sessionStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
+                    localStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
                 }
                 catch (e) { }
                 const time = nextForbiddenDelaySeconds(count);

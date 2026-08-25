@@ -230,7 +230,7 @@ export function hardened_start()
                     const rawCount = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
                     prevCount = rawCount ? parseInt(rawCount, 10) : 0;
                     if (!Number.isFinite(prevCount) || prevCount < 0) prevCount = 0;
-                    const rawAt = sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY);
+                    const rawAt = localStorage.getItem(FORBIDDEN_LAST_AT_KEY);
                     prevAt = rawAt ? parseInt(rawAt, 10) : 0;
                     if (!Number.isFinite(prevAt) || prevAt < 0) prevAt = 0;
                 } catch (e) { /* sessionStorage unavailable */ }
@@ -239,7 +239,7 @@ export function hardened_start()
                 const count = nextStreakCount(prevCount, prevAt, now);
                 try {
                     sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
-                    sessionStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
+                    localStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
                 } catch (e) {}
 
                 const time = nextForbiddenDelaySeconds(count);

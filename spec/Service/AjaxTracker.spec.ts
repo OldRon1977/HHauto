@@ -217,16 +217,17 @@ describe("AjaxTracker", () => {
     });
 
     describe("403 detection", () => {
-        it("records a Forbidden in sessionStorage when /ajax.php POST returns 403", async () => {
+        it("records a Forbidden when /ajax.php POST returns 403", async () => {
+            // The streak stays with the tab; the timestamp outlives it, so a
+            // debug export taken after a restart still shows when it happened.
             installAjaxTracker();
             const xhr = new (global as any).XMLHttpRequest(20, 403);
             xhr.open("POST", "/ajax.php?case=foo");
             xhr.send();
             await new Promise((r) => setTimeout(r, 60));
-            const stored = sessionStorage.getItem(FORBIDDEN_COUNT_KEY);
-            expect(stored).toBe("1");
-            const ts = sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY);
-            expect(ts).not.toBeNull();
+            expect(sessionStorage.getItem(FORBIDDEN_COUNT_KEY)).toBe("1");
+            expect(localStorage.getItem(FORBIDDEN_LAST_AT_KEY)).not.toBeNull();
+            expect(sessionStorage.getItem(FORBIDDEN_LAST_AT_KEY)).toBeNull();
         });
 
         it("does not record Forbidden for 200 responses", async () => {
