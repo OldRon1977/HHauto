@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.45
+// @version      8.10.46
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -562,6 +562,9 @@ HHAuto_ToolTips.en['autoLabyDifficultyHard'] = { version: "7.25.2", elementText:
 HHAuto_ToolTips.en['autoLabyCustomTeamBuilder'] = { version: "8.10.42", elementText: "Custom team", tooltip: "Deprecated<br/>if enabled : Use bot team builder.<br/>Otherwise use ingame auto team based on rules defined by player previously." };
 HHAuto_ToolTips.en['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinth" };
 HHAuto_ToolTips.en['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Build team", tooltip: "Select full team, based on selection" };
+HHAuto_ToolTips.en['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Back", tooltip: "Select girl type for back row" };
+HHAuto_ToolTips.en['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mid", tooltip: "Select girl type for mid row" };
+HHAuto_ToolTips.en['autoLabyrinthBuildFront'] = { version: "7.9.1", elementText: "Front", tooltip: "Select girl type for Front row" };
 HHAuto_ToolTips.en['autoPantheon'] = { version: "8.10.42", elementText: "Enabled", tooltip: "if enabled : Automatically do Pantheon" };
 HHAuto_ToolTips.en['autoPantheonThreshold'] = { version: "5.6.24", elementText: "Threshold", tooltip: "Minimum worship to keep<br>Max 10" };
 HHAuto_ToolTips.en['autoPantheonRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum worship before script start spending<br> 0 to spend as soon as energy above threshold" };
@@ -653,6 +656,8 @@ HHAuto_ToolTips.en['menuSecEventDisplay'] = { version: "8.10.0", elementText: "E
 HHAuto_ToolTips.en['giveaffection'] = { version: "6.2.0", elementText: "Give Affection", tooltip: "Automatically give max current range affection to selected girl." };
 HHAuto_ToolTips.en['giveexperience'] = { version: "6.2.0", elementText: "Give experience", tooltip: "Automatically give max current range Exp to selected girl." };
 HHAuto_ToolTips.en['costaffection'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
+HHAuto_ToolTips.en['giveequipment'] = { version: "7.30.0", elementText: "Give equipment", tooltip: "Automatically give all equipment to selected girl." };
+HHAuto_ToolTips.en['giveskills'] = { version: "7.30.0", elementText: "Give skills", tooltip: "Automatically give all skills to selected girl." };
 HHAuto_ToolTips.en['costexperience'] = { version: "7.18.0", elementText: "For a total cost of ", tooltip: "" };
 
 ;// ./src/i18n/fr.ts
@@ -1000,6 +1005,9 @@ HHAuto_ToolTips.fr['autoLabyDifficultyHard'] = { version: "7.25.2", elementText:
 HHAuto_ToolTips.fr['autoLabyCustomTeamBuilder'] = { version: "7.25.4", elementText: "Équipe personnalisée", tooltip: "Obsolète<br/>Si activé : utilise le constructeur d'équipe du bot.<br/>Sinon, utilise l'équipe automatique du jeu selon les règles que vous avez définies auparavant." };
 HHAuto_ToolTips.fr['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Labyrinthe", tooltip: "" };
 HHAuto_ToolTips.fr['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construire l'équipe", tooltip: "Choisit l'équipe complète selon la sélection." };
+HHAuto_ToolTips.fr['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Arrière", tooltip: "Choisit le type de fille pour la ligne arrière." };
+HHAuto_ToolTips.fr['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Milieu", tooltip: "Choisit le type de fille pour la ligne du milieu." };
+HHAuto_ToolTips.fr['autoLabyrinthBuildFront'] = { version: "7.9.1", elementText: "Avant", tooltip: "Choisit le type de fille pour la ligne avant." };
 HHAuto_ToolTips.fr['autoPantheonRunThreshold'] = { version: "6.8.0", elementText: "Seuil de réserve", tooltip: "Vénération minimale avant que le script commence à dépenser.<br> 0 pour dépenser dès que l'énergie dépasse le seuil." };
 HHAuto_ToolTips.fr['autoPantheonBoostedOnly'] = { version: "6.7.0", elementText: "Booster obligatoire", tooltip: "Si activé : un booster est nécessaire pour combattre au Panthéon." };
 HHAuto_ToolTips.fr['none'] = { version: "5.6.24", elementText: "Aucun", tooltip: "" };
@@ -1070,6 +1078,8 @@ HHAuto_ToolTips.fr['menuSecEventDisplay'] = { version: "8.10.0", elementText: "A
 HHAuto_ToolTips.fr['giveaffection'] = { version: "6.2.0", elementText: "Donner de l'affection", tooltip: "Donne automatiquement le maximum d'affection du palier actuel à la fille sélectionnée." };
 HHAuto_ToolTips.fr['giveexperience'] = { version: "6.2.0", elementText: "Donner de l'expérience", tooltip: "Donne automatiquement le maximum d'expérience du palier actuel à la fille sélectionnée." };
 HHAuto_ToolTips.fr['costaffection'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
+HHAuto_ToolTips.fr['giveequipment'] = { version: "7.30.0", elementText: "Donner l'équipement", tooltip: "Donne automatiquement tout l'équipement à la fille sélectionnée." };
+HHAuto_ToolTips.fr['giveskills'] = { version: "7.30.0", elementText: "Donner les compétences", tooltip: "Donne automatiquement toutes les compétences à la fille sélectionnée." };
 HHAuto_ToolTips.fr['costexperience'] = { version: "7.18.0", elementText: "Pour un coût total de ", tooltip: "" };
 
 ;// ./src/i18n/de.ts
@@ -1398,6 +1408,9 @@ HHAuto_ToolTips.de['autoLabyDifficultyHard'] = { version: "7.25.2", elementText:
 HHAuto_ToolTips.de['autoLabyCustomTeamBuilder'] = { version: "7.25.4", elementText: "Eigenes Team", tooltip: "Veraltet<br/>Wenn aktiv: Nutzt den Team-Bauer des Bots.<br/>Sonst wird die spieleigene Automatik verwendet." };
 HHAuto_ToolTips.de['autoLabyrinthTitle'] = { version: "8.10.0", elementText: "Liebeslabyrinth" };
 HHAuto_ToolTips.de['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Team bauen", tooltip: "Wählt anhand der Auswahl ein vollständiges Team." };
+HHAuto_ToolTips.de['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Hinten", tooltip: "Wählt den Mädel-Typ für die hintere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Mitte", tooltip: "Wählt den Mädel-Typ für die mittlere Reihe." };
+HHAuto_ToolTips.de['autoLabyrinthBuildFront'] = { version: "7.9.1", elementText: "Vorne", tooltip: "Wählt den Mädel-Typ für die vordere Reihe." };
 HHAuto_ToolTips.de['autoPantheon'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv: Spielt das Pantheon automatisch." };
 HHAuto_ToolTips.de['autoPantheonThreshold'] = { version: "8.10.0", elementText: "Schwellwert", tooltip: "Mindestmenge an Worship, die behalten wird<br>Max. 10" };
 HHAuto_ToolTips.de['autoPantheonRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestmenge an Worship, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
@@ -1488,6 +1501,8 @@ HHAuto_ToolTips.de['menuSecEventDisplay'] = { version: "8.10.0", elementText: "E
 HHAuto_ToolTips.de['giveaffection'] = { version: "6.2.0", elementText: "Zuneigung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Zuneigung der aktuellen Stufe." };
 HHAuto_ToolTips.de['giveexperience'] = { version: "6.2.0", elementText: "Erfahrung geben", tooltip: "Gibt dem gewählten Mädel automatisch die maximale Erfahrung der aktuellen Stufe." };
 HHAuto_ToolTips.de['costaffection'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
+HHAuto_ToolTips.de['giveequipment'] = { version: "7.30.0", elementText: "Ausrüstung geben", tooltip: "Gibt dem gewählten Mädel automatisch die komplette Ausrüstung." };
+HHAuto_ToolTips.de['giveskills'] = { version: "7.30.0", elementText: "Skills geben", tooltip: "Gibt dem gewählten Mädel automatisch alle Skills." };
 HHAuto_ToolTips.de['costexperience'] = { version: "7.18.0", elementText: "Für Gesamtkosten von ", tooltip: "" };
 
 ;// ./src/i18n/es.ts
@@ -1867,6 +1882,9 @@ HHAuto_ToolTips.es['autoLabyDifficultyHard'] = { version: "7.25.2", elementText:
 HHAuto_ToolTips.es['autoLabyCustomTeamBuilder'] = { version: "7.25.4", elementText: "Equipo propio", tooltip: "Obsoleto<br/>Si habilitado: usa el constructor de equipos del bot.<br/>En caso contrario usa el equipo automático del juego, según las reglas que hayas definido antes." };
 HHAuto_ToolTips.es['autoLabyrinthTitle'] = { version: "6.19.0", elementText: "Laberinto", tooltip: "" };
 HHAuto_ToolTips.es['autoLabyrinthBuildTeam'] = { version: "7.9.1", elementText: "Construir equipo", tooltip: "Elige el equipo completo según la selección." };
+HHAuto_ToolTips.es['autoLabyrinthBuildBack'] = { version: "7.9.1", elementText: "Atrás", tooltip: "Elige el tipo de chica para la fila trasera." };
+HHAuto_ToolTips.es['autoLabyrinthBuildMid'] = { version: "7.9.1", elementText: "Centro", tooltip: "Elige el tipo de chica para la fila central." };
+HHAuto_ToolTips.es['autoLabyrinthBuildFront'] = { version: "7.9.1", elementText: "Delante", tooltip: "Elige el tipo de chica para la fila delantera." };
 HHAuto_ToolTips.es['autoPantheon'] = { version: "8.10.42", elementText: "Activado", tooltip: "Si habilitado: hace el Panteón automáticamente." };
 HHAuto_ToolTips.es['autoPantheonThreshold'] = { version: "5.6.24", elementText: "Umbral", tooltip: "Cantidad mínima de veneración a conservar.<br>Máximo 10." };
 HHAuto_ToolTips.es['autoPantheonRunThreshold'] = { version: "6.8.0", elementText: "Umbral de reserva", tooltip: "Veneración mínima antes de que el script empiece a gastar.<br> 0 para gastar en cuanto la energía supere el umbral." };
@@ -1905,6 +1923,8 @@ HHAuto_ToolTips.es['useX50Fights'] = { version: "5.6.24", elementText: "Usar x50
 HHAuto_ToolTips.es['giveaffection'] = { version: "6.2.0", elementText: "Dar afecto", tooltip: "Da automáticamente el máximo de afecto del rango actual a la chica seleccionada." };
 HHAuto_ToolTips.es['giveexperience'] = { version: "6.2.0", elementText: "Dar experiencia", tooltip: "Da automáticamente el máximo de experiencia del rango actual a la chica seleccionada." };
 HHAuto_ToolTips.es['costaffection'] = { version: "7.18.0", elementText: "Por un coste total de ", tooltip: "" };
+HHAuto_ToolTips.es['giveequipment'] = { version: "7.30.0", elementText: "Dar equipo", tooltip: "Da automáticamente todo el equipo a la chica seleccionada." };
+HHAuto_ToolTips.es['giveskills'] = { version: "7.30.0", elementText: "Dar habilidades", tooltip: "Da automáticamente todas las habilidades a la chica seleccionada." };
 HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un coste total de", tooltip: "" };
 
 ;// ./src/Helper/LanguageHelper.ts

@@ -7,6 +7,15 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.46 - The labyrinth row selectors have their labels back
+
+- The three drop-downs on the labyrinth team page (Back, Mid, Front) and the
+  harem popups for equipment and skills read their text through a key the code
+  assembles at runtime. The clean-up in 8.10.39 searched for the finished key,
+  found nothing, and removed five texts that were in use. They are back.
+- A test now pins every text whose key is built by concatenation, so the next
+  sweep cannot quietly take one out again.
+
 ### v8.10.45 - Stop fighting a girl you have already won
 
 - A troll fight reports the girl's new shard count, but the script only read
