@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.48
+// @version      8.10.49
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -33840,6 +33840,7 @@ const DEFAULT_CONFIG = {
     dormantGapMs: 30000, // 30s gap (>>1s cadence) = scheduler was dormant
     focusWaitMs: 30000, // backstop; real waits are the blocks' 2-4s intervals
     focusStaleMs: 300000, // 5 min without the focused block running = give up
+    navigationGraceMs: 30000, // a navigation resolves in seconds; a paranoia rest does not
 };
 /** Short signature of a failure reason for the per-signature failure counter. */
 function shortSig(reason) {
@@ -33854,6 +33855,8 @@ class BlockScheduler {
         this.restoredFromStore = false;
         this.tickCount = 0; // R6.3 correlation: incremented once per tick()
         this.lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
+        /** When this page context first saw the autoLoop flag off (0 = it is on). */
+        this.autoLoopOffSince = 0;
         this.cfg = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
         // Restore a run that survived a reload (R4.4) and reconcile version-gated
         // auto-disable (R5.5: one retry after a script update).
@@ -33915,8 +33918,10 @@ class BlockScheduler {
             // only contiguous active ticking time, not dormant wall-clock.
             const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
             this.lastTickAt = now;
-            // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
-            if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
+            // 1. Stop-check: the script is off -> discard the run, NO home routing
+            // (R4 / design). The master switch is the user saying stop.
+            if (this.ports.isMasterOff()) {
+                this.autoLoopOffSince = 0;
                 if (this.run) {
                     this.emit({ ev: "abort", block: this.run.blockId, detail: "master-off" });
                     this.run = null;
@@ -33925,6 +33930,29 @@ class BlockScheduler {
                 this.releaseFocus("master-off");
                 return;
             }
+            // The autoLoop flag is NOT the user saying stop: gotoPage, safeReload and
+            // the fight paths switch it off themselves, right before the page goes
+            // away. Discarding the run on that tick threw away work a block had
+            // explicitly held -- measured over one night on 8.10.48: 13 runs killed,
+            // every one of them 1.9-2.0 s (one scheduler tick) after the script's own
+            // "setting autoloop to false", with the master switch on the whole time.
+            // A navigation resolves in seconds, so a held run gets that long to be
+            // carried away by its reload. What keeps the flag off for longer is a real
+            // stop -- the paranoia rest -- and there the run is discarded as before.
+            if (this.ports.isAutoLoopOff()) {
+                if (this.autoLoopOffSince === 0)
+                    this.autoLoopOffSince = now;
+                if (this.run && now - this.autoLoopOffSince <= this.cfg.navigationGraceMs)
+                    return;
+                if (this.run) {
+                    this.emit({ ev: "abort", block: this.run.blockId, detail: "autoloop-off" });
+                    this.run = null;
+                    this.ports.clearRun();
+                }
+                this.releaseFocus("autoloop-off");
+                return;
+            }
+            this.autoLoopOffSince = 0;
             if (!this.run)
                 this.run = this.ports.loadRun();
             if (this.run) {
@@ -35794,6 +35822,10 @@ const handlePlaceOfPower = {
                         if (popToStart.length === 0) {
                             deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
                             ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+                            // Nothing left to start: the walk home is the end of this block,
+                            // not a step of it. Say so, or the slot-hold rule holds the run
+                            // and the next tick throws it away.
+                            return { ok: true, done: true };
                         }
                     }
                     return { ok: true };
@@ -37044,6 +37076,13 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
 function applySlotHold(r, busy, autoLoopOff = false) {
     if (!r.ok)
         return r;
+    // An explicit "done" wins over the navigated-so-hold rule. Without it a
+    // handler cannot say "I went home BECAUSE I am finished": ctx.busy is set
+    // either way, the run is held, and the next tick discards it as a stop.
+    // PlaceOfPower does exactly that when its list is empty.
+    if (r.done === true) {
+        return (autoLoopOff || r.acted === true) ? Object.assign(Object.assign({}, r), { acted: true }) : r;
+    }
     // A handler that switched the auto-loop off is mid-action: that is what
     // gotoPage, safeReload and the fight paths do right before the page goes
     // away. It does not necessarily hold the slot -- handleLeague deliberately

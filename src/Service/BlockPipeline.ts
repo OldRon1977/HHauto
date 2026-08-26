@@ -38,6 +38,13 @@ import { HandlerConfig, pipeline } from "./Pipeline.config";
  */
 export function applySlotHold(r: BlockStepResult, busy: boolean, autoLoopOff = false): BlockStepResult {
   if (!r.ok) return r;
+  // An explicit "done" wins over the navigated-so-hold rule. Without it a
+  // handler cannot say "I went home BECAUSE I am finished": ctx.busy is set
+  // either way, the run is held, and the next tick discards it as a stop.
+  // PlaceOfPower does exactly that when its list is empty.
+  if (r.done === true) {
+    return (autoLoopOff || r.acted === true) ? { ...r, acted: true } : r;
+  }
   // A handler that switched the auto-loop off is mid-action: that is what
   // gotoPage, safeReload and the fight paths do right before the page goes
   // away. It does not necessarily hold the slot -- handleLeague deliberately

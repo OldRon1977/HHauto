@@ -73,6 +73,8 @@ export interface SchedulerConfig {
   // the focus is stale and the order takes over -- which is exactly the
   // behaviour before #1841, so the worst case degrades to the old one.
   focusStaleMs: number;
+  /** How long a held run survives an autoLoop that a navigation switched off. */
+  navigationGraceMs: number;
 }
 
 const DEFAULT_CONFIG: SchedulerConfig = {
@@ -82,6 +84,7 @@ const DEFAULT_CONFIG: SchedulerConfig = {
   dormantGapMs: 30_000,    // 30s gap (>>1s cadence) = scheduler was dormant
   focusWaitMs: 30_000,     // backstop; real waits are the blocks' 2-4s intervals
   focusStaleMs: 300_000,   // 5 min without the focused block running = give up
+  navigationGraceMs: 30_000,  // a navigation resolves in seconds; a paranoia rest does not
 };
 
 /** Short signature of a failure reason for the per-signature failure counter. */
@@ -94,6 +97,8 @@ export class BlockScheduler {
   private restoredFromStore = false;
   private tickCount = 0;  // R6.3 correlation: incremented once per tick()
   private lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
+  /** When this page context first saw the autoLoop flag off (0 = it is on). */
+  private autoLoopOffSince = 0;
   private readonly cfg: SchedulerConfig;
 
   constructor(
@@ -163,8 +168,10 @@ export class BlockScheduler {
     // only contiguous active ticking time, not dormant wall-clock.
     const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
     this.lastTickAt = now;
-    // 1. Stop-check: master/autoLoop off -> discard run, NO home routing (R4 / design).
-    if (this.ports.isMasterOff() || this.ports.isAutoLoopOff()) {
+    // 1. Stop-check: the script is off -> discard the run, NO home routing
+    // (R4 / design). The master switch is the user saying stop.
+    if (this.ports.isMasterOff()) {
+      this.autoLoopOffSince = 0;
       if (this.run) {
         this.emit({ ev: "abort", block: this.run.blockId, detail: "master-off" });
         this.run = null;
@@ -173,6 +180,28 @@ export class BlockScheduler {
       this.releaseFocus("master-off");
       return;
     }
+
+    // The autoLoop flag is NOT the user saying stop: gotoPage, safeReload and
+    // the fight paths switch it off themselves, right before the page goes
+    // away. Discarding the run on that tick threw away work a block had
+    // explicitly held -- measured over one night on 8.10.48: 13 runs killed,
+    // every one of them 1.9-2.0 s (one scheduler tick) after the script's own
+    // "setting autoloop to false", with the master switch on the whole time.
+    // A navigation resolves in seconds, so a held run gets that long to be
+    // carried away by its reload. What keeps the flag off for longer is a real
+    // stop -- the paranoia rest -- and there the run is discarded as before.
+    if (this.ports.isAutoLoopOff()) {
+      if (this.autoLoopOffSince === 0) this.autoLoopOffSince = now;
+      if (this.run && now - this.autoLoopOffSince <= this.cfg.navigationGraceMs) return;
+      if (this.run) {
+        this.emit({ ev: "abort", block: this.run.blockId, detail: "autoloop-off" });
+        this.run = null;
+        this.ports.clearRun();
+      }
+      this.releaseFocus("autoloop-off");
+      return;
+    }
+    this.autoLoopOffSince = 0;
 
     if (!this.run) this.run = this.ports.loadRun();
 

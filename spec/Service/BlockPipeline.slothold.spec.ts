@@ -68,3 +68,21 @@ describe("buildRegistryAndOrder -- constraints + userMovable (task 8, R3.6/R3.7)
         expect(ep).toContainEqual({ kind: "runsBefore", block: "handleBossBangFight", hard: true });
     });
 });
+
+// A handler that navigates home BECAUSE it is finished used to be
+// indistinguishable from one that navigates to carry on: ctx.busy is set in
+// both cases, the run was held, and the next tick discarded it as a stop.
+// PlaceOfPower did exactly that -- 12 runs over one night, 0 completions.
+describe("applySlotHold and an explicit done", () => {
+    it("lets the run complete even though the handler navigated", () => {
+        expect(applySlotHold({ ok: true, done: true }, true)).toEqual({ ok: true, done: true });
+    });
+
+    it("keeps the acted mark, so the focus logic still sees the navigation", () => {
+        expect(applySlotHold({ ok: true, done: true }, true, true)).toEqual({ ok: true, done: true, acted: true });
+    });
+
+    it("leaves the ordinary navigated-so-hold rule alone", () => {
+        expect(applySlotHold({ ok: true }, true)).toEqual({ ok: true, repeat: true });
+    });
+});

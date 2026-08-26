@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.49 - A block that walks home is finished, not stopped
+
+- The script switches its own auto-loop flag off just before it navigates, and
+  the scheduler read that as "the script was stopped": it threw away the run
+  the block had explicitly held. Over one night that killed 13 runs, each one
+  a single tick after the script's own navigation, with the master switch on
+  the whole time. Place of Power was hit twelve times and never once finished
+  a run normally.
+- The two conditions are told apart now. The master switch still stops
+  everything at once, because that is the user saying stop. The auto-loop flag
+  only pauses the tick, and a held run is given the few seconds a navigation
+  needs; if the flag stays off longer -- the paranoia rest -- the run is given
+  up as before. The log also names which of the two it was.
+- A handler can now say that it walked home because it is *done*. Place of
+  Power does that when there is nothing left to start, so the block ends where
+  it should instead of being cut off.
+
 ### v8.10.48 - Two things the first night of the new log showed
 
 - A line was written when the next one arrived, not one second later. The game

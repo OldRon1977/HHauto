@@ -268,6 +268,40 @@ describe("BlockScheduler -- selection gating", () => {
         expect(h.routeHome).not.toHaveBeenCalled();
     });
 
+    // Measured over one night on 8.10.48: 13 held runs were discarded, each of
+    // them one tick after the script's own gotoPage switched the autoLoop flag
+    // off, with the master switch on the whole time (#1841 follow-up).
+    it("keeps a held run while a navigation is in flight", async () => {
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
+        const A = block("A", [step("s1", { ok: true })]);
+        h.ctl.autoLoopOff = true;
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(h.state.run).not.toBeNull();
+        expect(h.routeHome).not.toHaveBeenCalled();
+    });
+
+    it("gives the run up once the flag stays off longer than a navigation takes", async () => {
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
+        const A = block("A", [step("s1", { ok: true })]);
+        h.ctl.autoLoopOff = true;
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);                 // first tick: grace starts
+        h.ctl.time += 31_000;              // a paranoia rest, not a page change
+        await s.tick(CTX);
+        expect(h.state.run).toBeNull();
+    });
+
+    it("still discards immediately when the user switches the script off", async () => {
+        const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
+        const A = block("A", [step("s1", { ok: true })]);
+        h.ctl.masterOff = true;
+        h.ctl.autoLoopOff = true;
+        const s = new BlockScheduler(reg(A), ["A"], h.ports);
+        await s.tick(CTX);
+        expect(h.state.run).toBeNull();
+    });
+
     it("does not pick a block while it is in cool-down", async () => {
         const h = makePorts();
         h.state.cooldowns["A"] = 5000; // future

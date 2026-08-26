@@ -69,7 +69,10 @@ export type StepResult =
   // of completing the run (passed through by BlockPipeline.applySlotHold,
   // issue #1796). Used where ctx.busy is not set but the block's session
   // must continue (league navigation, season inter-fight pause).
-  | { ok: true; repeat?: boolean }
+  // done: the step is finished and the run must complete, even though the
+  // handler navigated (which the slot-hold rule would otherwise read as
+  // "keep going"). Used where going home IS the end of the work.
+  | { ok: true; repeat?: boolean; done?: boolean }
   | { ok: false; reason: string; retryable: boolean };
 
 /**
@@ -781,6 +784,10 @@ const handlePlaceOfPower: HandlerConfig = {
           if (popToStart.length === 0) {
             deleteStoredValue(HHStoredVarPrefixKey + TK.PopToStart);
             ctx.busy = gotoPage(ConfigHelper.getHHScriptVars('pagesIDHome'));
+            // Nothing left to start: the walk home is the end of this block,
+            // not a step of it. Say so, or the slot-hold rule holds the run
+            // and the next tick throws it away.
+            return { ok: true, done: true };
           }
         }
         return { ok: true };
