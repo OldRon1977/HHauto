@@ -7,6 +7,21 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.51 - Eighteen settings spoke English again
+
+- A translation carries the version of the English text it was written for,
+  and the menu falls back to English when that version is older. The label
+  round in 8.10.42 changed eighteen English labels; the German, French and
+  Spanish texts were rewritten with them but kept their old version numbers,
+  so all three languages quietly showed English for those eighteen settings
+  -- Show info left, Do all, Collect all, Custom team, Skip low mojo and the
+  rest. Reported with screenshots by bjaume.
+- The numbers are aligned, and a test now refuses any translation older than
+  its English original, so the next label change cannot slip through in
+  silence.
+- Spanish: the League opponent sorting reads "Usar PowerCalc" now, like the
+  other PowerCalc settings, and a typo in "Mostrar PowerCalc" is fixed.
+
 ### v8.10.50 - The What's New text, and keys that were missing from the export
 
 - The release popup gained the two things the last days added: the Equip
