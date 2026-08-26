@@ -25,9 +25,10 @@ import {
     setStoredValue,
     deleteStoredValue,
     getStoredJSON,
+    extractHHVars,
 } from "../../src/Helper/StorageHelper";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../../src/config/HHStoredVars";
-import { SK } from "../../src/config/StorageKeys";
+import { SK, TK } from "../../src/config/StorageKeys";
 
 const TEST_KEY = HHStoredVarPrefixKey + "Setting_storageHelperSpecKey";
 const TEST_KEY_KOBAN = HHStoredVarPrefixKey + "Setting_storageHelperSpecKobanKey";
@@ -273,5 +274,35 @@ describe("StorageHelper -- setStoredValue catch robustness (C1, I2-A)", () => {
         } finally {
             probe.restore();
         }
+    });
+});
+
+// A debug export that silently omits a key cannot answer "did this happen?".
+// Measured on a 16 h log: 243 of the 285 registered keys were in the file --
+// the other 42 had simply never been written, and JSON.stringify drops
+// undefined. Among them the two counters one looks for after a block aborts.
+describe("extractHHVars", () => {
+    it("carries a registered key that was never written, as null", () => {
+        const key = HHStoredVarPrefixKey + TK.blockFailureCount;
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+        const out: Record<string, unknown> = {};
+        extractHHVars(out, false);
+        const entry = Object.keys(out).find((k) => k.endsWith(TK.blockFailureCount));
+        expect(entry).toBeDefined();
+        expect(out[entry as string]).toBeNull();
+        // and it survives being written out and read back -- which is what
+        // undefined did not: JSON.stringify drops it silently
+        expect(Object.keys(JSON.parse(JSON.stringify(out)))).toContain(entry as string);
+    });
+
+    it("still carries the value when there is one", () => {
+        const key = HHStoredVarPrefixKey + TK.blockFailureCount;
+        localStorage.setItem(key, '{"A:fail":2}');
+        const out: Record<string, unknown> = {};
+        extractHHVars(out, false);
+        const entry = Object.keys(out).find((k) => k.endsWith(TK.blockFailureCount)) as string;
+        expect(out[entry]).toBe('{"A:fail":2}');
+        localStorage.removeItem(key);
     });
 });

@@ -143,7 +143,15 @@ export function extractHHVars(dataToSave: Record<string, any>,extractLog = false
         const storageName = storageType === 'Storage()' ? currentStorageName : storageType;
         if (i !== HHStoredVarPrefixKey + TK.Logging)
         {
-            dataToSave[storageName + "." + i] = getStoredValue(i);
+            // A key that was never written comes back undefined, and
+            // JSON.stringify drops undefined values -- so the key vanished
+            // from the export and "this never happened" could not be told
+            // from "this is not exported". Measured on a 16 h debug log: 243
+            // of the 285 registered keys were in the file, the other 42 were
+            // invisible, among them blockFailureCount and blockAutoDisabled,
+            // which is exactly what one looks for after a block aborts.
+            const value = getStoredValue(i);
+            dataToSave[storageName + "." + i] = value === undefined ? null : value;
         }
     }
     if (extractLog)

@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.50 - The What's New text, and keys that were missing from the export
+
+- The release popup gained the two things the last days added: the Equip
+  Sandalwood switch with what changed around girl skins, and the debug log
+  that now holds a night instead of half an hour.
+- A registered value that had never been written did not appear in the debug
+  export at all -- not as empty, simply absent -- because JSON quietly drops
+  undefined. On a 16-hour log, 243 of the 285 registered keys were in the file
+  and the other 42 were invisible, among them the two counters that say
+  whether a block has been failing. They are all in the export now, as null
+  when unset, so "this never happened" can be told from "this is not in here".
+
 ### v8.10.49 - A block that walks home is finished, not stopped
 
 - The script switches its own auto-loop flag off just before it navigates, and

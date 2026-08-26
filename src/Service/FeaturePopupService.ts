@@ -70,6 +70,12 @@ const FEATURE_POPUP_CONTENT = `
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">+Girl Skins now covers event villains</p>
     <p style="margin-bottom:10px;">It worked for love raids but stopped at event villains, mythic ones included. With the switch on, an event girl you already own stays a target while one of her skins is still missing.</p>
 
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">A Sandalwood for a skin &mdash; only if you say so</p>
+    <p style="margin-bottom:10px;">Once a girl is won and only her skin is left, the script kept putting a fresh Sandalwood on, and with +Girl Skins <b>off</b> it kept fighting her at all &mdash; the shard count was only refreshed on the next visit to the event page. Both are fixed: the count is read after every fight, a finished girl is dropped as a target straight away, and a new switch <b>Equip Sandalwood</b> under <i>Shards &amp; skins</i> decides whether a perfume may be spent on a skin. It is off by default &mdash; a Sandalwood is a mythic booster. The three Equip Sandalwood switches next to +Event, +Mythic Event and +Raid keep their meaning: they are for winning the girl.</p>
+
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">The debug log now holds a whole night</p>
+    <p style="margin-bottom:10px;">The log kept the last 5000 lines, which in a busy session is about half an hour &mdash; too short for anything that only shows itself overnight. It is written differently now and keeps six hours and more, using as much room as your browser allows. Saving it works exactly as before and the file looks the same. If you report a bug that takes a while to appear, the log will have it.</p>
+
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Espa&ntilde;ol &middot; Fran&ccedil;ais &middot; Deutsch</p>
     <p style="margin-bottom:10px; padding:8px 10px; border-left:3px solid #090; background:#f2faf2;">
       All three menu languages have been reworked and are now complete &mdash; every setting, every tooltip.
