@@ -7,6 +7,27 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.52 - The menu has its own typeface
+
+- The panel inherited whatever font the game applies, and at the sizes it
+  works in -- 10px rows, 9px in compact mode, 8px in the number fields, all of
+  it scaled down again by the game's own transform on a small window -- the
+  digits were hard to tell apart. Reported by bjaume.
+- The menu, its popups, the info overlay and the tooltip box now use IBM Plex
+  Sans. Its digits are all the same width, so a column of amounts lines up on
+  its own, and its zero is narrower than its O. Nothing outside the script's
+  own surfaces is touched.
+- The number fields are included. Text boxes and drop-downs do not inherit a
+  font in the browser; left as they were, the one part of the panel the report
+  was actually about would have kept the old one. Their widths are given in
+  character units, which now measure a digit that really is 0.6 em, so a
+  seventeen-digit box is seventeen digits wide.
+- The font ships inside the script as a data URI, not as a link to a font
+  host: nothing is fetched from a third party while you play, and a font-src
+  policy on a game domain cannot leave the menu half-styled. It adds 61 KB to
+  a 2 MB file. English, German, Spanish and French are covered; anything
+  outside that falls back to the system font as before.
+
 ### v8.10.51 - Eighteen settings spoke English again
 
 - A translation carries the version of the English text it was written for,

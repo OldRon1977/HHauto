@@ -25,8 +25,49 @@
 // ==/UserScript==
 
 // WARNING: This file has been generated, DO NOT EDIT.
+//
+// This script embeds IBM Plex Sans (the Latin slice, unmodified) as the
+// typeface of its own menu. IBM Plex is Copyright (c) 2017 IBM Corp. with
+// Reserved Font Name "Plex", licensed under the SIL Open Font License 1.1.
+// Full licence text: build/fonts/OFL.txt in the HHauto repository, and at
+// https://github.com/IBM/plex/blob/master/LICENSE.txt
 
 //CSS Region
+
+// Menu typeface (#1834). The script used to inherit whatever the game applies,
+// and at the sizes the panel works in -- 10px rows, 9px compact, 8px in the
+// number fields, all of it scaled down again by the game's own transform on a
+// small window -- the digits were reported as hard to tell apart. IBM Plex
+// Sans is drawn for small sizes and gives tabular digits by default: every
+// digit is 600/1000 em wide, so a column of amounts lines up with no
+// font-variant-numeric needed, and its zero is visibly narrower than its O.
+//
+// The file is embedded as a data URI by BannerBuilder rather than linked from
+// a font host, so nothing is fetched from a third party at runtime and a
+// font-src CSP on any game domain cannot break it. It is Google's `latin`
+// slice, unmodified -- IBM Plex carries the Reserved Font Name "Plex", so a
+// re-subset copy could not keep the name. That slice covers en/de/es/fr, i.e.
+// every language in src/i18n; anything outside it falls back to the stack
+// below. See build/fonts/README.md and build/fonts/OFL.txt.
+//
+// One variable file serves both weights the menu uses (regular and bold), so
+// the font-face is declared across the whole axis instead of faux-bolding.
+GM_addStyle('@font-face {font-family:"IBM Plex Sans"; font-style:normal; font-weight:100 700;'
+            + ' font-display:swap; src:url(data:font/woff2;base64,{{menuFontBase64}}) format("woff2");}');
+// Only the script's own surfaces: the settings panel, the popups it opens, the
+// info overlay and the tooltip box. The game's own pages are left alone.
+GM_addStyle('#sMenu, .HHAutoScriptMenu, #pInfo, #HHAutoPopupGlobal, #HHAutoTooltip'
+            + ' {font-family:"IBM Plex Sans", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;}');
+// Form controls do not inherit font-family -- they take the browser's own
+// control font (Arial here). Left alone, the number fields would have kept
+// the old typeface, and those fields are the ones the report was about.
+// The ch-based widths a few rules down now resolve against Plex's digit,
+// which is exactly 0.6em, so "17ch" really is seventeen digits wide.
+GM_addStyle('#sMenu input, #sMenu select, #sMenu textarea,'
+            + ' .HHAutoScriptMenu input, .HHAutoScriptMenu select, .HHAutoScriptMenu textarea'
+            + ' {font-family:inherit;}');
+// .myButton hard-codes Arial; inside the panel it should read like the panel.
+GM_addStyle('#sMenu .myButton, .HHAutoScriptMenu .myButton {font-family:inherit;}');
 GM_addStyle('.HHAutoScriptMenu .switch { position: relative; display: inline-block; width: 34px; height: 20px; top:0 }/* The switch - the box around the slider */ '
             +'.HHAutoScriptMenu .switch input { display:none } /* Hide default HTML checkbox */ '
             +'.HHAutoScriptMenu .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; margin-right: 4px; } /* The slider */'
