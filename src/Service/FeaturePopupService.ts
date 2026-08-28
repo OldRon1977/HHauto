@@ -37,11 +37,11 @@ const FEATURE_POPUP_CLOSE_LABEL: string = "OK";
  * Set to a specific version (e.g. "7.34.2") to activate the feature popup
  * for that version. Set to "0" to deactivate (default).
  */
-// Set to the version this branch will be RELEASED as, not to the version being
-// built. main is on 8.9.0, so the merge lands as 8.10.0; the branch's own
-// 8.10.x build numbers therefore never match and the popup stays quiet during
-// development. If the release number changes, change it here too -- a
-// mismatch means the popup silently never appears.
+// Must equal the released version EXACTLY -- shouldShowPopup compares with
+// ===, so a mismatch means the popup silently never appears. The branch built
+// its way up through 8.10.x while this said 8.10.0, which kept the popup quiet
+// during development; the release now carries that same number, so it fires.
+// If the release number changes, change it here and in the title too.
 const FEATURE_POPUP_VERSION: string = "8.10.0";
 
 /**
@@ -66,6 +66,9 @@ const FEATURE_POPUP_CONTENT = `
       <li><b style="color:#d90;">Amber</b> &mdash; set up but it will not run: something here is configured while the switch that starts it is off. This is the forgotten toggle.</li>
       <li><b style="color:#c33;">Red</b> &mdash; nothing here is switched on.</li>
     </ul>
+
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">A typeface made for numbers</p>
+    <p style="margin-bottom:10px;">The menu brings its own font now, IBM Plex Sans, instead of borrowing whatever the game uses. The reason is the digits: they were hard to tell apart in the number fields, especially in a small window. Plex&rsquo;s digits are all the same width, so a field sized for 17 digits really holds 17. It applies to the script&rsquo;s own panels only &mdash; the game itself is untouched &mdash; and the font travels inside the script, so nothing is loaded from a font server.</p>
 
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">+Girl Skins now covers event villains</p>
     <p style="margin-bottom:10px;">It worked for love raids but stopped at event villains, mythic ones included. With the switch on, an event girl you already own stays a target while one of her skins is still missing.</p>

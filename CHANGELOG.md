@@ -7,550 +7,99 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.10.52 - The menu has its own typeface
+### v8.10.0 - A menu that fits every language, and one activity at a time
 
-- The panel inherited whatever font the game applies, and at the sizes it
-  works in -- 10px rows, 9px in compact mode, 8px in the number fields, all of
-  it scaled down again by the game's own transform on a small window -- the
-  digits were hard to tell apart. Reported by bjaume.
-- The menu, its popups, the info overlay and the tooltip box now use IBM Plex
-  Sans. Its digits are all the same width, so a column of amounts lines up on
-  its own, and its zero is narrower than its O. Nothing outside the script's
-  own surfaces is touched.
-- The number fields are included. Text boxes and drop-downs do not inherit a
-  font in the browser; left as they were, the one part of the panel the report
-  was actually about would have kept the old one. Their widths are given in
-  character units, which now measure a digit that really is 0.6 em, so a
-  seventeen-digit box is seventeen digits wide.
-- The font ships inside the script as a data URI, not as a link to a font
-  host: nothing is fetched from a third party while you play, and a font-src
-  policy on a game domain cannot leave the menu half-styled. It adds 61 KB to
-  a 2 MB file. English, German, Spanish and French are covered; anything
-  outside that falls back to the system font as before.
+The settings menu is no longer three fixed-width columns, the script no longer
+hops between activities, and the three menu languages are complete. Everything
+below is contained in this release; the individual development steps are in the
+git history.
 
-### v8.10.51 - Eighteen settings spoke English again
-
-- A translation carries the version of the English text it was written for,
-  and the menu falls back to English when that version is older. The label
-  round in 8.10.42 changed eighteen English labels; the German, French and
-  Spanish texts were rewritten with them but kept their old version numbers,
-  so all three languages quietly showed English for those eighteen settings
-  -- Show info left, Do all, Collect all, Custom team, Skip low mojo and the
-  rest. Reported with screenshots by bjaume.
-- The numbers are aligned, and a test now refuses any translation older than
-  its English original, so the next label change cannot slip through in
-  silence.
-- Spanish: the League opponent sorting reads "Usar PowerCalc" now, like the
-  other PowerCalc settings, and a typo in "Mostrar PowerCalc" is fixed.
-
-### v8.10.50 - The What's New text, and keys that were missing from the export
-
-- The release popup gained the two things the last days added: the Equip
-  Sandalwood switch with what changed around girl skins, and the debug log
-  that now holds a night instead of half an hour.
-- A registered value that had never been written did not appear in the debug
-  export at all -- not as empty, simply absent -- because JSON quietly drops
-  undefined. On a 16-hour log, 243 of the 285 registered keys were in the file
-  and the other 42 were invisible, among them the two counters that say
-  whether a block has been failing. They are all in the export now, as null
-  when unset, so "this never happened" can be told from "this is not in here".
-
-### v8.10.49 - A block that walks home is finished, not stopped
-
-- The script switches its own auto-loop flag off just before it navigates, and
-  the scheduler read that as "the script was stopped": it threw away the run
-  the block had explicitly held. Over one night that killed 13 runs, each one
-  a single tick after the script's own navigation, with the master switch on
-  the whole time. Place of Power was hit twelve times and never once finished
-  a run normally.
-- The two conditions are told apart now. The master switch still stops
-  everything at once, because that is the user saying stop. The auto-loop flag
-  only pauses the tick, and a held run is given the few seconds a navigation
-  needs; if the flag stays off longer -- the paranoia rest -- the run is given
-  up as before. The log also names which of the two it was.
-- A handler can now say that it walked home because it is *done*. Place of
-  Power does that when there is nothing left to start, so the block ends where
-  it should instead of being cut off.
-
-### v8.10.48 - Two things the first night of the new log showed
-
-- A line was written when the next one arrived, not one second later. The game
-  runs the script inside its own frames, and such a frame logs one line and
-  then goes quiet -- so that line waited until the frame was unloaded. In the
-  first night's log 14 lines arrived up to 53 minutes late and turned up in
-  the middle of much newer ones. The deadline is a real timer now.
-- The export is sorted by time, so a line that still arrives late cannot make
-  the log look as if it jumped backwards.
-- The log also says when a block *takes* the pipeline, not only when it gives
-  it up. Without that, a dump shows the releases and leaves the question the
-  focus was built for -- did one activity run to its end -- unanswerable.
-
-### v8.10.47 - The debug log holds a night instead of half an hour
-
-- The log kept everything in one JSON object. Every single line read that
-  object out of storage, parsed it, pruned it, serialised it and wrote all of
-  it back -- half a megabyte of JSON, about three times a second. That is why
-  the cap had to stay at 5000 lines, which is 30 minutes: long enough for a
-  crash report, useless for a question that only shows itself over a night.
-- Lines now go into an in-memory list and are written in batches into a ring
-  of text blocks, so a line costs a list append instead of a full rewrite.
-  Measured on the same work: 5.18 ms per line before, 0.002 ms after.
-- The buffer is no longer a fixed line count. It grows to about 8 MB and gives
-  the oldest block back when the browser runs out of room, so it uses whatever
-  is actually available -- six hours and more of a busy session.
-- The debug export looks exactly as it did, so existing logs and every reader
-  of them keep working. A log written by an older version is carried over on
-  the first load instead of being thrown away.
-
-### v8.10.46 - The labyrinth row selectors have their labels back
-
-- The three drop-downs on the labyrinth team page (Back, Mid, Front) and the
-  harem popups for equipment and skills read their text through a key the code
-  assembles at runtime. The clean-up in 8.10.39 searched for the finished key,
-  found nothing, and removed five texts that were in use. They are back.
-- A test now pins every text whose key is built by concatenation, so the next
-  sweep cannot quietly take one out again.
-
-### v8.10.45 - Stop fighting a girl you have already won
-
-- A troll fight reports the girl's new shard count, but the script only read
-  that number when a Sandalwood was equipped. Between completing a girl and the
-  next visit to the event page it therefore kept fighting her -- in the log that
-  reported this, five times for nothing. The count is now read after every
-  fight.
-- At 100/100 with +Girl Skins off, the girl is dropped as a fight target
-  immediately. With +Girl Skins on, fighting continues and the event page is
-  re-read once, since only that page says whether a skin is still outstanding.
-- New switch "Equip Sandalwood" under Shards & skins, off by default. The three
-  Equip Sandalwood switches next to +Event, +Mythic Event and +Raid mean "while
-  winning the girl"; once she is won they no longer apply. This one decides
-  whether a fresh Sandalwood may be equipped for a skin, in every fight where a
-  skin can be won.
-
-### v8.10.44 - A "Forbidden" leaves a trace in the debug log
-
-- When the game answers Forbidden, the script counts it and waits longer before
-  each retry. Those two counters were never in the debug export, so afterwards
-  there was no way to tell that it had happened at all, let alone how often.
-  They are in the export now.
-- The time of the last Forbidden is also kept beyond the browser tab, so it is
-  still there after a restart. The streak itself still starts fresh with the
-  tab, exactly as before.
-
-### v8.10.43 - Show info follows the same rule
-
-- The switch under Info panel still read "Enable" while the other seventeen
-  read "Enabled". It says Enabled now, in all four languages.
-
-### v8.10.42 - The menu labels follow one rule now
-
-- A switch that turns a block on reads **Enabled**; a switch that collects
-  reads **Collect**; **Collect all** stays what it was. Before this, the same
-  thing was called "Enable" in one place, "Pachinko" in another and "Normal" in
-  a third, which made it hard to describe what you had changed.
-- 50 labels changed in English, and German, French and Spanish followed. The
-  wording was taken from what those files already used for the same idea, not
-  invented: Einsammeln / Collecter / Recoger.
-- Nothing else moved: same settings, same order, same behaviour.
-
-### v8.10.41 - Four labels read "not found", and nine texts came back
-
-- Reported by bjaume with screenshots: the minimum salary and the Season
-  heading showed `en/.../elementText not found`. Two more were in the same
-  state without being noticed: the Kobans bank and Show info. All four were
-  commented out in the English file, some of them for years — English has no
-  fallback, so the raw error text reached the screen. Every commented-out entry
-  in all four languages is active again.
-- Nine texts removed in 8.10.39 are back. They are built at runtime by joining
-  strings — "give"+affection, "stuffTeamReset"+rarity+"Girls" — so the search
-  for the finished key found nothing and called them dead. They were not.
-
-### v8.10.40 - What's New popup prepared for the release
-
-- The popup text is written and in place: the pipeline sticking to one activity,
-  the colour marks in the menu, +Girl Skins reaching event villains, and an
-  invitation to correct the three menu languages.
-- It is gated on the version this branch will be released as, so it stays quiet
-  through the remaining branch builds and appears once on the release.
-
-### v8.10.39 - 36 dead texts removed from the language files
-
-- 36 entries had no reference anywhere in the script: leftovers from the two
-  extra koban safety switches, the old Path of Valor/Glory heading, the
-  labyrinth team builder, the market fight simulator, several harem buttons and
-  a "upradable" typo. None of them could ever appear on screen.
-- Removed from all four languages, 144 entries in total. Every language now
-  holds the same 409 keys, and a scan finds no key without a use.
-
-### v8.10.38 - Three French labels were overwriting the English ones
-
-- Three entries in the French file were assigned to the English bucket by
-  mistake, so "Main adventure", "Side adventure" and "Others" in the troll
-  selector showed up in French for everyone — including players of every other
-  language, since they fall back to English. Present since #1381. They are
-  French entries now, and English reads English again.
-- The Warning text is gone from all files. It belonged to a function that has
-  been commented out for a long time, so nothing ever showed it; the commented
-  function went with it.
-
-### v8.10.37 - The last trace of the Arena is gone
-
-- The Spanish file still carried a translation for the old Arena switch, the
-  PvP mode the game replaced with Seasons. The translator had already marked it
-  obsolete in the tooltip. Nothing read it: no setting, no stored value, and
-  the only mention in the code was a commented-out line. Both are gone.
-
-### v8.10.36 - The event troll list is complete and correct
-
-- bjaume's proofread of the Spanish menu is in, including the labels that were
-  still abbreviated from the days when space was tight (AutoSal., AutoMision
-  and friends), and "Senda" changed to "Camino" — what the Spanish client
-  actually calls the Paths.
-- The list of event trolls in the tooltip was five short in every language and
-  three of the names were wrong. It is now generated from the list the script
-  itself uses, so it cannot drift again: 1-19 and 22, with a note that 20 and
-  21 are side-adventure trolls and have no name.
-- Fixed on the way: the French file defined the troll-order entry twice. The
-  second one won, and its list ended in a placeholder — with a version high
-  enough that it never fell back to English, so French players saw it.
-
-### v8.10.35 - The menu speaks French
-
-- Same for French as the previous release did for Spanish: it was 151 of 446
-  entries, with nine more translated but invisible because an entry older than
-  its English counterpart is ignored by design. Both are done, and a dozen
-  entries that had been sitting there in English were translated as well.
-- Like the Spanish file, it is written to be proofread. Villain names and a few
-  in-game terms were left as they are rather than invented.
-
-### v8.10.34 - The menu speaks Spanish
-
-- The Spanish menu was 81 of 446 entries, so most of it fell back to English —
-  and nine further entries were translated but invisible, because an entry
-  older than its English counterpart is ignored by design. Both are done: 366
-  new entries, the nine refreshed, nothing missing.
-- Written to be proofread rather than trusted. Names of villains and a few
-  in-game terms were left as they are rather than invented.
-
-### v8.10.33 - +Girl Skins now works for event villains too
-
-- With +Girl Skins on, the script kept fighting love raids for a girl it
-  already owned but stopped at event villains, mythic ones included (#1842).
-  Reported by bjaume, whose settings were right all along — the feature simply
-  did not exist outside raids.
-- Event girls now stay a target while a skin of theirs is still outstanding.
-  The game says so on the girl itself, so this is read, not guessed: each skin
-  carries whether it is released and whether you own it.
-- Unreleased skins are ignored. Farming something nobody can win yet would
-  never end.
-
-### v8.10.32 - +Mythic, +Event and +Raid are not marked as broken any more
-
-- Since 8.10.25 the menu marked the Event trolls, Mythic event and Love Raid
-  blocks amber — "set up but will not run" — whenever Auto troll battle was
-  off. That was wrong: each of those three switches makes the script fight on
-  its own, and a correct configuration was being reported as a mistake (#1842).
-- They are green on their own now. The amber state stays for what it was built
-  for: options set on a block whose own switch is off.
-
-### v8.10.31 - Leagues no longer loses its turn mid-session
-
-- After the league block launched its fights, another block could take the
-  leaderboard page and navigate away before they were done. Seen in a
-  ten-minute session: three league fights started, and Season went to the
-  season arena instead.
-- The league block hands the slot back on purpose after arming its timer — that
-  part is right, it is what lets the fight results be read. What was missing is
-  that it had just done something, so the pipeline treated the turn as an empty
-  one and gave it to the next block.
-- A block that switches the automation loop off is now counted as having acted,
-  which is what every handler does just before the page reloads. The block still
-  hands the slot back; it simply gets its turn back afterwards.
-
-### v8.10.30 - The activity survives a fight again
-
-- 8.10.29 still let another block cut in right after a fight, on the result
-  page, before the reward had been read. Three times in a seven-minute session,
-  each time with League, Quest or Season taking over on the troll battle page.
-- The reason was where the script noted that a block had done something: after
-  the handler returned. A fighting handler never returns — it waits for the
-  battle, and the answer loads the next page, so the note died with the page.
-  The run came back looking as if it had done nothing and gave the activity up.
-- It is now noted when a run comes back after a page load, which is proof that
-  it navigated. That note is written on the new page and survives.
-
-### v8.10.29 - Fixes the pipeline stall in 8.10.27
-
-- 8.10.27 could park the pipeline on one block. A block's settings say it may
-  run, not that it has anything to do: troll battle comes through its gate
-  every few seconds and falls through when the power is below the threshold.
-  Such an empty run kept the activity anyway, so nothing else was even offered
-  a turn, and the five-minute safety net could never fire because it measured
-  from that same empty run.
-- An activity is now only kept by a run that actually did something -- fought,
-  collected, navigated. A block that comes up empty hands the pipeline straight
-  back, exactly as before 8.10.27.
-
-### v8.10.28 - Path of Attraction collects on its own again
-
-- Collecting Path of Attraction rewards was tied to the "Go to in Events"
-  switch (#1816). That switch adds a convenience link on one PoA objective and
-  has nothing to do with collecting -- but the auto-collect sat inside the same
-  branch, so turning the link off silently turned collecting off with it, and
-  nothing said so. The Collect all button kept working, because it collects
-  directly, which is why this looked like "it works when I press it, never on
-  its own". The switch now decides only about the link.
-
-### v8.10.27 - One activity is finished before the next one starts
-
-- The script hopped between activities: one troll fight, one season fight, one
-  pantheon fight, round and round (#1841). It now stays on an activity until
-  that activity is done -- out of energy, threshold reached, timer set -- and
-  only then moves to the next one.
-- The cause was a single word meaning two things. A fight block hands its
-  battle-result page to the reward parser (#1740) by reporting "not me" for
-  that page, and the scheduler read that as "finished" and released the slot
-  after every single fight. It now tells "not yet" and "done" apart.
-- The collect blocks still cut in whenever they are due. Their rewards expire
-  with the event they belong to, so they never queue behind a fight.
-- Fixed on the way: another block could start on a battle-result page and
-  navigate away before the reward had been read. Only the troll block guarded
-  that page; now the running activity holds it whatever is fighting.
-
-### v8.10.26 - The Adventure heading matches its tab
-
-- The area is called Adventure in the menu rail and every other area says the
-  same thing on both sides, but the heading beside it read "Battle Troll" --
-  the script's word for what it does there, not the game's word for the place.
-  Both say Adventure now. The energy label on the adventure page itself is
-  unchanged.
-
-### v8.10.25 - Every block says whether it is running
-
-- Each block in the settings menu (Salary, Daily Goals, Champions, ...) now
-  carries a coloured dot on its heading: **green** it runs, **red** nothing in
-  it is switched on, **amber** it is set up but will not run. Blocks that
-  cannot be on or off at all -- thresholds, opponent filters, team settings,
-  display options -- stay unmarked, because "on" would mean nothing there.
-- Amber is the case a plain on/off marker gets backwards: +Event configured
-  down to the buying while Auto troll battle is off, or Labyrinth hard mode set
-  with Labyrinth itself off. Nothing runs there, and it is not a decision --
-  it is the forgotten toggle. The same applies to the mythic and love-raid
-  blocks, which all need Auto troll battle to do anything.
-- The count on the tab rail counts **blocks** now instead of single switches,
-  so "3/9" reads in the same units the areas are named in. It takes the same
-  three colours, and amber wins for the whole area even when other blocks in it
-  run -- so a forgotten toggle is visible on the rail without opening the area.
-- Books and Gifts in the shop count as running blocks now. Both spend money the
-  moment they are on, exactly like Boosters, and were missing from the count.
-- A block for a feature this game does not have (no Pachinko, no Labyrinth) no
-  longer sits in the denominator of the count. It was hidden but still counted.
-
-### v8.10.24 - "Change team" actually goes to the team page
-
-- The Change team button on the league page linked to a bare `/teams.html`,
-  which the game redirects straight to the home page. So it never arrived, and
-  the gear tools never got the chance to note which theme your team runs --
-  which is what made Current/Possible Best Gear ask you to build a team first.
-  The link carries the battle type now, like the game's own links do.
-- The message those buttons show when the theme is still unknown said "build a
-  team first". Nothing has to be built: opening the team page once is enough,
-  and it now says so.
-
-### v8.10.23 - The HH Gear popup is readable
-
-- The popup sits on white, but the menu entries were drawn in the menu's own
-  near-white and the descriptions in a pale grey-green -- unreadable on that
-  background. Entries are black now, descriptions dark grey.
-- The table lines in the same popup were white on white and never showed at
-  all, which also affected the Current/Possible/Upgrade previews.
-
-### v8.10.22 - The keep marks survive the trip to the level-up page
-
-- Marking was drawn on the market page and gone the moment you walked to the
-  level-up page -- which is the page where the material is actually picked, so
-  it was gone exactly where it mattered. The decision is now stored and the
-  stars reappear there.
-- What is stored is an identity that does not move: skin, slot, rarity and the
-  two resonance axes. Deliberately not the level or the stats, both of which
-  are a pure function of the level -- a key built on those breaks the instant a
-  piece is levelled, which is what happens to HH++ OCD's favourites. And not
-  the item id either: the market and the level-up page hand out different id
-  spaces, and ids change when a piece is unequipped.
-- The material list loads while you scroll, so the markers are added as it
-  does rather than once on arrival.
-
-### v8.10.21 - One HH Gear button, not a row of them
-
-- 8.10.20 broke the check that stops the gear button being injected twice: it
-  tested for an id that the menu rewrite had just removed, so every switch back
-  to the armor tab added another copy. It now tests for the container itself,
-  and sweeps up any extras a page already collected instead of needing a
-  reload.
-
-### v8.10.20 - The gear tools move into a menu
-
-- Four buttons never fit beside the game's own Level-up and Equip. Measured on
-  the live page, the space left in that row is 150x115 device pixels, which
-  holds two of them -- the fourth was being drawn over the Equipped Items panel
-  where it could not be clicked at all. There is now a single **HH Gear**
-  button that opens the four actions as a list, each with its one-line
-  description. One extra click for the three you already knew, and the next
-  tool costs no space at all.
-
-### v8.10.19 - The gear buttons fit again
-
-- The fourth button pushed the block past the bottom of its container and the
-  last one was cut off. The four now sit in two columns instead of one, which
-  halves the height (measured in the running game: 215px down to 111px). The
-  width was never the constraint.
-
-### v8.10.18 - Mark the gear worth keeping
-
-- New **Mark Keepers** button on the market's armor tab. It puts a star on the
-  mythic pieces worth keeping, so everything unmarked is safe to spend by hand
-  as upgrade material -- which is the point: two helmets of the right class and
-  element mean one can level the other instead of being sold.
-- One piece is kept per slot and element. Which one: your own class first, then
-  damage before defence before ego before harmony, then the higher level, and
-  the lower id to break a dead heat so the star does not wander between page
-  loads. An element you only own on a foreign class keeps its best piece
-  anyway, otherwise that element would disappear from the slot.
-- Display only. Nothing is equipped, sold or consumed, and the automation still
-  never feeds mythics to anything.
-- Dropped the per-run level-up cap, which could not fire: the loop raises the
-  level on every pass, so the max-level check ends it after at most 19 passes
-  and the cap sat at 30.
-
-### v8.10.17 - Tooltips you can actually read
-
-- **The help box now sizes itself to the text.** A one-line hint keeps the
-  narrow box; a long explanation gets up to double the width before anything
-  else changes. Only if it still does not fit does the type shrink, so width is
-  spent before readability. It also places itself on whichever side of the panel
-  has room, instead of tucking over the rows it is explaining.
-- **The long texts have structure instead of one run of line breaks.**
-  Paragraphs, bulleted lists, bold for the thing being defined, and monospace
-  for the codes you type. The pure code tables -- Mythic Slot, Buy boosters,
-  Event troll order -- are laid out in two columns rather than sixteen short
-  rows down the side.
-
-### v8.10.16 - Spelling out when the Mythic Slot list gets all five
-
-- The reserved slot and the skipping of MB1 apply only while one of the
-  Sandalwood auto-equips is switched on. With all of them off the list uses all
-  five slots and MB1 is a normal entry, equipped in the position you gave it --
-  it then simply stays on rather than being put in for the fights that want it.
-  Unchanged behaviour; the help text says it now, and tests hold it in place.
-
-### v8.10.15 - The Sandalwood slot stays reserved
-
-- With any of the Sandalwood auto-equips on, MB1 belongs to that automation:
-  it is ignored in the Mythic Slot list even if you type it, and one slot stays
-  free so the automation can equip it when a fight needs it. Your list fills at
-  most four of the five. This is unchanged behaviour -- the help text now says
-  so plainly instead of leaving you to work it out from an empty slot.
-
-### v8.10.14 - Mythic conflicts are remembered across sessions
-
-- Which mythic boosters clash with each other can only be learned by being
-  refused: the game sends no description of what a mythic booster does. Every
-  clash therefore costs a request, a popup and a page reload to find out. That
-  knowledge was kept only for the current browser tab, so every new session
-  paid the whole price again. It now survives, and still clears itself once the
-  booster it clashed with is gone.
-
-### v8.10.13 - The mythic conflict popup stops coming back
-
-- The game refuses a mythic booster that clashes with one already equipped, and
-  shows a popup that cannot be closed from a script, so the page is reloaded to
-  clear it. That refusal was remembered only for the *exact* set of boosters
-  equipped at the time, so any successful equip afterwards invalidated it: the
-  refused booster was tried again on the next pass, refused again, and the
-  popup and reload came back. It is now remembered against the boosters that
-  were on at the time and only re-tried when one of them is actually gone --
-  adding a booster to a free slot cannot resolve a clash, so it no longer
-  clears the memory.
-- A single pass now gives up after three refusals instead of walking the rest
-  of the list. Each refusal costs a request and a popup, and they are
-  remembered, so the remaining entries are picked up on the next pass with
-  nothing lost.
-- **The Mythic Slot list really does take all twelve codes now.** 8.10.12 raised
-  the input field but the parser still cut the list to five, so everything past
-  the fifth entry was dropped without a word. A repeated code is also ignored
-  instead of taking a second turn.
-
-### v8.10.12 - Tab badges, readable tooltips, and a compact menu
-
-- **Each area in the tab rail now shows how many of its automations are on**,
-  as `2/6`. Franck-75 asked for a red/green marker; a count says *how much* is
-  running rather than only *whether anything* is, which is what you need when
-  comparing the same area across accounts -- and it does not depend on telling
-  red from green. Only switches that actually make the script act are counted,
-  so an area does not look busy because a display option is ticked. Areas with
-  nothing to count (Harem) show no badge.
-- **Long tooltips are no longer cut off.** The box grew with the game's zoom
-  while its height limit did not, and once it overflowed the text could not be
-  reached: the box ignores the mouse, so its scrollbar was untouchable, and it
-  closed as soon as the pointer left the row. It now uses the full window
-  height and shrinks its type until the whole text fits.
-- **The Mythic Slot list is no longer capped at 5 entries.** The field took at
-  most 5 codes, which read as "5 is the limit" -- but 5 is the number of slots
-  in the game, not a sensible length for a priority list. You can now list all
-  twelve; the script fills whatever slots are free with the first ones you own.
-  The help text says so, and spells out the difference.
-- **New "Compact menu" switch** under Global -> Basics: denser rows and smaller
-  type for more options per screen. Off by default, so nothing changes unless
-  you ask for it.
-
-### v8.10.11 - Boss Bang no longer reports "Time's up!" after the event ends
-
-- When a Boss Bang event finished, the status panel kept showing a Boss Bang
-  row stuck on "Time's up!" for an event that no longer existed. The
-  automation was right not to act on it -- it never tried to navigate there --
-  but the row stayed until the browser tab was closed. The script now drops
-  the Boss Bang timers as soon as the event widget is gone from the home page,
-  the same way it already did for Sultry Mysteries, and the row disappears
-  with the event.
-
-### v8.10.10 - The status panel, readable
-
-The panel on the home page listing the timers was two centred columns, which
-left the longer rows cut off at the panel edge.
-
-- **One column**, with the timer name on the left and its time flush right.
-- **Long names wrap** instead of disappearing under the next column.
-- **The contest row is now two rows**, "Contest end" and "Next contest", so it
-  is clear which time is which.
-- **The missing-booster marker is just "no booster"** now, which leaves room on
-  the rows that carry it.
-- **Eight more timers**: daily goals, free bundles, Boss Bang, and the
-  collect-all timers for season, seasonal event, Path of Valor, Path of Glory
-  and Penta Drill. Each appears only while its timer is actually running.
-- **Narrower panel and smaller type**, so the rows sit together instead of
-  spanning half the screen. **Show info left** has a set width as well now --
-  it used to stretch across almost the whole window whatever width the panel
-  was given.
-
-### v8.10.0 - A menu that fits every language
-
-The settings menu is no longer three fixed-width columns. Options are grouped
-by game area, every group has a heading, and a label can be as long as its
-translation needs. Longer German, Spanish and French texts no longer run under
-their switch or off the edge of a box.
+**The menu**
 
 - **Areas instead of columns.** One pane per game area, reachable from the rail
-  on the left, with the area you had open remembered.
+  on the left, with the area you had open remembered. A label can be as long as
+  its translation needs -- longer German, Spanish and French texts no longer run
+  under their switch or off the edge of a box.
 - **Single page menu.** A switch under *Global* drops the rail and stacks every
   area in one scrolling list, for anyone who wants the whole configuration in
-  one view.
-- **Menu Order.** A new footer button reorders the areas by drag or arrows. It
+  one view. A compact density is available as well.
+- **Menu Order.** A footer button reorders the areas by drag or arrows. It
   applies to both layouts, is kept locally, and is part of the settings export.
-- **Number fields hold twelve digits** plus thousands separators, so large
-  amounts are readable instead of clipped.
-- **Places of Power filter widened** and menu tooltips no longer sit half
-  outside the panel or ignore the zoom the game draws the menu at.
-- **German terminology reviewed** against the English menu once more.
+- **Every block says whether it is running.** A coloured dot on each block
+  heading and a count per area: green means it runs, amber means it is
+  configured while the switch that starts it is off -- the forgotten toggle --
+  and red means nothing here is on.
+- **One rule for the switch labels.** The switch that starts a block is called
+  *Enabled*, the one that gathers rewards *Collect*, everywhere.
+- **Its own typeface.** The menu brings IBM Plex Sans with it instead of
+  borrowing the game's font. The digits are all the same width, so the number
+  fields are readable and a field sized for 17 digits holds 17. The font ships
+  inside the script; nothing is fetched from a font server.
+- **Number fields hold twelve digits** plus thousands separators, tooltips no
+  longer sit half outside the panel or ignore the zoom the game draws the menu
+  at, and the Places of Power filter is wider.
+- **The status panel** shows eight more timers and is laid out in one column
+  with right-aligned times.
+
+**One activity at a time**
+
+- The script used to hop: one troll fight, one season fight, one pantheon
+  fight, round and round. It now stays on an activity until that activity is
+  done -- out of energy, threshold reached, timer set -- and only then moves on.
+- Collecting still cuts in whenever it is due, so nothing expires while a fight
+  is running.
+- A block that navigates is no longer treated as a stopped script, and a block
+  that walks home because it has nothing left to do ends properly instead of
+  being cut off.
+- Leagues no longer loses its turn mid-session, and Path of Attraction collects
+  on its own again.
+
+**Fights, girls and skins**
+
+- **+Girl Skins now covers event villains**, mythic ones included. With the
+  switch on, an event girl you already own stays a target while one of her skins
+  is still missing.
+- **The shard count is read after every fight.** A girl who is finished is
+  dropped as a target straight away instead of at the next visit to the event
+  page -- the script no longer fights for a girl it has already won.
+- **New switch *Equip Sandalwood*** under *Shards & skins*, off by default: it
+  decides whether a fresh perfume may be spent once only a skin is left. The
+  three Equip Sandalwood switches next to +Event, +Mythic Event and +Raid keep
+  their meaning -- they are for winning the girl.
+- The event troll list is complete and in the right order, and Boss Bang no
+  longer reports "Time's up!" after its event has ended.
+
+**Boosters and gear**
+
+- The mythic conflict popup stops coming back, and a learned conflict is
+  remembered across sessions. The Sandalwood slot stays reserved, and the
+  Mythic Slot list can hold all five slots.
+- The HH Gear tools moved behind one menu button, the popup is readable, gear
+  worth keeping can be marked, and the marks survive the walk to the level-up
+  page.
+- "Change team" goes to the team page again.
+
+**Espanol, Francais, Deutsch**
+
+- All three menu languages have been reworked and are now complete: every
+  setting, every tooltip. Spanish and French were about a third translated
+  before.
+- The translations were produced with the help of online translators and are
+  meant as a starting point. Corrections are very welcome -- if a term is wrong
+  or reads oddly in your language, open an issue or comment.
+
+**Diagnostics**
+
+- **The debug log holds a night instead of half an hour.** It kept the last
+  5000 lines, which in a busy session is about thirty minutes; it now keeps six
+  hours and more and uses as much room as the browser allows. Saving it works
+  as before and the file looks the same.
+- A "Forbidden" from the server leaves a trace in the export, and every
+  registered value reaches the export -- an unset one as null, so "this never
+  happened" can be told from "this is not in here".
+
+No settings are reset and nothing was removed from the menu.
+
 
 ### v8.9.0 - German, in full
 
