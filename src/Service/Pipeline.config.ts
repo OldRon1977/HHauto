@@ -122,9 +122,10 @@ export interface HandlerConfig {
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
  *
- * The `lastActionPerformed` continuation is preserved during the v7.36.0
- * migration. v7.37.0 will replace it with a scheduler-internal multi-step
- * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
+ * The `lastActionPerformed` continuation dates from the v7.36.0 migration.
+ * The multi-step model that was meant to replace it was dropped: ADR-005
+ * records that the slot-hold rule (ADR-002) does the same job with less
+ * machinery, so this gate stays as the descriptor-level continuation.
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let
@@ -472,9 +473,9 @@ const handleShop: HandlerConfig = {
     if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true) return false;
     if (!Shop.isTimeToCheckShop()) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    // Legacy lastActionPerformed continuation gate. v7.37.0 will replace
-    // this with a scheduler-internal multi-step model; see
-    // docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md.
+    // Legacy lastActionPerformed continuation gate. The multi-step model
+    // that was to replace it was dropped in favour of the slot-hold rule
+    // (ADR-002 / ADR-005), so this gate stays.
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop') return false;
     // Inner trigger -- belongs in precondition, not the step. The legacy
     // handler had a two-stage gate (outer if + inner if) inside one tick,
@@ -1424,8 +1425,7 @@ const handleChampionTicket: HandlerConfig = {
         // champion_buy_ticket AJAX. The safeReload() inside the AJAX
         // callback later sets autoLoop=false a second time -- the
         // second write is idempotent and serves the separate purpose of
-        // suppressing ticks during the reload itself. See ChampionTicket
-        // race-window discussion in REVIEW_AutoLoop_Findings.md F1.
+        // suppressing ticks during the reload itself.
         setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
         logHHAuto('setting autoloop to false');
         ctx.busy = true;

@@ -1,8 +1,8 @@
 ---
 title: "Konzept: Wann ist ein Block fertig?"
 status: Entwurf zur Entscheidung
-last-verified: 2026-08-25
-betrifft: "Issue #1841, ADR-006 (Fokussierte Aktivitaet)"
+last-verified: 2026-08-28
+betrifft: "Issue #1841, ADR-006 (Fokussierte Aktivitaet), ADR-007 (Navigation ist kein Stopp)"
 ---
 
 # Konzept: Wann ist ein Block fertig?
@@ -146,8 +146,17 @@ waere. Es ist keine, wenn es dieselbe Funktion ist:
   Eine Funktion, zwei Leser.
 - `handleTrollBattle`: `shouldFight` zieht aus dem Step heraus, der Step
   ruft `wantsMore(ctx)` auf. Wieder eine Funktion, zwei Leser -- und
-  nebenbei verschwinden die Leerlauf-Runs, die der Handler-Kommentar
-  beziffert (live gemessen 47 von 75 Ticks in 7.35.61 waren Durchfaller).
+  nebenbei verschwinden die Leerlauf-Runs. Wie viele das sind, steht
+  inzwischen in zwei Nutzer-Logs:
+
+  | Log | Starts von `handleTrollBattle` | echte Kaempfe | Leerlauf |
+  |---|---|---|---|
+  | Handler-Kommentar, 7.35.61 | 75 | 28 | 47 (63 %) |
+  | Nacht 2026-08-25, 8.10.47 | 253 | 9 | 244 (96 %) |
+  | Nacht 2026-08-26, 8.10.48 | 577 | 12 | 565 (98 %) |
+
+  Der Block kommt durch sein Tor und faellt im Step durch, weil die
+  eigentliche Frage erst dort gestellt wird.
 - `handleQuest`: hier entsteht wirklich neue Logik, weil es heute keine
   gibt. Das ist der einzige Block, bei dem "Kopie, die auseinanderlaeuft"
   ueberhaupt ein Thema waere -- und der Grund, ihn zuletzt zu machen.
@@ -210,7 +219,23 @@ kann mit der naechsten MINOR gehen.
 - Regressionstest zu 8.10.27: ein Block, der *ja* sagt und nichts tut,
   verliert den Fokus nach n Runs.
 
-## 9. Offene Messung
+## 9. Was seither passiert ist
+
+Zwei der drei `acted`-Loecher aus Abschnitt 2 sind mit ADR-007 geschlossen
+worden, ohne das Praedikat einzufuehren: der Scheduler verwirft einen
+gehaltenen Run nicht mehr, wenn das Skript beim Navigieren sein eigenes
+autoLoop-Flag ausschaltet, und ein Block kann eine abschliessende
+Navigation als `done` melden. Das Konzept hier bleibt davon unberuehrt --
+es beantwortet die andere Frage: woran der Fokus erkennt, dass eine
+Aktivitaet zu Ende ist. Die Messung aus dem 8.10.48-Nachtlauf spricht
+weiter dafuer: 80 Fokus-Episoden, 144 Freigaben "nothing left to do",
+9 "ran without doing anything" -- und bei genauer Zuordnung war keine
+dieser neun ein Fehlgriff der Heuristik.
+
+Ausgeliefert wurde all das mit dem Release v8.10.0 (2026-08-28). Das
+Konzept ist damit nicht erledigt, sondern vertagt.
+
+## 10. Offene Messung
 
 Die Sonde, ob `Hero.energies.*` wirklich auf jeder Spielseite lesbar ist
 (die Voraussetzung fuer "wantsMore ist seitenunabhaengig"), konnte ich am
@@ -222,7 +247,7 @@ Precondition auf beliebigen Seiten, `handleSeason` liest
 Die Sonde ist read-only (kein Klick, kein Kampf) und dauert zwei Minuten,
 sobald die Session wieder eingeloggt ist.
 
-## 10. Zu entscheiden
+## 11. Zu entscheiden
 
 1. Etappen wie vorgeschlagen, oder alle zwoelf Aktivitaeten in einem Zug?
 2. Filtert `wantsMore` auch die *Auswahl* (`findNext`), oder nur den Fokus?

@@ -1,6 +1,7 @@
 // TeamBuilderService.ts -- Spec-driven team builder.
 //
-// Implements docs-internal/REVIEW_TeamSelection.md.
+// The pool layering, leader rule and slot fill are described in the
+// CHANGELOG entry for v7.35.39.
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null

@@ -10,7 +10,9 @@
 //   - Tier-5 :  getTier5Skill
 //   - Element:  getElementPowerCoeff
 //
-// Spec: docs-internal/REVIEW_TeamSelection.md.
+// The rules these helpers encode -- rarity filter, Tier-3 trait chain,
+// Tier-5 leader priority, element coefficients -- are written out in the
+// CHANGELOG entries for v7.34 and v7.35.39.
 
 export type ElementType =
     | 'fire' | 'water' | 'nature' | 'stone'

@@ -320,8 +320,11 @@ export function debugDeleteAllVars()
     // keeps the cleanup honest: any key that getStoredValue/setStored
     // Value would honour is in scope, anything else is intentionally
     // out of scope (e.g. game-side localStorage entries the script
-    // does not own). TK.Logging stays so a fresh log buffer is
-    // available when the user presses the debug-delete button.
+    // does not own). TK.Logging is skipped for the same reason it always
+    // was -- the debug-delete button should leave a usable log behind. Since
+    // 8.10.0 the log itself lives in the LogStore ring, whose chunk keys are
+    // deliberately not in the registry, so this loop cannot reach them
+    // either; the skip now only spares the legacy key.
     const loggingKey = HHStoredVarPrefixKey + TK.Logging;
     for (const key of Object.keys(HHStoredVars))
     {

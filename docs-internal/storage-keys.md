@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-20
-verified-against-version: 8.10.12
+last-verified: 2026-08-28
+verified-against-version: 8.10.0
 status: current
 ---
 
@@ -8,9 +8,9 @@ status: current
 
 Alle localStorage / sessionStorage Schluessel des HHauto Skripts.
 
-**Code-Stand (2026-08-20, gegen v8.10.22 nachgezaehlt):** 187 SK- und 100
-TK-Konstanten in `StorageKeys.ts`, 278 davon registriert; 8 sind nicht in
-`HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
+**Code-Stand (2026-08-28, gegen das Release v8.10.0 nachgezaehlt):** 188 SK-
+und 103 TK-Konstanten in `StorageKeys.ts`, 283 davon registriert; 8 sind nicht
+in `HHStoredVars.ts` registriert. Am 2026-08-19 wurden die acht toten Keys
 entfernt (siehe unten); die drei Keys des neuen Settings-Menue-Layouts
 (`menuSingleColumn`, `menuOrder`, `menuTab`) sind seit v8.10.0 dazugekommen. Nachgezaehlt wurden Bestand, Storage-Typ, HHType und
 Registrierung jedes Keys gegen den Code -- die Beschreibungstexte der vor
@@ -305,6 +305,7 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | Konstante | Storage Key | Storage | HHType | Beschreibung |
 |-----------|-------------|---------|--------|--------------|
 | `plusGirlSkins` | `Setting_plusGirlSkins` | `Storage()` | `Setting` | Girl Skins |
+| `plusSkinSandalWood` | `Setting_plusSkinSandalWood` | `Storage()` | `Setting` | Sandelholz anlegen, wenn nur noch der Skin aussteht (v8.10.0, Standard aus) |
 
 ### Boosters / Events
 

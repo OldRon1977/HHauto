@@ -28,8 +28,8 @@ import { appendLog, clearLog } from './LogStore';
  * setStoredValue's catch.
  *
  * Strategy:
- *   - Drop the entire log buffer (delete, not overwrite -- frees the
- *     full key without a new write).
+ *   - Drop the whole log ring (LogStore.clearLog removes every chunk and
+ *     the index -- deletes, never overwrites, so no new write is needed).
  *   - Drop the league opponent cache, which is the second-largest temp
  *     value typically present.
  * Console.log still receives a one-line breadcrumb so the cleanup is
@@ -39,7 +39,7 @@ export function cleanLogsInStorage() {
     const sizeBefore = getLocalStorageSize();
     clearLog();
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
-    console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
+    console.log(`HHAuto: cleanLogsInStorage cleared the log ring and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 
 /**
@@ -50,8 +50,10 @@ export function cleanLogsInStorage() {
  * Accepts any number of arguments: a single string is stored as-is;
  * objects are JSON-serialized with circular-reference protection.
  *
- * When the stored log exceeds MAX_LINES, the oldest entries are removed.
- * Duplicate keys within the same millisecond get a numeric suffix.
+ * The line goes to LogStore, which batches writes into a ring of text
+ * chunks and drops the oldest chunk when the browser runs out of room.
+ * Duplicate keys within the same millisecond get a numeric suffix when the
+ * export is rebuilt.
  */
 export function logHHAuto(...args: any[])
 {
