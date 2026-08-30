@@ -5,6 +5,7 @@ import {
     captureOpenedWindow,
     findAdButtons,
     findConfirmButton,
+    findVisibleAdButtons,
     isElementDisplayed,
     WindowOpener,
 } from "../../src/Service/AdsService";
@@ -113,6 +114,22 @@ describe("ad DOM scan (fixture home-ad-tiles)", () => {
         expect(findAdButtons()).not.toContain(confirm);
     });
 
+    it("skips ad buttons inside a closed sliding popup", () => {
+        // The game keeps its cross-promo popup markup in the DOM and only
+        // hides it, so a closed popup's "Try it now" is still a selector
+        // match -- and it sits before the home tiles here.
+        document.body.insertAdjacentHTML("afterbegin",
+            `<div id="sliding-popups" style="display: none">`
+            + `<div id="crosspromo_show_ad"><button id="hiddenAd" class="blue_text_button small" `
+            + `onclick="shared.hh_crosspromo.redirectToCrosspromo(46, 'https://gamingadlt.com/?offer=6704', 1, 1)">`
+            + `Try it now</button></div></div>`);
+
+        expect(findAdButtons().length).toBe(4);
+        const visible = findVisibleAdButtons();
+        expect(visible.length).toBe(3);
+        expect(visible.map(b => b.id)).not.toContain("hiddenAd");
+    });
+
     it("returns null for the confirm button when none is present", () => {
         document.body.innerHTML = `<button onclick="shared.hh_crosspromo.redirectToCrosspromo(1,'x',1,1)">Try it now</button>`;
         expect(findConfirmButton()).toBeNull();
@@ -193,6 +210,28 @@ describe("AdsService.runAdCycle", () => {
         const acted = await AdsService.runAdCycle();
         expect(clickSpy).not.toHaveBeenCalled();
         expect(acted).toBe(false); // falls through to "no new reward ad"
+    });
+
+    it("clicks the visible tile, not a hidden popup's ad button that precedes it", async () => {
+        jest.useFakeTimers();
+        setStoredValue(HHStoredVarPrefixKey + SK.autoAdsClick, "true");
+        // The closed sliding popup's button comes first in document order.
+        document.body.innerHTML =
+            `<div id="sliding-popups" style="display: none">${adButtonHtml(46, "hiddenAd")}</div>`
+            + adButtonHtml(52, "visibleAd");
+        let clickedId = "";
+        document.body.addEventListener("click", (e) => {
+            const btn = (e.target as HTMLElement).closest("button[onclick]") as HTMLElement | null;
+            if (btn) clickedId = btn.id;
+        });
+        (unsafeWindow as unknown as { open: jest.Mock }).open = jest.fn(() => ({ close: jest.fn() } as unknown as Window));
+
+        const p = AdsService.runAdCycle();
+        await jest.advanceTimersByTimeAsync(6000);
+        await jest.advanceTimersByTimeAsync(61000);
+        await p;
+
+        expect(clickedId).toBe("visibleAd");
     });
 
     it("backs off (no retry) when neither a tab handle nor a confirm appears (popup blocker)", async () => {

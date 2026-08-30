@@ -91,11 +91,26 @@ export async function captureOpenedWindow(win: WindowOpener, clickFn: () => void
 }
 
 /**
- * Find every reward-ad "Try it now" button currently on the page. Exported for
- * testing.
+ * Find every reward-ad "Try it now" button currently in the DOM, visible or
+ * not. Exported for testing.
  */
 export function findAdButtons(): HTMLElement[] {
     return Array.from(document.querySelectorAll<HTMLElement>(AD_BUTTON_SELECTOR));
+}
+
+/**
+ * The reward-ad buttons the user can actually see. The game keeps the markup
+ * of its sliding cross-promo popups (`#crosspromo_show_ad` and friends) in the
+ * DOM permanently and only toggles them with jQuery `.show()`/`.hide()`, so a
+ * closed popup still carries a "Try it now" button of its own. Such a button
+ * is a full selector match and can precede the visible tile in document order;
+ * clicking it runs the game's redirect for a popup that is not open, which
+ * claims no reward and never shows the OK confirm. The cycle then keeps
+ * picking the same dead button on every recheck and the visible tile is never
+ * clicked. Exported for testing.
+ */
+export function findVisibleAdButtons(): HTMLElement[] {
+    return findAdButtons().filter(isElementDisplayed);
 }
 
 /**
@@ -252,7 +267,7 @@ export class AdsService {
             return true;
         }
 
-        const buttons = findAdButtons();
+        const buttons = findVisibleAdButtons();
         if (buttons.length === 0) {
             logHHAuto("Ads: no reward ad on the page.");
             setTimer("nextAdsTime", randomInterval(...AD_COOLDOWN_RECHECK));
