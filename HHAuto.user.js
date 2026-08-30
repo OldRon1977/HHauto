@@ -26482,6 +26482,21 @@ class AdsService {
         return getStoredValue(HHStoredVarPrefixKey + SK.autoAdsClick) === "true";
     }
     /**
+     * True when there is reward-ad work on the page right now: a visible
+     * "Try it now" button, or -- shortly after one of our own clicks -- the
+     * reward confirm popup. The pipeline uses this as a precondition so the
+     * block only takes a slot when it can actually act. That matters because
+     * the block sits early in the pipeline (an ad is a cheap, high-yield
+     * action that expires within a day): without this check it would
+     * interrupt a running long block on every Home tick just to log "no
+     * reward ad on the page". Both DOM queries are cheap.
+     */
+    static hasAdWork() {
+        if (findVisibleAdButtons().length > 0)
+            return true;
+        return AdsService.hasRecentAdClick() && findConfirmButton() !== null;
+    }
+    /**
      * Poll for the visible reward-confirm ("OK") button up to `timeoutMs`.
      * Resolves with the button once it appears, or null on timeout (never
      * loops forever). The OK button can show up well after the ad tab closes
@@ -35722,6 +35737,20 @@ const handleMissions = fromDescriptor({
 // gate rate-limits re-entry -- no unbounded retry. Returns true when it acted,
 // so the applySlotHold wrapper (BlockPipeline.toBlock) keeps the slot for the
 // single-step cycle before releasing it once the timer is armed.
+//
+// The block sits in the low-cost/high-yield group near the front of the
+// pipeline: a reward ad is a few kobans for one click and the game usually
+// offers it once a day, so it must not wait behind the long battle blocks.
+// Measured on 2026-08-30: with the block in its old tail position the ad was
+// clicked 9 minutes after it appeared, because handleLabyrinth held the slot
+// across every page change and only released it on "nothing left to do" --
+// and a lower-ranked block can never preempt (Scheduler.findNextReadyHigherThan
+// keeps only ranks above the running one).
+//
+// hasAdWork() is what makes the early position safe: the block claims a slot
+// only when a visible ad button (or our own pending reward confirm) is on the
+// page, instead of interrupting a running block on every Home tick to log
+// "no reward ad on the page".
 const handleKobanAds = fromDescriptor({
     name: "Time to check reward ads.",
     action: "ads",
@@ -35730,8 +35759,10 @@ const handleKobanAds = fromDescriptor({
 }, {
     minIntervalMs: 5000,
     handlerName: "handleKobanAds",
-    // The reward-ad tiles live on the Home page only.
-    extraPrecondition: (ctx) => ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDHome'),
+    // The reward-ad tiles live on the Home page only, and only an ad that is
+    // actually there is worth a slot.
+    extraPrecondition: (ctx) => ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDHome')
+        && AdsService.hasAdWork(),
 });
 const handleChampion = fromDescriptor({
     name: "Time to check on champions!",
@@ -37053,6 +37084,11 @@ const handleGoHome = {
 //     produced by handleShop. Must run after handleShop in the same
 //     tick so equip decisions see fresh inventory.
 //
+//  handleKobanAds follows that chain at slot 6: a reward ad is one click
+//  for a few kobans and expires within a day, and its precondition
+//  (AdsService.hasAdWork) is false unless an ad is on the page, so the
+//  early slot costs two DOM queries per Home tick and nothing else.
+//
 //  handleGoHome is locked at the tail because it closes the tick on a
 //  non-home page. handleGenericBattle is kept just before handleGoHome
 //  as a catch-all when the bot has landed on any battle page.
@@ -37067,6 +37103,7 @@ const pipeline = [
     handleSalary,
     handleShop,
     handleAutoEquipBoosters,
+    handleKobanAds,
     handleMissions,
     handlePachinko,
     handleSeasonalFreeCard,
@@ -37094,7 +37131,6 @@ const pipeline = [
     handlePantheon,
     handlePentaDrill,
     handleLabyrinth,
-    handleKobanAds,
     handleGenericBattle,
     handleGoHome,
 ];

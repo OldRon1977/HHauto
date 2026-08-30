@@ -212,6 +212,21 @@ export class AdsService {
     }
 
     /**
+     * True when there is reward-ad work on the page right now: a visible
+     * "Try it now" button, or -- shortly after one of our own clicks -- the
+     * reward confirm popup. The pipeline uses this as a precondition so the
+     * block only takes a slot when it can actually act. That matters because
+     * the block sits early in the pipeline (an ad is a cheap, high-yield
+     * action that expires within a day): without this check it would
+     * interrupt a running long block on every Home tick just to log "no
+     * reward ad on the page". Both DOM queries are cheap.
+     */
+    static hasAdWork(): boolean {
+        if (findVisibleAdButtons().length > 0) return true;
+        return AdsService.hasRecentAdClick() && findConfirmButton() !== null;
+    }
+
+    /**
      * Poll for the visible reward-confirm ("OK") button up to `timeoutMs`.
      * Resolves with the button once it appears, or null on timeout (never
      * loops forever). The OK button can show up well after the ad tab closes

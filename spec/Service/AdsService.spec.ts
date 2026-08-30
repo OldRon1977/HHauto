@@ -136,6 +136,35 @@ describe("ad DOM scan (fixture home-ad-tiles)", () => {
     });
 });
 
+describe("AdsService.hasAdWork (pipeline precondition)", () => {
+    afterEach(() => {
+        document.body.innerHTML = "";
+        AdsService.lastAdClickAt = 0;
+    });
+
+    it("is false on a page without ads, so the block takes no slot", () => {
+        expect(AdsService.hasAdWork()).toBe(false);
+    });
+
+    it("is true while a visible ad button is on the page", () => {
+        document.body.innerHTML = `<button onclick="shared.hh_crosspromo.redirectToCrosspromo(46,'x',1,1)">Try it now</button>`;
+        expect(AdsService.hasAdWork()).toBe(true);
+    });
+
+    it("ignores an ad button that only a closed popup carries", () => {
+        document.body.innerHTML = `<div style="display: none">`
+            + `<button onclick="shared.hh_crosspromo.redirectToCrosspromo(46,'x',1,1)">Try it now</button></div>`;
+        expect(AdsService.hasAdWork()).toBe(false);
+    });
+
+    it("is true for our own pending reward confirm, and false for a stray one", () => {
+        document.body.innerHTML = `<button confirm_blue_button="">OK</button>`;
+        expect(AdsService.hasAdWork()).toBe(false); // no ad click of ours
+        AdsService.lastAdClickAt = Date.now();
+        expect(AdsService.hasAdWork()).toBe(true);
+    });
+});
+
 describe("AdsService.runAdCycle", () => {
     let savedOpen: typeof window.open;
 
