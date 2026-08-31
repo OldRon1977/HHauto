@@ -41,7 +41,6 @@ describe("Boosters to buy -- what the field accepts", () => {
         ["MB1:5;MB2:0;MB5:3", "the specified valid example"],
         ["", "an empty field, meaning buy nothing"],
         ["B1:10", "a single pair"],
-        ["MB1 : 3;MB3 : 4", "spaces around the colon"],
         ["mb1:5", "lower case"],
         ["MB1:0", "zero, meaning no limit"],
         ["MB1:999", "the largest amount"],
@@ -53,7 +52,11 @@ describe("Boosters to buy -- what the field accepts", () => {
         ["MB1:5;MB2;MB5:3", "a code without an amount"],
         ["MB1:5;MB2:;MB5:3", "an empty amount"],
         ["MB1:5;MB2:-3;MB5:3", "a negative amount"],
+        ["MB1 : 3;MB3 : 4", "spaces around the colon"],
         ["MB1 : 3 ; MB3 : 4", "spaces around the semicolon"],
+        ["MB1:5 ", "a trailing space"],
+        [" MB1:5", "a leading space"],
+        ["   ", "a field holding only spaces"],
         ["MB13:5", "a booster the game does not have"],
         ["MB1:1000", "an amount of more than three digits"],
         ["B5:1", "a legendary booster that does not exist"],
@@ -81,9 +84,15 @@ describe("Boosters to buy -- parsing", () => {
     });
 
     it("treats an empty field as a valid, empty list", () => {
-        for (const value of ["", "   ", undefined, null]) {
+        for (const value of ["", undefined, null]) {
             expect(parseBuyList(value as string)).toEqual({ valid: true, entries: [] });
         }
+    });
+
+    it("does not treat a field of spaces as empty -- the field paints it red", () => {
+        // Consistency with the pattern matters more than convenience here: a
+        // value the field rejects must not be silently read as "buy nothing".
+        expect(parseBuyList("   ")).toEqual({ valid: false, reason: "syntax", detail: "   " });
     });
 
     it("rejects a repeated code instead of guessing which amount was meant", () => {

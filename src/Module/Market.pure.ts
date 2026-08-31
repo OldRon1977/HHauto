@@ -34,15 +34,17 @@ export const BOOSTER_CODES: readonly string[] = [
  * because the parser upper-cases before it compares -- a lower-case entry
  * that the parser would happily read must not paint the field red.
  *
- * Whitespace is allowed around the colon and NOT around the semicolon, as
- * specified: "MB1 : 3;MB3 : 4" is valid, "MB1 : 3 ; MB3 : 4" is not.
+ * No whitespace anywhere: "MB1:5;B4:50" is the only shape. Allowing it around
+ * the colon but not the semicolon was neither obvious nor explainable in a
+ * tooltip, so one rule replaces two.
  *
  * An empty value is valid and means "buy nothing" -- a deliberate state, not
- * an error, so it must not be painted red either.
+ * an error, so it must not be painted red either. A field holding only spaces
+ * is not that state; it is rejected like any other stray character.
  */
 const CODE = "(?:[Bb][1-4]|[Mm][Bb](?:[1-9]|1[0-2]))";
 const AMOUNT = "(?:0|[1-9][0-9]{0,2})";
-const PAIR = CODE + "\\s*:\\s*" + AMOUNT;
+const PAIR = CODE + ":" + AMOUNT;
 export const BUY_LIST_PATTERN = "(?:" + PAIR + "(?:;" + PAIR + ")*)?";
 
 /** One booster and the number of it to keep in the inventory. */
@@ -65,7 +67,7 @@ export type BuyListResult =
  * not say whether five or two was meant, and a regex cannot express that.
  */
 export function parseBuyList(raw: string | undefined | null): BuyListResult {
-    if (raw === undefined || raw === null || raw.trim() === "") {
+    if (raw === undefined || raw === null || raw === "") {
         return { valid: true, entries: [] };
     }
     if (!new RegExp("^" + BUY_LIST_PATTERN + "$").test(raw)) {
@@ -75,12 +77,12 @@ export function parseBuyList(raw: string | undefined | null): BuyListResult {
     const seen = new Set<string>();
     for (const part of raw.split(";")) {
         const [rawCode, rawMax] = part.split(":");
-        const code = rawCode.trim().toUpperCase();
+        const code = rawCode.toUpperCase();
         if (seen.has(code)) {
             return { valid: false, reason: "duplicate", detail: code };
         }
         seen.add(code);
-        entries.push({ code, max: Number(rawMax.trim()) });
+        entries.push({ code, max: Number(rawMax) });
     }
     return { valid: true, entries };
 }

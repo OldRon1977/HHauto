@@ -22,9 +22,8 @@ The amount is how many to keep in the inventory; equipped boosters do not count
 towards it. `0` means no limit, exactly as *Max Booster* did. A booster that is
 not listed is never bought, and an empty field buys nothing at all.
 
-Spaces around the `:` are allowed, around the `;` they are not. Each booster may
-appear only once -- `MB1:5;MB1:2` does not say whether five or two was meant, so
-it is refused rather than guessed.
+No spaces anywhere, and each booster may appear only once -- `MB1:5;MB1:2` does
+not say whether five or two was meant, so it is refused rather than guessed.
 
 **A red field stops the buying.** Several menu fields turn red on bad input today
 without that changing anything; this one does. An unreadable list buys nothing
