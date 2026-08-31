@@ -126,3 +126,29 @@ export function migrateBuyList(filter: string | undefined | null, oldMax: string
         .map((part) => (part.includes(":") ? part : part.trim() === "" ? part : part.trim() + ":" + max))
         .join(";");
 }
+
+/**
+ * The same conversion for the user's own saved defaults (#1844).
+ *
+ * setHHStoredVarToDefault consults that snapshot whenever a key is missing, so
+ * a snapshot left in the old shape kept resurrecting the deleted "Max Booster"
+ * key -- the migration then ran again on every page load -- and a reset to
+ * defaults would have written the old bare-code shape back into a field that
+ * now refuses it. Seen in a live 8.11.0 upgrade log.
+ *
+ * Returns the updated snapshot, or null when there is nothing to do.
+ */
+export function migrateSavedDefaults(
+    defaults: Record<string, string> | null | undefined,
+    filterKey: string,
+    maxKey: string,
+): Record<string, string> | null {
+    if (!defaults || defaults[maxKey] === undefined) return null;
+    const updated: Record<string, string> = { ...defaults };
+    const savedList = updated[filterKey];
+    if (savedList !== undefined) {
+        updated[filterKey] = migrateBuyList(savedList, updated[maxKey]);
+    }
+    delete updated[maxKey];
+    return updated;
+}

@@ -72,7 +72,7 @@ import {
     sanitizeHeroGiveupReloadCount,
     shouldReloadAfterHeroGiveup,
 } from './HeroBootRecovery';
-import { buyListValidationMessage, migrateBuyList } from "../Module/Market.pure";
+import { buyListValidationMessage, migrateBuyList, migrateSavedDefaults } from "../Module/Market.pure";
 
 var started=false;
 var debugMenuID;
@@ -412,17 +412,35 @@ export function start() {
     // Migrate the booster buy settings to one field (#1844). "Filter" said
     // which boosters, "Max Booster" how many of each; they are now one list of
     // "code:amount" pairs, so the two halves of one decision cannot contradict
-    // each other. Guarded by the old key still being present, which makes the
-    // migration self-limiting: it deletes that key at the end and cannot run
-    // again. The conversion itself is per entry, so an old settings file that
-    // writes the key back cannot overwrite an already-edited list.
+    // each other. The conversion is per entry, so an entry that already carries
+    // an amount is left alone and the migration can meet its own output without
+    // damaging it.
+    //
+    // The user's own saved defaults have to be converted with it. They are
+    // consulted by setHHStoredVarToDefault whenever a key is missing, so
+    // leaving them in the old shape had two effects, both seen in a live log:
+    // deleting the Max Booster key was undone by setDefaults() on the very next
+    // line and the migration ran again on every load, and a reset to defaults
+    // would have restored the old "MB1" shape into a field that now paints such
+    // a value red and stops buying.
     const legacyMaxBooster = getStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
-    if (legacyMaxBooster !== undefined && legacyMaxBooster !== null) {
+    const userDefaults = getStoredJSON<Record<string, string> | null>(HHStoredVarPrefixKey + SK.saveDefaults, null);
+    const savedMaxBooster = userDefaults?.[HHStoredVarPrefixKey + SK.maxBooster];
+    if ((legacyMaxBooster !== undefined && legacyMaxBooster !== null) || savedMaxBooster !== undefined) {
         const currentList = getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter);
-        const migrated = migrateBuyList(currentList, legacyMaxBooster);
+        const migrated = migrateBuyList(currentList, legacyMaxBooster ?? savedMaxBooster);
         if (migrated !== currentList) {
             setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, migrated);
-            logHHAuto("Migrated boosters to buy: '" + currentList + "' + max " + legacyMaxBooster + " -> '" + migrated + "'");
+            logHHAuto("Migrated boosters to buy: '" + currentList + "' + max " + (legacyMaxBooster ?? savedMaxBooster) + " -> '" + migrated + "'");
+        }
+        const updatedDefaults = migrateSavedDefaults(
+            userDefaults,
+            HHStoredVarPrefixKey + SK.autoBuyBoostersFilter,
+            HHStoredVarPrefixKey + SK.maxBooster,
+        );
+        if (updatedDefaults !== null) {
+            setStoredValue(HHStoredVarPrefixKey + SK.saveDefaults, JSON.stringify(updatedDefaults));
+            logHHAuto("Migrated boosters to buy in the saved defaults too.");
         }
         deleteStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
     }

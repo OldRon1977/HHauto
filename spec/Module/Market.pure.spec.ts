@@ -15,6 +15,7 @@ import {
     buyListValidationMessage,
     hasBuyableBoosters,
     migrateBuyList,
+    migrateSavedDefaults,
     parseBuyList,
 } from "../../src/Module/Market.pure";
 
@@ -151,5 +152,50 @@ describe("Boosters to buy -- migration from Filter + Max Booster", () => {
     it("leaves the filter untouched when the old amount is missing or not a number", () => {
         expect(migrateBuyList("B1;B2", "")).toBe("B1;B2");
         expect(migrateBuyList("B1;B2", "abc")).toBe("B1;B2");
+    });
+});
+
+describe("Boosters to buy -- the user's own saved defaults", () => {
+    // Taken from a live 8.11.0 upgrade log: the saved defaults still held the
+    // old pair, so setHHStoredVarToDefault kept re-creating the Max Booster key
+    // right after the migration deleted it, and the migration ran on every
+    // load. A reset to defaults would also have written "MB1" back into a field
+    // that now refuses a bare code.
+    const FILTER = "HHAuto_Setting_autoBuyBoostersFilter";
+    const MAX = "HHAuto_Setting_maxBooster";
+
+    it("converts the saved filter and drops the saved maximum", () => {
+        const updated = migrateSavedDefaults(
+            { [FILTER]: "MB1", [MAX]: "20", "HHAuto_Setting_autoContest": "true" },
+            FILTER, MAX,
+        );
+        expect(updated).toEqual({ [FILTER]: "MB1:20", "HHAuto_Setting_autoContest": "true" });
+    });
+
+    it("does nothing when the snapshot has no saved maximum", () => {
+        expect(migrateSavedDefaults({ [FILTER]: "MB1:20" }, FILTER, MAX)).toBeNull();
+        expect(migrateSavedDefaults({}, FILTER, MAX)).toBeNull();
+        expect(migrateSavedDefaults(null, FILTER, MAX)).toBeNull();
+        expect(migrateSavedDefaults(undefined, FILTER, MAX)).toBeNull();
+    });
+
+    it("drops the saved maximum even when no filter was saved with it", () => {
+        expect(migrateSavedDefaults({ [MAX]: "20" }, FILTER, MAX)).toEqual({});
+    });
+
+    it("leaves an already converted saved filter alone", () => {
+        expect(migrateSavedDefaults({ [FILTER]: "MB1:5", [MAX]: "20" }, FILTER, MAX))
+            .toEqual({ [FILTER]: "MB1:5" });
+    });
+
+    it("does not mutate the snapshot it was given", () => {
+        const original = { [FILTER]: "MB1", [MAX]: "20" };
+        migrateSavedDefaults(original, FILTER, MAX);
+        expect(original).toEqual({ [FILTER]: "MB1", [MAX]: "20" });
+    });
+
+    it("produces a saved filter the field accepts", () => {
+        const updated = migrateSavedDefaults({ [FILTER]: "MB1", [MAX]: "20" }, FILTER, MAX);
+        expect(matchesField((updated as Record<string, string>)[FILTER])).toBe(true);
     });
 });
