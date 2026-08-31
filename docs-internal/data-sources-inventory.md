@@ -523,9 +523,9 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 | SK.autoExpW | Setting_autoExpW | (no description) | - | Module/Market.ts | - |
 | SK.maxAff | Setting_maxAff | (no description) | - | Module/Market.ts | - |
 | SK.maxExp | Setting_maxExp | (no description) | - | Module/Market.ts | - |
-| SK.maxBooster | Setting_maxBooster | (no description) | - | Module/Market.ts | - |
+| SK.maxBooster | Setting_maxBooster | stillgelegt in 8.11.0, Mengen stehen in autoBuyBoostersFilter | - | - | - |
 | SK.autoBuyBoosters | Setting_autoBuyBoosters | (no description) | - | Module/Market.ts | - |
-| SK.autoBuyBoostersFilter | Setting_autoBuyBoostersFilter | (no description) | - | Module/Market.ts | - |
+| SK.autoBuyBoostersFilter | Setting_autoBuyBoostersFilter | "Boosters to buy": Code:Menge-Paare | - | Module/Market.ts, Module/Market.pure.ts | - |
 | SK.autoEquipBoosters | Setting_autoEquipBoosters | (no description) | - | Module/Booster.ts, Service/AutoLoopActions.ts, Service/InfoService.ts | - |
 | SK.autoEquipBoostersSlots | Setting_autoEquipBoostersSlots | (no description) | - | Module/Booster.ts | - |
 | SK.updateMarket | Setting_updateMarket | (no description) | - | Module/Shop.ts, Service/InfoService.ts | - |

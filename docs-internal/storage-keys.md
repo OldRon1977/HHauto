@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-08-28
-verified-against-version: 8.10.0
+last-verified: 2026-08-31
+verified-against-version: 8.11.0
 status: current
 ---
 
@@ -66,6 +66,21 @@ Fakten aus dem Code-Stand v7.35.21:
 - `getStoredArray<T>(key)` -- Array-typisierte Settings lesen. Prueft `Array.isArray()` und gibt sonst `[]` zurueck. Fuer jede Einstellung benutzen, auf deren Ergebnis `.includes()` o. ae. aufgerufen wird (siehe unten).
 - `getStorage()` -- aktueller Default-Storage abhaengig von `SK.settPerTab`.
 - `getStorageItem(type)` -- Auflöser fuer `"localStorage"` / `"sessionStorage"` / `"Storage()"`.
+
+### Array- und Listenfelder
+
+Fuer JSON-Arrays `getStoredArray` benutzen (siehe oben). Fuer die
+`;`-getrennten Textlisten gilt: Die Syntax gehoert **einmal** definiert und von
+Eingabefeld und Laufzeit gemeinsam gelesen. `autoBuyBoostersFilter` macht das
+seit 8.11.0 ueber `BUY_LIST_PATTERN` in `Module/Market.pure.ts`. Vorher standen
+Feld-Regex und Parser getrennt, mit dem Ergebnis, dass `MB10` jahrelang nicht
+eingebbar war, obwohl der Tooltip ihn auflistete (#1844).
+
+Achtung beim Roten: `input[pattern]` wird in `StartService` generisch rot
+gefaerbt, aber das Speichern prueft die Gueltigkeit **nicht**. Wer will, dass
+ein rotes Feld auch etwas verhindert, muss das im Modul selbst tun --
+`autoBuyBoostersFilter` ist bislang das einzige Feld, das das macht, weil dort
+Kobans ausgegeben werden.
 
 ### Der Wert `"null"` (Issue #1846)
 
@@ -262,9 +277,9 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | `autoExpW` | `Setting_autoExpW` | `Storage()` | `Setting` | Experience Wert |
 | `maxAff` | `Setting_maxAff` | `Storage()` | `Setting` | Max Affection |
 | `maxExp` | `Setting_maxExp` | `Storage()` | `Setting` | Max Experience |
-| `maxBooster` | `Setting_maxBooster` | `Storage()` | `Setting` | Max Booster |
+| `maxBooster` | `Setting_maxBooster` | `Storage()` | `Setting` | **Stillgelegt in 8.11.0** (#1844). Registriert ohne Default und ohne Menue-Eintrag, damit die Migration in `StartService` den gespeicherten Wert loeschen kann -- `deleteStoredValue` ist bei unregistrierten Schluesseln ein No-Op. Ohne `default` legt `setDefaults` ihn nicht neu an. Eintrag in der uebernaechsten Version ganz entfernen. |
 | `autoBuyBoosters` | `Setting_autoBuyBoosters` | `Storage()` | `Setting` | Booster kaufen |
-| `autoBuyBoostersFilter` | `Setting_autoBuyBoostersFilter` | `Storage()` | `Setting` | Booster-Filter |
+| `autoBuyBoostersFilter` | `Setting_autoBuyBoostersFilter` | `Storage()` | `Setting` | "Boosters to buy": `Code:Menge`-Paare, `;`-getrennt, keine Leerzeichen, jeder Code hoechstens einmal. Menge = gewuenschter Inventarbestand (angelegte Booster zaehlen nicht), `0` = unbegrenzt, nicht genannt = nicht gekauft, leer = nichts kaufen. Seit 8.11.0 auch die Mengen, vorher nur die Codes. Syntax und Laufzeit lesen `BUY_LIST_PATTERN` aus `Module/Market.pure.ts` |
 | `autoEquipBoosters` | `Setting_autoEquipBoosters` | `Storage()` | `Setting` | Booster ausruesten |
 | `autoEquipBoostersSlots` | `Setting_autoEquipBoostersSlots` | `Storage()` | `Setting` | Booster-Slots |
 | `autoEquipMythicBooster` | `Setting_autoEquipMythicBooster` | `Storage()` | `Setting` | Prioritaetsliste der Mythic-Booster fuer die freien Mythic-Slots |
