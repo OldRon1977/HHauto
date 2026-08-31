@@ -32189,21 +32189,23 @@ const FEATURE_POPUP_CLOSE_LABEL = "OK";
  * for that version. Set to "0" to deactivate (default).
  */
 // Must equal the released version EXACTLY -- shouldShowPopup compares with
-// ===, so a mismatch means the popup silently never appears. The branch built
-// its way up through 8.10.x while this said 8.10.0, which kept the popup quiet
-// during development; the release now carries that same number, so it fires.
-// If the release number changes, change it here and in the title too.
-const FEATURE_POPUP_VERSION = "8.10.0";
+// ===, so a mismatch means the popup silently never appears, and adding a
+// paragraph without moving this number changes nothing on screen. If the
+// release number changes, change it here and in the title too.
+const FEATURE_POPUP_VERSION = "8.11.0";
 /**
  * Title shown in the popup header.
  */
-const FEATURE_POPUP_TITLE = "HHAuto v8.10.0";
+const FEATURE_POPUP_TITLE = "HHAuto v8.11.0";
 /**
  * HTML content for the feature popup.
  * Update this each time you activate the popup for a new version.
  */
 const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
+
+    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Boosters to buy: one field, one amount each</p>
+    <p style="margin-bottom:10px;">The <i>Filter</i> and <i>Max Booster</i> settings are now a single field. Each booster carries the number you want to keep, written after a colon: <code>MB1:5;B4:50;MB6:2</code>. Equipped boosters do not count towards it, <code>0</code> means no limit as before, and a booster you do not list is never bought. <b>Your existing setting was carried over</b> &mdash; the old filter and the old number were combined for you, so nothing changes about what gets bought.<br>One thing is new: if the field turns <b style="color:#c33;">red</b>, buying boosters stops until you correct it. A list that cannot be read would otherwise have to guess, and guessing here spends kobans. Everything else, equipping included, carries on.</p>
 
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">One activity at a time</p>
     <p style="margin-bottom:10px;">The script used to hop: one troll fight, one season fight, one pantheon fight, round and round. It now stays on an activity until that activity is done &mdash; out of energy, threshold reached, timer set &mdash; and only then moves on. Collecting still cuts in whenever it is due, so nothing expires while a fight is running.</p>

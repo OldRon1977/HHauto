@@ -9,34 +9,33 @@ Older entries below were migrated 1:1 from `README.md`.
 
 ### v8.11.0 - One field for which boosters to buy, and how many
 
-**Boosters to buy**
-
 Buying boosters used to need two settings that had to agree with each other:
 *Filter* said which boosters, *Max Booster* said how many -- one number for all
-of them. Wanting five Sandalwood Perfumes but fifty Cordyceps meant editing the
+of them. Wanting five Sandalwood Perfumes but fifty Cordyceps meant editing that
 number back and forth (issue #1844, reported by fincogneato).
 
-Both are now one field. Each booster carries its own amount:
+Both are now one field, **Boosters to buy**. Each booster carries its own amount:
 
     MB1:5;B4:50;MB6:2
 
 The amount is how many to keep in the inventory; equipped boosters do not count
-towards it. `0` means no limit, exactly as `Max Booster` did. A booster that is
+towards it. `0` means no limit, exactly as *Max Booster* did. A booster that is
 not listed is never bought, and an empty field buys nothing at all.
 
 Spaces around the `:` are allowed, around the `;` they are not. Each booster may
 appear only once -- `MB1:5;MB1:2` does not say whether five or two was meant, so
 it is refused rather than guessed.
 
-**A red field now stops the buying.** Several menu fields turn red on bad input
-today without that changing anything; this one does. An unreadable list buys
-nothing until it is corrected, rather than falling back to some default and
-spending kobans on boosters nobody asked for. Everything else carries on --
-equipping boosters is unaffected. The reason appears in the log once per market
-run, for anyone who does not have the menu open.
+**A red field stops the buying.** Several menu fields turn red on bad input today
+without that changing anything; this one does. An unreadable list buys nothing
+until it is corrected, rather than falling back to some default and spending
+kobans on boosters nobody asked for. Everything else carries on -- equipping
+boosters is unaffected. The reason appears in the log once per market run, for
+anyone who does not have the menu open.
 
-**Your existing settings are carried over.** The old filter and the old number
-are combined on the first start: `B1;B2;B3;B4` with a maximum of 10 becomes
+**Your existing settings are carried over**, including your own saved defaults if
+you ever pressed *Save defaults*. The old filter and the old number are combined
+on the first start: `B1;B2;B3;B4` with a maximum of 10 becomes
 `B1:10;B2:10;B3:10;B4:10`. Nothing changes about what gets bought.
 
 **MB10 can be entered at last.** The Gem Detector was listed in the tooltip but
