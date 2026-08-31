@@ -18,7 +18,7 @@ import { getTextForUI } from "../../Helper/LanguageHelper";
 import { NumberHelper } from "../../Helper/NumberHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../../Helper/TimerHelper";
 import { pInfoRow } from "../../Utils/PInfoRow";
@@ -544,7 +544,7 @@ export class Season {
 
     static goAndCollect()
     {
-        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoSeasonCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoSeasonCollectablesList);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeason"))
         {

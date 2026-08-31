@@ -25,6 +25,7 @@ import {
     setStoredValue,
     deleteStoredValue,
     getStoredJSON,
+    getStoredArray,
     extractHHVars,
 } from "../../src/Helper/StorageHelper";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../../src/config/HHStoredVars";
@@ -304,5 +305,62 @@ describe("extractHHVars", () => {
         const entry = Object.keys(out).find((k) => k.endsWith(TK.blockFailureCount)) as string;
         expect(out[entry]).toBe('{"A:fail":2}');
         localStorage.removeItem(key);
+    });
+});
+
+/**
+ * getStoredArray -- #1846.
+ *
+ * getStoredJSON hands back whatever JSON.parse produced; its type parameter is
+ * erased at runtime. The stored text "null" parses successfully, so a
+ * <string[]> annotation could still yield null and the next .includes() threw.
+ * The string "null" is not a hand-edited curiosity: extractHHVars serialises a
+ * never-written key as null on purpose, and both the config importer and
+ * debugDeleteTempVars used to write that straight back into Web Storage, which
+ * stringifies it.
+ */
+describe("StorageHelper -- getStoredArray", () => {
+    const KEY = HHStoredVarPrefixKey + "Setting_storageHelperArraySpecKey";
+
+    beforeEach(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        registerKey(KEY, { storage: "localStorage", HHType: "Setting", default: "[]" });
+    });
+
+    afterEach(() => {
+        deregisterKey(KEY);
+        localStorage.clear();
+    });
+
+    it("returns an empty array for the stored text \"null\"", () => {
+        localStorage.setItem(KEY, "null");
+        // getStoredJSON is the behaviour we are guarding against
+        expect(getStoredJSON<string[]>(KEY, [])).toBeNull();
+        expect(getStoredArray<string>(KEY)).toEqual([]);
+    });
+
+    it("returns the stored array unchanged", () => {
+        localStorage.setItem(KEY, '["girl","energy_fight"]');
+        expect(getStoredArray<string>(KEY)).toEqual(["girl", "energy_fight"]);
+    });
+
+    it("returns an empty array for an empty stored array", () => {
+        localStorage.setItem(KEY, "[]");
+        expect(getStoredArray<string>(KEY)).toEqual([]);
+    });
+
+    it("returns an empty array when the key was never written", () => {
+        expect(getStoredArray<string>(KEY)).toEqual([]);
+    });
+
+    it("returns an empty array for broken JSON", () => {
+        localStorage.setItem(KEY, "{not json");
+        expect(getStoredArray<string>(KEY)).toEqual([]);
+    });
+
+    it("returns an empty array for a stored object", () => {
+        localStorage.setItem(KEY, '{"a":1}');
+        expect(getStoredArray<string>(KEY)).toEqual([]);
     });
 });

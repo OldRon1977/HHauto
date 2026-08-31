@@ -12,7 +12,7 @@ import { getHHVars } from "../../Helper/HHHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
@@ -74,7 +74,7 @@ export class SeasonalEvent {
     }
     static goAndCollect(manualCollectAll = false)
     {
-        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectablesList);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent"))
         {

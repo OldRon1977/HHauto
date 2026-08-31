@@ -9,7 +9,7 @@
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
-import { getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredJSON, getStoredArray, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../Helper/TimerHelper";
 import { gotoPage } from "../Service/PageNavigationService";
@@ -85,7 +85,7 @@ export class DailyGoals {
     }
     static goAndCollect(): boolean
     {
-        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList);
         //console.log(rewardsToCollect.length);
         if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true")
         {

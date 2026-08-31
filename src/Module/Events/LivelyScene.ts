@@ -11,7 +11,7 @@ import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { randomInterval, convertTimeToInt, getLimitTimeBeforeEnd, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer, checkTimer } from "../../Helper/TimerHelper";
 import { autoLoop } from "../../Service/AutoLoop";
@@ -69,7 +69,7 @@ export class LivelyScene {
 
     static parseClaimableRewards(remainingTime: number, manualCollectAll = false) {
         const puzzlePieces: KKPuzzlePieces[] = getHHVars('current_event.event_data.puzzle_pieces');
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList);
         const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
         const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
 

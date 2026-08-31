@@ -13,7 +13,7 @@ import { HeroHelper } from "../../Helper/HeroHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, convertTimeToInt } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { autoLoop } from "../../Service/AutoLoop";
@@ -56,7 +56,7 @@ export class DoublePenetration {
     static goAndCollect(dpRemainingTime: number, manualCollectAll = false)
     {
         try {
-            const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autodpEventCollectablesList, []);
+            const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autodpEventCollectablesList);
 
             const needToCollectAll =  dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollectAll) === "true";
             const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect) === "true");

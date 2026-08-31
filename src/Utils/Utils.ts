@@ -141,6 +141,18 @@ export function myfileLoad_onReaderLoad(event: any){
             storageType=key.split(".")[0];
             variableName=key.split(".")[1];
             storageItem = getStorageItem(storageType);
+            // extractHHVars serialises a never-written key as null on purpose,
+            // so a saved config carries null for every setting the user never
+            // touched. Writing that back through Web Storage stringifies it to
+            // the text "null", which JSON.parse then happily returns as null --
+            // and the next .includes() on a reward filter throws (#1846).
+            // Skipping the key leaves it unset, and setDefaults fills in the
+            // registry default on the next start.
+            if (value === null || value === undefined)
+            {
+                logHHAuto(key+': not set in the file, keeping the default');
+                continue;
+            }
             logHHAuto(key+':'+ value);
             storageItem[variableName] = value;
         }

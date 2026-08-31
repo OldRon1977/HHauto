@@ -5881,8 +5881,8 @@ function importLegacyLog() {
  * setStoredValue's catch.
  *
  * Strategy:
- *   - Drop the entire log buffer (delete, not overwrite -- frees the
- *     full key without a new write).
+ *   - Drop the whole log ring (LogStore.clearLog removes every chunk and
+ *     the index -- deletes, never overwrites, so no new write is needed).
  *   - Drop the league opponent cache, which is the second-largest temp
  *     value typically present.
  * Console.log still receives a one-line breadcrumb so the cleanup is
@@ -5892,7 +5892,7 @@ function cleanLogsInStorage() {
     const sizeBefore = getLocalStorageSize();
     clearLog();
     deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
-    console.log(`HHAuto: cleanLogsInStorage cleared TK.Logging and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
+    console.log(`HHAuto: cleanLogsInStorage cleared the log ring and TK.LeagueOpponentList; storage size before clean ${sizeBefore}`);
 }
 /**
  * Write a timestamped log entry to both the browser console and persistent
@@ -5902,8 +5902,10 @@ function cleanLogsInStorage() {
  * Accepts any number of arguments: a single string is stored as-is;
  * objects are JSON-serialized with circular-reference protection.
  *
- * When the stored log exceeds MAX_LINES, the oldest entries are removed.
- * Duplicate keys within the same millisecond get a numeric suffix.
+ * The line goes to LogStore, which batches writes into a ring of text
+ * chunks and drops the oldest chunk when the browser runs out of room.
+ * Duplicate keys within the same millisecond get a numeric suffix when the
+ * export is rebuilt.
  */
 function logHHAuto(...args) {
     const stackTrace = (new Error()).stack || '';
@@ -6274,6 +6276,21 @@ function getStoredJSON(key, defaultValue, reviver) {
     return safeJsonParse(val, defaultValue, reviver);
 }
 /**
+ * Array-typed settings read back through a runtime check.
+ *
+ * getStoredJSON hands back whatever JSON.parse produced -- the type
+ * parameter is erased at runtime. The stored text "null" parses fine, so a
+ * <string[]> annotation can still yield null, and the next .includes() throws
+ * (#1846). extractHHVars deliberately serialises never-written keys as null,
+ * and debugDeleteTempVars writes that snapshot back through setStoredValue,
+ * where Web Storage stringifies it -- so "null" is a state the code produces
+ * itself, not only a hand-edited config.
+ */
+function getStoredArray(key) {
+    const parsed = getStoredJSON(key, []);
+    return Array.isArray(parsed) ? parsed : [];
+}
+/**
  * Returns the active "default" storage based on the settPerTab toggle.
  * When settPerTab is "true", per-tab isolation is on: every Storage()
  * key lives in sessionStorage and is therefore tab-local.
@@ -6486,8 +6503,11 @@ function debugDeleteAllVars() {
     // keeps the cleanup honest: any key that getStoredValue/setStored
     // Value would honour is in scope, anything else is intentionally
     // out of scope (e.g. game-side localStorage entries the script
-    // does not own). TK.Logging stays so a fresh log buffer is
-    // available when the user presses the debug-delete button.
+    // does not own). TK.Logging is skipped for the same reason it always
+    // was -- the debug-delete button should leave a usable log behind. Since
+    // 8.10.0 the log itself lives in the LogStore ring, whose chunk keys are
+    // deliberately not in the registry, so this loop cannot reach them
+    // either; the skip now only spares the legacy key.
     const loggingKey = HHStoredVarPrefixKey + TK.Logging;
     for (const key of Object.keys(HHStoredVars)) {
         if (key === loggingKey)
@@ -6511,6 +6531,13 @@ function debugDeleteTempVars() {
     setDefaults(true);
     for (const compoundKey of Object.keys(dataToSave)) {
         const variableName = compoundKey.split(".")[1];
+        // Same reason as in the config importer: extractHHVars marks a
+        // never-written key with null, and setStoredValue would turn that into
+        // the string "null" in Web Storage (#1846). Leave the key unset -- the
+        // setDefaults(true) call above has already put the default in place.
+        if (dataToSave[compoundKey] === null || dataToSave[compoundKey] === undefined) {
+            continue;
+        }
         logHHAuto(compoundKey + ':' + dataToSave[compoundKey]);
         setStoredValue(variableName, dataToSave[compoundKey]);
     }
@@ -6525,7 +6552,7 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         // Features with their own reward pool (Sultry Mysteries) pass their
         // own list name instead of the generic one.
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
-        const rewardsToCollect = getStoredJSON(inVarName, []);
+        const rewardsToCollect = getStoredArray(inVarName);
         for (const currentItem of Object.keys(possibleRewards)) {
             //console.log(currentItem,possibleRewards[currentItem]);
             if (count === 4) {
@@ -7559,6 +7586,17 @@ function myfileLoad_onReaderLoad(event) {
             storageType = key.split(".")[0];
             variableName = key.split(".")[1];
             storageItem = getStorageItem(storageType);
+            // extractHHVars serialises a never-written key as null on purpose,
+            // so a saved config carries null for every setting the user never
+            // touched. Writing that back through Web Storage stringifies it to
+            // the text "null", which JSON.parse then happily returns as null --
+            // and the next .includes() on a reward filter throws (#1846).
+            // Skipping the key leaves it unset, and setDefaults fills in the
+            // registry default on the next start.
+            if (value === null || value === undefined) {
+                logHHAuto(key + ': not set in the file, keeping the default');
+                continue;
+            }
             logHHAuto(key + ':' + value);
             storageItem[variableName] = value;
         }
@@ -13765,7 +13803,7 @@ class Season {
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
     static goAndCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoSeasonCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonCollectablesList);
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeason")) {
             Season.getRemainingTime();
             const seasonEnd = getSecondsLeft("SeasonRemainingTime");
@@ -14930,7 +14968,7 @@ class DailyGoals {
         setTimeout(DailyGoalsIcon.styles, 500);
     }
     static goAndCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList);
         //console.log(rewardsToCollect.length);
         if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true") {
             //console.log(getPage());
@@ -16675,7 +16713,7 @@ class PentaDrill {
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
     static goAndCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPentaDrillCollectablesList);
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrill")) {
             PentaDrill.getRemainingTime();
             const PentaDrillEnd = getSecondsLeft("pentaDrillRemainingTime");
@@ -21553,7 +21591,7 @@ class LivelyScene {
     }
     static parseClaimableRewards(remainingTime, manualCollectAll = false) {
         const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList);
         const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
         const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
         const projected = puzzlePieces.map((piece) => {
@@ -21769,9 +21807,21 @@ class PathOfAttraction {
                     }
                 }
                 const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
+                // parse() is the only other caller of getRemainingTime(), and it
+                // runs behind the plusEvent switch, which is off by default. So on
+                // a default profile PoARemainingTime was never set on this page.
+                PathOfAttraction.getRemainingTime();
                 const poAEnd = getSecondsLeft("PoARemainingTime");
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
-                    yield PathOfAttraction.goAndCollect(manualCollectAll);
+                // getSecondsLeft returns 0 for "no such timer" and for "already
+                // expired" alike, so 0 < limitBeforeEnd opened the collect-all gate
+                // whenever the timer was unknown (#1846). A missing timer must fail
+                // closed; the decision is passed on instead of being rebuilt from
+                // the setting inside goAndCollect.
+                const collectAllDue = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true"
+                    && poAEnd > 0
+                    && poAEnd < getLimitTimeBeforeEnd();
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || collectAllDue) {
+                    yield PathOfAttraction.goAndCollect(manualCollectAll, collectAllDue);
                 }
             }
         });
@@ -21857,14 +21907,13 @@ class PathOfAttraction {
         }
     }
     static goAndCollect() {
-        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false) {
+        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false, needToCollectAllBeforeEnd = false) {
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
             const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
-            const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true";
             if (manualCollectAll)
                 setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
             if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
-                const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoACollectablesList, []);
+                const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoACollectablesList);
                 logHHAuto("Checking Path of Attraction for collectable rewards.");
                 const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
                 const freeClaimableRewards = PathOfAttraction.getFreeClaimableRewards();
@@ -21896,13 +21945,15 @@ class PathOfAttraction {
                     yield TimeHelper.sleep(randomInterval(300, 800));
                     for (let currentTier = 1; currentTier <= numberTiers; currentTier++) {
                         if (freeClaimableTiers.includes('' + currentTier)) {
-                            if (rewardsToCollect.includes(freeClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
+                            // Unconditional modes first: they must not depend on
+                            // the selective filter being readable.
+                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(freeClaimableRewards[currentTier].type)) {
                                 yield getReward(freeClaimableRewards[currentTier]);
                                 return true;
                             }
                         }
                         if (paidClaimableTiers.includes('' + currentTier)) {
-                            if (rewardsToCollect.includes(paidClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll) {
+                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(paidClaimableRewards[currentTier].type)) {
                                 yield getReward(paidClaimableRewards[currentTier]);
                                 return true;
                             }
@@ -21994,7 +22045,7 @@ class PathOfGlory {
         return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
     }
     static getRewardButtonToCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoGCollectablesList);
         const buttonsToCollect = [];
         const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
         for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
@@ -22123,7 +22174,7 @@ class PathOfValue {
         return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
     }
     static getRewardButtonToCollect() {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoPoVCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoVCollectablesList);
         const buttonsToCollect = [];
         const listPoVTiersToClaim = $("#pov_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
@@ -22287,7 +22338,7 @@ class SeasonalEvent {
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
     }
     static goAndCollect(manualCollectAll = false) {
-        const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList, []);
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectablesList);
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDSeasonalEvent")) {
             try {
                 SeasonalEvent.getRemainingTime();
@@ -23882,7 +23933,9 @@ class Shop {
 //   - Tier-5 :  getTier5Skill
 //   - Element:  getElementPowerCoeff
 //
-// Spec: docs-internal/REVIEW_TeamSelection.md.
+// The rules these helpers encode -- rarity filter, Tier-3 trait chain,
+// Tier-5 leader priority, element coefficients -- are written out in the
+// CHANGELOG entries for v7.34 and v7.35.39.
 // Tier-5 mapping. Priority controls the leader pick (Shield > Stun > Execute > Reflect).
 const ELEMENT_TO_TIER5 = {
     light: { id: 12, name: 'Shield', priority: 4 },
@@ -24046,7 +24099,8 @@ class TeamScoringService {
 ;// ./src/Service/TeamBuilderService.ts
 // TeamBuilderService.ts -- Spec-driven team builder.
 //
-// Implements docs-internal/REVIEW_TeamSelection.md.
+// The pool layering, leader rule and slot fill are described in the
+// CHANGELOG entry for v7.35.39.
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
@@ -27262,7 +27316,7 @@ class DoublePenetration {
     }
     static goAndCollect(dpRemainingTime, manualCollectAll = false) {
         try {
-            const rewardsToCollect = getStoredJSON(HHStoredVarPrefixKey + SK.autodpEventCollectablesList, []);
+            const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autodpEventCollectablesList);
             const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
             const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
             const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
@@ -27933,7 +27987,7 @@ class SultryMysteries {
         return Number.isFinite(required) && required > 0 ? required : 15;
     }
     static getSelectedRewardTypes() {
-        return getStoredJSON(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList, []);
+        return getStoredArray(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList);
     }
     /**
      * Close the reward popup the game shows after each opened square.
@@ -35237,9 +35291,10 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
  *
- * The `lastActionPerformed` continuation is preserved during the v7.36.0
- * migration. v7.37.0 will replace it with a scheduler-internal multi-step
- * model (see docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md).
+ * The `lastActionPerformed` continuation dates from the v7.36.0 migration.
+ * The multi-step model that was meant to replace it was dropped: ADR-005
+ * records that the slot-hold rule (ADR-002) does the same job with less
+ * machinery, so this gate stays as the descriptor-level continuation.
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let
@@ -35593,9 +35648,9 @@ const handleShop = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        // Legacy lastActionPerformed continuation gate. v7.37.0 will replace
-        // this with a scheduler-internal multi-step model; see
-        // docs-internal/REVIEW_v7.37.0_Pipeline_Architecture.md.
+        // Legacy lastActionPerformed continuation gate. The multi-step model
+        // that was to replace it was dropped in favour of the slot-hold rule
+        // (ADR-002 / ADR-005), so this gate stays.
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
             return false;
         // Inner trigger -- belongs in precondition, not the step. The legacy
@@ -36617,8 +36672,7 @@ const handleChampionTicket = {
                     // champion_buy_ticket AJAX. The safeReload() inside the AJAX
                     // callback later sets autoLoop=false a second time -- the
                     // second write is idempotent and serves the separate purpose of
-                    // suppressing ticks during the reload itself. See ChampionTicket
-                    // race-window discussion in REVIEW_AutoLoop_Findings.md F1.
+                    // suppressing ticks during the reload itself.
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, 'false');
                     logHHAuto('setting autoloop to false');
                     ctx.busy = true;

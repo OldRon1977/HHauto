@@ -13,7 +13,7 @@ import { getHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, TimeHelper } from "../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { pInfoRow } from "../Utils/PInfoRow";
@@ -228,7 +228,7 @@ export class PentaDrill {
 
     static goAndCollect()
     {
-        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoPentaDrillCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoPentaDrillCollectablesList);
 
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPentaDrill"))
         {

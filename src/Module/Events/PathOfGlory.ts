@@ -13,7 +13,7 @@ import { HeroHelper } from "../../Helper/HeroHelper";
 import { getHHVars } from "../../Helper/HHHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
@@ -42,7 +42,7 @@ export class PathOfGlory {
         return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
     }
     static getRewardButtonToCollect(): HTMLElement[] {
-        const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey + SK.autoPoGCollectablesList, []);
+        const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey + SK.autoPoGCollectablesList);
 
         const buttonsToCollect: HTMLElement[] = [];
         const listPoGTiersToClaim = $("#pog_tab_container div.potions-paths-second-row div.potions-paths-central-section div.potions-paths-tier.unclaimed");

@@ -72,6 +72,22 @@ export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: s
 }
 
 /**
+ * Array-typed settings read back through a runtime check.
+ *
+ * getStoredJSON hands back whatever JSON.parse produced -- the type
+ * parameter is erased at runtime. The stored text "null" parses fine, so a
+ * <string[]> annotation can still yield null, and the next .includes() throws
+ * (#1846). extractHHVars deliberately serialises never-written keys as null,
+ * and debugDeleteTempVars writes that snapshot back through setStoredValue,
+ * where Web Storage stringifies it -- so "null" is a state the code produces
+ * itself, not only a hand-edited config.
+ */
+export function getStoredArray<T>(key: string): T[] {
+    const parsed = getStoredJSON<unknown>(key, []);
+    return Array.isArray(parsed) ? parsed as T[] : [];
+}
+
+/**
  * Returns the active "default" storage based on the settPerTab toggle.
  * When settPerTab is "true", per-tab isolation is on: every Storage()
  * key lives in sessionStorage and is therefore tab-local.
@@ -354,6 +370,14 @@ export function debugDeleteTempVars()
     for (const compoundKey of Object.keys(dataToSave))
     {
         const variableName = compoundKey.split(".")[1];
+        // Same reason as in the config importer: extractHHVars marks a
+        // never-written key with null, and setStoredValue would turn that into
+        // the string "null" in Web Storage (#1846). Leave the key unset -- the
+        // setDefaults(true) call above has already put the default in place.
+        if (dataToSave[compoundKey] === null || dataToSave[compoundKey] === undefined)
+        {
+            continue;
+        }
         logHHAuto(compoundKey + ':' + dataToSave[compoundKey]);
         setStoredValue(variableName, dataToSave[compoundKey]);
     }
@@ -372,7 +396,7 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
         // Features with their own reward pool (Sultry Mysteries) pass their
         // own list name instead of the generic one.
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
-        const rewardsToCollect = getStoredJSON<string[]>(inVarName, []);
+        const rewardsToCollect = getStoredArray<string>(inVarName);
         for (const currentItem of Object.keys(possibleRewards))
         {
             //console.log(currentItem,possibleRewards[currentItem]);

@@ -13,12 +13,11 @@ import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
-import { getStoredValue, getStoredJSON, setStoredValue } from "../../Helper/StorageHelper";
+import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { TimeHelper, randomInterval, convertTimeToInt, getLimitTimeBeforeEnd } from "../../Helper/TimeHelper";
 import { getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { autoLoop } from "../../Service/AutoLoop";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
@@ -102,9 +101,21 @@ export class PathOfAttraction {
             }
 
             const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
+            // parse() is the only other caller of getRemainingTime(), and it
+            // runs behind the plusEvent switch, which is off by default. So on
+            // a default profile PoARemainingTime was never set on this page.
+            PathOfAttraction.getRemainingTime();
             const poAEnd = getSecondsLeft("PoARemainingTime");
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || poAEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
-                await PathOfAttraction.goAndCollect(manualCollectAll);
+            // getSecondsLeft returns 0 for "no such timer" and for "already
+            // expired" alike, so 0 < limitBeforeEnd opened the collect-all gate
+            // whenever the timer was unknown (#1846). A missing timer must fail
+            // closed; the decision is passed on instead of being rebuilt from
+            // the setting inside goAndCollect.
+            const collectAllDue = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true"
+                && poAEnd > 0
+                && poAEnd < getLimitTimeBeforeEnd();
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || collectAllDue) {
+                await PathOfAttraction.goAndCollect(manualCollectAll, collectAllDue);
             }
         }
     }
@@ -198,16 +209,15 @@ export class PathOfAttraction {
         }
     }
 
-    static async goAndCollect(manualCollectAll = false)
+    static async goAndCollect(manualCollectAll = false, needToCollectAllBeforeEnd = false)
     {
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
-        const needToCollectAllBeforeEnd = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true";
         if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
 
         if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll)
         {
-            const rewardsToCollect = getStoredJSON<string[]>(HHStoredVarPrefixKey+SK.autoPoACollectablesList, []);
+            const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoPoACollectablesList);
     
             logHHAuto("Checking Path of Attraction for collectable rewards.");
             
@@ -246,7 +256,9 @@ export class PathOfAttraction {
                 for (let currentTier = 1 ; currentTier <= numberTiers; currentTier++)
                 {
                     if(freeClaimableTiers.includes(''+currentTier)) {
-                        if (rewardsToCollect.includes(freeClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll)
+                        // Unconditional modes first: they must not depend on
+                        // the selective filter being readable.
+                        if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(freeClaimableRewards[currentTier].type))
                         {
                             await getReward(freeClaimableRewards[currentTier]);
                             return true;
@@ -254,7 +266,7 @@ export class PathOfAttraction {
                     }
 
                     if(paidClaimableTiers.includes(''+currentTier)) {
-                        if (rewardsToCollect.includes(paidClaimableRewards[currentTier].type) || needToCollectAllBeforeEnd || manualCollectAll)
+                        if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(paidClaimableRewards[currentTier].type))
                         {
                             await getReward(paidClaimableRewards[currentTier]);
                             return true;

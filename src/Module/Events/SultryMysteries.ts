@@ -13,7 +13,7 @@ import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";
 import { getPage } from "../../Helper/PageHelper";
-import { getStoredJSON, getStoredValue } from "../../Helper/StorageHelper";
+import { getStoredArray, getStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../../Service/PageNavigationService";
@@ -133,7 +133,7 @@ export class SultryMysteries {
     }
 
     static getSelectedRewardTypes(): string[] {
-        return getStoredJSON<string[]>(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList, []);
+        return getStoredArray<string>(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList);
     }
 
     /**
