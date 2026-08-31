@@ -51,3 +51,26 @@ describe("HHStoredVars isValid regexes", function () {
         });
     });
 });
+
+describe("maxBooster -- the retired setting (#1844)", () => {
+    const entry = () => (HHStoredVars as Record<string, Record<string, unknown>>)[HHStoredVarPrefixKey + SK.maxBooster];
+
+    it("is still registered, so the migration can delete the stored value", () => {
+        // deleteStoredValue is a no-op for an unregistered key. Removing the
+        // entry outright would strand the old value in storage for good.
+        expect(entry()).toBeDefined();
+        expect(entry().storage).toBeDefined();
+    });
+
+    it("has no default, or setDefaults would re-create it on every page load", () => {
+        // Measured in a live 8.11.0 log: with a default in place the migration
+        // deleted the key and the setDefaults() call right after put it back,
+        // once per page load, forever.
+        expect(entry().default).toBeUndefined();
+    });
+
+    it("has no menu entry, since the amounts live in the buy list now", () => {
+        expect(entry().getMenu).toBeUndefined();
+        expect(entry().setMenu).toBeUndefined();
+    });
+});

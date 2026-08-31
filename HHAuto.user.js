@@ -3977,17 +3977,23 @@ HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
         kobanUsing: false
     };
 // Replaced by the amounts in autoBuyBoostersFilter (#1844). The key stays
-// registered without a menu entry for one release so the migration in
-// StartService can still delete the stored value -- deleteStoredValue is a
-// no-op for an unregistered key, so removing it here first would leave the
-// value behind for good. Remove the whole entry in the release after.
+// registered for one release so the migration in StartService can delete the
+// stored value -- deleteStoredValue is a no-op for an unregistered key, so
+// removing the entry outright would strand the value. Remove it entirely in
+// the release after.
+//
+// Deliberately WITHOUT a default and without a menu entry. setDefaults
+// re-creates every registered key that has a default and is missing, on every
+// page load, so leaving the default in place had the migration delete the key
+// and setDefaults put it straight back -- once per page load, forever, with a
+// log line each time. Seen in a live 8.11.0 log. With no default, the "else"
+// branch of setDefaults applies: nothing is created, and a forced run removes
+// the key instead.
 HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
     {
-        default: "10",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Long Integer",
-        menuType: "value",
         kobanUsing: false
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.maxExp] =
