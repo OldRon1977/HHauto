@@ -205,3 +205,13 @@ prototype is reliable. You then see whether the script *wanted* to collect,
 without it collecting. Used this way in the #1846 verification: the run logged
 `Going to get {"tier":3,...}` and two intercepted clicks, and the reward stayed
 where it was.
+
+`~/.config/hhauto-claude/tools/live-collect-verify.js` does this out of the
+box: it opens a visible window, waits for the login, then runs a list of cases
+against two builds on the same live page with the click interception in place,
+and reports per case whether the collection gate was entered and whether a
+reward was touched. Both verdicts are derived from the console output rather
+than from page variables, so a navigation mid-run does not silently produce an
+empty result -- it is reported instead. Bundles, page URL and the containers to
+block are environment variables; build the comparison bundle with
+`git show <ref>:HHAuto.user.js > /tmp/HHAuto.baseline.user.js`.
