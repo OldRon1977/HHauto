@@ -27,9 +27,9 @@
 // for selecting which reward types to auto-collect.
 //
 // External callers MUST use getStoredValue / setStoredValue /
-// deleteStoredValue / getStoredJSON. Direct access to localStorage or
-// sessionStorage is reserved for the storage adapter itself, the
-// ForbiddenBackoff backoff path (see _lessons/zirkulaerer-import-tdz-
+// deleteStoredValue / getStoredJSON / getStoredArray. Direct access to
+// localStorage or sessionStorage is reserved for the storage adapter
+// itself, the ForbiddenBackoff backoff path (see _lessons/zirkulaerer-import-tdz-
 // crash.md -- it must not import HHStoredVars to keep the dependency
 // graph cycle-free), and game-side state that the script does not own
 // (e.g. localStorage.sort_by, set by the game's harem UI). Anything
@@ -65,6 +65,15 @@ function setDefaults(forceDefault?: boolean) {
     setDefaultsRef(forceDefault);
 }
 
+/**
+ * Parse a stored JSON value, falling back to defaultValue.
+ *
+ * The fallback covers a MISSING key and BROKEN JSON -- nothing else. T is
+ * erased at runtime, so a stored "null", "5" or "{}" parses successfully and
+ * is handed back as-is, whatever the annotation claims. For array-typed
+ * settings use getStoredArray, which checks; #1846 was a <string[]> read that
+ * returned null and threw on the next .includes().
+ */
 export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: string, value: any) => any): T {
     const val = getStoredValue(key);
     if (val === undefined || val === null) return defaultValue;
@@ -77,10 +86,12 @@ export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: s
  * getStoredJSON hands back whatever JSON.parse produced -- the type
  * parameter is erased at runtime. The stored text "null" parses fine, so a
  * <string[]> annotation can still yield null, and the next .includes() throws
- * (#1846). extractHHVars deliberately serialises never-written keys as null,
- * and debugDeleteTempVars writes that snapshot back through setStoredValue,
- * where Web Storage stringifies it -- so "null" is a state the code produces
- * itself, not only a hand-edited config.
+ * (#1846). That "null" is a state the script used to produce itself, not just
+ * a hand-edited config: extractHHVars serialises never-written keys as null on
+ * purpose, saveHHVarsSettingsAsJSON exports them that way, and both the config
+ * importer and debugDeleteTempVars wrote them back into Web Storage, which
+ * stringifies them. Both writers skip null since 8.10.1, but profiles carrying
+ * the old value are still out there, so the read stays guarded.
  */
 export function getStoredArray<T>(key: string): T[] {
     const parsed = getStoredJSON<unknown>(key, []);

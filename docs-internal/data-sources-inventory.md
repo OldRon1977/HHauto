@@ -414,6 +414,7 @@ Entfernt am 2026-08-17: zwei Zeilen fuer `.matchRating-expected .matchRating-val
 ## 7. localStorage / Storage-Keys
 
 getStoredValue / getStoredJSON lesen, setStoredValue schreibt, deleteStoredValue loescht.
+Array-typisierte Settings ueber getStoredArray lesen -- getStoredJSON gibt bei gespeichertem "null" null zurueck statt des Defaults (Issue #1846, siehe storage-keys.md).
 Alle Keys sind mit HHStoredVarPrefixKey (Default: HHAuto_) praefixiert; das Praefix wird in den Tabellen unten weggelassen.
 Wichtig: Nicht in HHStoredVars.ts registrierte Keys werden lautlos verworfen.
 

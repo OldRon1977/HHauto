@@ -62,9 +62,23 @@ Fakten aus dem Code-Stand v7.35.21:
 - `getStoredValue(key)` -- Wert lesen. Gibt `undefined` zurueck wenn der Key nicht in `HHStoredVars` registriert ist.
 - `setStoredValue(key, value)` -- Wert schreiben. Bei Storage-Voll-Fehler: einmaliger Cleanup-Retry. Unregistrierte Keys werden ohne Fehler verworfen.
 - `deleteStoredValue(key)` -- Wert loeschen.
-- `getStoredJSON<T>(key, default, reviver?)` -- JSON parsen mit Default-Fallback bei Parse-Fehler.
+- `getStoredJSON<T>(key, default, reviver?)` -- JSON parsen mit Default-Fallback bei Parse-**Fehler**. Achtung: Der Typparameter ist zur Laufzeit geloescht. `JSON.parse` gelingt auch bei `"null"`, `"5"` oder `"{}"`, also liefert ein `<string[]>`-Lesen genau diese Werte zurueck statt des Defaults. Der Default greift nur, wenn der Key fehlt oder das JSON kaputt ist.
+- `getStoredArray<T>(key)` -- Array-typisierte Settings lesen. Prueft `Array.isArray()` und gibt sonst `[]` zurueck. Fuer jede Einstellung benutzen, auf deren Ergebnis `.includes()` o. ae. aufgerufen wird (siehe unten).
 - `getStorage()` -- aktueller Default-Storage abhaengig von `SK.settPerTab`.
 - `getStorageItem(type)` -- Auflöser fuer `"localStorage"` / `"sessionStorage"` / `"Storage()"`.
+
+### Der Wert `"null"` (Issue #1846)
+
+`extractHHVars` serialisiert einen nie geschriebenen Key absichtlich als `null`, damit ein Debug-Log
+"nie gesetzt" von "nicht exportiert" unterscheiden kann. `saveHHVarsSettingsAsJSON` benutzt dieselbe
+Funktion, der Config-Import schrieb diese Nullwerte frueher direkt in den Web Storage -- der daraus den
+String `"null"` macht. Ein simpler Speichern/Laden-Durchlauf der Einstellungsdatei genuegte also, um
+jede unberuehrte Einstellung auf `"null"` zu setzen; `setDefaults` repariert das nicht, weil die
+Listen-Settings keine `isValid`-Regex haben.
+
+Seit 8.10.1 ueberspringen der Importer (`myfileLoad_onReaderLoad`) und `debugDeleteTempVars` Nullwerte,
+und die Listen werden ueber `getStoredArray` gelesen. Wer eine neue Array-Einstellung anlegt: `getStoredArray`
+benutzen, nicht `getStoredJSON<T[]>(key, [])`.
 
 ### Registrierungspflicht
 

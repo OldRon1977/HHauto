@@ -188,5 +188,20 @@ The older harness scripts live outside the repo (they carry a logged-in browser
 profile): `~/.config/hhauto-claude/tools/`. They inject the built
 `HHAuto.user.js` with Tampermonkey shims (`GM_addStyle`, `GM.info`,
 `unsafeWindow`) via `addInitScript`, so the script survives navigations the way
-it does under Tampermonkey. `HHAuto_Setting_master = "false"` gates the entire
-AutoLoop and is a working dry-run switch.
+it does under Tampermonkey.
+
+`HHAuto_Setting_master = "false"` is **not** a complete dry-run switch, contrary
+to what this document said until 2026-08-31. `handlePageSpecific` runs outside
+the master gate in `AutoLoop.ts`, so the page handlers fire regardless:
+`PathOfAttraction.run()` reaches `goAndCollect()` and clicks real rewards away
+in the account you are testing with. The gate covers the action pipeline, not
+the page-specific UI handlers.
+
+To measure a collection routine without collecting, wrap `jQuery.fn.trigger`
+**before** injecting the bundle and swallow `click` on elements below the
+containers in question (`#events`, `#poa-content`), logging them instead. The
+bundle carries no jQuery of its own and uses the page's, so patching the
+prototype is reliable. You then see whether the script *wanted* to collect,
+without it collecting. Used this way in the #1846 verification: the run logged
+`Going to get {"tier":3,...}` and two intercepted clicks, and the reward stayed
+where it was.

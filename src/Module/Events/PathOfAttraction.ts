@@ -73,6 +73,10 @@ export class PathOfAttraction {
         logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
 
         let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
+        // No `poAEnd > 0` guard here, unlike run(): this only shortens the
+        // refresh interval, so an unknown remaining time costs a needless early
+        // recheck rather than an unwanted collection. run() has to fail closed
+        // because its comparison decides whether rewards are claimed (#1846).
         if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
             refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
         }
