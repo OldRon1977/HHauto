@@ -32207,39 +32207,11 @@ const FEATURE_POPUP_CONTENT = `
   <div style="padding:10px; max-width:520px; color:#333;">
 
     <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Boosters to buy: one field, one amount each</p>
-    <p style="margin-bottom:10px;">The <i>Filter</i> and <i>Max Booster</i> settings are now a single field. Each booster carries the number you want to keep, written after a colon: <code>MB1:5;B4:50;MB6:2</code> &mdash; no spaces. Equipped boosters do not count towards it, <code>0</code> means no limit as before, and a booster you do not list is never bought. <b>Your existing setting was carried over</b> &mdash; the old filter and the old number were combined for you, so nothing changes about what gets bought.<br>One thing is new: if the field turns <b style="color:#c33;">red</b>, buying boosters stops until you correct it. A list that cannot be read would otherwise have to guess, and guessing here spends kobans. Everything else, equipping included, carries on.</p>
+    <p style="margin-bottom:10px;">The <i>Filter</i> and <i>Max Booster</i> settings are now a single field. Each booster carries the number you want to keep, written after a colon: <code>MB1:5;B4:50;MB6:2</code> &mdash; no spaces, and each booster only once. Equipped boosters do not count towards it, <code>0</code> means no limit as before, and a booster you do not list is never bought.</p>
+    <p style="margin-bottom:10px;"><b>Your existing setting was carried over</b> &mdash; the old filter and the old number were combined for you, so nothing changes about what gets bought.</p>
+    <p style="margin-bottom:10px;">One thing is new: if the field turns <b style="color:#c33;">red</b>, buying boosters stops until you correct it. A list that cannot be read would otherwise have to guess, and guessing here spends kobans. Everything else, equipping included, carries on.</p>
 
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">One activity at a time</p>
-    <p style="margin-bottom:10px;">The script used to hop: one troll fight, one season fight, one pantheon fight, round and round. It now stays on an activity until that activity is done &mdash; out of energy, threshold reached, timer set &mdash; and only then moves on. Collecting still cuts in whenever it is due, so nothing expires while a fight is running.</p>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">The menu says what is running</p>
-    <p style="margin-bottom:6px;">Every block in the settings menu now carries a coloured dot on its heading, and each area a count on the left.</p>
-    <ul style="margin-bottom:10px; font-size:12px;">
-      <li><b style="color:#090;">Green</b> &mdash; this block runs.</li>
-      <li><b style="color:#d90;">Amber</b> &mdash; set up but it will not run: something here is configured while the switch that starts it is off. This is the forgotten toggle.</li>
-      <li><b style="color:#c33;">Red</b> &mdash; nothing here is switched on.</li>
-    </ul>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">A typeface made for numbers</p>
-    <p style="margin-bottom:10px;">The menu brings its own font now, IBM Plex Sans, instead of borrowing whatever the game uses. The reason is the digits: they were hard to tell apart in the number fields, especially in a small window. Plex&rsquo;s digits are all the same width, so a field sized for 17 digits really holds 17. It applies to the script&rsquo;s own panels only &mdash; the game itself is untouched &mdash; and the font travels inside the script, so nothing is loaded from a font server.</p>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">+Girl Skins now covers event villains</p>
-    <p style="margin-bottom:10px;">It worked for love raids but stopped at event villains, mythic ones included. With the switch on, an event girl you already own stays a target while one of her skins is still missing.</p>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">A Sandalwood for a skin &mdash; only if you say so</p>
-    <p style="margin-bottom:10px;">Once a girl is won and only her skin is left, the script kept putting a fresh Sandalwood on, and with +Girl Skins <b>off</b> it kept fighting her at all &mdash; the shard count was only refreshed on the next visit to the event page. Both are fixed: the count is read after every fight, a finished girl is dropped as a target straight away, and a new switch <b>Equip Sandalwood</b> under <i>Shards &amp; skins</i> decides whether a perfume may be spent on a skin. It is off by default &mdash; a Sandalwood is a mythic booster. The three Equip Sandalwood switches next to +Event, +Mythic Event and +Raid keep their meaning: they are for winning the girl.</p>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">The debug log now holds a whole night</p>
-    <p style="margin-bottom:10px;">The log kept the last 5000 lines, which in a busy session is about half an hour &mdash; too short for anything that only shows itself overnight. It is written differently now and keeps six hours and more, using as much room as your browser allows. Saving it works exactly as before and the file looks the same. If you report a bug that takes a while to appear, the log will have it.</p>
-
-    <p style="font-size:15px; font-weight:bold; margin-bottom:6px; color:#090;">Espa&ntilde;ol &middot; Fran&ccedil;ais &middot; Deutsch</p>
-    <p style="margin-bottom:10px; padding:8px 10px; border-left:3px solid #090; background:#f2faf2;">
-      All three menu languages have been reworked and are now complete &mdash; every setting, every tooltip.
-      Spanish and French were about a third translated before.<br>
-      <b>Corrections are very welcome.</b> If a term is wrong or reads oddly in your language, open an issue
-      or comment &mdash; a native speaker&rsquo;s eye is the one thing this cannot be done without.</p>
-
-    <p style="margin-bottom:0; font-size:11px; color:#888;">No settings are reset and nothing was removed from the menu. Full details in the CHANGELOG.</p>
+    <p style="margin-bottom:0; font-size:11px; color:#888;">The <i>Max Booster</i> field is gone from the menu &mdash; its number lives in the list now. No other setting was changed. Full details in the CHANGELOG.</p>
   </div>
 `;
 class FeaturePopupService {
