@@ -7,6 +7,57 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.10.1 - Reward collection no longer trips over an unset filter
+
+Four bug fixes. The first two come from issue #1846, reported by Gargoso and
+reproduced in the browser on `path_event_109`; the other two are about the
+reward ads.
+
+**Path of Attraction stopped the script instead of collecting**
+
+A reward filter that had never been set could be stored as the text `null`.
+Path of Attraction read it as a list and asked it whether it contained the
+reward type -- before checking the two modes that do not need a filter at all.
+With *Collect all before event end* on, the run disabled the automation loop,
+then threw, and nothing else ran afterwards. The filter is now read through a
+check that turns anything but an array into an empty list, and the two
+unconditional modes are asked first.
+
+The same read is now used by the other nine reward filters -- Daily Goals,
+Penta Drill, Season, Seasonal, Path of Glory, Path of Value, Lively Scene,
+Double Penetration, Sultry Mysteries -- and by the reward selection popup
+itself, which would otherwise have thrown when you opened it to repair the
+setting.
+
+**Where the `null` came from.** Saving your settings writes `null` for every
+option you never touched, on purpose, so the file shows what was never set
+rather than dropping the line. Loading that file back wrote those nulls into
+storage, where they became the text `null`. The importer now skips them, so
+the option keeps its default. The *Delete temp vars* debug button did the same
+thing and was fixed with it. If a filter in your profile is already in this
+state, opening its selection popup and saving once clears it.
+
+**Collect all before event end ran at any distance from the end**
+
+The remaining time was read from a timer that Path of Attraction only set
+while *+Event* was on -- off by default. Without it the remaining time came
+back as zero, and zero is less than any threshold, so automatic collect-all
+started whether the event ended in one hour or in a day. Measured against a
+live event with three hours left and a one-hour threshold: the old build
+collected, the new one does not. The event page now reads its own timer, and
+an unknown remaining time no longer counts as "about to end".
+
+**Reward ads**
+
+- The ad cycle clicked the first *Try it now* button in the page, including
+  the one inside a cross-promo popup that is closed but still in the DOM.
+  Clicking that one credits no reward and leaves the visible ad untouched, on
+  every retry. It now only considers buttons you can see.
+- The ad block sat second-to-last in the pipeline, behind blocks that hold
+  their slot for minutes at a time. Measured on comixharem: an ad visible at
+  13:03 was clicked at 13:12:43. It now runs early, and only claims a slot
+  when there is an ad on the page.
+
 ### v8.10.0 - A menu that fits every language, and one activity at a time
 
 The settings menu is no longer three fixed-width columns, the script no longer
