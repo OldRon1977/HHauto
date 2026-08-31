@@ -10,6 +10,8 @@
 // undefined and Market.doShopping bailed out on its very first guard.
 // decideCheckShop adds that third reason.
 
+import { hasBuyableBoosters } from "./Market.pure";
+
 export type CheckShopState = {
     /** Setting_updateMarket === "true". */
     updateMarket: boolean;
@@ -20,7 +22,7 @@ export type CheckShopState = {
      * the spendKobans0 master switch is off (kobanUsing in HHStoredVars).
      */
     autoBuyBoosters: boolean;
-    /** Raw Setting_autoBuyBoostersFilter value (";"-separated codes). */
+    /** Raw Setting_autoBuyBoostersFilter value (";"-separated "code:amount" pairs). */
     autoBuyBoostersFilter: string;
     /** Setting_paranoia === "true". */
     paranoia: boolean;
@@ -36,7 +38,10 @@ export type CheckShopState = {
  */
 export function needsStoreContentsForBuying(state: CheckShopState): boolean {
     if (!state.autoBuyBoosters) return false;
-    return String(state.autoBuyBoostersFilter ?? "").split(";").some((code) => code.trim().length > 0);
+    // An empty list has nothing to shop for, and an unreadable one buys
+    // nothing either (#1844) -- walking to the market for either would be a
+    // navigation per cycle with no purchase at the end of it.
+    return hasBuyableBoosters(state.autoBuyBoostersFilter);
 }
 
 /**

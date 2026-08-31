@@ -69,7 +69,11 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoosters] =
 };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoostersFilter] =
     {
-    default:"B1;B2;B3;B4",
+    // "code:amount" pairs since 8.10.2 (#1844). The default is the old
+    // "B1;B2;B3;B4" filter times the old "Max Booster" default of 10, so a
+    // fresh install behaves exactly as it did -- and buys nothing at all
+    // until autoBuyBoosters is switched on, which defaults to false.
+    default:"B1:10;B2:10;B3:10;B4:10",
     storage:"Storage()",
     HHType:"Setting",
     valueType:"List",
@@ -1224,14 +1228,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
     menuType:"value",
     kobanUsing:false
 };
+// Replaced by the amounts in autoBuyBoostersFilter (#1844). The key stays
+// registered without a menu entry for one release so the migration in
+// StartService can still delete the stored value -- deleteStoredValue is a
+// no-op for an unregistered key, so removing it here first would leave the
+// value behind for good. Remove the whole entry in the release after.
 HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
     {
     default:"10",
     storage:"Storage()",
     HHType:"Setting",
     valueType:"Long Integer",
-    getMenu:true,
-    setMenu:true,
     menuType:"value",
     kobanUsing:false
 };

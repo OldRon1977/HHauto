@@ -41,7 +41,7 @@ const CONTROL_IDS_BEFORE_8_10 = [
     'collectEventChest', 'compactDailyGoals', 'compactEndedContests', 'compactMissions',
     'compactPowerPlace', 'eventTrollOrder', 'hideOwnedGirls', 'invertMissions',
     'kobanBank', 'leagueListDisplayPowerCalc', 'loveRaidSelector', 'master',
-    'maxAff', 'maxBooster', 'maxExp', 'minShardsX10',
+    'maxAff', 'maxExp', 'minShardsX10',
     'minShardsX50', 'mousePause', 'mousePauseTimeout', 'paranoia',
     'paranoiaSpendsBefore', 'pipelineDiagnose', 'plusEvent', 'plusEventLoveRaidSandalWood',
     'plusEventMythic', 'plusEventMythicSandalWood', 'plusEventSandalWood', 'plusGirlSkins',

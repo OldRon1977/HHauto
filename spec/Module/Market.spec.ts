@@ -189,7 +189,7 @@ describe("Market.doShopping", () => {
             // must be on for getStoredValue to report the real setting.
             setStoredValue(HHStoredVarPrefixKey + SK.spendKobans0, "true");
             setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoosters, "true");
-            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1");
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:10");
         });
 
         it("buys a filtered legendary koban booster and tracks the inventory", () => {
@@ -214,8 +214,67 @@ describe("Market.doShopping", () => {
             expect(storedShop()[1]).toHaveLength(2);
         });
 
-        it("does not buy boosters that are not in the filter", () => {
-            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B9");
+        it("does not buy a booster that is not listed", () => {
+            // MB5 is a real code, just not one the cached shop offers.
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "MB5:10");
+            Market.doShopping();
+            expect(ajaxSpy).not.toHaveBeenCalled();
+        });
+
+        // ---------------------------------------------------------- #1844
+
+        it("stops at the amount written behind the booster", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:2");
+            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify({ B1: 2 }));
+            Market.doShopping();
+            expect(ajaxSpy).not.toHaveBeenCalled();
+        });
+
+        it("buys while the inventory is still below that amount", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:2");
+            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify({ B1: 1 }));
+            Market.doShopping();
+            expect(ajaxSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("treats 0 as no limit, the way the old Max Booster field did", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:0");
+            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify({ B1: 500 }));
+            Market.doShopping();
+            expect(ajaxSpy).toHaveBeenCalledTimes(1);
+        });
+
+        it("applies each booster's own amount rather than one shared limit", () => {
+            // The fixture's B2 is "rare" and the loop only takes legendary or
+            // mythic, so it is promoted here to have a second buyable booster.
+            const shop = storedShop();
+            shop[1][1].item.rarity = "legendary";
+            setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify(shop));
+            // B1 has reached its own amount, B2 has not: only B2 may be bought.
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:1;B2:5");
+            setStoredValue(HHStoredVarPrefixKey + TK.haveBooster, JSON.stringify({ B1: 1, B2: 0 }));
+            Market.doShopping();
+            expect(ajaxSpy).toHaveBeenCalledTimes(1);
+            expect(ajaxSpy).toHaveBeenCalledWith(
+                expect.objectContaining({ action: "market_buy", id_item: "317" }),
+                expect.any(Function)
+            );
+        });
+
+        it("buys nothing at all when the list cannot be read", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:10;nonsense");
+            Market.doShopping();
+            expect(ajaxSpy).not.toHaveBeenCalled();
+        });
+
+        it("buys nothing when a booster is listed twice, because the amount is then unclear", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "B1:10;B1:2");
+            Market.doShopping();
+            expect(ajaxSpy).not.toHaveBeenCalled();
+        });
+
+        it("buys nothing when the list is empty", () => {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, "");
             Market.doShopping();
             expect(ajaxSpy).not.toHaveBeenCalled();
         });

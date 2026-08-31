@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.10.1
+// @version      8.11.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -302,7 +302,7 @@ HHAuto_ToolTips.en['autoActivitiesTitle'] = { version: "8.10.42", elementText: "
 HHAuto_ToolTips.en['buyCombat'] = { version: "8.10.42", elementText: "Buy comb. for event", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>If enabled : <br>Buying combat point during last X hours of event (if not going under Koban bank value), this will bypass threshold if event girl shards available." };
 HHAuto_ToolTips.en['buyCombTimer'] = { version: "5.6.24", elementText: "Hours to buy Event Combs.", tooltip: "(Integer)<br>X last hours of event" };
 HHAuto_ToolTips.en['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & Leg. Boosters", tooltip: "<p style='color:red'>/!\\ Kobans spending function /!\\<br>(" + HHAuto_ToolTips.en['spendKobans0'].elementText + " must be ON)</p>Allow to buy booster in the market (if not going under Koban bank value)" };
-HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Values separated by ; &mdash; the order is respected.</span><p>Codes of the boosters to buy.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
+HHAuto_ToolTips.en['autoBuyBoostersFilter'] = { version: "8.10.2", elementText: "Boosters to buy", tooltip: "<span class=\"tipHint\">One entry per booster: <code>code:amount</code>, entries separated by <code>;</code></span><p>The amount is how many of that booster to keep in the inventory. Equipped boosters do not count. <code>0</code> means no limit. A booster that is not listed is never bought, and an empty field buys nothing at all.</p><p>Valid: <code>MB1:5;MB2:0;MB5:3</code> &mdash; spaces around the <code>:</code> are allowed, around the <code>;</code> they are not.</p><p>Not valid: <code>MB1:5;MB2</code> (no amount), <code>MB1:5;MB1:2</code> (listed twice).</p><p><b>A red field stops the buying</b> until it is corrected. Nothing else is affected &mdash; equipping boosters carries on.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.en['autoEquipBoosters'] = { version: "7.30.0", elementText: "Auto-Equip", tooltip: "Automatically equip legendary boosters from inventory when a slot is empty or expired.<br>Does NOT buy boosters, only equips from existing inventory." };
 HHAuto_ToolTips.en['autoEquipBoostersSlots'] = { version: "7.30.0", elementText: "Slot Config", tooltip: "(1-4 values separated by ;)<br>Define which booster to equip for each normal booster slot.<br>B1:Ginseng<br>B2:Jujubes<br>B3:Chlorella<br>B4:Cordyceps<br>Example: B1;B1;B2;B4" };
 HHAuto_ToolTips.en['autoEquipMythicBooster'] = { version: "8.3.0", elementText: "Mythic Slot", tooltip: "<span class=\"tipHint\">Codes separated by ; &mdash; list as many as you like.</span><p>Mythic boosters to keep equipped, <b>in priority order</b>. The game has <b>5 mythic slots</b> (one booster per kind), so at most 5 of your list end up on. The script walks the list from the top and fills every free slot with the first ones you own.</p><p>Listing all 12 is fine and is the point: it means <i>take whichever of these I happen to have</i>. An empty field turns it off.<br>Example: <code>MB1;MB2;MB5;MB8;MB12</code></p><p>Nothing is bought, and a booster already equipped is never replaced.</p><p><b>Sandalwood:</b> while any Sandalwood auto-equip (+Event / +Mythic / +Raid) is on, MB1 belongs to that automation &mdash; it is ignored here even if you type it, and one slot stays free. Your list then fills at most 4 of the 5. That is what guarantees a slot is available when Sandalwood is wanted, and that it is checked before the fight. With all those options off, MB1 is an ordinary entry and the list gets all five slots.</p><ul class=\"tipCodes\"><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
@@ -716,7 +716,7 @@ HHAuto_ToolTips.fr['kobanBank'] = { version: "5.6.24", elementText: "Kobans à c
 HHAuto_ToolTips.fr['buyCombat'] = { version: "8.10.42", elementText: "Acheter comb. pour événement", tooltip: "<p style='color:red'>/!\\ Dépense des Kobans /!\\<br>(" + HHAuto_ToolTips.fr['spendKobans0'].elementText + " doit être activé)</p>Si activé : <br>recharge automatiquement les points de combat durant les X dernières heures de l'événement (sans faire passer sous la valeur de la réserve de Kobans)" };
 HHAuto_ToolTips.fr['buyCombTimer'] = { version: "5.6.24", elementText: "Heures d'achat comb.", tooltip: "(Nombre entier)<br>X dernières heures de l'événement" };
 HHAuto_ToolTips.fr['autoBuyBoosters'] = { version: "5.6.25", elementText: "Boosters myth. et lég.", tooltip: "<p style='color:red'>/!\\ Fonction dépensant des kobans /!\\<br>(" + HHAuto_ToolTips.fr['spendKobans0'].elementText + " doit être activé)</p>Permet d'acheter des boosters au marché (si cela ne passe pas sous la valeur de la banque de kobans)." };
-HHAuto_ToolTips.fr['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filtre", tooltip: "<span class=\"tipHint\">Valeurs séparées par ; &mdash; l'ordre est respecté.</span><p>Codes des boosters à acheter.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Parfum de santal</li><li><code>MB2</code> Emblème de maîtrise totale</li><li><code>MB3</code> Bandeau de la détermination</li><li><code>MB4</code> Montre luxueuse</li><li><code>MB5</code> Cannelle combative</li><li><code>MB6</code> Souvenirs de voyage d'Alban</li><li><code>MB7</code> Parfum de sperme d'anges</li><li><code>MB8</code> Emblème de maîtrise des ligues</li><li><code>MB9</code> Emblème de maîtrise des saisons</li><li><code>MB10</code> Détecteur de gemmes</li><li><code>MB11</code> Pétard</li><li><code>MB12</code> Aura brillante</li></ul>" };
+HHAuto_ToolTips.fr['autoBuyBoostersFilter'] = { version: "8.10.2", elementText: "Boosters à acheter", tooltip: "<span class=\"tipHint\">Une entrée par booster&nbsp;: <code>code:quantité</code>, entrées séparées par <code>;</code></span><p>La quantité est le nombre à garder dans l'inventaire. Les boosters équipés ne comptent pas. <code>0</code> signifie sans limite. Un booster non listé n'est jamais acheté, et un champ vide n'achète rien.</p><p>Valide&nbsp;: <code>MB1:5;MB2:0;MB5:3</code> &mdash; les espaces autour du <code>:</code> sont permis, autour du <code>;</code> non.</p><p>Invalide&nbsp;: <code>MB1:5;MB2</code> (pas de quantité), <code>MB1:5;MB1:2</code> (listé deux fois).</p><p><b>Un champ rouge arrête les achats</b> jusqu'à correction. Rien d'autre n'est affecté &mdash; l'équipement continue.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.fr['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Passer 3 rouges", tooltip: "<p style='color:red'>/!\\ Dépense des Kobans /!\\<br>(" + HHAuto_ToolTips.fr['spendKobans0'].elementText + " doit être activé)</p>Utilise des kobans pour renouveler les adversaires de la saison si PowerCalc détermine 3 combats rouges (perdus)." };
 HHAuto_ToolTips.fr['showCalculatePower'] = { version: "6.8.0", elementText: "PowerCalc", tooltip: "Affiche l'indicateur de simulation de combat pour les ligues, les combats et les saisons." };
 HHAuto_ToolTips.fr['showAdsBack'] = { version: "5.34.15", elementText: "Publicités à l'arrière-plan", tooltip: "Envoie la section des publicités à l'arrière-plan." };
@@ -1139,7 +1139,7 @@ HHAuto_ToolTips.de['kobanBank'] = { version: "8.10.0", elementText: "Koban-Bank"
 HHAuto_ToolTips.de['buyCombat'] = { version: "8.10.42", elementText: "Kämpfe kaufen (Event)", tooltip: "'Kobans ausgeben'-Funktion<br>Wenn aktiv: kauft Kampfpunkte in den letzten X Stunden eines Events, solange die Koban-Bank nicht unterschritten wird." };
 HHAuto_ToolTips.de['buyCombTimer'] = { version: "5.6.24", elementText: "Stunden bis Kauf", tooltip: "(Ganze pos. Zahl)<br>X verbleibende Stunden des Events" };
 HHAuto_ToolTips.de['autoBuyBoosters'] = { version: "5.6.25", elementText: "Myth. & leg. Booster", tooltip: "<p style='color:red'>/!\\ Kobans ausgeben /!\\<br>(" + HHAuto_ToolTips.de['spendKobans0'].elementText + " muss AN sein)</p>Erlaubt den Kauf von Boostern im Markt (solange die Koban-Bank nicht unterschritten wird)." };
-HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filter", tooltip: "<span class=\"tipHint\">Werte durch ; getrennt &mdash; die Reihenfolge wird beachtet.</span><p>Codes der Booster, die gekauft werden sollen.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
+HHAuto_ToolTips.de['autoBuyBoostersFilter'] = { version: "8.10.2", elementText: "Zu kaufende Booster", tooltip: "<span class=\"tipHint\">Ein Eintrag je Booster: <code>Code:Menge</code>, Einträge durch <code>;</code> getrennt</span><p>Die Menge ist, wie viele davon im Inventar liegen sollen. Angelegte Booster zählen nicht mit. <code>0</code> heißt ohne Begrenzung. Ein nicht genannter Booster wird nie gekauft, ein leeres Feld kauft gar nichts.</p><p>Gültig: <code>MB1:5;MB2:0;MB5:3</code> &mdash; Leerzeichen um den <code>:</code> sind erlaubt, um das <code>;</code> nicht.</p><p>Ungültig: <code>MB1:5;MB2</code> (keine Menge), <code>MB1:5;MB1:2</code> (doppelt genannt).</p><p><b>Ein rotes Feld hält den Kauf an</b>, bis es korrigiert ist. Sonst ändert sich nichts &mdash; das Anlegen läuft weiter.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.de['autoSeasonPassReds'] = { version: "8.10.0", elementText: "Überspringe drei Rote", tooltip: "'Koban ausgeben Funktion'<br>Benutze Kobans um Saison Gegner zu tauschen wenn alle drei Rote sind" };
 HHAuto_ToolTips.de['showCalculatePower'] = { version: "8.10.0", elementText: "PowerCalc", tooltip: "Zeigt den Kampfsimulator bei Liga, Kampf und Saison an." };
 HHAuto_ToolTips.de['showInfo'] = { version: "8.10.43", elementText: "Aktiviert", tooltip: "Wenn aktiv : zeige Information auf Skriptwerten und nächsten Durchläufen" };
@@ -1562,7 +1562,7 @@ HHAuto_ToolTips.es['kobanBank'] = { version: "5.6.24", elementText: "Banco de Ko
 HHAuto_ToolTips.es['buyCombat'] = { version: "8.10.42", elementText: "Comprar comb. para evento", tooltip: "Funciones de gasto de Kobans<br>Si habilitado: <br>Compra puntos de combate durante las últimas X horas del evento (si no se baja del valor de Banco de Kobans)" };
 HHAuto_ToolTips.es['buyCombTimer'] = { version: "5.6.24", elementText: "Horas para comprar Comb", tooltip: "(Entero)<br>X últimas horas del evento" };
 HHAuto_ToolTips.es['autoBuyBoosters'] = { version: "5.6.25", elementText: "Potenciadores mít. y leg.", tooltip: "<p style='color:red'>/!\\ Función que gasta Kobans /!\\<br>(" + HHAuto_ToolTips.es['spendKobans0'].elementText + " debe estar activado)</p>Permite comprar potenciadores en el mercado (si no se baja del valor del banco de Kobans)." };
-HHAuto_ToolTips.es['autoBuyBoostersFilter'] = { version: "5.37.0", elementText: "Filtro", tooltip: "<span class=\"tipHint\">Valores separados por ; &mdash; se respeta el orden.</span><p>Códigos de los potenciadores a comprar.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Azufaifas</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Perfume de sándalo</li><li><code>MB2</code> Emblema de dominio total</li><li><code>MB3</code> Cinta de la determinación</li><li><code>MB4</code> Reloj lujoso</li><li><code>MB5</code> Canela combativa</li><li><code>MB6</code> Recuerdos de viaje de Alban</li><li><code>MB7</code> Aroma de semen de ángeles</li><li><code>MB8</code> Emblema de dominio de ligas</li><li><code>MB9</code> Emblema de dominio de temporadas</li><li><code>MB10</code> Detector de gemas</li><li><code>MB11</code> Petardo</li><li><code>MB12</code> Aura brillante</li></ul>" };
+HHAuto_ToolTips.es['autoBuyBoostersFilter'] = { version: "8.10.2", elementText: "Potenciadores a comprar", tooltip: "<span class=\"tipHint\">Una entrada por potenciador: <code>código:cantidad</code>, separadas por <code>;</code></span><p>La cantidad es cuántos mantener en el inventario. Los equipados no cuentan. <code>0</code> significa sin límite. Un potenciador no listado nunca se compra, y un campo vacío no compra nada.</p><p>Válido: <code>MB1:5;MB2:0;MB5:3</code> &mdash; se permiten espacios alrededor de <code>:</code>, alrededor de <code>;</code> no.</p><p>No válido: <code>MB1:5;MB2</code> (sin cantidad), <code>MB1:5;MB1:2</code> (listado dos veces).</p><p><b>Un campo rojo detiene la compra</b> hasta corregirlo. Nada más se ve afectado &mdash; equipar sigue funcionando.</p><ul class=\"tipCodes\"><li><code>B1</code> Ginseng</li><li><code>B2</code> Jujubes</li><li><code>B3</code> Chlorella</li><li><code>B4</code> Cordyceps</li><li><code>MB1</code> Sandalwood perfume</li><li><code>MB2</code> All Mastery's Emblem</li><li><code>MB3</code> Headband of determination</li><li><code>MB4</code> Luxurious Watch</li><li><code>MB5</code> Combative Cinnamon</li><li><code>MB6</code> Alban's travel memories</li><li><code>MB7</code> Angels' semen scent</li><li><code>MB8</code> Leagues mastery emblem</li><li><code>MB9</code> Seasons mastery emblem</li><li><code>MB10</code> Gem Detector</li><li><code>MB11</code> Banger</li><li><code>MB12</code> Shiny Aura</li></ul>" };
 HHAuto_ToolTips.es['autoSeasonPassReds'] = { version: "5.6.24", elementText: "Pasa 3 rojos", tooltip: "Funciones de gasto de Kobans<br>Usa kobans para renovar oponentes si los 3 rojos" };
 HHAuto_ToolTips.es['showCalculatePower'] = { version: "6.8.0", elementText: "Mostrar PowerCalc", tooltip: "Muestra simulador de batalla para Liga, batallas, Temporadas " };
 HHAuto_ToolTips.es['showInfo'] = { version: "8.10.43", elementText: "Activado", tooltip: "Si habilitado: muestra información de los valores del script y siguientes ejecuciones" };
@@ -2834,7 +2834,11 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoosters] =
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoBuyBoostersFilter] =
     {
-        default: "B1;B2;B3;B4",
+        // "code:amount" pairs since 8.10.2 (#1844). The default is the old
+        // "B1;B2;B3;B4" filter times the old "Max Booster" default of 10, so a
+        // fresh install behaves exactly as it did -- and buys nothing at all
+        // until autoBuyBoosters is switched on, which defaults to false.
+        default: "B1:10;B2:10;B3:10;B4:10",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "List",
@@ -3972,14 +3976,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
         menuType: "value",
         kobanUsing: false
     };
+// Replaced by the amounts in autoBuyBoostersFilter (#1844). The key stays
+// registered without a menu entry for one release so the migration in
+// StartService can still delete the stored value -- deleteStoredValue is a
+// no-op for an unregistered key, so removing it here first would leave the
+// value behind for good. Remove the whole entry in the release after.
 HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
     {
         default: "10",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Long Integer",
-        getMenu: true,
-        setMenu: true,
         menuType: "value",
         kobanUsing: false
     };
@@ -8185,17 +8192,135 @@ function parsePrice(princeStr) {
     return ret;
 }
 
+;// ./src/Module/Market.pure.ts
+// Market.pure.ts -- parsing and validation of the "Boosters to buy" setting.
+//
+// Pure: no DOM, no storage, no imports. The impure half lives in Market.ts.
+//
+// The field replaces the former pair "Filter" (which boosters) and "Max
+// Booster" (how many of each) with one list of code:amount pairs, so the two
+// halves of one decision cannot contradict each other any more (issue #1844).
+//
+// Deliberately strict, unlike the two sibling parsers in Booster.ts: this
+// field spends kobans, and both of the lenient behaviours available there --
+// dropping the bad entries (parseMythicBoosterList) or falling back to a
+// built-in default (parseEquipSlotConfig) -- would buy something other than
+// what the user wrote. An unreadable list buys nothing instead.
+/** Legendary boosters the game offers, in the order the tooltip lists them. */
+const LEGENDARY_BOOSTER_CODES = ["B1", "B2", "B3", "B4"];
+/** Mythic boosters, MB1..MB12. MB1 is the Sandalwood perfume. */
+const MYTHIC_BOOSTER_CODES = [
+    "MB1", "MB2", "MB3", "MB4", "MB5", "MB6",
+    "MB7", "MB8", "MB9", "MB10", "MB11", "MB12",
+];
+const BOOSTER_CODES = [
+    ...LEGENDARY_BOOSTER_CODES,
+    ...MYTHIC_BOOSTER_CODES,
+];
+/**
+ * The one syntax definition, shared by the menu field and the runtime.
+ *
+ * Written without anchors because that is what an HTML `pattern` attribute
+ * expects; parseBuyList anchors it itself. Both letter cases are accepted
+ * because the parser upper-cases before it compares -- a lower-case entry
+ * that the parser would happily read must not paint the field red.
+ *
+ * Whitespace is allowed around the colon and NOT around the semicolon, as
+ * specified: "MB1 : 3;MB3 : 4" is valid, "MB1 : 3 ; MB3 : 4" is not.
+ *
+ * An empty value is valid and means "buy nothing" -- a deliberate state, not
+ * an error, so it must not be painted red either.
+ */
+const CODE = "(?:[Bb][1-4]|[Mm][Bb](?:[1-9]|1[0-2]))";
+const AMOUNT = "(?:0|[1-9][0-9]{0,2})";
+const PAIR = CODE + "\\s*:\\s*" + AMOUNT;
+const BUY_LIST_PATTERN = "(?:" + PAIR + "(?:;" + PAIR + ")*)?";
+/**
+ * Read the stored value. Returns the entries in the order they were written --
+ * the order decides who gets the kobans first while they last.
+ *
+ * Invalid input is reported, never repaired: the caller is expected to buy
+ * nothing at all. A repeated code is invalid too, because "MB1:5;MB1:2" does
+ * not say whether five or two was meant, and a regex cannot express that.
+ */
+function parseBuyList(raw) {
+    if (raw === undefined || raw === null || raw.trim() === "") {
+        return { valid: true, entries: [] };
+    }
+    if (!new RegExp("^" + BUY_LIST_PATTERN + "$").test(raw)) {
+        return { valid: false, reason: "syntax", detail: raw };
+    }
+    const entries = [];
+    const seen = new Set();
+    for (const part of raw.split(";")) {
+        const [rawCode, rawMax] = part.split(":");
+        const code = rawCode.trim().toUpperCase();
+        if (seen.has(code)) {
+            return { valid: false, reason: "duplicate", detail: code };
+        }
+        seen.add(code);
+        entries.push({ code, max: Number(rawMax.trim()) });
+    }
+    return { valid: true, entries };
+}
+/**
+ * The menu's extra check for this field: "" when it is fine, otherwise the
+ * message that turns the input red. The syntax half is already covered by the
+ * pattern attribute; only the duplicate needs saying out loud.
+ */
+function buyListValidationMessage(raw) {
+    const parsed = parseBuyList(raw);
+    if (parsed.valid)
+        return "";
+    if (parsed.reason === "duplicate") {
+        return "Each booster may appear only once -- " + parsed.detail + " is listed twice.";
+    }
+    return "";
+}
+/**
+ * True when the list names at least one booster and can be read. Used both to
+ * decide whether walking to the market for buying is worth it and whether the
+ * buying itself may run at all.
+ */
+function hasBuyableBoosters(raw) {
+    const parsed = parseBuyList(raw);
+    return parsed.valid && parsed.entries.length > 0;
+}
+/**
+ * Convert the pre-8.10.2 pair of settings into the merged syntax (#1844).
+ *
+ * Per entry, not wholesale: an entry that already carries a colon is left
+ * alone. That keeps the conversion harmless if the old "Max Booster" key ever
+ * reappears -- importing an old settings file writes it back, and a wholesale
+ * conversion would then overwrite a carefully edited list with itself.
+ */
+function migrateBuyList(filter, oldMax) {
+    if (filter === undefined || filter === null || filter.trim() === "")
+        return "";
+    const max = String(oldMax !== null && oldMax !== void 0 ? oldMax : "").trim();
+    if (max === "" || !/^[0-9]+$/.test(max))
+        return filter;
+    return filter
+        .split(";")
+        .map((part) => (part.includes(":") ? part : part.trim() === "" ? part : part.trim() + ":" + max))
+        .join(";");
+}
+
 ;// ./src/config/InputPattern.ts
 // Regex patterns used for input validation in the HHAuto settings menu.
 // Each pattern constrains what the user can enter in a specific settings field
 // (e.g., timers, thresholds, booster filters).
+
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 const HHAuto_inputPattern = {
     nWith1000sSeparator: "[0-9" + thousandsSeparator + "]+",
     //kobanBank:"[0-9]+",
     buyCombTimer: "[0-9]+",
     buyMythicCombTimer: "[0-9]+",
-    autoBuyBoostersFilter: "(B[1-4]|MB[1-9]|MB1[1-2])(;B[1-4]|;MB[1-9]|;MB1[1-2])*",
+    // Defined once in Market.pure so the field and the runtime cannot drift
+    // apart. They did: the hand-written pattern here had a hole at MB10, so the
+    // Gem Detector could never be entered (#1844).
+    autoBuyBoostersFilter: BUY_LIST_PATTERN,
     autoEquipBoostersSlots: "B[1-4](;B[1-4]){0,3}",
     autoEquipMythicBooster: "(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
@@ -23238,6 +23363,7 @@ Pachinko.serverOrbsLeft = undefined;
 // that switch never navigated to the market: storeContents stayed
 // undefined and Market.doShopping bailed out on its very first guard.
 // decideCheckShop adds that third reason.
+
 /**
  * True when the buy-boosters automation has something to shop for, i.e.
  * the opt-in is on AND the filter names at least one booster code. An
@@ -23245,10 +23371,12 @@ Pachinko.serverOrbsLeft = undefined;
  * is no point walking to the market for it.
  */
 function needsStoreContentsForBuying(state) {
-    var _a;
     if (!state.autoBuyBoosters)
         return false;
-    return String((_a = state.autoBuyBoostersFilter) !== null && _a !== void 0 ? _a : "").split(";").some((code) => code.trim().length > 0);
+    // An empty list has nothing to shop for, and an unreadable one buys
+    // nothing either (#1844) -- walking to the market for either would be a
+    // navigation per cycle with no purchase at the end of it.
+    return hasBuyableBoosters(state.autoBuyBoostersFilter);
 }
 /**
  * Reproduce Shop.isTimeToCheckShop:
@@ -30685,7 +30813,6 @@ function tabs(debugEnabled) {
                     + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoAffW']))
                 + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-                    + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                     + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                     + hhMenuSwitch('autoEquipBoosters')
                     + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
@@ -31304,6 +31431,7 @@ function switchHHMenuButton(isActive) {
 
 
 
+
 class Market {
     static doShopping() {
         try {
@@ -31340,14 +31468,26 @@ class Market {
             var HaveAff = Number(getStoredValue(HHStoredVarPrefixKey + TK.haveAff));
             var HaveExp = Number(getStoredValue(HHStoredVarPrefixKey + TK.haveExp));
             var HaveBooster = getStoredJSON(HHStoredVarPrefixKey + TK.haveBooster, {});
-            var MaxBooster = Number(getStoredValue(HHStoredVarPrefixKey + SK.maxBooster));
-            if (MaxBooster === 0)
-                MaxBooster = Infinity;
             let Was;
-            var boosterFilter = getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter).split(";");
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoosters) === "true" && boosterFilter.length > 0) {
+            // "Boosters to buy" carries the wanted amount per booster since
+            // 8.10.2 (#1844). An unreadable list buys NOTHING -- no fallback to
+            // a default, because a default would spend kobans on something the
+            // user did not ask for. The field is painted red in the menu by the
+            // generic input[pattern] handler; this is the half that acts on it.
+            const rawBuyList = getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter);
+            const buyList = parseBuyList(rawBuyList);
+            if (!buyList.valid) {
+                logHHAuto("Boosters to buy: '" + rawBuyList + "' is not a valid list ("
+                    + (buyList.reason === "duplicate" ? "listed twice: " + buyList.detail : "syntax")
+                    + "), buying no boosters until it is corrected.");
+            }
+            const boosterEntries = buyList.valid ? buyList.entries : [];
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoosters) === "true" && boosterEntries.length > 0) {
                 Was = shop[1].length;
-                for (var boost of boosterFilter) {
+                for (var entry of boosterEntries) {
+                    const boost = entry.code;
+                    // 0 keeps the meaning the old "Max Booster" field gave it.
+                    const MaxBooster = entry.max === 0 ? Infinity : entry.max;
                     const boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
                     for (var n1 = shop[1].length - 1; n1 >= 0; n1--) {
                         if (kobans >= Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)) + Number(shop[1][n1].price_buy) && shop[1][n1].item.currency == "hc" && shop[1][n1].item.identifier == boost && (shop[1][n1].item.rarity == 'legendary' || shop[1][n1].item.rarity == 'mythic') && boosterOwned < MaxBooster) {
@@ -33422,6 +33562,7 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 
 
 
+
 var started = false;
 var debugMenuID;
 var heroRetryTimer = null;
@@ -33449,6 +33590,11 @@ function heroGiveupReloadKey() {
 // few seconds when the last recorded activity is older than the
 // threshold below, giving the page time to settle before any module
 // fires a navigation.
+// Menu fields that need a check the HTML pattern cannot express. The value is
+// the message that turns the input red; "" means fine.
+const EXTRA_FIELD_VALIDATORS = {
+    autoBuyBoostersFilter: buyListValidationMessage,
+};
 const COLD_START_THRESHOLD_MS = 60 * 1000;
 const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
@@ -33733,6 +33879,23 @@ function start() {
             logHHAuto("Migrated Season focus value '" + seasonFocusVal + "' → '" + focusMap[seasonFocusVal] + "'");
         }
     }
+    // Migrate the booster buy settings to one field (#1844). "Filter" said
+    // which boosters, "Max Booster" how many of each; they are now one list of
+    // "code:amount" pairs, so the two halves of one decision cannot contradict
+    // each other. Guarded by the old key still being present, which makes the
+    // migration self-limiting: it deletes that key at the end and cannot run
+    // again. The conversion itself is per entry, so an old settings file that
+    // writes the key back cannot overwrite an already-edited list.
+    const legacyMaxBooster = getStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    if (legacyMaxBooster !== undefined && legacyMaxBooster !== null) {
+        const currentList = getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter);
+        const migrated = migrateBuyList(currentList, legacyMaxBooster);
+        if (migrated !== currentList) {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, migrated);
+            logHHAuto("Migrated boosters to buy: '" + currentList + "' + max " + legacyMaxBooster + " -> '" + migrated + "'");
+        }
+        deleteStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    }
     StartService_setDefaults();
     if (getStoredValue(HHStoredVarPrefixKey + SK.mousePause) === "true") {
         bindMouseEvents();
@@ -33879,8 +34042,18 @@ function start() {
     });
     document.querySelectorAll("div#sMenu input[pattern]").forEach((currentInputElement) => {
         const currentInput = currentInputElement;
+        // A pattern cannot say "no code twice", so the one field where a
+        // repeat is ambiguous gets a second opinion before every check
+        // (#1844). setCustomValidity feeds straight into checkValidity, so
+        // the red below needs no special case.
+        const extraCheck = EXTRA_FIELD_VALIDATORS[currentInput.id];
+        const applyExtraCheck = () => {
+            if (extraCheck)
+                currentInput.setCustomValidity(extraCheck(currentInput.value));
+        };
         currentInput.addEventListener('input', () => {
             currentInput.style.backgroundColor = "";
+            applyExtraCheck();
             currentInput.checkValidity();
         });
         currentInput.addEventListener('invalid', () => {
@@ -33888,6 +34061,7 @@ function start() {
             //document.getElementById("master").checked = false;
             //setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
         });
+        applyExtraCheck();
         currentInput.checkValidity();
     });
     // Don't re-enable autoLoop if a harem tool flow (Stuff Team, Give XP, etc.)

@@ -336,7 +336,6 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 '', false, block(['autoAffW']))
             + group('menuSecBoosters',
                 hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-                + hhMenuInput('maxBooster', P.nWith1000sSeparator, '', 'maxMoneyInputField')
                 + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
                 + hhMenuSwitch('autoEquipBoosters')
                 + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')

@@ -17,7 +17,7 @@ describe("decideCheckShop", () => {
         updateMarket: false,
         needBoosterStatus: false,
         autoBuyBoosters: false,
-        autoBuyBoostersFilter: "B1;B2;B3;B4",
+        autoBuyBoostersFilter: "B1:10;B2:10;B3:10;B4:10",
         paranoia: false,
         paranoiaSwitchReady: true,
         ...overrides,
@@ -48,7 +48,7 @@ describe("decideCheckShop", () => {
     });
 
     it("accepts a single-code filter", () => {
-        expect(decideCheckShop(buildState({ autoBuyBoosters: true, autoBuyBoostersFilter: "MB9" }))).toBe(true);
+        expect(decideCheckShop(buildState({ autoBuyBoosters: true, autoBuyBoostersFilter: "MB9:5" }))).toBe(true);
     });
 
     it("blocks the visit in paranoia mode while no burst window is pending", () => {
@@ -69,14 +69,14 @@ describe("needsStoreContentsForBuying", () => {
         updateMarket: false,
         needBoosterStatus: false,
         autoBuyBoosters: false,
-        autoBuyBoostersFilter: "B1",
+        autoBuyBoostersFilter: "B1:10",
         paranoia: false,
         paranoiaSwitchReady: true,
         ...overrides,
     });
 
     it("is false while the opt-in is off, whatever the filter says", () => {
-        expect(needsStoreContentsForBuying(buildState({ autoBuyBoostersFilter: "B1;B2" }))).toBe(false);
+        expect(needsStoreContentsForBuying(buildState({ autoBuyBoostersFilter: "B1:10;B2:10" }))).toBe(false);
     });
 
     it("is true once the opt-in is on and at least one code is listed", () => {

@@ -9,6 +9,7 @@
 import { HeroHelper, getHero } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
+import { parseBuyList } from "./Market.pure";
 import { randomInterval } from "../Helper/TimeHelper";
 import { clearTimer } from "../Helper/TimerHelper";
 import { addNutakuSession } from '../Service/PageNavigationService';
@@ -57,16 +58,31 @@ export class Market {
             var HaveAff=Number(getStoredValue(HHStoredVarPrefixKey+TK.haveAff));
             var HaveExp=Number(getStoredValue(HHStoredVarPrefixKey+TK.haveExp));
             var HaveBooster=getStoredJSON<any>(HHStoredVarPrefixKey+TK.haveBooster, {});
-            var MaxBooster=Number(getStoredValue(HHStoredVarPrefixKey+SK.maxBooster)); if (MaxBooster === 0) MaxBooster = Infinity;
             let Was;
 
-            var boosterFilter = getStoredValue(HHStoredVarPrefixKey+SK.autoBuyBoostersFilter).split(";");
-            if (getStoredValue(HHStoredVarPrefixKey+SK.autoBuyBoosters) ==="true" && boosterFilter.length > 0)
+            // "Boosters to buy" carries the wanted amount per booster since
+            // 8.10.2 (#1844). An unreadable list buys NOTHING -- no fallback to
+            // a default, because a default would spend kobans on something the
+            // user did not ask for. The field is painted red in the menu by the
+            // generic input[pattern] handler; this is the half that acts on it.
+            const rawBuyList = getStoredValue(HHStoredVarPrefixKey+SK.autoBuyBoostersFilter);
+            const buyList = parseBuyList(rawBuyList);
+            if (!buyList.valid)
+            {
+                logHHAuto("Boosters to buy: '" + rawBuyList + "' is not a valid list ("
+                    + (buyList.reason === "duplicate" ? "listed twice: " + buyList.detail : "syntax")
+                    + "), buying no boosters until it is corrected.");
+            }
+            const boosterEntries = buyList.valid ? buyList.entries : [];
+            if (getStoredValue(HHStoredVarPrefixKey+SK.autoBuyBoosters) ==="true" && boosterEntries.length > 0)
             {
                 Was=shop[1].length;
 
-                for (var boost of boosterFilter)
+                for (var entry of boosterEntries)
                 {
+                    const boost = entry.code;
+                    // 0 keeps the meaning the old "Max Booster" field gave it.
+                    const MaxBooster = entry.max === 0 ? Infinity : entry.max;
                     const boosterOwned = HaveBooster.hasOwnProperty(boost) ? Number(HaveBooster[boost]) : 0;
                     for (var n1=shop[1].length-1;n1>=0;n1--)
                     {

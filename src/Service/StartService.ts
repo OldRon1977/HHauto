@@ -72,6 +72,7 @@ import {
     sanitizeHeroGiveupReloadCount,
     shouldReloadAfterHeroGiveup,
 } from './HeroBootRecovery';
+import { buyListValidationMessage, migrateBuyList } from "../Module/Market.pure";
 
 var started=false;
 var debugMenuID;
@@ -103,6 +104,12 @@ function heroGiveupReloadKey(): string {
 // few seconds when the last recorded activity is older than the
 // threshold below, giving the page time to settle before any module
 // fires a navigation.
+// Menu fields that need a check the HTML pattern cannot express. The value is
+// the message that turns the input red; "" means fine.
+const EXTRA_FIELD_VALIDATORS: Record<string, (value: string) => string> = {
+    autoBuyBoostersFilter: buyListValidationMessage,
+};
+
 const COLD_START_THRESHOLD_MS = 60 * 1000;
 const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
@@ -402,6 +409,24 @@ export function start() {
         }
     }
 
+    // Migrate the booster buy settings to one field (#1844). "Filter" said
+    // which boosters, "Max Booster" how many of each; they are now one list of
+    // "code:amount" pairs, so the two halves of one decision cannot contradict
+    // each other. Guarded by the old key still being present, which makes the
+    // migration self-limiting: it deletes that key at the end and cannot run
+    // again. The conversion itself is per entry, so an old settings file that
+    // writes the key back cannot overwrite an already-edited list.
+    const legacyMaxBooster = getStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    if (legacyMaxBooster !== undefined && legacyMaxBooster !== null) {
+        const currentList = getStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter);
+        const migrated = migrateBuyList(currentList, legacyMaxBooster);
+        if (migrated !== currentList) {
+            setStoredValue(HHStoredVarPrefixKey + SK.autoBuyBoostersFilter, migrated);
+            logHHAuto("Migrated boosters to buy: '" + currentList + "' + max " + legacyMaxBooster + " -> '" + migrated + "'");
+        }
+        deleteStoredValue(HHStoredVarPrefixKey + SK.maxBooster);
+    }
+
     setDefaults();
 
     if (getStoredValue(HHStoredVarPrefixKey+SK.mousePause) === "true") {
@@ -574,8 +599,17 @@ export function start() {
     document.querySelectorAll("div#sMenu input[pattern]").forEach((currentInputElement) =>
                                                                   {
         const currentInput = <HTMLInputElement>currentInputElement;
+        // A pattern cannot say "no code twice", so the one field where a
+        // repeat is ambiguous gets a second opinion before every check
+        // (#1844). setCustomValidity feeds straight into checkValidity, so
+        // the red below needs no special case.
+        const extraCheck = EXTRA_FIELD_VALIDATORS[currentInput.id];
+        const applyExtraCheck = () => {
+            if (extraCheck) currentInput.setCustomValidity(extraCheck(currentInput.value));
+        };
         currentInput.addEventListener('input', () => {
             currentInput.style.backgroundColor = "";
+            applyExtraCheck();
             currentInput.checkValidity();
         });
 
@@ -584,6 +618,7 @@ export function start() {
             //document.getElementById("master").checked = false;
             //setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
         });
+        applyExtraCheck();
         currentInput.checkValidity();
     });
 

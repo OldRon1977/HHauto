@@ -2,6 +2,8 @@
 // Each pattern constrains what the user can enter in a specific settings field
 // (e.g., timers, thresholds, booster filters).
 
+import { BUY_LIST_PATTERN } from "../Module/Market.pure";
+
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 
 export const HHAuto_inputPattern = {
@@ -10,7 +12,10 @@ export const HHAuto_inputPattern = {
     //kobanBank:"[0-9]+",
     buyCombTimer:"[0-9]+",
     buyMythicCombTimer:"[0-9]+",
-    autoBuyBoostersFilter:"(B[1-4]|MB[1-9]|MB1[1-2])(;B[1-4]|;MB[1-9]|;MB1[1-2])*",
+    // Defined once in Market.pure so the field and the runtime cannot drift
+    // apart. They did: the hand-written pattern here had a hole at MB10, so the
+    // Gem Detector could never be entered (#1844).
+    autoBuyBoostersFilter: BUY_LIST_PATTERN,
     autoEquipBoostersSlots:"B[1-4](;B[1-4]){0,3}",
     autoEquipMythicBooster:"(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
