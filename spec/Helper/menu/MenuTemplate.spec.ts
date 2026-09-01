@@ -4,10 +4,9 @@ import { buildTabbedBody } from '../../../src/Helper/menu/MenuTabs';
 import { buildTestPorts } from './menuTestPorts';
 
 /**
- * Every input/select id the three-column menu rendered, taken from
- * MenuColumnLeft/Middle/Right before they were replaced by the tab layout in
- * 8.10.0. The rearrangement must not lose a single setting: MenuSettings binds
- * stored values to these ids, so a missing one silently stops saving.
+ * Every input/select id the menu has to render. MenuSettings binds stored
+ * values to these ids, so a missing one silently stops saving -- rearranging
+ * the menu must not lose a single setting.
  */
 const CONTROL_IDS_BEFORE_8_10 = [
     'AllMaskRewards', 'autoAdsClick', 'autoAff', 'autoAffW',

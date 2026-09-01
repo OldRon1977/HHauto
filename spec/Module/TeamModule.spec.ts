@@ -12,8 +12,8 @@ describe("TeamModule.getSelectedGirlsId -- I1 regression (return type)", () => {
         // No .team-slot-container.selected-team in the DOM -> first guard hits.
         document.body.innerHTML = "<div id=\"hh_hentai\" page=\"edit-team\"></div>";
         const result = TeamModule.getSelectedGirlsId();
-        // Regression: previously returned undefined (bare `return;`), which made
-        // the consumer crash on `.length`. Must be an empty array now.
+        // Regression: a bare `return;` yields undefined and the consumer
+        // crashes on `.length`. It must be an empty array.
         expect(Array.isArray(result)).toBe(true);
         expect(result).toEqual([]);
         // The exact crash path: equipAllGirls does `if (girlIds.length == 0)`.

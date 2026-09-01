@@ -5,7 +5,7 @@ import { Booster } from "../../src/Module/Booster";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { MockHelper } from "../testHelpers/MockHelpers";
 
-// Test fixtures — no longer using hardcoded static objects from Booster class
+// Test fixtures for the booster objects.
 const TEST_GINSENG = {id_item: "316", identifier: "B1", name: "Ginseng root", rarity: "legendary"};
 const TEST_SANDALWOOD = {id_item: "632", identifier: "MB1", name: "Sandalwood perfume", rarity: "mythic"};
 

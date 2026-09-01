@@ -220,20 +220,7 @@ export async function autoLoop()
         if (isPostInFlight()) {
             logHHAuto('AutoLoop: POST in flight, deferring action handlers this tick');
         } else {
-        // --- Action Handlers (executed in order, each checks ctx.busy) ---
-        // All 33 classic action handlers have been migrated to Pipeline.config.ts.
-        // - 3.2.G.a: handleShop, handleAutoEquipBoosters
-        // - 3.2.G.b: handleLoveRaid, handleContest, handleMissions, handleChampion,
-        //   handleClubChampion, handleSeasonalFreeCard, handleSeasonalRankCollect,
-        //   handleFreeBundles, handleDailyGoals, handleLabyrinth (via fromDescriptor)
-        // - 3.2.G.complete: the remaining 19 handlers (HaremSize, PlaceOfPower,
-        //   GenericBattle, TrollBattle, Pachinko, Quest, Season, PentaDrill, Pantheon,
-        //   ChampionTicket, SeasonCollect, PentaDrillCollect, SeasonalEventCollect,
-        //   PoVCollect, PoGCollect, Salary, BossBangParse, BossBangFight, GoHome).
-        // handleMythicWave is intentionally not migrated -- see comment in
-        // Pipeline.config.ts above the migrated handlers.
-
-        // --- Scheduler Pipeline (migrated handlers run here) ---
+        // --- Scheduler Pipeline (every action handler runs here) ---
         // Only trigger the scheduler when no classic action handler has
         // already started an action this tick. Without this gate the
         // pipeline runs preconditions and step.fn even when the

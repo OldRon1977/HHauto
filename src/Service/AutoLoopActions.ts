@@ -68,25 +68,8 @@ export async function handleMythicWave(_ctx: AutoLoopContext): Promise<void> {
     return;
 }
 
-// handleShop, handleAutoEquipBoosters: migrated to Pipeline.config.ts in 3.2.G.a.
-
-// 4. handleHaremSize - lines 276-288
-// handleHaremSize: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 5. handlePlaceOfPower - lines 290-344
-// handlePlaceOfPower: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 6. handleGenericBattle - lines 346-363
-// handleGenericBattle: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleLoveRaid: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 8. handleTrollBattle - lines 374-462 (includes the outer if-block and the else at 459-462)
-// handleTrollBattle: migrated to Pipeline.config.ts in 3.2.G.complete.
-
+// Every other action handler lives in Pipeline.config.ts; what remains here are
+// the helpers those handlers share.
 
 /**
  * Pure helper: would handleTrollBattle have fired a fight if combativity were
@@ -136,81 +119,4 @@ export function wouldFightWithPower(
     const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid?.id_girl);
     return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
 }
-
-// 9. handlePachinko - lines 465-487 (all 3 pachinko types)
-// handlePachinko: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleContest: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// handleMissions: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 12. handleQuest - lines 509-663 (includes the else-if at 660-663)
-// handleQuest: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 14. handleSeason - lines 699-724
-// handleSeason: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 15. handlePentaDrill - lines 726-753
-// handlePentaDrill: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 16. handlePantheon - lines 755-784
-// handlePantheon: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 17. handleChampionTicket - lines 786-810 (includes the nested buyTicket function)
-// handleChampionTicket: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleChampion: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// handleClubChampion: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 20. handleSeasonCollect - lines 828-841
-// handleSeasonCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 21. handlePentaDrillCollect - lines 843-855
-// handlePentaDrillCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleSeasonalFreeCard: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 23. handleSeasonalEventCollect - lines 867-879
-// handleSeasonalEventCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleSeasonalRankCollect: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 25. handlePoVCollect - lines 892-905
-// handlePoVCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 26. handlePoGCollect - lines 907-920
-// handlePoGCollect: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// handleFreeBundles: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// handleDailyGoals: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// handleLabyrinth: migrated to Pipeline.config.ts in 3.2.G.b.
-
-// 30. handleSalary - lines 948-958
-// handleSalary: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 31. handleBossBangParse - lines 960-980
-// handleBossBangParse: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 32. handleBossBangFight - lines 982-1002
-// handleBossBangFight: migrated to Pipeline.config.ts in 3.2.G.complete.
-
-
-// 33. handleGoHome - lines 1004-1016
-// handleGoHome: migrated to Pipeline.config.ts in 3.2.G.complete.
 

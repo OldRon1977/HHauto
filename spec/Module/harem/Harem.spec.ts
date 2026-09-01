@@ -3,11 +3,10 @@ import { Harem } from '../../../src/Module/harem/Harem';
 /**
  * Harem.spec.ts -- first spec file for src/Module/harem/Harem.ts.
  *
- * Created in cluster 7.2.H-D (REVIEW_Harem.md). Harem.ts had 0% coverage
- * before this. Focus is the genuinely unit-testable surface:
+ * Focus is the genuinely unit-testable surface:
  *   - getGirlUpgradeCost: pure cost-matrix calculation, no DOM/storage/window.
- *   - getGirlCount / getFilteredGirlList: the null-guard paths hardened in
- *     cluster 7.2.H-A (I1/I2) -- girlsListSec from getHHVars can be null.
+ *   - getGirlCount / getFilteredGirlList: the null-guard paths -- girlsListSec
+ *     from getHHVars can be null.
  *
  * The DOM/jQuery/AJAX-heavy methods (run, moduleHarem, addGirl*Menu,
  * moduleHaremExportGirlsData) are out of scope here; they belong to the

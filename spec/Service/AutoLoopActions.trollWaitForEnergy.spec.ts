@@ -111,10 +111,9 @@ import { getStoredValue, setStoredValue } from "../../src/Helper/StorageHelper";
 import { EventModule } from "../../src/Module/Events/EventModule";
 import { AutoLoopContext } from "../../src/Service/AutoLoopContext";
 
-// In 3.2.G.complete handleTrollBattle moved to Pipeline.config.ts. The spec
-// now exercises the pipeline step.fn directly. The pre-clear and the
-// wait-branch live in the same step.fn body so the assertions below are
-// equivalent to the legacy handleTrollBattle ones.
+// handleTrollBattle lives in Pipeline.config.ts, so the spec exercises its
+// step.fn directly. The pre-clear and the wait-branch sit in the same step.fn
+// body, so the assertions below cover both.
 const trollPipelineHandler = pipeline.find(h => h.name === 'handleTrollBattle');
 async function handleTrollBattle(ctx: AutoLoopContext): Promise<void> {
     if (!trollPipelineHandler) throw new Error('handleTrollBattle not in pipeline');

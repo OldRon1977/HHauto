@@ -5,9 +5,9 @@ import { SK, TK } from "../../src/config/StorageKeys";
 import { loadFixture } from "../testHelpers/Fixtures";
 
 /**
- * Storage migration spec -- stage 4 task 4.2.
+ * Storage migration spec.
  *
- * Stage-4 reliability: when an HHAuto release reads a storage value
+ * When an HHAuto release reads a storage value
  * that was written by an older release (different format, different
  * type, missing key, broken JSON), the reader must not throw. The
  * default value falls in if the input cannot be parsed.

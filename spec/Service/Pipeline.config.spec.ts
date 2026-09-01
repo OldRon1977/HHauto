@@ -295,9 +295,9 @@ describe('Pipeline.config', () => {
 
     it('precondition true when all gates pass', () => {
       Shop.isTimeToCheckShop.mockReturnValue(true);
-      // Inner trigger must also be true after 3.2.G.a-fix1 (timer or
-      // level change). Otherwise the scheduler used to spam
-      // "Starting chain 'handleShop'" every 5s without doing real work.
+      // The inner trigger (timer or level change) must be true as well,
+      // otherwise the scheduler spams "Starting chain 'handleShop'" every 5s
+      // without doing real work.
       TimerHelperMock.checkTimer.mockReturnValue(true);
       HHHelperMock.getHHVars.mockReturnValue(100);
       getStoredValueMock.mockImplementation((k: string) => {
@@ -308,13 +308,11 @@ describe('Pipeline.config', () => {
       expect(handler.precondition(makeCtx())).toBe(true);
     });
 
-    it('precondition false when neither nextShopTime elapsed nor hero level changed (3.2.G.a-fix1: prevents 5s scheduler spam)', () => {
-      // Regression: in the original 3.2.G.a migration the inner timer/level
-      // checks lived in step.fn with a silent "ok: true" return. Because
-      // the scheduler logs "Starting"/"completed" and bumps lastRunAt on
-      // every step.fn call, that produced 38 starts for 2 actual shop
-      // accesses over the test session. Now the inner trigger lives in
-      // the precondition where it belongs.
+    it('precondition false when neither nextShopTime elapsed nor hero level changed (prevents 5s scheduler spam)', () => {
+      // Regression: with the inner timer/level checks in step.fn behind a
+      // silent "ok: true" return, the scheduler logs "Starting"/"completed"
+      // and bumps lastRunAt on every call -- dozens of starts for a couple of
+      // real shop accesses. The inner trigger belongs in the precondition.
       Shop.isTimeToCheckShop.mockReturnValue(true);
       ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
       TimerHelperMock.checkTimer.mockReturnValue(false);
@@ -816,11 +814,11 @@ describe('Pipeline.config', () => {
   });
 
   describe('battle-result page guard (issue #1740)', () => {
-    // Regression for issue #1740: v7.35.57 reordered the pipeline so
-    // handleGenericBattle (which parses the post-fight reward popup and writes
-    // raid girl shards back to storage) runs AFTER handleTrollBattle. Because
-    // handleTrollBattle had no page guard, on the troll-battle result page it
-    // won the tick and navigated away before the reward was read. The raid
+    // Regression for issue #1740: handleGenericBattle (which parses the
+    // post-fight reward popup and writes raid girl shards back to storage) runs
+    // AFTER handleTrollBattle in the pipeline. Without a page guard on
+    // handleTrollBattle it wins the tick on the troll-battle result page and
+    // navigates away before the reward is read. The raid
     // girl's shard count never reached 100, so getRaidToFight never cleared the
     // selector and the bot fought the same raid troll forever. The fix gives
     // handleTrollBattle the same battle-result-page guard handleGenericBattle
@@ -1075,11 +1073,11 @@ describe('Pipeline.config', () => {
     });
 
     it('handleLeague does not hold the slot on the league battle page', async () => {
-      // #1796 regression (8.1.6): on the league-battle result page doLeagueBattle
+      // Regression for #1796: on the league-battle result page doLeagueBattle
       // is a no-op that arms no timer, so checkTimer stays true. Without the
-      // page guard the slot-hold repeated forever and starved handleGenericBattle
-      // (the block that parses the result and navigates on) -> freeze on the
-      // result panel. The run must complete here so the slot is released.
+      // page guard the slot-hold repeats forever and starves handleGenericBattle
+      // (the block that parses the result and navigates on), freezing the script
+      // on the result panel. The run must complete here so the slot is released.
       LeagueMock.isTimeToFight.mockReturnValue(true);
       TimerMock.checkTimer.mockReturnValue(true); // timer expired -> would repeat off-page
       ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => key);

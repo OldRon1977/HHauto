@@ -1,11 +1,10 @@
 /**
  * StorageHelper.spec.ts -- direct spec for src/Helper/StorageHelper.ts.
  *
- * Created in cluster 4.2.A (REVIEW_StorageHelper.md C1, I1, I2-A).
- * Covers the previously-untested critical paths:
- *   - setStoredValue quota-error retry path (C1, I2-A)
- *   - setStoredValue robustness against primitive throws (C1)
- *   - getStoredValue kobanUsing master-switch read without recursion (I1)
+ * Covers the critical paths:
+ *   - setStoredValue quota-error retry path
+ *   - setStoredValue robustness against primitive throws
+ *   - getStoredValue kobanUsing master-switch read without recursion
  *   - getStoredValue kobanUsing toggling between stored value and "false"
  *
  * Notes on test setup:
@@ -313,11 +312,10 @@ describe("extractHHVars", () => {
  *
  * getStoredJSON hands back whatever JSON.parse produced; its type parameter is
  * erased at runtime. The stored text "null" parses successfully, so a
- * <string[]> annotation could still yield null and the next .includes() threw.
+ * <string[]> annotation can still yield null, and the next .includes() throws.
  * The string "null" is not a hand-edited curiosity: extractHHVars serialises a
- * never-written key as null on purpose, and both the config importer and
- * debugDeleteTempVars used to write that straight back into Web Storage, which
- * stringifies it.
+ * never-written key as null on purpose, and a writer that hands that straight
+ * back to Web Storage stringifies it.
  */
 describe("StorageHelper -- getStoredArray", () => {
     const KEY = HHStoredVarPrefixKey + "Setting_storageHelperArraySpecKey";

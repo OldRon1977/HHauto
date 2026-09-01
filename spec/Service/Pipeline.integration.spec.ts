@@ -38,7 +38,7 @@ jest.mock('../../src/Module/Events/EventModule', () => ({
   },
 }));
 
-// Mocks for the 19 additional Pipeline.config handlers added in 3.2.G.complete.
+// Mocks for the remaining Pipeline.config handlers.
 // These keep Pipeline.integration.spec light: every handler precondition that
 // touches a domain module short-circuits to false in this default-state world,
 // so the integration test still focuses on handleEventParsing vs handleLeague

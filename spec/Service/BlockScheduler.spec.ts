@@ -159,8 +159,8 @@ describe("BlockScheduler -- abort/watchdog", () => {
         // one draft per reload) re-enter via the resume path and never return
         // repeat/advance. Without bumping stepStartedAt on a valid resume the
         // no-progress watchdog measures from run start and kills legit long work
-        // (observed live: PoP killed mid-run at ~5 min, v7.36.10). The step must
-        // see the bumped anchor (now), not the original start.
+        // and kills a PoP run mid-way. The step must see the bumped anchor
+        // (now), not the original start.
         const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 1000 });
         let seen = -1;
         const A = block("A", [
@@ -268,9 +268,9 @@ describe("BlockScheduler -- selection gating", () => {
         expect(h.routeHome).not.toHaveBeenCalled();
     });
 
-    // Measured over one night on 8.10.48: 13 held runs were discarded, each of
-    // them one tick after the script's own gotoPage switched the autoLoop flag
-    // off, with the master switch on the whole time (#1841 follow-up).
+    // Without the grace window a held run is discarded one tick after the
+    // script's own gotoPage switches the autoLoop flag off, with the master
+    // switch on the whole time (#1841).
     it("keeps a held run while a navigation is in flight", async () => {
         const h = makePorts({ blockId: "A", stepIdx: 0, startedAt: 900, stepStartedAt: 900 });
         const A = block("A", [step("s1", { ok: true })]);

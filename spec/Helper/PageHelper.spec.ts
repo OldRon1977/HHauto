@@ -150,8 +150,8 @@ describe("Page Helper", function () {
         });
 
         it("missing root element: getPage stays a pure read, haltScript opts into shutdown", function () {
-            // getPage() must not touch storage anymore. Then haltScript()
-            // does the master+autoLoop kill switch when callers want it.
+            // getPage() must not touch storage; haltScript() does the
+            // master+autoLoop kill switch when a caller wants it.
             // SK.master is a Setting (localStorage), TK.autoLoop is a Temp value
             // (sessionStorage), so we read each from the matching backend.
             localStorage.setItem(HHStoredVarPrefixKey + SK.master, "true");

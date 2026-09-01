@@ -1,5 +1,4 @@
 // Spec-driven team builder tests.
-// Spec: docs-internal/REVIEW_TeamSelection.md.
 
 import { TeamBuilderService } from '../../src/Service/TeamBuilderService';
 import { GirlData, ElementType, RarityType } from '../../src/Service/TeamScoringService';

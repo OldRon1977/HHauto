@@ -19,7 +19,7 @@ jest.mock('../../src/Service/PageNavigationService', () => ({
 }));
 const safeReloadMock = safeReload as jest.Mock;
 
-// Test fixtures — booster objects are no longer hardcoded statics on Booster class
+// Test fixtures for the booster objects.
 const TEST_GINSENG = {id_item: "316", identifier: "B1", name: "Ginseng root", rarity: "legendary"};
 const TEST_SANDALWOOD = {id_item: "632", identifier: "MB1", name: "Sandalwood perfume", rarity: "mythic"};
 

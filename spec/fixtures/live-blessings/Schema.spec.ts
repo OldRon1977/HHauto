@@ -10,9 +10,8 @@ import { BlessingService } from "../../../src/Service/BlessingService";
  *   1. the envelope still has the documented shape, and
  *   2. no parser throws when handed the real payload.
  *
- * Stage 4 task 4.1 acceptance criterion: per response type, one parser
- * test that calls the actual parser on a captured payload and asserts
- * it returns without throwing.
+ * Per response type there is one parser test that calls the actual parser on
+ * a captured payload and asserts it returns without throwing.
  */
 
 interface LiveBlessingEntry {
