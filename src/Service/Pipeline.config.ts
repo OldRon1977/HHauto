@@ -113,27 +113,25 @@ export interface HandlerConfig {
 }
 
 /**
- * Build a HandlerConfig from a legacy ModuleHandlerDescriptor. Used to migrate
- * handlers that already wrap a uniform `name + action + isReady + execute`
- * shape (the descriptors used by `runStandardHandler` in AutoLoopActions.ts).
+ * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
+ * `name + action + isReady + execute` shape that `runStandardHandler` in
+ * AutoLoopActions.ts uses.
  *
  * The returned config is single-step, non-atomic, always-interruptible, and
  * mirrors the cascade in `runStandardHandler`:
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
  *
- * The `lastActionPerformed` continuation dates from the v7.36.0 migration.
- * The multi-step model that was meant to replace it was dropped: ADR-005
- * records that the slot-hold rule (ADR-002) does the same job with less
- * machinery, so this gate stays as the descriptor-level continuation.
+ * The `lastActionPerformed` gate stays as the descriptor-level continuation:
+ * the slot-hold rule does the same job with less machinery
+ * (docs/decisions/ADR-005-multistep-superseded-by-slothold.md).
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let
  * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
  * away from a quest mid-completion -- handleQuest needs several reload cycles
  * to act, and lastActionPerformed is reset on the idle tick in between
- * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
- * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
+ * (AutoLoop), so it cannot protect the quest on its own.
  */
 function isOnQuestPage(ctx: AutoLoopContext): boolean {
   return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
@@ -284,17 +282,15 @@ const handleEventParsing: HandlerConfig = {
  * non-finite, or already in the past. Exported for direct unit testing in
  * Pipeline.config.spec.ts.
  *
- * On unexpected storage shape this returns a single sentinel ID so that the
- * caller still triggers a parse cycle (preserves the previous fallback
- * behaviour where the precondition returned true on parse errors).
+ * On an unexpected storage shape this returns a single sentinel ID, so the
+ * caller still triggers a parse cycle.
  *
  * Expired-event side effect: entries whose `seconds_before_end` is in the
- * past are events the game no longer hosts. parseEventPage cannot refresh
+ * past are events the game does not host any more. parseEventPage cannot refresh
  * them (the in-game tab has been replaced by a successor or removed
  * entirely), so they would stay stale forever and drive
- * handleEventParsing into a permanent reload loop (issue #1738 -- a
- * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
- * the user gave up). pruneExpiredEvents() removes them from the registry
+ * handleEventParsing into a permanent reload loop (#1738).
+ * pruneExpiredEvents() removes them from the registry
  * BEFORE this filter runs so the loop terminates and storage stays
  * bounded.
  */
@@ -373,24 +369,21 @@ const handleLeague: HandlerConfig = {
     // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
     //
     //   1. League auto-mode active and feature enabled at all?
-    //   2. Bot not currently mid-action on a different module
-    //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
-    //      out of step.fn so the chain doesn't fire just to log a skip).
+    //   2. Bot not currently mid-action on a different module (the
+    //      lastActionPerformed guard, kept out of step.fn so the chain does
+    //      not fire just to log a skip).
     //   3. Either ready to fight (energy + threshold + booster check) OR
-    //      the cool-down timer has expired and we still need to refresh
-    //      the pInfo display with a default timer value (issue raised
-    //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
-    //      false because the only setTimer paths live behind a fight).
+    //      the cool-down timer has expired and the pInfo display still needs
+    //      a default timer value -- without it pInfo stays on 'No timer',
+    //      because every setTimer path sits behind a fight.
     //
-    // Note (issue #1708 follow-up): handleLeague is intentionally NOT
-    // gated on trollWaitForEnergy. League uses a separate energy pool
-    // (challenge tokens) that is unrelated to troll combativity (fight
-    // tokens). LeagueHelper.isTimeToFight() already checks challenge
-    // energy, and the minIntervalMs caps re-entry. Blocking league
-    // while troll waits for combativity (as v7.35.45 did) keeps league
-    // fights from happening even though the user has the energy to do
-    // them. handleEventParsing is gated separately because it ran every
-    // 2 s and was the actual ping-pong driver in #1700.
+    // handleLeague is deliberately NOT gated on trollWaitForEnergy (#1708):
+    // league uses challenge tokens, which have nothing to do with troll
+    // combativity. LeagueHelper.isTimeToFight() already checks challenge
+    // energy and minIntervalMs caps re-entry, so gating on the troll pool
+    // would block league fights the user has the energy for.
+    // handleEventParsing is gated separately -- at a 2 s cadence it is the
+    // one that drives the ping-pong (#1700).
     if (!LeagueHelper.isAutoLeagueActivated()) return false;
     const lastAction = ctx.lastActionPerformed;
     if (lastAction !== 'none' && lastAction !== 'league') return false;
@@ -414,10 +407,9 @@ const handleLeague: HandlerConfig = {
             // But NOT on the league-battle result page: there doLeagueBattle is
             // a no-op that arms no timer, so checkTimer stays true and the hold
             // would repeat forever, starving handleGenericBattle (later in the
-            // pipeline) which parses the result and navigates on -- observed
-            // live as a freeze on the result panel after one fight (#1796
-            // regression in 8.1.6). handleSeason already excludes its own battle
-            // page for the same reason; mirror it here.
+            // pipeline) which parses the result and navigates on -- the script
+            // then freezes on the result panel after one fight (#1796).
+            // handleSeason excludes its own battle page for the same reason.
             if (checkTimer('nextLeaguesTime')
                 && ctx.currentPage !== ConfigHelper.getHHScriptVars('pagesIDLeagueBattle')) {
               return { ok: true, repeat: true };
@@ -452,11 +444,10 @@ const handleLeague: HandlerConfig = {
 
 // ---------------------------------------------------------------------------
 //  Handler: handleShop
-//  Migrated from AutoLoopActions.handleShop in 3.2.G.a.
-//  Non-atomic, always interruptible. Logs and updates the shop only when
-//  the inner trigger matches the legacy implementation: either the shop
-//  cool-down timer has elapsed, or the cached character level is below the
-//  current hero level (signals a level-up that should refresh shop offers).
+//  Non-atomic, always interruptible. Logs and updates the shop only when the
+//  inner trigger matches: either the shop cool-down timer has elapsed, or the
+//  cached character level is below the current hero level, which signals a
+//  level-up that should refresh the shop offers.
 // ---------------------------------------------------------------------------
 
 const handleShop: HandlerConfig = {
@@ -473,22 +464,16 @@ const handleShop: HandlerConfig = {
     if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true) return false;
     if (!Shop.isTimeToCheckShop()) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    // Legacy lastActionPerformed continuation gate. The multi-step model
-    // that was to replace it was dropped in favour of the slot-hold rule
-    // (ADR-002 / ADR-005), so this gate stays.
+    // lastActionPerformed continuation gate.
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop') return false;
-    // Inner trigger -- belongs in precondition, not the step. The legacy
-    // handler had a two-stage gate (outer if + inner if) inside one tick,
-    // so a precondition-true / inner-false combination was a no-op.
-    // In the pipeline model the scheduler logs "Starting" and bumps the
-    // cool-down on every step.fn call, even silent ones. That bursts the
-    // scheduler into a 5-second spam loop while Shop.isTimeToCheckShop()
-    // stays true (updateMarket / needBoosterStatusFromStore flags persist
-    // until the shop is actually scraped). Lesson: when migrating a
-    // multi-stage if cascade, every gate must move to the precondition.
-    // Initialise the cached level on first call -- mirrors the legacy
-    // handler. Without this, getLevel-vs-stored comparison below would
-    // always fire on a fresh install.
+    // The inner trigger belongs in the precondition, not in the step: the
+    // scheduler logs "Starting" and bumps the cool-down on every step.fn call,
+    // even a silent one, which turns a precondition-true / inner-false
+    // combination into a 5-second spam loop for as long as
+    // Shop.isTimeToCheckShop() stays true (the updateMarket and
+    // needBoosterStatusFromStore flags persist until the shop is scraped).
+    // Initialise the cached level on the first call; without it the
+    // level-vs-stored comparison below always fires on a fresh install.
     if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
       setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
     }
@@ -515,7 +500,6 @@ const handleShop: HandlerConfig = {
 
 // ---------------------------------------------------------------------------
 //  Handler: handleAutoEquipBoosters
-//  Migrated from AutoLoopActions.handleAutoEquipBoosters in 3.2.G.a.
 //  Non-atomic, always interruptible. Auto-equips legendary boosters when
 //  slots are empty/expired and the user opted in.
 // ---------------------------------------------------------------------------
@@ -537,7 +521,7 @@ const handleAutoEquipBoosters: HandlerConfig = {
     if (!normalOn && !mythicOn) return false;
     if (!checkTimer('nextAutoEquipBoosterTime')) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    // No lastActionPerformed gate in the legacy handler.
+    // No lastActionPerformed gate here: equipping does not navigate.
     return true;
   },
   steps: [{
@@ -558,13 +542,12 @@ const handleAutoEquipBoosters: HandlerConfig = {
 };
 
 // ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.b via fromDescriptor.
-//  Each one is a one-step wrapper around the legacy ModuleHandlerDescriptor.
-//  isReady captures both outer and inner trigger -- the lesson
-//  pipeline-inner-trigger-in-precondition warns against splitting them
-//  between precondition and step.fn.
-//  All eleven handlers are non-atomic, always interruptible, and use
-//  minIntervalMs sized to match the legacy tick frequency for that module.
+//  Handlers built with fromDescriptor.
+//  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
+//  captures both the outer and the inner trigger -- the lesson
+//  pipeline-inner-trigger-in-precondition warns against splitting them between
+//  precondition and step.fn. All of them are non-atomic, always interruptible,
+//  and carry a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 
 const handleLoveRaid = fromDescriptor({
@@ -712,17 +695,14 @@ const handleLabyrinth = fromDescriptor({
 }, { minIntervalMs: 5_000, handlerName: "handleLabyrinth" });
 
 // ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.complete (the remaining classic handlers).
-//
-//  These are the handlers that did not fit the runStandardHandler descriptor
-//  shape used in 3.2.G.b. Each one keeps its full legacy logic in step.fn,
-//  with all gates lifted into precondition (lesson
+//  Handlers that do not fit the runStandardHandler descriptor shape. Each one
+//  keeps its full logic in step.fn, with all gates in the precondition (lesson
 //  pipeline-inner-trigger-in-precondition).
 //
-//  handleMythicWave is intentionally NOT migrated. Its only effect was
-//  setting ctx.lastActionPerformed = "troll" in the same tick to grant
-//  handleTrollBattle the slot reservation. In the pipeline model the
-//  scheduler picks one handler per tick, so the reservation has no
+//  handleMythicWave is deliberately absent. Its only effect was setting
+//  ctx.lastActionPerformed = "troll" in the same tick to grant
+//  handleTrollBattle a slot reservation. The scheduler picks one handler per
+//  tick, so the reservation has no
 //  destination -- and handleTrollBattle's own gate already accepts
 //  lastActionPerformed = "none" anyway. The function is kept in
 //  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
@@ -1276,7 +1256,7 @@ const handleSeason: HandlerConfig = {
           // Wait in-slot through the short pause between two fights instead
           // of completing the run: completion starts the 2s minInterval
           // cool-down, and that one-tick window is exactly where other
-          // blocks used to interleave (issue #1796). On the battle page the
+          // blocks interleave (#1796). On the battle page the
           // slot is NOT held so the battle-result handling keeps its turn.
           ctx.lastActionPerformed = 'season';
           return { ok: true, repeat: true };
@@ -1285,8 +1265,8 @@ const handleSeason: HandlerConfig = {
             setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, 'false');
           }
           if (Season.isBlockedOnlyByMissingBooster()) {
-            // handleAutoEquipBoosters typically fixes a missing booster
-            // within seconds (observed live: ~2 min), so arming the same
+            // handleAutoEquipBoosters fixes a missing booster within a couple
+            // of minutes, so arming the same
             // 15-17 min "wait for energy" timer here just throws away
             // fight time. Retry soon instead.
             logHHAuto('Season blocked only by missing booster, retrying shortly.');
@@ -1764,9 +1744,9 @@ const handleBossBangFight: HandlerConfig = {
           // page after each fight; termination happens there -- BossBang.parse
           // disables the setting once the event shows completed (or arms the
           // back-off timer when no attempt is left), which flips this block's
-          // precondition false and releases the slot. autoLoop stays 'true'
-          // (skipFightPage no longer flips it), otherwise BlockScheduler.tick
-          // would discard the held run.
+          // precondition false and releases the slot. skipFightPage leaves
+          // autoLoop on 'true'; flipping it would make BlockScheduler.tick
+          // discard the held run.
           await BossBang.skipFightPage();
           ctx.lastActionPerformed = 'bossBang';
           ctx.busy = true; // applySlotHold: busy -> repeat -> keep the slot
@@ -1835,9 +1815,7 @@ const handleGoHome: HandlerConfig = {
 //  The Scheduler walks the list once per tick, picks the first ready handler
 //  (precondition true, cool-down elapsed, state IDLE), and runs it.
 //
-//  Migration history: all 33 AutoLoop action handlers now live in this
-//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
-//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
+//  Every action handler lives in this array; the scheduler is the sole driver.
 //
 //  Order is the agreed user-facing priority sequence: high-yield /
 //  low-cost actions (salary, shop, missions) and resource collectors
@@ -1868,10 +1846,9 @@ const handleGoHome: HandlerConfig = {
 // ---------------------------------------------------------------------------
 
 export const pipeline: HandlerConfig[] = [
-  // handleMythicWave is intentionally not listed: it was a legacy slot
-  // reservation used by the classic handleTrollBattle path and has no
-  // effect in the pipeline model. The mythic girl is fully covered by
-  // handleTrollBattle's activation paths.
+  // handleMythicWave is deliberately not listed: it was a slot reservation for
+  // the classic handleTrollBattle path and has no effect here. The mythic girl
+  // is fully covered by handleTrollBattle's activation paths.
   handleEventParsing,
   handleHaremSize,
   handleSalary,

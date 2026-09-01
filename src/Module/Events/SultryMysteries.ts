@@ -6,7 +6,7 @@
 // regenerated. This module monitors the event shop for refresh timers and
 // automates opening grid squares ("Auto-Mystery").
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
 // Used by: EventModule.ts (called when Sultry Mysteries event is active)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";

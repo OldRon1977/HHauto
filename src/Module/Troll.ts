@@ -6,7 +6,7 @@
 // trolls during mythic events), tracks energy regeneration, and processes
 // fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
 //
-// Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
+// Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
 // Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";

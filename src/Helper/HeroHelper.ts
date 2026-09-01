@@ -10,8 +10,8 @@
 // hero data. Keeping it next to the accessors avoids circular deps
 // with the Module layer.
 //
-// Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
-//          BDSM simulator (hero stats for fight prediction)
+// Used by: index and StartService (boot), the fight and shop modules
+//          (hero stats, class, level), TeamModule, ParanoiaService.
 import { addNutakuSession } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { getHHAjax, isJSON } from "../Utils/Utils";

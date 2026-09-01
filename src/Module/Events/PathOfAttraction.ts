@@ -5,7 +5,7 @@
 // unlock reward tiers. This module tracks tier progress, collects available
 // rewards, and manages the event page navigation and timer scheduling.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: RewardHelper (reward parsing), ButtonHelper
 // Used by: EventModule.ts (called when Path of Attraction event is active)
 //
 import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";

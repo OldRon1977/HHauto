@@ -6,7 +6,8 @@
 // costs, tracking affection and XP progress, and performing upgrades when
 // configured to do so.
 //
-// Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
+// Used by: Harem.ts (girl list operations), TeamModule.ts and
+//          AutoLoopPageHandlers.ts
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";

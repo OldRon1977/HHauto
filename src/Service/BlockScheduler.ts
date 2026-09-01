@@ -1,22 +1,18 @@
-// BlockScheduler.ts -- reload-safe block execution engine
-// (v7.37.0 pipeline-block architecture, ADR-001).
+// BlockScheduler.ts -- reload-safe block execution engine.
 //
-// Replaces the in-memory ActiveChain + SOFT/HARD-interrupt logic of the legacy
-// Scheduler with a single ununterrupted BlockRun (R4.1/R4.2) whose progress is
-// persisted across reloads. All side-effecting dependencies (clock, storage,
-// page, home-routing, version, logging) are injected as ports so the engine is
-// fully unit-testable without the DOM. The engine is wired into AutoLoop with
-// the real registry/order in a later task; until then it is dead code and the
-// legacy Scheduler stays in production (safe coexistence per ADR-001).
+// Runs one uninterrupted BlockRun at a time and persists its progress across
+// reloads. All side-effecting dependencies (clock, storage, page, home-routing,
+// version, logging) are injected as ports, so the engine is unit-testable
+// without the DOM. BlockPipeline builds it and index.ts drives it, one tick per
+// auto-loop iteration.
 //
-// Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10,
-//               5.1, 5.2, 5.3, 5.4, 5.5, 5.7, 5.8, 5.9
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 import { AutoLoopContext } from "./AutoLoopContext";
 import { Block, BlockFocus, BlockOrder, BlockRegistry, BlockRun, Step } from "./BlockTypes";
 
 export interface DisabledEntry { reason: string; sinceVersion: string; }
 
-/** Injected side-effecting dependencies. Task 6 supplies the real impls. */
+/** Injected side-effecting dependencies; BlockPipeline supplies the real ones. */
 export interface SchedulerPorts {
   now(): number;
   getCurrentPage(): string;
@@ -38,22 +34,22 @@ export interface SchedulerPorts {
   /** Focused activity (#1841); null = the pipeline is free to pick anything. */
   getFocus(): BlockFocus | null;
   setFocus(v: BlockFocus | null): void;
-  /** Structured log sink. Task 7 supplies the [PIPE] formatter. */
+  /** Structured log sink; PipeLogger formats the [PIPE] lines. */
   log(event: Record<string, unknown>): void;
 }
 
 export interface SchedulerConfig {
-  failureThreshold: number;     // R5.4
-  // No-progress watchdog (ADR-002 follow-up): a run is aborted only if it makes
-  // NO progress (no step advance/repeat) for this long. There is intentionally
-  // NO per-invocation or total-runtime cap -- a continuously working block (e.g.
-  // a 70-draft champion team build over many minutes) must run to completion and
-  // set its own timer before releasing, so a fixed cap would abort legit work
-  // mid-flight and cause it to be re-selected and re-done. A genuinely hung step
-  // (await never resolves) parks the event loop and is recovered by master-off/
-  // reload (user-accepted).
+  failureThreshold: number;
+  // No-progress watchdog: a run is aborted only if it makes no progress (no
+  // step advance, no repeat) for this long. There is deliberately no
+  // per-invocation or total-runtime cap -- a continuously working block, such as
+  // a 70-draft champion team build over many minutes, must run to completion and
+  // set its own timer before releasing, and a fixed cap would abort that work
+  // mid-flight and have it re-selected and re-done. A genuinely hung step (an
+  // await that never resolves) parks the event loop and is recovered by
+  // master-off or a reload.
   noProgressMs: number;
-  cooldownMs: number;           // R4.10/R5.2 abort cool-down
+  cooldownMs: number;           // cool-down after an abort
   // Dormant-gap threshold: a gap between two ticks larger than this means the
   // scheduler was not running (mouse pause, frozen/backgrounded tab, OS sleep),
   // not that the active run made no progress. Used to rebase the no-progress
@@ -95,7 +91,7 @@ function shortSig(reason: string): string {
 export class BlockScheduler {
   private run: BlockRun | null = null;
   private restoredFromStore = false;
-  private tickCount = 0;  // R6.3 correlation: incremented once per tick()
+  private tickCount = 0;  // log correlation: incremented once per tick()
   private lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
   /** When this page context first saw the autoLoop flag off (0 = it is on). */
   private autoLoopOffSince = 0;
@@ -108,8 +104,8 @@ export class BlockScheduler {
     cfg: Partial<SchedulerConfig> = {},
   ) {
     this.cfg = { ...DEFAULT_CONFIG, ...cfg };
-    // Restore a run that survived a reload (R4.4) and reconcile version-gated
-    // auto-disable (R5.5: one retry after a script update).
+    // Restore a run that survived a reload, and clear auto-disable entries
+    // from an older script version so an updated script retries once.
     this.reconcileVersionResets();
     this.run = this.ports.loadRun();
     this.restoredFromStore = this.run !== null;
@@ -120,7 +116,7 @@ export class BlockScheduler {
 
   getActiveRun(): BlockRun | null { return this.run; }
 
-  /** R5.5: drop auto-disable entries from a previous script version. */
+  /** Drop auto-disable entries from a previous script version. */
   private reconcileVersionResets(): void {
     const disabled = this.ports.getAutoDisabled();
     const version = this.ports.scriptVersion();
@@ -136,7 +132,7 @@ export class BlockScheduler {
     if (changed) this.ports.setAutoDisabled(disabled);
   }
 
-  /** R5.7: manual (or version) reactivation clears auto-disable + counter. */
+  /** Manual or version-triggered reactivation clears auto-disable + counter. */
   reactivate(blockId: string): void {
     const disabled = this.ports.getAutoDisabled();
     if (disabled[blockId]) {
@@ -168,8 +164,8 @@ export class BlockScheduler {
     // only contiguous active ticking time, not dormant wall-clock.
     const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
     this.lastTickAt = now;
-    // 1. Stop-check: the script is off -> discard the run, NO home routing
-    // (R4 / design). The master switch is the user saying stop.
+    // Stop-check: the script is off -> discard the run, no home routing. The
+    // master switch is the user saying stop.
     if (this.ports.isMasterOff()) {
       this.autoLoopOffSince = 0;
       if (this.run) {
@@ -183,13 +179,12 @@ export class BlockScheduler {
 
     // The autoLoop flag is NOT the user saying stop: gotoPage, safeReload and
     // the fight paths switch it off themselves, right before the page goes
-    // away. Discarding the run on that tick threw away work a block had
-    // explicitly held -- measured over one night on 8.10.48: 13 runs killed,
-    // every one of them 1.9-2.0 s (one scheduler tick) after the script's own
-    // "setting autoloop to false", with the master switch on the whole time.
-    // A navigation resolves in seconds, so a held run gets that long to be
-    // carried away by its reload. What keeps the flag off for longer is a real
-    // stop -- the paranoia rest -- and there the run is discarded as before.
+    // away. Discarding the run on that tick throws away work a block has
+    // explicitly held, one scheduler tick after the script's own "setting
+    // autoloop to false". A navigation resolves in seconds, so a held run gets
+    // navigationGraceMs to be carried away by its reload. What keeps the flag
+    // off for longer is a real stop -- the paranoia rest -- and there the run
+    // is discarded.
     if (this.ports.isAutoLoopOff()) {
       if (this.autoLoopOffSince === 0) this.autoLoopOffSince = now;
       if (this.run && now - this.autoLoopOffSince <= this.cfg.navigationGraceMs) return;
@@ -227,7 +222,8 @@ export class BlockScheduler {
     const block = this.registry[run.blockId];
     if (!block) { await this.abort(run, "block-missing"); return; }
 
-    // First handling after a reload: resume validation + at-most-once (R4.6/R4.9).
+    // First handling after a reload: resume validation, and a dispatched step
+    // is not run twice.
     if (this.restoredFromStore) {
       this.restoredFromStore = false;
       const next: Step | undefined = block.steps[run.stepIdx];
@@ -247,19 +243,16 @@ export class BlockScheduler {
         // A valid resume after a reload IS progress for reload-based slot-hold
         // blocks (PoP: one powerplace per reload; Champion: one draft per reload).
         // Their step.fn navigates and triggers a reload, so it never returns
-        // repeat/advance to the scheduler and the executeStep resets below never
-        // run. Without bumping the anchor here the no-progress watchdog measures
-        // from run start and kills legit long work after noProgressMs (observed
-        // live: PoP killed mid-run at ~5 min, v7.36.10). Reset on every live
-        // re-entry so the watchdog only fires when the block stops resuming.
-        // Coming back after a reload IS proof that the block acted (#1841):
-        // only navigating gets you a new page. This is the ONLY place the flag
-        // can be set for a fighting handler. Its step awaits the battle POST,
-        // the response navigates, and the step never returns -- so the write
-        // in executeStep dies with the page and the run comes back looking
-        // like it did nothing. Measured on 8.10.29: a troll run that had just
-        // crushed an opponent released the activity as "ran without doing
-        // anything", and handleLeague took the slot on the battle-result page.
+        // repeat/advance to the scheduler, so the executeStep resets below never
+        // run. Bumping the anchor on every live re-entry keeps the no-progress
+        // watchdog from measuring since run start and killing legit long work;
+        // it then fires only when the block stops resuming.
+        // Coming back after a reload is also proof that the block acted
+        // (#1841): only navigating gets you a new page. For a fighting handler
+        // this is the only place the flag can be set -- its step awaits the
+        // battle POST, the response navigates, and the step never returns, so
+        // the write in executeStep dies with the page and the run would come
+        // back looking as if it had done nothing.
         run.acted = true;
         run.stepStartedAt = this.ports.now();
         this.ports.saveRun(run);
@@ -272,9 +265,8 @@ export class BlockScheduler {
     // watchdog must run after it -- otherwise the first tick after a reload that
     // followed a long dormant period (frozen/backgrounded tab, OS sleep) would
     // abort a healthy reload-based run on its stale persisted anchor before the
-    // resume reset could refresh it. That false abort, repeated failureThreshold
-    // times for the same signature, auto-disables the block (observed live as
-    // "ERROR - Champion re-activate", tooltip no-progress-timeout). A working
+    // resume reset could refresh it. Such a false abort, repeated
+    // failureThreshold times for the same signature, auto-disables the block. A working
     // block keeps resetting stepStartedAt (resume/advance/repeat), so it never
     // times out; only a genuinely stuck run (re-entered across ticks without
     // advancing) is aborted + routed home.
@@ -282,7 +274,7 @@ export class BlockScheduler {
       await this.abort(run, "no-progress-timeout"); return;
     }
 
-    // gate-hold-return (ADR-002): a held run continues only while the block
+    // A held run continues only while the block
     // still WANTS to run. Re-check the precondition on every continuation; once
     // it no longer holds (e.g. a navigate-only block such as HaremSize has
     // reached its target page, so its precondition page-guard flips false),
@@ -304,7 +296,7 @@ export class BlockScheduler {
     if (!step) { this.complete(block, run); return; }
 
     if (step.stateChanging) {
-      // persist-before-act (R6.13): the dispatch marker survives the reload.
+      // Persist before acting: the dispatch marker survives the reload.
       run.dispatched = true;
       this.ports.saveRun(run);
       this.emit({ ev: "dispatch", block: block.id, step: step.name });
@@ -324,7 +316,7 @@ export class BlockScheduler {
       run.dispatched = false;
       if (result.acted) run.acted = true;   // acted without holding the slot (#1841)
       if (result.repeat) {
-        // Holding the slot is the handler saying it acted (ADR-002); that is
+        // Holding the slot is the handler saying it acted; that is
         // what makes this run worth keeping the focus for (#1841).
         run.acted = true;
         run.stepStartedAt = this.ports.now();
@@ -391,19 +383,19 @@ export class BlockScheduler {
     this.ports.clearRun();
   }
 
-  /** Abort path (R4.10): clear run, count failure, cool-down, route home. */
+  /** Abort path: clear run, count failure, set cool-down, route home. */
   private async abort(run: BlockRun, reason: string): Promise<void> {
     const blockId = run.blockId;
     this.emit({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
 
-    // Persistent per-signature failure counter (R5.3).
+    // Persistent per-signature failure counter.
     const counts = this.ports.getFailureCounts();
     const sig = blockId + ":" + shortSig(reason);
     counts[sig] = (counts[sig] ?? 0) + 1;
     const count = counts[sig];
     this.ports.setFailureCounts(counts);
 
-    // Auto-disable on threshold (R5.4).
+    // Auto-disable on threshold.
     if (count >= this.cfg.failureThreshold) {
       const disabled = this.ports.getAutoDisabled();
       disabled[blockId] = { reason, sinceVersion: this.ports.scriptVersion() };
@@ -411,7 +403,7 @@ export class BlockScheduler {
       this.emit({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
     }
 
-    // Cool-down (R4.10/R5.2).
+    // Cool-down.
     const cooldowns = this.ports.getCooldowns();
     cooldowns[blockId] = this.ports.now() + this.cfg.cooldownMs;
     this.ports.setCooldowns(cooldowns);
@@ -419,7 +411,7 @@ export class BlockScheduler {
     this.run = null;
     this.ports.clearRun();
     this.releaseFocus("run aborted");
-    await this.ports.routeHome();  // safe ground state (R4.10)
+    await this.ports.routeHome();  // safe ground state
   }
 
   /**
@@ -429,7 +421,7 @@ export class BlockScheduler {
    *                 It will be ready again shortly; worth waiting for.
    *  - 'no'      -- it is disabled or does not want to run. Nothing to wait for.
    * The three-way answer is what lets the focus tell "not yet" apart from
-   * "finished" (#1841); the order of the checks is unchanged from R4.3.
+   * "finished" (#1841).
    */
   private eligibility(
     block: Block, ctx: AutoLoopContext, now: number,
@@ -457,13 +449,12 @@ export class BlockScheduler {
    * Returns the block to run, `null` to wait a tick without giving the slot
    * away, or `undefined` for "no focus applies -- decide by the order".
    *
-   * The pipeline used to leave an activity the moment one run ended, which is
-   * every single fight: the fight lands on a battle-result page, the block
-   * yields that page so the reward popup is parsed (#1740), and the next block
-   * in the order took the slot and navigated away. One troll fight, one season
-   * fight, one pantheon fight, round and round. Holding the focus keeps the
-   * pipeline on the same activity across that detour until the block itself
-   * says it is done.
+   * Without a focus the pipeline would leave an activity the moment one run
+   * ends, which is every single fight: the fight lands on a battle-result page,
+   * the block yields that page so the reward popup is parsed (#1740), and the
+   * next block in the order takes the slot and navigates away. Holding the
+   * focus keeps the pipeline on the same activity across that detour until the
+   * block itself says it is done.
    */
   private pickUnderFocus(
     ctx: AutoLoopContext, focus: BlockFocus, now: number,
@@ -504,7 +495,7 @@ export class BlockScheduler {
     return undefined;
   }
 
-  /** Idle block selection (R4.3): order + enabled + not-disabled + cooldown + min-interval + precondition. */
+  /** Idle block selection: order + not-disabled + cooldown + min-interval + precondition. */
   private findNext(ctx: AutoLoopContext): Block | null {
     const now = this.ports.now();
     const disabled = this.ports.getAutoDisabled();
@@ -526,7 +517,7 @@ export class BlockScheduler {
     return null;
   }
 
-  /** Emit a structured log event with tick + run correlation (R6.3). */
+  /** Emit a structured log event with tick + run correlation. */
   private emit(fields: Record<string, unknown>): void {
     this.ports.log({
       tick: this.tickCount,

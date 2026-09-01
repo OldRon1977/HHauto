@@ -5,8 +5,10 @@
 // preconditions, and min-interval constraints. Supports atomic chains
 // (uninterruptible) and SOFT/HARD interrupt semantics.
 //
-// Depends on: Pipeline.config.ts (types), MouseService (SOFT), ParanoiaService (SOFT)
-// Used by: AutoLoop.ts (calls Scheduler.tick(ctx) each iteration)
+// Depends on: Pipeline.config.ts (types), MouseService (user-pause check)
+//
+// Not wired into the running script: the runtime drives BlockScheduler through
+// BlockPipeline (index.ts). Only the specs still exercise this class.
 
 import { HandlerConfig, StepResult, pipeline } from './Pipeline.config';
 import { isUserPauseActive } from './MouseService';

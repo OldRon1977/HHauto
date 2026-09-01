@@ -40,12 +40,13 @@ export interface WindowOpener {
     open: (...args: unknown[]) => Window | null;
 }
 
-// Cooldown windows (seconds). Never a tight retry loop (issue #1746 acceptance).
+// Cooldown windows (seconds), so no failure path turns into a tight retry loop
+// (#1746).
 // RECHECK: normal pacing -- the reward ads appear in short bursts (several in
 //          a row, then none until the next day), so the scan runs every few
-//          seconds to catch the whole burst (maintainer requirement). The scan
-//          itself is a cheap DOM query; the pipeline's minIntervalMs and this
-//          timer keep it from busy-looping.
+//          seconds to catch the whole burst. The scan itself is a cheap DOM
+//          query; the pipeline's minIntervalMs and this timer keep it from
+//          busy-looping.
 // BLOCKED: a popup blocker stopped the ad tab -- back off, retrying won't help
 //          (fix is a browser popup exception for the game site).
 const AD_COOLDOWN_RECHECK: [number, number] = [5, 10];
@@ -145,10 +146,10 @@ function adsDelay(ms: number): Promise<void> {
 }
 
 export class AdsService {
-    // There is deliberately NO own re-click bookkeeping (maintainer
-    // decision): the game removes a reward-ad button once it is used and
-    // only shows it again when it is clickable -- a visible button is
-    // always fair game. Pacing comes solely from the nextAdsTime cooldowns.
+    // There is deliberately no own re-click bookkeeping: the game removes a
+    // reward-ad button once it is used and only shows it again when it is
+    // clickable, so a visible button is always fair game. Pacing comes solely
+    // from the nextAdsTime cooldowns.
 
     /** Timestamp of our most recent ad click (0 = none this page session). */
     static lastAdClickAt = 0;

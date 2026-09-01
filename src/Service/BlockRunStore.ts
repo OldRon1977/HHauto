@@ -1,12 +1,9 @@
-// BlockRunStore.ts -- reload-safe persistence of the active BlockRun
-// (v7.37.0 pipeline-block architecture, ADR-001).
+// BlockRunStore.ts -- reload-safe persistence of the active BlockRun.
 //
-// The BlockRun lives in sessionStorage (TK.activeBlockRun): it survives a
-// page reload in the same tab and is intentionally lost on tab close/crash
-// (R4.12), so a fresh start begins cleanly. Continuity that used to depend on
-// the in-memory ActiveChain + lastActionPerformed now lives here (R4.4).
-//
-// Requirements: 4.4, 4.12
+// The BlockRun lives in sessionStorage (TK.activeBlockRun): it survives a page
+// reload in the same tab and is deliberately lost on tab close or crash, so a
+// fresh start begins cleanly. This is where the continuity of a running block
+// lives.
 import { getStoredValue, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";

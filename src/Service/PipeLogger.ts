@@ -1,16 +1,15 @@
-// PipeLogger.ts -- structured [PIPE] logging for the block scheduler
-// (v7.37.0 pipeline-block architecture, ADR-001, task 7).
+// PipeLogger.ts -- structured [PIPE] logging for the block scheduler.
 //
 // One event per line, key=value, parseable, tagged [PIPE], emitted through the
-// existing logHHAuto pipeline (single system, R6.11) so the lines land in the
-// same persisted/rotated buffer and the user debug export. A non-rotating
-// context block (version, platform, effective order, disabled blocks, diagnose
-// flag) is stored separately and travels with the export. Lean events are
-// always emitted; per-step detail only when the diagnose toggle is on. Skip
-// events are change-deduplicated so a block parked on one reason logs once, not
-// every ~2s tick.
+// existing logHHAuto pipeline, so the lines land in the same persisted buffer
+// and in the user debug export. A non-rotating context block (version,
+// platform, effective order, disabled blocks, diagnose flag) is stored
+// separately and travels with the export. Lean events are always emitted;
+// per-step detail only when the diagnose toggle is on. Skip events are
+// change-deduplicated, so a block parked on one reason logs once, not on every
+// tick.
 //
-// Requirements: 6.1-6.14, 6.16, 6.17, 6.18
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -35,15 +34,15 @@ export interface LogContext {
   diagnose: boolean;
 }
 
-// Fixed field order for a stable, parseable line (R6.10).
+// Fixed field order for a stable, parseable line.
 const FIELD_ORDER: Array<keyof PipeFields> = ["tick", "run", "block", "step", "page", "ev", "result", "detail"];
 
-/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract (R6.10/R6.18). */
+/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract. */
 function sanitize(v: unknown): string {
   return String(v).replace(/\s+/g, " ").trim();
 }
 
-/** Format a [PIPE] line. Pure -- unit-testable (R6.10). */
+/** Format a [PIPE] line. Pure -- unit-testable. */
 export function formatPipeLine(fields: PipeFields): string {
   const parts: string[] = ["[PIPE]", "t=" + new Date().toISOString()];
   for (const key of FIELD_ORDER) {
@@ -54,12 +53,13 @@ export function formatPipeLine(fields: PipeFields): string {
   return parts.join(" ");
 }
 
-/** Whether verbose diagnostic logging is enabled (R6.14). */
+/** Whether verbose diagnostic logging is enabled. */
 export function isDiagnose(): boolean {
   return getStoredValue(HHStoredVarPrefixKey + SK.pipelineDiagnose) === "true";
 }
 
-// Skip-dedup state: last skip detail per block (R6.17 lean budget).
+// Skip-dedup state: last skip detail per block, so a block parked on one
+// reason logs once instead of on every tick.
 const lastSkipDetail: Record<string, string> = {};
 
 /** Reset dedup state (tests / cache clear). */
@@ -92,7 +92,7 @@ export function logEvent(fields: PipeFields): void {
   logHHAuto(formatPipeLine(fields));
 }
 
-/** Write/refresh the non-rotating context block (R6.16). Prepended to the export via storage. */
+/** Write/refresh the non-rotating context block. Prepended to the export via storage. */
 export function writeLogContext(ctx: LogContext): void {
   setStoredValue(HHStoredVarPrefixKey + TK.pipelineLogContext, JSON.stringify(ctx));
 }

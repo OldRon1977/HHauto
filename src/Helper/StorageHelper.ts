@@ -86,12 +86,10 @@ export function getStoredJSON<T>(key: string, defaultValue: T, reviver?: (key: s
  * getStoredJSON hands back whatever JSON.parse produced -- the type
  * parameter is erased at runtime. The stored text "null" parses fine, so a
  * <string[]> annotation can still yield null, and the next .includes() throws
- * (#1846). That "null" is a state the script used to produce itself, not just
- * a hand-edited config: extractHHVars serialises never-written keys as null on
- * purpose, saveHHVarsSettingsAsJSON exports them that way, and both the config
- * importer and debugDeleteTempVars wrote them back into Web Storage, which
- * stringifies them. Both writers skip null since 8.10.1, but profiles carrying
- * the old value are still out there, so the read stays guarded.
+ * (#1846). That "null" is not only a hand-edited config: extractHHVars
+ * serialises never-written keys as null on purpose and saveHHVarsSettingsAsJSON
+ * exports them that way. The current writers skip null, but profiles carrying
+ * it are still out there, so the read stays guarded.
  */
 export function getStoredArray<T>(key: string): T[] {
     const parsed = getStoredJSON<unknown>(key, []);
@@ -183,8 +181,7 @@ export function extractHHVars(dataToSave: Record<string, any>,extractLog = false
     }
     if (extractLog)
     {
-        // Same shape as before the ring buffer (8.10.47): the export stays
-        // readable by every existing debug-log reader.
+        // The shape every debug-log reader expects.
         dataToSave[HHStoredVarPrefixKey+TK.Logging] = readLogAsObject();
     }
     return dataToSave;
@@ -218,23 +215,17 @@ export function getStorageItem(inStorageType: string): Storage
 export function migrateHHVars()
 {
     // Custom-prefix migration: when the user runs a forked build with a
-    // non-default HHStoredVarPrefixKey and old "HHAuto_"-prefixed
-    // settings are still in storage, copy each registered key over from
-    // the legacy slot to the active prefix.
+    // non-default HHStoredVarPrefixKey and "HHAuto_"-prefixed settings are
+    // still in storage, copy each registered key from the old slot to the
+    // active prefix.
     //
-    // Status (2026-05-26): the active HHStoredVarPrefixKey is hardcoded
-    // to "HHAuto_" in src/config/HHStoredVars.ts, so the body of this
-    // function is dormant in production. The function and its call
-    // site (StartService.ts: migrateHHVars()) are intentionally kept
-    // because:
-    //   - Flipping the prefix is the documented mechanism for
-    //     multi-account isolation (no current PR, but on the roadmap).
-    //   - The cost of keeping the migration around is negligible
-    //     (one early-return check per script start).
-    //   - If a future patch enables the custom prefix without re-
-    //     introducing the migration, every user who upgrades loses
-    //     their settings on the next reload, which is unrecoverable.
-    // Remove together with the multi-account feature, not before.
+    // HHStoredVarPrefixKey is hardcoded to "HHAuto_" in
+    // src/config/HHStoredVars.ts, so this body is dormant. It is kept because
+    // flipping the prefix is the mechanism for multi-account isolation, the
+    // cost is one early-return check per script start, and enabling the custom
+    // prefix without this migration would cost every upgrading user their
+    // settings on the next reload. Remove it with the multi-account feature,
+    // not before.
     if(HHStoredVarPrefixKey === 'HHAuto_' || !haveHHAutoSettings()) return;
     for (const newKey of Object.keys(HHStoredVars))
     {
@@ -242,10 +233,9 @@ export function migrateHHVars()
         const storageItem = getStorageItem((HHStoredVars as any)[newKey].storage);
         const itemValue = storageItem[oldKeys];
         storageItem.removeItem(oldKeys);
-        // Preserve the value if it is set at all -- including the empty
-        // string and "0" (falsy in JS but legitimate stored-string
-        // values for some toggles). Only skip when the legacy slot was
-        // never populated.
+        // Preserve the value if it is set at all -- including the empty string
+        // and "0", which are falsy in JS but legitimate stored values for some
+        // toggles. Only skip when the old slot was never populated.
         if (itemValue !== undefined && itemValue !== null) {
             setStoredValue(newKey, itemValue);
         }
@@ -347,11 +337,10 @@ export function debugDeleteAllVars()
     // keeps the cleanup honest: any key that getStoredValue/setStored
     // Value would honour is in scope, anything else is intentionally
     // out of scope (e.g. game-side localStorage entries the script
-    // does not own). TK.Logging is skipped for the same reason it always
-    // was -- the debug-delete button should leave a usable log behind. Since
-    // 8.10.0 the log itself lives in the LogStore ring, whose chunk keys are
-    // deliberately not in the registry, so this loop cannot reach them
-    // either; the skip now only spares the legacy key.
+    // does not own). TK.Logging is skipped so the debug-delete button leaves a
+    // usable log behind. The log itself lives in the LogStore ring, whose chunk
+    // keys are deliberately not in the registry, so this loop cannot reach them
+    // either; the skip only spares that one key.
     const loggingKey = HHStoredVarPrefixKey + TK.Logging;
     for (const key of Object.keys(HHStoredVars))
     {

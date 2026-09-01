@@ -1,17 +1,11 @@
-// BlockPipeline.ts -- wiring of the v7.37.0 block scheduler into the running
-// script (ADR-001, Roadmap step 17 task 6).
+// BlockPipeline.ts -- wires the block scheduler into the running script.
 //
-// Adapts the existing 33 HandlerConfig entries (Pipeline.config.ts) 1:1 into
-// single-/multi-step Blocks (all current handlers are single-step), builds the
-// default order from the current pipeline array order, and exposes a configured
-// BlockScheduler singleton with real side-effecting ports. This REPLACES the
-// legacy Scheduler in AutoLoop while keeping behaviour identical on the happy
-// path: handler internals (precondition + step fn) are reused unchanged, so
-// lastActionPerformed continuation keeps working (coexistence, R9.3). Block
-// bundling, constraints and reload-safe multi-step decomposition come in later
-// tasks.
+// Adapts the HandlerConfig entries of Pipeline.config.ts into Blocks, builds the
+// default order from their array order, and exposes the BlockScheduler singleton
+// with its side-effecting ports. Handler internals (precondition + step fn) are
+// used unchanged, so lastActionPerformed continuation keeps working.
 //
-// Requirements: 1.1, 1.2, 1.3, 9.1, 9.3, 9.4, 9.5
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
@@ -27,60 +21,55 @@ import { logEvent, writeLogContext, isDiagnose, PipeFields } from "./PipeLogger"
 import { HandlerConfig, pipeline } from "./Pipeline.config";
 
 /**
- * Slot-hold decision (ADR-002, gate-hold-return). After a handler step:
- *  - failure -> pass through (watchdog aborts).
- *  - the handler acted (ctx.busy, typically navigated away) -> repeat: keep the
- *    BlockRun active so the same block re-enters after the reload and finishes
- *    its excursion uninterrupted (no other block can grab the slot, the
- *    lastActionPerformed reset becomes irrelevant).
- *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
- *    done: release the slot.
+ * Slot-hold decision after a handler step
+ * (docs/decisions/ADR-002-block-slot-hold-until-home.md):
+ *  - failure -> passed through, the watchdog aborts.
+ *  - the handler acted (ctx.busy, typically navigated away) -> repeat: the
+ *    BlockRun stays active, so the same block re-enters after the reload and
+ *    finishes its excursion; no other block can grab the slot meanwhile.
+ *  - the handler is idle (busy=false, ideally back on home) -> done: the slot
+ *    is released.
  */
 export function applySlotHold(r: BlockStepResult, busy: boolean, autoLoopOff = false): BlockStepResult {
   if (!r.ok) return r;
-  // An explicit "done" wins over the navigated-so-hold rule. Without it a
-  // handler cannot say "I went home BECAUSE I am finished": ctx.busy is set
-  // either way, the run is held, and the next tick discards it as a stop.
-  // PlaceOfPower does exactly that when its list is empty.
+  // An explicit "done" wins over the navigated-so-hold rule, so a handler can
+  // say "I went home BECAUSE I am finished": ctx.busy is set either way, and
+  // without this the run would be held. PlaceOfPower does that when its list
+  // is empty.
   if (r.done === true) {
     return (autoLoopOff || r.acted === true) ? { ...r, acted: true } : r;
   }
-  // A handler that switched the auto-loop off is mid-action: that is what
-  // gotoPage, safeReload and the fight paths do right before the page goes
-  // away. It does not necessarily hold the slot -- handleLeague deliberately
-  // releases it after arming its timer, and holding on a battle-result page
-  // would starve handleGenericBattle (#1796) -- but it did DO something, and
-  // the activity must survive it (#1841). Measured live in 8.10.30: the league
-  // block launched three fights, released, and handleSeason navigated off the
-  // leaderboard mid-session.
+  // A handler that switched the auto-loop off is mid-action: gotoPage,
+  // safeReload and the fight paths do that right before the page goes away.
+  // It does not hold the slot by itself -- handleLeague releases it after
+  // arming its timer, and holding on a battle-result page starves
+  // handleGenericBattle (#1796) -- but it counts as activity, so the focus
+  // survives it (#1841).
   const acted = autoLoopOff || r.acted === true;
-  // An explicit repeat from the step wins (issue #1796): steps use it to hold
-  // the slot when busy is not set -- e.g. handleLeague right after launching
-  // a leaderboard navigation, or handleSeason waiting in-slot through the
-  // short inter-fight pause. Without this passthrough those holds were
-  // silently stripped and the released slot opened the one-tick window in
-  // which another block navigated away mid-session.
-  // The returned shapes are unchanged apart from the flag, so the hold
-  // decision itself stays exactly as it was.
+  // An explicit repeat from the step holds the slot when busy is not set:
+  // handleLeague right after launching a leaderboard navigation, handleSeason
+  // waiting in-slot through the short inter-fight pause (#1796). Releasing the
+  // slot there opens a one-tick window in which another block navigates away
+  // mid-session.
   if (r.repeat) return acted ? { ...r, acted: true } : r;
   if (busy) return acted ? { ok: true, repeat: true, acted: true } : { ok: true, repeat: true };
   return acted ? { ok: true, acted: true } : { ok: true };
 }
 
-// Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
+// Infra blocks are pinned: not user-reorderable.
 const INFRA_BLOCKS = new Set<string>(["handleEventParsing", "handleGoHome"]);
 
 /**
  * Blocks that may run while another activity holds the focus, and that never
  * take the focus themselves (#1841, Block.runsDuringFocus).
  *
- *  - the six collect blocks: their rewards expire with the event they belong
- *    to (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions),
- *    so they must never wait for a fight that runs until the energy is gone.
- *    Each sets its own next-time timer, so it cannot starve the activity.
+ *  - the collect blocks: their rewards expire with the event they belong to
+ *    (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions), so
+ *    they must never wait for a fight that runs until the energy is gone. Each
+ *    sets its own next-time timer, so it cannot starve the activity.
  *  - handleGenericBattle: parses the reward popup on a battle-result page
  *    (#1740). A fight block hands that page over and is stuck there until the
- *    parse is done -- locking this out would deadlock the focus.
+ *    parse is done, so locking this out would deadlock the focus.
  */
 const FOCUS_INTERRUPTERS = new Set<string>([
   "handleSeasonCollect",
@@ -95,11 +84,9 @@ const FOCUS_INTERRUPTERS = new Set<string>([
 /** Infra that serves other blocks and must not become the focused activity. */
 const NEVER_FOCUS = new Set<string>([...INFRA_BLOCKS, ...FOCUS_INTERRUPTERS]);
 
-// Hard ordering constraints (design.md "Abhaengigkeitsgraph", R3.1), declared on
-// the block; OrderResolver.validateOrder enforces them on any user reorder
-// (task 15). The current defaultOrder already satisfies all of these (build-test
-// R3.6), so adding them changes NO runtime order -- they only constrain future
-// user reorders. BossBang is still two un-bundled blocks here, so the
+// Hard ordering constraints declared on the block; OrderResolver.validateOrder
+// enforces them on any user reorder. The default order already satisfies them,
+// so they only constrain reordering. BossBang is two separate blocks, so the
 // EventParsing-before-consumers edge targets both halves.
 const BLOCK_CONSTRAINTS: Record<string, OrderConstraint[]> = {
   handleAutoEquipBoosters: [
@@ -121,8 +108,8 @@ function toBlock(c: HandlerConfig): Block {
     precondition: c.precondition,
     steps: c.steps.map(s => ({
       name: s.name,
-      // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
-      // navigating handler holds the run until it goes idle (ADR-002).
+      // The handler step, wrapped in the slot-hold rule so a navigating
+      // handler holds the run until it goes idle.
       fn: async (ctx: Parameters<typeof s.fn>[0]) => {
         const result = await s.fn(ctx);
         const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== "true";
@@ -130,9 +117,9 @@ function toBlock(c: HandlerConfig): Block {
       },
       timeoutMs: s.timeoutMs,
     })),
-    userMovable: !INFRA_BLOCKS.has(c.name),   // R3.7: infra pinned, rest reorderable
-    constraints: BLOCK_CONSTRAINTS[c.name],   // R3.1: hard ordering constraints
-    holdsFocus: !NEVER_FOCUS.has(c.name),          // #1841
+    userMovable: !INFRA_BLOCKS.has(c.name),   // infra pinned, rest reorderable
+    constraints: BLOCK_CONSTRAINTS[c.name],
+    holdsFocus: !NEVER_FOCUS.has(c.name),     // #1841
     runsDuringFocus: FOCUS_INTERRUPTERS.has(c.name),
     minIntervalMs: c.minIntervalMs,
     totalTimeoutMs: c.totalTimeoutMs,
@@ -182,7 +169,7 @@ export const blockPorts: SchedulerPorts = {
     return (v && typeof v === "object" && typeof (v as BlockFocus).blockId === "string") ? (v as BlockFocus) : null;
   },
   setFocus: (v) => setStoredValue(HHStoredVarPrefixKey + TK.blockFocus, v === null ? "" : JSON.stringify(v)),
-  // Structured [PIPE] logging through the existing log pipeline (task 7).
+  // Structured [PIPE] logging through the existing log pipeline.
   log: (e: Record<string, unknown>) => logEvent(e as unknown as PipeFields),
 };
 
@@ -191,8 +178,8 @@ function buildScheduler(): BlockScheduler {
   const stored = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null) as BlockOrder | null;
   const resolved = resolveOrder(stored, registry, defaultOrder);
   for (const w of resolved.warnings) logHHAuto(`[Scheduler] order: ${w.message}`);
-  // Refresh the non-rotating log context block (R6.16): version/platform/order/
-  // disabled blocks/diagnose flag, prepended to the user debug export.
+  // Refresh the non-rotating log context block: version, platform, effective
+  // order, disabled blocks and the diagnose flag, prepended to the debug export.
   const disabledMap = blockPorts.getAutoDisabled();
   writeLogContext({
     version: blockPorts.scriptVersion(),
@@ -201,15 +188,16 @@ function buildScheduler(): BlockScheduler {
     disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
     diagnose: isDiagnose(),
   });
-  // No-progress watchdog only (ADR-002 follow-up): a block runs ALL its tasks and
-  // sets its own timer before releasing; the watchdog aborts only after 5 min of
-  // NO progress (genuinely hung), never a long-but-working build.
+  // No-progress watchdog: a block runs all its tasks and sets its own timer
+  // before releasing, so the watchdog aborts only after 5 min without progress
+  // -- a genuinely hung block, never a long-but-working one.
   return new BlockScheduler(registry, resolved.order, blockPorts, { noProgressMs: 300_000 });
 }
 
-// Lazy singleton: built on first tick from the boot path, NOT at module eval,
-// so reading the `pipeline` array cannot hit a TDZ if the cyclic module graph
-// evaluates BlockPipeline before Pipeline.config (lesson zirkulaerer-import-tdz-crash).
+// Lazy singleton: built on the first tick from the boot path, not at module
+// eval, so reading the `pipeline` array cannot hit a TDZ when the cyclic module
+// graph evaluates BlockPipeline before Pipeline.config (lesson
+// zirkulaerer-import-tdz-crash).
 let _scheduler: BlockScheduler | null = null;
 export function getBlockScheduler(): BlockScheduler {
   if (!_scheduler) _scheduler = buildScheduler();

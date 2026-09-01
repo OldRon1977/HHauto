@@ -4,7 +4,7 @@
 // opponents, manages Pantheon-specific fight energy, and handles cooldown
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
-// Depends on: TeamModule.ts (team selection)
+// Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";

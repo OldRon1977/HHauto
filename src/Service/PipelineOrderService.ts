@@ -1,5 +1,5 @@
-// PipelineOrderService.ts -- "Block Order" reorder popup (v7.37.0 pipeline-block
-// architecture, ADR-001, Roadmap step 17 task 15).
+// PipelineOrderService.ts -- the "Block Order" reorder popup.
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 //
 // A single menu button ("Block Order") opens a popup where the user drags (or
 // uses up/down arrows) to reorder the user-movable blocks. Infra blocks

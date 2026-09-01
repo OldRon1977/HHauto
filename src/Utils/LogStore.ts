@@ -1,34 +1,28 @@
 /**
  * Ring buffer for the debug log.
  *
- * The old buffer kept the log as one JSON object under a single key. Every
- * single line read that object back out of sessionStorage, parsed it, pruned
- * it, serialised it and wrote all of it again -- measured on the #1815 report:
- * 5000 lines, 525 KB, and roughly three lines a second, so half a megabyte of
- * JSON was parsed and rebuilt three times per second. The cost grew with the
- * buffer, which is why the cap had to stay at 5000 lines: 30 minutes. A night
- * of evidence for a pipeline question was impossible to collect.
+ * The point of the chunk ring is that the cost of writing a line does not grow
+ * with the size of the log: a single JSON blob under one key has to be parsed,
+ * pruned, serialised and written back for every line, which caps the log at
+ * half an hour before it becomes the most expensive thing the script does
+ * (#1815). Here a line costs one append.
  *
- * This store writes plain text into a ring of chunks:
+ * The store writes plain text into a ring of chunks:
  *
  *   - a line is pushed into an in-memory array (no storage access at all),
  *   - the array is flushed after 4 KB or one second, whichever comes first,
  *   - a flush appends to the CURRENT chunk only, so one write moves at most
  *     CHUNK_BYTES, not the whole log,
- *   - when a chunk is full the next one is taken and cleared. The oldest
- *     content falls out of the ring, exactly like the old line cap, but in
- *     chunk-sized steps instead of line by line.
+ *   - when a chunk is full the next one is taken and cleared, so the oldest
+ *     content falls out of the ring in chunk-sized steps.
  *
- * The buffer size is not a guess: the ring is generous, and a quota error
- * drops the oldest chunk and retries. The log therefore grows to whatever the
- * browser actually allows -- roughly 4-8 MB, six hours or more of a busy
- * session, against 30 minutes before.
+ * The ring is generous and a quota error drops the oldest chunk and retries,
+ * so the log grows to whatever the browser allows -- roughly 4-8 MB, which is
+ * several hours of a busy session.
  *
  * On disk a line is `<epoch-ms base36> TAB <caller> TAB <text>`, newlines in
- * the text escaped. That is about 60 bytes where the old format needed 108,
- * most of it a repeated, human-readable date string. The export rebuilds
- * exactly the old shape (`"<date>.<ms>:<caller>": text`), so every existing
- * debug log reader keeps working.
+ * the text escaped: about 60 bytes per line. The export rebuilds the shape the
+ * debug log readers expect (`"<date>.<ms>:<caller>": text`).
  *
  * Storage access here is deliberately direct rather than through
  * getStoredValue/setStoredValue: those route through the registry and the
@@ -124,8 +118,8 @@ function writeChunk(idx: RingIndex, text: string): boolean {
 function advance(idx: RingIndex): void {
     idx.cur = (idx.cur + 1) % MAX_CHUNKS;
     sessionStorage.removeItem(chunkKey(idx.cur));
-    // A chunk that comes round again is both the newest and, until it is
-    // written, no longer the old one: take it out of the age order first.
+    // A chunk that comes round again is the newest one, so it has to leave its
+    // old place in the age order first.
     idx.used = idx.used.filter(i => i !== idx.cur);
     idx.used.push(idx.cur);
     if (idx.used.length > MAX_CHUNKS) dropOldest(idx);
@@ -171,8 +165,8 @@ function installExitHook(): void {
  * The one-second deadline is a real timer, not a check on the next call. A
  * context that logs a line and then goes quiet -- the game's own iframes do
  * exactly that -- would otherwise sit on it until it was unloaded, and the
- * line would land in the ring long after the ones around it. Measured on the
- * 8.10.47 night log: 14 lines out of 5588 arrived up to 53 minutes late.
+ * line would land in the ring long after the ones around it, by up to the best
+ * part of an hour.
  */
 export function appendLog(epochMs: number, caller: string, text: string): void {
     installExitHook();
@@ -239,10 +233,10 @@ export function clearLog(): void {
 }
 
 /**
- * Carry a log written by 8.10.46 or older into the ring, once. The old buffer
- * lives in the same tab, so on the reload that brings the new version in, it
- * still holds the running session -- throwing it away would lose exactly the
- * history the user was collecting.
+ * Carry a log written into the single-key buffer (8.10.46 and older) into the
+ * ring, once. That buffer lives in the same tab, so on the reload that brings
+ * the new version in it still holds the running session; throwing it away
+ * would lose exactly the history the user was collecting.
  */
 export function importLegacyLog(): void {
     const legacyKey = HHStoredVarPrefixKey + TK.Logging;

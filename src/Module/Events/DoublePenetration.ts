@@ -4,7 +4,7 @@
 // mechanics. This module tracks event progress, manages fight energy, collects
 // milestone rewards, and handles the event-specific UI interactions.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
 // Used by: EventModule.ts (called when Double Penetration event is active)
 //
 import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";

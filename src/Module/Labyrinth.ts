@@ -6,7 +6,7 @@
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
+// Depends on: RelicManager.ts (relic selection),
 //             TeamModule.ts (team setup)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //

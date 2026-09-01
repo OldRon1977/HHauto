@@ -1,12 +1,8 @@
-// OrderResolver.ts -- pure resolution + validation of the block order
-// (v7.37.0 pipeline-block architecture, ADR-001).
+// OrderResolver.ts -- pure resolution and validation of the block order.
 //
 // No DOM, no storage: the stored order is passed in and the resolved order is
-// returned, so this is fully unit-testable. Storage wiring (reading
-// TK.pipelineOrder, settings export/import) lives in the scheduler/AutoLoop
-// integration task.
-//
-// Requirements: 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7
+// returned, so this is fully unit-testable. Reading TK.pipelineOrder and the
+// settings export/import live in BlockPipeline.
 import { Block, BlockOrder, BlockRegistry, OrderConstraint } from "./BlockTypes";
 
 export type OrderWarningCode = 'inserted' | 'dropped' | 'fallback';
@@ -21,7 +17,7 @@ export interface ValidateResult {
   valid: boolean;
   /** Hard-constraint / cycle / contradiction problems (make the order illegal). */
   errors: string[];
-  /** Soft-constraint violations (advisory only, R3.4). */
+  /** Soft-constraint violations (advisory only). */
   softViolations: string[];
 }
 
@@ -96,7 +92,7 @@ function hasCycle(order: BlockOrder, edges: Edge[]): { cycle: boolean; node?: st
 }
 
 /**
- * Validate an order against the registry's constraints (R3.3/3.4/3.6).
+ * Validate an order against the registry's constraints.
  * Hard violations / cycles / contradictions -> valid=false. Soft violations ->
  * advisory list only.
  */
@@ -134,7 +130,7 @@ export function validateOrder(order: BlockOrder, registry: BlockRegistry): Valid
 
 /**
  * Insert each registry block missing from `known` at its default position,
- * using the "nearest preceding present default neighbour" heuristic (R7.3).
+ * using the "nearest preceding present default neighbour" heuristic.
  */
 function autoInsert(known: string[], missing: string[], defaultOrder: BlockOrder): string[] {
   const result = [...known];
@@ -154,11 +150,11 @@ function autoInsert(known: string[], missing: string[], defaultOrder: BlockOrder
 
 /**
  * Resolve a (possibly stale/invalid) stored order against the current registry
- * and code default order. Always returns a valid, executable order (R7.7):
- *  (b) unknown ids -> dropped + warning (R7.4)
- *  (a) missing registry blocks -> inserted at default position + warning (R7.3)
+ * and code default order. Always returns a valid, executable order:
+ *  (b) unknown ids -> dropped + warning
+ *  (a) missing registry blocks -> inserted at default position + warning
  *  (c) still invalid (cycle/contradiction/hard violation) -> fallback to
- *      defaultOrder + warning (R7.5)
+ *      defaultOrder + warning
  */
 export function resolveOrder(
   stored: BlockOrder | null | undefined,

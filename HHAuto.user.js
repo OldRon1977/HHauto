@@ -2408,7 +2408,7 @@ const SK = {
     compactPowerPlace: "Setting_compactPowerPlace",
     invertMissions: "Setting_invertMissions",
     saveDefaults: "Setting_saveDefaults",
-    pipelineDiagnose: "Setting_pipelineDiagnose", // [PIPE] verbose diagnostic logging toggle (R6.14)
+    pipelineDiagnose: "Setting_pipelineDiagnose", // [PIPE] verbose diagnostic logging toggle
     // Reward Masks
     AllMaskRewards: "Setting_AllMaskRewards",
     PoAMaskRewards: "Setting_PoAMaskRewards",
@@ -2538,16 +2538,16 @@ const TK = {
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
     // Pipeline-block architecture (v7.37.0, ADR-001)
-    activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress (R4.4/R4.12)
-    blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts} (R4.10/R5.2)
+    activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress
+    blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts}
     blockFocus: "Temp_blockFocus", // session: {blockId,lastRunAt} focused activity (#1841)
     forbiddenCount: "Temp_forbiddenCount", // session: consecutive 403s (#1598)
     forbiddenLastAt: "Temp_forbiddenLastAt", // local: when the last 403 was seen
-    blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}} (R5.5)
-    blockFailureCount: "Temp_blockFailureCount", // local: {signature: count} (R5.3)
-    pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order (R2.5/R7.1)
+    blockAutoDisabled: "Temp_blockAutoDisabled", // local: {blockId:{reason,sinceVersion}}
+    blockFailureCount: "Temp_blockFailureCount", // local: {signature: count}
+    pipelineOrder: "Temp_pipelineOrder", // local: effective block-id order
     menuOrder: "Temp_menuOrder", // local: user-defined order of the settings areas
-    pipelineLogContext: "Temp_pipelineLogContext", // local: non-rotating log context block (R6.16)
+    pipelineLogContext: "Temp_pipelineLogContext", // local: non-rotating log context block
     // Troll wait-marker (issue #1708): set when handleTrollBattle is
     // waiting for energy refill but a battle path WOULD fire if power
     // were available. Read by handleEventParsing and handleLeague to
@@ -5599,34 +5599,28 @@ function getBrowserData(nav) {
 /**
  * Ring buffer for the debug log.
  *
- * The old buffer kept the log as one JSON object under a single key. Every
- * single line read that object back out of sessionStorage, parsed it, pruned
- * it, serialised it and wrote all of it again -- measured on the #1815 report:
- * 5000 lines, 525 KB, and roughly three lines a second, so half a megabyte of
- * JSON was parsed and rebuilt three times per second. The cost grew with the
- * buffer, which is why the cap had to stay at 5000 lines: 30 minutes. A night
- * of evidence for a pipeline question was impossible to collect.
+ * The point of the chunk ring is that the cost of writing a line does not grow
+ * with the size of the log: a single JSON blob under one key has to be parsed,
+ * pruned, serialised and written back for every line, which caps the log at
+ * half an hour before it becomes the most expensive thing the script does
+ * (#1815). Here a line costs one append.
  *
- * This store writes plain text into a ring of chunks:
+ * The store writes plain text into a ring of chunks:
  *
  *   - a line is pushed into an in-memory array (no storage access at all),
  *   - the array is flushed after 4 KB or one second, whichever comes first,
  *   - a flush appends to the CURRENT chunk only, so one write moves at most
  *     CHUNK_BYTES, not the whole log,
- *   - when a chunk is full the next one is taken and cleared. The oldest
- *     content falls out of the ring, exactly like the old line cap, but in
- *     chunk-sized steps instead of line by line.
+ *   - when a chunk is full the next one is taken and cleared, so the oldest
+ *     content falls out of the ring in chunk-sized steps.
  *
- * The buffer size is not a guess: the ring is generous, and a quota error
- * drops the oldest chunk and retries. The log therefore grows to whatever the
- * browser actually allows -- roughly 4-8 MB, six hours or more of a busy
- * session, against 30 minutes before.
+ * The ring is generous and a quota error drops the oldest chunk and retries,
+ * so the log grows to whatever the browser allows -- roughly 4-8 MB, which is
+ * several hours of a busy session.
  *
  * On disk a line is `<epoch-ms base36> TAB <caller> TAB <text>`, newlines in
- * the text escaped. That is about 60 bytes where the old format needed 108,
- * most of it a repeated, human-readable date string. The export rebuilds
- * exactly the old shape (`"<date>.<ms>:<caller>": text`), so every existing
- * debug log reader keeps working.
+ * the text escaped: about 60 bytes per line. The export rebuilds the shape the
+ * debug log readers expect (`"<date>.<ms>:<caller>": text`).
  *
  * Storage access here is deliberately direct rather than through
  * getStoredValue/setStoredValue: those route through the registry and the
@@ -5714,8 +5708,8 @@ function writeChunk(idx, text) {
 function advance(idx) {
     idx.cur = (idx.cur + 1) % MAX_CHUNKS;
     sessionStorage.removeItem(chunkKey(idx.cur));
-    // A chunk that comes round again is both the newest and, until it is
-    // written, no longer the old one: take it out of the age order first.
+    // A chunk that comes round again is the newest one, so it has to leave its
+    // old place in the age order first.
     idx.used = idx.used.filter(i => i !== idx.cur);
     idx.used.push(idx.cur);
     if (idx.used.length > MAX_CHUNKS)
@@ -5766,8 +5760,8 @@ function installExitHook() {
  * The one-second deadline is a real timer, not a check on the next call. A
  * context that logs a line and then goes quiet -- the game's own iframes do
  * exactly that -- would otherwise sit on it until it was unloaded, and the
- * line would land in the ring long after the ones around it. Measured on the
- * 8.10.47 night log: 14 lines out of 5588 arrived up to 53 minutes late.
+ * line would land in the ring long after the ones around it, by up to the best
+ * part of an hour.
  */
 function appendLog(epochMs, caller, text) {
     installExitHook();
@@ -5838,10 +5832,10 @@ function clearLog() {
     sessionStorage.removeItem(HHStoredVarPrefixKey + TK.Logging);
 }
 /**
- * Carry a log written by 8.10.46 or older into the ring, once. The old buffer
- * lives in the same tab, so on the reload that brings the new version in, it
- * still holds the running session -- throwing it away would lose exactly the
- * history the user was collecting.
+ * Carry a log written into the single-key buffer (8.10.46 and older) into the
+ * ring, once. That buffer lives in the same tab, so on the reload that brings
+ * the new version in it still holds the running session; throwing it away
+ * would lose exactly the history the user was collecting.
  */
 function importLegacyLog() {
     const legacyKey = HHStoredVarPrefixKey + TK.Logging;
@@ -5997,8 +5991,9 @@ function saveHHDebugLog() {
 // the game rounds differently by context: reward previews round down
 // to avoid overpromising, cost displays round up to avoid underpaying.
 //
-// Used by: HHMenuHelper (input formatting), RewardHelper (reward
-//          display), InfoService (player info panel)
+// Used by: RewardHelper and PriceHelper (reward and price values),
+//          InfoService (player info panel), MenuSettings (input formatting),
+//          League, Season, HaremGirl.
 /** Event handler for menu inputs that auto-formats with thousands separators. */
 function add1000sSeparator1() {
     var nToFormat = this.value;
@@ -6303,12 +6298,10 @@ function getStoredJSON(key, defaultValue, reviver) {
  * getStoredJSON hands back whatever JSON.parse produced -- the type
  * parameter is erased at runtime. The stored text "null" parses fine, so a
  * <string[]> annotation can still yield null, and the next .includes() throws
- * (#1846). That "null" is a state the script used to produce itself, not just
- * a hand-edited config: extractHHVars serialises never-written keys as null on
- * purpose, saveHHVarsSettingsAsJSON exports them that way, and both the config
- * importer and debugDeleteTempVars wrote them back into Web Storage, which
- * stringifies them. Both writers skip null since 8.10.1, but profiles carrying
- * the old value are still out there, so the read stays guarded.
+ * (#1846). That "null" is not only a hand-edited config: extractHHVars
+ * serialises never-written keys as null on purpose and saveHHVarsSettingsAsJSON
+ * exports them that way. The current writers skip null, but profiles carrying
+ * it are still out there, so the read stays guarded.
  */
 function getStoredArray(key) {
     const parsed = getStoredJSON(key, []);
@@ -6391,8 +6384,7 @@ function extractHHVars(dataToSave, extractLog = false, extractTemp = true, extra
         }
     }
     if (extractLog) {
-        // Same shape as before the ring buffer (8.10.47): the export stays
-        // readable by every existing debug-log reader.
+        // The shape every debug-log reader expects.
         dataToSave[HHStoredVarPrefixKey + TK.Logging] = readLogAsObject();
     }
     return dataToSave;
@@ -6420,23 +6412,17 @@ function getStorageItem(inStorageType) {
 }
 function migrateHHVars() {
     // Custom-prefix migration: when the user runs a forked build with a
-    // non-default HHStoredVarPrefixKey and old "HHAuto_"-prefixed
-    // settings are still in storage, copy each registered key over from
-    // the legacy slot to the active prefix.
+    // non-default HHStoredVarPrefixKey and "HHAuto_"-prefixed settings are
+    // still in storage, copy each registered key from the old slot to the
+    // active prefix.
     //
-    // Status (2026-05-26): the active HHStoredVarPrefixKey is hardcoded
-    // to "HHAuto_" in src/config/HHStoredVars.ts, so the body of this
-    // function is dormant in production. The function and its call
-    // site (StartService.ts: migrateHHVars()) are intentionally kept
-    // because:
-    //   - Flipping the prefix is the documented mechanism for
-    //     multi-account isolation (no current PR, but on the roadmap).
-    //   - The cost of keeping the migration around is negligible
-    //     (one early-return check per script start).
-    //   - If a future patch enables the custom prefix without re-
-    //     introducing the migration, every user who upgrades loses
-    //     their settings on the next reload, which is unrecoverable.
-    // Remove together with the multi-account feature, not before.
+    // HHStoredVarPrefixKey is hardcoded to "HHAuto_" in
+    // src/config/HHStoredVars.ts, so this body is dormant. It is kept because
+    // flipping the prefix is the mechanism for multi-account isolation, the
+    // cost is one early-return check per script start, and enabling the custom
+    // prefix without this migration would cost every upgrading user their
+    // settings on the next reload. Remove it with the multi-account feature,
+    // not before.
     if (HHStoredVarPrefixKey === 'HHAuto_' || !haveHHAutoSettings())
         return;
     for (const newKey of Object.keys(HHStoredVars)) {
@@ -6444,10 +6430,9 @@ function migrateHHVars() {
         const storageItem = getStorageItem(HHStoredVars[newKey].storage);
         const itemValue = storageItem[oldKeys];
         storageItem.removeItem(oldKeys);
-        // Preserve the value if it is set at all -- including the empty
-        // string and "0" (falsy in JS but legitimate stored-string
-        // values for some toggles). Only skip when the legacy slot was
-        // never populated.
+        // Preserve the value if it is set at all -- including the empty string
+        // and "0", which are falsy in JS but legitimate stored values for some
+        // toggles. Only skip when the old slot was never populated.
         if (itemValue !== undefined && itemValue !== null) {
             setStoredValue(newKey, itemValue);
         }
@@ -6527,11 +6512,10 @@ function debugDeleteAllVars() {
     // keeps the cleanup honest: any key that getStoredValue/setStored
     // Value would honour is in scope, anything else is intentionally
     // out of scope (e.g. game-side localStorage entries the script
-    // does not own). TK.Logging is skipped for the same reason it always
-    // was -- the debug-delete button should leave a usable log behind. Since
-    // 8.10.0 the log itself lives in the LogStore ring, whose chunk keys are
-    // deliberately not in the registry, so this loop cannot reach them
-    // either; the skip now only spares the legacy key.
+    // does not own). TK.Logging is skipped so the debug-delete button leaves a
+    // usable log behind. The log itself lives in the LogStore ring, whose chunk
+    // keys are deliberately not in the registry, so this loop cannot reach them
+    // either; the skip only spares that one key.
     const loggingKey = HHStoredVarPrefixKey + TK.Logging;
     for (const key of Object.keys(HHStoredVars)) {
         if (key === loggingKey)
@@ -6713,12 +6697,11 @@ function resolvePopState() {
     if (popListDom.length >= 1 || hasPopListGlobal) {
         return { kind: 'main' };
     }
-    // Issue #1782: since the game's 7.x optimization update the specific-POP
-    // view is reached via /activities.html?tab=pop&pop_id=N, and the URL param
-    // is the only reliable source for which POP is shown. The former globals
-    // are gone or stale: window.pop_list no longer exists, window.pop_index
-    // stays 0 regardless of the selected POP, and .pop_thumb_selected[pop_id]
-    // is absent on the single-POP page. The main-list check above runs first,
+    // The specific-POP view is reached via /activities.html?tab=pop&pop_id=N,
+    // and the URL param is the only reliable source for which POP is shown
+    // (#1782): window.pop_list does not exist, window.pop_index stays 0
+    // whichever POP is selected, and .pop_thumb_selected[pop_id] is absent on
+    // the single-POP page. The main-list check above runs first,
     // so a locked POP that the game bounces back to the list still resolves
     // to 'main' (and the URL's stale pop_id is ignored).
     const urlPopId = queryStringGetParam(window.location.search, 'pop_id');
@@ -6743,16 +6726,15 @@ function resolvePopState() {
  * mark the POP as locked. Returns null in every other state (happy
  * path, different tab, no pop_id in URL).
  *
- * Replaces the legacy `checkPop` parameter on getPage(): the caller
- * (Module/PlaceOfPower) now drives the lock-marking pathway instead
- * of PageHelper reaching into a Module from the Helper layer.
+ * The caller (Module/PlaceOfPower) drives the lock-marking pathway, so
+ * PageHelper does not have to reach into a Module from the Helper layer.
  */
 function getPopFallbackIndex() {
     const tab = queryStringGetParam(window.location.search, 'tab');
     if (tab !== 'pop')
         return null;
-    // Issue #1782: the POP query param is `pop_id` since the 7.x update
-    // (was `index`). A locked POP cannot render as a single-POP page; the
+    // The POP query param is `pop_id` (#1782). A locked POP cannot render as
+    // a single-POP page; the
     // game bounces us back to the main list instead. Because the real
     // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
     // it never resolves to 'main', so "URL targets a pop_id but the state
@@ -6773,10 +6755,8 @@ function getPopFallbackIndex() {
  * resolveActivitiesSubTab because the page id depends on which POP
  * (if any) is currently selected -- see resolvePopState.
  *
- * Pre-7.36.0 the sub-tab branch was four hand-rolled `else if`
- * blocks repeating the same selector geometry; the resolver below
- * uses this table instead so adding a sub-tab in the future is one
- * line, not four.
+ * The resolver below reads this table instead of hand-rolled branches, so
+ * adding a sub-tab is one line.
  */
 const ACTIVITIES_SUB_TABS = [
     { tabId: 'contests', pageVarKey: 'pagesIDContests' },
@@ -6902,7 +6882,7 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 //   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
 //   for the queue to drain before changing pages.
 //
-// Why the mutex exists (issue 1598, ADR-003):
+// Why the mutex exists (#1598, docs/decisions/ADR-003-ajax-post-mutex.md):
 //   On accounts with very large rosters the server takes 5-7s per POST,
 //   while AutoLoop ticks every ~1s. Multiple handlers each fire their
 //   own POST per tick, and the server bot-detection rate-limits the
@@ -6931,16 +6911,14 @@ var __awaiter = (undefined && undefined.__awaiter) || function (thisArg, _argume
 //   PageNavigationService (idle wait), PlaceOfPower (claim path),
 //   AutoLoop (tick-gate).
 
-// Shared timing budget for all callers that wait on the game's AJAX
-// before navigating. Keeping these constants here means
-// PageNavigationService and individual modules cannot drift apart
-// (issue 1598: the PoP path used a tighter cap than gotoPage and
-// ignored timeouts, which re-introduced the cancel-mid-POST race).
+// Shared timing budget for every caller that waits on the game's AJAX before
+// navigating. Keeping the constants here is what stops PageNavigationService
+// and individual modules from drifting apart into their own caps, which is how
+// the cancel-mid-POST race gets back in (#1598).
 //
-// 15s is a conservative cap that covers the worst case observed in
-// Firefox Private Browsing (10-12s claim responses). The wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
+// 15s is a conservative cap covering the worst case seen in Firefox Private
+// Browsing (10-12s claim responses). The wait short-circuits as soon as the
+// queue is empty, so the typical path stays fast.
 const AJAX_IDLE_TIMEOUT_MS = 15000;
 // Extra delay after AJAX idle before navigating, to let synchronous
 // follow-up code (DOM updates, popup handling) finish.
@@ -7846,8 +7824,8 @@ var HeroHelper_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // hero data. Keeping it next to the accessors avoids circular deps
 // with the Module layer.
 //
-// Used by: AutoLoop (stat upgrades on burst), Booster module (equip),
-//          BDSM simulator (hero stats for fight prediction)
+// Used by: index and StartService (boot), the fight and shop modules
+//          (hero stats, class, level), TeamModule, ParanoiaService.
 
 
 
@@ -8176,7 +8154,7 @@ class HaremFilter {
 // Handles locale differences by treating commas as decimal separators
 // (common in European localizations).
 //
-// Used by: RewardHelper (reward value calculation), Market module
+// Used by: RewardHelper (reward value calculation), League, Quest, HaremGirl
 
 /** Converts a compact price string like "105K" or "6.38M" back to a number. */
 function parsePrice(princeStr) {
@@ -8480,7 +8458,8 @@ var HaremGirl_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 // costs, tracking affection and XP progress, and performing upgrades when
 // configured to do so.
 //
-// Used by: Harem.ts (girl list operations), EventModule.ts (girl shard tracking)
+// Used by: Harem.ts (girl list operations), TeamModule.ts and
+//          AutoLoopPageHandlers.ts
 //
 
 
@@ -11352,7 +11331,7 @@ BossBang.PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-rewa
 // module parses event page data, tracks timer countdowns, and collects
 // available rewards automatically.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Cumback Contest event is active)
 //
 
@@ -11938,8 +11917,10 @@ class LoveRaid {
 // rewards. This module manages raid participation, tracks collected shards,
 // monitors raid timers, and handles the event page interactions.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Love Raid event is active)
+// Depends on: LoveRaid and EventGirl models, PageNavigationService
+// Used by: Pipeline.config.ts and AutoLoopPageHandlers.ts (raid handling),
+//          Troll.ts and GenericBattle.ts (raid fights), InfoService, Booster,
+//          RewardHelper, Season, HHMenuHelper
 //
 
 
@@ -13492,7 +13473,7 @@ var Season_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // probability (using BDSM calculations), manages season-specific energy,
 // tracks timers, and handles fight automation within the seasonal ladder.
 //
-// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
+// Depends on: BDSMHelper (win probability), Season.pure.ts (parsing),
 //             EventModule.ts (event detection)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
@@ -14243,7 +14224,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // system from BDSMHelper, manages fight energy, and displays power calculations
 // in the UI. Supports both regular and boosted fights.
 //
-// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
+// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 
@@ -15374,7 +15355,7 @@ function Pantheon_pure_decideShouldFight(state) {
 // opponents, manages Pantheon-specific fight energy, and handles cooldown
 // timers. Similar to League but uses a separate energy pool and ranking system.
 //
-// Depends on: TeamModule.ts (team selection)
+// Depends on: Pantheon.pure.ts (parsing), ParanoiaService, Booster
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
 //
 
@@ -17531,7 +17512,7 @@ var Labyrinth_awaiter = (undefined && undefined.__awaiter) || function (thisArg,
 // remaining attempts and cooldowns, and coordinating with LabyrinthAuto.ts
 // for the actual fight logic and RelicManager.ts for relic selection.
 //
-// Depends on: LabyrinthAuto.ts (auto-battle), RelicManager.ts (relic selection),
+// Depends on: RelicManager.ts (relic selection),
 //             TeamModule.ts (team setup)
 // Used by: Module/LabyrinthAuto.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts
 //
@@ -17901,7 +17882,7 @@ Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 
 ;// ./src/Service/BlockDisabledState.ts
 // BlockDisabledState.ts -- read/clear the watchdog auto-disable + failure-count
-// state of the block scheduler (v7.37.0, ADR-001 R5.6).
+// state of the block scheduler.
 //
 // Leaf module (storage only, no scheduler import) so the pInfo UI can show
 // auto-disabled blocks and offer reactivation without an InfoService ->
@@ -17917,14 +17898,14 @@ Labyrinth.BUILD_BUTTON_ID = 'hhAutoLabyTeam';
 // inside the import cycle before config/HHStoredVars finished initializing
 // (lesson zirkulaerer-import-tdz-crash). This module is reachable early via
 // InfoService, so it must stay TDZ-safe.
-/** All blocks the watchdog has auto-disabled, keyed by block id (R5.4/R5.6). */
+/** All blocks the watchdog has auto-disabled, keyed by block id. */
 function getAutoDisabledBlocks() {
     const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockAutoDisabled, {});
     return (v && typeof v === "object") ? v : {};
 }
 /**
  * Reactivate a block: drop its auto-disable entry and reset its failure
- * counters (R5.7). The next scheduler tick will consider the block again.
+ * counters. The next scheduler tick will consider the block again.
  */
 function reactivateBlock(blockId) {
     const disabled = getAutoDisabledBlocks();
@@ -17998,7 +17979,7 @@ function createPInfo() {
             }
         });
         // Reactivate an auto-disabled block when the user clicks its [reactivate]
-        // affordance in the pInfo ERROR section (R5.6). Delegated so it survives
+        // affordance in the pInfo ERROR section. Delegated so it survives
         // the innerHTML refresh in updateData; stopPropagation keeps the panel
         // dblclick (master toggle) unaffected.
         pInfo.on("click", "[data-reactivate-block]", function (e) {
@@ -18053,7 +18034,7 @@ function updateData() {
         //Tegzd+=getTextForUI("master","elementText")+' : '+(getStoredValue(HHStoredVarPrefixKey+SK.master) ==="true"?"<span style='color:LimeGreen'>ON":"<span style='color:red'>OFF")+'</span>';
         //Tegzd+=(getStoredValue(HHStoredVarPrefixKey+TK.autoLoop) ==="true"?"<span style='color:LimeGreen;float:right'>Loop ON":"<span style='color:red;float:right'>Loop OFF")+'</span>';
         Tegzd += '<ul>';
-        // Watchdog ERROR markers: auto-disabled blocks (R5.6). Shown red with an
+        // Watchdog ERROR markers: auto-disabled blocks. Shown red with an
         // <ERROR> prefix, the failure reason in the tooltip plus a request for a
         // logfile, and a clickable [reactivate] affordance.
         const disabledBlocks = getAutoDisabledBlocks();
@@ -18365,7 +18346,7 @@ Spreadsheet.POPUP_SELECTOR = '#blessings_popup .blessings_wrapper';
 // them via AJAX on the Home page and caches the result in localStorage.
 // The team builder reads from cache to make blessing-aware decisions.
 //
-// Used by: AutoLoopPageHandlers.ts (Home page), TeamModule.ts (team build)
+// Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts
 //
 
 
@@ -19705,7 +19686,7 @@ var ClubChampion_awaiter = (undefined && undefined.__awaiter) || function (thisA
 // module manages fight scheduling, energy tracking, and automatic participation
 // in club champion rounds. Requires active club membership (see Club.ts).
 //
-// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Depends on: Champion.ts (shared champion handling), Quest.ts (energy)
 // Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 
@@ -21710,7 +21691,7 @@ var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 // scenes to earn rewards. This module tracks scene progression, manages
 // event energy, and collects available rewards automatically.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, PageNavigationService
 // Used by: EventModule.ts (called when Lively Scene event is active)
 //
 
@@ -21895,7 +21876,7 @@ var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (t
 // unlock reward tiers. This module tracks tier progress, collects available
 // rewards, and manages the event page navigation and timer scheduling.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: RewardHelper (reward parsing), ButtonHelper
 // Used by: EventModule.ts (called when Path of Attraction event is active)
 //
 
@@ -22184,8 +22165,8 @@ PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.p
 // progress, checks for claimable rewards, and manages fight energy and
 // timer scheduling for the event.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Glory event is active)
+// Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
+//          (the collect block)
 //
 
 
@@ -22313,8 +22294,9 @@ class PathOfGlory {
 // progress through reward tiers, collects available rewards, and manages
 // event-specific timers and energy.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Value event is active)
+// Depends on: RewardHelper (reward parsing)
+// Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
+//          (the collect block)
 //
 
 
@@ -22450,8 +22432,9 @@ var Seasonal_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 // days. This module tracks seasonal event progress, collects available
 // rewards at each milestone, and manages event timers and page navigation.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Seasonal mega-event is active)
+// Depends on: RewardHelper (reward parsing), PageNavigationService
+// Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
+//          (the collect blocks), RewardHelper
 //
 
 
@@ -25472,7 +25455,7 @@ var TeamModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 // optimal team configuration before each fight type, saving the player from
 // manual team management.
 //
-// Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
+// Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
 
 
@@ -26558,12 +26541,13 @@ var AdsService_awaiter = (undefined && undefined.__awaiter) || function (thisArg
 
 
 
-// Cooldown windows (seconds). Never a tight retry loop (issue #1746 acceptance).
+// Cooldown windows (seconds), so no failure path turns into a tight retry loop
+// (#1746).
 // RECHECK: normal pacing -- the reward ads appear in short bursts (several in
 //          a row, then none until the next day), so the scan runs every few
-//          seconds to catch the whole burst (maintainer requirement). The scan
-//          itself is a cheap DOM query; the pipeline's minIntervalMs and this
-//          timer keep it from busy-looping.
+//          seconds to catch the whole burst. The scan itself is a cheap DOM
+//          query; the pipeline's minIntervalMs and this timer keep it from
+//          busy-looping.
 // BLOCKED: a popup blocker stopped the ad tab -- back off, retrying won't help
 //          (fix is a browser popup exception for the game site).
 const AD_COOLDOWN_RECHECK = [5, 10];
@@ -26859,10 +26843,10 @@ class AdsService {
         safeReload();
     }
 }
-// There is deliberately NO own re-click bookkeeping (maintainer
-// decision): the game removes a reward-ad button once it is used and
-// only shows it again when it is clickable -- a visible button is
-// always fair game. Pacing comes solely from the nextAdsTime cooldowns.
+// There is deliberately no own re-click bookkeeping: the game removes a
+// reward-ad button once it is used and only shows it again when it is
+// clickable, so a visible button is always fair game. Pacing comes solely
+// from the nextAdsTime cooldowns.
 /** Timestamp of our most recent ad click (0 = none this page session). */
 AdsService.lastAdClickAt = 0;
 /** How long after an ad click a stray visible OK is treated as OUR
@@ -27448,7 +27432,7 @@ function autoLoop() {
 // mechanics. This module tracks event progress, manages fight energy, collects
 // milestone rewards, and handles the event-specific UI interactions.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
 // Used by: EventModule.ts (called when Double Penetration event is active)
 //
 
@@ -27639,7 +27623,7 @@ class DoublePenetration {
 // page data, tracks timer countdowns and girl reward progress, and manages
 // the event refresh schedule.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Kinky Cumpetition event is active)
 //
 
@@ -27772,9 +27756,8 @@ class EventGirl {
 // with Troll.ts for fight prioritization, and manages event-specific timers
 // and girl shard tracking.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Mythic event is active),
-//          Troll.ts (reads event troll priorities)
+// Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
+// Used by: EventModule.ts (called when a Mythic event is active)
 //
 
 
@@ -28064,7 +28047,7 @@ function smNextAction(state) {
 // regenerated. This module monitors the event shop for refresh timers and
 // automates opening grid squares ("Auto-Mystery").
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
 // Used by: EventModule.ts (called when Sultry Mysteries event is active)
 //
 
@@ -29529,7 +29512,7 @@ var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // trolls during mythic events), tracks energy regeneration, and processes
 // fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
 //
-// Depends on: TeamModule.ts (team selection), MythicEvent.ts (event troll routing)
+// Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
 // Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
 //
 
@@ -31232,8 +31215,9 @@ function getMenu() {
 // button colour state) and re-exports the extracted symbols so existing
 // importers keep working.
 //
-// Used by: StartService (on init), AutoLoop (button state refresh),
-// StorageHelper (getMenuValues), and feature modules that inject menu rows.
+// Used by: StartService (on init), AutoLoop (button state refresh), and the
+// feature modules that inject menu rows (Champion, Labyrinth, Pachinko,
+// TeamModule).
 
 
 
@@ -32411,7 +32395,7 @@ class SurveyService {
             }
             lines.push(`${keyName}: ${status}`);
         }
-        // Block order (R8.6): the user-defined pipeline order, or DEFAULT.
+        // Block order: the user-defined pipeline order, or DEFAULT.
         const pipelineOrder = getStoredJSON(HHStoredVarPrefixKey + TK.pipelineOrder, null);
         lines.push(`PipelineOrder: ${pipelineOrder && pipelineOrder.length > 0 ? pipelineOrder.join(',') : "DEFAULT"}`);
         return lines.join('\n');
@@ -32653,7 +32637,7 @@ function hasCycle(order, edges) {
     return found ? { cycle: true, node: found } : { cycle: false };
 }
 /**
- * Validate an order against the registry's constraints (R3.3/3.4/3.6).
+ * Validate an order against the registry's constraints.
  * Hard violations / cycles / contradictions -> valid=false. Soft violations ->
  * advisory list only.
  */
@@ -32691,7 +32675,7 @@ function validateOrder(order, registry) {
 }
 /**
  * Insert each registry block missing from `known` at its default position,
- * using the "nearest preceding present default neighbour" heuristic (R7.3).
+ * using the "nearest preceding present default neighbour" heuristic.
  */
 function autoInsert(known, missing, defaultOrder) {
     const result = [...known];
@@ -32716,11 +32700,11 @@ function autoInsert(known, missing, defaultOrder) {
 }
 /**
  * Resolve a (possibly stale/invalid) stored order against the current registry
- * and code default order. Always returns a valid, executable order (R7.7):
- *  (b) unknown ids -> dropped + warning (R7.4)
- *  (a) missing registry blocks -> inserted at default position + warning (R7.3)
+ * and code default order. Always returns a valid, executable order:
+ *  (b) unknown ids -> dropped + warning
+ *  (a) missing registry blocks -> inserted at default position + warning
  *  (c) still invalid (cycle/contradiction/hard violation) -> fallback to
- *      defaultOrder + warning (R7.5)
+ *      defaultOrder + warning
  */
 function resolveOrder(stored, registry, defaultOrder) {
     const warnings = [];
@@ -32752,8 +32736,8 @@ function resolveOrder(stored, registry, defaultOrder) {
 }
 
 ;// ./src/Service/PipelineOrderService.ts
-// PipelineOrderService.ts -- "Block Order" reorder popup (v7.37.0 pipeline-block
-// architecture, ADR-001, Roadmap step 17 task 15).
+// PipelineOrderService.ts -- the "Block Order" reorder popup.
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 //
 // A single menu button ("Block Order") opens a popup where the user drags (or
 // uses up/down arrows) to reorder the user-movable blocks. Infra blocks
@@ -33065,17 +33049,16 @@ class MenuOrderService {
 // menu. Each menu item carries a hidden span (.tooltipHHtext) holding its help
 // text; hovering the surrounding .tooltipHH shows that text.
 //
-// Placement (8.10.0): the text is no longer shown inside the hovered element.
-// It is copied into a single floating box appended to <body>, which is placed
-// vertically centred and to the left of the settings panel — the same spot
-// every time, so the eye does not have to hunt for it.
+// Placement: the text is copied into a single floating box appended to <body>,
+// placed vertically centred and to the left of the settings panel — the same
+// spot every time, so the eye does not have to hunt for it.
 //
-// Two reasons it has to live outside the panel rather than inside the hovered
-// row, which is where it used to be drawn:
+// Two reasons the box has to live outside the panel rather than inside the
+// hovered row:
 //   - #sMenu is overflow:hidden and the pane scrolls, so a tooltip drawn inside
-//     was cut off at the panel edge;
-//   - it used to sit above its own row, which pushed the tooltips of the top
-//     rows off the screen entirely.
+//     is cut off at the panel edge;
+//   - drawn above its own row it would push the tooltips of the top rows off
+//     the screen entirely.
 // <body> is also outside the CSS transform the game puts on #contains_all, so
 // position:fixed means viewport coordinates here, with no scaling to undo.
 //
@@ -33083,7 +33066,7 @@ class MenuOrderService {
 // box, placed next to their anchor and clamped to the viewport.
 //
 // The `important` flag is kept for API compatibility with the callers in
-// StartService; visibility is now a plain flag, so no !important is needed.
+// StartService; visibility is a plain flag, so no !important is needed.
 //
 // Used by: StartService (initial state), menu checkbox handler
 
@@ -33234,16 +33217,14 @@ function show(anchor) {
     };
     applyWidth();
     // The box is centred vertically beside the panel, so the whole viewport
-    // height minus the two gaps is available. This used to be a static
-    // max-height:60vh, which did not scale with the zoom while the type did --
-    // at a high zoom a long text overflowed, and overflow here is unreadable
-    // by construction: the box is pointer-events:none, so its scrollbar cannot
-    // be grabbed, and it hides as soon as the pointer leaves the row.
+    // height minus the two gaps is available. A static max-height would not
+    // follow the zoom while the type does, and overflow here is unreadable by
+    // construction: the box is pointer-events:none, so its scrollbar cannot be
+    // grabbed, and it hides as soon as the pointer leaves the row.
     const maxHeight = Math.max(MIN_BOX_HEIGHT, window.innerHeight - 2 * GAP);
     el.style.maxHeight = maxHeight + 'px';
-    // Shrink to fit rather than clip. The floor is BASE_FONT, the size the box
-    // used before it started following the zoom, so the worst case is the old
-    // readable size and never a cut-off text.
+    // Shrink to fit rather than clip. BASE_FONT is the floor, so the worst
+    // case is a readable size and never a cut-off text.
     let font = Math.max(BASE_FONT, Math.round(BASE_FONT * scale));
     el.style.fontSize = font + 'px';
     // Widening costs nothing legible, shrinking does -- so spend the width
@@ -34201,13 +34182,13 @@ class BlockScheduler {
         this.ports = ports;
         this.run = null;
         this.restoredFromStore = false;
-        this.tickCount = 0; // R6.3 correlation: incremented once per tick()
+        this.tickCount = 0; // log correlation: incremented once per tick()
         this.lastTickAt = 0; // wall-clock of the previous tick(); 0 = no tick yet
         /** When this page context first saw the autoLoop flag off (0 = it is on). */
         this.autoLoopOffSince = 0;
         this.cfg = Object.assign(Object.assign({}, DEFAULT_CONFIG), cfg);
-        // Restore a run that survived a reload (R4.4) and reconcile version-gated
-        // auto-disable (R5.5: one retry after a script update).
+        // Restore a run that survived a reload, and clear auto-disable entries
+        // from an older script version so an updated script retries once.
         this.reconcileVersionResets();
         this.run = this.ports.loadRun();
         this.restoredFromStore = this.run !== null;
@@ -34215,7 +34196,7 @@ class BlockScheduler {
     /** Update the effective order (e.g. after a settings change). */
     setOrder(order) { this.order = order; }
     getActiveRun() { return this.run; }
-    /** R5.5: drop auto-disable entries from a previous script version. */
+    /** Drop auto-disable entries from a previous script version. */
     reconcileVersionResets() {
         const disabled = this.ports.getAutoDisabled();
         const version = this.ports.scriptVersion();
@@ -34231,7 +34212,7 @@ class BlockScheduler {
         if (changed)
             this.ports.setAutoDisabled(disabled);
     }
-    /** R5.7: manual (or version) reactivation clears auto-disable + counter. */
+    /** Manual or version-triggered reactivation clears auto-disable + counter. */
     reactivate(blockId) {
         const disabled = this.ports.getAutoDisabled();
         if (disabled[blockId]) {
@@ -34266,8 +34247,8 @@ class BlockScheduler {
             // only contiguous active ticking time, not dormant wall-clock.
             const gap = this.lastTickAt === 0 ? 0 : now - this.lastTickAt;
             this.lastTickAt = now;
-            // 1. Stop-check: the script is off -> discard the run, NO home routing
-            // (R4 / design). The master switch is the user saying stop.
+            // Stop-check: the script is off -> discard the run, no home routing. The
+            // master switch is the user saying stop.
             if (this.ports.isMasterOff()) {
                 this.autoLoopOffSince = 0;
                 if (this.run) {
@@ -34280,13 +34261,12 @@ class BlockScheduler {
             }
             // The autoLoop flag is NOT the user saying stop: gotoPage, safeReload and
             // the fight paths switch it off themselves, right before the page goes
-            // away. Discarding the run on that tick threw away work a block had
-            // explicitly held -- measured over one night on 8.10.48: 13 runs killed,
-            // every one of them 1.9-2.0 s (one scheduler tick) after the script's own
-            // "setting autoloop to false", with the master switch on the whole time.
-            // A navigation resolves in seconds, so a held run gets that long to be
-            // carried away by its reload. What keeps the flag off for longer is a real
-            // stop -- the paranoia rest -- and there the run is discarded as before.
+            // away. Discarding the run on that tick throws away work a block has
+            // explicitly held, one scheduler tick after the script's own "setting
+            // autoloop to false". A navigation resolves in seconds, so a held run gets
+            // navigationGraceMs to be carried away by its reload. What keeps the flag
+            // off for longer is a real stop -- the paranoia rest -- and there the run
+            // is discarded.
             if (this.ports.isAutoLoopOff()) {
                 if (this.autoLoopOffSince === 0)
                     this.autoLoopOffSince = now;
@@ -34328,7 +34308,8 @@ class BlockScheduler {
                 yield this.abort(run, "block-missing");
                 return;
             }
-            // First handling after a reload: resume validation + at-most-once (R4.6/R4.9).
+            // First handling after a reload: resume validation, and a dispatched step
+            // is not run twice.
             if (this.restoredFromStore) {
                 this.restoredFromStore = false;
                 const next = block.steps[run.stepIdx];
@@ -34353,19 +34334,16 @@ class BlockScheduler {
                     // A valid resume after a reload IS progress for reload-based slot-hold
                     // blocks (PoP: one powerplace per reload; Champion: one draft per reload).
                     // Their step.fn navigates and triggers a reload, so it never returns
-                    // repeat/advance to the scheduler and the executeStep resets below never
-                    // run. Without bumping the anchor here the no-progress watchdog measures
-                    // from run start and kills legit long work after noProgressMs (observed
-                    // live: PoP killed mid-run at ~5 min, v7.36.10). Reset on every live
-                    // re-entry so the watchdog only fires when the block stops resuming.
-                    // Coming back after a reload IS proof that the block acted (#1841):
-                    // only navigating gets you a new page. This is the ONLY place the flag
-                    // can be set for a fighting handler. Its step awaits the battle POST,
-                    // the response navigates, and the step never returns -- so the write
-                    // in executeStep dies with the page and the run comes back looking
-                    // like it did nothing. Measured on 8.10.29: a troll run that had just
-                    // crushed an opponent released the activity as "ran without doing
-                    // anything", and handleLeague took the slot on the battle-result page.
+                    // repeat/advance to the scheduler, so the executeStep resets below never
+                    // run. Bumping the anchor on every live re-entry keeps the no-progress
+                    // watchdog from measuring since run start and killing legit long work;
+                    // it then fires only when the block stops resuming.
+                    // Coming back after a reload is also proof that the block acted
+                    // (#1841): only navigating gets you a new page. For a fighting handler
+                    // this is the only place the flag can be set -- its step awaits the
+                    // battle POST, the response navigates, and the step never returns, so
+                    // the write in executeStep dies with the page and the run would come
+                    // back looking as if it had done nothing.
                     run.acted = true;
                     run.stepStartedAt = this.ports.now();
                     this.ports.saveRun(run);
@@ -34377,9 +34355,8 @@ class BlockScheduler {
             // watchdog must run after it -- otherwise the first tick after a reload that
             // followed a long dormant period (frozen/backgrounded tab, OS sleep) would
             // abort a healthy reload-based run on its stale persisted anchor before the
-            // resume reset could refresh it. That false abort, repeated failureThreshold
-            // times for the same signature, auto-disables the block (observed live as
-            // "ERROR - Champion re-activate", tooltip no-progress-timeout). A working
+            // resume reset could refresh it. Such a false abort, repeated
+            // failureThreshold times for the same signature, auto-disables the block. A working
             // block keeps resetting stepStartedAt (resume/advance/repeat), so it never
             // times out; only a genuinely stuck run (re-entered across ticks without
             // advancing) is aborted + routed home.
@@ -34387,7 +34364,7 @@ class BlockScheduler {
                 yield this.abort(run, "no-progress-timeout");
                 return;
             }
-            // gate-hold-return (ADR-002): a held run continues only while the block
+            // A held run continues only while the block
             // still WANTS to run. Re-check the precondition on every continuation; once
             // it no longer holds (e.g. a navigate-only block such as HaremSize has
             // reached its target page, so its precondition page-guard flips false),
@@ -34411,7 +34388,7 @@ class BlockScheduler {
                 return;
             }
             if (step.stateChanging) {
-                // persist-before-act (R6.13): the dispatch marker survives the reload.
+                // Persist before acting: the dispatch marker survives the reload.
                 run.dispatched = true;
                 this.ports.saveRun(run);
                 this.emit({ ev: "dispatch", block: block.id, step: step.name });
@@ -34432,7 +34409,7 @@ class BlockScheduler {
                 if (result.acted)
                     run.acted = true; // acted without holding the slot (#1841)
                 if (result.repeat) {
-                    // Holding the slot is the handler saying it acted (ADR-002); that is
+                    // Holding the slot is the handler saying it acted; that is
                     // what makes this run worth keeping the focus for (#1841).
                     run.acted = true;
                     run.stepStartedAt = this.ports.now();
@@ -34501,33 +34478,33 @@ class BlockScheduler {
         this.run = null;
         this.ports.clearRun();
     }
-    /** Abort path (R4.10): clear run, count failure, cool-down, route home. */
+    /** Abort path: clear run, count failure, set cool-down, route home. */
     abort(run, reason) {
         return BlockScheduler_awaiter(this, void 0, void 0, function* () {
             var _a;
             const blockId = run.blockId;
             this.emit({ ev: reason.startsWith("run-timeout") || reason.includes("timeout") ? "timeout" : "abort", block: blockId, detail: reason });
-            // Persistent per-signature failure counter (R5.3).
+            // Persistent per-signature failure counter.
             const counts = this.ports.getFailureCounts();
             const sig = blockId + ":" + shortSig(reason);
             counts[sig] = ((_a = counts[sig]) !== null && _a !== void 0 ? _a : 0) + 1;
             const count = counts[sig];
             this.ports.setFailureCounts(counts);
-            // Auto-disable on threshold (R5.4).
+            // Auto-disable on threshold.
             if (count >= this.cfg.failureThreshold) {
                 const disabled = this.ports.getAutoDisabled();
                 disabled[blockId] = { reason, sinceVersion: this.ports.scriptVersion() };
                 this.ports.setAutoDisabled(disabled);
                 this.emit({ ev: "error", block: blockId, detail: "auto-disabled after " + count + " failures (" + reason + ")" });
             }
-            // Cool-down (R4.10/R5.2).
+            // Cool-down.
             const cooldowns = this.ports.getCooldowns();
             cooldowns[blockId] = this.ports.now() + this.cfg.cooldownMs;
             this.ports.setCooldowns(cooldowns);
             this.run = null;
             this.ports.clearRun();
             this.releaseFocus("run aborted");
-            yield this.ports.routeHome(); // safe ground state (R4.10)
+            yield this.ports.routeHome(); // safe ground state
         });
     }
     /**
@@ -34537,7 +34514,7 @@ class BlockScheduler {
      *                 It will be ready again shortly; worth waiting for.
      *  - 'no'      -- it is disabled or does not want to run. Nothing to wait for.
      * The three-way answer is what lets the focus tell "not yet" apart from
-     * "finished" (#1841); the order of the checks is unchanged from R4.3.
+     * "finished" (#1841).
      */
     eligibility(block, ctx, now, disabled, cooldowns, last) {
         var _a, _b;
@@ -34563,13 +34540,12 @@ class BlockScheduler {
      * Returns the block to run, `null` to wait a tick without giving the slot
      * away, or `undefined` for "no focus applies -- decide by the order".
      *
-     * The pipeline used to leave an activity the moment one run ended, which is
-     * every single fight: the fight lands on a battle-result page, the block
-     * yields that page so the reward popup is parsed (#1740), and the next block
-     * in the order took the slot and navigated away. One troll fight, one season
-     * fight, one pantheon fight, round and round. Holding the focus keeps the
-     * pipeline on the same activity across that detour until the block itself
-     * says it is done.
+     * Without a focus the pipeline would leave an activity the moment one run
+     * ends, which is every single fight: the fight lands on a battle-result page,
+     * the block yields that page so the reward popup is parsed (#1740), and the
+     * next block in the order takes the slot and navigates away. Holding the
+     * focus keeps the pipeline on the same activity across that detour until the
+     * block itself says it is done.
      */
     pickUnderFocus(ctx, focus, now, disabled, cooldowns, last) {
         const block = this.registry[focus.blockId];
@@ -34607,7 +34583,7 @@ class BlockScheduler {
         this.releaseFocus(state === 'waiting' ? "waited too long" : "nothing left to do");
         return undefined;
     }
-    /** Idle block selection (R4.3): order + enabled + not-disabled + cooldown + min-interval + precondition. */
+    /** Idle block selection: order + not-disabled + cooldown + min-interval + precondition. */
     findNext(ctx) {
         const now = this.ports.now();
         const disabled = this.ports.getAutoDisabled();
@@ -34629,7 +34605,7 @@ class BlockScheduler {
         }
         return null;
     }
-    /** Emit a structured log event with tick + run correlation (R6.3). */
+    /** Emit a structured log event with tick + run correlation. */
     emit(fields) {
         this.ports.log(Object.assign({ tick: this.tickCount, run: this.run ? this.run.blockId + "@" + this.run.startedAt : undefined }, fields));
     }
@@ -34641,15 +34617,12 @@ class BlockScheduler {
 }
 
 ;// ./src/Service/BlockRunStore.ts
-// BlockRunStore.ts -- reload-safe persistence of the active BlockRun
-// (v7.37.0 pipeline-block architecture, ADR-001).
+// BlockRunStore.ts -- reload-safe persistence of the active BlockRun.
 //
-// The BlockRun lives in sessionStorage (TK.activeBlockRun): it survives a
-// page reload in the same tab and is intentionally lost on tab close/crash
-// (R4.12), so a fresh start begins cleanly. Continuity that used to depend on
-// the in-memory ActiveChain + lastActionPerformed now lives here (R4.4).
-//
-// Requirements: 4.4, 4.12
+// The BlockRun lives in sessionStorage (TK.activeBlockRun): it survives a page
+// reload in the same tab and is deliberately lost on tab close or crash, so a
+// fresh start begins cleanly. This is where the continuity of a running block
+// lives.
 
 
 
@@ -34696,30 +34669,29 @@ function clearBlockRun() {
 }
 
 ;// ./src/Service/PipeLogger.ts
-// PipeLogger.ts -- structured [PIPE] logging for the block scheduler
-// (v7.37.0 pipeline-block architecture, ADR-001, task 7).
+// PipeLogger.ts -- structured [PIPE] logging for the block scheduler.
 //
 // One event per line, key=value, parseable, tagged [PIPE], emitted through the
-// existing logHHAuto pipeline (single system, R6.11) so the lines land in the
-// same persisted/rotated buffer and the user debug export. A non-rotating
-// context block (version, platform, effective order, disabled blocks, diagnose
-// flag) is stored separately and travels with the export. Lean events are
-// always emitted; per-step detail only when the diagnose toggle is on. Skip
-// events are change-deduplicated so a block parked on one reason logs once, not
-// every ~2s tick.
+// existing logHHAuto pipeline, so the lines land in the same persisted buffer
+// and in the user debug export. A non-rotating context block (version,
+// platform, effective order, disabled blocks, diagnose flag) is stored
+// separately and travels with the export. Lean events are always emitted;
+// per-step detail only when the diagnose toggle is on. Skip events are
+// change-deduplicated, so a block parked on one reason logs once, not on every
+// tick.
 //
-// Requirements: 6.1-6.14, 6.16, 6.17, 6.18
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 
 
 
 
-// Fixed field order for a stable, parseable line (R6.10).
+// Fixed field order for a stable, parseable line.
 const FIELD_ORDER = ["tick", "run", "block", "step", "page", "ev", "result", "detail"];
-/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract (R6.10/R6.18). */
+/** Collapse whitespace/newlines so a value never breaks the one-event-per-line contract. */
 function sanitize(v) {
     return String(v).replace(/\s+/g, " ").trim();
 }
-/** Format a [PIPE] line. Pure -- unit-testable (R6.10). */
+/** Format a [PIPE] line. Pure -- unit-testable. */
 function formatPipeLine(fields) {
     const parts = ["[PIPE]", "t=" + new Date().toISOString()];
     for (const key of FIELD_ORDER) {
@@ -34730,11 +34702,12 @@ function formatPipeLine(fields) {
     }
     return parts.join(" ");
 }
-/** Whether verbose diagnostic logging is enabled (R6.14). */
+/** Whether verbose diagnostic logging is enabled. */
 function isDiagnose() {
     return getStoredValue(HHStoredVarPrefixKey + SK.pipelineDiagnose) === "true";
 }
-// Skip-dedup state: last skip detail per block (R6.17 lean budget).
+// Skip-dedup state: last skip detail per block, so a block parked on one
+// reason logs once instead of on every tick.
 const lastSkipDetail = {};
 /** Reset dedup state (tests / cache clear). */
 function _resetPipeLoggerForTests() {
@@ -34766,7 +34739,7 @@ function logEvent(fields) {
         return;
     logHHAuto(formatPipeLine(fields));
 }
-/** Write/refresh the non-rotating context block (R6.16). Prepended to the export via storage. */
+/** Write/refresh the non-rotating context block. Prepended to the export via storage. */
 function writeLogContext(ctx) {
     setStoredValue(HHStoredVarPrefixKey + TK.pipelineLogContext, JSON.stringify(ctx));
 }
@@ -35014,7 +34987,7 @@ var LabyrinthAuto_awaiter = (undefined && undefined.__awaiter) || function (this
 // Labyrinth.ts which handles the higher-level floor navigation.
 //
 // Depends on: RelicManager.ts (relic selection after fights)
-// Used by: Labyrinth.ts (called during floor progression)
+// Used by: Pipeline.config.ts (the labyrinth block)
 //
 
 
@@ -35489,27 +35462,25 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
 
 
 /**
- * Build a HandlerConfig from a legacy ModuleHandlerDescriptor. Used to migrate
- * handlers that already wrap a uniform `name + action + isReady + execute`
- * shape (the descriptors used by `runStandardHandler` in AutoLoopActions.ts).
+ * Build a HandlerConfig from a ModuleHandlerDescriptor -- the uniform
+ * `name + action + isReady + execute` shape that `runStandardHandler` in
+ * AutoLoopActions.ts uses.
  *
  * The returned config is single-step, non-atomic, always-interruptible, and
  * mirrors the cascade in `runStandardHandler`:
  *   ctx.busy guard -> autoLoop guard -> competition guard -> lastActionPerformed
  *   guard -> isReady guard -> execute -> set ctx.busy / ctx.lastActionPerformed.
  *
- * The `lastActionPerformed` continuation dates from the v7.36.0 migration.
- * The multi-step model that was meant to replace it was dropped: ADR-005
- * records that the slot-hold rule (ADR-002) does the same job with less
- * machinery, so this gate stays as the descriptor-level continuation.
+ * The `lastActionPerformed` gate stays as the descriptor-level continuation:
+ * the slot-hold rule does the same job with less machinery
+ * (docs/decisions/ADR-005-multistep-superseded-by-slothold.md).
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let
  * navigating handlers (e.g. handleMissions) yield so they do not pull the bot
  * away from a quest mid-completion -- handleQuest needs several reload cycles
  * to act, and lastActionPerformed is reset on the idle tick in between
- * (AutoLoop), so it cannot protect the quest on its own. Full fix is the
- * v7.37.0 multi-step scheduler (step 17); this is the targeted interim guard.
+ * (AutoLoop), so it cannot protect the quest on its own.
  */
 function isOnQuestPage(ctx) {
     return ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDQuest')
@@ -35659,17 +35630,15 @@ const handleEventParsing = {
  * non-finite, or already in the past. Exported for direct unit testing in
  * Pipeline.config.spec.ts.
  *
- * On unexpected storage shape this returns a single sentinel ID so that the
- * caller still triggers a parse cycle (preserves the previous fallback
- * behaviour where the precondition returned true on parse errors).
+ * On an unexpected storage shape this returns a single sentinel ID, so the
+ * caller still triggers a parse cycle.
  *
  * Expired-event side effect: entries whose `seconds_before_end` is in the
- * past are events the game no longer hosts. parseEventPage cannot refresh
+ * past are events the game does not host any more. parseEventPage cannot refresh
  * them (the in-game tab has been replaced by a successor or removed
  * entirely), so they would stay stale forever and drive
- * handleEventParsing into a permanent reload loop (issue #1738 -- a
- * lively_scene_event_12 entry kept the bot looping for 7+ minutes before
- * the user gave up). pruneExpiredEvents() removes them from the registry
+ * handleEventParsing into a permanent reload loop (#1738).
+ * pruneExpiredEvents() removes them from the registry
  * BEFORE this filter runs so the loop terminates and storage stays
  * bounded.
  */
@@ -35749,24 +35718,21 @@ const handleLeague = {
         // Trigger logic in full (lesson pipeline-inner-trigger-in-precondition):
         //
         //   1. League auto-mode active and feature enabled at all?
-        //   2. Bot not currently mid-action on a different module
-        //      (legacy lastActionPerformed guard from doLeagueBattle, lifted
-        //      out of step.fn so the chain doesn't fire just to log a skip).
+        //   2. Bot not currently mid-action on a different module (the
+        //      lastActionPerformed guard, kept out of step.fn so the chain does
+        //      not fire just to log a skip).
         //   3. Either ready to fight (energy + threshold + booster check) OR
-        //      the cool-down timer has expired and we still need to refresh
-        //      the pInfo display with a default timer value (issue raised
-        //      2026-05-26: pInfo stuck on 'No timer' when isTimeToFight is
-        //      false because the only setTimer paths live behind a fight).
+        //      the cool-down timer has expired and the pInfo display still needs
+        //      a default timer value -- without it pInfo stays on 'No timer',
+        //      because every setTimer path sits behind a fight.
         //
-        // Note (issue #1708 follow-up): handleLeague is intentionally NOT
-        // gated on trollWaitForEnergy. League uses a separate energy pool
-        // (challenge tokens) that is unrelated to troll combativity (fight
-        // tokens). LeagueHelper.isTimeToFight() already checks challenge
-        // energy, and the minIntervalMs caps re-entry. Blocking league
-        // while troll waits for combativity (as v7.35.45 did) keeps league
-        // fights from happening even though the user has the energy to do
-        // them. handleEventParsing is gated separately because it ran every
-        // 2 s and was the actual ping-pong driver in #1700.
+        // handleLeague is deliberately NOT gated on trollWaitForEnergy (#1708):
+        // league uses challenge tokens, which have nothing to do with troll
+        // combativity. LeagueHelper.isTimeToFight() already checks challenge
+        // energy and minIntervalMs caps re-entry, so gating on the troll pool
+        // would block league fights the user has the energy for.
+        // handleEventParsing is gated separately -- at a 2 s cadence it is the
+        // one that drives the ping-pong (#1700).
         if (!LeagueHelper.isAutoLeagueActivated())
             return false;
         const lastAction = ctx.lastActionPerformed;
@@ -35792,10 +35758,9 @@ const handleLeague = {
                         // But NOT on the league-battle result page: there doLeagueBattle is
                         // a no-op that arms no timer, so checkTimer stays true and the hold
                         // would repeat forever, starving handleGenericBattle (later in the
-                        // pipeline) which parses the result and navigates on -- observed
-                        // live as a freeze on the result panel after one fight (#1796
-                        // regression in 8.1.6). handleSeason already excludes its own battle
-                        // page for the same reason; mirror it here.
+                        // pipeline) which parses the result and navigates on -- the script
+                        // then freezes on the result panel after one fight (#1796).
+                        // handleSeason excludes its own battle page for the same reason.
                         if (checkTimer('nextLeaguesTime')
                             && ctx.currentPage !== ConfigHelper.getHHScriptVars('pagesIDLeagueBattle')) {
                             return { ok: true, repeat: true };
@@ -35831,11 +35796,10 @@ const handleLeague = {
 };
 // ---------------------------------------------------------------------------
 //  Handler: handleShop
-//  Migrated from AutoLoopActions.handleShop in 3.2.G.a.
-//  Non-atomic, always interruptible. Logs and updates the shop only when
-//  the inner trigger matches the legacy implementation: either the shop
-//  cool-down timer has elapsed, or the cached character level is below the
-//  current hero level (signals a level-up that should refresh shop offers).
+//  Non-atomic, always interruptible. Logs and updates the shop only when the
+//  inner trigger matches: either the shop cool-down timer has elapsed, or the
+//  cached character level is below the current hero level, which signals a
+//  level-up that should refresh the shop offers.
 // ---------------------------------------------------------------------------
 const handleShop = {
     name: 'handleShop',
@@ -35855,23 +35819,17 @@ const handleShop = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        // Legacy lastActionPerformed continuation gate. The multi-step model
-        // that was to replace it was dropped in favour of the slot-hold rule
-        // (ADR-002 / ADR-005), so this gate stays.
+        // lastActionPerformed continuation gate.
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
             return false;
-        // Inner trigger -- belongs in precondition, not the step. The legacy
-        // handler had a two-stage gate (outer if + inner if) inside one tick,
-        // so a precondition-true / inner-false combination was a no-op.
-        // In the pipeline model the scheduler logs "Starting" and bumps the
-        // cool-down on every step.fn call, even silent ones. That bursts the
-        // scheduler into a 5-second spam loop while Shop.isTimeToCheckShop()
-        // stays true (updateMarket / needBoosterStatusFromStore flags persist
-        // until the shop is actually scraped). Lesson: when migrating a
-        // multi-stage if cascade, every gate must move to the precondition.
-        // Initialise the cached level on first call -- mirrors the legacy
-        // handler. Without this, getLevel-vs-stored comparison below would
-        // always fire on a fresh install.
+        // The inner trigger belongs in the precondition, not in the step: the
+        // scheduler logs "Starting" and bumps the cool-down on every step.fn call,
+        // even a silent one, which turns a precondition-true / inner-false
+        // combination into a 5-second spam loop for as long as
+        // Shop.isTimeToCheckShop() stays true (the updateMarket and
+        // needBoosterStatusFromStore flags persist until the shop is scraped).
+        // Initialise the cached level on the first call; without it the
+        // level-vs-stored comparison below always fires on a fresh install.
         if (getStoredValue(HHStoredVarPrefixKey + TK.charLevel) === undefined) {
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, 0);
         }
@@ -35899,7 +35857,6 @@ const handleShop = {
 };
 // ---------------------------------------------------------------------------
 //  Handler: handleAutoEquipBoosters
-//  Migrated from AutoLoopActions.handleAutoEquipBoosters in 3.2.G.a.
 //  Non-atomic, always interruptible. Auto-equips legendary boosters when
 //  slots are empty/expired and the user opted in.
 // ---------------------------------------------------------------------------
@@ -35924,7 +35881,7 @@ const handleAutoEquipBoosters = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        // No lastActionPerformed gate in the legacy handler.
+        // No lastActionPerformed gate here: equipping does not navigate.
         return true;
     },
     steps: [{
@@ -35945,13 +35902,12 @@ const handleAutoEquipBoosters = {
         }],
 };
 // ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.b via fromDescriptor.
-//  Each one is a one-step wrapper around the legacy ModuleHandlerDescriptor.
-//  isReady captures both outer and inner trigger -- the lesson
-//  pipeline-inner-trigger-in-precondition warns against splitting them
-//  between precondition and step.fn.
-//  All eleven handlers are non-atomic, always interruptible, and use
-//  minIntervalMs sized to match the legacy tick frequency for that module.
+//  Handlers built with fromDescriptor.
+//  Each one is a one-step wrapper around a ModuleHandlerDescriptor. isReady
+//  captures both the outer and the inner trigger -- the lesson
+//  pipeline-inner-trigger-in-precondition warns against splitting them between
+//  precondition and step.fn. All of them are non-atomic, always interruptible,
+//  and carry a minIntervalMs sized to the module's tick frequency.
 // ---------------------------------------------------------------------------
 const handleLoveRaid = fromDescriptor({
     name: "Time to go and check raids.",
@@ -36088,17 +36044,14 @@ const handleLabyrinth = fromDescriptor({
     execute: () => (new LabyrinthAuto).run(),
 }, { minIntervalMs: 5000, handlerName: "handleLabyrinth" });
 // ---------------------------------------------------------------------------
-//  Handlers migrated in 3.2.G.complete (the remaining classic handlers).
-//
-//  These are the handlers that did not fit the runStandardHandler descriptor
-//  shape used in 3.2.G.b. Each one keeps its full legacy logic in step.fn,
-//  with all gates lifted into precondition (lesson
+//  Handlers that do not fit the runStandardHandler descriptor shape. Each one
+//  keeps its full logic in step.fn, with all gates in the precondition (lesson
 //  pipeline-inner-trigger-in-precondition).
 //
-//  handleMythicWave is intentionally NOT migrated. Its only effect was
-//  setting ctx.lastActionPerformed = "troll" in the same tick to grant
-//  handleTrollBattle the slot reservation. In the pipeline model the
-//  scheduler picks one handler per tick, so the reservation has no
+//  handleMythicWave is deliberately absent. Its only effect was setting
+//  ctx.lastActionPerformed = "troll" in the same tick to grant
+//  handleTrollBattle a slot reservation. The scheduler picks one handler per
+//  tick, so the reservation has no
 //  destination -- and handleTrollBattle's own gate already accepts
 //  lastActionPerformed = "none" anyway. The function is kept in
 //  AutoLoopActions.ts as deprecated, the AutoLoop.autoLoop() call site
@@ -36683,7 +36636,7 @@ const handleSeason = {
                         // Wait in-slot through the short pause between two fights instead
                         // of completing the run: completion starts the 2s minInterval
                         // cool-down, and that one-tick window is exactly where other
-                        // blocks used to interleave (issue #1796). On the battle page the
+                        // blocks interleave (#1796). On the battle page the
                         // slot is NOT held so the battle-result handling keeps its turn.
                         ctx.lastActionPerformed = 'season';
                         return { ok: true, repeat: true };
@@ -36693,8 +36646,8 @@ const handleSeason = {
                             setStoredValue(HHStoredVarPrefixKey + TK.SeasonHumanLikeRun, 'false');
                         }
                         if (Season.isBlockedOnlyByMissingBooster()) {
-                            // handleAutoEquipBoosters typically fixes a missing booster
-                            // within seconds (observed live: ~2 min), so arming the same
+                            // handleAutoEquipBoosters fixes a missing booster within a couple
+                            // of minutes, so arming the same
                             // 15-17 min "wait for energy" timer here just throws away
                             // fight time. Retry soon instead.
                             logHHAuto('Season blocked only by missing booster, retrying shortly.');
@@ -37248,9 +37201,9 @@ const handleBossBangFight = {
                         // page after each fight; termination happens there -- BossBang.parse
                         // disables the setting once the event shows completed (or arms the
                         // back-off timer when no attempt is left), which flips this block's
-                        // precondition false and releases the slot. autoLoop stays 'true'
-                        // (skipFightPage no longer flips it), otherwise BlockScheduler.tick
-                        // would discard the held run.
+                        // precondition false and releases the slot. skipFightPage leaves
+                        // autoLoop on 'true'; flipping it would make BlockScheduler.tick
+                        // discard the held run.
                         yield BossBang.skipFightPage();
                         ctx.lastActionPerformed = 'bossBang';
                         ctx.busy = true; // applySlotHold: busy -> repeat -> keep the slot
@@ -37323,9 +37276,7 @@ const handleGoHome = {
 //  The Scheduler walks the list once per tick, picks the first ready handler
 //  (precondition true, cool-down elapsed, state IDLE), and runs it.
 //
-//  Migration history: all 33 AutoLoop action handlers now live in this
-//  array (3.2.G.a -> 3.2.G.complete). The classic handler block in
-//  AutoLoop.autoLoop() is gone; the Scheduler is the sole driver.
+//  Every action handler lives in this array; the scheduler is the sole driver.
 //
 //  Order is the agreed user-facing priority sequence: high-yield /
 //  low-cost actions (salary, shop, missions) and resource collectors
@@ -37355,10 +37306,9 @@ const handleGoHome = {
 //  as a catch-all when the bot has landed on any battle page.
 // ---------------------------------------------------------------------------
 const pipeline = [
-    // handleMythicWave is intentionally not listed: it was a legacy slot
-    // reservation used by the classic handleTrollBattle path and has no
-    // effect in the pipeline model. The mythic girl is fully covered by
-    // handleTrollBattle's activation paths.
+    // handleMythicWave is deliberately not listed: it was a slot reservation for
+    // the classic handleTrollBattle path and has no effect here. The mythic girl
+    // is fully covered by handleTrollBattle's activation paths.
     handleEventParsing,
     handleHaremSize,
     handleSalary,
@@ -37406,20 +37356,14 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-// BlockPipeline.ts -- wiring of the v7.37.0 block scheduler into the running
-// script (ADR-001, Roadmap step 17 task 6).
+// BlockPipeline.ts -- wires the block scheduler into the running script.
 //
-// Adapts the existing 33 HandlerConfig entries (Pipeline.config.ts) 1:1 into
-// single-/multi-step Blocks (all current handlers are single-step), builds the
-// default order from the current pipeline array order, and exposes a configured
-// BlockScheduler singleton with real side-effecting ports. This REPLACES the
-// legacy Scheduler in AutoLoop while keeping behaviour identical on the happy
-// path: handler internals (precondition + step fn) are reused unchanged, so
-// lastActionPerformed continuation keeps working (coexistence, R9.3). Block
-// bundling, constraints and reload-safe multi-step decomposition come in later
-// tasks.
+// Adapts the HandlerConfig entries of Pipeline.config.ts into Blocks, builds the
+// default order from their array order, and exposes the BlockScheduler singleton
+// with its side-effecting ports. Handler internals (precondition + step fn) are
+// used unchanged, so lastActionPerformed continuation keeps working.
 //
-// Requirements: 1.1, 1.2, 1.3, 9.1, 9.3, 9.4, 9.5
+// See docs/decisions/ADR-001-pipeline-block-architecture.md.
 
 
 
@@ -37433,61 +37377,56 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
 
 
 /**
- * Slot-hold decision (ADR-002, gate-hold-return). After a handler step:
- *  - failure -> pass through (watchdog aborts).
- *  - the handler acted (ctx.busy, typically navigated away) -> repeat: keep the
- *    BlockRun active so the same block re-enters after the reload and finishes
- *    its excursion uninterrupted (no other block can grab the slot, the
- *    lastActionPerformed reset becomes irrelevant).
- *  - the handler is idle (busy=false, nothing to do, ideally back on home) ->
- *    done: release the slot.
+ * Slot-hold decision after a handler step
+ * (docs/decisions/ADR-002-block-slot-hold-until-home.md):
+ *  - failure -> passed through, the watchdog aborts.
+ *  - the handler acted (ctx.busy, typically navigated away) -> repeat: the
+ *    BlockRun stays active, so the same block re-enters after the reload and
+ *    finishes its excursion; no other block can grab the slot meanwhile.
+ *  - the handler is idle (busy=false, ideally back on home) -> done: the slot
+ *    is released.
  */
 function applySlotHold(r, busy, autoLoopOff = false) {
     if (!r.ok)
         return r;
-    // An explicit "done" wins over the navigated-so-hold rule. Without it a
-    // handler cannot say "I went home BECAUSE I am finished": ctx.busy is set
-    // either way, the run is held, and the next tick discards it as a stop.
-    // PlaceOfPower does exactly that when its list is empty.
+    // An explicit "done" wins over the navigated-so-hold rule, so a handler can
+    // say "I went home BECAUSE I am finished": ctx.busy is set either way, and
+    // without this the run would be held. PlaceOfPower does that when its list
+    // is empty.
     if (r.done === true) {
         return (autoLoopOff || r.acted === true) ? Object.assign(Object.assign({}, r), { acted: true }) : r;
     }
-    // A handler that switched the auto-loop off is mid-action: that is what
-    // gotoPage, safeReload and the fight paths do right before the page goes
-    // away. It does not necessarily hold the slot -- handleLeague deliberately
-    // releases it after arming its timer, and holding on a battle-result page
-    // would starve handleGenericBattle (#1796) -- but it did DO something, and
-    // the activity must survive it (#1841). Measured live in 8.10.30: the league
-    // block launched three fights, released, and handleSeason navigated off the
-    // leaderboard mid-session.
+    // A handler that switched the auto-loop off is mid-action: gotoPage,
+    // safeReload and the fight paths do that right before the page goes away.
+    // It does not hold the slot by itself -- handleLeague releases it after
+    // arming its timer, and holding on a battle-result page starves
+    // handleGenericBattle (#1796) -- but it counts as activity, so the focus
+    // survives it (#1841).
     const acted = autoLoopOff || r.acted === true;
-    // An explicit repeat from the step wins (issue #1796): steps use it to hold
-    // the slot when busy is not set -- e.g. handleLeague right after launching
-    // a leaderboard navigation, or handleSeason waiting in-slot through the
-    // short inter-fight pause. Without this passthrough those holds were
-    // silently stripped and the released slot opened the one-tick window in
-    // which another block navigated away mid-session.
-    // The returned shapes are unchanged apart from the flag, so the hold
-    // decision itself stays exactly as it was.
+    // An explicit repeat from the step holds the slot when busy is not set:
+    // handleLeague right after launching a leaderboard navigation, handleSeason
+    // waiting in-slot through the short inter-fight pause (#1796). Releasing the
+    // slot there opens a one-tick window in which another block navigates away
+    // mid-session.
     if (r.repeat)
         return acted ? Object.assign(Object.assign({}, r), { acted: true }) : r;
     if (busy)
         return acted ? { ok: true, repeat: true, acted: true } : { ok: true, repeat: true };
     return acted ? { ok: true, acted: true } : { ok: true };
 }
-// Infra blocks are pinned: not user-reorderable (R3.7, design "Infra-Bloecke").
+// Infra blocks are pinned: not user-reorderable.
 const INFRA_BLOCKS = new Set(["handleEventParsing", "handleGoHome"]);
 /**
  * Blocks that may run while another activity holds the focus, and that never
  * take the focus themselves (#1841, Block.runsDuringFocus).
  *
- *  - the six collect blocks: their rewards expire with the event they belong
- *    to (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions),
- *    so they must never wait for a fight that runs until the energy is gone.
- *    Each sets its own next-time timer, so it cannot starve the activity.
+ *  - the collect blocks: their rewards expire with the event they belong to
+ *    (`...RemainingTime < getLimitTimeBeforeEnd()` in their preconditions), so
+ *    they must never wait for a fight that runs until the energy is gone. Each
+ *    sets its own next-time timer, so it cannot starve the activity.
  *  - handleGenericBattle: parses the reward popup on a battle-result page
  *    (#1740). A fight block hands that page over and is stuck there until the
- *    parse is done -- locking this out would deadlock the focus.
+ *    parse is done, so locking this out would deadlock the focus.
  */
 const FOCUS_INTERRUPTERS = new Set([
     "handleSeasonCollect",
@@ -37500,11 +37439,9 @@ const FOCUS_INTERRUPTERS = new Set([
 ]);
 /** Infra that serves other blocks and must not become the focused activity. */
 const NEVER_FOCUS = new Set([...INFRA_BLOCKS, ...FOCUS_INTERRUPTERS]);
-// Hard ordering constraints (design.md "Abhaengigkeitsgraph", R3.1), declared on
-// the block; OrderResolver.validateOrder enforces them on any user reorder
-// (task 15). The current defaultOrder already satisfies all of these (build-test
-// R3.6), so adding them changes NO runtime order -- they only constrain future
-// user reorders. BossBang is still two un-bundled blocks here, so the
+// Hard ordering constraints declared on the block; OrderResolver.validateOrder
+// enforces them on any user reorder. The default order already satisfies them,
+// so they only constrain reordering. BossBang is two separate blocks, so the
 // EventParsing-before-consumers edge targets both halves.
 const BLOCK_CONSTRAINTS = {
     handleAutoEquipBoosters: [
@@ -37525,8 +37462,8 @@ function toBlock(c) {
         precondition: c.precondition,
         steps: c.steps.map(s => ({
             name: s.name,
-            // Reuse the legacy step (ctx); wrap with the slot-hold rule so a
-            // navigating handler holds the run until it goes idle (ADR-002).
+            // The handler step, wrapped in the slot-hold rule so a navigating
+            // handler holds the run until it goes idle.
             fn: (ctx) => BlockPipeline_awaiter(this, void 0, void 0, function* () {
                 const result = yield s.fn(ctx);
                 const autoLoopOff = getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== "true";
@@ -37534,8 +37471,8 @@ function toBlock(c) {
             }),
             timeoutMs: s.timeoutMs,
         })),
-        userMovable: !INFRA_BLOCKS.has(c.name), // R3.7: infra pinned, rest reorderable
-        constraints: BLOCK_CONSTRAINTS[c.name], // R3.1: hard ordering constraints
+        userMovable: !INFRA_BLOCKS.has(c.name), // infra pinned, rest reorderable
+        constraints: BLOCK_CONSTRAINTS[c.name],
         holdsFocus: !NEVER_FOCUS.has(c.name), // #1841
         runsDuringFocus: FOCUS_INTERRUPTERS.has(c.name),
         minIntervalMs: c.minIntervalMs,
@@ -37582,7 +37519,7 @@ const blockPorts = {
         return (v && typeof v === "object" && typeof v.blockId === "string") ? v : null;
     },
     setFocus: (v) => setStoredValue(HHStoredVarPrefixKey + TK.blockFocus, v === null ? "" : JSON.stringify(v)),
-    // Structured [PIPE] logging through the existing log pipeline (task 7).
+    // Structured [PIPE] logging through the existing log pipeline.
     log: (e) => logEvent(e),
 };
 function buildScheduler() {
@@ -37591,8 +37528,8 @@ function buildScheduler() {
     const resolved = resolveOrder(stored, registry, defaultOrder);
     for (const w of resolved.warnings)
         logHHAuto(`[Scheduler] order: ${w.message}`);
-    // Refresh the non-rotating log context block (R6.16): version/platform/order/
-    // disabled blocks/diagnose flag, prepended to the user debug export.
+    // Refresh the non-rotating log context block: version, platform, effective
+    // order, disabled blocks and the diagnose flag, prepended to the debug export.
     const disabledMap = blockPorts.getAutoDisabled();
     writeLogContext({
         version: blockPorts.scriptVersion(),
@@ -37601,14 +37538,15 @@ function buildScheduler() {
         disabledBlocks: Object.keys(disabledMap).map((id) => ({ id, reason: disabledMap[id].reason, sinceVersion: disabledMap[id].sinceVersion })),
         diagnose: isDiagnose(),
     });
-    // No-progress watchdog only (ADR-002 follow-up): a block runs ALL its tasks and
-    // sets its own timer before releasing; the watchdog aborts only after 5 min of
-    // NO progress (genuinely hung), never a long-but-working build.
+    // No-progress watchdog: a block runs all its tasks and sets its own timer
+    // before releasing, so the watchdog aborts only after 5 min without progress
+    // -- a genuinely hung block, never a long-but-working one.
     return new BlockScheduler(registry, resolved.order, blockPorts, { noProgressMs: 300000 });
 }
-// Lazy singleton: built on first tick from the boot path, NOT at module eval,
-// so reading the `pipeline` array cannot hit a TDZ if the cyclic module graph
-// evaluates BlockPipeline before Pipeline.config (lesson zirkulaerer-import-tdz-crash).
+// Lazy singleton: built on the first tick from the boot path, not at module
+// eval, so reading the `pipeline` array cannot hit a TDZ when the cyclic module
+// graph evaluates BlockPipeline before Pipeline.config (lesson
+// zirkulaerer-import-tdz-crash).
 let _scheduler = null;
 function getBlockScheduler() {
     if (!_scheduler)

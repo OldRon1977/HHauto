@@ -6,7 +6,7 @@
 // Labyrinth.ts which handles the higher-level floor navigation.
 //
 // Depends on: RelicManager.ts (relic selection after fights)
-// Used by: Labyrinth.ts (called during floor progression)
+// Used by: Pipeline.config.ts (the labyrinth block)
 //
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";

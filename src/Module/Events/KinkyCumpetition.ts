@@ -4,7 +4,7 @@
 // page data, tracks timer countdowns and girl reward progress, and manages
 // the event refresh schedule.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Kinky Cumpetition event is active)
 //
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";

@@ -5,8 +5,8 @@
 // progress, checks for claimable rewards, and manages fight energy and
 // timer scheduling for the event.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Glory event is active)
+// Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
+//          (the collect block)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";

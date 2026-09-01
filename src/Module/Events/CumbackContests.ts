@@ -4,7 +4,7 @@
 // module parses event page data, tracks timer countdowns, and collects
 // available rewards automatically.
 //
-// Depends on: EventModule.ts (event detection and routing)
+// Depends on: the HHEvent model only -- this module parses, it does not navigate.
 // Used by: EventModule.ts (called when Cumback Contest event is active)
 //
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";

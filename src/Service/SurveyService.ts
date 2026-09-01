@@ -116,7 +116,7 @@ export class SurveyService {
             lines.push(`${keyName}: ${status}`);
         }
 
-        // Block order (R8.6): the user-defined pipeline order, or DEFAULT.
+        // Block order: the user-defined pipeline order, or DEFAULT.
         const pipelineOrder = getStoredJSON<string[] | null>(HHStoredVarPrefixKey + TK.pipelineOrder, null);
         lines.push(`PipelineOrder: ${pipelineOrder && pipelineOrder.length > 0 ? pipelineOrder.join(',') : "DEFAULT"}`);
 

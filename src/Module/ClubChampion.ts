@@ -4,7 +4,7 @@
 // module manages fight scheduling, energy tracking, and automatic participation
 // in club champion rounds. Requires active club membership (see Club.ts).
 //
-// Depends on: Club.ts (membership check), TeamModule.ts (team selection)
+// Depends on: Champion.ts (shared champion handling), Quest.ts (energy)
 // Used by: Service/AutoLoopPageHandlers.ts, Service/Pipeline.config.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";

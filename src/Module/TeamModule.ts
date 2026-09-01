@@ -6,7 +6,7 @@
 // optimal team configuration before each fight type, saving the player from
 // manual team management.
 //
-// Used by: League.ts, Troll.ts, Labyrinth.ts, Season.ts, and other fight modules
+// Used by: AutoLoopPageHandlers.ts (team building on the fight pages)
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { HeroHelper, getHero } from "../Helper/HeroHelper";

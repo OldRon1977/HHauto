@@ -9,8 +9,9 @@
 // the game rounds differently by context: reward previews round down
 // to avoid overpromising, cost displays round up to avoid underpaying.
 //
-// Used by: HHMenuHelper (input formatting), RewardHelper (reward
-//          display), InfoService (player info panel)
+// Used by: RewardHelper and PriceHelper (reward and price values),
+//          InfoService (player info panel), MenuSettings (input formatting),
+//          League, Season, HaremGirl.
 
 /** Event handler for menu inputs that auto-formats with thousands separators. */
 export function add1000sSeparator1(this: any)

@@ -1,5 +1,5 @@
 // BlockDisabledState.ts -- read/clear the watchdog auto-disable + failure-count
-// state of the block scheduler (v7.37.0, ADR-001 R5.6).
+// state of the block scheduler.
 //
 // Leaf module (storage only, no scheduler import) so the pInfo UI can show
 // auto-disabled blocks and offer reactivation without an InfoService ->
@@ -19,7 +19,7 @@ export interface DisabledEntry { reason: string; sinceVersion: string; }
 // (lesson zirkulaerer-import-tdz-crash). This module is reachable early via
 // InfoService, so it must stay TDZ-safe.
 
-/** All blocks the watchdog has auto-disabled, keyed by block id (R5.4/R5.6). */
+/** All blocks the watchdog has auto-disabled, keyed by block id. */
 export function getAutoDisabledBlocks(): Record<string, DisabledEntry> {
   const v = getStoredJSON(HHStoredVarPrefixKey + TK.blockAutoDisabled, {});
   return (v && typeof v === "object") ? (v as Record<string, DisabledEntry>) : {};
@@ -27,7 +27,7 @@ export function getAutoDisabledBlocks(): Record<string, DisabledEntry> {
 
 /**
  * Reactivate a block: drop its auto-disable entry and reset its failure
- * counters (R5.7). The next scheduler tick will consider the block again.
+ * counters. The next scheduler tick will consider the block again.
  */
 export function reactivateBlock(blockId: string): void {
   const disabled = getAutoDisabledBlocks();

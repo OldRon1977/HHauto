@@ -70,12 +70,11 @@ function resolvePopState(): PopState
         return { kind: 'main' };
     }
 
-    // Issue #1782: since the game's 7.x optimization update the specific-POP
-    // view is reached via /activities.html?tab=pop&pop_id=N, and the URL param
-    // is the only reliable source for which POP is shown. The former globals
-    // are gone or stale: window.pop_list no longer exists, window.pop_index
-    // stays 0 regardless of the selected POP, and .pop_thumb_selected[pop_id]
-    // is absent on the single-POP page. The main-list check above runs first,
+    // The specific-POP view is reached via /activities.html?tab=pop&pop_id=N,
+    // and the URL param is the only reliable source for which POP is shown
+    // (#1782): window.pop_list does not exist, window.pop_index stays 0
+    // whichever POP is selected, and .pop_thumb_selected[pop_id] is absent on
+    // the single-POP page. The main-list check above runs first,
     // so a locked POP that the game bounces back to the list still resolves
     // to 'main' (and the URL's stale pop_id is ignored).
     const urlPopId = queryStringGetParam(window.location.search, 'pop_id');
@@ -104,16 +103,15 @@ function resolvePopState(): PopState
  * mark the POP as locked. Returns null in every other state (happy
  * path, different tab, no pop_id in URL).
  *
- * Replaces the legacy `checkPop` parameter on getPage(): the caller
- * (Module/PlaceOfPower) now drives the lock-marking pathway instead
- * of PageHelper reaching into a Module from the Helper layer.
+ * The caller (Module/PlaceOfPower) drives the lock-marking pathway, so
+ * PageHelper does not have to reach into a Module from the Helper layer.
  */
 export function getPopFallbackIndex(): string | null
 {
     const tab = queryStringGetParam(window.location.search, 'tab');
     if (tab !== 'pop') return null;
-    // Issue #1782: the POP query param is `pop_id` since the 7.x update
-    // (was `index`). A locked POP cannot render as a single-POP page; the
+    // The POP query param is `pop_id` (#1782). A locked POP cannot render as
+    // a single-POP page; the
     // game bounces us back to the main list instead. Because the real
     // single-POP page has no visible pop_list (measured: pop_list_vis = 0)
     // it never resolves to 'main', so "URL targets a pop_id but the state
@@ -133,10 +131,8 @@ export function getPopFallbackIndex(): string | null
  * resolveActivitiesSubTab because the page id depends on which POP
  * (if any) is currently selected -- see resolvePopState.
  *
- * Pre-7.36.0 the sub-tab branch was four hand-rolled `else if`
- * blocks repeating the same selector geometry; the resolver below
- * uses this table instead so adding a sub-tab in the future is one
- * line, not four.
+ * The resolver below reads this table instead of hand-rolled branches, so
+ * adding a sub-tab is one line.
  */
 const ACTIVITIES_SUB_TABS: ReadonlyArray<{ tabId: string; pageVarKey: string }> = [
     { tabId: 'contests',    pageVarKey: 'pagesIDContests' },

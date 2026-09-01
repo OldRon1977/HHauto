@@ -6,7 +6,7 @@
 // probability (using BDSM calculations), manages season-specific energy,
 // tracks timers, and handles fight automation within the seasonal ladder.
 //
-// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection),
+// Depends on: BDSMHelper (win probability), Season.pure.ts (parsing),
 //             EventModule.ts (event detection)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //

@@ -8,7 +8,7 @@
 // Handles locale differences by treating commas as decimal separators
 // (common in European localizations).
 //
-// Used by: RewardHelper (reward value calculation), Market module
+// Used by: RewardHelper (reward value calculation), League, Quest, HaremGirl
 
 import { NumberHelper } from "./NumberHelper";
 

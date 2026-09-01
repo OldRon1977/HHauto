@@ -4,8 +4,10 @@
 // rewards. This module manages raid participation, tracks collected shards,
 // monitors raid timers, and handles the event page interactions.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Love Raid event is active)
+// Depends on: LoveRaid and EventGirl models, PageNavigationService
+// Used by: Pipeline.config.ts and AutoLoopPageHandlers.ts (raid handling),
+//          Troll.ts and GenericBattle.ts (raid fights), InfoService, Booster,
+//          RewardHelper, Season, HHMenuHelper
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";

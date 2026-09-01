@@ -6,7 +6,7 @@
 // system from BDSMHelper, manages fight energy, and displays power calculations
 // in the UI. Supports both regular and boosted fights.
 //
-// Depends on: BDSMHelper (win probability), TeamModule.ts (team selection)
+// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
 import { BDSMHelper, calculateBattleProbabilities } from "../Helper/BDSMHelper";

@@ -16,8 +16,9 @@
 // button colour state) and re-exports the extracted symbols so existing
 // importers keep working.
 //
-// Used by: StartService (on init), AutoLoop (button state refresh),
-// StorageHelper (getMenuValues), and feature modules that inject menu rows.
+// Used by: StartService (on init), AutoLoop (button state refresh), and the
+// feature modules that inject menu rows (Champion, Labyrinth, Pachinko,
+// TeamModule).
 
 import { LABY_DIFFICULTY } from '../Module/LabyrinthDifficulty';
 import { LEAGUE_SORT } from '../Module/LeagueSortModes';

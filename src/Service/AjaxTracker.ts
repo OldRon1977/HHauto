@@ -10,7 +10,7 @@
 //   HTTP Forbidden. waitForAjaxIdle() lets the navigation layer wait
 //   for the queue to drain before changing pages.
 //
-// Why the mutex exists (issue 1598, ADR-003):
+// Why the mutex exists (#1598, docs/decisions/ADR-003-ajax-post-mutex.md):
 //   On accounts with very large rosters the server takes 5-7s per POST,
 //   while AutoLoop ticks every ~1s. Multiple handlers each fire their
 //   own POST per tick, and the server bot-detection rate-limits the
@@ -40,16 +40,14 @@
 //   AutoLoop (tick-gate).
 import { logHHAuto } from "../Utils/LogUtils";
 
-// Shared timing budget for all callers that wait on the game's AJAX
-// before navigating. Keeping these constants here means
-// PageNavigationService and individual modules cannot drift apart
-// (issue 1598: the PoP path used a tighter cap than gotoPage and
-// ignored timeouts, which re-introduced the cancel-mid-POST race).
+// Shared timing budget for every caller that waits on the game's AJAX before
+// navigating. Keeping the constants here is what stops PageNavigationService
+// and individual modules from drifting apart into their own caps, which is how
+// the cancel-mid-POST race gets back in (#1598).
 //
-// 15s is a conservative cap that covers the worst case observed in
-// Firefox Private Browsing (10-12s claim responses). The wait
-// short-circuits as soon as the queue is empty, so the typical path
-// stays fast.
+// 15s is a conservative cap covering the worst case seen in Firefox Private
+// Browsing (10-12s claim responses). The wait short-circuits as soon as the
+// queue is empty, so the typical path stays fast.
 export const AJAX_IDLE_TIMEOUT_MS = 15000;
 // Extra delay after AJAX idle before navigating, to let synchronous
 // follow-up code (DOM updates, popup handling) finish.

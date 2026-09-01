@@ -5,8 +5,9 @@
 // progress through reward tiers, collects available rewards, and manages
 // event-specific timers and energy.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Path of Value event is active)
+// Depends on: RewardHelper (reward parsing)
+// Used by: AutoLoopPageHandlers.ts (the event page) and Pipeline.config.ts
+//          (the collect block)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { HeroHelper } from "../../Helper/HeroHelper";

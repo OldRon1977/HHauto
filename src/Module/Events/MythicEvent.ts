@@ -5,9 +5,8 @@
 // with Troll.ts for fight prioritization, and manages event-specific timers
 // and girl shard tracking.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Mythic event is active),
-//          Troll.ts (reads event troll priorities)
+// Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
+// Used by: EventModule.ts (called when a Mythic event is active)
 //
 import { getStoredValue } from "../../Helper/StorageHelper";
 import { GirlWithSkins, isStillWorthFighting } from "./GirlSkins.pure";

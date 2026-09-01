@@ -4,8 +4,9 @@
 // days. This module tracks seasonal event progress, collects available
 // rewards at each milestone, and manages event timers and page navigation.
 //
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Seasonal mega-event is active)
+// Depends on: RewardHelper (reward parsing), PageNavigationService
+// Used by: AutoLoopPageHandlers.ts (the event page), Pipeline.config.ts
+//          (the collect blocks), RewardHelper
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";

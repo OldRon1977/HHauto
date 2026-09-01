@@ -4,17 +4,16 @@
 // menu. Each menu item carries a hidden span (.tooltipHHtext) holding its help
 // text; hovering the surrounding .tooltipHH shows that text.
 //
-// Placement (8.10.0): the text is no longer shown inside the hovered element.
-// It is copied into a single floating box appended to <body>, which is placed
-// vertically centred and to the left of the settings panel — the same spot
-// every time, so the eye does not have to hunt for it.
+// Placement: the text is copied into a single floating box appended to <body>,
+// placed vertically centred and to the left of the settings panel — the same
+// spot every time, so the eye does not have to hunt for it.
 //
-// Two reasons it has to live outside the panel rather than inside the hovered
-// row, which is where it used to be drawn:
+// Two reasons the box has to live outside the panel rather than inside the
+// hovered row:
 //   - #sMenu is overflow:hidden and the pane scrolls, so a tooltip drawn inside
-//     was cut off at the panel edge;
-//   - it used to sit above its own row, which pushed the tooltips of the top
-//     rows off the screen entirely.
+//     is cut off at the panel edge;
+//   - drawn above its own row it would push the tooltips of the top rows off
+//     the screen entirely.
 // <body> is also outside the CSS transform the game puts on #contains_all, so
 // position:fixed means viewport coordinates here, with no scaling to undo.
 //
@@ -22,7 +21,7 @@
 // box, placed next to their anchor and clamped to the viewport.
 //
 // The `important` flag is kept for API compatibility with the callers in
-// StartService; visibility is now a plain flag, so no !important is needed.
+// StartService; visibility is a plain flag, so no !important is needed.
 //
 // Used by: StartService (initial state), menu checkbox handler
 import { getStoredValue } from "../Helper/StorageHelper";
@@ -181,17 +180,15 @@ function show(anchor: HTMLElement): void {
     applyWidth();
 
     // The box is centred vertically beside the panel, so the whole viewport
-    // height minus the two gaps is available. This used to be a static
-    // max-height:60vh, which did not scale with the zoom while the type did --
-    // at a high zoom a long text overflowed, and overflow here is unreadable
-    // by construction: the box is pointer-events:none, so its scrollbar cannot
-    // be grabbed, and it hides as soon as the pointer leaves the row.
+    // height minus the two gaps is available. A static max-height would not
+    // follow the zoom while the type does, and overflow here is unreadable by
+    // construction: the box is pointer-events:none, so its scrollbar cannot be
+    // grabbed, and it hides as soon as the pointer leaves the row.
     const maxHeight = Math.max(MIN_BOX_HEIGHT, window.innerHeight - 2 * GAP);
     el.style.maxHeight = maxHeight + 'px';
 
-    // Shrink to fit rather than clip. The floor is BASE_FONT, the size the box
-    // used before it started following the zoom, so the worst case is the old
-    // readable size and never a cut-off text.
+    // Shrink to fit rather than clip. BASE_FONT is the floor, so the worst
+    // case is a readable size and never a cut-off text.
     let font = Math.max(BASE_FONT, Math.round(BASE_FONT * scale));
     el.style.fontSize = font + 'px';
 
