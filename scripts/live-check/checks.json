@@ -283,14 +283,14 @@
       ]
     },
     {
-      "id": "sex-god-path-page",
-      "claim": "/sex-god-path.html serves the sex god path, not home",
+      "id": "god-path-page",
+      "claim": "/god-path.html serves the god path (the game renamed it from sex-god-path)",
       "source": "src/config/HHEnvVariables.ts:406 (pagesIDSexGodPath / pagesURLSexGodPath)",
-      "page": "/sex-god-path.html",
+      "page": "/god-path.html",
       "kind": "selector",
       "assert": [
         {
-          "selector": "body[page='sex-god-path']",
+          "selector": "body[page='god-path']",
           "min": 1
         }
       ]
