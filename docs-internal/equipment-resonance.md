@@ -464,3 +464,73 @@ live nachgemessen.
 - Was ein Level jenseits des ersten kostet. Gemessen ist nur 1 -> 2 mit
   1.000.000 Geld; ein Lauf von 1 auf 20 verbrauchte 1.206 Items
   (alle 334 Epics und 872 Legendaries).
+
+---
+
+## Girl-Ausruestung (gemessen 2026-09-01, Account 1)
+
+Die Recruit-Seite ist eigenstaendig gemessen, nicht aus der Spieler-Ausruestung
+abgeleitet.
+
+**Achsen.** Ein mythisches Girl-Item traegt **drei** Resonanzen, ein legendaeres
+**zwei**:
+
+| Achse | matcht gegen | Beispiel (gemessen) |
+|---|---|---|
+| `class` | `girl.class` | `{identifier: "3", resonance: "ego", bonus: 0.5}` |
+| `element` | `girl.element` | `{identifier: "sun", resonance: "defense", bonus: 0.5}` |
+| `figure` | `girl.figure` | `{identifier: "11", resonance: "damage", bonus: 0.5}` -- nur mythic |
+
+Getroffen wird je Achse einzeln: das gemessene Teil sass auf Bunny (class 1,
+element sun, figure 1) und traf nur die Element-Achse.
+
+**Das Level treibt den Bonus.** Dasselbe mythische Teil, nur hochgestuft:
+
+| Level | Bonus je Achse | caracs | Ego |
+|---|---|---|---|
+| 1 | 0,05 | 30/30/30 | 45 |
+| 10 | 0,50 | 300/300/300 | 450 |
+
+Legendaer auf Level 1: 0,04 je Achse, 26/26/26, Ego 39.
+
+**Maximallevel ist 10** (`upgradeable_item_max_level`), nicht 20 wie bei der
+Spieler-Ausruestung.
+
+**Kosten** (`material_costs_map`, Wert je Zielstufe):
+
+| Ziel | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|
+| Wert | 10 | 15 | 20 | 25 | 30 | 35 | 40 | 45 | 50 |
+
+Summe 1 -> 10: **270**. Ein voll bestuecktes Team (7 Maedchen x 6 Slots) kostet
+damit 11.340 Materialwert.
+
+**Materialwert** (`materials_per_rarity`), Wert eines Futter-Teils nach dessen
+Seltenheit und eigenem Level:
+
+| Seltenheit | Lv1 | Lv5 | Lv10 |
+|---|---|---|---|
+| common | 1 | 8 | 28 |
+| rare | 1 | 15 | 55 |
+| epic | 2 | 23 | 83 |
+| legendary | 2 | 30 | 110 |
+| mythic | 3 | 38 | 138 |
+
+Anders als bei der Spieler-Ausruestung ist die Gewichtung hier also
+client-seitig bekannt und nachrechenbar.
+
+**Aufruf** (ein POST = eine Stufe):
+
+```
+action=girl_equipment_level_up
+id_girl_armor_equipped=<getragenes Teil>
+materials_ids[]=<id_girl_armor>   (mehrfach)
+```
+
+Antwort: `hero_updates.currency.soft_currency` und `next_level_item` -- das Teil
+auf der naechsten Stufe, mit `level`, `caracs`, `armor`, `skin`.
+
+**Falle.** `materials_items` haelt immer nur **100 Stueck**; die Liste laedt beim
+Scrollen nach. Wer nur das erste Paket liest, haelt den Vorrat fuer erschoepft --
+gemessen half ein Reload der Seite nach jeder Stufe.
+
