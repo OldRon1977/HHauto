@@ -6,45 +6,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        One bug per issue, please — a report that mixes several is hard to track and to close.
+        One bug per issue, please.
 
-        Before you start: check the [latest release](https://github.com/OldRon1977/HHauto/releases) and the [Debugging page](https://github.com/OldRon1977/HHauto/wiki/Debugging) in the wiki. A good part of what gets reported is already fixed in the current version.
-
-  - type: input
-    id: version
-    attributes:
-      label: Script version
-      description: Shown at the top of the script menu, e.g. 8.11.0
-      placeholder: "8.11.0"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: game
-    attributes:
-      label: Game
-      options:
-        - Hentai Heroes
-        - Harem Heroes
-        - Gay Harem
-        - Comix Harem
-        - Horny Heroes
-        - Pornstar Harem
-        - Trans Pornstar Harem
-        - Gay Pornstar Harem
-        - Manga RPG
-        - Amour Agent
-    validations:
-      required: true
-
-  - type: input
-    id: browser
-    attributes:
-      label: Browser
-      description: Name and version, plus the userscript manager if it is not Tampermonkey
-      placeholder: "Firefox 141"
-    validations:
-      required: true
+        Before you start: check the [latest release](https://github.com/OldRon1977/HHauto/releases) — a good part of what gets reported is already fixed there.
 
   - type: textarea
     id: what-happened
@@ -57,7 +21,7 @@ body:
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce
+      label: How to get there
       placeholder: |
         1. Enable option '...'
         2. Go to the '...' page
@@ -66,48 +30,32 @@ body:
     validations:
       required: true
 
-  - type: dropdown
-    id: reproducibility
-    attributes:
-      label: How often does it happen
-      options:
-        - Every time
-        - Sometimes
-        - Happened once
-    validations:
-      required: true
-
-  - type: textarea
-    id: settings
-    attributes:
-      label: Relevant settings
-      description: A screenshot of the tab in question, or the options that matter for this bug. Drag images into this field.
-    validations:
-      required: false
-
   - type: textarea
     id: log
     attributes:
       label: Debug log
       description: |
-        Open the script menu, click **Debug Menu** in the footer, then **Save Debug**, and drag the file into this field.
-        The log covers roughly the last 16 hours, so one taken after the fact still contains what happened.
-    validations:
-      required: false
+        Script menu → **Debug Menu** in the footer → **Save Debug**, then drag the file into this field. See [Debugging](https://github.com/OldRon1977/HHauto/wiki/Debugging).
 
-  - type: checkboxes
-    id: log-attached
-    attributes:
-      label: Confirmation
-      options:
-        - label: I have attached the debug log, or explained above why there is none
-          required: true
+        The log already carries your script version, the game, your browser and all your settings, so nothing of that needs typing. It covers roughly the last 16 hours.
+
+        No log possible? Then write down script version, game and browser here instead.
+    validations:
+      required: true
 
   - type: textarea
     id: console
     attributes:
       label: Console errors
-      description: Optional. Open the browser console (F12) and paste anything that mentions HHAuto.
+      description: Optional. Browser console (F12), anything that mentions HHAuto.
       render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Screenshots or anything else
+      description: Optional. Drag images into this field.
     validations:
       required: false

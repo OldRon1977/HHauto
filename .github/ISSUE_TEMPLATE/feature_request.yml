@@ -8,22 +8,20 @@ body:
       value: |
         One request per issue, please. To change how an existing function behaves, use the enhancement request instead.
 
-  - type: dropdown
-    id: game
+  - type: textarea
+    id: what
     attributes:
-      label: Game
-      options:
-        - Hentai Heroes
-        - Harem Heroes
-        - Gay Harem
-        - Comix Harem
-        - Horny Heroes
-        - Pornstar Harem
-        - Trans Pornstar Harem
-        - Gay Pornstar Harem
-        - Manga RPG
-        - Amour Agent
-        - All of them
+      label: What should the script do
+      description: The task you would hand over, and what you do by hand today
+    validations:
+      required: true
+
+  - type: textarea
+    id: decisions
+    attributes:
+      label: What would it have to decide
+      description: |
+        Anything that spends a resource needs a rule: which items may be sold, how many fights may be used, when to stop. Say where your limits would sit — without them a request usually cannot be built safely.
     validations:
       required: true
 
@@ -43,40 +41,12 @@ body:
         - Events
         - Something else
     validations:
-      required: true
-
-  - type: textarea
-    id: problem
-    attributes:
-      label: What should it do
-      description: The task you would hand to the script, and what you do by hand today
-    validations:
-      required: true
-
-  - type: textarea
-    id: decisions
-    attributes:
-      label: What would it need to decide
-      description: |
-        Anything that spends a resource needs a rule: which items may be sold, how many fights may be used, when to stop. Say where your limits would sit — a request without them usually cannot be built safely.
-    validations:
       required: false
-
-  - type: dropdown
-    id: frequency
-    attributes:
-      label: How often would you use it
-      options:
-        - Every day
-        - Every week
-        - During events only
-        - Rarely
-    validations:
-      required: true
 
   - type: textarea
     id: context
     attributes:
-      label: Screenshots or other context
+      label: Screenshots or anything else
+      description: Optional
     validations:
       required: false
