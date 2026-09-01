@@ -1,7 +1,6 @@
 // TeamBuilderService.ts -- Spec-driven team builder.
 //
-// The pool layering, leader rule and slot fill are described in the
-// CHANGELOG entry for v7.35.39.
+// The pool layering, leader rule and slot fill are described in the CHANGELOG.
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
@@ -158,7 +157,7 @@ interface CandidateTeam {
 }
 
 // Element counts that turn on a team "theme". Measured against the live
-// game (2026-08-16): the per-girl element synergy is linear from the FIRST
+// game: the per-girl element synergy is linear from the FIRST
 // girl, but the theme -- and with it the league domination bonus -- needs
 // three girls of one element. Four is the next step worth trying; beyond
 // that the stat loss outgrows the synergy in every measured case.

@@ -136,7 +136,7 @@ export function migrateBuyList(filter: string | undefined | null, oldMax: string
  * a snapshot left in the old shape kept resurrecting the deleted "Max Booster"
  * key -- the migration then ran again on every page load -- and a reset to
  * defaults would have written the old bare-code shape back into a field that
- * now refuses it. Seen in a live 8.11.0 upgrade log.
+ * now refuses it. Seen in a live upgrade log.
  *
  * Returns the updated snapshot, or null when there is nothing to do.
  */

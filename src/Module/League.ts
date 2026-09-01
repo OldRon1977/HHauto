@@ -399,7 +399,7 @@ export class LeagueHelper {
         )
         {
             if($(".leagues_middle_header_script").length == 0) {
-                // #leagues-tabs was removed in the 2026-08 League DOM
+                // #leagues-tabs was removed in the League DOM
                 // rework. .league_content is the wrapper that already
                 // anchors every other league selector in this file (see
                 // styles() above and the .data-list selectors below), and
@@ -838,11 +838,10 @@ export class LeagueHelper {
                 //      capped, no pending refresh): fall back to a 15-17 min
                 //      timer.
                 //
-                // Setting *before* the battle trigger keeps two properties
-                // from the original 7.35.54 hotfix: the timer survives the
-                // safeReload() in the multi-battle AJAX callback because
-                // storage is re-read on bundle boot, and the popup info
-                // never reads "No timer" again.
+                // Setting the timer *before* the battle trigger keeps two
+                // properties: it survives the safeReload() in the multi-battle
+                // AJAX callback, because storage is re-read on bundle boot, and
+                // the popup info never reads "No timer".
                 const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
                 const remainingPower = currentPower - numberOfBattle;
                 if (remainingPower > 0) {
@@ -917,7 +916,7 @@ export class LeagueHelper {
 
     static LeagueDisplayGetOpponentPopup(numberDone: number | string, remainingTime: number | string)
     {
-        // #leagues_middle no longer exists (2026-08 League DOM rework);
+        // #leagues_middle does not exist in the League DOM;
         // #leagues itself is the stable League page container, and the
         // popup is positioned absolute so its exact DOM parent doesn't
         // affect layout.

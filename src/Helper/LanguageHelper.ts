@@ -17,8 +17,7 @@ import { fillHHPopUp } from "../Utils/HHPopup";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHAuto_ToolTips } from "../i18n/empty";
 // Side-effect imports populate HHAuto_ToolTips with translations.
-// Previously implicit via the i18n barrel (export * from './de'...);
-// keep the loading order matching the former barrel.
+// The loading order below is what fills the table; keep it.
 import "../i18n/empty";
 import "../i18n/en";
 import "../i18n/fr";

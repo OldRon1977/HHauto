@@ -5,7 +5,7 @@
 // material a level costs, and does not pick the material. Both are left to
 // the game.
 //
-// Measured 2026-08-17 on the upgrade page: material is counted by weight,
+// Measured on the upgrade page: material is counted by weight,
 // not by piece -- seven epics covered a stated requirement of 20 -- and the
 // cost curve is not derivable (20 for level 1->2, 23 for 2->3, but 1555 in
 // total from level 1, which no arithmetic series through those two points
@@ -31,7 +31,7 @@ export interface UpgradeTarget {
 }
 
 /** The upgrade flow lives on its own page. Which query parameter it wants
- *  depends on where the item sits (measured 2026-08-17):
+ *  depends on where the item sits (measured):
  *
  *    inventory item : ?id_member_item=<id_member_armor>
  *    worn item      : ?id_member_item_equipped=<id_member_armor_equipped>
@@ -135,12 +135,11 @@ export type UpgradeStop =
  * after Auto Select means the stock is spent. That is the signal this stops
  * on -- not an estimate of remaining material.
  *
- * There used to be a per-run cap here as a guard against a runaway loop. It
- * could never fire: the caller passes `startLevel + performed` as the current
- * level, so the level rises with every pass and the max-level check below is
- * what ends the loop -- after at most 19 passes, since 1 -> 20 is the whole
- * range the game allows. The cap sat at 30 and was therefore dead code that
- * only read like a safeguard.
+ * There is deliberately no per-run cap: the caller passes
+ * `startLevel + performed` as the current level, so the level rises with every
+ * pass and the max-level check below ends the loop after at most 19 passes,
+ * 1 -> 20 being the whole range the game allows. A cap on top of that would
+ * read like a safeguard without ever firing.
  */
 export function decideNextLevelUp(state: {
     currentLevel: number;

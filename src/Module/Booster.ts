@@ -138,12 +138,11 @@ export class Booster {
 
                     const sandalwood: any = boosterStatus.mythic.find((booster) => booster.item?.identifier === 'MB1');
 
-                    // The girl's shard count comes back with every troll fight,
-                    // but until #1843 it was only read when a Sandalwood was
-                    // equipped -- the block below used to be the only reader.
-                    // Without it the script kept fighting a girl it had already
-                    // completed, because the stored count only refreshed on the
-                    // next visit to the event page.
+                    // The girl's shard count comes back with every troll fight
+                    // and is read here rather than only when a Sandalwood is
+                    // equipped (#1843). Otherwise the stored count refreshes
+                    // only on the next visit to the event page, and the script
+                    // keeps fighting a girl it has already completed.
                     if (action === 'do_battles_trolls') {
                         Booster.updateEventGirlShards(response);
                     }
@@ -629,12 +628,11 @@ export class Booster {
      * trimmed, invalid codes are dropped, duplicates keep their first
      * position. An empty field means "off" and yields an empty list.
      *
-     * The list is NOT capped at the number of slots (8.10.12). It used to be,
-     * which conflated two different numbers: the game has MYTHIC_SLOT_COUNT
-     * slots, but the list is a preference order -- "take whichever of these I
-     * happen to own". Capping it meant a player who listed all twelve silently
-     * lost the last seven. Order = priority: the walk down the list stops when
-     * no slot is free.
+     * The list is NOT capped at the number of slots: those are two different
+     * numbers. The game has MYTHIC_SLOT_COUNT slots, while the list is a
+     * preference order -- "take whichever of these I happen to own" -- so a
+     * cap would silently drop the tail of a player's list. Order is priority;
+     * the walk down the list stops when no slot is free.
      */
     static parseMythicBoosterList(): string[] {
         const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipMythicBooster);
@@ -713,12 +711,12 @@ export class Booster {
      * loadout is compared as a SUBSET of the current one, not for equality:
      * still contained means the refusal stands, something missing means re-try.
      *
-     * Equality was the original rule and it churned. Every successful equip
-     * changed the signature and thereby invalidated every conflict remembered
-     * earlier in the same run, so those boosters were tried again on the next
-     * pass, refused again, and each pass ended in another conflict popup and
-     * another page reload. With a priority list longer than the five slots
-     * (8.10.12) that turned into a visible loop.
+     * Equality would churn: every successful equip changes the signature and
+     * would invalidate every conflict remembered earlier in the same run, so
+     * those boosters would be tried again on the next pass, refused again, and
+     * each pass would end in another conflict popup and another page reload.
+     * With a priority list longer than the number of slots that becomes a
+     * visible loop.
      */
     static isMythicConflictRemembered(identifier: string): boolean {
         const conflicts = Booster.getMythicConflicts();
@@ -881,8 +879,8 @@ export class Booster {
      * Every refusal costs a server request and a popup, and each one is
      * remembered, so the remaining candidates are picked up on the next pass
      * with the memory already in place -- nothing is lost by stopping early.
-     * Without this a priority list longer than the five slots (8.10.12) could
-     * fire a refusal for every remaining entry in a single pass.
+     * Without this a priority list longer than the number of slots could fire
+     * a refusal for every remaining entry in a single pass.
      */
     static MYTHIC_CONFLICTS_PER_PASS = 3;
 
@@ -1114,9 +1112,9 @@ export class Booster {
      * for a perfume in that phase (#1843).
      *
      * The three per-path Equip Sandalwood switches mean "while winning the
-     * girl". Once she is won they no longer apply; plusSkinSandalWood is the
-     * one that does, and it is off by default because a perfume is a mythic
-     * booster.
+     * girl", so they do not apply once she is won. plusSkinSandalWood is the
+     * one that governs the skin phase, and it is off by default because a
+     * perfume is a mythic booster.
      */
     static skinPhaseBlocksSandalwood(shards: number): boolean {
         const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true';

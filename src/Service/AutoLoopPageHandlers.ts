@@ -144,12 +144,12 @@ export async function handlePageSpecific(ctx: AutoLoopContext): Promise<void> {
                 if (EventModule.getEvent(eventID).isPoa)
                 {
                     PathOfAttraction.styles();
-                    // #1816: run() is the auto-collect. It used to be reached
-                    // only with showClubButtonInPoa on -- a display option for
-                    // a shortcut button -- so switching that button off
-                    // silently switched off collecting Path of Attraction
-                    // rewards as well. The Collect all button kept working
-                    // because it calls goAndCollect directly, which is exactly
+                    // run() is the auto-collect and is reached independently of
+                    // showClubButtonInPoa (#1816), which is a display option for
+                    // a shortcut button: gating the collect on it would switch
+                    // off Path of Attraction collecting with the button. The
+                    // Collect all button calls goAndCollect directly, which is
+                    // exactly
                     // the "works when I press it, never on its own" report.
                     // The club button now decides only about itself, inside
                     // run().

@@ -684,10 +684,8 @@ export function start() {
         //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
     }
-    // The legacy bootstrap raised inside getPage() when the game root was
-    // missing, and that throw doubled as both a script halt and a guard
-    // against running the rest of startup. With getPage() now a pure read,
-    // bootstraps need to opt into halting on missing root explicitly.
+    // getPage() is a pure read, so a bootstrap has to opt into halting on a
+    // missing game root explicitly -- hence the `true` argument.
     if (getPage(true) === "")
     {
         haltScript("game root element missing on startup");

@@ -1238,7 +1238,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
 // re-creates every registered key that has a default and is missing, on every
 // page load, so leaving the default in place had the migration delete the key
 // and setDefaults put it straight back -- once per page load, forever, with a
-// log line each time. Seen in a live 8.11.0 log. With no default, the "else"
+// log line each time. Seen in a live log. With no default, the "else"
 // branch of setDefaults applies: nothing is created, and a forced run removes
 // the key instead.
 HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
@@ -2732,7 +2732,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
     HHType:"Temp"
 };
 
-// Pipeline-block architecture (v7.37.0, ADR-001)
+// Pipeline-block architecture
 HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
     {
     storage:"sessionStorage",

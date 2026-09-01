@@ -101,7 +101,7 @@ const BLOCK_CONSTRAINTS: Record<string, OrderConstraint[]> = {
   ],
 };
 
-/** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
+/** Adapt one HandlerConfig into a Block; the handler logic is reused as is. */
 function toBlock(c: HandlerConfig): Block {
   return {
     id: c.name,

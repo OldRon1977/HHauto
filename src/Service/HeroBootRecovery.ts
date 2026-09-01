@@ -1,10 +1,10 @@
 // HeroBootRecovery.ts
 //
 // Self-heal for the boot path when a game page loads but never
-// populates the game data object (window.shared.Hero). Issue #1788:
-// after a target page fails to build its game data, start() exhausts
-// its Hero retry loop and used to only log "give up, reload manually",
-// leaving the automation frozen until the user reloaded by hand.
+// populates the game data object (window.shared.Hero). When a target page
+// fails to build its game data, start() exhausts its Hero retry loop; without
+// this recovery the script only logs "give up, reload manually" and the
+// automation stays frozen until the user reloads by hand (#1788).
 //
 // This module holds the pure decision + counter math so it can be
 // unit-tested in isolation. The side effects (reading the counter from

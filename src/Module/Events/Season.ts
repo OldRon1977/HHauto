@@ -394,7 +394,7 @@ export class Season {
             const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus) || "off";
             const focusOnGirls = seasonFocus === "girl" || seasonFocus === "girlAndSkin";
             // "MT hard" on: max tier is a hard cap, no fight past it ever.
-            // Off (legacy): a girl Season focus may keep fighting past max
+            // Off: a girl Season focus may keep fighting past max
             // tier while wanted girl rewards are available, and fights run
             // unfiltered while climbing below max tier.
             const maxTierHard = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierHard) === "true";

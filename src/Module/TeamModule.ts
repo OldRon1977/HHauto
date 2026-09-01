@@ -779,7 +779,7 @@ export class TeamModule {
             logHHAuto(`Team v2 [${modeName}] slots: ${slotsStr}`);
         }
 
-        // UI update: same approach as legacy — hide non-selected, show + number selected
+        // UI update: hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
     }
 

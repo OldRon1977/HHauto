@@ -373,7 +373,7 @@ HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Main ad
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Side adventure", tooltip: ""};
 HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Others", tooltip: ""};
 //
-// Tab rail names and group headings of the settings menu (8.10.0)
+// Tab rail names and group headings of the settings menu
 HHAuto_ToolTips.en['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: ""};
 HHAuto_ToolTips.en['menuTabDisplay'] = { version: "8.10.0", elementText: "Display", tooltip: ""};
 HHAuto_ToolTips.en['menuTabDaily'] = { version: "8.10.42", elementText: "Daily Activities", tooltip: ""};

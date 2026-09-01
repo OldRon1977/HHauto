@@ -7,7 +7,7 @@
 // from the DOM and falls back to maxCollectionDelay + jitter when no
 // timer is found, or when the scraped value is at or above the
 // 24-hour cap. That cap is NOT a "this looks like garbage" check --
-// live measurement (2026-08) confirmed values well past 24h are
+// live measurement confirmed values well past 24h are
 // ordinary bundle durations (a period_deal timer read 1454400s, ~16.8
 // days, in one run). The cap exists so the next free-bundle check
 // still happens within maxCollectionDelay instead of waiting out the

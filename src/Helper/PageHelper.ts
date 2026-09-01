@@ -9,9 +9,9 @@
 // ID that AutoLoop and modules can switch on. It also logs unknown
 // page IDs to help detect game updates that add new pages.
 //
-// Why the complexity: The Activities page redesign merged several
-// formerly separate pages into tabs, but automation still needs
-// distinct IDs for each to route actions correctly.
+// Why the complexity: the game multiplexes several activities onto
+// /activities.html as tabs, while the automation needs a distinct ID per
+// activity to route its actions.
 //
 // Used by: AutoLoop (page routing), StartService (initial setup),
 //          PageNavigationService (navigation targets),
@@ -26,10 +26,9 @@ import { queryStringGetParam } from "./UrlHelper";
 /**
  * Halts the script by clearing master and autoLoop in storage.
  *
- * Previously, getPage() did this implicitly (and threw) when the game
- * root element was missing. That coupled a read with a hard-stop
- * side effect: any caller that hit a transient DOM state could disable
- * the entire script without realizing it. The kill switch lives here
+ * The kill switch is explicit and separate from getPage(): a read that also
+ * hard-stops the script lets any caller hitting a transient DOM state disable
+ * everything without realising it. It lives here
  * now so callers opt into halting explicitly.
  *
  * Used by StartService when it bootstraps and finds no game root.
@@ -83,7 +82,7 @@ function resolvePopState(): PopState
         return { kind: 'specific', popId: urlPopId };
     }
 
-    // Legacy fallback for game variants that still expose the globals.
+    // Fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
     // `??` instead of `||`: pop_index = 0 would be a valid index in a
     // 0-based numbering scheme, the previous `||` would have routed it

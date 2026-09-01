@@ -4,9 +4,9 @@
 // Why this exists
 // ---------------
 // The team builder ranks candidates by caracs_sum, which is exactly the
-// "Total Power" the game prints on the edit-team screen. Measured against
-// the live game (2026-08-16), that number is literally the sum of the seven
-// girls' caracs -- it contains none of the mechanics that decide a fight:
+// "Total Power" the game prints on the edit-team screen. Measured against the
+// live game, that number is literally the sum of the seven girls' caracs -- it
+// contains none of the mechanics that decide a fight:
 //
 //   * Element synergies scale the WHOLE stat (hero base included), and they
 //     are linear from the first girl of an element -- not from the third.

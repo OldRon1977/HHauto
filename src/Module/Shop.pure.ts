@@ -3,12 +3,11 @@
 // Extracted from Shop.isTimeToCheckShop so the "do we need to walk to
 // /shop.html?" decision can be unit-tested without storage or timers.
 //
-// The gate used to list only the two *reader* opt-ins (updateMarket and
-// the booster-status readers behind needBoosterStatusFromStore). The
-// *buyer* opt-in autoBuyBoosters was missing, so a user who enabled only
-// that switch never navigated to the market: storeContents stayed
-// undefined and Market.doShopping bailed out on its very first guard.
-// decideCheckShop adds that third reason.
+// The gate has three reasons, not two: the reader opt-ins (updateMarket and
+// the booster-status readers behind needBoosterStatusFromStore) plus the buyer
+// opt-in autoBuyBoosters. Without the third, a user who enables only that
+// switch never navigates to the market, storeContents stays undefined and
+// Market.doShopping bails out on its first guard.
 
 import { hasBuyableBoosters } from "./Market.pure";
 

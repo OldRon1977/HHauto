@@ -652,7 +652,7 @@ HHAuto_ToolTips.en['mainAdventure'] = { version: "7.23.0", elementText: "Main ad
 HHAuto_ToolTips.en['sideAdventure'] = { version: "7.23.0", elementText: "Side adventure", tooltip: "" };
 HHAuto_ToolTips.en['otherTrollOption'] = { version: "7.23.0", elementText: "Others", tooltip: "" };
 //
-// Tab rail names and group headings of the settings menu (8.10.0)
+// Tab rail names and group headings of the settings menu
 HHAuto_ToolTips.en['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: "" };
 HHAuto_ToolTips.en['menuTabDisplay'] = { version: "8.10.0", elementText: "Display", tooltip: "" };
 HHAuto_ToolTips.en['menuTabDaily'] = { version: "8.10.42", elementText: "Daily Activities", tooltip: "" };
@@ -1497,7 +1497,7 @@ HHAuto_ToolTips.de['latestTroll'] = { version: "7.23.0", elementText: "Letzter T
 HHAuto_ToolTips.de['mainAdventure'] = { version: "7.23.0", elementText: "Hauptabenteuer", tooltip: "" };
 HHAuto_ToolTips.de['sideAdventure'] = { version: "7.23.0", elementText: "Nebenabenteuer", tooltip: "" };
 HHAuto_ToolTips.de['otherTrollOption'] = { version: "7.23.0", elementText: "Andere", tooltip: "" };
-// Tab rail names and group headings of the settings menu (8.10.0)
+// Tab rail names and group headings of the settings menu
 HHAuto_ToolTips.de['menuTabGlobal'] = { version: "8.10.0", elementText: "Global", tooltip: "" };
 HHAuto_ToolTips.de['menuTabDisplay'] = { version: "8.10.0", elementText: "Anzeige", tooltip: "" };
 HHAuto_ToolTips.de['menuTabDaily'] = { version: "8.10.42", elementText: "Tägliches", tooltip: "" };
@@ -1988,8 +1988,7 @@ HHAuto_ToolTips.es['costexperience'] = { version: "7.18.0", elementText: "Por un
 
 
 // Side-effect imports populate HHAuto_ToolTips with translations.
-// Previously implicit via the i18n barrel (export * from './de'...);
-// keep the loading order matching the former barrel.
+// The loading order below is what fills the table; keep it.
 
 
 
@@ -2537,7 +2536,7 @@ const TK = {
     mouseLastActivity: "Temp_mouseLastActivity",
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
-    // Pipeline-block architecture (v7.37.0, ADR-001)
+    // Pipeline-block architecture
     activeBlockRun: "Temp_activeBlockRun", // session: BlockRun progress
     blockCooldownUntil: "Temp_blockCooldownUntil", // session: {blockId: ts}
     blockFocus: "Temp_blockFocus", // session: {blockId,lastRunAt} focused activity (#1841)
@@ -3986,7 +3985,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.maxAff] =
 // re-creates every registered key that has a default and is missing, on every
 // page load, so leaving the default in place had the migration delete the key
 // and setDefaults put it straight back -- once per page load, forever, with a
-// log line each time. Seen in a live 8.11.0 log. With no default, the "else"
+// log line each time. Seen in a live log. With no default, the "else"
 // branch of setDefaults applies: nothing is created, and a forced run removes
 // the key instead.
 HHStoredVars[HHStoredVarPrefixKey + SK.maxBooster] =
@@ -5460,7 +5459,7 @@ HHStoredVars[HHStoredVarPrefixKey + TK.trollWaitForEnergy] =
         storage: "sessionStorage",
         HHType: "Temp"
     };
-// Pipeline-block architecture (v7.37.0, ADR-001)
+// Pipeline-block architecture
 HHStoredVars[HHStoredVarPrefixKey + TK.activeBlockRun] =
     {
         storage: "sessionStorage",
@@ -6656,9 +6655,9 @@ function url_add_param(url, param, value) {
 // ID that AutoLoop and modules can switch on. It also logs unknown
 // page IDs to help detect game updates that add new pages.
 //
-// Why the complexity: The Activities page redesign merged several
-// formerly separate pages into tabs, but automation still needs
-// distinct IDs for each to route actions correctly.
+// Why the complexity: the game multiplexes several activities onto
+// /activities.html as tabs, while the automation needs a distinct ID per
+// activity to route its actions.
 //
 // Used by: AutoLoop (page routing), StartService (initial setup),
 //          PageNavigationService (navigation targets),
@@ -6672,10 +6671,9 @@ function url_add_param(url, param, value) {
 /**
  * Halts the script by clearing master and autoLoop in storage.
  *
- * Previously, getPage() did this implicitly (and threw) when the game
- * root element was missing. That coupled a read with a hard-stop
- * side effect: any caller that hit a transient DOM state could disable
- * the entire script without realizing it. The kill switch lives here
+ * The kill switch is explicit and separate from getPage(): a read that also
+ * hard-stops the script lets any caller hitting a transient DOM state disable
+ * everything without realising it. It lives here
  * now so callers opt into halting explicitly.
  *
  * Used by StartService when it bootstraps and finds no game root.
@@ -6708,7 +6706,7 @@ function resolvePopState() {
     if (urlPopId !== null) {
         return { kind: 'specific', popId: urlPopId };
     }
-    // Legacy fallback for game variants that still expose the globals.
+    // Fallback for game variants that still expose the globals.
     const popThumb = $(".pop_thumb_selected[pop_id]");
     // `??` instead of `||`: pop_index = 0 would be a valid index in a
     // 0-based numbering scheme, the previous `||` would have routed it
@@ -8298,7 +8296,7 @@ function migrateBuyList(filter, oldMax) {
  * a snapshot left in the old shape kept resurrecting the deleted "Max Booster"
  * key -- the migration then ran again on every page load -- and a reset to
  * defaults would have written the old bare-code shape back into a field that
- * now refuses it. Seen in a live 8.11.0 upgrade log.
+ * now refuses it. Seen in a live upgrade log.
  *
  * Returns the updated snapshot, or null when there is nothing to do.
  */
@@ -9581,7 +9579,7 @@ class Harem {
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
             const girlNameDictionary = new Map();
-            // The game returns girlsDataList as either an Array (legacy)
+            // The game returns girlsDataList as either an Array
             // or a plain Object keyed by girl id (current). forEach only
             // exists on the Array form -- normalise via Object.values().
             const entries = Array.isArray(girlsDataList)
@@ -11207,7 +11205,7 @@ class BossBang {
     // be retried), false when neither button is present after AJAX idle -- i.e.
     // the sequence is finished. The handleBossBangFight pipeline block re-enters
     // this each tick and holds the scheduler slot on repeat (issue #1455), so
-    // this no longer sets autoLoop=false or self-reschedules via setTimeout.
+    // this does not set autoLoop=false and does not self-reschedule via setTimeout.
     static skipFightPage() {
         return BossBang_awaiter(this, void 0, void 0, function* () {
             const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
@@ -11375,7 +11373,7 @@ class CumbackContests {
 /**
  * Link to the team page for one battle type.
  *
- * The battle type is not optional: measured 2026-08-21, a bare /teams.html
+ * The battle type is not optional: measured, a bare /teams.html
  * redirects straight to home.html and `teams_data` never exists there. The
  * game's own links carry it too (leagues.html links to
  * ?battle_type=leagues, season-arena.html to ?battle_type=seasons). Landing on
@@ -11395,9 +11393,9 @@ function getGoToClubChampionButton() {
 // PInfoRow.ts
 //
 // One row of the pInfo status panel: label on the left, value on the right
-// (#1834 follow-up). The panel used to be a two-column list of
-// "<li>Label : value</li>" strings, which cut off the longer rows -- the value
-// was part of the same text node, so there was nothing to align.
+// (#1834). A plain "<li>Label : value</li>" list cuts off the longer rows,
+// because the value is part of the same text node and there is nothing to
+// align.
 //
 // A row is a flex line with two children, so the value column stays flush right
 // no matter how long the label gets, and the label may wrap instead of being
@@ -11980,7 +11978,7 @@ class LoveRaidManager {
         // write side in parse() via backfillGirlGrades, so the persisted
         // shape is already correct and this hot-path reader (called by
         // getTrollRaids/getChampionRaids/getSeasonRaids, multiple times per
-        // tick) no longer mutates the objects it returns.
+        // tick) does not mutate the objects it returns.
         return getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
     }
     /**
@@ -12364,12 +12362,11 @@ class Booster {
                     let mythicUpdated = false;
                     let sandalwoodEnded = false;
                     const sandalwood = boosterStatus.mythic.find((booster) => { var _a; return ((_a = booster.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1'; });
-                    // The girl's shard count comes back with every troll fight,
-                    // but until #1843 it was only read when a Sandalwood was
-                    // equipped -- the block below used to be the only reader.
-                    // Without it the script kept fighting a girl it had already
-                    // completed, because the stored count only refreshed on the
-                    // next visit to the event page.
+                    // The girl's shard count comes back with every troll fight
+                    // and is read here rather than only when a Sandalwood is
+                    // equipped (#1843). Otherwise the stored count refreshes
+                    // only on the next visit to the event page, and the script
+                    // keeps fighting a girl it has already completed.
                     if (action === 'do_battles_trolls') {
                         Booster.updateEventGirlShards(response);
                     }
@@ -12817,12 +12814,11 @@ class Booster {
      * trimmed, invalid codes are dropped, duplicates keep their first
      * position. An empty field means "off" and yields an empty list.
      *
-     * The list is NOT capped at the number of slots (8.10.12). It used to be,
-     * which conflated two different numbers: the game has MYTHIC_SLOT_COUNT
-     * slots, but the list is a preference order -- "take whichever of these I
-     * happen to own". Capping it meant a player who listed all twelve silently
-     * lost the last seven. Order = priority: the walk down the list stops when
-     * no slot is free.
+     * The list is NOT capped at the number of slots: those are two different
+     * numbers. The game has MYTHIC_SLOT_COUNT slots, while the list is a
+     * preference order -- "take whichever of these I happen to own" -- so a
+     * cap would silently drop the tail of a player's list. Order is priority;
+     * the walk down the list stops when no slot is free.
      */
     static parseMythicBoosterList() {
         const raw = getStoredValue(HHStoredVarPrefixKey + SK.autoEquipMythicBooster);
@@ -12893,12 +12889,12 @@ class Booster {
      * loadout is compared as a SUBSET of the current one, not for equality:
      * still contained means the refusal stands, something missing means re-try.
      *
-     * Equality was the original rule and it churned. Every successful equip
-     * changed the signature and thereby invalidated every conflict remembered
-     * earlier in the same run, so those boosters were tried again on the next
-     * pass, refused again, and each pass ended in another conflict popup and
-     * another page reload. With a priority list longer than the five slots
-     * (8.10.12) that turned into a visible loop.
+     * Equality would churn: every successful equip changes the signature and
+     * would invalidate every conflict remembered earlier in the same run, so
+     * those boosters would be tried again on the next pass, refused again, and
+     * each pass would end in another conflict popup and another page reload.
+     * With a priority list longer than the number of slots that becomes a
+     * visible loop.
      */
     static isMythicConflictRemembered(identifier) {
         const conflicts = Booster.getMythicConflicts();
@@ -13263,9 +13259,9 @@ class Booster {
      * for a perfume in that phase (#1843).
      *
      * The three per-path Equip Sandalwood switches mean "while winning the
-     * girl". Once she is won they no longer apply; plusSkinSandalWood is the
-     * one that does, and it is off by default because a perfume is a mythic
-     * booster.
+     * girl", so they do not apply once she is won. plusSkinSandalWood is the
+     * one that governs the skin phase, and it is off by default because a
+     * perfume is a mythic booster.
      */
     static skinPhaseBlocksSandalwood(shards) {
         const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === 'true';
@@ -13419,8 +13415,8 @@ Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 2000;
  * Every refusal costs a server request and a popup, and each one is
  * remembered, so the remaining candidates are picked up on the next pass
  * with the memory already in place -- nothing is lost by stopping early.
- * Without this a priority list longer than the five slots (8.10.12) could
- * fire a refusal for every remaining entry in a single pass.
+ * Without this a priority list longer than the number of slots could fire
+ * a refusal for every remaining entry in a single pass.
  */
 Booster.MYTHIC_CONFLICTS_PER_PASS = 3;
 
@@ -13428,14 +13424,14 @@ Booster.MYTHIC_CONFLICTS_PER_PASS = 3;
 // Season.pure.ts -- Pure decision logic extracted from Season.isTimeToFight
 // for the "fight blocked only by a missing booster" fast-retry case.
 //
-// Observed live (2026-08-15): when Season.isTimeToFight() returns false
+// Observed live: when Season.isTimeToFight() returns false
 // solely because autoSeasonBoostedOnly requires a booster and none is
 // equipped, the generic Pipeline.config.ts fallback (handleSeason's
-// seasonBattleOrTimer step) used to arm the same long "wait for energy"
-// timer (15-17 min) as every other reason to wait. But
-// handleAutoEquipBoosters typically fixes a missing booster within
-// seconds, so most of that wait is pure lost fight time. This module
-// decides when a short retry is warranted instead of the long one.
+// seasonBattleOrTimer step) would otherwise arm the same long "wait for
+// energy" timer (15-17 min) as every other reason to wait. Since
+// handleAutoEquipBoosters fixes a missing booster within a couple of minutes,
+// most of that wait is lost fight time. This module decides when a short retry
+// is warranted instead of the long one.
 //
 // Extracted so the boolean cascade can be unit-tested without globals,
 // storage, or DOM access. Input = data, output = decision. The impure
@@ -13812,7 +13808,7 @@ class Season {
                 const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus) || "off";
                 const focusOnGirls = seasonFocus === "girl" || seasonFocus === "girlAndSkin";
                 // "MT hard" on: max tier is a hard cap, no fight past it ever.
-                // Off (legacy): a girl Season focus may keep fighting past max
+                // Off: a girl Season focus may keep fighting past max
                 // tier while wanted girl rewards are available, and fights run
                 // unfiltered while climbing below max tier.
                 const maxTierHard = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonMaxTierHard) === "true";
@@ -14545,7 +14541,7 @@ class LeagueHelper {
         if ((document.getElementById("beaten_opponents") === null && document.getElementById("league_filter") === null) // button from HH OCD script
             && document.getElementById("HideBeatenOppo") === null) {
             if ($(".leagues_middle_header_script").length == 0) {
-                // #leagues-tabs was removed in the 2026-08 League DOM
+                // #leagues-tabs was removed in the League DOM
                 // rework. .league_content is the wrapper that already
                 // anchors every other league selector in this file (see
                 // styles() above and the .data-list selectors below), and
@@ -14946,11 +14942,10 @@ class LeagueHelper {
                     //      capped, no pending refresh): fall back to a 15-17 min
                     //      timer.
                     //
-                    // Setting *before* the battle trigger keeps two properties
-                    // from the original 7.35.54 hotfix: the timer survives the
-                    // safeReload() in the multi-battle AJAX callback because
-                    // storage is re-read on bundle boot, and the popup info
-                    // never reads "No timer" again.
+                    // Setting the timer *before* the battle trigger keeps two
+                    // properties: it survives the safeReload() in the multi-battle
+                    // AJAX callback, because storage is re-read on bundle boot, and
+                    // the popup info never reads "No timer".
                     const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
                     const remainingPower = currentPower - numberOfBattle;
                     if (remainingPower > 0) {
@@ -15021,7 +15016,7 @@ class LeagueHelper {
         }
     }
     static LeagueDisplayGetOpponentPopup(numberDone, remainingTime) {
-        // #leagues_middle no longer exists (2026-08 League DOM rework);
+        // #leagues_middle does not exist in the League DOM;
         // #leagues itself is the stable League page container, and the
         // popup is positioned absolute so its exact DOM parent doesn't
         // affect layout.
@@ -15209,12 +15204,12 @@ class DailyGoals {
         // parse() is registered as a page handler on the missions and
         // contests pages too (AutoLoopPageHandlers), not just on the
         // daily-goals page. On those pages unsafeWindow.daily_goals_list
-        // is not populated, so the method used to fall through, log
-        // "Can't parse Daily Goals", and then overwrite the dailyGoalsList
-        // cache with an empty array. That wiped the cache between two real
-        // daily-goals visits, so isPantheonDailyGoal() reported false and
-        // the pantheon booster-override for an active daily goal never
-        // fired. Guard with an early return that leaves the cache intact
+        // is not populated. Without a guard the method falls through, logs
+        // "Can't parse Daily Goals" and overwrites the dailyGoalsList cache
+        // with an empty array -- which wipes the cache between two real
+        // daily-goals visits, so isPantheonDailyGoal() reports false and the
+        // pantheon booster-override for an active daily goal never fires.
+        // The early return leaves the cache intact
         // and hands back whatever was last parsed.
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
             return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
@@ -15658,12 +15653,10 @@ class PlaceOfPower {
         return PlaceOfPower_awaiter(this, void 0, void 0, function* () {
             // Detect the "URL targets a POP (?tab=pop&pop_id=N), but the game
             // bounced us back to the main list because the POP is locked" state.
-            // The legacy code did this inside PageHelper via the checkPop
-            // parameter; the detection has moved to a small read
-            // (getPopFallbackIndex) that returns the pop_id from the URL when
-            // the pop tab is loaded but the main list is rendered instead of the
-            // targeted POP. Same lock-list mutation as before, just owned by the
-            // module that knows what to do with it.
+            // getPopFallbackIndex returns the pop_id from the URL when the pop tab
+            // is loaded but the main list is rendered instead of the targeted POP.
+            // The lock-list mutation is owned here, by the module that knows what
+            // to do with it, rather than by PageHelper.
             const lockedPopIndex = getPopFallbackIndex();
             if (lockedPopIndex !== null) {
                 PlaceOfPower.addPopToUnableToStart(lockedPopIndex, `Unable to go to Pop ${lockedPopIndex} as it is locked.`);
@@ -15859,11 +15852,10 @@ class PlaceOfPower {
                 }
                 else {
                     logHHAuto("Navigating to powerplace" + index + " page.");
-                    // Issue #1782: the game's 7.x optimization update renamed the
-                    // Place-of-Power query param from `index` to `pop_id`
-                    // (/activities.html?tab=pop&pop_id=N). Navigating with the old
-                    // `index` param no longer loads the targeted POP, so the second
-                    // phase (visit -> auto-assign -> start) never ran.
+                    // The Place-of-Power query param is `pop_id`, not `index`
+                    // (/activities.html?tab=pop&pop_id=N, #1782). With `index` the
+                    // targeted POP does not load, and the second phase
+                    // (visit -> auto-assign -> start) never runs.
                     gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", pop_id: index });
                     setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
                 }
@@ -17032,11 +17024,10 @@ class Contest {
                 // see stale claim buttons and create an infinite collect loop.
                 contestContainer.remove();
                 if (contest_list.length > 1) {
-                    // Multi-reward contests previously triggered a full page
-                    // reload after every claim, producing N-1 reloads in
-                    // quick succession on a 5-tier finish. The reloads put
-                    // unnecessary pressure on the Forbidden race window we
-                    // already mitigated via ADR-003. Stay on the page, set
+                    // A reload after every claim would produce N-1 reloads in
+                    // quick succession on a 5-tier finish, and each one puts
+                    // pressure on the Forbidden race window the POST mutex
+                    // exists for. Stay on the page, set
                     // busy=true so the scheduler comes back next tick, and
                     // collect the next reward then. The DOM-removal above
                     // ensures getClaimsButton() reports the remaining
@@ -18164,12 +18155,12 @@ function updateData() {
 // page. Binds mousemove, scroll, and mouseup events that set a
 // "mouseBusy" flag for a configurable timeout (default 5s).
 //
-// The in-memory mouseBusy flag does not survive a page reload. Because
-// the game navigates via full page reloads, manual navigation used to
-// give the bot a clean slate: the first scheduler tick fired before any
-// fresh mouse event re-armed the pause, so the bot navigated away from
-// the page the user had just opened (issue #1774). To fix this the
-// last activity timestamp is persisted in sessionStorage (survives a
+// The in-memory mouseBusy flag does not survive a page reload, and the game
+// navigates by full page reloads. Without persistence the first scheduler tick
+// after a manual navigation fires before any fresh mouse event can re-arm the
+// pause, and the bot navigates away from the page the user just opened
+// (#1774). The last activity timestamp is therefore kept in sessionStorage
+// (survives a
 // same-tab reload) and a short startup grace period blocks automation
 // right after every load while mouse-pause is enabled.
 //
@@ -20097,7 +20088,7 @@ function pickKeepers(items, playerClass) {
  *  projects to. */
 const MYTHIC_MAX_LEVEL = 20;
 const GEAR_SLOTS = [1, 2, 3, 4, 5, 6];
-// Raw stat curves of a mythic player item (measured 2026-08-17). carac1..3
+// Raw stat curves of a mythic player item, measured on the live page. carac1..3
 // are equal to each other, so the per-carac value is a third of the sum the
 // doc records. Only mythics level; everything else is fixed at the value the
 // game hands out.
@@ -20437,7 +20428,7 @@ function themeFromElementCounts(counts) {
 /**
  * Theme of one `teams_data` entry, as the game itself reports it.
  *
- * Measured 2026-08-16 on `teams.html?battle_type=leagues`: an entry carries
+ * Measured on `teams.html?battle_type=leagues`: an entry carries
  * `theme: "nature"` and `theme_elements: [{type: "nature", ...}]` outright,
  * so nothing has to be counted. Two things this has to keep apart:
  *
@@ -20485,7 +20476,7 @@ function toResonance(raw) {
  * Map one raw game object onto ArmorItem.
  *
  * `isEquipped` has to be told, not sniffed: the two sources carry disjoint
- * id fields (measured 2026-08-16). An item read from `#equiped` has
+ * id fields (measured). An item read from `#equiped` has
  * `id_member_armor_equipped` and no `id_member_armor`; an entry from
  * `player_inventory.armor` / `market_get_armor` has it the other way round.
  * Sniffing on the presence of a field silently dropped all six worn items.
@@ -20538,7 +20529,7 @@ function parseArmorItem(raw, isEquipped = false) {
 // material a level costs, and does not pick the material. Both are left to
 // the game.
 //
-// Measured 2026-08-17 on the upgrade page: material is counted by weight,
+// Measured on the upgrade page: material is counted by weight,
 // not by piece -- seven epics covered a stated requirement of 20 -- and the
 // cost curve is not derivable (20 for level 1->2, 23 for 2->3, but 1555 in
 // total from level 1, which no arithmetic series through those two points
@@ -20551,7 +20542,7 @@ function parseArmorItem(raw, isEquipped = false) {
 // Used by: Module/EquipmentGear.ts
 
 /** The upgrade flow lives on its own page. Which query parameter it wants
- *  depends on where the item sits (measured 2026-08-17):
+ *  depends on where the item sits (measured):
  *
  *    inventory item : ?id_member_item=<id_member_armor>
  *    worn item      : ?id_member_item_equipped=<id_member_armor_equipped>
@@ -20640,12 +20631,11 @@ function parseRequirement(pageText) {
  * after Auto Select means the stock is spent. That is the signal this stops
  * on -- not an estimate of remaining material.
  *
- * There used to be a per-run cap here as a guard against a runaway loop. It
- * could never fire: the caller passes `startLevel + performed` as the current
- * level, so the level rises with every pass and the max-level check below is
- * what ends the loop -- after at most 19 passes, since 1 -> 20 is the whole
- * range the game allows. The cap sat at 30 and was therefore dead code that
- * only read like a safeguard.
+ * There is deliberately no per-run cap: the caller passes
+ * `startLevel + performed` as the current level, so the level rises with every
+ * pass and the max-level check below ends the loop after at most 19 passes,
+ * 1 -> 20 being the whole range the game allows. A cap on top of that would
+ * read like a safeguard without ever firing.
  */
 function decideNextLevelUp(state) {
     if (state.currentLevel >= (/* inlined export .MYTHIC_MAX_LEVEL */20)) {
@@ -20740,34 +20730,34 @@ class EquipmentGear {
             $('#HHGearButtons').remove();
             return;
         }
-        // Measured 2026-08-16: shop.html carries two separate equipment UIs.
-        // The merchant tree (#shops .shop-container #equipement-tab-container)
-        // holds `#player-inventory.armor` with every owned item -- and is not
-        // rendered at all, every node in it measures 0x0. The visible one is
-        // the My Hero tree, `#my-hero-equipement-tab-container`, whose
-        // `.bottom-container` already hosts the game's own Level-up and Equip
-        // buttons. Anchoring to the inventory container put the buttons in
-        // the dead tree, where they existed but could never be clicked.
+        // shop.html carries two separate equipment UIs (measured on the live
+        // page). The merchant tree (#shops .shop-container
+        // #equipement-tab-container) holds `#player-inventory.armor` with every
+        // owned item, but is not rendered at all -- every node in it measures
+        // 0x0. The visible one is the My Hero tree,
+        // `#my-hero-equipement-tab-container`, whose `.bottom-container` hosts
+        // the game's own Level-up and Equip buttons. Anchoring to the inventory
+        // container puts the buttons in the dead tree, where they exist but can
+        // never be clicked.
         const host = $('#my-hero-equipement-tab-container .bottom-container');
         if (host.length === 0)
             return;
         // Already injected? Then stop -- and clear any extra copies first.
         //
-        // This used to test for #HHGearCurrentBest, an id that stopped existing
-        // when the four buttons became one menu. The check silently never fired
-        // again, so every tab switch appended another block and the row filled
-        // up with copies. Testing for the container itself cannot go stale the
-        // same way, and sweeping the extras means a page that already collected
-        // some repairs itself instead of needing a reload.
+        // The test is on the container, not on a button id: an id tied to one
+        // particular button goes stale as soon as the buttons change, the check
+        // then never fires, and every tab switch appends another block until
+        // the row is full of copies. Sweeping the extras also lets a page that
+        // already collected some repair itself instead of needing a reload.
         const existing = document.querySelectorAll('#HHGearButtons');
         if (existing.length > 0) {
             for (let i = 1; i < existing.length; i++)
                 existing[i].remove();
             return;
         }
-        // One narrow button: measured on the live page there are only 150
-        // device px of width and 115 of height left in this row beside the
-        // game's own buttons, so the actions live in a menu (see showMenu).
+        // One narrow button: on the live page only 150 device px of width and
+        // 115 of height are left in this row beside the game's own buttons
+        // (measured), so the actions live in a menu (see showMenu).
         GM_addStyle('#HHGearButtons{display:flex;margin-left:10px;align-items:center;}'
             + '#HHGearButtons .tooltipHH{margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
@@ -20780,9 +20770,9 @@ class EquipmentGear {
             + '#HHGearMenuList a:hover{background:rgba(255,162,62,.18);}'
             + '#HHGearMenuList .sub{display:block;color:#444;font-weight:normal;'
             + 'font-size:11px;margin-top:2px;}'
-            // The popup sits on white (measured: #HHAutoPopupGlobalPopup is
-            // rgb(255,255,255)), so everything in here is dark on light. The
-            // borders used to be white on white and simply did not show.
+            // The popup sits on white (#HHAutoPopupGlobalPopup is
+            // rgb(255,255,255), measured), so everything in here is dark on
+            // light -- white borders would not show at all.
             + '#HHGearPreview{color:#000;}'
             + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
@@ -21096,7 +21086,7 @@ class EquipmentGear {
     static describe(item) {
         return `${item.name} (${item.rarity} lvl${item.level}, id ${item.id_member_armor})`;
     }
-    /** The four gear actions as a list, since they no longer fit as buttons. */
+    /** The four gear actions as a list; they do not fit as buttons. */
     static showMenu() {
         const entry = (action, key) => `<li><a data-gear-action="${action}">${esc(getTextForUI(key, 'elementText'))}`
             + `<span class="sub">${esc(stripTags(getTextForUI(key, 'tooltip')))}</span></a></li>`;
@@ -23249,7 +23239,7 @@ class Pachinko {
                 if (orbs) {
                     // The play-response carries the authoritative remaining count for
                     // the selected orb type (e.g. orbs.o_g10). Capture it so the stop
-                    // logic no longer depends on the lag-prone DOM counter (issue 1745).
+                    // logic reads it instead of the lag-prone DOM counter (#1745).
                     const selectedOrbName = Pachinko.getSelectedOrbName();
                     const remaining = orbs[selectedOrbName];
                     if (typeof remaining === 'number') {
@@ -23370,12 +23360,11 @@ Pachinko.serverOrbsLeft = undefined;
 // Extracted from Shop.isTimeToCheckShop so the "do we need to walk to
 // /shop.html?" decision can be unit-tested without storage or timers.
 //
-// The gate used to list only the two *reader* opt-ins (updateMarket and
-// the booster-status readers behind needBoosterStatusFromStore). The
-// *buyer* opt-in autoBuyBoosters was missing, so a user who enabled only
-// that switch never navigated to the market: storeContents stayed
-// undefined and Market.doShopping bailed out on its very first guard.
-// decideCheckShop adds that third reason.
+// The gate has three reasons, not two: the reader opt-ins (updateMarket and
+// the booster-status readers behind needBoosterStatusFromStore) plus the buyer
+// opt-in autoBuyBoosters. Without the third, a user who enables only that
+// switch never navigates to the market, storeContents stays undefined and
+// Market.doShopping bails out on its first guard.
 
 /**
  * True when the buy-boosters automation has something to shop for, i.e.
@@ -24079,7 +24068,7 @@ class Shop {
 ;// ./src/Service/TeamScoringService.ts
 // TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
 //
-// Public surface (everything else is gone after the v7.35.39 refactor):
+// Public surface:
 //   - Types:    ElementType, RarityType, TraitCategory, PlayerClass, GirlData,
 //               Tier5Skill
 //   - Scoring:  caracsSum (raw), scoreCurrentBest (mode 1), scoreBestPossible
@@ -24089,9 +24078,8 @@ class Shop {
 //   - Tier-5 :  getTier5Skill
 //   - Element:  getElementPowerCoeff
 //
-// The rules these helpers encode -- rarity filter, Tier-3 trait chain,
-// Tier-5 leader priority, element coefficients -- are written out in the
-// CHANGELOG entries for v7.34 and v7.35.39.
+// The rules these helpers encode -- rarity filter, Tier-3 trait chain, Tier-5
+// leader priority, element coefficients -- are written out in the CHANGELOG.
 // Tier-5 mapping. Priority controls the leader pick (Shield > Stun > Execute > Reflect).
 const ELEMENT_TO_TIER5 = {
     light: { id: 12, name: 'Shield', priority: 4 },
@@ -24137,7 +24125,7 @@ class TeamScoringService {
     /**
      * Sum of all three carac fields. Game-authoritative: the caracs
      * sub-object already includes blessings AND the girl's equipment
-     * (measured 2026-08-17, see docs-internal/data-sources-team.md). A girl
+     * (measured, see docs-internal/data-sources-team.md). A girl
      * therefore ranks partly on who currently wears the good gear, which is
      * why a team should be built after "Unequip All". Falls back to
      * carac1/2/3 when caracs is absent.
@@ -24255,8 +24243,7 @@ class TeamScoringService {
 ;// ./src/Service/TeamBuilderService.ts
 // TeamBuilderService.ts -- Spec-driven team builder.
 //
-// The pool layering, leader rule and slot fill are described in the
-// CHANGELOG entry for v7.35.39.
+// The pool layering, leader rule and slot fill are described in the CHANGELOG.
 //
 // Public surface:
 //   - buildTeam(allGirls, mode, playerLevel, playerClass): TeamResult | null
@@ -24291,7 +24278,7 @@ const ELEMENT_PAIRS_BY_CATEGORY = {
 // Trait hierarchy used in cluster selection (Cluster-Wahl-Regel).
 const TRAIT_HIERARCHY = ['eyeColor', 'hairColor', 'zodiac', 'position'];
 // Element counts that turn on a team "theme". Measured against the live
-// game (2026-08-16): the per-girl element synergy is linear from the FIRST
+// game: the per-girl element synergy is linear from the FIRST
 // girl, but the theme -- and with it the league domination bonus -- needs
 // three girls of one element. Four is the next step worth trying; beyond
 // that the stat loss outgrows the synergy in every measured case.
@@ -25087,9 +25074,9 @@ class TeamBuilderService {
 // Why this exists
 // ---------------
 // The team builder ranks candidates by caracs_sum, which is exactly the
-// "Total Power" the game prints on the edit-team screen. Measured against
-// the live game (2026-08-16), that number is literally the sum of the seven
-// girls' caracs -- it contains none of the mechanics that decide a fight:
+// "Total Power" the game prints on the edit-team screen. Measured against the
+// live game, that number is literally the sum of the seven girls' caracs -- it
+// contains none of the mechanics that decide a fight:
 //
 //   * Element synergies scale the WHOLE stat (hero base included), and they
 //     are linear from the first girl of an element -- not from the third.
@@ -26149,7 +26136,7 @@ class TeamModule {
             }).join(' | ');
             logHHAuto(`Team v2 [${modeName}] slots: ${slotsStr}`);
         }
-        // UI update: same approach as legacy — hide non-selected, show + number selected
+        // UI update: hide non-selected, show + number selected
         TeamModule.updateTeamUI(deckID, result);
     }
     static setTopTeamLegacy(sumFormulaType) {
@@ -26997,12 +26984,12 @@ function handlePageSpecific(ctx) {
                     }
                     if (EventModule.getEvent(eventID).isPoa) {
                         PathOfAttraction.styles();
-                        // #1816: run() is the auto-collect. It used to be reached
-                        // only with showClubButtonInPoa on -- a display option for
-                        // a shortcut button -- so switching that button off
-                        // silently switched off collecting Path of Attraction
-                        // rewards as well. The Collect all button kept working
-                        // because it calls goAndCollect directly, which is exactly
+                        // run() is the auto-collect and is reached independently of
+                        // showClubButtonInPoa (#1816), which is a display option for
+                        // a shortcut button: gating the collect on it would switch
+                        // off Path of Attraction collecting with the button. The
+                        // Collect all button calls goAndCollect directly, which is
+                        // exactly
                         // the "works when I press it, never on its own" report.
                         // The club button now decides only about itself, inside
                         // run().
@@ -28186,10 +28173,10 @@ class SultryMysteries {
      */
     static autoOpenGrid(eventID) {
         // parseEventPage is re-entered on every pipeline tick for as long as
-        // the auto-open timer sits expired, and every entry used to start its
-        // own click chain: squares were opened in parallel with requests
-        // still in flight, "Generate new grid" fired six times in a row, and
-        // the retry timer was written three times. One run at a time.
+        // the auto-open timer sits expired. Without this guard every entry
+        // starts its own click chain: squares open in parallel with requests
+        // still in flight, "Generate new grid" fires repeatedly, and the retry
+        // timer is written several times. One run at a time.
         if (SultryMysteries.autoOpenRunning)
             return true;
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {
@@ -30582,7 +30569,7 @@ function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath
 //
 // DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
 // area buttons on the left and one pane per area on the right. Replaces the
-// three fixed-width columns (MenuColumnLeft/Middle/Right, removed in 8.10.0),
+// three fixed-width columns,
 // which sized their labels for English and let longer translations overlap.
 //
 // Two rules keep that from coming back:
@@ -33433,10 +33420,10 @@ function defaultStorage() {
 // HeroBootRecovery.ts
 //
 // Self-heal for the boot path when a game page loads but never
-// populates the game data object (window.shared.Hero). Issue #1788:
-// after a target page fails to build its game data, start() exhausts
-// its Hero retry loop and used to only log "give up, reload manually",
-// leaving the automation frozen until the user reloaded by hand.
+// populates the game data object (window.shared.Hero). When a target page
+// fails to build its game data, start() exhausts its Hero retry loop; without
+// this recovery the script only logs "give up, reload manually" and the
+// automation stays frozen until the user reloads by hand (#1788).
 //
 // This module holds the pure decision + counter math so it can be
 // unit-tested in isolation. The side effects (reading the counter from
@@ -34097,10 +34084,8 @@ function start() {
         //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
     }
-    // The legacy bootstrap raised inside getPage() when the game root was
-    // missing, and that throw doubled as both a script halt and a guard
-    // against running the rest of startup. With getPage() now a pure read,
-    // bootstraps need to opt into halting on missing root explicitly.
+    // getPage() is a pure read, so a bootstrap has to opt into halting on a
+    // missing game root explicitly -- hence the `true` argument.
     if (getPage(true) === "") {
         haltScript("game root element missing on startup");
         return;
@@ -34754,7 +34739,7 @@ function writeLogContext(ctx) {
 // from the DOM and falls back to maxCollectionDelay + jitter when no
 // timer is found, or when the scraped value is at or above the
 // 24-hour cap. That cap is NOT a "this looks like garbage" check --
-// live measurement (2026-08) confirmed values well past 24h are
+// live measurement confirmed values well past 24h are
 // ordinary bundle durations (a period_deal timer read 1454400s, ~16.8
 // days, in one run). The cap exists so the next free-bundle check
 // still happens within maxCollectionDelay instead of waiting out the
@@ -35959,11 +35944,11 @@ const handleMissions = fromDescriptor({
 // The block sits in the low-cost/high-yield group near the front of the
 // pipeline: a reward ad is a few kobans for one click and the game usually
 // offers it once a day, so it must not wait behind the long battle blocks.
-// Measured on 2026-08-30: with the block in its old tail position the ad was
-// clicked 9 minutes after it appeared, because handleLabyrinth held the slot
-// across every page change and only released it on "nothing left to do" --
-// and a lower-ranked block can never preempt (Scheduler.findNextReadyHigherThan
-// keeps only ranks above the running one).
+// From the tail of the pipeline an ad waits minutes for its click: a long
+// block such as handleLabyrinth holds the slot across every page change and
+// releases it only on "nothing left to do", and a lower-ranked block can never
+// preempt (Scheduler.findNextReadyHigherThan keeps only ranks above the
+// running one).
 //
 // hasAdWork() is what makes the early position safe: the block claims a slot
 // only when a visible ad button (or our own pending reward confirm) is on the
@@ -36207,11 +36192,10 @@ const handleGenericBattle = {
 };
 const handleTrollBattle = {
     name: 'handleTrollBattle',
-    // 7.35.61 live test on PH ran 75 [Scheduler] Starting chain 'handleTrollBattle'
-    // logs in 30 minutes for 28 actual fights. The remaining 47 ticks were
-    // legitimate skips (currentPower below threshold, no event girl, no raid):
-    // the precondition matched but step.fn fell through. In the classic
-    // implementation these were silent no-ops; the pipeline still emits
+    // On a live session most 'handleTrollBattle' starts are legitimate skips
+    // (currentPower below threshold, no event girl, no raid): the precondition
+    // matches but step.fn falls through. Those are silent no-ops; the pipeline
+    // still emits
     // Starting/completed pairs which adds log noise. Doubling the cool-down
     // to 4 s halves the polling rate without affecting fight responsiveness
     // (the inner Troll battle sequence holds the autoLoop flag for several
@@ -37455,7 +37439,7 @@ const BLOCK_CONSTRAINTS = {
         { kind: "runsBefore", block: "handleBossBangFight", hard: true },
     ],
 };
-/** Adapt one legacy HandlerConfig into a Block (1:1, handler logic reused). */
+/** Adapt one HandlerConfig into a Block; the handler logic is reused as is. */
 function toBlock(c) {
     return {
         id: c.name,

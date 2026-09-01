@@ -101,7 +101,7 @@ export class Harem {
         }
         if (girlsDataList != null && !(girlsDataList instanceof Map)) {
             const girlNameDictionary = new Map();
-            // The game returns girlsDataList as either an Array (legacy)
+            // The game returns girlsDataList as either an Array
             // or a plain Object keyed by girl id (current). forEach only
             // exists on the Array form -- normalise via Object.values().
             const entries: any[] = Array.isArray(girlsDataList)

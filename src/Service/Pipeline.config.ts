@@ -602,11 +602,11 @@ const handleMissions = fromDescriptor({
 // The block sits in the low-cost/high-yield group near the front of the
 // pipeline: a reward ad is a few kobans for one click and the game usually
 // offers it once a day, so it must not wait behind the long battle blocks.
-// Measured on 2026-08-30: with the block in its old tail position the ad was
-// clicked 9 minutes after it appeared, because handleLabyrinth held the slot
-// across every page change and only released it on "nothing left to do" --
-// and a lower-ranked block can never preempt (Scheduler.findNextReadyHigherThan
-// keeps only ranks above the running one).
+// From the tail of the pipeline an ad waits minutes for its click: a long
+// block such as handleLabyrinth holds the slot across every page change and
+// releases it only on "nothing left to do", and a lower-ranked block can never
+// preempt (Scheduler.findNextReadyHigherThan keeps only ranks above the
+// running one).
 //
 // hasAdWork() is what makes the early position safe: the block claims a slot
 // only when a visible ad button (or our own pending reward confirm) is on the
@@ -846,11 +846,10 @@ const handleGenericBattle: HandlerConfig = {
 
 const handleTrollBattle: HandlerConfig = {
   name: 'handleTrollBattle',
-  // 7.35.61 live test on PH ran 75 [Scheduler] Starting chain 'handleTrollBattle'
-  // logs in 30 minutes for 28 actual fights. The remaining 47 ticks were
-  // legitimate skips (currentPower below threshold, no event girl, no raid):
-  // the precondition matched but step.fn fell through. In the classic
-  // implementation these were silent no-ops; the pipeline still emits
+  // On a live session most 'handleTrollBattle' starts are legitimate skips
+  // (currentPower below threshold, no event girl, no raid): the precondition
+  // matches but step.fn falls through. Those are silent no-ops; the pipeline
+  // still emits
   // Starting/completed pairs which adds log noise. Doubling the cool-down
   // to 4 s halves the polling rate without affecting fight responsiveness
   // (the inner Troll battle sequence holds the autoLoop flag for several

@@ -59,13 +59,11 @@ export async function runStandardHandler(ctx: AutoLoopContext, d: ModuleHandlerD
 //  Action handlers – called in order from autoLoop()
 // ---------------------------------------------------------------------------
 
-// handleMythicWave: deprecated since 3.2.G.complete. Its only effect was to
-// set ctx.lastActionPerformed = "troll" in the same tick to grant
-// handleTrollBattle the slot reservation. In the pipeline model the scheduler
-// picks one handler per tick, so the reservation has no destination -- and
-// handleTrollBattle's own gate already accepts lastActionPerformed = "none".
-// Kept as exported function for any external caller, slated for removal in
-// v7.37.0.
+// handleMythicWave does nothing. Its only effect was to set
+// ctx.lastActionPerformed = "troll" in the same tick, to grant handleTrollBattle
+// a slot reservation. The scheduler picks one handler per tick, so the
+// reservation has no destination, and handleTrollBattle's own gate accepts
+// lastActionPerformed = "none". The export is kept for external callers.
 export async function handleMythicWave(_ctx: AutoLoopContext): Promise<void> {
     return;
 }

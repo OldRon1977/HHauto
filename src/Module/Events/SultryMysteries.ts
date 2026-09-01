@@ -180,10 +180,10 @@ export class SultryMysteries {
      */
     static autoOpenGrid(eventID: string): boolean {
         // parseEventPage is re-entered on every pipeline tick for as long as
-        // the auto-open timer sits expired, and every entry used to start its
-        // own click chain: squares were opened in parallel with requests
-        // still in flight, "Generate new grid" fired six times in a row, and
-        // the retry timer was written three times. One run at a time.
+        // the auto-open timer sits expired. Without this guard every entry
+        // starts its own click chain: squares open in parallel with requests
+        // still in flight, "Generate new grid" fires repeatedly, and the retry
+        // timer is written several times. One run at a time.
         if (SultryMysteries.autoOpenRunning) return true;
 
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {

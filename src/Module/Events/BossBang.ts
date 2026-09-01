@@ -103,7 +103,7 @@ export class BossBang {
     // be retried), false when neither button is present after AJAX idle -- i.e.
     // the sequence is finished. The handleBossBangFight pipeline block re-enters
     // this each tick and holds the scheduler slot on repeat (issue #1455), so
-    // this no longer sets autoLoop=false or self-reschedules via setTimeout.
+    // this does not set autoLoop=false and does not self-reschedule via setTimeout.
     static async skipFightPage(): Promise<boolean>
     {
         const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');

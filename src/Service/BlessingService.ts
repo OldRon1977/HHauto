@@ -16,7 +16,7 @@ const CACHE_DURATION_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 /**
  * Which battle mode a blessing lookup is for. The game maintains two
- * parallel blessing sets per girl (verified 2026-07-13 against the
+ * parallel blessing sets per girl (verified against the
  * hh-bless-cluster fixtures and a live dump):
  *   - 'league'    -> blessing_bonuses.pvp_v3: the two weekly league
  *                    blessings only. Mirrored by the game flag

@@ -70,7 +70,7 @@ export class LoveRaidManager {
         // write side in parse() via backfillGirlGrades, so the persisted
         // shape is already correct and this hot-path reader (called by
         // getTrollRaids/getChampionRaids/getSeasonRaids, multiple times per
-        // tick) no longer mutates the objects it returns.
+        // tick) does not mutate the objects it returns.
         return getStoredJSON(HHStoredVarPrefixKey + TK.loveRaids, []);
     }
     /**

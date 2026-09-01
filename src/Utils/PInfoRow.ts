@@ -1,9 +1,9 @@
 // PInfoRow.ts
 //
 // One row of the pInfo status panel: label on the left, value on the right
-// (#1834 follow-up). The panel used to be a two-column list of
-// "<li>Label : value</li>" strings, which cut off the longer rows -- the value
-// was part of the same text node, so there was nothing to align.
+// (#1834). A plain "<li>Label : value</li>" list cuts off the longer rows,
+// because the value is part of the same text node and there is nothing to
+// align.
 //
 // A row is a flex line with two children, so the value column stays flush right
 // no matter how long the label gets, and the label may wrap instead of being

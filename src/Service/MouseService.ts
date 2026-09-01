@@ -4,12 +4,12 @@
 // page. Binds mousemove, scroll, and mouseup events that set a
 // "mouseBusy" flag for a configurable timeout (default 5s).
 //
-// The in-memory mouseBusy flag does not survive a page reload. Because
-// the game navigates via full page reloads, manual navigation used to
-// give the bot a clean slate: the first scheduler tick fired before any
-// fresh mouse event re-armed the pause, so the bot navigated away from
-// the page the user had just opened (issue #1774). To fix this the
-// last activity timestamp is persisted in sessionStorage (survives a
+// The in-memory mouseBusy flag does not survive a page reload, and the game
+// navigates by full page reloads. Without persistence the first scheduler tick
+// after a manual navigation fires before any fresh mouse event can re-arm the
+// pause, and the bot navigates away from the page the user just opened
+// (#1774). The last activity timestamp is therefore kept in sessionStorage
+// (survives a
 // same-tab reload) and a short startup grace period blocks automation
 // right after every load while mouse-pause is enabled.
 //

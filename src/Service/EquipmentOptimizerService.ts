@@ -62,7 +62,7 @@ export interface ArmorItem {
      *  every time the item is unequipped -- never cache it across an equip
      *  call, and never look an item up by name.
      *
-     *  Measured 2026-08-16: an item in `#equiped` carries *only*
+     *  Measured on the live page: an item in `#equiped` carries *only*
      *  `id_member_armor_equipped` and no `id_member_armor` at all, while an
      *  inventory entry carries only the latter. The two id spaces are
      *  disjoint, so this field holds whichever one the source provided and
@@ -90,7 +90,7 @@ export const MYTHIC_MAX_LEVEL = 20;
 
 const GEAR_SLOTS = [1, 2, 3, 4, 5, 6] as const;
 
-// Raw stat curves of a mythic player item (measured 2026-08-17). carac1..3
+// Raw stat curves of a mythic player item, measured on the live page. carac1..3
 // are equal to each other, so the per-carac value is a third of the sum the
 // doc records. Only mythics level; everything else is fixed at the value the
 // game hands out.
@@ -550,7 +550,7 @@ export function themeFromElementCounts(counts: Record<string, number>): GearThem
 /**
  * Theme of one `teams_data` entry, as the game itself reports it.
  *
- * Measured 2026-08-16 on `teams.html?battle_type=leagues`: an entry carries
+ * Measured on `teams.html?battle_type=leagues`: an entry carries
  * `theme: "nature"` and `theme_elements: [{type: "nature", ...}]` outright,
  * so nothing has to be counted. Two things this has to keep apart:
  *
@@ -597,7 +597,7 @@ function toResonance(raw: any): ArmorResonance | null {
  * Map one raw game object onto ArmorItem.
  *
  * `isEquipped` has to be told, not sniffed: the two sources carry disjoint
- * id fields (measured 2026-08-16). An item read from `#equiped` has
+ * id fields (measured). An item read from `#equiped` has
  * `id_member_armor_equipped` and no `id_member_armor`; an entry from
  * `player_inventory.armor` / `market_get_armor` has it the other way round.
  * Sniffing on the presence of a field silently dropped all six worn items.

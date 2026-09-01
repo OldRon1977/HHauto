@@ -415,7 +415,7 @@ export const TK = {
     // Pipeline scheduler
     pipelineLastRunAt: "Temp_pipelineLastRunAt",
 
-    // Pipeline-block architecture (v7.37.0, ADR-001)
+    // Pipeline-block architecture
     activeBlockRun: "Temp_activeBlockRun",          // session: BlockRun progress
     blockCooldownUntil: "Temp_blockCooldownUntil",  // session: {blockId: ts}
     blockFocus: "Temp_blockFocus",                  // session: {blockId,lastRunAt} focused activity (#1841)

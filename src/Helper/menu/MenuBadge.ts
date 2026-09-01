@@ -45,12 +45,12 @@ export interface BlockDef {
     /**
      * Switches elsewhere that must ALSO be on or nothing happens here.
      *
-     * No block declares one today. The event-troll, mythic and love-raid
-     * blocks did until 8.10.32, on the reading that they only steer a run
-     * `autoTrollBattle` starts -- wrong: `Troll.isTrollFightActivated()` and
-     * `wouldFightWithPower()` are OR chains, so each of those switches makes
-     * the script fight on its own. The marker called a working configuration
-     * a conflict (#1842). Kept because the concept is right where it does
+     * No block declares one. The event-troll, mythic and love-raid blocks do
+     * not qualify, although they look like it: `Troll.isTrollFightActivated()`
+     * and `wouldFightWithPower()` are OR chains, so each of those switches
+     * makes the script fight on its own, and marking them would call a working
+     * configuration a conflict (#1842). Kept because the concept is right
+     * where it does
      * apply; add one only against a measured AND, never against one term of
      * a disjunction.
      */

@@ -11,7 +11,7 @@ import { getTextForUI } from "./LanguageHelper";
 /**
  * Link to the team page for one battle type.
  *
- * The battle type is not optional: measured 2026-08-21, a bare /teams.html
+ * The battle type is not optional: measured, a bare /teams.html
  * redirects straight to home.html and `teams_data` never exists there. The
  * game's own links carry it too (leagues.html links to
  * ?battle_type=leagues, season-arena.html to ?battle_type=seasons). Landing on

@@ -197,12 +197,12 @@ export class DailyGoals {
         // parse() is registered as a page handler on the missions and
         // contests pages too (AutoLoopPageHandlers), not just on the
         // daily-goals page. On those pages unsafeWindow.daily_goals_list
-        // is not populated, so the method used to fall through, log
-        // "Can't parse Daily Goals", and then overwrite the dailyGoalsList
-        // cache with an empty array. That wiped the cache between two real
-        // daily-goals visits, so isPantheonDailyGoal() reported false and
-        // the pantheon booster-override for an active daily goal never
-        // fired. Guard with an early return that leaves the cache intact
+        // is not populated. Without a guard the method falls through, logs
+        // "Can't parse Daily Goals" and overwrites the dailyGoalsList cache
+        // with an empty array -- which wipes the cache between two real
+        // daily-goals visits, so isPantheonDailyGoal() reports false and the
+        // pantheon booster-override for an active daily goal never fires.
+        // The early return leaves the cache intact
         // and hands back whatever was last parsed.
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
             return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);

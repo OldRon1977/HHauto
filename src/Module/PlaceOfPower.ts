@@ -162,12 +162,10 @@ export class PlaceOfPower {
     {
         // Detect the "URL targets a POP (?tab=pop&pop_id=N), but the game
         // bounced us back to the main list because the POP is locked" state.
-        // The legacy code did this inside PageHelper via the checkPop
-        // parameter; the detection has moved to a small read
-        // (getPopFallbackIndex) that returns the pop_id from the URL when
-        // the pop tab is loaded but the main list is rendered instead of the
-        // targeted POP. Same lock-list mutation as before, just owned by the
-        // module that knows what to do with it.
+        // getPopFallbackIndex returns the pop_id from the URL when the pop tab
+        // is loaded but the main list is rendered instead of the targeted POP.
+        // The lock-list mutation is owned here, by the module that knows what
+        // to do with it, rather than by PageHelper.
         const lockedPopIndex = getPopFallbackIndex();
         if (lockedPopIndex !== null)
         {
@@ -395,11 +393,10 @@ export class PlaceOfPower {
                 deleteStoredValue(HHStoredVarPrefixKey + TK.PopTargeted);
             } else {
                 logHHAuto("Navigating to powerplace" + index + " page.");
-                // Issue #1782: the game's 7.x optimization update renamed the
-                // Place-of-Power query param from `index` to `pop_id`
-                // (/activities.html?tab=pop&pop_id=N). Navigating with the old
-                // `index` param no longer loads the targeted POP, so the second
-                // phase (visit -> auto-assign -> start) never ran.
+                // The Place-of-Power query param is `pop_id`, not `index`
+                // (/activities.html?tab=pop&pop_id=N, #1782). With `index` the
+                // targeted POP does not load, and the second phase
+                // (visit -> auto-assign -> start) never runs.
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", pop_id: index });
                 setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
             }

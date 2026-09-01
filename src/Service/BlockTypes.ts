@@ -147,8 +147,8 @@ export interface BlockRun {
    *
    * A block's precondition says it MAY run, not that it has work: troll battle
    * passes its gate and then falls through when the power is below the
-   * threshold or there is no event girl -- measured at 47 such ticks in 75 on
-   * a live 7.35.61 session. Such a run must not keep the pipeline's focus, or
+   * threshold or there is no event girl, which on a live session is the
+   * majority of its ticks. Such a run must not keep the pipeline's focus, or
    * a block that has nothing to do parks the whole pipeline on itself.
    *
    * Set when a step holds the slot (`repeat`), which is the slot-hold signal

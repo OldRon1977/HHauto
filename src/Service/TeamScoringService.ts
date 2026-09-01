@@ -1,6 +1,6 @@
 // TeamScoringService.ts -- Pure scoring helpers for the Spec-driven team builder.
 //
-// Public surface (everything else is gone after the v7.35.39 refactor):
+// Public surface:
 //   - Types:    ElementType, RarityType, TraitCategory, PlayerClass, GirlData,
 //               Tier5Skill
 //   - Scoring:  caracsSum (raw), scoreCurrentBest (mode 1), scoreBestPossible
@@ -10,9 +10,8 @@
 //   - Tier-5 :  getTier5Skill
 //   - Element:  getElementPowerCoeff
 //
-// The rules these helpers encode -- rarity filter, Tier-3 trait chain,
-// Tier-5 leader priority, element coefficients -- are written out in the
-// CHANGELOG entries for v7.34 and v7.35.39.
+// The rules these helpers encode -- rarity filter, Tier-3 trait chain, Tier-5
+// leader priority, element coefficients -- are written out in the CHANGELOG.
 
 export type ElementType =
     | 'fire' | 'water' | 'nature' | 'stone'
@@ -108,7 +107,7 @@ export class TeamScoringService {
     /**
      * Sum of all three carac fields. Game-authoritative: the caracs
      * sub-object already includes blessings AND the girl's equipment
-     * (measured 2026-08-17, see docs-internal/data-sources-team.md). A girl
+     * (measured, see docs-internal/data-sources-team.md). A girl
      * therefore ranks partly on who currently wears the good gear, which is
      * why a team should be built after "Unequip All". Falls back to
      * carac1/2/3 when caracs is absent.

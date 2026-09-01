@@ -105,33 +105,33 @@ export class EquipmentGear {
             return;
         }
 
-        // Measured 2026-08-16: shop.html carries two separate equipment UIs.
-        // The merchant tree (#shops .shop-container #equipement-tab-container)
-        // holds `#player-inventory.armor` with every owned item -- and is not
-        // rendered at all, every node in it measures 0x0. The visible one is
-        // the My Hero tree, `#my-hero-equipement-tab-container`, whose
-        // `.bottom-container` already hosts the game's own Level-up and Equip
-        // buttons. Anchoring to the inventory container put the buttons in
-        // the dead tree, where they existed but could never be clicked.
+        // shop.html carries two separate equipment UIs (measured on the live
+        // page). The merchant tree (#shops .shop-container
+        // #equipement-tab-container) holds `#player-inventory.armor` with every
+        // owned item, but is not rendered at all -- every node in it measures
+        // 0x0. The visible one is the My Hero tree,
+        // `#my-hero-equipement-tab-container`, whose `.bottom-container` hosts
+        // the game's own Level-up and Equip buttons. Anchoring to the inventory
+        // container puts the buttons in the dead tree, where they exist but can
+        // never be clicked.
         const host = $('#my-hero-equipement-tab-container .bottom-container');
         if (host.length === 0) return;
         // Already injected? Then stop -- and clear any extra copies first.
         //
-        // This used to test for #HHGearCurrentBest, an id that stopped existing
-        // when the four buttons became one menu. The check silently never fired
-        // again, so every tab switch appended another block and the row filled
-        // up with copies. Testing for the container itself cannot go stale the
-        // same way, and sweeping the extras means a page that already collected
-        // some repairs itself instead of needing a reload.
+        // The test is on the container, not on a button id: an id tied to one
+        // particular button goes stale as soon as the buttons change, the check
+        // then never fires, and every tab switch appends another block until
+        // the row is full of copies. Sweeping the extras also lets a page that
+        // already collected some repair itself instead of needing a reload.
         const existing = document.querySelectorAll('#HHGearButtons');
         if (existing.length > 0) {
             for (let i = 1; i < existing.length; i++) existing[i].remove();
             return;
         }
 
-        // One narrow button: measured on the live page there are only 150
-        // device px of width and 115 of height left in this row beside the
-        // game's own buttons, so the actions live in a menu (see showMenu).
+        // One narrow button: on the live page only 150 device px of width and
+        // 115 of height are left in this row beside the game's own buttons
+        // (measured), so the actions live in a menu (see showMenu).
         GM_addStyle('#HHGearButtons{display:flex;margin-left:10px;align-items:center;}'
             + '#HHGearButtons .tooltipHH{margin:0;padding:0;}'
             + '#HHGearButtons .myButton{display:flex;align-items:center;justify-content:center;'
@@ -144,9 +144,9 @@ export class EquipmentGear {
             + '#HHGearMenuList a:hover{background:rgba(255,162,62,.18);}'
             + '#HHGearMenuList .sub{display:block;color:#444;font-weight:normal;'
             + 'font-size:11px;margin-top:2px;}'
-            // The popup sits on white (measured: #HHAutoPopupGlobalPopup is
-            // rgb(255,255,255)), so everything in here is dark on light. The
-            // borders used to be white on white and simply did not show.
+            // The popup sits on white (#HHAutoPopupGlobalPopup is
+            // rgb(255,255,255), measured), so everything in here is dark on
+            // light -- white borders would not show at all.
             + '#HHGearPreview{color:#000;}'
             + '#HHGearPreview h1,#HHGearPreview h2,#HHGearPreview h3,#HHGearPreview th{color:#000;}'
             + '#HHGearPreview table{width:100%;border-collapse:collapse;font-size:12px;}'
@@ -454,7 +454,7 @@ export class EquipmentGear {
         return `${item.name} (${item.rarity} lvl${item.level}, id ${item.id_member_armor})`;
     }
 
-    /** The four gear actions as a list, since they no longer fit as buttons. */
+    /** The four gear actions as a list; they do not fit as buttons. */
     private static showMenu(): void {
         const entry = (action: string, key: string) =>
             `<li><a data-gear-action="${action}">${esc(getTextForUI(key, 'elementText'))}`

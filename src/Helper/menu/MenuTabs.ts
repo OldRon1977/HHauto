@@ -2,7 +2,7 @@
 //
 // DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
 // area buttons on the left and one pane per area on the right. Replaces the
-// three fixed-width columns (MenuColumnLeft/Middle/Right, removed in 8.10.0),
+// three fixed-width columns,
 // which sized their labels for English and let longer translations overlap.
 //
 // Two rules keep that from coming back:

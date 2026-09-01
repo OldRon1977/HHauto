@@ -451,7 +451,7 @@ export class Pachinko {
                 if (orbs) {
                     // The play-response carries the authoritative remaining count for
                     // the selected orb type (e.g. orbs.o_g10). Capture it so the stop
-                    // logic no longer depends on the lag-prone DOM counter (issue 1745).
+                    // logic reads it instead of the lag-prone DOM counter (#1745).
                     const selectedOrbName = Pachinko.getSelectedOrbName();
                     const remaining = orbs[selectedOrbName];
                     if (typeof remaining === 'number') {

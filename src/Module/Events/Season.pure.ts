@@ -1,14 +1,14 @@
 // Season.pure.ts -- Pure decision logic extracted from Season.isTimeToFight
 // for the "fight blocked only by a missing booster" fast-retry case.
 //
-// Observed live (2026-08-15): when Season.isTimeToFight() returns false
+// Observed live: when Season.isTimeToFight() returns false
 // solely because autoSeasonBoostedOnly requires a booster and none is
 // equipped, the generic Pipeline.config.ts fallback (handleSeason's
-// seasonBattleOrTimer step) used to arm the same long "wait for energy"
-// timer (15-17 min) as every other reason to wait. But
-// handleAutoEquipBoosters typically fixes a missing booster within
-// seconds, so most of that wait is pure lost fight time. This module
-// decides when a short retry is warranted instead of the long one.
+// seasonBattleOrTimer step) would otherwise arm the same long "wait for
+// energy" timer (15-17 min) as every other reason to wait. Since
+// handleAutoEquipBoosters fixes a missing booster within a couple of minutes,
+// most of that wait is lost fight time. This module decides when a short retry
+// is warranted instead of the long one.
 //
 // Extracted so the boolean cascade can be unit-tested without globals,
 // storage, or DOM access. Input = data, output = decision. The impure
