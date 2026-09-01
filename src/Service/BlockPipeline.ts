@@ -5,7 +5,7 @@
 // with its side-effecting ports. Handler internals (precondition + step fn) are
 // used unchanged, so lastActionPerformed continuation keeps working.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
@@ -22,7 +22,7 @@ import { HandlerConfig, pipeline } from "./Pipeline.config";
 
 /**
  * Slot-hold decision after a handler step
- * (docs/decisions/ADR-002-block-slot-hold-until-home.md):
+ * (docs/decisions/ADR-005-block-slot-hold-until-home.md):
  *  - failure -> passed through, the watchdog aborts.
  *  - the handler acted (ctx.busy, typically navigated away) -> repeat: the
  *    BlockRun stays active, so the same block re-enters after the reload and

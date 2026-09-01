@@ -645,7 +645,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 |-----------|-------------|---------|--------|--------------|
 | `pipelineLastRunAt` | `Temp_pipelineLastRunAt` | `sessionStorage` | `Temp` | `{blockId: ts}` letzter Lauf je Block (`BlockPipeline`) |
 
-### Pipeline-Block-Architektur (v7.37.0, ADR-001)
+### Pipeline-Block-Architektur (ADR-004)
 
 | Konstante | Storage Key | Storage | HHType | Beschreibung |
 |-----------|-------------|---------|--------|--------------|

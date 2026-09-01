@@ -1,4 +1,4 @@
-# ADR-007: Eine Navigation ist kein Stopp, und Heimgehen kann ein Abschluss sein
+# ADR-010: Eine Navigation ist kein Stopp, und Heimgehen kann ein Abschluss sein
 
 ## Status
 Accepted
@@ -10,12 +10,12 @@ Accepted
 v8.10.49, ausgeliefert mit v8.10.0 (Issue #1841)
 
 ## Verfeinert
-ADR-002 (Slot-Hold) und ADR-006 (Fokussierte Aktivitaet).
+ADR-005 (Slot-Hold) und ADR-009 (Fokussierte Aktivitaet).
 
 ## Kontext
 
 Ein Block, der navigiert, haelt seinen Slot, damit er nach dem Reload
-weitermachen kann (ADR-002). `gotoPage` und `safeReload` schalten dabei
+weitermachen kann (ADR-005). `gotoPage` und `safeReload` schalten dabei
 `Temp_autoLoop` aus, unmittelbar bevor die Seite verschwindet. Der
 Stop-Check am Anfang von `tick()` las genau dieses Flag als "das Skript
 wurde gestoppt" und verwarf den laufenden Run:
@@ -93,7 +93,7 @@ markiert ist.
 Aus der Zielseite schliessen, ob die Navigation ein Abschluss war.
 - Contra: eine Heimnavigation ist nicht immer ein Abschluss (Quest fuellt
   Ressourcen nach und kommt zurueck). Die Regel waere geraten, genau wie die
-  `acted`-Heuristik, die ADR-006 schon drei Nachbesserungen gekostet hat.
+  `acted`-Heuristik, die ADR-009 schon drei Nachbesserungen gekostet hat.
 - Verworfen: der Block weiss es, also soll er es sagen.
 
 ## Konsequenzen
@@ -108,7 +108,7 @@ Aus der Zielseite schliessen, ob die Navigation ein Abschluss war.
   `ev=done detail=run complete` zeigen statt `ev=abort`.
 
 ## Referenzen
-- Issue #1841, ADR-002 (Slot-Hold), ADR-006 (Fokussierte Aktivitaet)
+- Issue #1841, ADR-005 (Slot-Hold), ADR-009 (Fokussierte Aktivitaet)
 - `src/Service/BlockScheduler.ts` (`tick`, Stop-Check), `src/Service/BlockPipeline.ts` (`applySlotHold`)
 - `docs-internal/exit-condition-concept.md` -- die offene Frage, ob die
   `acted`-Heuristik ganz durch ein Praedikat des Blocks ersetzt wird

@@ -1,4 +1,4 @@
-# ADR-002: Import-cycle reduction strategy (ARCH-001)
+# ADR-008: Import-cycle reduction strategy (ARCH-001)
 
 Status: accepted (2026-07-05) · Stage 1 shipped in v8.1.6
 Predecessor: ADR-001 ("no barrel index.ts imports") exists as enforced ESLint

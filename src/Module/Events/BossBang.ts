@@ -13,10 +13,6 @@ import { getStoredValue, setStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer } from "../../Helper/TimerHelper";
 import { addNutakuSession, gotoPage, safeNavigateHref } from "../../Service/PageNavigationService";
-// >>> ADR-003 / issue #1598 - bossbang:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 import {
     waitForAjaxIdle,
     acquirePostMutex,
@@ -25,7 +21,6 @@ import {
     AJAX_IDLE_TIMEOUT_MS,
     AJAX_IDLE_SETTLE_MS,
 } from "../../Service/AjaxTracker";
-// <<< ADR-003 / issue #1598 - bossbang:imports end
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
@@ -110,7 +105,8 @@ export class BossBang {
         const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
         if(rewardsButton.length > 0)
         {
-            // ADR-003 / issue #1598: serialize the claim POST via the global mutex
+            // Serialise the claim POST through the global mutex (#1598,
+            // docs/decisions/ADR-003-ajax-post-mutex.md)
             // and wait for AJAX idle + server settle before yielding the tick.
             if (!acquirePostMutex('bossbang:rewards')) {
                 logHHAuto('BossBang: another POST in flight, deferring rewards click');
@@ -128,7 +124,8 @@ export class BossBang {
         }
         else if(skipFightButton.length > 0)
         {
-            // ADR-003 / issue #1598: serialize the skip POST via the global mutex
+            // Serialise the skip POST through the global mutex (#1598,
+            // docs/decisions/ADR-003-ajax-post-mutex.md)
             // and wait for AJAX idle + server settle before yielding the tick.
             if (!acquirePostMutex('bossbang:skipFight')) {
                 logHHAuto('BossBang: another POST in flight, deferring skip click');

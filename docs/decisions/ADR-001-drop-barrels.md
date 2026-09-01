@@ -8,7 +8,7 @@ Accepted
 
 ## Kontext
 
-Phase 0 (REVIEW_PHASE0.md) reported 227 circular dependency chains in
+An audit reported 227 circular dependency chains in
 ``src/``. Investigation showed that almost every cycle ran through one
 of the eleven barrel ``index.ts`` files (``Helper/index.ts``,
 ``Module/index.ts``, ``Module/Events/index.ts``, ``Module/harem/index.ts``,
@@ -171,7 +171,7 @@ in place that the refactor effort can address now.
 
 ## Referenzen
 
-- REVIEW_PHASE0.md (Hot-Spot-Ranking Section 5.1, "Circular
+- Hot-Spot-Ranking der Zyklen-Untersuchung ("Circular
   dependency epidemic")
 - PR #1687 (CI gates), introducing the baseline-comparison script
 - ``scripts/drop-barrel-imports.mjs`` (codemod implementation)

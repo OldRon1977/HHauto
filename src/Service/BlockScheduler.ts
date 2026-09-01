@@ -6,7 +6,7 @@
 // without the DOM. BlockPipeline builds it and index.ts drives it, one tick per
 // auto-loop iteration.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 import { AutoLoopContext } from "./AutoLoopContext";
 import { Block, BlockFocus, BlockOrder, BlockRegistry, BlockRun, Step } from "./BlockTypes";
 

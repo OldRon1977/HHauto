@@ -1,9 +1,8 @@
-# ADR-001: Pipeline-Block-Architektur (reload-feste Ablaufsteuerung)
+# ADR-004: Pipeline-Block-Architektur (reload-feste Ablaufsteuerung)
 
 - Status: Accepted
 - Datum: 2026-06-12
-- Release-Linie: v7.37.0 (Roadmap Schritt 17)
-- Kontext-Spec: `.kiro/specs/pipeline-block-architecture/` (requirements/design/tasks)
+- Umgesetzt in: `BlockTypes.ts`, `BlockScheduler.ts`, `BlockPipeline.ts`, `BlockRunStore.ts`, `OrderResolver.ts`
 
 ## Kontext
 
@@ -14,7 +13,7 @@ verloren gehen kann.
 
 Stand vor diesem Refactor (Code `4524911`, v7.36.0, verifiziert):
 
-- `Scheduler` (Service/Scheduler.ts) waehlt pro Tick einen Handler aus dem
+- Der Scheduler waehlt pro Tick einen Handler aus dem
   `pipeline`-Array (Array-Position = Prioritaet), prueft precondition +
   `minIntervalMs` und fuehrt Steps aus.
 - Das Laufzeit-Gedaechtnis `ActiveChain { config, stepIdx, startedAt }` lebt
@@ -23,7 +22,7 @@ Stand vor diesem Refactor (Code `4524911`, v7.36.0, verifiziert):
   Multi-Reload-Bugs.
 - Continuation laeuft ueber `ctx.lastActionPerformed` (in 13 Files
   referenziert), das am Tick-Ende auf `none` zurueckgesetzt wird.
-- 33 Handler in `Pipeline.config.ts` (HandlerConfig + `fromDescriptor`-Wrapper).
+- Die Handler in `Pipeline.config.ts` (HandlerConfig + `fromDescriptor`-Wrapper).
 - Der Scheduler hat einen SOFT/HARD-Interrupt-Pfad (shouldSoftAbort /
   findHigherPriorityReady / abortAtSafePoint).
 
@@ -129,4 +128,4 @@ inkrementelle Migration erfordert pro verhaltensnahem Cluster einen Live-Test.
 
 Validiert Requirements 9.1 (verhaltensneutraler Happy-Path) und 9.3
 (inkrementelle Migration mit Koexistenz). Die uebrigen Requirements werden
-durch die nachfolgenden Tasks 2-15 umgesetzt und je Cluster verifiziert.
+umgesetzt und je Baustein verifiziert.

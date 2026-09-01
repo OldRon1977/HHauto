@@ -12,7 +12,7 @@ Accepted
 
 Issue #1598 beschreibt 403 Forbidden auf Place of Power und anderen Modulen, vor allem auf Konten mit grossen Rostern (Reporter Franck-75, 2400+ girls). Vier Fix-Iterationen sind bereits in main gemerged (v7.35.22, v7.35.29, v7.35.30, v7.35.35), die 403-Rate sinkt schrittweise, der Bug ist aber nicht weg. Drei eigene Fix-Versuche (v7.35.48, v7.35.49 lokal) sind durch Sniffer-Daten widerlegt worden.
 
-Die volle Diagnose liegt in `docs-internal/REVIEW_issue_1598_pop_forbidden.md`. Kurzfassung:
+Kurzfassung der Diagnose:
 
 - Server-side Bot-Detection bestraft mehrere ueberlappende state-changing POSTs auf `/ajax.php`.
 - Auf kleinen Konten dauert ein POST <1s; AutoLoop-Tick (~1s) holt selten zwei in eine Verarbeitung.
@@ -161,7 +161,6 @@ Keine. Erweitert bestehenden TypeScript / JavaScript / Jest-Skill-Set des Repos.
 ## Referenzen
 
 - Issue: https://github.com/OldRon1977/HHauto/issues/1598
-- Diagnose-Doku: `docs-internal/REVIEW_issue_1598_pop_forbidden.md`
 - Sniffer-Tool: `bonus-scripts/HHAuto_network_sniffer.user.js` (urspruenglich PR #1712 fuer Issue #1598, generalisiert in PR #1721)
 - Bestehende verwandte Files:
   - `src/Service/AjaxTracker.ts`

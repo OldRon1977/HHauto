@@ -1,4 +1,4 @@
-# ADR-006: Ein Block behaelt die Pipeline, bis seine Arbeit getan ist
+# ADR-009: Ein Block behaelt die Pipeline, bis seine Arbeit getan ist
 
 ## Status
 Accepted
@@ -10,7 +10,7 @@ Accepted
 v8.10.27 (Issue #1841)
 
 ## Verfeinert
-ADR-002 (Slot-Hold) -- schliesst dessen offene Folgearbeit ab.
+ADR-005 (Slot-Hold) -- schliesst dessen offene Folgearbeit ab.
 
 ## Kontext
 
@@ -39,7 +39,7 @@ frei und waehlt die Reihenfolge von oben neu. `handleGenericBattle` steht kurz
 vor `handleGoHome` ganz hinten, `handleSeason` davor: Season gewinnt und
 navigiert weg. Dasselbe Muster fuer jede Kampf-Aktivitaet.
 
-ADR-002 hatte genau das als offene Folgearbeit benannt ("Handler, die ihre
+ADR-005 hatte genau das als offene Folgearbeit benannt ("Handler, die ihre
 Arbeit beenden OHNE nach Home zu navigieren, releasen off-home ... Bis dahin
 faengt handleGoHome / der naechste Block den off-home-Release ab -- degradiert,
 aber sicher"). Dieses ADR schliesst sie.
@@ -78,7 +78,7 @@ durch sein Tor und faellt durch, wenn die Kampfkraft unter der Schwelle liegt
 oder kein Event-Maedchen da ist -- live gemessen 47 solche Ticks von 75
 (Kommentar am Handler). Ein solcher Leerlauf-Run darf den Fokus nicht erneuern.
 Als "getan" zaehlt, dass ein Step den Slot gehalten hat (`repeat`) -- das
-Slot-Hold-Signal aus ADR-002, mit dem der Handler sagt, dass er navigiert,
+Slot-Hold-Signal aus ADR-005, mit dem der Handler sagt, dass er navigiert,
 gekaempft oder gesammelt hat (`BlockRun.acted`).
 
 Das ist nicht theoretisch: ohne diese Bedingung parkte 8.10.27 die Pipeline auf
@@ -138,7 +138,7 @@ Damit braucht der Fokus keine Zeit-Ausnahme.
 ## Verworfene Alternativen
 
 ### Jedem Kampf-Block einen eigenen Ruecklauf von der Ergebnisseite geben
-Der Wortlaut der ADR-002-Folgearbeit. Der Block wuerde die Ergebnisseite selbst
+Der Wortlaut der ADR-005-Folgearbeit. Der Block wuerde die Ergebnisseite selbst
 verlassen und damit den Slot nie freigeben.
 - Contra: Er muesste dort das Belohnungs-Popup auslesen -- genau die Logik, die
   #1740 bewusst in `handleGenericBattle` zentralisiert hat. Die Duplizierung in
@@ -146,16 +146,16 @@ verlassen und damit den Slot nie freigeben.
 - Verworfen: falscher Ort. Die Freigabe-Entscheidung ist ein Scheduler-Thema.
 
 ### Bloecke buendeln (Kampf + GenericBattle als ein Block)
-- Contra: ADR-004 hat Buendelung verworfen, und die Gruende gelten weiter --
+- Contra: ADR-006 hat Buendelung verworfen, und die Gruende gelten weiter --
   die Mitglieder stehen nicht nebeneinander, Buendeln erzwingt eine
   Reihenfolge-Aenderung.
-- Verworfen: ADR-004 bleibt unangetastet, der Fokus braucht keine Buendelung.
+- Verworfen: ADR-006 bleibt unangetastet, der Fokus braucht keine Buendelung.
 
 ### `precondition` in zwei Praedikate pro Handler aufteilen
 Ein zusaetzliches `wantsMore(ctx)` je Block ("habe ich noch Arbeit"), getrennt
 von "darf ich jetzt".
 - Pro: sagt die Absicht am deutlichsten.
-- Contra: 33 Handler muessten ein zweites Praedikat bekommen, das ihre interne
+- Contra: jeder Handler muesste ein zweites Praedikat bekommen, das seine interne
   Ressourcenlogik (Energie, Schwellen, Timer) nach aussen spiegelt -- eine
   Kopie, die auseinanderlaufen kann. Der Fokus braucht sie nicht: die
   bestehende Precondition beantwortet die Frage bereits, sobald man aufhoert,
@@ -179,4 +179,4 @@ von "darf ich jetzt".
 
 ## Referenzen
 - Issue #1841 (Log: `HH_DebugLog_1787359678332.log`), Issue #1740.
-- ADR-001 (Block-Modell), ADR-002 (Slot-Hold), ADR-004 (keine Buendelung).
+- ADR-004 (Block-Modell), ADR-005 (Slot-Hold), ADR-006 (keine Buendelung).

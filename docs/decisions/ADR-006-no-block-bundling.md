@@ -1,4 +1,4 @@
-# ADR-004: Keine Block-Buendelung -- alle Handler bleiben Standalone
+# ADR-006: Keine Block-Buendelung -- alle Handler bleiben Standalone
 
 ## Status
 Accepted
@@ -20,7 +20,7 @@ PoP<->ClubChampion).
 
 Zwei Fakten veraendern die Lage gegenueber dem urspruenglichen Entwurf:
 
-1. **Slot-Hold (ADR-002) hat das Ping-Pong strukturell geloest** -- live
+1. **Slot-Hold (ADR-005) hat das Ping-Pong strukturell geloest** -- live
    validiert (v7.36.7: je 1 Start statt Loop; v7.36.11: 0 Interruptions ueber
    46 min). Die Koordinations-Motivation der Buendelung ist damit entfallen.
 2. **Die Buendel-Mitglieder stehen in der aktuellen Pipeline-Reihenfolge NICHT
@@ -32,11 +32,11 @@ Zwei Fakten veraendern die Lage gegenueber dem urspruenglichen Entwurf:
    "verhaltensidentisch"-Anspruchs der Spec.
 
 ## Entscheidung
-Keine Buendelung. Alle 33 Handler bleiben eigenstaendige Single-Step-Bloecke
-(1:1 aus Task 6). Der andere Teil von Task 8 -- harte Ordnungs-Constraints +
+Keine Buendelung. Die Handler bleiben eigenstaendige Single-Step-Bloecke.
+Der andere Teil dieser Arbeit -- harte Ordnungs-Constraints +
 `userMovable`-Flags -- ist umgesetzt (Commit `70f1a81`, v7.36.12) und davon
 unabhaengig. Koordination token-teilender Handler uebernimmt der Slot-Hold
-(ADR-002), nicht die Block-Struktur.
+(ADR-005), nicht die Block-Struktur.
 
 Entscheidung gemeinsam mit dem User getroffen (Handler-Tabelle durchgegangen,
 User-Votum: alles Standalone).
@@ -45,10 +45,10 @@ User-Votum: alles Standalone).
 
 ### Volle Buendelung gemaess Spec (Season/PentaDrill/Seasonal/Champion/BossBang)
 - Pro: Token-Gruppe erscheint als eine verschiebbare Einheit im Reorder-UI
-  (Task 15); entspricht dem urspruenglichen design.md-Mapping.
+  im Reorder-UI.
 - Contra: Mitglieder sind nicht benachbart -> Buendeln erzwingt Benachbarung
   = Reihenfolge-Aenderung = verhaltensnah. Die Ping-Pong-Motivation ist durch
-  ADR-002 weg. Das Zusammenfuehren mehrerer Handler in einen Multi-Step-Block
+  ADR-005 weg. Das Zusammenfuehren mehrerer Handler in einen Multi-Step-Block
   ist echtes Restructuring mit eigenem Live-Test-Aufwand und Regressionsrisiko.
 - Verworfen: hoher Aufwand und Verhaltensrisiko fuer einen Nutzen
   (Reorder-Granularitaet), der durch den bereits geloesten Ping-Pong nicht mehr
@@ -64,20 +64,20 @@ User-Votum: alles Standalone).
   falls sich im Betrieb ein konkreter Bedarf zeigt.
 
 ## Konsequenzen
-- Task 8 ist abgeschlossen mit dem Constraints-/`userMovable`-Teil; der
+- Der Constraints-/`userMovable`-Teil ist umgesetzt; der
   Buendel-Teil entfaellt ersatzlos. Kein zusaetzlicher Code, da alle Handler
   bereits standalone sind.
-- Das Reorder-UI (Task 15) zeigt alle `userMovable: true`-Bloecke einzeln,
+- Das Reorder-UI zeigt alle `userMovable: true`-Bloecke einzeln,
   auch die Collect-/Fight-Handler getrennt. Feinere, aber transparente
   Granularitaet.
 - Die Buendel-Tabelle in `design.md` ("Gebuendelte Bloecke") ist durch dieses
   ADR ueberholt und nicht mehr umzusetzen.
-- Die Multi-Step-Zerlegung (Tasks 10-13: PoP-Repeat, Quest-Sub-Pfade) bleibt
+- Die Multi-Step-Zerlegung (PoP-Repeat, Quest-Sub-Pfade) bleibt
   davon unberuehrt -- sie betrifft einzelne Handler, die reload-feste
   Mehrschritt-Logik brauchen, und ist keine Buendelung mehrerer Handler.
 
 ## Referenzen
-- ADR-001 (Pipeline-Block-Architektur), ADR-002 (Slot-Hold).
+- ADR-004 (Pipeline-Block-Architektur), ADR-005 (Slot-Hold).
 - `design.md` "Block-Mapping" (ueberholte Buendel-Tabelle).
 - Commit `70f1a81` (Constraints + userMovable, v7.36.12).
 - Live-Validierung Slot-Hold: v7.36.7, v7.36.11 (PENDING_LIVE_VERIFICATION LV-29/LV-32).

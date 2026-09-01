@@ -4,7 +4,7 @@
 // run and its progress live in storage, not in memory, so a page reload does
 // not lose them.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 import { AutoLoopContext } from "./AutoLoopContext";
 
 /**

@@ -970,7 +970,8 @@ export class EquipmentGear {
 
 /** Same markup hhButton produces, built here so this module does not have to
  *  import HHMenuHelper -- that import closes an AutoLoopPageHandlers cycle
- *  (ADR-002). Shop.ts inlines its market buttons for the same reason. */
+ *  (docs/decisions/ADR-008-import-cycle-reduction.md). Shop.ts inlines its
+ *  market buttons for the same reason. */
 function gearButton(id: string): string {
     return `<div class="tooltipHH">`
         + `<span class="tooltipHHtext">${getTextForUI(id, "tooltip")}</span>`

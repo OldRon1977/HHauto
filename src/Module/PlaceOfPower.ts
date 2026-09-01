@@ -205,7 +205,8 @@ export class PlaceOfPower {
             const buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
             if ($(buttonClaimQuery).length >0)
             {
-                // Issue #1598 / ADR-003: serialise the claim POST through
+                // Serialise the claim POST through the global mutex (#1598,
+                // docs/decisions/ADR-003-ajax-post-mutex.md):
                 // the global mutex so AutoLoop and other handlers cannot
                 // stack a second POST on top while the server is still
                 // processing this one (which produces HTTP Forbidden on

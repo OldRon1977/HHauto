@@ -208,7 +208,8 @@ export async function autoLoop()
         ctx.eventIDs = eventIDs;
         ctx.bossBangEventIDs = bossBangEventIDs;
 
-        // Issue #1598 / ADR-003: skip the action handlers (state-changing
+        // Skip the action handlers while a POST is in flight (#1598,
+        // docs/decisions/ADR-003-ajax-post-mutex.md): they are state-changing
         // POST sources such as PoP claim, BossBang fight, Champion reorder
         // etc.) while a /ajax.php POST is still in flight or another
         // caller holds the explicit mutex. UI updates and page-specific

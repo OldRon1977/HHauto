@@ -8,12 +8,10 @@ Accepted
 
 ## Kontext
 
-The Scheduler in ``src/Service/Scheduler.ts`` runs declarative pipeline
-handlers defined in ``Pipeline.config.ts``. Each handler carries a
-``minIntervalMs`` cool-down that prevents the same handler from running
-again before the cool-down has elapsed. The Scheduler stores the last
-run time in an in-memory ``Map<string, number>`` and a singleton
-instance.
+The scheduler runs the handlers declared in ``Pipeline.config.ts``. Each
+handler carries a ``minIntervalMs`` cool-down that prevents it from running
+again before that time has elapsed. Held in memory alone, that map dies with
+the page.
 
 The cool-down is correctly enforced for back-to-back ticks within the
 same page session. It is **not** enforced across page reloads. Every
@@ -39,9 +37,9 @@ in the same tick triggers a navigation.
 
 Constraints relevant to the decision:
 
-- 144 source files, two pipeline handlers (handleEventParsing, handleLeague)
-  in ``Pipeline.config.ts`` today; the architecture is meant to absorb more
-  migrations from AutoLoop.
+- At the time of the decision only two handlers lived in the pipeline
+  (handleEventParsing, handleLeague); the architecture was meant to absorb the
+  rest, which it since has.
 - sessionStorage is per-tab/origin; the user can have multiple HHAuto
   tabs open. The Timers infrastructure also writes to sessionStorage
   with the same caveat, so the existing trade-off is the baseline.
@@ -50,13 +48,15 @@ Constraints relevant to the decision:
 
 ## Entscheidung
 
-Make the Scheduler's ``lastRunAt`` map persistent in sessionStorage,
-under a new storage key ``Temp_pipelineLastRunAt``. The Scheduler
-restores the map in its constructor and writes the map after every
-chain completion or failure. The persistence layer lives entirely
-inside ``Scheduler.ts``; pipeline handler authors keep declaring
-``minIntervalMs`` on the handler config and do not need to know about
-storage.
+Make the ``lastRunAt`` map persistent in sessionStorage, under the storage key
+``Temp_pipelineLastRunAt``. The scheduler restores the map when it starts and
+writes it after every run. Handler authors keep declaring ``minIntervalMs`` on
+the handler config and do not need to know about storage.
+
+Where this lives today: ``BlockPipeline.blockPorts`` reads and writes the key
+(``getLastRunAt`` / ``setLastRunAt``), and ``BlockScheduler`` consults it in
+``eligibility``. The decision outlived the class it was written for --
+``Scheduler.ts`` is no longer wired into the running script.
 
 Storage format: ``{handlerName: epochMs}``. JSON-encoded. Restore is
 defensive: malformed entries are dropped silently and the handler
@@ -124,6 +124,5 @@ Risiko:
 ## Referenzen
 
 - Issue #1700 (Loop in beiden Spielen)
-- ``REVIEW_autoloop_pingpong_power_zero.md`` -- Investigation-Notiz
 - ``Helper/TimerHelper.ts`` -- Vorbild fuer sessionStorage-basierte
   Timer-Persistierung

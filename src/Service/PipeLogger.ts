@@ -9,7 +9,7 @@
 // change-deduplicated, so a block parked on one reason logs once, not on every
 // tick.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";

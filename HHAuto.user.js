@@ -11070,12 +11070,7 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 
-// >>> ADR-003 / issue #1598 - bossbang:imports begin
-// CLEANUP-MODE (when stable): remove only the two marker comment lines.
-// REVERT-MODE (if unstable): if no other ADR-003 block remains in this file,
-// remove this import statement entirely.
 
-// <<< ADR-003 / issue #1598 - bossbang:imports end
 
 
 
@@ -11154,7 +11149,8 @@ class BossBang {
             const rewardsButton = $('#rewards_popup .blue_button_L:not([disabled]):visible');
             const skipFightButton = $('#battle #new-battle-skip-btn:not([disabled]):visible');
             if (rewardsButton.length > 0) {
-                // ADR-003 / issue #1598: serialize the claim POST via the global mutex
+                // Serialise the claim POST through the global mutex (#1598,
+                // docs/decisions/ADR-003-ajax-post-mutex.md)
                 // and wait for AJAX idle + server settle before yielding the tick.
                 if (!acquirePostMutex('bossbang:rewards')) {
                     logHHAuto('BossBang: another POST in flight, deferring rewards click');
@@ -11173,7 +11169,8 @@ class BossBang {
                 return true;
             }
             else if (skipFightButton.length > 0) {
-                // ADR-003 / issue #1598: serialize the skip POST via the global mutex
+                // Serialise the skip POST through the global mutex (#1598,
+                // docs/decisions/ADR-003-ajax-post-mutex.md)
                 // and wait for AJAX idle + server settle before yielding the tick.
                 if (!acquirePostMutex('bossbang:skipFight')) {
                     logHHAuto('BossBang: another POST in flight, deferring skip click');
@@ -15558,7 +15555,8 @@ class PlaceOfPower {
                 //collect all
                 const buttonClaimQuery = "button[rel='pop_thumb_claim'].purple_button_L:visible";
                 if ($(buttonClaimQuery).length > 0) {
-                    // Issue #1598 / ADR-003: serialise the claim POST through
+                    // Serialise the claim POST through the global mutex (#1598,
+                    // docs/decisions/ADR-003-ajax-post-mutex.md):
                     // the global mutex so AutoLoop and other handlers cannot
                     // stack a second POST on top while the server is still
                     // processing this one (which produces HTTP Forbidden on
@@ -21375,7 +21373,8 @@ EquipmentGear.upgradeObserver = null;
 EquipmentGear.upgradeMarksLogged = false;
 /** Same markup hhButton produces, built here so this module does not have to
  *  import HHMenuHelper -- that import closes an AutoLoopPageHandlers cycle
- *  (ADR-002). Shop.ts inlines its market buttons for the same reason. */
+ *  (docs/decisions/ADR-008-import-cycle-reduction.md). Shop.ts inlines its
+ *  market buttons for the same reason. */
 function gearButton(id) {
     return `<div class="tooltipHH">`
         + `<span class="tooltipHHtext">${getTextForUI(id, "tooltip")}</span>`
@@ -27116,7 +27115,8 @@ function autoLoop() {
             const { eventIDs, bossBangEventIDs } = EventModule.parsePageForEventId();
             ctx.eventIDs = eventIDs;
             ctx.bossBangEventIDs = bossBangEventIDs;
-            // Issue #1598 / ADR-003: skip the action handlers (state-changing
+            // Skip the action handlers while a POST is in flight (#1598,
+            // docs/decisions/ADR-003-ajax-post-mutex.md): they are state-changing
             // POST sources such as PoP claim, BossBang fight, Champion reorder
             // etc.) while a /ajax.php POST is still in flight or another
             // caller holds the explicit mutex. UI updates and page-specific
@@ -32426,7 +32426,7 @@ function resolveOrder(stored, registry, defaultOrder) {
 
 ;// ./src/Service/PipelineOrderService.ts
 // PipelineOrderService.ts -- the "Block Order" reorder popup.
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 //
 // A single menu button ("Block Order") opens a popup where the user drags (or
 // uses up/down arrows) to reorder the user-movable blocks. Infra blocks
@@ -34358,7 +34358,7 @@ function clearBlockRun() {
 // change-deduplicated, so a block parked on one reason logs once, not on every
 // tick.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 
 
 
@@ -35147,7 +35147,7 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
  *
  * The `lastActionPerformed` gate stays as the descriptor-level continuation:
  * the slot-hold rule does the same job with less machinery
- * (docs/decisions/ADR-005-multistep-superseded-by-slothold.md).
+ * (docs/decisions/ADR-007-multistep-superseded-by-slothold.md).
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let
@@ -37035,7 +37035,7 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
 // with its side-effecting ports. Handler internals (precondition + step fn) are
 // used unchanged, so lastActionPerformed continuation keeps working.
 //
-// See docs/decisions/ADR-001-pipeline-block-architecture.md.
+// See docs/decisions/ADR-004-pipeline-block-architecture.md.
 
 
 
@@ -37050,7 +37050,7 @@ var BlockPipeline_awaiter = (undefined && undefined.__awaiter) || function (this
 
 /**
  * Slot-hold decision after a handler step
- * (docs/decisions/ADR-002-block-slot-hold-until-home.md):
+ * (docs/decisions/ADR-005-block-slot-hold-until-home.md):
  *  - failure -> passed through, the watchdog aborts.
  *  - the handler acted (ctx.busy, typically navigated away) -> repeat: the
  *    BlockRun stays active, so the same block re-enters after the reload and

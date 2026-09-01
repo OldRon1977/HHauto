@@ -1,15 +1,15 @@
-# ADR-002: Block haelt den Run-Slot bis Home (gate-hold-return)
+# ADR-005: Block haelt den Run-Slot bis Home (gate-hold-return)
 
 - Status: Accepted
 - Datum: 2026-06-13
-- Release-Linie: v7.37.0 (Roadmap Schritt 17)
-- Verfeinert: ADR-001 (Pipeline-Block-Architektur)
+- Umgesetzt in: `applySlotHold` (`BlockPipeline.ts`)
+- Verfeinert: ADR-004 (Pipeline-Block-Architektur)
 - Ausloeser: zwei Live-Tests (v7.36.4/v7.36.5) zeigten pre-existing
   Ping-Pong-Loops (LV-28 Season fight<->collect, LV-29 PoP<->ClubChampion).
 
 ## Kontext
 
-Nach der 1:1-Adapter-Verdrahtung (Task 6) sind alle 33 Handler single-step:
+Die Handler sind single-step:
 sie machen pro Invocation EINE Aktion (typisch: von Home zur Feature-Seite
 navigieren) und melden sofort "fertig". Die eigentliche Arbeit passiert erst
 bei der naechsten Invocation auf der Zielseite.
@@ -60,8 +60,8 @@ den naechsten Schritt. Wird der Handler idle (busy=false), endet der Run.
 
 - Der Slot-Hold loest die Ping-Pong-Klasse **flaechig** (alle Handler), nicht
   nur die 4 aus der Zerlegungsliste.
-- **Buendelung (alt Task 8) und ein Grossteil der Multi-Step-Zerlegung (alt
-  Task 10-13) sind fuer die KORREKTHEIT nicht mehr noetig** -- Season haelt den
+- **Buendelung und ein Grossteil der Multi-Step-Zerlegung sind fuer die
+  KORREKTHEIT nicht noetig** -- Season haelt den
   Slot durch fight->...->home, DANN laeuft SeasonCollect. Sie werden optionale
   Verfeinerungen (z.B. PoP-Per-Item-Repeat-Cursor, Quest-Sub-Pfade fuer feinere
   At-most-once/Reload-Sicherheit), kein Loop-Fix mehr.

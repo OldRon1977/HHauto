@@ -2,12 +2,12 @@
 title: "Konzept: Wann ist ein Block fertig?"
 status: Entwurf zur Entscheidung
 last-verified: 2026-08-28
-betrifft: "Issue #1841, ADR-006 (Fokussierte Aktivitaet), ADR-007 (Navigation ist kein Stopp)"
+betrifft: "Issue #1841, ADR-009 (Fokussierte Aktivitaet), ADR-010 (Navigation ist kein Stopp)"
 ---
 
 # Konzept: Wann ist ein Block fertig?
 
-Entwurf zur Entscheidung. Ersetzt nicht ADR-006, sondern loest dessen
+Entwurf zur Entscheidung. Ersetzt nicht ADR-009, sondern loest dessen
 schwaechsten Teil ab: die Frage, woran der Scheduler erkennt, dass eine
 Aktivitaet zu Ende ist. Heute raet er es aus drei Indizien; dieses Konzept
 laesst den Block es sagen.
@@ -25,7 +25,7 @@ Drei Fragen, aber nur zwei Haken:
 Die ersten beiden kollidieren immer dann, wenn die Antwort auf Frage 1
 "nicht auf dieser Seite" lautet. Genau das ist der Fall aus #1841:
 `handleTrollBattle` gibt Kampfergebnis-Seiten bewusst ab (#1740), der
-Scheduler liest das als "fertig". ADR-006 hat das behoben, indem ein Fokus
+Scheduler liest das als "fertig". ADR-009 hat das behoben, indem ein Fokus
 eingefuehrt wurde -- aber der Fokus braucht seinerseits eine Antwort auf
 Frage 3, und die gibt es im Modell nicht. Sie wird erschlossen.
 
@@ -54,7 +54,7 @@ die Aktivitaet nichts erreicht und gilt trotzdem als handelnd.
 
 ## 3. Befund: die Precondition sagt fast ueberall schon das Richtige
 
-ADR-006 hat ein zweites Praedikat mit dem Argument verworfen, "33 Handler
+ADR-009 hat ein zweites Praedikat mit dem Argument verworfen, "33 Handler
 muessten ihre interne Ressourcenlogik nach aussen spiegeln -- eine Kopie,
 die auseinanderlaufen kann". Ich habe alle 35 Bloecke der Pipeline
 durchgesehen. Das Argument haelt nicht:
@@ -138,7 +138,7 @@ Keine Erschliessung mehr. Der Block sagt es.
 
 ### Keine doppelte Wahrheit
 
-Das Gegenargument aus ADR-006 zaehlt nur, wenn `wantsMore` eine *Kopie*
+Das Gegenargument aus ADR-009 zaehlt nur, wenn `wantsMore` eine *Kopie*
 waere. Es ist keine, wenn es dieselbe Funktion ist:
 
 - Wo der Trigger schon in der Precondition steht (9 Bloecke), wird er als
@@ -221,7 +221,7 @@ kann mit der naechsten MINOR gehen.
 
 ## 9. Was seither passiert ist
 
-Zwei der drei `acted`-Loecher aus Abschnitt 2 sind mit ADR-007 geschlossen
+Zwei der drei `acted`-Loecher aus Abschnitt 2 sind mit ADR-010 geschlossen
 worden, ohne das Praedikat einzufuehren: der Scheduler verwirft einen
 gehaltenen Run nicht mehr, wenn das Skript beim Navigieren sein eigenes
 autoLoop-Flag ausschaltet, und ein Block kann eine abschliessende
@@ -261,7 +261,7 @@ sobald die Session wieder eingeloggt ist.
 
 ## Referenzen
 
-- ADR-006 (Fokussierte Aktivitaet), ADR-002 (Slot-Hold), ADR-004 (keine Buendelung)
+- ADR-009 (Fokussierte Aktivitaet), ADR-005 (Slot-Hold), ADR-006 (keine Buendelung)
 - Issue #1841, Issue #1740, Issue #1796
 - `src/Service/BlockScheduler.ts` (`complete`, `pickUnderFocus`, `eligibility`)
 - `src/Service/BlockPipeline.ts` (`applySlotHold`, `FOCUS_INTERRUPTERS`)
