@@ -10,6 +10,8 @@ body:
 
         Before you start: check the [latest release](https://github.com/OldRon1977/HHauto/releases) — a good part of what gets reported is already fixed there.
 
+        **A bug report needs the debug log.** It carries the script version, the game, your browser and every setting, which is what makes a report answerable. Without it there is nothing to go on.
+
   - type: textarea
     id: what-happened
     attributes:
@@ -37,11 +39,17 @@ body:
       description: |
         Script menu → **Debug Menu** in the footer → **Save Debug**, then drag the file into this field. See [Debugging](https://github.com/OldRon1977/HHauto/wiki/Debugging).
 
-        The log already carries your script version, the game, your browser and all your settings, so nothing of that needs typing. It covers roughly the last 16 hours.
-
-        No log possible? Then write down script version, game and browser here instead.
+        The log already carries your script version, the game, your browser and all your settings, so nothing of that needs typing. It covers roughly the last 16 hours, so one taken after the fact still contains what happened.
     validations:
       required: true
+
+  - type: checkboxes
+    id: log-attached
+    attributes:
+      label: Confirmation
+      options:
+        - label: The debug log is attached above
+          required: true
 
   - type: textarea
     id: console
