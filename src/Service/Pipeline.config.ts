@@ -124,7 +124,7 @@ export interface HandlerConfig {
  *
  * The `lastActionPerformed` gate stays as the descriptor-level continuation:
  * the slot-hold rule does the same job with less machinery
- * (docs/decisions/ADR-007-multistep-superseded-by-slothold.md).
+ * (docs/decisions/ADR-006-nothing-bundled-nothing-split.md).
  */
 /**
  * True when the bot is currently on a quest or side-quest page. Used to let

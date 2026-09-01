@@ -1,4 +1,4 @@
-# ADR-002: Persist pipeline scheduler cool-down across page reloads
+# ADR-002: Der Cool-down des Schedulers übersteht einen Reload
 
 ## Status
 Accepted
@@ -8,121 +8,58 @@ Accepted
 
 ## Kontext
 
-The scheduler runs the handlers declared in ``Pipeline.config.ts``. Each
-handler carries a ``minIntervalMs`` cool-down that prevents it from running
-again before that time has elapsed. Held in memory alone, that map dies with
-the page.
+Jeder Handler trägt ein `minIntervalMs`, das ihn davon abhält, sofort wieder zu
+laufen. Liegt diese Uhr nur im Speicher, stirbt sie mit der Seite — und jedes
+`gotoPage()` lädt das Skript neu. Der erste Tick nach dem Reload sieht den
+Handler dann, als hätte er nie gearbeitet.
 
-The cool-down is correctly enforced for back-to-back ticks within the
-same page session. It is **not** enforced across page reloads. Every
-``gotoPage()`` triggers ``window.location.href = ...``, which re-loads
-the script and re-instantiates the Scheduler with empty
-``lastRunAt``. The next tick after the reload sees the handler as if
-it had never run.
+In #1700 ergab das ein Ping-Pong zwischen `handleEventParsing` und
+`handleLeague`: jede Navigation setzte den Cool-down zurück, beide
+Preconditions feuerten im nächsten Tick, beide navigierten, alle 3-5 Sekunden
+von vorn.
 
-In issue #1700 (Comix Harem and Hentai Heroes logs) this manifested as
-a tight ping-pong between ``handleEventParsing`` and ``handleLeague``:
-each ``gotoPage`` reset the cool-down, both preconditions fired in the
-next tick, both navigated, the cycle repeated every 3-5 seconds.
-
-The classic ``Timers`` system in ``Helper/TimerHelper.ts`` already
-solves the same problem for the imperative AutoLoop handlers. It
-persists the timer dictionary to sessionStorage on every
-``setTimer`` call. Pipeline handlers were originally migrated from
-imperative AutoLoop to the declarative pipeline (PR #1681 et al.) and
-the cool-down semantics were carried over **without** the persistence
-side, on the assumption that each tick would be quick enough to keep
-state in memory only. That assumption breaks the moment any handler
-in the same tick triggers a navigation.
-
-Constraints relevant to the decision:
-
-- At the time of the decision only two handlers lived in the pipeline
-  (handleEventParsing, handleLeague); the architecture was meant to absorb the
-  rest, which it since has.
-- sessionStorage is per-tab/origin; the user can have multiple HHAuto
-  tabs open. The Timers infrastructure also writes to sessionStorage
-  with the same caveat, so the existing trade-off is the baseline.
-- No staging environment; the fix lands directly with users on the
-  next ``@version`` bump.
+Die klassischen Timer (`Helper/TimerHelper.ts`) lösen dasselbe Problem für die
+imperativen Handler längst, indem sie bei jedem `setTimer` in den
+sessionStorage schreiben. Bei der Übernahme in die Pipeline kam die Semantik
+mit, die Persistenz nicht.
 
 ## Entscheidung
 
-Make the ``lastRunAt`` map persistent in sessionStorage, under the storage key
-``Temp_pipelineLastRunAt``. The scheduler restores the map when it starts and
-writes it after every run. Handler authors keep declaring ``minIntervalMs`` on
-the handler config and do not need to know about storage.
+Die `lastRunAt`-Map wird unter `Temp_pipelineLastRunAt` im sessionStorage
+gehalten: beim Start gelesen, nach jedem Run geschrieben, Format
+`{handlerName: epochMs}`. Kaputte Einträge werden still verworfen — dann
+verhält sich der Handler wie nach einem frischen Skriptstart, was die sichere
+Voreinstellung ist. Handler-Autoren deklarieren weiterhin nur `minIntervalMs`
+und müssen von Storage nichts wissen.
 
-Where this lives today: ``BlockPipeline.blockPorts`` reads and writes the key
-(``getLastRunAt`` / ``setLastRunAt``), and ``BlockScheduler`` consults it in
-``eligibility``. The decision outlived the class it was written for --
-``Scheduler.ts`` is no longer wired into the running script.
-
-Storage format: ``{handlerName: epochMs}``. JSON-encoded. Restore is
-defensive: malformed entries are dropped silently and the handler
-starts with no cool-down (same behaviour as a fresh script load,
-which is the safe default).
-
-The ``reset()`` method (used in tests) also clears the persisted key
-to keep test isolation explicit.
+**Wo das heute liegt:** `BlockPipeline.blockPorts` liest und schreibt den
+Schlüssel (`getLastRunAt` / `setLastRunAt`), `BlockScheduler` fragt ihn in
+`eligibility` ab. Die Entscheidung hat die Klasse überlebt, für die sie
+geschrieben wurde — `Scheduler.ts` läuft nicht mehr im Skript.
 
 ## Verworfene Alternativen
 
-### Variante B1: Klassische Timers fuer Pipeline-Handler nutzen
+**Die klassischen Timer je Handler nutzen:** einheitlicher Mechanismus, aber
+die Cool-down-Logik wandert aus der deklarativen Konfiguration zurück in jeden
+Handler-Rumpf. `minIntervalMs` ist ein Feld der Konfiguration und gehört
+zentral aufgelöst.
 
-Statt sessionStorage in Scheduler.ts einzubauen, koennte jeder
-Pipeline-Handler die bestehende ``checkTimer/setTimer``-Infrastruktur
-nutzen. Vorteil: einheitlicher Cool-down-Mechanismus mit AutoLoop.
-Nachteil: das verlagert die Cool-down-Logik aus der deklarativen
-Pipeline-Config heraus zurueck in jeden Handler-Body und untergraebt
-den Vorteil der Pipeline-Architektur (deklarative Konfiguration).
-Pipeline-Handler haben ``minIntervalMs`` als first-class Feld; das
-sollte zentral aufgeloest werden, nicht pro Handler.
+**Cool-downs im AutoLoop-Tick verwalten:** verschiebt das Problem, denn
+AutoLoop ist selbst eine Funktion, deren Speicher der Reload wegnimmt.
 
-### Variante B2: Cool-down im AutoLoop-Tick statt im Scheduler tracken
-
-Theoretisch koennte AutoLoop selbst pro Tick die Pipeline-Handler
-filtern und sich an Cool-downs erinnern. Praktisch ist AutoLoop
-ohnehin wieder eine Singleton-Funktion mit gleicher in-memory-Schwaeche
-nach Page-Reload. Verlagert das Problem nur, ohne es zu loesen.
-
-### Variante B3: Cool-down-Persistierung nur fuer als ``persistent``
-markierte Handler
-
-Pro Handler ein neuer Flag ``persistentCooldown: boolean``. Nachteil:
-zwei Cool-down-Modelle in der Pipeline (in-memory vs. persistent),
-was die Mental Model verkompliziert. Der bestehende Use-Case (League
-60s) und alle absehbaren naechsten Migrationen profitieren von
-Persistenz; ein Opt-in lohnt sich nicht.
+**Persistenz nur für Handler, die sie anfordern:** zwei Cool-down-Modelle
+nebeneinander, ohne dass ein Fall bekannt wäre, der die In-Memory-Variante
+braucht.
 
 ## Konsequenzen
 
-Positiv:
-
-- ``handleLeague.minIntervalMs = 60_000`` wirkt wie erwartet auch ueber
-  Page-Reloads hinweg. Ping-Pong gegen ``handleEventParsing`` ist
-  unterbunden.
-- Zukuenftige Pipeline-Migrationen erben das Verhalten ohne
-  zusaetzliche Arbeit.
-
-Negativ:
-
-- Geringfuegig mehr sessionStorage-Schreibzugriffe (einer pro
-  Pipeline-Tick-Abschluss). Auf modernen Browsern unproblematisch.
-- Multi-Tab-Race: zwei HHAuto-Tabs schreiben auf denselben
-  sessionStorage-Key. sessionStorage ist allerdings per Tab/Origin
-  isoliert, sodass dieser Konflikt physisch nicht eintritt.
-
-Risiko:
-
-- Wenn die persistierten Eintraege jemals korrupt werden (z.B. durch
-  Storage-Quota-Probleme), liest der Scheduler sie als ``{}`` ein und
-  faellt auf das alte In-Memory-Verhalten zurueck. Kein Loop-Regress
-  zu erwarten, weil der erste Tick nach Korruption die Werte sofort
-  wieder schreibt.
+- `minIntervalMs` wirkt über Reloads hinweg; das Ping-Pong aus #1700 ist
+  strukturell weg.
+- Ein Schreibzugriff mehr pro abgeschlossenem Run.
+- Werden die Einträge einmal unlesbar, liest der Scheduler `{}` und schreibt im
+  nächsten Tick neu. Kein Rückfall in den Loop.
 
 ## Referenzen
 
-- Issue #1700 (Loop in beiden Spielen)
-- ``Helper/TimerHelper.ts`` -- Vorbild fuer sessionStorage-basierte
-  Timer-Persistierung
+- Issue #1700
+- `Helper/TimerHelper.ts` (Vorbild für die sessionStorage-Persistenz)

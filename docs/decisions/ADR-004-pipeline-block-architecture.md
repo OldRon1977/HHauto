@@ -40,7 +40,7 @@ reload-festem Block-Run** umgebaut. Kernpunkte:
    Metadaten (Abhaengigkeiten, `userMovable`-Flag, Timeouts). Die heutigen 33
    Handler werden 1:1 als Steps abgebildet.
 
-   **Abgeloest durch ADR-006:** die hier geplante Buendelung (Season,
+   **Verworfen in ADR-006:** die hier geplante Buendelung (Season,
    PentaDrill, Seasonal, Pachinko, Champion, BossBang) wurde nie gebaut. Der
    Slot-Hold aus ADR-005 loest das Ping-Pong, fuer das die Buendel gedacht
    waren. Jeder Handler ist heute ein eigener Single-Step-Block.
@@ -59,7 +59,7 @@ reload-festem Block-Run** umgebaut. Kernpunkte:
 
    **Nicht umgesetzt:** `lastActionPerformed` sollte danach entfernt werden.
    Es steht weiter im `AutoLoopContext` und dient als Gate auf
-   Descriptor-Ebene (siehe ADR-007) -- die Multi-Step-Zerlegung, die es
+   Descriptor-Ebene (siehe ADR-006) -- die Multi-Step-Zerlegung, die es
    ersetzt haette, entfiel.
 
 4. **Hoechstens ein aktiver Block-Run.** Ein begonnener Block laeuft
@@ -104,7 +104,7 @@ hinzugefuegt. Die Pro-Feature-Timer-Anzeige (pInfo) bleibt erhalten.
 Punkte 2-8 stehen im Code (`BlockTypes`, `BlockScheduler`, `BlockPipeline`,
 `BlockRunStore`, `OrderResolver`, `PipeLogger`), einschliesslich des
 Reorder-UI. Nicht gebaut wurden die Buendelung (ADR-006), die Multi-Step-
-Zerlegung von PoP/Quest/BossBang/ChampionTicket (ADR-007) und die Entfernung
+Zerlegung von PoP/Quest/BossBang/ChampionTicket (beide ADR-006) und die Entfernung
 von `lastActionPerformed`. Der SOFT/HARD-Interrupt-Pfad ist mit dem alten
 Scheduler aus dem Lauf verschwunden.
 

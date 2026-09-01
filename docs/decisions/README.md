@@ -10,8 +10,7 @@ was entschieden wurde, warum, und was verworfen wurde.
 | [003](ADR-003-ajax-post-mutex.md) | Globaler Mutex auf state-changing `/ajax.php`-POSTs | 2026-05-20 | warum PlaceOfPower, BossBang und AutoLoop ihre POSTs serialisieren (#1598) |
 | [004](ADR-004-pipeline-block-architecture.md) | Reload-feste Blöcke statt `lastActionPerformed` | 2026-06-12 | das Modell hinter `BlockScheduler`, `BlockTypes`, `BlockRunStore` |
 | [005](ADR-005-block-slot-hold-until-home.md) | Ein Block hält den Slot, bis er im Leerlauf ist | 2026-06-13 | warum `applySlotHold` einen navigierenden Handler festhält |
-| [006](ADR-006-no-block-bundling.md) | Keine Block-Bündelung, alle Handler bleiben einzeln | 2026-06-14 | bevor jemand Season + SeasonCollect wieder zusammenlegt |
-| [007](ADR-007-multistep-superseded-by-slothold.md) | Multi-Step-Zerlegung entfällt, Slot-Hold deckt sie ab | 2026-06-14 | bevor jemand PoP oder Quest in Multi-Step-Blöcke zerlegt |
+| [006](ADR-006-nothing-bundled-nothing-split.md) | Weder gebündelt noch zerlegt — die Handler bleiben einzeln | 2026-06-14 | bevor jemand Season + SeasonCollect zusammenlegt oder PoP in Multi-Step-Blöcke zerlegt |
 | [008](ADR-008-import-cycle-reduction.md) | Zyklen-Abbau mit eingefrorener Baseline | 2026-07-05 | warum `npm run deps:circular:check` in der CI steht und was ein neuer Zyklus kostet |
 | [009](ADR-009-focused-activity.md) | Eine Aktivität behält die Pipeline, bis ihre Arbeit getan ist | 2026-08-22 | warum ein Block nach jedem Kampf den Fokus behält (#1841) |
 | [010](ADR-010-navigation-is-not-a-stop.md) | Navigation verwirft den laufenden Run nicht | 2026-08-26 | warum ein ausgeschalteter Auto-Loop den Run nicht sofort killt |
@@ -22,7 +21,8 @@ noch nicht entschieden.
 
 ## Konventionen
 
-- Eine Nummer wird nicht wiederverwendet. Neue Entscheidung, nächste freie Nummer.
+- Eine Nummer wird nicht wiederverwendet. Neue Entscheidung, nächste freie
+  Nummer. 007 ist frei geblieben: dieser Eintrag ist in 006 aufgegangen.
 - Der Dateiname trägt die Nummer und ein kurzes Stichwort; Code-Kommentare
   verweisen auf den Dateinamen, nicht auf die Nummer allein.
 - Eine überholte Entscheidung wird nicht gelöscht, sondern von der neuen ADR
