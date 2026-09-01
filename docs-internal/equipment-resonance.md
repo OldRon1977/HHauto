@@ -12,7 +12,7 @@ und welche Messwege **nicht** funktionieren (teuer gelernt, siehe unten).
 Quellen: die beiden offiziellen Kinkoid-Artikel
 [Mythic Equipment](https://blog.kinkoid.com/features/mythic-equipment/) (2022-11-17)
 und [Recruit Equipment & Resonance](https://blog.kinkoid.com/features/recruit-equipment-resonance/)
-(2023-05-05), plus eigene Messungen am 2026-08-17 (Account 1, Klasse
+(2023-05-05), plus eigene Messungen am 2026-08-17 (eigenes Konto, Klasse
 Know-how). Jede Angabe unten ist als *offiziell* oder *gemessen* markiert.
 
 ---
@@ -467,7 +467,7 @@ live nachgemessen.
 
 ---
 
-## Girl-Ausruestung (gemessen 2026-09-01, Account 1)
+## Girl-Ausruestung (gemessen 2026-09-01)
 
 Die Recruit-Seite ist eigenstaendig gemessen, nicht aus der Spieler-Ausruestung
 abgeleitet.
