@@ -1,0 +1,139 @@
+name: Housekeeping
+
+# Housekeeping for the issue list: an issue with no activity for 14 days gets
+# the label "soon to be closed" and is closed 7 days later if it stays quiet.
+# Reason: a fix ships and the report usually never gets confirmed, so threads
+# stay open for months and the list stops showing what is actually still open.
+# Closing is not a verdict -- reopening is a manual step, either by me or by
+# the issue author.
+#
+# No comments are posted, in neither phase. Labels carry the whole signal:
+#   soon to be closed -> flagged, closes in 7 days unless something happens
+#   auto-closed       -> closed by this workflow, not by a decision
+# Any activity during the 7 days removes the flag again (remove-stale-when-
+# updated is on by default) and restarts the clock.
+#
+# Labels decide the clock:
+#   pending, work in progress, new feature -> never touched
+#   help wanted, question                  -> 30 days instead of 14
+# "pending" is the marker for an issue that waits on something outside the
+# repo, e.g. an event that has to come around again before a fix can be tested.
+#
+# Two things the action does not do on its own, hence the two gh steps:
+#   - An exempt label added AFTER the flag reliably prevents the close, but the
+#     action returns early on exempt labels (issues-processor.ts, "Don't
+#     process exempt issues") and so never reaches its own unstale logic -- the
+#     flag would stay on the issue forever.
+#   - On close it adds close-issue-label but keeps the stale label, so a closed
+#     issue would carry both.
+#
+# Pull requests are deliberately left alone (days-before-pr-* = -1).
+#
+# A manual run defaults to a dry run: nothing is changed, the log lists what
+# would happen. The scheduled run always acts.
+
+on:
+  schedule:
+    # Once a day, 03:30 UTC. GitHub queues scheduled runs, so the actual
+    # start time drifts by a few minutes -- irrelevant for a daily sweep.
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: only list what would happen, change nothing'
+        type: boolean
+        default: true
+
+permissions:
+  issues: write
+
+concurrency:
+  group: stale-issues
+  cancel-in-progress: false
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Runs before the sweep: an issue that got pending, work in progress or
+      # new feature after it was flagged must lose the flag again. Those three
+      # are never closed by either sweep step, so removing the flag is always
+      # right. help wanted and question are deliberately not in this list --
+      # they are not exempt from closing, they only run on the longer clock.
+      - name: Drop the flag from issues that gained an exempt label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          gh issue list --state open --label 'soon to be closed' --limit 200 \
+            --json number,labels \
+            --jq '.[] | select([.labels[].name] | any(. == "pending" or . == "work in progress" or . == "new feature")) | .number' \
+            > flagged.txt
+          while read -r number; do
+            if [ "$DRY_RUN" = 'true' ]; then
+              echo "would unflag #$number (exempt label present)"
+            else
+              echo "unflagging #$number (exempt label present)"
+              gh issue edit "$number" --remove-label 'soon to be closed'
+            fi
+          done < flagged.txt
+
+      # stale-issue-message and close-issue-message stay unset: an empty
+      # message means the action labels and closes without commenting.
+      - name: Flag issues inactive for 14 days, close them 7 days later
+        uses: actions/stale@v11
+        with:
+          days-before-issue-stale: 14
+          days-before-issue-close: 7
+          stale-issue-label: 'soon to be closed'
+          close-issue-label: 'auto-closed'
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          exempt-issue-labels: 'pending,work in progress,new feature,help wanted,question'
+          close-issue-reason: not_planned
+          ascending: true
+          debug-only: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Second pass for the two labels that wait on somebody having time to
+      # answer rather than on a release. any-of-issue-labels is an OR, so one
+      # step covers both. The exempt list is repeated here: an issue carrying
+      # e.g. both "question" and "pending" must stay untouched.
+      - name: Flag help wanted / question issues after 30 days, close 7 days later
+        uses: actions/stale@v11
+        with:
+          days-before-issue-stale: 30
+          days-before-issue-close: 7
+          stale-issue-label: 'soon to be closed'
+          close-issue-label: 'auto-closed'
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          any-of-issue-labels: 'help wanted,question'
+          exempt-issue-labels: 'pending,work in progress,new feature'
+          close-issue-reason: not_planned
+          ascending: true
+          debug-only: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Runs after the sweep: a closed issue keeps "auto-closed" as the marker
+      # of how it was closed, the flag has served its purpose and comes off.
+      # Repeated --label is an AND, so this only touches issues that carry both.
+      - name: Drop the flag from issues this run closed
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          gh issue list --state closed --label 'soon to be closed' --label 'auto-closed' \
+            --limit 200 --json number --jq '.[].number' > closed.txt
+          while read -r number; do
+            if [ "$DRY_RUN" = 'true' ]; then
+              echo "would unflag closed #$number"
+            else
+              echo "unflagging closed #$number"
+              gh issue edit "$number" --remove-label 'soon to be closed'
+            fi
+          done < closed.txt
