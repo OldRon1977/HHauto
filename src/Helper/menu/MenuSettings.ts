@@ -49,10 +49,8 @@ export function setMenuValues()
                         itemValue = itemValue === "true";
                         break;
                 }
-                //console.log(menuID,HHStoredVars[i].menuType,itemValue);
                 (menuElement as any)[HHStoredVars[i].menuType] = itemValue;
             } else if(menuElement == null) {
-                // logHHAuto('ERROR: Element with ID "'+menuID+'" not found');
             }
         }
         else
@@ -96,12 +94,9 @@ export function getMenuValues()
                         menuValue = String(NumberHelper.remove1000sSeparator(menuValue));
                         break;
                 }
-                //console.log(menuID,HHStoredVars[i].menuType,menuValue,document.getElementById(menuID),HHStoredVars[i].valueType);
                 storageItem[i] = menuValue;
-                //console.log(i,currentValue, menuValue);
                 if (currentValue !== menuValue && HHStoredVars[i].newValueFunction !== undefined)
                 {
-                    //console.log(currentValue,menuValue);
                     HHStoredVars[i].newValueFunction.apply();
                 }
             }
@@ -130,7 +125,6 @@ export function addEventsOnMenuItems()
     const { HHStoredVars, storedVarPrefix, setStoredValue } = MenuPorts;
     for (const i of Object.keys(HHStoredVars))
     {
-        //console.log(i);
         if (HHStoredVars[i].HHType !== undefined )
         {
             const menuID = HHStoredVars[i].customMenuID !== undefined?HHStoredVars[i].customMenuID:i.replace(storedVarPrefix+HHStoredVars[i].HHType+"_","");

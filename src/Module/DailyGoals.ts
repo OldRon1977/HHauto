@@ -86,10 +86,8 @@ export class DailyGoals {
     static goAndCollect(): boolean
     {
         const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey+SK.autoDailyGoalsCollectablesList);
-        //console.log(rewardsToCollect.length);
         if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true")
         {
-            //console.log(getPage());
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals"))
             {
                 try{
@@ -107,7 +105,6 @@ export class DailyGoals {
                             const currentTierNb = currentButton[0].getAttribute("tier");
                             const currentChest = $(".progress-bar-rewards-container", listDailyGoalsTiersToClaim[currentTier]);
                             const currentRewardsList = currentChest.length > 0 ? currentChest.data("rewards") : [];
-                            //console.log("checking tier : "+currentTierNb);
                             if (nextDailyGoalsTimer <= ConfigHelper.getHHScriptVars("dailyRewardMaxRemainingTime") && nextDailyGoalsTimer > 0)
                             {
                                 logHHAuto("Force adding for collection chest n° "+currentTierNb);

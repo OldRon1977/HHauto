@@ -44,11 +44,9 @@ export function createPInfo():JQuery<HTMLElement> {
             if (masterSwitch.checked === true) {
                 setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
                 masterSwitch.checked = false;
-                //console.log("Master switch off");
             } else {
                 setStoredValue(HHStoredVarPrefixKey+SK.master, "true");
                 masterSwitch.checked = true;
-                //console.log("Master switch on");
             }
         });
         // Reactivate an auto-disabled block when the user clicks its [reactivate]
@@ -90,7 +88,6 @@ export function createPInfo():JQuery<HTMLElement> {
 }
 
 export function updateData() {
-    //logHHAuto("updating UI");
     document.querySelectorAll("div#sMenu input[pattern]").forEach(currentInput =>
                                                                   {
         (<HTMLInputElement>currentInput).checkValidity();

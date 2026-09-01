@@ -42,12 +42,10 @@ export class RewardHelper {
         {
             if (inSlot.getAttribute("cur") !== null)
             {
-                //console.log(currentIndicator+" : "+inSlot.getAttribute("cur"));
                 reward = inSlot.getAttribute("cur");
             }
             else if (inSlot.className.indexOf('slot_avatar') >= 0)
             {
-                //console.log(currentIndicator+" : avatar");
                 if (inSlot.className.indexOf('girl_ico') >= 0)
                 {
                     reward = 'girl_shards';
@@ -67,7 +65,6 @@ export class RewardHelper {
             }
             else if (inSlot.className.indexOf('mythic') >= 0)
             {
-                //console.log("mythic equipment");
                 reward = 'mythic';
             }
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0)
@@ -81,7 +78,6 @@ export class RewardHelper {
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d"))
             {
                 const objectData = $(inSlot).data("d");
-                //console.log(currentIndicator+" : "+inSlot.getAttribute("rarity")+" "+objectData.item.type+" "+objectData.item.value);
                 reward = objectData.item.type;
             }else{
                 const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
@@ -96,10 +92,8 @@ export class RewardHelper {
         }
         else if (inSlot && inSlot.className?.indexOf('shards_girl_ico') >= 0)
         {
-            //console.log(currentIndicator+" : shards_girl_ico");
             reward = 'girl_shards';
         }
-        //console.log(reward);
         return reward;
     }
 
@@ -121,7 +115,6 @@ export class RewardHelper {
                 reward = "potion";
             }
         }
-        //console.log(reward);
         return reward;
     }
 

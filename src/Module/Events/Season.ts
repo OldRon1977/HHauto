@@ -182,12 +182,8 @@ export class Season {
 
                 if (doDisplay)
                 {
-                    // logHHAuto("Simulating fight vs "+opponent.name+" (ID:"+opponentDatas[index].player?.id_fighter+")");
-                    // console.log("HH simuFight",JSON.stringify(player),JSON.stringify(opponent), opponentBonuses);
                 }
-                //console.time('calculateBattleProbabilities' + index);
                 const simu = calculateBattleProbabilities(player, opponent, debugEnabled)
-                //console.timeEnd('calculateBattleProbabilities' + index);
 
                 seasonOpponents[index] = new SeasonOpponent(
                     opponentDatas[index].player?.id_fighter, 
@@ -225,7 +221,6 @@ export class Season {
 
             $($('div.season_arena_opponent_container div.matchRatingNew')).append(`<img id="powerLevelScouterNonChosen">`);
 
-            //logHHAuto("Best opportunity opponent : "+oppoName+'('+chosenRating+')');
             if (doDisplay && chosenIndex >= 0 && chosenIndex < 3)
             {
                 try {
@@ -281,66 +276,54 @@ export class Season {
                     numberOfReds++;
                     break;
             }
-            //logHHAuto({OppoName:nameOppo[index],OppoFlag:currentFlag,OppoScore:currentScore,OppoMojo:currentMojo});
-            //not chosen or better flag
             if (chosenRating === -1 || chosenFlag < currentFlag) {
-                //logHHAuto('first');
                 isBetter = true;
                 currentGains = currentAff + currentExp;
             }
 
             //same orange flag but better score
             else if (chosenFlag === currentFlag && currentFlag === 0 && chosenRating < currentScore) {
-                //logHHAuto('second');
                 isBetter = true;
             }
             else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
                 if (chosenMojo < currentMojo) {
-                    //logHHAuto('second');
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
                 else if (chosenMojo === currentMojo && currentScore > chosenRating) {
-                    //logHHAuto('second');
                     isBetter = true;
                 }
             }
             else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
                 if (chosenMojo < currentMojo) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
 
                 //same green flag same mojo but better gains
                 else if (chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
 
                 //same green flag same mojo same gains but better score
                 else if (chosenMojo === currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
             }
             else if (chosenFlag === currentFlag && currentFlag === 1) {
                 // End season
                 if (currentScore > chosenRating) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
 
                 else if (currentScore === chosenRating && chosenMojo < currentMojo) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
 
                 else if (currentScore === chosenRating && chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
@@ -536,7 +519,6 @@ export class Season {
         const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
         let paidSlotSelectors = "";
         if ($("div#gsp_btn_holder[style='display: none;']").length) {
-            // Season pass paid
             paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
@@ -588,7 +570,6 @@ export class Season {
                 {
                     const currentRewardSlot = RewardHelper.getRewardTypeBySlot($(".slot, .shards_girl_ico",listSeasonTiersToClaim[currentReward])[0]);
                     const currentTier = $(".tier_number",$(listSeasonTiersToClaim[currentReward]).parent())[0].innerText;
-                    //console.log(currentRewardSlot);
                     if (rewardsToCollect.includes(currentRewardSlot))
                     {
                         if (listSeasonTiersToClaim[currentReward].className.indexOf('pass-reward') > 0)
@@ -604,7 +585,6 @@ export class Season {
                     }
                 }
 
-                //console.log(JSON.stringify(buttonsToCollect));
                 if (buttonsToCollect.length >0)
                 {
                     function collectSeasonRewards(inHasSelected = false)
@@ -755,7 +735,6 @@ export class Season {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                 obj = $(arrayz[i2]).find('.tick_s:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward) {
-                    //console.log("width : "+arrayz[i2].offsetWidth);
                     //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     $(arrayz[i2]).addClass('HHaHidden');

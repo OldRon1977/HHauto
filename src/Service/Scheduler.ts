@@ -130,7 +130,6 @@ export class Scheduler {
         await this.startChain(ctx, higherPrio);
         return;
       }
-      // Continue current non-atomic chain
       await this.continueCurrentChain(ctx);
       return;
     }

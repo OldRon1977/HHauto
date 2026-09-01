@@ -73,7 +73,6 @@ export function getTextForUI(id: string, type: string)
     let defaultLanguageText = null;
     let defaultLanguageVersion = "0";
 
-    //console.log(id);
     if (HHAuto_ToolTips['en'] !== undefined && HHAuto_ToolTips['en'][id] !== undefined && HHAuto_ToolTips['en'][id][type] !== undefined)
     {
         defaultLanguageText = HHAuto_ToolTips['en'][id][type];
@@ -188,7 +187,6 @@ export function manageTranslationPopUp()
 
     function saveTranslationAsTxt()
     {
-        //console.log("test");
         let translation = `Translated to : ${currentLanguage}\n`;
         translation += `From version : ${GM_info.version}\n`;
         let hasTranslation = false;
@@ -209,8 +207,6 @@ export function manageTranslationPopUp()
 
             if (currentTranslatedElementText !== currentElementText || currentTranslatedTooltip !== currentTooltip)
             {
-                //console.log(currentTranslatedElementText !== currentElementText, currentElementText, currentTranslatedElementText)
-                //console.log(currentTranslatedTooltip !== currentTooltip, currentTooltip, currentTranslatedTooltip)
                 const enVersion = HHAuto_ToolTips.en[item].version;
                 translation += `HHAuto_ToolTips.${item} = { version: "${enVersion}"`;
                 if (currentTranslatedElementText !== "" )

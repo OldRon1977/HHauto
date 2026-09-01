@@ -202,7 +202,6 @@ export class ClubChampion {
                     ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
                 }
                 const maxTickets = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoClubChampMax));
-                //console.log(maxTickets, ticketUsed);
                 if (maxTickets > ticketUsed )
                 {
                     logHHAuto("Let's do him!");

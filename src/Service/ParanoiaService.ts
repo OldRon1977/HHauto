@@ -65,7 +65,6 @@ export class ParanoiaService {
             {
                 spendingsRemaining+=Number(i);
             }
-            //logHHAuto("Paranoia spending remaining : "+JSON.stringify(pSpendings,replacerMap));
             return spendingsRemaining;
         }
         else
@@ -122,7 +121,6 @@ export class ParanoiaService {
         if (tempNextSwitch !== undefined && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
             toNextSwitch = Number((Number(tempNextSwitch) - new Date().getTime()) / 1000);
 
-            //if autoLeague is on
             if (LeagueHelper.isAutoLeagueActivated()) {
                 if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.challenge.next_refresh_ts'))) / Number(getHHVars('Hero.energies.challenge.seconds_per_point')));
@@ -140,7 +138,6 @@ export class ParanoiaService {
                     }
                 }
             }
-            //if autoquest is on
             if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true"))) {
                 if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.quest.next_refresh_ts'))) / Number(getHHVars('Hero.energies.quest.seconds_per_point')));
@@ -158,7 +155,6 @@ export class ParanoiaService {
                     }
                 }
             }
-            //if autoTrollBattle is on
             if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.fight.next_refresh_ts'))) / Number(getHHVars('Hero.energies.fight.seconds_per_point')));
                 currentEnergy = Troll.getEnergy();
@@ -174,7 +170,6 @@ export class ParanoiaService {
                     logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
                 }
             }
-            //if autoSeason is on
             if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
                 const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus);
                 if (seasonFocus === "girl" || seasonFocus === "girlAndSkin") {
@@ -195,7 +190,6 @@ export class ParanoiaService {
                 }
                 }
             }
-            //if autoPantheon is on
             if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true") {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.worship.next_refresh_ts'))) / Number(getHHVars('Hero.energies.worship.seconds_per_point')));
                 currentEnergy = Pantheon.getEnergy();
@@ -286,7 +280,6 @@ export class ParanoiaService {
             else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
                 // manage wrong values in storage to avoid infinite loop
                 ParanoiaService.countParanoiaLoop++;
-                // logHHAuto(`checkParanoiaSpendings() = ${checkParanoiaSpendings()}, reached ${ParanoiaService.countParanoiaLoop} times`);
                 if (ParanoiaService.countParanoiaLoop > ParanoiaService.MAX_LOOP) {
                     logHHAuto(`10 times flip without actions, clearParanoiaSpending and update (count: ${ParanoiaService.countParanoiaClear++}) `);
                     ParanoiaService.clearParanoiaSpendings();

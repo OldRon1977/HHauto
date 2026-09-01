@@ -133,7 +133,6 @@ export class TeamModule {
             }
             const currentPage = window.location.pathname + window.location.search;
             // change referer
-            //logHHAuto('change referer to ' + '/characters/' + girlId);
             window.history.replaceState(null, '', addNutakuSession('/characters/' + girlId) as string);
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
@@ -141,7 +140,6 @@ export class TeamModule {
             getHHAjax()!(params1, function(data:any) {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
-                //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
                 if(callback && typeof callback === 'function') {
                     callback();
@@ -356,7 +354,6 @@ export class TeamModule {
 
                 $(`.team-member-container[data-girl-id="${girlId}"]`).addClass('selected');
                 // change referer
-                //logHHAuto('change referer to ' + '/characters/' + girlId);
                 window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=equipment') as string);
                 var params1 = {
                     action: "girl_equipment_equip_all",
@@ -374,7 +371,6 @@ export class TeamModule {
                     } else {
                         $("#EquipAll").removeAttr('disabled');
                         // change referer
-                        //logHHAuto('change referer back to ' + currentPage);
                         window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
                         // C1: safeReload(delay) replaces setTimeout + reload
                         // with mutex + waitForAjaxIdle protection.
@@ -514,10 +510,8 @@ export class TeamModule {
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i: number, best: boolean) {
             const girlToSelect = best ? i : i + 7;
-            //console.log(i,girlToSelect,best);
             const selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
             selectedGirl.click();
-            //console.log(selectedGirl);
             if ($('.topNumber').length > girlToSelect && i < 7) {
                 setTimeout(function () { assignToTeam(i + 1, best) }, randomInterval(300, 600));
             }
@@ -539,7 +533,6 @@ export class TeamModule {
             const position = i - 1;
             const selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
             selectedPosition.click();
-            //console.log(selectedPosition);
             setTimeout(function () { selectFromHaremBest(i, best) }, randomInterval(300, 600));
 
         }
@@ -609,7 +602,6 @@ export class TeamModule {
         const rawClass = Number(HeroHelper.getClass());
         const playerClass: PlayerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass as PlayerClass : 1;
 
-        // Map availableGirls (raw game data) to the GirlData interface.
         const girls: GirlData[] = availableGirls.map(g => TeamModule.mapAvailableGirl(g));
 
         // Candidates for the clicked mode, strongest stat sum first. The
@@ -974,7 +966,6 @@ export class TeamModule {
 
         const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
         const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-        // Resolve trait value to a human label
         const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
         const traitDisplay = traitResolved.label;
 

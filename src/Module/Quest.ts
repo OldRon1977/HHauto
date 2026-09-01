@@ -70,7 +70,6 @@ export class QuestHelper {
         return mainQuestUrl;
     }
     static run(): boolean {
-        //logHHAuto("Starting auto quest.");
         // Check if at correct page.
         const page = getPage();
         const mainQuestUrl = QuestHelper.getMainQuestUrl();
@@ -127,7 +126,6 @@ export class QuestHelper {
             rewardConfirm.first().trigger('click');
             return true;
         }
-        // Get the proceed button type
         var proceedButtonMatch = $("#controls button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])");
         if (proceedButtonMatch.length === 0)
         {
@@ -140,7 +138,6 @@ export class QuestHelper {
             proceedButtonMatch = $("#controls button#free");
         }
         var proceedType = proceedButtonMatch.attr("id");
-        //console.log("DebugQuest proceedType : "+proceedType);
         if (proceedButtonMatch.length === 0)
         {
             logHHAuto("Could not find resume button.");
@@ -154,7 +151,6 @@ export class QuestHelper {
         if (proceedType === "free") {
             logHHAuto("Proceeding for free.");
             //setStoredValue"HHAuto_Temp_autoLoop", "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "pay") {
@@ -164,10 +160,8 @@ export class QuestHelper {
             var energyCurrent = QuestHelper.getEnergy();
             var moneyCurrent = HeroHelper.getMoney();
             //let payType = $("#controls .cost span[cur]:not([style*='display:none']):not([style*='display: none'])").attr('cur');
-            //console.log("DebugQuest payType : "+payType);
             if (payTypeNRJ)
             {
-                // console.log("DebugQuest ENERGY for : "+proceedCost + " / " + energyCurrent);
                 if(proceedCost <= energyCurrent)
                 {
                     // We have energy.
@@ -197,13 +191,11 @@ export class QuestHelper {
             }
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "use_item") {
             logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "battle") {
             logHHAuto("Quest need battle...");
@@ -211,7 +203,6 @@ export class QuestHelper {
             // Proceed to battle troll.
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "finish") {
             logHHAuto("Reached end of current side quest. Proceeding to next.");
@@ -219,7 +210,6 @@ export class QuestHelper {
         else if (proceedType === "end_archive") {
             logHHAuto("Reached end of current archive. Proceeding to next archive.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "end_play") {
@@ -231,7 +221,6 @@ export class QuestHelper {
             }
             logHHAuto("Reached end of current play. Proceeding to next play.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "outfit") {

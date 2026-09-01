@@ -44,20 +44,17 @@ export class LabyrinthRelic {
                     this.girlName = safeJsonParse(tooltipData, {name: ''}).name;
                 }
             } catch (err) { 
-                // logHHAuto('ERROR: Can\'t find girl name');
             }
         }
 
         try {
             this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))![0]);
         } catch (err) {
-            // logHHAuto('ERROR: Can\'t find reward value');
         }
         try {
             const classes = slot.find('.team-relic-icon').children().first().attr('class');
             this.element = classes!.substring(0, classes!.indexOf('_element_relic_icn'));
         } catch (err) {
-            // logHHAuto('ERROR: Can\'t find reward element');
         }
     }
 }

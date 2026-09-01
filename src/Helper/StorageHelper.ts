@@ -399,7 +399,6 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
         const rewardsToCollect = getStoredArray<string>(inVarName);
         for (const currentItem of Object.keys(possibleRewards))
         {
-            //console.log(currentItem,possibleRewards[currentItem]);
             if (count === 4)
             {
                 count = 0;
@@ -438,7 +437,6 @@ export function getAndStoreCollectPreferences(inVarName: string, inPopUpText = g
             const currentInput = <HTMLInputElement> currentInputElement;
             if (currentInput.checked)
             {
-                //console.log(currentInput.id);
                 collectablesList.push(currentInput.id);
             }
         });

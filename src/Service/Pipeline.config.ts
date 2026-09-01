@@ -464,7 +464,6 @@ const handleShop: HandlerConfig = {
     if (ConfigHelper.getHHScriptVars('isEnabledShop', false) !== true) return false;
     if (!Shop.isTimeToCheckShop()) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    // lastActionPerformed continuation gate.
     if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop') return false;
     // The inner trigger belongs in the precondition, not in the step: the
     // scheduler logs "Starting" and bumps the cool-down on every step.fn call,

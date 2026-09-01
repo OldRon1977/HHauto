@@ -119,7 +119,6 @@ export class StartService {
     {
         const previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
         if (previousScriptVersion != GM.info.script.version) {
-            // run action on new script version
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
             setStoredValue(HHStoredVarPrefixKey + TK.scriptversion, GM.info.script.version);
 
@@ -171,7 +170,6 @@ export function setDefaults(force = false)
         {
             const storageItem = getStorageItem((HHStoredVars as any)[i].storage);
             let isInvalid = false;
-            //console.log(storageItem[i], storageItem[i] !== undefined);
             if ((HHStoredVars as any)[i].isValid !== undefined && storageItem[i] !== undefined)
             {
                 isInvalid = !(HHStoredVars as any)[i].isValid.test(storageItem[i]);
@@ -458,7 +456,6 @@ export function start() {
     addEventsOnMenuItems();
 
     $("#showTooltips").on("change",() => {
-        //console.log(this.checked);
         if ((<HTMLInputElement>$("#showTooltips")[0]).checked)
         {
             enableToolTipsDisplay(true);
@@ -676,12 +673,10 @@ export function start() {
     }
     if (getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0}).page?.indexOf(".html") > 0 )
     {
-        //console.log("testingHome : setting to : "+getPage());
         setStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled, JSON.stringify({page:getPage(), dateTime:new Date().getTime()}));
     }
     if (getStoredJSON(HHStoredVarPrefixKey+TK.LastPageCalled, {page:'', dateTime:0}).page === ConfigHelper.getHHScriptVars("pagesIDHome"))
     {
-        //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey+TK.LastPageCalled);
     }
     // getPage() is a pure read, so a bootstrap has to opt into halting on a

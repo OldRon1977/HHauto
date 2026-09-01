@@ -246,12 +246,10 @@ export class LoveRaidManager {
                 logHHAuto('Error parsing raid', kkRaid, error);
             }
         }
-        // console.log('raids', raids);
         // Sort by troll Id
         // raids.sort((a, b) => {
         //     return Number(a.trollId) - Number(b.trollId);
         // });
-        // console.log('raids sorted', raids);
 
         return raids;
     }

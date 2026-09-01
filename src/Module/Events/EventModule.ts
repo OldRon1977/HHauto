@@ -98,7 +98,6 @@ export class EventModule {
         }
         else
         {
-            //console.log(JSON.stringify(eventChamps));
             eventChamps = eventChamps.filter(function (a) {
                 if ( !eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID)
                 {
@@ -227,7 +226,6 @@ export class EventModule {
             {
                 if (!EventModule.checkEvent(eventID))
                 {
-                    //logHHAuto("Events already parsed.");
                     return false;
                 }
             }
@@ -333,7 +331,6 @@ export class EventModule {
                             return a_weighted-b_weighted;
 
                         });
-                        //logHHAuto({log:"Sorted EventGirls",eventGirlz:eventsGirlz});
                     }
 
                     setStoredValue(HHStoredVarPrefixKey+TK.eventsGirlz, JSON.stringify(eventsGirlz));
@@ -696,7 +693,6 @@ export class EventModule {
                 obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward)
                 {
-                    //console.log("width : "+arrayz[i2].offsetWidth);
                     //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     modified = true;
@@ -826,7 +822,6 @@ export class EventModule {
                 logHHAuto("No double penetration event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey+SK.autodpEventCollect, "false");
             }
-            // LivelyScene
             parseForEventId(livelySceneEventQuery,eventIDs);
 
             if (getStoredValue(HHStoredVarPrefixKey +SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0)

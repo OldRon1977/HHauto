@@ -270,7 +270,6 @@ export class PentaDrill {
                 for (let currentTier = 0; currentTier < listPentaDrillTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='claim']", listPentaDrillTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
                     const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
                     if (rewardsToCollect.includes(freeSlotType)) {
 

@@ -2035,7 +2035,6 @@ function getTextForUI(id, type) {
     const HHAuto_Lang = getLanguageCode();
     let defaultLanguageText = null;
     let defaultLanguageVersion = "0";
-    //console.log(id);
     if (HHAuto_ToolTips['en'] !== undefined && HHAuto_ToolTips['en'][id] !== undefined && HHAuto_ToolTips['en'][id][type] !== undefined) {
         defaultLanguageText = HHAuto_ToolTips['en'][id][type];
         defaultLanguageVersion = HHAuto_ToolTips['en'][id].version;
@@ -2130,7 +2129,6 @@ function manageTranslationPopUp() {
     fillHHPopUp("translationPopUp", getTextForUI("translate", "elementText"), translatePopUpContent);
     $("#saveTranslationAsTxt").on("click", saveTranslationAsTxt);
     function saveTranslationAsTxt() {
-        //console.log("test");
         let translation = `Translated to : ${currentLanguage}\n`;
         translation += `From version : ${GM_info.version}\n`;
         let hasTranslation = false;
@@ -2146,8 +2144,6 @@ function manageTranslationPopUp() {
                 currentElementText = "";
             }
             if (currentTranslatedElementText !== currentElementText || currentTranslatedTooltip !== currentTooltip) {
-                //console.log(currentTranslatedElementText !== currentElementText, currentElementText, currentTranslatedElementText)
-                //console.log(currentTranslatedTooltip !== currentTooltip, currentTooltip, currentTranslatedTooltip)
                 const enVersion = HHAuto_ToolTips.en[item].version;
                 translation += `HHAuto_ToolTips.${item} = { version: "${enVersion}"`;
                 if (currentTranslatedElementText !== "") {
@@ -6119,11 +6115,9 @@ function setMenuValues() {
                         itemValue = itemValue === "true";
                         break;
                 }
-                //console.log(menuID,HHStoredVars[i].menuType,itemValue);
                 menuElement[HHStoredVars[i].menuType] = itemValue;
             }
             else if (menuElement == null) {
-                // logHHAuto('ERROR: Element with ID "'+menuID+'" not found');
             }
         }
         else {
@@ -6157,11 +6151,8 @@ function getMenuValues() {
                         menuValue = String(NumberHelper.remove1000sSeparator(menuValue));
                         break;
                 }
-                //console.log(menuID,HHStoredVars[i].menuType,menuValue,document.getElementById(menuID),HHStoredVars[i].valueType);
                 storageItem[i] = menuValue;
-                //console.log(i,currentValue, menuValue);
                 if (currentValue !== menuValue && HHStoredVars[i].newValueFunction !== undefined) {
-                    //console.log(currentValue,menuValue);
                     HHStoredVars[i].newValueFunction.apply();
                 }
             }
@@ -6181,7 +6172,6 @@ function preventKobanUsingSwitchUnauthorized() {
 function addEventsOnMenuItems() {
     const { HHStoredVars, storedVarPrefix, setStoredValue } = MenuPorts;
     for (const i of Object.keys(HHStoredVars)) {
-        //console.log(i);
         if (HHStoredVars[i].HHType !== undefined) {
             const menuID = HHStoredVars[i].customMenuID !== undefined ? HHStoredVars[i].customMenuID : i.replace(storedVarPrefix + HHStoredVars[i].HHType + "_", "");
             const menuElement = document.getElementById(menuID);
@@ -6561,7 +6551,6 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         const possibleRewards = ConfigHelper.getHHScriptVars(inRewardsListName);
         const rewardsToCollect = getStoredArray(inVarName);
         for (const currentItem of Object.keys(possibleRewards)) {
-            //console.log(currentItem,possibleRewards[currentItem]);
             if (count === 4) {
                 count = 0;
                 menuCollectables += '</div>';
@@ -6594,7 +6583,6 @@ function getAndStoreCollectPreferences(inVarName, inPopUpText = getTextForUI("me
         document.querySelectorAll("#HHAutoPopupGlobalPopup.menuCollectable .menuCollectablesItem").forEach(currentInputElement => {
             const currentInput = currentInputElement;
             if (currentInput.checked) {
-                //console.log(currentInput.id);
                 collectablesList.push(currentInput.id);
             }
         });
@@ -7523,7 +7511,6 @@ function getCallerCallerFunction() {
         console.log('Function ' + match[3] + ' at ' + match[4]);
     }
     catch (err) { }
-    //console.log(callerName);
     return callerName;
     //return getCallerCallerFunction.caller.caller.name
 }
@@ -7845,7 +7832,6 @@ function getHero() {
     var _a, _b;
     if (((_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.Hero) === undefined) {
         setTimeout(autoLoopKick, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)) || 1000);
-        //logHHAuto(window.wrappedJSObject)
     }
     // Historic contract: callers treat a missing Hero as "page not ready"
     // and bail out via the autoLoop retry above, so the declared return
@@ -7860,7 +7846,6 @@ function getHero() {
 let lastStatAttempt = null;
 function doStatUpgrades() {
     //Stats?
-    //logHHAuto('stats');
     var Hero = getHero();
     var stats = [getHHVars('Hero.infos.carac1'), getHHVars('Hero.infos.carac2'), getHHVars('Hero.infos.carac3')];
     var money = HeroHelper.getMoney();
@@ -7872,7 +7857,6 @@ function doStatUpgrades() {
     var mp = 0;
     var mults = [60, 30, 10, 1];
     for (var car = 0; car < 3; car++) {
-        //logHHAuto('stat '+carac);
         var s = stats[carac - 1];
         for (var mu = 0; mu < 5; mu++) {
             var mult = mults[mu];
@@ -7881,7 +7865,6 @@ function doStatUpgrades() {
             if (carac == HeroHelper.getClass()) {
                 mp = price;
             }
-            //logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' price: '+price);
             if ((stats[carac - 1] + mult) <= Limit && (money - price) > M && (carac == HeroHelper.getClass() || price < mp / 2 || (MainStat + mult) > Limit)) {
                 const nowTs = Date.now();
                 if (lastStatAttempt
@@ -8541,7 +8524,6 @@ class HaremGirl {
         return new Promise((resolve) => {
             const maxOutButton = HaremGirl.getMaxOutAllButton(haremItem);
             if (maxOutButton.length > 0) {
-                //logHHAuto('Max out all ' + haremItem + ' for girl ' + girl.id_girl);
                 maxOutButton.trigger('click');
                 if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
                     setTimeout(() => HaremGirl_awaiter(this, void 0, void 0, function* () {
@@ -8912,7 +8894,6 @@ class HaremGirl {
             const canAwakeGirl = HaremGirl.canAwakeGirl();
             const girl = HaremGirl.getCurrentGirl();
             const numberOfGem = (_c = (_b = (_a = unsafeWindow.player_gems_amount) === null || _a === void 0 ? void 0 : _a[girl.element]) === null || _b === void 0 ? void 0 : _b.amount) !== null && _c !== void 0 ? _c : 0;
-            //logHHAuto("moduleHaremGirl: " + girl.id_girl);
             logHHAuto("Current level : " + girl.level + ', max level without gems : ' + girl.level_cap);
             logHHAuto("Number of gem needed in next awakening : " + girl.awakening_costs + " / Gem in stock : " + numberOfGem);
             logHHAuto("Girl grade : " + girl.graded + '/' + girl.nb_grades);
@@ -9071,7 +9052,6 @@ class HaremGirl {
                     const upgradeSkill = haremItem.indexOf(HaremGirl.SKILLS_TYPE) >= 0;
                     const upgradeEquipment = haremItem.indexOf(HaremGirl.EQUIPMENT_TYPE) >= 0;
                     const team = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, {});
-                    //logHHAuto(`Team to upgrade (${haremItem})`, team);
                     let nextGirlId = -1;
                     let girlPosInList = 0;
                     let remainingGirls = 0;
@@ -9164,9 +9144,7 @@ class HaremGirl {
                 }
                 if (skillButton.length > 0) {
                     const skillId = Number(skillButton.parents('.skill-upgrade-row').attr('skill-id') || -1);
-                    //logHHAuto('Upgrading skill id: ' + skillId + ' targeting tier: ' + maxTier);
                     if (maxTier === 4 && skillId > 10) {
-                        //logHHAuto('Max tier for sub skills reached, stopping upgrade for this skill');
                         return Promise.resolve();
                     }
                     skillButton.trigger('click');
@@ -9526,7 +9504,6 @@ class Harem {
         return a.gData.can_upgrade;
     }
     static clearHaremToolVariables() {
-        // logHHAuto('clearHaremToolVariables');
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd);
@@ -9549,7 +9526,6 @@ class Harem {
         if (girlsMap !== null) {
             girlsMap = Object.values(girlsMap);
             if (girlsMap.length > 0) {
-                //console.log(inSortType);
                 if (ConfigHelper.getHHScriptVars("haremSortingFunctions").hasOwnProperty(inSortType)) {
                     girlsMap.sort(ConfigHelper.getHHScriptVars("haremSortingFunctions")[inSortType]);
                 }
@@ -9616,7 +9592,6 @@ class Harem {
         var gMap = getHHVars('girlsDataList');
         if (gMap === null) {
             // error
-            //logHHAuto("Girls Map was undefined...! Error, cannot export girls.");
         }
         else {
             return Object.values(gMap).find((girl) => Number(girl.id_girl) === Number(girlId));
@@ -9677,7 +9652,6 @@ class Harem {
                         dataToSave += true + ",";
                         dataToSave += gData.element + "\r\n";
                     }
-                    //            logHHAuto(dataToSave);
                 }
                 catch (exp) {
                     // error
@@ -9818,7 +9792,6 @@ class Harem {
                                 else {
                                     return false;
                                 }
-                                // logHHAuto(`Simulate reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost/1000000}M. Player money: ${heroMoney}`);
                                 // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
                                 if (scrollGot >= team['scrolls_' + rarity]) {
                                     if (debugEnabled)
@@ -9877,7 +9850,6 @@ class Harem {
         return new Promise((resolve) => {
             const currentPage = window.location.pathname + window.location.search;
             // change referer
-            //logHHAuto('change referer to ' + '/girl/' + girlId);
             window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills'));
             var params1 = {
                 action: "girl_skills_reset",
@@ -9885,7 +9857,6 @@ class Harem {
             };
             getHHAjax()(params1, function (data) {
                 // change referer
-                //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage));
                 resolve(data.success || true);
             }, function (err) {
@@ -10076,20 +10047,16 @@ class Harem {
             for (let j = 0; j < 6; j++) {
                 let currentCost;
                 if (i === 0 && j === 0) {
-                    //console.log("init 1");
                     currentCost = cost11;
                 }
                 else if (j === 0) {
-                    //console.log("init -1");
                     currentCost = calculatedCosts[rarity[0]][0] * rarityFactors[i];
                 }
                 else {
-                    //console.log("-1");
                     currentCost = currentRarityCosts[j - 1] * gradeFactors[j];
                 }
                 currentRarityCosts[j] = currentCost;
             }
-            //console.log(current);
             calculatedCosts[rarity[i]] = currentRarityCosts;
         }
         return calculatedCosts[inRarity][inTargetGrade];
@@ -11539,7 +11506,6 @@ let _cache;
  */
 function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
     if (debugEnabled) {
-        // logHHAuto('Running simulation against' + opponent.name, opponent);
         logHHAuto('Running simulation against' + opponent.name);
     }
     _player = player;
@@ -11613,7 +11579,6 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         const { baseAtk, critAtk } = calculateDmg(_player, turns);
         const baseAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
         const critAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
-        //Merge result
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
         // write cache
         //if (!_cache[playerHP]) _cache[playerHP] = {}
@@ -11622,7 +11587,6 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         return mergedResult;
     }
     function playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
-        //Player stunned
         if (playerStunned > 0) {
             playerStunned -= 1;
             //Opponent attack
@@ -11643,7 +11607,6 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         playerHP -= Math.max(0, (opponentReflectDmg - playerShield));
         playerShield = Math.max(0, playerShield - opponentReflectDmg);
         opponentReflect -= 1;
-        //Heal on hit
         const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
         playerHP = Math.min(_player.hp, playerHP + playerHeal);
         //Check win
@@ -11667,12 +11630,10 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         const { baseAtk, critAtk } = calculateDmg(_opponent, turns);
         const baseAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
         const critAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
-        //Merge result
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
         return mergedResult;
     }
     function opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
-        //Opponent stunned
         if (opponentStunned > 0) {
             opponentStunned -= 1;
             //Next turn
@@ -11694,7 +11655,6 @@ function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
         opponentHP -= Math.max(0, (playerReflectDmg - opponentShield));
         opponentShield = Math.max(0, opponentShield - playerReflectDmg);
         playerReflect -= 1;
-        //Heal on hit
         const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
         opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
         //Check loss
@@ -12160,12 +12120,10 @@ class LoveRaidManager {
                 logHHAuto('Error parsing raid', kkRaid, error);
             }
         }
-        // console.log('raids', raids);
         // Sort by troll Id
         // raids.sort((a, b) => {
         //     return Number(a.trollId) - Number(b.trollId);
         // });
-        // console.log('raids sorted', raids);
         return raids;
     }
     static getFirstRaidToStart() {
@@ -12634,7 +12592,6 @@ class Booster {
                 boostersToEquip.push(desiredId);
             }
         }
-        // Only return as many as there are free slots
         return boostersToEquip.slice(0, freeSlots);
     }
     /**
@@ -13364,7 +13321,6 @@ class Booster {
                         }
                     }
                     else {
-                        // Reset failure counter on success
                         logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: success, resetting failure counter");
                         setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodFailure, 0);
                     }
@@ -13621,12 +13577,8 @@ class Season {
                     const { player, opponent } = BDSMHelper.getBdsmPlayersData(hero_data, opponentDatas[index].player);
                     const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + ((_a = opponentDatas[index].player) === null || _a === void 0 ? void 0 : _a.id_fighter) + ']');
                     if (doDisplay) {
-                        // logHHAuto("Simulating fight vs "+opponent.name+" (ID:"+opponentDatas[index].player?.id_fighter+")");
-                        // console.log("HH simuFight",JSON.stringify(player),JSON.stringify(opponent), opponentBonuses);
                     }
-                    //console.time('calculateBattleProbabilities' + index);
                     const simu = calculateBattleProbabilities(player, opponent, debugEnabled);
-                    //console.timeEnd('calculateBattleProbabilities' + index);
                     seasonOpponents[index] = new SeasonOpponent((_b = opponentDatas[index].player) === null || _b === void 0 ? void 0 : _b.id_fighter, opponent.name, Number($(".slot_victory_points .amount", opponentBlock).text()), // mojo
                     Number($(".slot_season_xp_girl .amount", opponentBlock).text()), Number($(".slot_season_affection_girl .amount", opponentBlock).text()), simu);
                     const seasonButton = $('.player-panel-buttons .opponent_perform_button_container .green_button_L.btn_season_perform', opponentBlock);
@@ -13648,7 +13600,6 @@ class Season {
                     chosenIndex = -2;
                 }
                 $($('div.season_arena_opponent_container div.matchRatingNew')).append(`<img id="powerLevelScouterNonChosen">`);
-                //logHHAuto("Best opportunity opponent : "+oppoName+'('+chosenRating+')');
                 if (doDisplay && chosenIndex >= 0 && chosenIndex < 3) {
                     try {
                         const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + chosenID + ']');
@@ -13701,61 +13652,49 @@ class Season {
                     numberOfReds++;
                     break;
             }
-            //logHHAuto({OppoName:nameOppo[index],OppoFlag:currentFlag,OppoScore:currentScore,OppoMojo:currentMojo});
-            //not chosen or better flag
             if (chosenRating === -1 || chosenFlag < currentFlag) {
-                //logHHAuto('first');
                 isBetter = true;
                 currentGains = currentAff + currentExp;
             }
             //same orange flag but better score
             else if (chosenFlag === currentFlag && currentFlag === 0 && chosenRating < currentScore) {
-                //logHHAuto('second');
                 isBetter = true;
             }
             else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
                 if (chosenMojo < currentMojo) {
-                    //logHHAuto('second');
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
                 else if (chosenMojo === currentMojo && currentScore > chosenRating) {
-                    //logHHAuto('second');
                     isBetter = true;
                 }
             }
             else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
                 if (chosenMojo < currentMojo) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
                 //same green flag same mojo but better gains
                 else if (chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
                 //same green flag same mojo same gains but better score
                 else if (chosenMojo === currentMojo && currentGains === currentAff + currentExp && currentScore > chosenRating) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
             }
             else if (chosenFlag === currentFlag && currentFlag === 1) {
                 // End season
                 if (currentScore > chosenRating) {
-                    //logHHAuto('third');
                     isBetter = true;
                 }
                 else if (currentScore === chosenRating && chosenMojo < currentMojo) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
                 else if (currentScore === chosenRating && chosenMojo === currentMojo && currentGains < currentAff + currentExp) {
-                    //logHHAuto('third');
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
@@ -13940,7 +13879,6 @@ class Season {
         const freeSlotSelectors = ".free_reward.reward_is_claimable .slot";
         let paidSlotSelectors = "";
         if ($("div#gsp_btn_holder[style='display: none;']").length) {
-            // Season pass paid
             paidSlotSelectors = ".pass_reward.reward_is_claimable .slot";
         }
         return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
@@ -13979,7 +13917,6 @@ class Season {
                 for (let currentReward = 0; currentReward < listSeasonTiersToClaim.length; currentReward++) {
                     const currentRewardSlot = RewardHelper.getRewardTypeBySlot($(".slot, .shards_girl_ico", listSeasonTiersToClaim[currentReward])[0]);
                     const currentTier = $(".tier_number", $(listSeasonTiersToClaim[currentReward]).parent())[0].innerText;
-                    //console.log(currentRewardSlot);
                     if (rewardsToCollect.includes(currentRewardSlot)) {
                         if (listSeasonTiersToClaim[currentReward].className.indexOf('pass-reward') > 0) {
                             logHHAuto("Adding for collection tier n°" + currentTier + " reward (paid) : " + currentRewardSlot);
@@ -13991,7 +13928,6 @@ class Season {
                         }
                     }
                 }
-                //console.log(JSON.stringify(buttonsToCollect));
                 if (buttonsToCollect.length > 0) {
                     function collectSeasonRewards(inHasSelected = false) {
                         if (buttonsToCollect.length > 0) {
@@ -14104,7 +14040,6 @@ class Season {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                 obj = $(arrayz[i2]).find('.tick_s:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward) {
-                    //console.log("width : "+arrayz[i2].offsetWidth);
                     //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     $(arrayz[i2]).addClass('HHaHidden');
@@ -14334,7 +14269,6 @@ class LeagueHelper {
         if ((opponentGoButton.length <= 0 || $('.powerLevelScouter', opponentGoButton).length > 0) && !force) {
             return;
         }
-        // logHHAuto('powerLevelScouter not present adding it ' + id_fighter);
         const percentage = NumberHelper.nRounding(100 * simu.win, 2, -1);
         const points = NumberHelper.nRounding(simu.expectedValue, 1, -1);
         const pointText = `${percentage}% (${points})` +
@@ -14378,7 +14312,6 @@ class LeagueHelper {
         const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun) === "true";
         const league_end = LeagueHelper.getLeagueEndTime();
         if (league_end > 0 && league_end <= (60 * 60)) {
-            // Last league hour //TODO
             logHHAuto("Last League hour");
         }
         const energy = LeagueHelper.getEnergy();
@@ -14433,7 +14366,6 @@ class LeagueHelper {
                 const SimPower = function () {
                     return League_awaiter(this, void 0, void 0, function* () {
                         if (allOpponentsSimDisplayed) {
-                            // logHHAuto("Stop simu");
                             return;
                         }
                         if (debugEnabled)
@@ -14510,12 +14442,10 @@ class LeagueHelper {
                 $("#sortPowerCalc").on("click", function () {
                     const items = $('.data-row.body-row:visible', league_table).map((i, el) => el).toArray();
                     items.sort(function (a, b) {
-                        //console.log($('#HHPowerCalcScore',$(a)));
                         const score_a = $('#HHPowerCalcScore', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(a))[0].innerText);
                         const score_b = $('#HHPowerCalcScore', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(b))[0].innerText);
                         const points_a = $('#HHPowerCalcPoints', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(a))[0].innerText);
                         const points_b = $('#HHPowerCalcPoints', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(b))[0].innerText);
-                        //console.log(score_a,score_b,points_a,points_b);
                         if (score_b === score_a) {
                             return points_b - points_a;
                         }
@@ -14758,7 +14688,6 @@ class LeagueHelper {
     }
     static doLeagueBattle() {
         try {
-            //logHHAuto("Performing auto leagues.");
             // Confirm if on correct screen.
             const currentPower = LeagueHelper.getEnergy();
             const maxLeagueRegen = LeagueHelper.getEnergyMax();
@@ -15111,9 +15040,7 @@ class DailyGoals {
     }
     static goAndCollect() {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList);
-        //console.log(rewardsToCollect.length);
         if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true") {
-            //console.log(getPage());
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals")) {
                 try {
                     logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
@@ -15128,7 +15055,6 @@ class DailyGoals {
                             const currentTierNb = currentButton[0].getAttribute("tier");
                             const currentChest = $(".progress-bar-rewards-container", listDailyGoalsTiersToClaim[currentTier]);
                             const currentRewardsList = currentChest.length > 0 ? currentChest.data("rewards") : [];
-                            //console.log("checking tier : "+currentTierNb);
                             if (nextDailyGoalsTimer <= ConfigHelper.getHHScriptVars("dailyRewardMaxRemainingTime") && nextDailyGoalsTimer > 0) {
                                 logHHAuto("Force adding for collection chest n° " + currentTierNb);
                                 buttonsToCollect.push(currentButton[0]);
@@ -15748,7 +15674,6 @@ class PlaceOfPower {
                 var filteredPops = filteredPopsStr ? filteredPopsStr.split(";") : [];
                 const popUnableToStartStr = getStoredValue(HHStoredVarPrefixKey + TK.PopUnableToStart);
                 var popUnableToStart = popUnableToStartStr ? popUnableToStartStr.split(";") : [];
-                //logHHAuto("filteredPops : "+filteredPops);
                 var PopToStart = [];
                 $("div.pop_thumb[status='pending_reward']").each(function () {
                     var pop_id = $(this).attr('pop_id') || '';
@@ -16045,7 +15970,6 @@ class PlaceOfPower {
             const thisScore = Math.min(1, ((xValue) * ((1 / Math.sqrt(theseGirls.length)) + 0.28)));
             // const thisScore = Math.min(1, ( (1 - Math.pow(xValue, theseGirls.length)) / (1 - Math.pow(xValue, kValue))));
             // if (debugEnabled) {
-            //     logHHAuto("-----------------",
             //     {
             //         xValue: xValue,
             //         power: thisPower + ' / ' + powerText,
@@ -16139,7 +16063,6 @@ class QuestHelper {
         return mainQuestUrl;
     }
     static run() {
-        //logHHAuto("Starting auto quest.");
         // Check if at correct page.
         const page = getPage();
         const mainQuestUrl = QuestHelper.getMainQuestUrl();
@@ -16199,7 +16122,6 @@ class QuestHelper {
             rewardConfirm.first().trigger('click');
             return true;
         }
-        // Get the proceed button type
         var proceedButtonMatch = $("#controls button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])");
         if (proceedButtonMatch.length === 0) {
             // Choice button 
@@ -16210,7 +16132,6 @@ class QuestHelper {
             proceedButtonMatch = $("#controls button#free");
         }
         var proceedType = proceedButtonMatch.attr("id");
-        //console.log("DebugQuest proceedType : "+proceedType);
         if (proceedButtonMatch.length === 0) {
             logHHAuto("Could not find resume button.");
             return true;
@@ -16222,7 +16143,6 @@ class QuestHelper {
         if (proceedType === "free") {
             logHHAuto("Proceeding for free.");
             //setStoredValue"HHAuto_Temp_autoLoop", "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "pay") {
@@ -16232,9 +16152,7 @@ class QuestHelper {
             var energyCurrent = QuestHelper.getEnergy();
             var moneyCurrent = HeroHelper.getMoney();
             //let payType = $("#controls .cost span[cur]:not([style*='display:none']):not([style*='display: none'])").attr('cur');
-            //console.log("DebugQuest payType : "+payType);
             if (payTypeNRJ) {
-                // console.log("DebugQuest ENERGY for : "+proceedCost + " / " + energyCurrent);
                 if (proceedCost <= energyCurrent) {
                     // We have energy.
                     logHHAuto("Spending " + proceedCost + " Energy to proceed.");
@@ -16259,13 +16177,11 @@ class QuestHelper {
             }
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "use_item") {
             logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "battle") {
             logHHAuto("Quest need battle...");
@@ -16273,7 +16189,6 @@ class QuestHelper {
             // Proceed to battle troll.
             //proceedButtonMatch.click();
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
         }
         else if (proceedType === "finish") {
             logHHAuto("Reached end of current side quest. Proceeding to next.");
@@ -16281,7 +16196,6 @@ class QuestHelper {
         else if (proceedType === "end_archive") {
             logHHAuto("Reached end of current archive. Proceeding to next archive.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "end_play") {
@@ -16293,7 +16207,6 @@ class QuestHelper {
             }
             logHHAuto("Reached end of current play. Proceeding to next play.");
             //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //logHHAuto("setting autoloop to false");
             //proceedButtonMatch.click();
         }
         else if (proceedType === "outfit") {
@@ -16371,7 +16284,6 @@ class ParanoiaService {
             for (var i of pSpendings.values()) {
                 spendingsRemaining += Number(i);
             }
-            //logHHAuto("Paranoia spending remaining : "+JSON.stringify(pSpendings,replacerMap));
             return spendingsRemaining;
         }
         else {
@@ -16421,7 +16333,6 @@ class ParanoiaService {
         const tempNextSwitch = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
         if (tempNextSwitch !== undefined && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
             toNextSwitch = Number((Number(tempNextSwitch) - new Date().getTime()) / 1000);
-            //if autoLeague is on
             if (LeagueHelper.isAutoLeagueActivated()) {
                 if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.challenge.next_refresh_ts'))) / Number(getHHVars('Hero.energies.challenge.seconds_per_point')));
@@ -16439,7 +16350,6 @@ class ParanoiaService {
                     }
                 }
             }
-            //if autoquest is on
             if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true"))) {
                 if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) === undefined) {
                     maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.quest.next_refresh_ts'))) / Number(getHHVars('Hero.energies.quest.seconds_per_point')));
@@ -16457,7 +16367,6 @@ class ParanoiaService {
                     }
                 }
             }
-            //if autoTrollBattle is on
             if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.fight.next_refresh_ts'))) / Number(getHHVars('Hero.energies.fight.seconds_per_point')));
                 currentEnergy = Troll.getEnergy();
@@ -16473,7 +16382,6 @@ class ParanoiaService {
                     logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
                 }
             }
-            //if autoSeason is on
             if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
                 const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus);
                 if (seasonFocus === "girl" || seasonFocus === "girlAndSkin") {
@@ -16495,7 +16403,6 @@ class ParanoiaService {
                     }
                 }
             }
-            //if autoPantheon is on
             if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true") {
                 maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.worship.next_refresh_ts'))) / Number(getHHVars('Hero.energies.worship.seconds_per_point')));
                 currentEnergy = Pantheon.getEnergy();
@@ -16576,7 +16483,6 @@ class ParanoiaService {
             else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
                 // manage wrong values in storage to avoid infinite loop
                 ParanoiaService.countParanoiaLoop++;
-                // logHHAuto(`checkParanoiaSpendings() = ${checkParanoiaSpendings()}, reached ${ParanoiaService.countParanoiaLoop} times`);
                 if (ParanoiaService.countParanoiaLoop > ParanoiaService.MAX_LOOP) {
                     logHHAuto(`10 times flip without actions, clearParanoiaSpending and update (count: ${ParanoiaService.countParanoiaClear++}) `);
                     ParanoiaService.clearParanoiaSpendings();
@@ -16884,7 +16790,6 @@ class PentaDrill {
                 for (let currentTier = 0; currentTier < listPentaDrillTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='claim']", listPentaDrillTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
                     const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listPentaDrillTiersToClaim[currentTier])[0]);
                     if (rewardsToCollect.includes(freeSlotType)) {
                         if (isPassPaid) {
@@ -17379,21 +17284,18 @@ class LabyrinthRelic {
                 }
             }
             catch (err) {
-                // logHHAuto('ERROR: Can\'t find girl name');
             }
         }
         try {
             this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))[0]);
         }
         catch (err) {
-            // logHHAuto('ERROR: Can\'t find reward value');
         }
         try {
             const classes = slot.find('.team-relic-icon').children().first().attr('class');
             this.element = classes.substring(0, classes.indexOf('_element_relic_icn'));
         }
         catch (err) {
-            // logHHAuto('ERROR: Can\'t find reward element');
         }
     }
 }
@@ -17800,7 +17702,6 @@ class Labyrinth {
         const timerRequest = `.cleared-labyrinth-container:visible .labyrinth-timer span[rel=expires]`;
         if ($(timerRequest).length > 0) {
             const labyrinthTimer = Number(convertTimeToInt($(timerRequest).text()));
-            //logHHAuto('labyrinthTimer', labyrinthTimer);
             return labyrinthTimer;
         }
         logHHAuto('ERROR: can\'t get labyrinth reset time, default to maxCollectionDelay');
@@ -17961,12 +17862,10 @@ function createPInfo() {
             if (masterSwitch.checked === true) {
                 setStoredValue(HHStoredVarPrefixKey + SK.master, "false");
                 masterSwitch.checked = false;
-                //console.log("Master switch off");
             }
             else {
                 setStoredValue(HHStoredVarPrefixKey + SK.master, "true");
                 masterSwitch.checked = true;
-                //console.log("Master switch on");
             }
         });
         // Reactivate an auto-disabled block when the user clicks its [reactivate]
@@ -18005,7 +17904,6 @@ function createPInfo() {
     return pInfo;
 }
 function updateData() {
-    //logHHAuto("updating UI");
     document.querySelectorAll("div#sMenu input[pattern]").forEach(currentInput => {
         currentInput.checkValidity();
     });
@@ -19847,7 +19745,6 @@ class ClubChampion {
                         ticketUsed = Number($(ticketsUsedRequest)[0].innerText.replace(/[^0-9]/gi, ''));
                     }
                     const maxTickets = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoClubChampMax));
-                    //console.log(maxTickets, ticketUsed);
                     if (maxTickets > ticketUsed) {
                         logHHAuto("Let's do him!");
                         gotoPage(ConfigHelper.getHHScriptVars("pagesIDClubChampion"));
@@ -22130,10 +22027,7 @@ class PathOfAttraction {
                 for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                     obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
                     if (obj.length >= nbReward) {
-                        //console.log("scroll before : "+document.getElementById('rewards_cont_scroll').scrollLeft);
-                        //console.log("width : "+arrayz[i2].offsetWidth);
                         $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
-                        //console.log("scroll after : "+document.getElementById('rewards_cont_scroll').scrollLeft);arrayz[i2].style.display = "none";
                         arrayz[i2].style.display = "none";
                         modified = true;
                     }
@@ -22192,7 +22086,6 @@ class PathOfGlory {
         for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
             const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
             const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoGTiersToClaim[currentTier])[0]);
             if (rewardsToCollect.includes(freeSlotType)) {
                 const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoGTiersToClaim[currentTier]);
@@ -22322,7 +22215,6 @@ class PathOfValue {
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
             const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
             const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
             if (rewardsToCollect.includes(freeSlotType)) {
                 const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);
@@ -22487,7 +22379,6 @@ class SeasonalEvent {
                 SeasonalEvent.getRemainingTime();
                 const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
                 const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
-                // logHHAuto("Seasonal end in " + seasonalEventEnd);
                 const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true");
                 const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true");
                 const seasonalTierQuery = "#home_tab_container div.bottom-container div.right-part-container div.mega-progress-bar-tiers div.mega-tier.unclaimed";
@@ -22513,7 +22404,6 @@ class SeasonalEvent {
                     for (let currentTier = 0; currentTier < listSeasonalEventTiersToClaim.length; currentTier++) {
                         const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
                         const currentTierNb = currentButton.getAttribute("tier");
-                        //console.log("checking tier : "+currentTierNb);
                         const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery, listSeasonalEventTiersToClaim[currentTier])[0]);
                         if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll) {
                             if (isPassPaid) {
@@ -23703,7 +23593,6 @@ class Shop {
                             itemsLockStatus = "allLocked";
                         }
                         else {
-                            //some locked
                             itemsLockStatus = "someLocked";
                         }
                         itemsListMenu += '   <td class="tItemsTdItems" itemsLockStatus="' + itemsLockStatus + '" menuSellFilter="c:' + c + ';t:' + t + ';r:' + r + '"' + '>' + displayNb + '</td>';
@@ -23949,7 +23838,6 @@ class Shop {
             logHHAuto('start selling common, rare and epic stuff');
             $("#menuSellHide").css("display", "none");
             $("#menuSoldHide").css("display", "block");
-            // Scroll to top
             $('#player-inventory').animate({ scrollTop: 0 });
             var initialNumberOfItems = $(itemsQuery).length;
             var itemsToSell = Number(document.getElementById("menuSellNumber").value);
@@ -23985,7 +23873,6 @@ class Shop {
                     sellingEnd(getTextForUI("menuSoldMessageErrorLoaded", "elementText"));
                     return;
                 }
-                //console.log(initialNumberOfItems,currentNumberOfItems);
                 if ((initialNumberOfItems - currentNumberOfItems) >= itemsToSell) {
                     logHHAuto('Reach wanted sold items.');
                     sellingEnd(getTextForUI("menuSoldMessageReachNB", "elementText"));
@@ -24033,7 +23920,6 @@ class Shop {
                         }
                         const indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
                         if (indexType === -1) {
-                            //console.log('can_sell2');
                             availebleItems[i4].setAttribute('canBeSold', '');
                         }
                         else {
@@ -25551,7 +25437,6 @@ class TeamModule {
             }
             const currentPage = window.location.pathname + window.location.search;
             // change referer
-            //logHHAuto('change referer to ' + '/characters/' + girlId);
             window.history.replaceState(null, '', addNutakuSession('/characters/' + girlId));
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
@@ -25559,7 +25444,6 @@ class TeamModule {
             getHHAjax()(params1, function (data) {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
-                //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage));
                 if (callback && typeof callback === 'function') {
                     callback();
@@ -25755,7 +25639,6 @@ class TeamModule {
                 logHHAuto(`Performing equip action for girl ${girlId} (${index + 1}/${girlIds.length})`);
                 $(`.team-member-container[data-girl-id="${girlId}"]`).addClass('selected');
                 // change referer
-                //logHHAuto('change referer to ' + '/characters/' + girlId);
                 window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=equipment'));
                 var params1 = {
                     action: "girl_equipment_equip_all",
@@ -25775,7 +25658,6 @@ class TeamModule {
                     else {
                         $("#EquipAll").removeAttr('disabled');
                         // change referer
-                        //logHHAuto('change referer back to ' + currentPage);
                         window.history.replaceState(null, '', addNutakuSession(currentPage));
                         // C1: safeReload(delay) replaces setTimeout + reload
                         // with mutex + waitForAjaxIdle protection.
@@ -25910,10 +25792,8 @@ class TeamModule {
         logHHAuto("setting autoloop to false");
         function selectFromHaremBest(i, best) {
             const girlToSelect = best ? i : i + 7;
-            //console.log(i,girlToSelect,best);
             const selectedGirl = $('#contains_all section ' + ConfigHelper.getHHScriptVars("IDpanelEditTeam") + ' .harem-panel .panel-body .topNumber[position="' + girlToSelect + '"]');
             selectedGirl.click();
-            //console.log(selectedGirl);
             if ($('.topNumber').length > girlToSelect && i < 7) {
                 setTimeout(function () { assignToTeam(i + 1, best); }, randomInterval(300, 600));
             }
@@ -25933,7 +25813,6 @@ class TeamModule {
             const position = i - 1;
             const selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="' + position + '"]');
             selectedPosition.click();
-            //console.log(selectedPosition);
             setTimeout(function () { selectFromHaremBest(i, best); }, randomInterval(300, 600));
         }
         const topNumbers = $('.topNumber');
@@ -25978,7 +25857,6 @@ class TeamModule {
         const playerLevel = Number(HeroHelper.getLevel());
         const rawClass = Number(HeroHelper.getClass());
         const playerClass = (rawClass === 1 || rawClass === 2 || rawClass === 3) ? rawClass : 1;
-        // Map availableGirls (raw game data) to the GirlData interface.
         const girls = availableGirls.map(g => TeamModule.mapAvailableGirl(g));
         // Candidates for the clicked mode, strongest stat sum first. The
         // first one is the classic pick; the rest differ mostly in how many
@@ -26306,7 +26184,6 @@ class TeamModule {
         }).join(', ');
         const traitEmoji = TeamModule.TRAIT_EMOJI[teamResult.traitCategory] || '';
         const tier3Pct = (teamResult.tier3Bonus * 100).toFixed(1);
-        // Resolve trait value to a human label
         const traitResolved = TraitMappings.resolve(teamResult.traitCategory, teamResult.traitValue);
         const traitDisplay = traitResolved.label;
         // Active blessings the picker considered. Comes straight from
@@ -27263,7 +27140,6 @@ function CheckSpentPoints() {
     if (oldValues !== -1) {
         const spent = {};
         for (const i of Object.keys(newValues)) {
-            //console.log(i);
             if (oldValues[i] - newValues[i] > 0) {
                 spent[i] = oldValues[i] - newValues[i];
                 ParanoiaService.updatedParanoiaSpendings(i, spent[i]);
@@ -27316,7 +27192,6 @@ function autoLoop() {
         const currentPower = Troll.getEnergy();
         var burst = getBurst();
         switchHHMenuButton(burst);
-        //console.log("burst : "+burst);
         checkAndClosePopup(burst);
         const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
         // Create shared context for action handlers
@@ -27381,7 +27256,6 @@ function autoLoop() {
         }
         if (ctx.busy === false && burst && !isUserPauseActive() && ctx.lastActionPerformed !== "none") {
             ctx.lastActionPerformed = "none";
-            // logHHAuto("no action performed in this loop, rest lastActionPerformed");
         }
         if (ctx.lastActionPerformed !== getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
             logHHAuto("lastActionPerformed changed to " + ctx.lastActionPerformed);
@@ -27464,7 +27338,6 @@ class DoublePenetration {
                 for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
                     const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
                     if (needToCollectAll) {
                         logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
                         buttonsToCollect.push(currentButton);
@@ -28366,7 +28239,6 @@ class EventModule {
             sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
         }
         else {
-            //console.log(JSON.stringify(eventChamps));
             eventChamps = eventChamps.filter(function (a) {
                 if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
                     return false;
@@ -28468,7 +28340,6 @@ class EventModule {
                 }
                 if (queryEventTabCheck.attr('parsed') !== undefined) {
                     if (!EventModule.checkEvent(eventID)) {
-                        //logHHAuto("Events already parsed.");
                         return false;
                     }
                 }
@@ -28552,7 +28423,6 @@ class EventModule {
                                 }
                                 return a_weighted - b_weighted;
                             });
-                            //logHHAuto({log:"Sorted EventGirls",eventGirlz:eventsGirlz});
                         }
                         setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
                         EventModule.saveEventGirl(eventsGirlz[0]);
@@ -28876,7 +28746,6 @@ class EventModule {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                 obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward) {
-                    //console.log("width : "+arrayz[i2].offsetWidth);
                     //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     modified = true;
@@ -28987,7 +28856,6 @@ class EventModule {
                 logHHAuto("No double penetration event found, deactivate collect.");
                 setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
             }
-            // LivelyScene
             parseForEventId(livelySceneEventQuery, eventIDs);
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0) {
                 logHHAuto("No Lively Scene event found, deactivate collect.");
@@ -29048,11 +28916,9 @@ class RewardHelper {
         let reward = "undetected";
         if (inSlot && ((_a = inSlot.className) === null || _a === void 0 ? void 0 : _a.indexOf('slot')) >= 0) {
             if (inSlot.getAttribute("cur") !== null) {
-                //console.log(currentIndicator+" : "+inSlot.getAttribute("cur"));
                 reward = inSlot.getAttribute("cur");
             }
             else if (inSlot.className.indexOf('slot_avatar') >= 0) {
-                //console.log(currentIndicator+" : avatar");
                 if (inSlot.className.indexOf('girl_ico') >= 0) {
                     reward = 'girl_shards';
                 }
@@ -29067,7 +28933,6 @@ class RewardHelper {
                 reward = 'random_girl_shards'; // Random girl shards
             }
             else if (inSlot.className.indexOf('mythic') >= 0) {
-                //console.log("mythic equipment");
                 reward = 'mythic';
             }
             else if (inSlot.className.indexOf('slot_scrolls_') >= 0) {
@@ -29078,7 +28943,6 @@ class RewardHelper {
             }
             else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
                 const objectData = $(inSlot).data("d");
-                //console.log(currentIndicator+" : "+inSlot.getAttribute("rarity")+" "+objectData.item.type+" "+objectData.item.value);
                 reward = objectData.item.type;
             }
             else {
@@ -29091,10 +28955,8 @@ class RewardHelper {
             }
         }
         else if (inSlot && ((_b = inSlot.className) === null || _b === void 0 ? void 0 : _b.indexOf('shards_girl_ico')) >= 0) {
-            //console.log(currentIndicator+" : shards_girl_ico");
             reward = 'girl_shards';
         }
-        //console.log(reward);
         return reward;
     }
     static getRewardTypeByData(inData) {
@@ -29111,7 +28973,6 @@ class RewardHelper {
                 reward = "potion";
             }
         }
-        //console.log(reward);
         return reward;
     }
     static getRewardQuantityByType(rewardType, inSlot) {
@@ -29885,7 +29746,6 @@ class Troll {
             logHHAuto(`Fighting troll N°${TTF}, ${trollz[Number(TTF)]}`);
             // Battles the latest boss.
             // Navigate to latest boss.
-            //console.log(getPage());
             if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF)) {
                 // On the battle screen.
                 yield Troll.CrushThemFights();
@@ -29906,7 +29766,6 @@ class Troll {
     static CrushThemFights() {
         return Troll_awaiter(this, void 0, void 0, function* () {
             if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
-                // On battle page.
                 logHHAuto("On Pre battle page.");
                 const TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
                 const trollz = ConfigHelper.getHHScriptVars("trollzList");
@@ -30126,7 +29985,6 @@ class Troll {
                             return;
                         }
                         logHHAuto("Crushing: " + trollz[Number(TTF)]);
-                        //console.log(battleButton);
                         //replaceCheatClick();
                         checkPreviousFightDone();
                         setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
@@ -30192,7 +30050,6 @@ class Troll {
             setHHVars('Hero.infos.hc_confirm', true);
             // We have the power.
             //replaceCheatClick();
-            //console.log($("plus[type='energy_fight']"), canBuyResult.price,canBuyResult.type, canBuyResult.max);
             Hero.recharge($("button.orange_text_button.manual-recharge"), canBuyResult.type, canBuyResult.toBuy, canBuyResult.price);
             setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
             logHHAuto('Recharged up to ' + canBuyResult.max + ' fights for ' + canBuyResult.price + ' kobans.');
@@ -31424,7 +31281,6 @@ function switchHHMenuButton(isActive) {
 class Market {
     static doShopping() {
         try {
-            //logHHAuto("Go shopping");
             const Hero = getHero();
             var MS = 'carac' + HeroHelper.getClass();
             var SS1 = 'carac' + (HeroHelper.getClass() % 3 + 1);
@@ -31517,7 +31373,6 @@ class Market {
                 }
             }
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoAffW) === "true" && HaveAff < MaxAff) {
-                //logHHAuto('gifts');
                 Was = shop[2].length;
                 var allGiftsPriceSc = 0;
                 for (let n2 = shop[2].length - 1; n2 >= 0; n2--) {
@@ -31553,7 +31408,6 @@ class Market {
                 }
                 else {
                     for (let n2 = shop[2].length - 1; n2 >= 0; n2--) {
-                        //logHHAuto({log:'wanna buy ',Object:shop[2][n2]});
                         if (money >= Aff + Number(shop[2][n2].price_buy) && money >= Number(shop[2][n2].price_buy) && shop[2][n2].item.currency == "sc") // "sc" for soft currency = money, "hc" for hard currency = kobans
                          {
                             logHHAuto({ log: 'Buying : ', Object: shop[2][n2] });
@@ -31586,7 +31440,6 @@ class Market {
                 }
             }
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoExpW) === "true" && HaveExp < MaxExp) {
-                //logHHAuto('books');
                 Was = shop[3].length;
                 var allPotionPriceSc = 0;
                 for (let n3 = shop[3].length - 1; n3 >= 0; n3--) {
@@ -31622,7 +31475,6 @@ class Market {
                 }
                 else {
                     for (let n3 = shop[3].length - 1; n3 >= 0; n3--) {
-                        //logHHAuto('wanna buy ',shop[3][n3]);
                         if (money >= Exp + Number(shop[3][n3].price_buy) && money >= Number(shop[3][n3].price_buy) && shop[3][n3].item.currency == "sc") // "sc" for soft currency = money, "hc" for hard currency = kobans
                          {
                             logHHAuto({ log: 'Buying : ', Object: shop[3][n3] });
@@ -31890,9 +31742,7 @@ class Missions {
             // traverse slots
             $.each(slots, function (idx, slotDiv) {
                 var reward = new MissionRewards();
-                // get slot class list
                 reward.classList = slotDiv.classList;
-                // set reward type
                 if (reward.classList.contains("slot_xp"))
                     reward.type = "xp";
                 else if (reward.classList.contains("slot_soft_currency"))
@@ -31912,7 +31762,6 @@ class Missions {
                         logHHAuto(slotDiv);
                     }
                 }
-                // set item details if item
                 else if (reward.type === "item") {
                     try {
                         reward.data = $.data(slotDiv).d;
@@ -33562,7 +33411,6 @@ class StartService {
     static checkVersion() {
         const previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
         if (previousScriptVersion != GM.info.script.version) {
-            // run action on new script version
             logHHAuto(`New script version detected from ${previousScriptVersion} to ${GM.info.script.version}`);
             setStoredValue(HHStoredVarPrefixKey + TK.scriptversion, GM.info.script.version);
             // +Raid Stars migration handled below (outside version check)
@@ -33611,7 +33459,6 @@ function StartService_setDefaults(force = false) {
         if (HHStoredVars[i].storage !== undefined) {
             const storageItem = getStorageItem(HHStoredVars[i].storage);
             let isInvalid = false;
-            //console.log(storageItem[i], storageItem[i] !== undefined);
             if (HHStoredVars[i].isValid !== undefined && storageItem[i] !== undefined) {
                 isInvalid = !HHStoredVars[i].isValid.test(storageItem[i]);
                 if (isInvalid) {
@@ -33879,7 +33726,6 @@ function start() {
     hhAutoMenu.createMenuButton();
     addEventsOnMenuItems();
     $("#showTooltips").on("change", () => {
-        //console.log(this.checked);
         if ($("#showTooltips")[0].checked) {
             enableToolTipsDisplay(true);
         }
@@ -34065,11 +33911,9 @@ function start() {
         Alive();
     }
     if (((_b = getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 }).page) === null || _b === void 0 ? void 0 : _b.indexOf(".html")) > 0) {
-        //console.log("testingHome : setting to : "+getPage());
         setStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled, JSON.stringify({ page: getPage(), dateTime: new Date().getTime() }));
     }
     if (getStoredJSON(HHStoredVarPrefixKey + TK.LastPageCalled, { page: '', dateTime: 0 }).page === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-        //console.log("testingHome : delete");
         deleteStoredValue(HHStoredVarPrefixKey + TK.LastPageCalled);
     }
     // getPage() is a pure read, so a bootstrap has to opt into halting on a
@@ -35232,7 +35076,6 @@ class HaremSalary {
                     const salaryButton = HaremSalary.getSalaryButton();
                     const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style") === "display: none;");
                     if (!salaryToCollect) {
-                        //logHHAuto("No salary to collect");
                         setTimer('nextSalaryTime', randomInterval(60, 180));
                     }
                     else {
@@ -35313,7 +35156,6 @@ class GenericBattle {
             else if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollBattle")) {
                 const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
                 const troll_id = queryStringGetParam(window.location.search, 'id_opponent');
-                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
                 if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable)) {
                     setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, "false");
                 }
@@ -35792,7 +35634,6 @@ const handleShop = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        // lastActionPerformed continuation gate.
         if (ctx.lastActionPerformed !== 'none' && ctx.lastActionPerformed !== 'shop')
             return false;
         // The inner trigger belongs in the precondition, not in the step: the

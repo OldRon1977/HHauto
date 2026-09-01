@@ -355,7 +355,6 @@ export class Labyrinth {
 
         if ($(timerRequest).length > 0) {
             const labyrinthTimer = Number(convertTimeToInt($(timerRequest).text()));
-            //logHHAuto('labyrinthTimer', labyrinthTimer);
             return labyrinthTimer;
         }
         logHHAuto('ERROR: can\'t get labyrinth reset time, default to maxCollectionDelay');

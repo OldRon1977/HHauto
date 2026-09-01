@@ -22,7 +22,6 @@ export class Market {
     static doShopping() {
         try
         {
-            //logHHAuto("Go shopping");
             const Hero=getHero();
             var MS = 'carac' + HeroHelper.getClass();
             var SS1 = 'carac' + (HeroHelper.getClass() % 3 + 1);
@@ -130,7 +129,6 @@ export class Market {
 
             if (getStoredValue(HHStoredVarPrefixKey+SK.autoAffW) ==="true" && HaveAff<MaxAff)
             {
-                //logHHAuto('gifts');
                 Was=shop[2].length;
                 var allGiftsPriceSc = 0;
                 for (let n2=shop[2].length-1;n2>=0;n2--)
@@ -169,7 +167,6 @@ export class Market {
                 } else {
                     for (let n2=shop[2].length-1;n2>=0;n2--)
                     {
-                        //logHHAuto({log:'wanna buy ',Object:shop[2][n2]});
                         if (money>=Aff+Number(shop[2][n2].price_buy) && money>=Number(shop[2][n2].price_buy) && shop[2][n2].item.currency == "sc") // "sc" for soft currency = money, "hc" for hard currency = kobans
                         {
                             logHHAuto({log:'Buying : ',Object:shop[2][n2]});
@@ -205,7 +202,6 @@ export class Market {
             }
             if (getStoredValue(HHStoredVarPrefixKey+SK.autoExpW) ==="true" && HaveExp<MaxExp)
             {
-                //logHHAuto('books');
                 Was=shop[3].length;
                 var allPotionPriceSc = 0;
                 for (let n3=shop[3].length-1;n3>=0;n3--)
@@ -244,7 +240,6 @@ export class Market {
                 } else {
                     for (let n3=shop[3].length-1;n3>=0;n3--)
                     {
-                        //logHHAuto('wanna buy ',shop[3][n3]);
                         if (money>=Exp+Number(shop[3][n3].price_buy) && money>=Number(shop[3][n3].price_buy) && shop[3][n3].item.currency == "sc") // "sc" for soft currency = money, "hc" for hard currency = kobans
                         {
                             logHHAuto({log:'Buying : ',Object:shop[3][n3]});

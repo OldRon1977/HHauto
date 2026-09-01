@@ -152,7 +152,6 @@ export class LeagueHelper {
         if((opponentGoButton.length <= 0 || $('.powerLevelScouter',opponentGoButton).length > 0) && !force) {
             return;
         }
-        // logHHAuto('powerLevelScouter not present adding it ' + id_fighter);
 
         const percentage = NumberHelper.nRounding(100*simu.win, 2, -1);
         const points = NumberHelper.nRounding(simu.expectedValue, 1, -1);
@@ -204,7 +203,6 @@ export class LeagueHelper {
         const humanLikeRun = getStoredValue(HHStoredVarPrefixKey+TK.LeagueHumanLikeRun) === "true";
         const league_end = LeagueHelper.getLeagueEndTime();
         if (league_end > 0 && league_end <= (60*60)) {
-            // Last league hour //TODO
             logHHAuto("Last League hour");
         }
         const energy = LeagueHelper.getEnergy();
@@ -272,7 +270,6 @@ export class LeagueHelper {
             {
                 if (allOpponentsSimDisplayed)
                 {
-                    // logHHAuto("Stop simu");
                     return;
                 }
                 if (debugEnabled) logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
@@ -359,12 +356,10 @@ export class LeagueHelper {
                 const items = $('.data-row.body-row:visible',league_table).map((i, el) => el).toArray();
                 items.sort(function(a, b)
                         {
-                    //console.log($('#HHPowerCalcScore',$(a)));
                     const score_a = $('#HHPowerCalcScore',$(a)).length===0?0:Number($('#HHPowerCalcScore',$(a))[0].innerText);
                     const score_b = $('#HHPowerCalcScore',$(b)).length===0?0:Number($('#HHPowerCalcScore',$(b))[0].innerText);
                     const points_a = $('#HHPowerCalcPoints',$(a)).length===0?0:Number($('#HHPowerCalcPoints',$(a))[0].innerText);
                     const points_b = $('#HHPowerCalcPoints',$(b)).length===0?0:Number($('#HHPowerCalcPoints',$(b))[0].innerText);
-                    //console.log(score_a,score_b,points_a,points_b);
                     if (score_b === score_a)
                     {
                         return points_b-points_a;
@@ -627,7 +622,6 @@ export class LeagueHelper {
 
     static doLeagueBattle() {
         try{
-        //logHHAuto("Performing auto leagues.");
         // Confirm if on correct screen.
         const currentPower = LeagueHelper.getEnergy();
         const maxLeagueRegen = LeagueHelper.getEnergyMax();

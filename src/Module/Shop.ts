@@ -330,7 +330,6 @@ export class Shop {
                         }
                         else
                         {
-                            //some locked
                             itemsLockStatus="someLocked";
                         }
     
@@ -627,7 +626,6 @@ export class Shop {
             $("#menuSellHide").css("display","none");
             $("#menuSoldHide").css("display","block");
 
-            // Scroll to top
             $('#player-inventory').animate({scrollTop: 0});
             var initialNumberOfItems = $(itemsQuery).length;
             var itemsToSell = Number((<HTMLInputElement>(<HTMLInputElement>document.getElementById("menuSellNumber"))).value);
@@ -667,7 +665,6 @@ export class Shop {
                     sellingEnd(getTextForUI("menuSoldMessageErrorLoaded","elementText"));
                     return;
                 }
-                //console.log(initialNumberOfItems,currentNumberOfItems);
                 if ((initialNumberOfItems - currentNumberOfItems) >= itemsToSell) {
                     logHHAuto('Reach wanted sold items.');
                     sellingEnd(getTextForUI("menuSoldMessageReachNB","elementText"));
@@ -721,7 +718,6 @@ export class Shop {
     
                         if (indexType === -1)
                         {
-                            //console.log('can_sell2');
                             availebleItems[i4].setAttribute('canBeSold', '');
                         }
                         else

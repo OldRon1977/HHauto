@@ -268,7 +268,6 @@ export class PlaceOfPower {
             var filteredPops = filteredPopsStr ? filteredPopsStr.split(";") : [];
             const popUnableToStartStr = getStoredValue(HHStoredVarPrefixKey+TK.PopUnableToStart);
             var popUnableToStart = popUnableToStartStr ? popUnableToStartStr.split(";") : [];
-            //logHHAuto("filteredPops : "+filteredPops);
             var PopToStart:number[]=[];
             $("div.pop_thumb[status='pending_reward']").each(function()
                                                             {
@@ -601,7 +600,6 @@ export class PlaceOfPower {
             const thisScore = Math.min(1, ((xValue) * ((1 / Math.sqrt(theseGirls.length))+0.28)));
             // const thisScore = Math.min(1, ( (1 - Math.pow(xValue, theseGirls.length)) / (1 - Math.pow(xValue, kValue))));
             // if (debugEnabled) {
-            //     logHHAuto("-----------------",
             //     {
             //         xValue: xValue,
             //         power: thisPower + ' / ' + powerText,

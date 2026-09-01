@@ -102,7 +102,6 @@ export function CheckSpentPoints()
 
         for (const i of Object.keys(newValues))
         {
-            //console.log(i);
             if (oldValues[i]-newValues[i] >0)
             {
                 spent[i]=oldValues[i]-newValues[i];
@@ -171,7 +170,6 @@ export async function autoLoop()
 
     var burst=getBurst();
     switchHHMenuButton(burst);
-    //console.log("burst : "+burst);
     checkAndClosePopup(burst);
     const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey+TK.lastActionPerformed);
 
@@ -245,7 +243,6 @@ export async function autoLoop()
 
     if (ctx.busy === false && burst && !isUserPauseActive() && ctx.lastActionPerformed !== "none") {
         ctx.lastActionPerformed = "none";
-        // logHHAuto("no action performed in this loop, rest lastActionPerformed");
     }
     if (ctx.lastActionPerformed !== getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed)) {
         logHHAuto("lastActionPerformed changed to " + ctx.lastActionPerformed);

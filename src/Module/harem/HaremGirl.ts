@@ -130,7 +130,6 @@ export class HaremGirl {
         return new Promise((resolve) => {
             const maxOutButton = HaremGirl.getMaxOutAllButton(haremItem);
             if(maxOutButton.length > 0) {
-                //logHHAuto('Max out all ' + haremItem + ' for girl ' + girl.id_girl);
                 maxOutButton.trigger('click');
                 if (haremItem === HaremGirl.EXPERIENCE_TYPE) {
                     setTimeout( async () => {
@@ -515,7 +514,6 @@ export class HaremGirl {
             const canAwakeGirl = HaremGirl.canAwakeGirl();
             const girl: KKHaremGirl = HaremGirl.getCurrentGirl();
             const numberOfGem = unsafeWindow.player_gems_amount?.[girl.element]?.amount ?? 0;
-            //logHHAuto("moduleHaremGirl: " + girl.id_girl);
             logHHAuto("Current level : " + girl.level + ', max level without gems : ' + girl.level_cap);
             logHHAuto("Number of gem needed in next awakening : " + girl.awakening_costs +" / Gem in stock : " + numberOfGem);
             logHHAuto("Girl grade : " + girl.graded + '/' + girl.nb_grades);
@@ -684,7 +682,6 @@ export class HaremGirl {
                 const upgradeSkill = haremItem.indexOf(HaremGirl.SKILLS_TYPE) >= 0;
                 const upgradeEquipment = haremItem.indexOf(HaremGirl.EQUIPMENT_TYPE) >= 0;
                 const team: TeamData = getStoredJSON(HHStoredVarPrefixKey + TK.haremTeam, {} as TeamData);
-                //logHHAuto(`Team to upgrade (${haremItem})`, team);
 
 
                 let nextGirlId = -1;
@@ -781,9 +778,7 @@ export class HaremGirl {
             }
             if(skillButton.length > 0) {
                 const skillId = Number(skillButton.parents('.skill-upgrade-row').attr('skill-id') || -1);
-                //logHHAuto('Upgrading skill id: ' + skillId + ' targeting tier: ' + maxTier);
                 if(maxTier === 4 && skillId > 10) {
-                    //logHHAuto('Max tier for sub skills reached, stopping upgrade for this skill');
                     return Promise.resolve();
                 }
                 skillButton.trigger('click');

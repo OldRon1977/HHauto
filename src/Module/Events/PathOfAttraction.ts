@@ -313,10 +313,7 @@ export class PathOfAttraction {
                 for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                     obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
                     if (obj.length >= nbReward) {
-                        //console.log("scroll before : "+document.getElementById('rewards_cont_scroll').scrollLeft);
-                        //console.log("width : "+arrayz[i2].offsetWidth);
                         $("#events .nc-panel-body .scroll-area")[0].scrollLeft-=arrayz[i2].offsetWidth;
-                        //console.log("scroll after : "+document.getElementById('rewards_cont_scroll').scrollLeft);arrayz[i2].style.display = "none";
                         arrayz[i2].style.display = "none";
                         modified = true;
                     }

@@ -66,7 +66,6 @@ export function getCallerCallerFunction()
     try{
     console.log('Function ' + match![3] + ' at ' + match![4])
     }catch(err){}
-    //console.log(callerName);
     return callerName;
     //return getCallerCallerFunction.caller.caller.name
 }

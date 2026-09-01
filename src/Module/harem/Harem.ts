@@ -36,7 +36,6 @@ export class Harem {
 
     static clearHaremToolVariables()
     {
-        // logHHAuto('clearHaremToolVariables');
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
         deleteStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd);
@@ -66,7 +65,6 @@ export class Harem {
             girlsMap = Object.values(girlsMap);
             if (girlsMap.length > 0)
             {
-                //console.log(inSortType);
                 if (ConfigHelper.getHHScriptVars("haremSortingFunctions").hasOwnProperty(inSortType))
                 {
                     girlsMap.sort(ConfigHelper.getHHScriptVars("haremSortingFunctions")[inSortType]);
@@ -138,7 +136,6 @@ export class Harem {
         var gMap = getHHVars('girlsDataList');
         if (gMap === null) {
             // error
-            //logHHAuto("Girls Map was undefined...! Error, cannot export girls.");
         }
         else {
             return Object.values(gMap).find((girl: any) => Number(girl.id_girl) === Number(girlId)) as KKHaremGirl;
@@ -211,7 +208,6 @@ export class Harem {
                         dataToSave += gData.element + "\r\n";
 
                     }
-                    //            logHHAuto(dataToSave);
 
                 }
                 catch(exp){
@@ -360,7 +356,6 @@ export class Harem {
                             } else {
                                 return false;
                             }
-                            // logHHAuto(`Simulate reset skills for ${rarity} girl (${girlId}) for ${girls[girlId]} scrolls for a cost of ${cost/1000000}M. Player money: ${heroMoney}`);
                             // await TimeHelper.sleep(randomInterval(200, 400)); // wait open
                             if (scrollGot >= (team as any)['scrolls_' + rarity]) {
                                 if (debugEnabled) logHHAuto('Got enough ' + rarity + ' scrolls, stop resetting');
@@ -417,7 +412,6 @@ export class Harem {
         return new Promise((resolve) => {
             const currentPage = window.location.pathname + window.location.search;
             // change referer
-            //logHHAuto('change referer to ' + '/girl/' + girlId);
             window.history.replaceState(null, '', addNutakuSession('/girl/' + girlId + '?resource=skills') as string);
             var params1 = {
                 action: "girl_skills_reset",
@@ -425,7 +419,6 @@ export class Harem {
             };
             getHHAjax()!(params1, function (data: any) {
                 // change referer
-                //logHHAuto('change referer back to ' + currentPage);
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);
                 resolve(data.success || true);
             }, function (err: any) {
@@ -643,23 +636,19 @@ export class Harem {
                 let currentCost;
                 if (i === 0 && j === 0)
                 {
-                    //console.log("init 1");
                     currentCost = cost11;
                 }
                 else if ( j === 0 )
                 {
-                    //console.log("init -1");
                     currentCost = calculatedCosts[rarity[0]][0]*rarityFactors[i];
                 }
                 else
                 {
-                    //console.log("-1");
                     currentCost = currentRarityCosts[j-1]*gradeFactors[j];
                 }
 
                 currentRarityCosts[j] = currentCost;
             }
-            //console.log(current);
             calculatedCosts[rarity[i]] = currentRarityCosts;
         }
         return calculatedCosts[inRarity][inTargetGrade];

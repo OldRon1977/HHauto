@@ -121,7 +121,6 @@ let _cache;
 export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMPlayer, debugEnabled: boolean = false):BDSMSimu {
 
     if (debugEnabled) {
-        // logHHAuto('Running simulation against' + opponent.name, opponent);
         logHHAuto('Running simulation against' + opponent.name);
     }
 
@@ -212,7 +211,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         const baseAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
         const critAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
 
-        //Merge result
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
 
         // write cache
@@ -224,7 +222,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
     }
 
     function playerAttack(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, attack: any, turns: any): BDSMSimu {
-        //Player stunned
         if (playerStunned > 0) {
             playerStunned -= 1;
 
@@ -249,7 +246,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         playerShield = Math.max(0, playerShield - opponentReflectDmg);
         opponentReflect -= 1;
 
-        //Heal on hit
         const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
         playerHP = Math.min(_player.hp, playerHP + playerHeal);
 
@@ -277,13 +273,11 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         const baseAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
         const critAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
 
-        //Merge result
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
         return mergedResult;
     }
 
     function opponentAttack(playerHP: any, opponentHP: any, playerShield: any, opponentShield: any, playerStunned: any, opponentStunned: any, playerReflect: any, opponentReflect: any, attack: any, turns: any): BDSMSimu {
-        //Opponent stunned
         if (opponentStunned > 0) {
             opponentStunned -= 1;
 
@@ -309,7 +303,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         opponentShield = Math.max(0, opponentShield - playerReflectDmg);
         playerReflect -= 1;
 
-        //Heal on hit
         const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
         opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
 

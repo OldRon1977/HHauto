@@ -49,7 +49,6 @@ export class GenericBattle {
             {
                 const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
                 const troll_id:string = queryStringGetParam(window.location.search,'id_opponent') as string;
-                //console.log(Number(troll_id),Number(getHHVars('Hero.infos.questing.id_world'))-1,Number(troll_id) === Number(getHHVars('Hero.infos.questing.id_world'))-1);
                 if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true" && (Number(troll_id) === lastTrollIdAvailable))
                 {
                     setStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest, "false");

@@ -412,7 +412,6 @@ export class Troll {
 
         // Battles the latest boss.
         // Navigate to latest boss.
-        //console.log(getPage());
         if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF))
         {
             // On the battle screen.
@@ -435,7 +434,6 @@ export class Troll {
     static async CrushThemFights()
     {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
-            // On battle page.
             logHHAuto("On Pre battle page.");
             const TTF:number = Number(queryStringGetParam(window.location.search,'id_opponent'));
             const trollz = ConfigHelper.getHHScriptVars("trollzList");
@@ -708,7 +706,6 @@ export class Troll {
                         return;
                     }
                     logHHAuto("Crushing: "+trollz[Number(TTF)]);
-                    //console.log(battleButton);
                     //replaceCheatClick();
                     checkPreviousFightDone();
                     setStoredValue(HHStoredVarPrefixKey+TK.trollPoints, currentPower);
@@ -777,7 +774,6 @@ export class Troll {
             setHHVars('Hero.infos.hc_confirm',true);
             // We have the power.
             //replaceCheatClick();
-            //console.log($("plus[type='energy_fight']"), canBuyResult.price,canBuyResult.type, canBuyResult.max);
             Hero.recharge($("button.orange_text_button.manual-recharge"), canBuyResult.type, canBuyResult.toBuy, canBuyResult.price);
             setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
             logHHAuto('Recharged up to '+canBuyResult.max+' fights for '+canBuyResult.price+' kobans.');

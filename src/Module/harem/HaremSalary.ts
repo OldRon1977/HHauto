@@ -40,7 +40,6 @@ export class HaremSalary {
                 const salaryButton = HaremSalary.getSalaryButton();
                 const salaryToCollect = !(salaryButton.prop('disabled') || salaryButton.attr("style")==="display: none;");
                 if (!salaryToCollect) {
-                    //logHHAuto("No salary to collect");
                     setTimer('nextSalaryTime', randomInterval(60, 180));
                 }
                 else

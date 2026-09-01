@@ -215,9 +215,7 @@ export class Missions {
             // traverse slots
             $.each(slots, function (idx, slotDiv) {
                 var reward = new MissionRewards();
-                // get slot class list
                 reward.classList = slotDiv.classList;
-                // set reward type
                 if (reward.classList.contains("slot_xp")) reward.type = "xp";
                 else if (reward.classList.contains("slot_soft_currency")) reward.type = "money";
                 else if (reward.classList.contains("slot_hard_currency")) reward.type = "koban";
@@ -234,7 +232,6 @@ export class Missions {
                     }
                 }
 
-                // set item details if item
                 else if (reward.type === "item") {
                     try {
                         reward.data = $.data(slotDiv).d;

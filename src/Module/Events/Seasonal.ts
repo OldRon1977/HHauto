@@ -83,7 +83,6 @@ export class SeasonalEvent {
             SeasonalEvent.getRemainingTime();
             const isMegaSeasonalEvent = SeasonalEvent.isMegaSeasonalEvent();
             const seasonalEventEnd = getSecondsLeft("SeasonalEventRemainingTime");
-            // logHHAuto("Seasonal end in " + seasonalEventEnd);
             const needToCollect = (checkTimer('nextSeasonalEventCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollect) === "true")
             const needToCollectAllBeforeEnd = (checkTimer('nextSeasonalEventCollectAllTime') && seasonalEventEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoSeasonalEventCollectAll) === "true");
 
@@ -112,7 +111,6 @@ export class SeasonalEvent {
                 {
                     const currentButton = $("button[rel='claim']", listSeasonalEventTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
                     const freeSlotType = RewardHelper.getRewardTypeBySlot($(freeSlotQuery,listSeasonalEventTiersToClaim[currentTier])[0]);
                     if (rewardsToCollect.includes(freeSlotType) || needToCollectAllBeforeEnd || manualCollectAll)
                     {

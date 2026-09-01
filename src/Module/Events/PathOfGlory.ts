@@ -49,7 +49,6 @@ export class PathOfGlory {
         for (let currentTier = 0; currentTier < listPoGTiersToClaim.length; currentTier++) {
             const currentButton: HTMLElement = $("button[rel='claim']", listPoGTiersToClaim[currentTier])[0];
             const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
             const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoGTiersToClaim[currentTier])[0]);
             if (rewardsToCollect.includes(freeSlotType)) {
                 const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoGTiersToClaim[currentTier]);

@@ -50,7 +50,6 @@ export class PathOfValue {
         for (let currentTier = 0; currentTier < listPoVTiersToClaim.length; currentTier++) {
             const currentButton = $("button[rel='claim']", listPoVTiersToClaim[currentTier])[0];
             const currentTierNb = currentButton.getAttribute("tier");
-            //console.log("checking tier : "+currentTierNb);
             const freeSlotType = RewardHelper.getRewardTypeBySlot($(".free-slot .slot,.free-slot .shards_girl_ico", listPoVTiersToClaim[currentTier])[0]);
             if (rewardsToCollect.includes(freeSlotType)) {
                 const paidSlots = $(".paid-slots:not(.paid-locked) .slot,.paid-slots:not(.paid-locked) .shards_girl_ico", listPoVTiersToClaim[currentTier]);

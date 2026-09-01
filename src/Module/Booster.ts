@@ -437,7 +437,6 @@ export class Booster {
             }
         }
 
-        // Only return as many as there are free slots
         return boostersToEquip.slice(0, freeSlots);
     }
 
@@ -1216,7 +1215,6 @@ export class Booster {
                         Booster.setEquipCooldown(5 * 60);
                     }
                 } else {
-                    // Reset failure counter on success
                     logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: success, resetting failure counter");
                     setStoredValue(HHStoredVarPrefixKey + TK.sandalwoodFailure, 0);
                 }

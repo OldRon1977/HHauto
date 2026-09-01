@@ -78,7 +78,6 @@ export class DoublePenetration {
                 {
                     const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
                     const currentTierNb = currentButton.getAttribute("tier");
-                    //console.log("checking tier : "+currentTierNb);
                     if(needToCollectAll) {
                         logHHAuto("Adding for collection tier before end of event: "+currentTierNb);
                         buttonsToCollect.push(currentButton);

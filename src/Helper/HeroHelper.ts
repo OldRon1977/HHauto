@@ -37,7 +37,6 @@ export function getHero():KKHero
     if(unsafeWindow.shared?.Hero === undefined)
     {
         setTimeout(autoLoopKick, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)) || 1000);
-        //logHHAuto(window.wrappedJSObject)
     }
     // Historic contract: callers treat a missing Hero as "page not ready"
     // and bail out via the autoLoop retry above, so the declared return
@@ -55,7 +54,6 @@ let lastStatAttempt: { carac: number; value: number; ts: number } | null = null;
 export function doStatUpgrades()
 {
     //Stats?
-    //logHHAuto('stats');
     var Hero=getHero();
     var stats=[getHHVars('Hero.infos.carac1'),getHHVars('Hero.infos.carac2'),getHHVars('Hero.infos.carac3')];
     var money = HeroHelper.getMoney();
@@ -68,7 +66,6 @@ export function doStatUpgrades()
     var mults=[60,30,10,1];
     for (var car=0; car<3; car++)
     {
-        //logHHAuto('stat '+carac);
         var s=stats[carac-1];
         for (var mu=0;mu<5;mu++)
         {
@@ -79,7 +76,6 @@ export function doStatUpgrades()
             {
                 mp=price;
             }
-            //logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' price: '+price);
             if ((stats[carac-1]+mult)<=Limit && (money-price)>M && (carac==HeroHelper.getClass() || price<mp/2 || (MainStat+mult)>Limit))
             {
                 const nowTs = Date.now();
