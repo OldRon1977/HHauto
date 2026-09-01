@@ -7,6 +7,29 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.1 - Lively Scene collects more than one reward again
+
+Lively Scene **Collect all** claimed one reward, reloaded the page and stopped
+there. The automation had to be restarted for every further reward, and the
+manual button had to be pressed again after every reload (issue #1857, reported
+by Gargoso).
+
+One reward per loaded page is how the game works: closing the reward popup
+reloads the page, and the sweep has to be picked up again afterwards. Nothing
+did that. Collecting ran from the event parser, and the event parser reaches
+the page only when the automation pipeline visits it or when *Event* automation
+is switched on -- off in the reported profile. Collecting now also starts from
+the code that draws the *Collect all* button, which runs on every Lively Scene
+page load, the same way Path of Attraction resumes its own sweep.
+
+The pipeline stayed away as well: the parser booked the next visit an hour
+ahead before the first reward was claimed, and the event had 19 minutes left. A
+claim now puts the event back in front of the parser, so the pipeline returns
+and finishes the sweep even when another task takes it away in between. Only a
+claim that happened does this, so the number of extra visits cannot exceed the
+number of rewards. The parser also no longer schedules a visit beyond the end
+of the event.
+
 ### v8.11.0 - One field for which boosters to buy, and how many
 
 Buying boosters used to need two settings that had to agree with each other:

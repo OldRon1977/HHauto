@@ -14,6 +14,7 @@ import { KKEventGirl } from "../../model/KK/KKEventGirl";
 import { BossBang } from "./BossBang";
 import { CumbackContests } from "./CumbackContests";
 import { DoublePenetration } from "./DoublePenetration";
+import { markEventStale as markStaleInRegistry } from "./EventRegistry";
 import { KinkyCumpetition } from "./KinkyCumpetition";
 import { LivelyScene } from "./LivelyScene";
 import { MythicEvent } from "./MythicEvent";
@@ -399,19 +400,12 @@ export class EventModule {
     }
 
     /**
-     * Mark one event as due for a re-read (#1843).
-     *
-     * handleEventParsing picks up any event whose next_refresh has passed, so
-     * setting it to zero is enough to have the pipeline visit the event page on
-     * its next pass -- no extra navigation, and no effect on anyone who is not
-     * in the skin phase.
+     * Mark one event as due for a re-read (#1843). The registry write itself
+     * lives in EventRegistry.ts so LivelyScene can reach it without importing
+     * this module, which imports LivelyScene.
      */
     static markEventStale(eventId: string): void {
-        if (!eventId) return;
-        const list = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey + TK.eventsList, {});
-        if (!list || !list[eventId]) return;
-        list[eventId]["next_refresh"] = 0;
-        setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
+        markStaleInRegistry(eventId);
     }
 
     static getEventMythicGirl(): EventGirl{

@@ -4,8 +4,9 @@
 // scenes to earn rewards. This module tracks scene progression, manages
 // event energy, and collects available rewards automatically.
 //
-// Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, PageNavigationService
-// Used by: EventModule.ts (called when Lively Scene event is active)
+// Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, EventRegistry.ts
+// Used by: EventModule.ts (parse), AutoLoopPageHandlers.ts (run, on every
+//          event-page load)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
@@ -20,8 +21,10 @@ import { logHHAuto } from "../../Utils/LogUtils";
 import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
+import { queryStringGetParam } from "../../Helper/UrlHelper";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { KKPuzzlePieces } from "../../model/KK/KKPuzzlePieces";
+import { markEventStale } from "./EventRegistry";
 import {
     PuzzlePieceLite,
     decideCollectTrigger,
@@ -30,19 +33,21 @@ import {
 
 export class LivelyScene {
 
+    /** One collect sweep at a time per page load, see goAndCollect. */
+    static collecting = false;
+
     static isEnabled() {
         return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
     }
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
-        const refreshTimer = randomInterval(3600, 4000);
-
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        let remainingTime = 3600;
-        if (timeLeft !== undefined && timeLeft.length) {
-            remainingTime = Number(convertTimeToInt(timeLeft));
-        }
+        const remainingTime = LivelyScene.readRemainingTime();
+        // An event that ends before its own next_refresh is never looked at
+        // again: pruneExpiredEvents drops the entry as expired first. Keep the
+        // next visit inside the event, so rewards that unlock in the last hour
+        // are still reachable (#1857).
+        const refreshTimer = Math.min(randomInterval(3600, 4000), Math.max(Math.floor(remainingTime / 2), 60));
         setTimer('eventLivelySceneGoing', remainingTime);
 
         eventList[eventID] = {};
@@ -65,6 +70,46 @@ export class LivelyScene {
             LivelyScene.goAndCollect(remainingTime, manualCollectAll);
         }
 
+    }
+
+    /**
+     * Seconds left on the event, read from the page.
+     *
+     * 3600 when the timer is not on the page -- the value parse() has always
+     * defaulted to. Note that this is fail-open for the end-of-event sweep
+     * (3600 is below every collectAllTimer setting); it is kept as it was
+     * because no measurement says the element can be missing here.
+     */
+    static readRemainingTime(): number {
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft === undefined || !timeLeft.length) return 3600;
+        return Number(convertTimeToInt(timeLeft));
+    }
+
+    /**
+     * Pick the sweep up again on every event-page load.
+     *
+     * A claim ends in closeRewardPopupIfAny, which reloads the page, so one
+     * loaded DOM yields at most one reward. Continuing therefore has to happen
+     * after the reload -- and parse() cannot do it: it runs only when the
+     * pipeline visits the event page (handleEventParsing) or when plusEvent is
+     * on, because AutoLoopPageHandlers gates parseEventPage on that setting.
+     * run() runs on every event-page load, which is where Path of Attraction
+     * resumes its own sweep as well (#1816, #1857).
+     */
+    static async collectOnPageLoad() {
+        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
+        const remainingTime = LivelyScene.readRemainingTime();
+        const shouldTrigger = decideCollectTrigger({
+            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+            manualCollectAll,
+            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+            remainingTime,
+            limitBeforeEnd: getLimitTimeBeforeEnd(),
+        });
+        if (shouldTrigger) {
+            await LivelyScene.goAndCollect(remainingTime, manualCollectAll);
+        }
     }
 
     static parseClaimableRewards(remainingTime: number, manualCollectAll = false) {
@@ -93,6 +138,16 @@ export class LivelyScene {
 
     static async goAndCollect(remainingTime: number, manualCollectAll = false)
     {
+        // parse() and run() can both fire on the same page load -- the
+        // pipeline parses the event page the page handler has just drawn --
+        // and two sweeps would click the same puzzle pieces. The flag lives
+        // for one page load; the reload after a claim clears it.
+        if (LivelyScene.collecting) {
+            logHHAuto("LivelyScene collect already running on this page.");
+            return false;
+        }
+        LivelyScene.collecting = true;
+        let claimed = false;
         try {
             const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
             if (manualCollectAll) setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
@@ -114,6 +169,15 @@ export class LivelyScene {
                         if (currentCollectButton.length > 0) {
                             currentCollectButton.trigger('click');
                             await TimeHelper.sleep(randomInterval(400, 700));
+                            // Closing the popup reloads the page, so this DOM
+                            // yields no second claim. parse() has just booked
+                            // the event for an hour from now, which is what
+                            // kept the pipeline from coming back to finish the
+                            // sweep (#1857). Only on a claim that happened, so
+                            // the extra visits stay bounded by the number of
+                            // pieces and cannot become a reload loop (#1738).
+                            markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
+                            claimed = true;
                             RewardHelper.closeRewardPopupIfAny() // refresh;
                             await TimeHelper.sleep(randomInterval(400, 700));
                             return true;
@@ -132,6 +196,10 @@ export class LivelyScene {
             const message = err instanceof Error ? err.message : String(err);
             logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
             setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
+        } finally {
+            // After a claim the flag stays set: this DOM is spent, and the
+            // reload that the popup close starts clears it.
+            if (!claimed) LivelyScene.collecting = false;
         }
         return false;
     }
@@ -154,7 +222,7 @@ export class LivelyScene {
         });
     }
 
-    static run(){
+    static async run(){
         LivelyScene.displayCollectAllButton();
 
         if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
@@ -179,6 +247,8 @@ export class LivelyScene {
                 }
             }
         }
+
+        await LivelyScene.collectOnPageLoad();
     }
 
     static hasUnclaimedRewards(): boolean {
