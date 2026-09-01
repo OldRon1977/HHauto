@@ -107,7 +107,10 @@ Die `kobanUsing: true`-Flag bei einer Setting verknuepft sie zusaetzlich mit dem
 
 ---
 
-> **Code-Referenzen:** Wo jeder Key gelesen, geschrieben oder geloescht wird, dokumentiert data-sources-inventory.md Sektion 7 (vollstaendige Read/Write/Delete-Tabelle, automatisch aus Code regeneriert).
+> **Code-Referenzen:** Wo ein Key gelesen oder geschrieben wird, beantwortet ein
+> `grep` nach der SK-/TK-Konstante zuverlaessiger als eine gepflegte Tabelle. Eine
+> solche Tabelle stand bis 2026-09-01 in data-sources-inventory.md und war zu dem
+> Zeitpunkt neun Keys hinterher.
 
 ## SK -- Setting Keys (187 Konstanten)
 
