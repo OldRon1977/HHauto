@@ -206,11 +206,29 @@ without it collecting. Used this way in the #1846 verification: the run logged
 `Going to get {"tier":3,...}` and two intercepted clicks, and the reward stayed
 where it was.
 
+**Pin `Temp_scriptversion` to the bundle you inject.** Two builds in one run
+means the version changes on every switch, and `StartService.checkVersion` then
+calls `debugDeleteTempVars()` -- which wipes exactly the Temp vars a case just
+wrote, `Temp_lseManualCollectAll` and `Temp_eventsList` among them. Write the
+injected bundle's `@version` into `HHAuto_Temp_scriptversion` with the rest of
+the case setup and the wipe never fires.
+
+**A gate in shared code can be measured on another page.** The `plusEvent`
+switch in front of `parseEventPage` sits in `AutoLoopPageHandlers`, not in an
+event module, so it was measurable on a running Star Orgies event while no
+Lively Scene event existed (#1857): setting off, no `parsed` attribute on
+`#contains_all #events`; setting on, `parsed=true`, on both builds. What does
+*not* transfer that way is anything the event module itself reads -- its
+selectors, its collect path. Name which of the two a measurement covered.
+
 `~/.config/hhauto-claude/tools/live-collect-verify.js` does this out of the
 box: it opens a visible window, waits for the login, then runs a list of cases
 against two builds on the same live page with the click interception in place,
 and reports per case whether the collection gate was entered and whether a
-reward was touched. Both verdicts are derived from the console output rather
+reward was touched. `lse-collect-verify.js` beside it is the same idea for the
+Lively Scene page: it looks the event tab up itself and falls back to the
+shared-code measurement above (`FALLBACK_TAB`) when no such event runs.
+Both verdicts are derived from the console output rather
 than from page variables, so a navigation mid-run does not silently produce an
 empty result -- it is reported instead. Bundles, page URL and the containers to
 block are environment variables; build the comparison bundle with
