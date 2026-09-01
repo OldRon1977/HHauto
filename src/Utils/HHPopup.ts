@@ -59,7 +59,7 @@ export function fillHHPopUp(inClass:string,inTitle:string, inContent:string)
  * Registers a click handler on the close button and an Escape key listener
  * to hide the popup. Called once; after creation the popup is reused.
  */
-export function createHHPopUp()
+function createHHPopUp()
 {
     GM_addStyle('#HHAutoPopupGlobal.HHAutoOverlay { overflow: auto;  z-index:1000;   position: fixed;   top: 0;   bottom: 0;   left: 0;   right: 0;   background: rgba(0, 0, 0, 0.7);   transition: opacity 500ms;     display: flex;   align-items: center; }  '
     + '#HHAutoPopupGlobalPopup {   margin: auto;   padding: 20px;   background: #fff;   border-radius: 5px;   position: relative;   transition: all 5s ease-in-out; }  '

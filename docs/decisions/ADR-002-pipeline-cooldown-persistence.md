@@ -35,7 +35,7 @@ und müssen von Storage nichts wissen.
 **Wo das heute liegt:** `BlockPipeline.blockPorts` liest und schreibt den
 Schlüssel (`getLastRunAt` / `setLastRunAt`), `BlockScheduler` fragt ihn in
 `eligibility` ab. Die Entscheidung hat die Klasse überlebt, für die sie
-geschrieben wurde — `Scheduler.ts` läuft nicht mehr im Skript.
+geschrieben wurde: `Scheduler.ts` ist inzwischen gelöscht.
 
 ## Verworfene Alternativen
 

@@ -21,7 +21,7 @@
 // something nobody can win.
 
 /** One entry of `girl.preview.grade_skins_data`, as the game sends it. */
-export interface GradeSkin {
+interface GradeSkin {
     is_released?: boolean;
     is_owned?: boolean;
     shards_count?: number;

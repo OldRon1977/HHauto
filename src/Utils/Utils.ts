@@ -19,9 +19,6 @@ export function callItOnce(fn: () => any) {
 export function getHHAjax() {
     return unsafeWindow.shared?.general?.hh_ajax;
 }
-export function getLoadingAnimation() {
-    return window.shared?.animations?.loadingAnimation || { start: () => { }, stop: ()=>{}};
-}
 
 export function onAjaxResponse(pattern: any, callback: (response: any, opt: any, xhr: any, evt: any) => any) {
     $(document).ajaxComplete((evt, xhr, opt) => {
@@ -38,36 +35,7 @@ export function onAjaxResponse(pattern: any, callback: (response: any, opt: any,
     })
 }
 
-export function getCallerFunction()
-{
-    var stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
-    var callerName = stackTrace.replace(/^Error\s+/, ''); // Sanitize Chrome
-    callerName = callerName.split("\n")[1]; // 1st item is this, 2nd item is caller
-    callerName = callerName.replace(/^\s+at Object./, ''); // Sanitize Chrome
-    callerName = callerName.replace(/ \(.+\)$/, ''); // Sanitize Chrome
-    callerName = callerName.replace(/\@.+/, ''); // Sanitize Firefox
-    return callerName;
-}
 
-export function getCallerCallerFunction()
-{
-
-    const stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
-    let match
-    try {
-        match = stackTrace.match(/at Object\.(\w+) \((\S+)\)/);
-        match![1] // throw error if match is null
-    } catch {
-        // Firefox
-        match = stackTrace.match(/\n(\w+)@(\S+)/);
-    }
-    const [callerName, callerPlace] = [match![1], match![2]]
-
-    try{
-    console.log('Function ' + match![3] + ' at ' + match![4])
-    }catch(err){}
-    return callerName;
-}
 export function isFocused()
 {
     const docFoc = document.hasFocus();
@@ -96,10 +64,6 @@ export function replaceCheatClick()
 {
 }
 
-export function getCurrentSorting()
-{
-    return localStorage.sort_by;
-}
 
 
 export function myfileLoad_onChange(event: any)

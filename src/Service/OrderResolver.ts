@@ -5,9 +5,9 @@
 // settings export/import live in BlockPipeline.
 import { Block, BlockOrder, BlockRegistry, OrderConstraint } from "./BlockTypes";
 
-export type OrderWarningCode = 'inserted' | 'dropped' | 'fallback';
+type OrderWarningCode = 'inserted' | 'dropped' | 'fallback';
 
-export interface OrderWarning {
+interface OrderWarning {
   code: OrderWarningCode;
   message: string;
   blockId?: string;

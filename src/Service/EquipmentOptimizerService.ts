@@ -34,7 +34,7 @@ import type { ElementType, PlayerClass } from './TeamScoringService';
 /** Which hero stat a resonance bonus lands on. Read per item, never derived
  *  from the axis -- for player items `class` was seen on both `damage` and
  *  `ego`, `theme` on both `defense` and `chance`. */
-export type ResonanceTarget = 'damage' | 'ego' | 'defense' | 'chance';
+type ResonanceTarget = 'damage' | 'ego' | 'defense' | 'chance';
 
 /** The team's theme. "balanced" is a full theme, not the absence of one:
  *  items resonate on it with `identifier: null`. */
@@ -48,7 +48,7 @@ export interface ArmorCaracs {
     chance: number;
 }
 
-export interface ArmorResonance {
+interface ArmorResonance {
     /** class axis: the class number as a string ("1".."3").
      *  theme axis: the element name, or null for Balanced. */
     identifier: string | null;
@@ -111,7 +111,7 @@ const RESONANCE_PER_LEVEL_CHANCE = 0.2;
  *  silently turning "Possible Best" into nonsense. */
 const PROJECTION_TOLERANCE = 0.05;
 
-export interface SlotPick {
+interface SlotPick {
     slot: number;
     /** The item the button wants to wear. null when the slot has no
      *  candidate at all. */
@@ -150,7 +150,7 @@ export interface GearPlan {
 
 /** The item's class carac -- the one the game tracks as
  *  `primary_carac_amount`. The other two are off-class and feed defense. */
-export function classCarac(caracs: ArmorCaracs, playerClass: PlayerClass): number {
+function classCarac(caracs: ArmorCaracs, playerClass: PlayerClass): number {
     return playerClass === 1 ? caracs.carac1
         : playerClass === 2 ? caracs.carac2
         : caracs.carac3;
@@ -189,44 +189,6 @@ export function activeResonance(
     if (classMatches(item, playerClass)) total += item.classResonance!.bonus;
     if (themeMatches(item, theme)) total += item.themeResonance!.bonus;
     return total;
-}
-
-/**
- * An item's active resonance split by whether the effective-power model can
- * price it -- that is `TeamEvaluationService.computeEffectivePower()`, which
- * multiplies a damage term by an ego term.
- *
- * `damage` and `ego` multiply the two terms of the product, so they belong
- * inside the value. `defense` and `chance` do not appear in it at all -- they
- * are real bonuses this model cannot weigh, so they are kept apart instead of
- * being silently folded in or silently dropped.
- */
-export interface ResonanceSplit {
-    /** Percentage points landing on damage. */
-    damage: number;
-    /** Percentage points landing on ego. */
-    ego: number;
-    /** Percentage points landing on defense or chance -- outside the model. */
-    unpriced: number;
-}
-
-export function resonanceSplit(
-    item: ArmorItem,
-    playerClass: PlayerClass,
-    theme: GearTheme,
-    projected = false,
-): ResonanceSplit {
-    const out: ResonanceSplit = { damage: 0, ego: 0, unpriced: 0 };
-    const level = isUpgradable(item) ? MYTHIC_MAX_LEVEL : item.level;
-    const add = (res: ArmorResonance) => {
-        const pp = projected ? resonanceAtLevel(res, level) : res.bonus;
-        if (res.resonance === 'damage') out.damage += pp;
-        else if (res.resonance === 'ego') out.ego += pp;
-        else out.unpriced += pp;
-    };
-    if (classMatches(item, playerClass)) add(item.classResonance!);
-    if (themeMatches(item, theme)) add(item.themeResonance!);
-    return out;
 }
 
 /** The same sum, but with both axes scaled to max level. Used by Possible

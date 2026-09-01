@@ -45,13 +45,13 @@ import { getHHAjax } from '../Utils/Utils';
 import { ElementType } from './TeamScoringService';
 
 /** Team-side synergy bonus per girl of that element (game payload). */
-export const SYNERGY_PER_GIRL: Record<ElementType, number> = {
+const SYNERGY_PER_GIRL: Record<ElementType, number> = {
     darkness: 0.02, light: 0.02, psychic: 0.02, stone: 0.02, sun: 0.02,
     fire: 0.10, nature: 0.03, water: 0.03,
 };
 
 /** Cap on the team-side share (= seven girls of that element). */
-export const SYNERGY_MAX: Record<ElementType, number> = {
+const SYNERGY_MAX: Record<ElementType, number> = {
     darkness: 0.14, light: 0.14, psychic: 0.14, stone: 0.14, sun: 0.14,
     fire: 0.70, nature: 0.21, water: 0.21,
 };

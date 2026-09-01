@@ -6,7 +6,7 @@
 // Order of handler execution is given by the position in the `pipeline`
 // array below: first element runs first. Reordering = move a line.
 //
-// Used by: Scheduler.ts
+// Used by: BlockPipeline.ts (adapts these entries into Blocks)
 import { LeagueHelper } from "../Module/League";
 import { EventModule } from "../Module/Events/EventModule";
 import { Shop } from "../Module/Shop";
@@ -59,12 +59,12 @@ import { shouldRunStandardHandler } from "./AutoLoop.pure";
  * - 'always': can be interrupted at any point
  * - 'never': runs to completion (only SOFT-interrupt at safe points)
  */
-export type InterruptPolicy = 'always' | 'never';
+type InterruptPolicy = 'always' | 'never';
 
 /**
  * Result of a single pipeline step execution.
  */
-export type StepResult =
+type StepResult =
   // repeat: explicit slot-hold -- the scheduler re-runs the SAME step instead
   // of completing the run (passed through by BlockPipeline.applySlotHold,
   // issue #1796). Used where ctx.busy is not set but the block's session
@@ -78,7 +78,7 @@ export type StepResult =
 /**
  * A single step in a handler's execution chain.
  */
-export interface ChainStep {
+interface ChainStep {
   /** Human-readable step name for logging/debugging */
   name: string;
   /** Async function that performs the step. Receives the shared AutoLoop context. */
@@ -138,7 +138,7 @@ function isOnQuestPage(ctx: AutoLoopContext): boolean {
     || ctx.currentPage === 'side-quests';
 }
 
-export function fromDescriptor(
+function fromDescriptor(
   descriptor: ModuleHandlerDescriptor,
   opts: { minIntervalMs: number; atomic?: boolean; handlerName?: string; extraPrecondition?: (ctx: AutoLoopContext) => boolean },
 ): HandlerConfig {

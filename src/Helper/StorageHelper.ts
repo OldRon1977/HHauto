@@ -109,7 +109,7 @@ export function getStoredArray<T>(key: string): T[] {
  * is supposed to start fresh -- but it is not currently surfaced to
  * the user in the menu UI.
  */
-export function getStorage(): Storage
+function getStorage(): Storage
 {
     return getStoredValue(HHStoredVarPrefixKey+SK.settPerTab) === "true" ? sessionStorage : localStorage;
 }
@@ -249,7 +249,7 @@ function haveHHAutoSettings() {
     return have;
 }
 
-export function getUserHHStoredVarDefault(inVarName: string)
+function getUserHHStoredVarDefault(inVarName: string)
 {
     const currentDefaults = getStoredJSON<any>(HHStoredVarPrefixKey+SK.saveDefaults, null);
     if (currentDefaults !== null && currentDefaults[inVarName] !== undefined)

@@ -62,7 +62,7 @@ export function elementOf(item: ArmorItem): string | null {
 }
 
 /** Ordering inside one (slot, element) group. Lower sorts first = kept. */
-export function compareKeepCandidates(
+function compareKeepCandidates(
     a: ArmorItem,
     b: ArmorItem,
     playerClass: PlayerClass,

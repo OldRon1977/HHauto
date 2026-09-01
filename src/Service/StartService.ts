@@ -114,7 +114,7 @@ const COLD_START_THRESHOLD_MS = 60 * 1000;
 const COLD_START_DELAY_MS = 4000;
 const NORMAL_START_DELAY_MS = 1000;
 
-export class StartService {
+class StartService {
     static checkVersion()
     {
         const previousScriptVersion = getStoredValue(HHStoredVarPrefixKey + TK.scriptversion);
@@ -265,7 +265,7 @@ export function hardened_start()
 
 }
 
-export function start() {
+function start() {
 
     // Issue #1735: the userscript also runs in the non-game wrapper frame
     // whose pathname is "/". The game is always served under a real path

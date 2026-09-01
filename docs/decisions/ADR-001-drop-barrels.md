@@ -37,8 +37,8 @@ wirft es einen TDZ-ReferenceError und das ganze Userscript startet nicht
 Alle `index.ts`-Barrels unter `src/` löschen, jeden Import auf die Datei
 zeigen lassen, die das Symbol deklariert, und die Rückkehr per ESLint
 verbieten (`no-restricted-imports`, Gruppe `*/index` plus die Ordnerpfade).
-Der Codemod `scripts/drop-barrel-imports.mjs` hat die Umschreibung gemacht und
-bleibt als Werkzeug für spätere Audits im Baum.
+Die Umschreibung hat ein einmaliger ts-morph-Codemod gemacht; er ist nach
+getaner Arbeit wieder aus dem Baum geflogen.
 
 ## Verworfene Alternativen
 

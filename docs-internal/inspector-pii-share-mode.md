@@ -8,9 +8,6 @@ contributors who need to know what a public share-mode dump
 contains, what is missing on purpose, and how to verify a dump
 came through the pipeline.
 
-For the design history and rationale see
-`docs-internal/inspector-pii-hardening-plan.md`.
-
 ## What share-mode is
 
 Share mode is an opt-in anonymisation pipeline that runs on the

@@ -11,26 +11,14 @@
 // ---------------------------------------------------------------------------
 
 /** Base module – optional enable-check and run method */
-export interface IModuleStatic {
+interface IModuleStatic {
     isEnabled?(): boolean;
     isActivated?(): boolean;
 }
 
 /** Module with a run() entry-point */
-export interface IRunnableModuleStatic extends IModuleStatic {
+interface IRunnableModuleStatic extends IModuleStatic {
     run(): boolean | void | Promise<boolean | void>;
-}
-
-/** Module that supports collecting rewards */
-export interface ICollectableModuleStatic extends IModuleStatic {
-    goAndCollect(...args: any[]): boolean | void;
-}
-
-/** Battle module with energy and fight-timing */
-export interface IBattleModuleStatic extends IRunnableModuleStatic {
-    isTimeToFight(): boolean;
-    getEnergy(): number;
-    getEnergyMax?(): number;
 }
 
 // ---------------------------------------------------------------------------

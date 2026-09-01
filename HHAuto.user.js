@@ -7465,10 +7465,6 @@ function getHHAjax() {
     var _a, _b;
     return (_b = (_a = unsafeWindow.shared) === null || _a === void 0 ? void 0 : _a.general) === null || _b === void 0 ? void 0 : _b.hh_ajax;
 }
-function getLoadingAnimation() {
-    var _a, _b;
-    return ((_b = (_a = window.shared) === null || _a === void 0 ? void 0 : _a.animations) === null || _b === void 0 ? void 0 : _b.loadingAnimation) || { start: () => { }, stop: () => { } };
-}
 function onAjaxResponse(pattern, callback) {
     $(document).ajaxComplete((evt, xhr, opt) => {
         if (opt && opt.data && opt.data.search && ~opt.data.search(pattern)) {
@@ -7482,33 +7478,6 @@ function onAjaxResponse(pattern, callback) {
             return callback(responseData, opt, xhr, evt);
         }
     });
-}
-function getCallerFunction() {
-    var stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
-    var callerName = stackTrace.replace(/^Error\s+/, ''); // Sanitize Chrome
-    callerName = callerName.split("\n")[1]; // 1st item is this, 2nd item is caller
-    callerName = callerName.replace(/^\s+at Object./, ''); // Sanitize Chrome
-    callerName = callerName.replace(/ \(.+\)$/, ''); // Sanitize Chrome
-    callerName = callerName.replace(/\@.+/, ''); // Sanitize Firefox
-    return callerName;
-}
-function getCallerCallerFunction() {
-    const stackTrace = (new Error()).stack || ''; // Only tested in latest FF and Chrome
-    let match;
-    try {
-        match = stackTrace.match(/at Object\.(\w+) \((\S+)\)/);
-        match[1]; // throw error if match is null
-    }
-    catch (_a) {
-        // Firefox
-        match = stackTrace.match(/\n(\w+)@(\S+)/);
-    }
-    const [callerName, callerPlace] = [match[1], match[2]];
-    try {
-        console.log('Function ' + match[3] + ' at ' + match[4]);
-    }
-    catch (err) { }
-    return callerName;
 }
 function isFocused() {
     const docFoc = document.hasFocus();
@@ -7533,9 +7502,6 @@ function safeJsonParse(json, defaultValue, reviver) {
     }
 }
 function replaceCheatClick() {
-}
-function getCurrentSorting() {
-    return localStorage.sort_by;
 }
 function myfileLoad_onChange(event) {
     $('#LoadConfError')[0].innerText = ' ';
@@ -19940,24 +19906,6 @@ function activeResonance(item, playerClass, theme) {
     if (themeMatches(item, theme))
         total += item.themeResonance.bonus;
     return total;
-}
-function resonanceSplit(item, playerClass, theme, projected = false) {
-    const out = { damage: 0, ego: 0, unpriced: 0 };
-    const level = isUpgradable(item) ? MYTHIC_MAX_LEVEL : item.level;
-    const add = (res) => {
-        const pp = projected ? resonanceAtLevel(res, level) : res.bonus;
-        if (res.resonance === 'damage')
-            out.damage += pp;
-        else if (res.resonance === 'ego')
-            out.ego += pp;
-        else
-            out.unpriced += pp;
-    };
-    if (classMatches(item, playerClass))
-        add(item.classResonance);
-    if (themeMatches(item, theme))
-        add(item.themeResonance);
-    return out;
 }
 /** The same sum, but with both axes scaled to max level. Used by Possible
  *  Best, which ranks items by what they will be worth, not what they are. */
@@ -35092,7 +35040,7 @@ var Pipeline_config_awaiter = (undefined && undefined.__awaiter) || function (th
 // Order of handler execution is given by the position in the `pipeline`
 // array below: first element runs first. Reordering = move a line.
 //
-// Used by: Scheduler.ts
+// Used by: BlockPipeline.ts (adapts these entries into Blocks)
 
 
 

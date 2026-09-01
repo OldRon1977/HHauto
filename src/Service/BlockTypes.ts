@@ -24,7 +24,7 @@ export type BlockStepResult =
  * - 'wait':    the step waits for AJAX idle in the same page context.
  * - 'none':    a plain in-page step (default).
  */
-export type StepReloadKind = 'trigger' | 'wait' | 'none';
+type StepReloadKind = 'trigger' | 'wait' | 'none';
 
 /**
  * Smallest execution unit of a Block (one AJAX call, one click, one reload

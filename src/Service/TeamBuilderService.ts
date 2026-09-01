@@ -28,7 +28,7 @@ import {
 
 export type ScoringMode = 1 | 2;
 
-export type MythicAuditStatus = 'leader' | 'pos2to7' | 'excluded';
+type MythicAuditStatus = 'leader' | 'pos2to7' | 'excluded';
 
 export interface MythicAuditEntry {
     id_girl: number;
@@ -42,7 +42,7 @@ export interface MythicAuditEntry {
     reason?: string;
 }
 
-export interface TeamSlotInfo {
+interface TeamSlotInfo {
     id_girl: number;
     name: string;
     rarity: string;
@@ -109,7 +109,7 @@ export interface TeamResult {
 }
 
 /** What the game-side evaluation said about the fielded team. */
-export interface TeamEvaluationInfo {
+interface TeamEvaluationInfo {
     /** Number of candidate teams the game calculated stats for. */
     candidatesMeasured: number;
     /** Measured stats of the winning team. */

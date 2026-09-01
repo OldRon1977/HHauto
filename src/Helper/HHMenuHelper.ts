@@ -39,16 +39,12 @@ export { getMenu } from "./menu/MenuTemplate";
 export { applyMenuLayout, initMenuTabs } from "./menu/MenuTabs";
 export {
     hhButton,
-    hhMenuInput,
-    hhMenuInputWithImg,
     hhMenuSelect,
     hhMenuSwitch,
-    hhMenuSwitchWithImg,
 } from "./menu/MenuWidgets";
 export {
     addEventsOnMenuItems,
     getMenuValues,
-    preventKobanUsingSwitchUnauthorized,
     setMenuValues,
 } from "./menu/MenuSettings";
 

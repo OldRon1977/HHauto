@@ -146,7 +146,7 @@ function saveMap(key: string, v: Record<string, unknown>): void {
   setStoredValue(HHStoredVarPrefixKey + key, JSON.stringify(v));
 }
 
-export const blockPorts: SchedulerPorts = {
+const blockPorts: SchedulerPorts = {
   now: () => Date.now(),
   getCurrentPage: () => getPage(),
   isMasterOff: () => getStoredValue(HHStoredVarPrefixKey + SK.master) !== "true",

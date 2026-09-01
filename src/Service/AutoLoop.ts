@@ -43,8 +43,6 @@ import { isPostInFlight } from './AjaxTracker';
 import { ParanoiaService } from "./ParanoiaService";
 import { setDefaults } from "./StartService";
 import { AutoLoopContext } from './AutoLoopContext';
-import {
-} from './AutoLoopActions';
 import { decideBurst } from './AutoLoop.pure';
 import { handlePageSpecific } from './AutoLoopPageHandlers';
 
@@ -67,7 +65,7 @@ export function getBurst()
 }
 
 
-export function CheckSpentPoints()
+function CheckSpentPoints()
 {
     const oldValues=getStoredJSON<any>(HHStoredVarPrefixKey+TK.CheckSpentPoints, -1);
     const newValues: Record<string, number> = {};
@@ -138,7 +136,7 @@ export function CheckSpentPoints()
     }
 }
 
-export function isAutoLoopActive(): boolean{
+function isAutoLoopActive(): boolean{
     return getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) === "true";
 }
 

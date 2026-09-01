@@ -414,7 +414,7 @@ function storedMenuOrder(): unknown {
 }
 
 /** The order to render in: the user's, repaired against this build's areas. */
-export function effectiveMenuOrder(defaultIds: readonly string[]): string[] {
+function effectiveMenuOrder(defaultIds: readonly string[]): string[] {
     return resolveMenuOrder(storedMenuOrder(), defaultIds);
 }
 

@@ -37,7 +37,7 @@ export type NextClubChampionTimerState = {
     autoClubForceStart: boolean;
 };
 
-export type NextClubChampionTimerReason =
+type NextClubChampionTimerReason =
     | 'no-timer'
     | 'force-start'
     | 'normal';

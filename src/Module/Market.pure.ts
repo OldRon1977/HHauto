@@ -13,10 +13,10 @@
 // what the user wrote. An unreadable list buys nothing instead.
 
 /** Legendary boosters the game offers, in the order the tooltip lists them. */
-export const LEGENDARY_BOOSTER_CODES = ["B1", "B2", "B3", "B4"] as const;
+const LEGENDARY_BOOSTER_CODES = ["B1", "B2", "B3", "B4"] as const;
 
 /** Mythic boosters, MB1..MB12. MB1 is the Sandalwood perfume. */
-export const MYTHIC_BOOSTER_CODES = [
+const MYTHIC_BOOSTER_CODES = [
     "MB1", "MB2", "MB3", "MB4", "MB5", "MB6",
     "MB7", "MB8", "MB9", "MB10", "MB11", "MB12",
 ] as const;
@@ -48,7 +48,7 @@ const PAIR = CODE + ":" + AMOUNT;
 export const BUY_LIST_PATTERN = "(?:" + PAIR + "(?:;" + PAIR + ")*)?";
 
 /** One booster and the number of it to keep in the inventory. */
-export interface BuyListEntry {
+interface BuyListEntry {
     code: string;
     /** 0 means no limit, matching what the old "Max Booster" field did. */
     max: number;

@@ -55,7 +55,7 @@ export function resolveSultryMysteriesSecondsLeft(
 // alone unlocks a regenerate. The remaining "O" squares follow in
 // ascending order when the reward goal has not been met yet.
 
-export const SM_GRID_COLUMNS = 6;
+const SM_GRID_COLUMNS = 6;
 
 export interface SmGridSquare {
     id_square: number;
@@ -63,7 +63,7 @@ export interface SmGridSquare {
     reward_index?: number | string;
 }
 
-export interface SmRewardEntry {
+interface SmRewardEntry {
     rewards?: Array<{ type?: string }>;
 }
 

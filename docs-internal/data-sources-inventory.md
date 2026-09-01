@@ -426,7 +426,7 @@ Code-Referenzen unten sind Datei-Pfade ohne src/-Praefix. Lange Listen auf 4 Ein
 
 | Key | Storage-Name | Inhalt / Zweck | Wo geschrieben (set) | Wo gelesen (get) | Wo geloescht (delete) |
 |---|---|---|---|---|---|
-| SK.master | Setting_master | (no description) | Helper/PageHelper.ts, Service/InfoService.ts | Helper/HHMenuHelper.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/Scheduler.ts | - |
+| SK.master | Setting_master | (no description) | Helper/PageHelper.ts, Service/InfoService.ts | Helper/HHMenuHelper.ts, Service/AutoLoop.ts, Service/InfoService.ts | - |
 | SK.settPerTab | Setting_settPerTab | (no description) | - | Helper/StorageHelper.ts | - |
 | SK.spendKobans0 | Setting_spendKobans0 | (no description) | - | - | - |
 | SK.autoTrollBattle | Setting_autoTrollBattle | (no description) | Module/Troll.ts, Service/AutoLoopActions.ts | Module/Troll.ts, Service/AutoLoopActions.ts, Service/InfoService.ts, Service/ParanoiaService.ts | - |

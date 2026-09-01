@@ -98,7 +98,7 @@ Beide laufen jetzt am Loop-Ende ueber `await scheduler.tick()`.
 ## Scheduler-Pipeline (deklarativ)
 
 **Dateien:**
-- `src/Service/Scheduler.ts` -- Runtime, State-Machine
+- `src/Service/BlockScheduler.ts` -- Runtime des Block-Schedulers
 - `src/Service/Pipeline.config.ts` -- Handler-Definitionen, Pipeline-Liste
 
 Die Pipeline ist der Anfang einer schrittweisen Migration vom imperativen Action-Loop zu einem deklarativen, prioritaets-gesteuerten Scheduler. Jeder Handler ist eine `HandlerConfig`-Struktur mit Schritten, Prioritaet, Mindest-Intervall und Atomicitaets-Semantik.
@@ -166,7 +166,7 @@ src/
     AutoLoopActions.ts               -- Action-Handler-Implementierungen (980 LoC, 32 Handler)
     AutoLoopContext.ts               -- Per-Iteration-Context (busy, page, energy, event IDs)
     AutoLoopPageHandlers.ts          -- Page-spezifische UI (read-only)
-    Scheduler.ts                     -- Pipeline-Scheduler-Runtime
+    BlockScheduler.ts                -- Block-Scheduler-Runtime
     Pipeline.config.ts               -- Pipeline-Handler-Definitionen
     StartService.ts                  -- One-Time-Init, Version-Migration, Menu
     ParanoiaService.ts               -- Anti-Detection-Pausen
@@ -253,7 +253,6 @@ src/
     LanguageHelper.ts                -- i18n-Loader
     PriceHelper.ts                   -- Koban-/Cost-Helpers
     UrlHelper.ts                     -- URL-Parsing
-    WindowHelper.ts                  -- `unsafeWindow`-Access-Wrappers
 
   Utils/                             -- 5 Dateien
     index.ts
