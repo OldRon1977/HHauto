@@ -295,6 +295,32 @@
         "This is a write. Save a team by hand on /edit-team.html with the network tab open.",
         "Expect class=Hero, action=edit_team, girls[] as strings, battle_type, id_team when the page has one."
       ]
+    },
+    {
+      "id": "sex-god-path-page",
+      "claim": "/sex-god-path.html serves the sex god path, not home",
+      "source": "src/config/HHEnvVariables.ts:406 (pagesIDSexGodPath / pagesURLSexGodPath)",
+      "page": "/sex-god-path.html",
+      "kind": "selector",
+      "assert": [
+        {
+          "selector": "body[page='sex-god-path']",
+          "min": 1
+        }
+      ]
+    },
+    {
+      "id": "labyrinth-entry",
+      "claim": "/labyrinth.html serves either the labyrinth or its entrance",
+      "source": "src/Module/LabyrinthAuto.ts:51,87 (both page states are handled)",
+      "page": "/labyrinth.html",
+      "kind": "selector",
+      "assert": [
+        {
+          "selector": "body[page='labyrinth'], body[page='labyrinth-entrance']",
+          "min": 1
+        }
+      ]
     }
   ]
 }

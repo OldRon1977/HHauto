@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.10.0
+// @version      4.11.0
 // @description  Full game data dumper. DUMP THIS PAGE / DUMP FOR SHARING / AUTO TOUR. Persistent XHR + fetch hooks. Optional PII share-mode pipeline anonymises dumps for public bug reports.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -63,7 +63,7 @@
     // cannot serve that audience.
     //
     // Before extending this file, check whether scripts/catalogue answers it.
-    const VERSION = '4.10.0';
+    const VERSION = '4.11.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // PII share-mode toggle. Single source of truth for the share pipeline.
@@ -81,7 +81,9 @@
         { path: '/season-arena.html',       label: 'SeasonArena',       expected: 'season_arena' },
         { path: '/penta-drill-arena.html',  label: 'PentaDrillArena',   expected: 'penta_drill_arena' },
         { path: '/penta-drill.html',        label: 'PentaDrill',        expected: 'penta_drill' },
-        { path: '/labyrinth.html',          label: 'Labyrinth',         expected: 'labyrinth' },
+        // Without an active run the game serves the entrance instead; both are a
+        // valid capture, the inner page only exists while a run is going.
+        { path: '/labyrinth.html',          label: 'Labyrinth',         expected: 'labyrinth', accept: ['labyrinth-entrance'] },
         { path: '/labyrinth-entrance.html', label: 'LabyrinthEntrance', expected: 'labyrinth-entrance' },
         { path: '/club-champion.html',      label: 'ClubChampion',      expected: 'club_champion' },
         { path: '/champions-map.html',      label: 'ChampionsMap',      expected: 'champions_map' },
@@ -104,10 +106,14 @@
         { path: '/hero/profile.html',       label: 'HeroProfile',       expected: 'hero_pages' },
         { path: '/member-progression.html', label: 'MemberProgression', expected: 'member-progression' },
         { path: '/love-raids.html',         label: 'LoveRaids',         expected: 'love_raids' },
+        // The URL is right (the game's own menu uses it) but the iframe may render
+        // home instead; the step then records match:false rather than pretending.
         { path: '/sex-god-path.html',       label: 'SexGodPath',        expected: 'sex-god-path' },
         // battle_type is not optional: a bare /teams.html redirects to home.html
         // and teams_data never exists there. The game's own links carry it too.
         { path: '/teams.html?battle_type=leagues',     label: 'BattleTeams', expected: 'teams' },
+        // availableGirls is complete here; teamGirls stays empty because no team is
+        // selected, and selecting one is a click this tour does not make.
         { path: '/edit-team.html?battle_type=leagues', label: 'EditTeam',    expected: 'edit-team' },
         // The girl list loads after the page, so this step waits longer than the
         // others before it dumps.
@@ -1793,7 +1799,7 @@
             requested_path: step.path,
             expected_page: step.expected,
             actual_page: actualPage,
-            match: actualPage === step.expected,
+            match: actualPage === step.expected || (step.accept || []).indexOf(actualPage) !== -1,
             manual: !!isManual,
             global_index: globalIdx
         };
@@ -1815,6 +1821,18 @@
             try {
                 const res = await performStep(idx, step, false);
                 stepOk = !!(res && res.saveInfo && res.saveInfo.ok);
+                // The page the game served is not the one asked for. Rather than
+                // keep a dump of the wrong page, hand the step over: the user can
+                // reach pages the tour cannot (a labyrinth run, a chosen team,
+                // whatever the game gates today).
+                const meta = res && res.dump && res.dump.tour_meta;
+                if (meta && !meta.match) {
+                    console.log(LOG_PREFIX, 'Step', idx + 1, 'landed on', meta.actual_page, '-- asking for help');
+                    state.index = idx;
+                    saveState(state);
+                    await showRetryPrompt(state, step, idx, meta.actual_page);
+                    return;
+                }
             } catch (e) {
                 console.error(LOG_PREFIX, 'Step error at auto idx', idx, ':', e);
             }
@@ -1845,6 +1863,38 @@
             return;
         }
         // Should not reach here in auto phase
+    }
+
+    // A step whose page did not come up. The tour waits here: navigate by hand
+    // and press DUMP NOW, or skip and the step stays recorded as not measured.
+    async function showRetryPrompt(state, step, idx, actualPage) {
+        const dumpBtn = mkBtn('DUMP NOW', '#4CAF50', async function() {
+            dumpBtn.disabled = true;
+            let ok = false;
+            try {
+                const res = await performStep(idx, step, true);
+                ok = !!(res && res.saveInfo && res.saveInfo.ok);
+            } catch (e) {
+                console.error(LOG_PREFIX, 'Retry step failed:', e);
+            }
+            state.index = idx + 1;
+            if (ok) state.completedSteps = (state.completedSteps || 0) + 1;
+            saveState(state);
+            await continueAutoTour(state);
+        });
+        const skipBtn = mkBtn('SKIP', '#ff9800', async function() {
+            console.log(LOG_PREFIX, 'Retry skipped:', step.label);
+            state.index = idx + 1;
+            saveState(state);
+            await continueAutoTour(state);
+        });
+        const abortBtn = mkBtn('ABORT', '#f44336', async function() { await finishTour(state); });
+        setStatusBar(
+            'Step ' + (idx+1) + ' <b style="color:#ffb827">' + step.label + '</b> landed on '
+            + '<b>' + actualPage + '</b> instead of <b>' + step.expected + '</b>. '
+            + 'Open it in the game, then DUMP NOW.',
+            [dumpBtn, skipBtn, abortBtn]
+        );
     }
 
     async function showManualPrompt(state) {
