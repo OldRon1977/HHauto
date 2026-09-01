@@ -158,7 +158,6 @@ export class LeagueHelper {
         const pointText = `${percentage}% (${points})` +
         `<span style="margin:0;display:none;" id="HHPowerCalcScore">${percentage}</span>
         <span style="margin:0;display:none;" id="HHPowerCalcPoints">${points}</span>`;
-        // const opponentRow = opponentGoButton.parent().parent();
         opponentGoButton.html(`<div class="matchRatingNew ${simu.scoreClass}"><img class="powerLevelScouter" src=${ConfigHelper.getHHScriptVars("powerCalcImages")[simu.scoreClass]}>${pointText}</div>`);
     }
 
@@ -573,7 +572,6 @@ export class LeagueHelper {
                         opponents.power,
                         // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
                         expectedPoints,
-                        // $('.boosters', $(this)).children().length,
                         // opponents,
                         simu
                     );
@@ -612,7 +610,6 @@ export class LeagueHelper {
                 return (aValue > bValue) ? 1 : ((bValue > aValue) ? -1 : 0)
             }); // sort by lower power
         } // sortMode === LeagueHelper.SORT_DISPLAYED // No sorting, keep html order
-        //}
         if (usePowerCalc) {
             logHHAuto('Save opponent list for later');
             setStoredValue(HHStoredVarPrefixKey+TK.LeagueOpponentList, JSON.stringify({expirationDate:opponentsPowerList.expirationDate,opponentsList:Data}));
@@ -867,7 +864,6 @@ export class LeagueHelper {
 
                         RewardHelper.closeRewardPopupIfAny();
 
-                        // gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
                         // C1: route through safeReload so any in-flight
                         // game AJAX gets to settle before the URL change
                         // cancels open XHRs (issue #1598).

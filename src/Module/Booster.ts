@@ -100,7 +100,6 @@ export class Booster {
 
                     if (action === 'market_equip_booster' && type === 'booster') {
                         const idItemParsed = parseInt(id_item || '')
-                        //const isMythic = idItemParsed >= 632 && idItemParsed <= 638
                         const isMythic = idItemParsed >= 632
 
                         const boosterData = equipped_booster
@@ -128,7 +127,6 @@ export class Booster {
                             // payload contains the same equipped_booster data the
                             // market scrape would have read, so the stamp is honest.
                             setStoredValue(HHStoredVarPrefixKey+TK.boosterStatusLastUpdate, String(Date.now()));
-                            //$(document).trigger('boosters:equipped', {id_item, isMythic, new_id: clonedData.id_member_booster_equipped})
                         }
                         return
                     }

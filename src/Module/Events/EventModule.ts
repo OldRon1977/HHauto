@@ -29,9 +29,6 @@ export class EventModule {
      */
     static clearEventData(inEventID:string)
     {
-        //clearTimer('eventMythicNextWave');
-        //clearTimer('eventRefreshExpiration');
-        //sessionStorage.removeItem(HHStoredVarPrefixKey+'Temp_EventFightsBeforeRefresh');
         const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
         let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
         const eventGirl = EventModule.getEventGirl();
@@ -236,7 +233,6 @@ export class EventModule {
             const hhEventData = (unsafeWindow.event_data || unsafeWindow.current_event) as HHEventData;
             logHHAuto(`On event page : ${eventID} (${hhEventData?.event_name || ''})`);
             EventModule.clearEventData(eventID);
-            //let eventsGirlz=[];
             const eventList = getStoredJSON<Record<string, any>>(HHStoredVarPrefixKey+TK.eventsList, {});
             let eventsGirlz: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
             const eventChamps: EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
@@ -341,8 +337,6 @@ export class EventModule {
                     setStoredValue(HHStoredVarPrefixKey+TK.autoChampsEventGirls, JSON.stringify(eventChamps));
                 }
                 queryEventTabCheck[0].setAttribute('parsed', 'true');
-                //setStoredValue(HHStoredVarPrefixKey+"Temp_EventFightsBeforeRefresh", "20000");
-                //setTimer('eventRefreshExpiration', 3600);
             }
             else
             {
@@ -396,7 +390,6 @@ export class EventModule {
         if (!eventGirlz.is_mythic) {
             setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
         } else {
-            // setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz)); // TODO remove when migration is done
             setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
         }
     }
@@ -571,7 +564,6 @@ export class EventModule {
 
         const eventGirlz:EventGirl[]=getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.eventsGirlz, []);
         const eventChamps:EventGirl[] = getStoredJSON<EventGirl[]>(HHStoredVarPrefixKey+TK.autoChampsEventGirls, []);
-        //$("div.event-widget div.widget[style='display: block;'] div.container div.scroll-area div.rewards-block-tape div.girl_reward div.HHEventPriority").each(function(){this.remove();});
         if ( eventGirlz.length >0 || eventChamps.length >0)
         {
             var girl;
@@ -693,7 +685,6 @@ export class EventModule {
                 obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward)
                 {
-                    //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     modified = true;
                 }

@@ -377,7 +377,6 @@ export class HaremGirl {
 
             
             const girlMenu = '<div style="padding:50px; display:flex;flex-direction:column">'
-            //+    '<p id="HaremGirlMenuText">'+getTextForUI("girlMenu","elementText")+'</p>'
             +    '<div class="optionsBoxWithTitle">'
             +       '<div class="optionsBoxTitle"><img class="iconImg" src="'+imgPath+'/design/ic_books_gray.svg"><span class="optionsBoxTitle">'+getTextForUI("experience","elementText")+'</span></div>'
             +       '<div class="optionsBox">'
@@ -387,7 +386,6 @@ export class HaremGirl {
             +    '<div class="optionsBoxWithTitle">'
             +       '<div class="optionsBoxTitle"><img class="iconImg" src="'+imgPath+'/design/ic_gifts_gray.svg"><span class="optionsBoxTitle">'+getTextForUI("affection","elementText")+'</span></div>'
             +       '<div class="optionsBox">'
-            //+       '<div style="padding:10px">'+menuIDGiftsButton+'</div>'
             +         '<div style="padding:10px">'+menuIDMaxGiftsButton+'</div>'
             +         '<div style="padding:10px">'+menuIDUpgradeMaxButton+'</div>'
             +       '</div>'
@@ -444,7 +442,6 @@ export class HaremGirl {
         const selectedGirl = HaremGirl.getCurrentGirl();
 
         const menuID = "menuExp";
-//        const menuExp = '<div style="position: absolute;right: 50px;top: -10px; font-size: small;" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("menuExp","tooltip")+'</span><label style="width:100px" class="myButton" id="menuExp">'+getTextForUI("menuExp","elementText")+'</label></div>'
         const menuExpContent = '<div style="width:600px;justify-content: space-between;align-items: flex-start;"class="HHMenuRow">'
         +   '<div id="menuExp-moveLeft"></div>'
         +   '<div style="padding:10px; display:flex;flex-direction:column;">'
@@ -565,7 +562,6 @@ export class HaremGirl {
 
     static async run(): Promise<boolean> {
         try {
-            //const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug") === 'true';
             const haremItem = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlActions);
             const haremGirlMode = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlMode);
             const haremGirlEnd = getStoredValue(HHStoredVarPrefixKey + TK.haremGirlEnd) === 'true';
@@ -688,7 +684,6 @@ export class HaremGirl {
                 let girlPosInList = 0;
                 let remainingGirls = 0;
                 let girlListProgress = '';
-                // const lastGirlListProgress = '<br />' + getTextForUI("giveLastGirl", "elementText");
 
                 if (team && team.team && team.team.length > 0) {
                     girlPosInList = team.girlIds.indexOf(girl.id_girl);

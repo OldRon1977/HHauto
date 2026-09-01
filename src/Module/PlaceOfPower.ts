@@ -176,8 +176,7 @@ export class PlaceOfPower {
         {
             logHHAuto("Navigating to powerplaces main page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"));
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
         else
         {
@@ -399,8 +398,7 @@ export class PlaceOfPower {
                 gotoPage(ConfigHelper.getHHScriptVars("pagesIDActivities"), { tab: "pop", pop_id: index });
                 setStoredValue(HHStoredVarPrefixKey + TK.PopTargeted, index);
             }
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
         else
         {
@@ -594,20 +592,15 @@ export class PlaceOfPower {
                 thisPower += girl.power;
             });
             // Give the team a score to try and use more efficient teams (ie: fewer girls) instead of just the fastest
-            // const kValue = 40;
             const xValue = thisPower / powerText;
             // Reverted to previous algo, seems to work better for now...
             const thisScore = Math.min(1, ((xValue) * ((1 / Math.sqrt(theseGirls.length))+0.28)));
-            // const thisScore = Math.min(1, ( (1 - Math.pow(xValue, theseGirls.length)) / (1 - Math.pow(xValue, kValue))));
-            // if (debugEnabled) {
             //     {
             //         xValue: xValue,
             //         power: thisPower + ' / ' + powerText,
             //         score: thisScore + ' / ' + teamScore,
             //         scores:  Math.pow(xValue, theseGirls.length) + ' / ' + Math.pow(xValue, kValue),
             //         nbGirls: theseGirls.length
-            //     } );
-            // }
             if (thisScore > teamScore) {
                 teamScore = thisScore;
                 chosenTeam = theseGirls;

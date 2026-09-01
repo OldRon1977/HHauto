@@ -64,8 +64,7 @@ export class Missions {
         {
             logHHAuto("Navigating to missions page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDMissions"));
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
         else
         {
@@ -169,7 +168,6 @@ export class Missions {
                 if (data.remaining_time !== null) {
                     // This is not a fresh mission (ongoing)
                     if (data.remaining_time > 0) {
-                        // allGood = false;
                         if ($('.finish_in_bar[style*="display:none;"], .finish_in_bar[style*="display: none;"]', missionObject).length === 0) {
                             logHHAuto("Unfinished mission detected...(" + data.remaining_time + "sec. remaining)");
                             missionOngoing = data;

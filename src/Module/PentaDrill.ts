@@ -125,7 +125,6 @@ export class PentaDrill {
     static async run(){
         logHHAuto("Performing auto PentaDrill.");
         // Confirm if on correct screen.
-        //const Hero = getHero();
         const page = getPage();
         if (page === ConfigHelper.getHHScriptVars("pagesIDPentaDrillArena"))
         {
@@ -175,7 +174,6 @@ export class PentaDrill {
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
             await TimeHelper.sleep(PentaDrill.getActionDelayMs());
-            //setTimer('nextPentaDrillTime',10);
             return true;
         }
         else

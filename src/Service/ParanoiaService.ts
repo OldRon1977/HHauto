@@ -239,11 +239,7 @@ export class ParanoiaService {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
                 const eventMythicGirl: EventGirl = EventModule.getEventMythicGirl();
                 if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             var trollThreshold = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoTrollThreshold));
-                    //             if (getStoredValue(HHStoredVarPrefixKey+SK.buyMythicCombat) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoTrollMythicByPassThreshold) === "true")
                     //             {
-                    //                 trollThreshold = 0;
-                    //             }
                     //mythic onGoing and still have some fight above threshold
                     if (Troll.getEnergy() > 0) //trollThreshold)
                     {
@@ -253,8 +249,6 @@ export class ParanoiaService {
                     }
 
                     //mythic ongoing and can buyCombat
-                    // const Hero=getHero();
-                    // var price=Hero.get_recharge_cost("fight");
                     if (Troll.canBuyFight(eventMythicGirl).canBuy && Troll.getEnergy() == 0) {
 
                         logHHAuto("Forced bypass Paranoia for mythic (can buy).");
@@ -292,13 +286,11 @@ export class ParanoiaService {
             }
             else {
                 //refresh remaining
-                //setParanoiaSpendings(toNextSwitch);
                 //let spending go before going in paranoia
                 return;
             }
         }
         else {
-            //if (getPage()!=ConfigHelper.getHHScriptVars("pagesIDHome")) return;
             //going to work
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
@@ -314,7 +306,6 @@ export class ParanoiaService {
         setTimer('paranoiaSwitch', toNextSwitch);
         //force recheck non completed event after paranoia
         if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
-            //sessionStorage.removeItem(HHStoredVarPrefixKey+TK.eventsList);
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
     }

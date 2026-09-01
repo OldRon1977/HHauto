@@ -182,12 +182,15 @@ export class RewardHelper {
     static getRewardsAsHtml(rewardCountByType:Map<string,number>) {
         let html = '';
         if(rewardCountByType)
-        //for (const [rewardType, rewardCount] of rewardCountByType.entries()) {
         for (const rewardType in rewardCountByType) {
             const rewardCount = (rewardCountByType as any)[rewardType];
+            // Ten of the twenty types in possibleRewardsList have no branch here
+            // -- girl_shards, gems, orbs, gift, potion, booster, scrolls,
+            // mythic, avatar, rejuvenation_stone. They fall into the empty
+            // default, so a tier paying only those renders nothing and
+            // displayRewardsDiv appends an invisible div instead of the recap.
             switch(rewardType)
             {
-                // case 'girl_shards' :    return Number($('.shards', inSlot).attr('shards'));
                 case 'random_girl_shards' : html += '<div class="slot slot_random_girl  size_xs"><span class="random_girl_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
                 case 'energy_kiss':     html += '<div class="slot slot_energy_kiss  size_xs"><span class="energy_kiss_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
                 case 'energy_quest':    html += '<div class="slot slot_energy_quest size_xs"><span class="energy_quest_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
@@ -197,15 +200,7 @@ export class RewardHelper {
                 case 'soft_currency' :  html += '<div class="slot slot_soft_currency size_xs"><span class="soft_currency_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,1,-1)+'</div></div>'; break;
                 case 'hard_currency' :  html += '<div class="slot slot_hard_currency size_xs"><span class="hard_currency_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
                 case 'event_cash' :     html += '<div class="slot slot_seasonal_event_cash size_xs"><span class="mega_event_cash_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                // case 'gift':
-                // case 'potion' :
-                // case 'booster' :
-                // case 'orbs':
-                // case 'gems' :           html += '<div class="slot slot_gems size_xs"><span class="gem_all_icn"></span><div class="amount">'+nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                // case 'scrolls' :
                 case 'ticket' :         html += '<div class="slot slot_ticket size_xs"><span class="ticket_icn"></span><div class="amount">'+NumberHelper.nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                // case 'mythic' :         html += '<div class="slot mythic random_equipment size_xs"><span class="mythic_equipment_icn"></span><div class="amount">'+nRounding(rewardCount,0,-1)+'</div></div>'; break;
-                // case 'avatar':          return 1;
                 default: 
             }
         }
@@ -302,7 +297,6 @@ export class RewardHelper {
             if (eventMythicGirl.troll_id && foughtTrollId != eventMythicGirl.troll_id && eventGirl.troll_id && foughtTrollId != eventGirl.troll_id && !foughtTrollFromLoveRaid) {
                 logHHAuto(`Troll from mythic event (${eventMythicGirl.troll_id}) or from event (${eventGirl.troll_id}) or from LoveRaid not fought, was (${foughtTrollId}) instead.
                 Can be issue in event variable (mythic event finished: ${EventModule.isEventActive(eventMythicGirl.event_id)},  event finished: ${EventModule.isEventActive(eventGirl.event_id) })`);
-                // TTF = foughtTrollId;
             }
             if ($('#rewards_popup #reward_holder .shards_wrapper').length === 0)
             {
@@ -445,7 +439,6 @@ export class RewardHelper {
                 }
                 else
                 {
-                    //replaceCheatClick();
                     setTimeout(function()
                             {
                         $(querySkip)[0].click();

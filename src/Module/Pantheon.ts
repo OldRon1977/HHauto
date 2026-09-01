@@ -154,7 +154,6 @@ export class Pantheon {
             const pantheonTempleBattleButton =$("#pre-battle .battle-buttons .green_button_L.battle-action-button.pantheon-single-battle-button[data-pantheon-id='"+templeID+"']");
             if (pantheonTempleBattleButton.length >0)
             {
-                //replaceCheatClick();
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 logHHAuto("setting autoloop to false");
                 pantheonTempleBattleButton[0].click();

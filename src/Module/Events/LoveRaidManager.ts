@@ -248,8 +248,6 @@ export class LoveRaidManager {
         }
         // Sort by troll Id
         // raids.sort((a, b) => {
-        //     return Number(a.trollId) - Number(b.trollId);
-        // });
 
         return raids;
     }

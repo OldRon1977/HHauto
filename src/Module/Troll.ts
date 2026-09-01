@@ -424,7 +424,6 @@ export class Troll {
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
             logHHAuto("setting autoloop to false");
             //week 28 new battle modification
-            //location.href = "/battle.html?id_troll=" + TTF;
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"),{id_opponent:TTF});
             //End week 28 new battle modification
             return true;
@@ -443,7 +442,6 @@ export class Troll {
             const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
             const battleButtonX10Price = Number(battleButtonX10.attr('price'));
             const battleButtonX50Price = Number(battleButtonX50.attr('price'));
-            // let Hero=getHero();
             const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
             const previousPower = Number(getStoredValue(HHStoredVarPrefixKey+TK.trollPoints)) || 0;
             const currentPower = Troll.getEnergy();
@@ -706,7 +704,6 @@ export class Troll {
                         return;
                     }
                     logHHAuto("Crushing: "+trollz[Number(TTF)]);
-                    //replaceCheatClick();
                     checkPreviousFightDone();
                     setStoredValue(HHStoredVarPrefixKey+TK.trollPoints, currentPower);
                     if (!acquirePostMutex('troll:battle')) {
@@ -739,7 +736,6 @@ export class Troll {
             {
                 checkPreviousFightDone();
                 setStoredValue(HHStoredVarPrefixKey+TK.trollPoints, currentPower);
-                //replaceCheatClick();
                 if (!acquirePostMutex('troll:battleNoEvent')) {
                     logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
                     return;
@@ -766,14 +762,12 @@ export class Troll {
     {
         const Hero=getHero();
 
-        //let canBuyResult = Troll.canBuyFight(eventTrollGirl);
         if (canBuyResult.canBuy)
         {
             logHHAuto('Recharging '+canBuyResult.toBuy+' fights for '+canBuyResult.price+' kobans.');
             const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
             setHHVars('Hero.infos.hc_confirm',true);
             // We have the power.
-            //replaceCheatClick();
             Hero.recharge($("button.orange_text_button.manual-recharge"), canBuyResult.type, canBuyResult.toBuy, canBuyResult.price);
             setHHVars('Hero.infos.hc_confirm',hcConfirmValue);
             logHHAuto('Recharged up to '+canBuyResult.max+' fights for '+canBuyResult.price+' kobans.');

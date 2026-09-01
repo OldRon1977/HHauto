@@ -49,7 +49,6 @@ export function getBrowserData(nav: Navigator) {
         for (var i=0; i < versionPartsMatch.length; i++) {
             versionParts.push(versionPartsMatch[i]);
         }
-        //if (versionParts.length > 0) { data.majorVersion = versionParts[0]; }
     }
     name = name || '(unknown browser name)';
     version = {

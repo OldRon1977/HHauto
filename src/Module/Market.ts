@@ -274,8 +274,6 @@ export class Market {
                 }
             }
             setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify(shop));
-            //unsafeWindow.Hero.currencies.soft_currency=money;
-            //Hero.update("soft_currency", money, false);
         }
         catch (ex)
         {

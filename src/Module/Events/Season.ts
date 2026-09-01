@@ -180,9 +180,6 @@ export class Season {
                 const { player, opponent } = BDSMHelper.getBdsmPlayersData(hero_data, opponentDatas[index].player);
                 const opponentBlock = $('.season_arena_opponent_container[data-opponent=' + opponentDatas[index].player?.id_fighter + ']');
 
-                if (doDisplay)
-                {
-                }
                 const simu = calculateBattleProbabilities(player, opponent, debugEnabled)
 
                 seasonOpponents[index] = new SeasonOpponent(
@@ -254,7 +251,6 @@ export class Season {
         var currentMojo:number;
         var numberOfReds = 0;
         let currentGains: any;
-        //let oppoName;
         const seasonEnded = Season.getTierLevel() > Season.LAST_SEASON_LEVEL;
 
         for (let index = 0; index < 3; index++) {
@@ -333,7 +329,6 @@ export class Season {
                 chosenFlag = currentFlag;
                 chosenIndex = index;
                 chosenMojo = currentMojo;
-                //oppoName = seasonOpponents[index].nickname;
             }
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses-1) ) {
@@ -735,7 +730,6 @@ export class Season {
             for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
                 obj = $(arrayz[i2]).find('.tick_s:not([style*="display:none"]):not([style*="display: none"])');
                 if (obj.length >= nbReward) {
-                    //document.getElementById('rewards_cont_scroll').scrollLeft-=arrayz[i2].offsetWidth;
                     arrayz[i2].style.display = "none";
                     $(arrayz[i2]).addClass('HHaHidden');
                     modified = true;
@@ -745,11 +739,8 @@ export class Season {
         if (modified)
         {
             $('.rewards_seasons_row').css('width', 'max-content');
-            // const $rowScroll = $('.rewards_container_seasons');
-            // if ($rowScroll.length && ($rowScroll as any).getNiceScroll(0).doScrollLeft) {
             //     ($rowScroll as any).getNiceScroll().resize();
             //     ($rowScroll as any).getNiceScroll(0).doScrollLeft(0,200);
-            // }
         }
     }
 }

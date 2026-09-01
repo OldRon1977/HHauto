@@ -75,11 +75,9 @@ export class Champion {
         var getMinGirlPower = function() { return Number(getStoredValue(HHStoredVarPrefixKey+SK.autoChampsGirlThreshold)) || 50000; }
         var getChampSecondLine = function(){return getStoredValue(HHStoredVarPrefixKey+SK.autoChampsTeamKeepSecondLine) === 'true';}
 
-        //let champTeamButton = '<div style="position: absolute;left: 330px;top: 10px;width:90px;z-index:10" class="tooltipHH"><span class="tooltipHHtext">'+getTextForUI("ChampTeamButton","tooltip")+'</span><label class="myButton" id="ChampTeamButton">'+getTextForUI("ChampTeamButton","elementText")+'</label></div>';
         GM_addStyle('.girl-box__draggable.switching {background-color: #ffb827;}');
 
         var champTeam = getHHVars('championData.team');
-        // const champTeamId = Number(getHHVars('championData.champion.id'));
         let freeDrafts = Number(getHHVars('championData.freeDrafts'));
         var counterLoop = 0;
         let maxLoops = getChampMaxLoop();
@@ -136,7 +134,6 @@ export class Champion {
             }
         };
 
-        //document.getElementById("ChampTeamButton").addEventListener("click", indicateBestTeam);
         GM_registerMenuCommand(getTextForUI("ChampTeamButton","elementText"), indicateBestTeam);
         $(document).on('click', changeDraftButtonQuery, indicateBestTeam);
         $(document).on('click', newDraftButtonQuery, indicateBestTeam);
@@ -317,7 +314,6 @@ export class Champion {
     static getChampionListFromMap(): ChampionModel[] {
         const Filter = (getStoredValue(HHStoredVarPrefixKey+SK.autoChampsFilter)||'').split(';').map((s: string)=>Number(s));
         const championMap: ChampionModel[] = [];
-        // const autoChampsForceStart = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStart) === "true";
         const autoChampsForceStartEventGirl = getStoredValue(HHStoredVarPrefixKey + SK.autoChampsForceStartEventGirl) === "true";
         const autoChampsEventGirls = getStoredJSON<any[]>(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
         const championWithEventGirl = autoChampsEventGirls.map(a => Number(a.champ_id));
@@ -347,9 +343,6 @@ export class Champion {
                     champion.timer = 0;
                 }
             }
-            // if (autoChampsForceStart && champion.timer < 0) {
-            //     champion.timer = 0;
-            // }
             championMap.push(champion);
         });
         return championMap;
@@ -441,7 +434,6 @@ export class Champion {
 
         logHHAuto('Finished ordering champion team');
         $("#orderTeam").removeAttr('disabled');
-        //if(oneGirlSwitched)
             // Use safeReload so the final reorder POST can complete before
             // reloading. Direct reload here was observed to cancel the
             // last switchGirls request and trigger Forbidden (issue #1598).
@@ -589,7 +581,6 @@ export class Champion {
                 {
                     logHHAuto("Let's do him!");
                     gotoPage('/champions/'+Number(i+1));
-                    //window.location = window.location.origin + '/champions/'+(i+1);
                     return true;
                 }
             }

@@ -284,7 +284,6 @@ export class Harem {
                         const girl: KKHaremGirl = skilledGirls[index] as KKHaremGirl;
                         const skills: any[] = Object.values(girl.skill_tiers_info);
                         const totalScrolls = Number(skills.reduce((accumulator, skill) => accumulator + (skill.skill_points_used || 0), 0));
-                        //if (debugEnabled) logHHAuto(`Girl ${girl.name}, ${girl.rarity} has used ${totalScrolls} scrolls`);
                         const girlRarity = girl.rarity === 'starting' ? 'common' : girl.rarity; // Starting girl use common scrolls
                         skilledGirlsScrolls[girlRarity][girl.id_girl+""] = totalScrolls;
                     }
@@ -333,7 +332,6 @@ export class Harem {
                         logHHAuto('Get ' + rarity + ' scrolls needed: ' + (team as any)['scrolls_' + rarity]);
                         let scrollGot = 0;
                         //await haremFilter.selectGirlFilters('6');
-                        //const mythicGirls: KKHaremSalaryGirl[] = girlListDisplayed.filter((girl: KKHaremSalaryGirl) => girl.gData.rarity == 'mythic');
                         const girls: { [id_girl: string]: number } = skilledGirlsScrolls[rarity];
                         for (const girlId in girls) {
                             if (team.girlIds.includes(Number(girlId))) {
@@ -483,8 +481,6 @@ export class Harem {
         const displayedGirl = $('#harem_right .opened').attr('girl') || ''; // unsafeWindow.harem.preselectedGirlId
         const girlOwned = displayedGirl !== '' && $('#harem_right .opened .avatar-box:visible').length > 0;
 
-        //GM_addStyle('#harem_right>div[girl] .middle_part div.avatar-box img.avatar { height: 365px; margin-bottom: 30px;}');
-        //GM_addStyle('#harem_right>div[girl] .middle_part div.avatar-box canvas.animated-girl-display { height: 59rem; top: -18rem;}');
         GM_addStyle('.goToGirlPage {position: relative; bottom: 12px; left: 250px; font-size: small; width: fit-content; z-index:30;}');
 
         // using a for new tab option
@@ -558,7 +554,6 @@ export class Harem {
 
             
             const girlListMenu = '<div style="padding:50px; display:flex;flex-direction:column;width:400px">'
-            // +    '<p id="HaremGirlListMenuText">'+getTextForUI("girlListMenu","elementText")+'</p>'
             +    '<div class="optionsBoxWithTitle">'
             +       '<div class="optionsBoxTitle"><img class="iconImg" src="'+imgPath+'/design/ic_books_gray.svg"><span class="optionsBoxTitle">'+getTextForUI("experience","elementText")+'</span></div>'
             +       '<div class="optionsBox">'

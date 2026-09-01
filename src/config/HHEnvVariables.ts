@@ -560,4 +560,3 @@ for (const key in GayPornstarHarem.getEnv()) {
     HHEnvVariables[element].lastQuestId = GayPornstarHarem.lastQuestId;
     HHEnvVariables[element].boosterId_MB1 = 2619;
 };
-// Object.values(girlsDataList).filter(girl => girl.source?.name == "troll_tier" && girl.source?.group?.id == "7")

@@ -35,8 +35,7 @@ export class Contest {
         {
             logHHAuto("Navigating to contests page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
         else
         {
@@ -74,8 +73,7 @@ export class Contest {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
             logHHAuto("Navigating to contests page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
         else {
             try{

@@ -50,7 +50,6 @@ export function setMenuValues()
                         break;
                 }
                 (menuElement as any)[HHStoredVars[i].menuType] = itemValue;
-            } else if(menuElement == null) {
             }
         }
         else

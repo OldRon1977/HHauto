@@ -278,7 +278,6 @@ export class TeamModule {
 
         $("#stuffTeamSubmit").on("click", function() {
             logHHAuto('Stuff from edit team');
-            //$("#StuffTeam").attr('disabled', 'disabled');
             const saveAndGo = function () {
 
                 const teamSettings = {
@@ -383,7 +382,6 @@ export class TeamModule {
     }
 
     static getFirstSelectedGirlId(): number{
-        //const selectedPosition = $('#contains_all section .player-panel .player-team .team-hexagon .team-member-container.selectable[data-team-member-position="0"]');
         const selectedPosition = $('.team-member-container[data-team-member-position="0"]');
 
         if (selectedPosition.length > 0) {

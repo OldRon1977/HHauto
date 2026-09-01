@@ -265,7 +265,6 @@ export class SeasonalEvent {
     
                 // try {
                 //     (divToModify as any).getNiceScroll(0).doScrollLeft(0, 200);
-                // } catch(err) {}
             }
         }
     }
@@ -336,8 +335,6 @@ export class SeasonalEvent {
                 const rewardCountByType = isMegaSeasonalEvent ? SeasonalEvent.getMegaSeasonalNotClaimedRewards() : SeasonalEvent.getSeasonalNotClaimedRewards();
                 logHHAuto("Rewards seasonal event:", JSON.stringify(rewardCountByType));
                 if ((rewardCountByType as any)['all'] > 0) {
-                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container { height: 5rem; margin-top: 0;}'); 
-                    // GM_addStyle('.seasonal-event-panel .seasonal-event-container .tabs-section #home_tab_container .middle-container .event-resource-location .buttons-container a { height: 2rem;}'); 
 
                     for (var i = 0; i < 4; i++) {
                         // move video down

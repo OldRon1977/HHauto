@@ -123,7 +123,6 @@ export class DoublePenetration {
                         {
                             logHHAuto("Double penetration collection finished.");
                             setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                            //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                             setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                         }
@@ -135,7 +134,6 @@ export class DoublePenetration {
                 {
                     logHHAuto("No double penetration reward to collect.");
                     setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
-                    //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                     return false;

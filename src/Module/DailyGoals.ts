@@ -211,9 +211,6 @@ export class DailyGoals {
             const goal = unsafeWindow.daily_goals_list[currentTier];
             if (goal && goal.progress_data.current < goal.progress_data.max )
                 switch (goal.anchor){
-                    // case ConfigHelper.getHHScriptVars("pagesURLLabyrinth"):
-                    // case ConfigHelper.getHHScriptVars("pagesURLSeasonArena"):
-                    // case ConfigHelper.getHHScriptVars("pagesURLHarem"):
                     case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
                     case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
                         supportedGoals.push(goal);
@@ -260,7 +257,6 @@ export class DailyGoalsIcon {
     static getIcon(){
     //static getIcon(current: number, max: number){
         // TODO translation
-        //return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal: ${current} / ${max}"></i>`);
         return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal"></i>`);
     }
 

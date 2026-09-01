@@ -205,7 +205,6 @@ export function setDefaults(force = false)
 export function hardened_start()
 {
     debugMenuID = GM_registerMenuCommand(getTextForUI("saveDebug","elementText"), saveHHDebugLog);
-    //GM_unregisterMenuCommand(debugMenuID);
     // Install the AJAX request counter as early as possible so any later
     // page-changing module call can wait for in-flight game POSTs to
     // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
@@ -373,7 +372,6 @@ export function start() {
     {
         setTimers(getStoredJSON(HHStoredVarPrefixKey+TK.Timers, {}));
     }
-    // clearEventData("onlyCheckEventsHHScript");
 
     // Migrate +Raid Stars stored value to string-based selection (runs every load).
     // Handles: old boolean ("true"/"false"), old selectedIndex ("1"/"2"/"4"),
@@ -630,8 +628,6 @@ export function start() {
 
         currentInput.addEventListener('invalid', () => {
             currentInput.style.backgroundColor = "red";
-            //document.getElementById("master").checked = false;
-            //setStoredValue(HHStoredVarPrefixKey+SK.master, "false");
         });
         applyExtraCheck();
         currentInput.checkValidity();

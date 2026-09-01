@@ -150,8 +150,6 @@ export class QuestHelper {
         
         if (proceedType === "free") {
             logHHAuto("Proceeding for free.");
-            //setStoredValue"HHAuto_Temp_autoLoop", "false");
-            //proceedButtonMatch.click();
         }
         else if (proceedType === "pay") {
             var proceedButtonCost = $(".action-cost .price", proceedButtonMatch);
@@ -159,7 +157,6 @@ export class QuestHelper {
             var payTypeNRJ = $(".action-cost .energy_quest_icn", proceedButtonMatch).length>0;
             var energyCurrent = QuestHelper.getEnergy();
             var moneyCurrent = HeroHelper.getMoney();
-            //let payType = $("#controls .cost span[cur]:not([style*='display:none']):not([style*='display: none'])").attr('cur');
             if (payTypeNRJ)
             {
                 if(proceedCost <= energyCurrent)
@@ -189,28 +186,20 @@ export class QuestHelper {
                     return true;
                 }
             }
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         }
         else if (proceedType === "use_item") {
             logHHAuto("Proceeding by using X" + Number($("#controls .item span").text()) + " of the required item.");
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         }
         else if (proceedType === "battle") {
             logHHAuto("Quest need battle...");
             setStoredValue(HHStoredVarPrefixKey+TK.questRequirement, "battle");
             // Proceed to battle troll.
-            //proceedButtonMatch.click();
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
         }
         else if (proceedType === "finish") {
             logHHAuto("Reached end of current side quest. Proceeding to next.");
         }
         else if (proceedType === "end_archive") {
             logHHAuto("Reached end of current archive. Proceeding to next archive.");
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //proceedButtonMatch.click();
         }
         else if (proceedType === "end_play") {
             const rewards = $('#popups[style="display: block;"]>#rewards_popup[style="display: block;"] button.blue_button_L[confirm_blue_button]');
@@ -220,8 +209,6 @@ export class QuestHelper {
                 return true;
             }
             logHHAuto("Reached end of current play. Proceeding to next play.");
-            //setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
-            //proceedButtonMatch.click();
         }
         else if (proceedType === "outfit") {
             logHHAuto("Change outfit needed.");
@@ -242,7 +229,6 @@ export class QuestHelper {
             logHHAuto("setting autoloop to true");
             setTimeout(autoLoop,randomInterval(800,1200));
         },randomInterval(500,800));
-        //setTimeout(function () {location.reload();},randomInterval(800,1500));
         return true;
     }
 }

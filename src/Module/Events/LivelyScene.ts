@@ -126,9 +126,6 @@ export class LivelyScene {
                 logHHAuto("No (more) LivelyScene reward to collect .");
                 setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
                 setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
-                //gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                // setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                //setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 return false;
             }
         } catch (err) {

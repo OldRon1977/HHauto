@@ -74,8 +74,7 @@ export class HaremSalary {
         catch (ex) {
             logHHAuto("Catched error : Could not collect salary... " + ex);
             setTimer('nextSalaryTime', randomInterval(60, 180));
-            // return not busy
-            return false;
+            return false;  // not busy: nothing was started
         }
         return false;
     }

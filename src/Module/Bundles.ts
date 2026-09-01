@@ -162,8 +162,7 @@ export class Bundles {
         {
             logHHAuto("Navigating to home page.");
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            // return busy
-            return true;
+            return true;  // busy: the page is changing, the scheduler comes back next tick
         }
     }
 }

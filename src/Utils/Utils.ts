@@ -67,14 +67,10 @@ export function getCallerCallerFunction()
     console.log('Function ' + match![3] + ' at ' + match![4])
     }catch(err){}
     return callerName;
-    //return getCallerCallerFunction.caller.caller.name
 }
 export function isFocused()
 {
-    //let isFoc = false;
     const docFoc = document.hasFocus();
-    //const iFrameFoc = $('iframe').length===0?false:$('iframe')[0].contentWindow.document.hasFocus();
-    //isFoc = docFoc || iFrameFoc;
     return docFoc;
 }
 export function isJSON(str: any)
@@ -98,12 +94,6 @@ export function safeJsonParse<T>(json: string | undefined | null, defaultValue: 
 
 export function replaceCheatClick()
 {
-    // unsafeWindow.is_cheat_click=function(e) {
-    //     return false;
-    // };
-    // unsafeWindow.shared.general.is_cheat_click =function(e) {
-    //     return false;
-    // };
 }
 
 export function getCurrentSorting()

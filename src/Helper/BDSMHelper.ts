@@ -126,7 +126,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
 
     _player = player;
     _opponent = opponent;
-    //_cache = {};
     _runs = 0;
 
     const setup = (x: any) => {
@@ -203,8 +202,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         if (turns > maxAllowedTurns) throw new Error();
 
         // read cache
-        //const cachedResult = _cache?.[playerHP]?.[opponentHP]
-        //if (cachedResult) return cachedResult
 
         //Simulate base attack and critical attack
         const { baseAtk, critAtk } = calculateDmg(_player, turns);
@@ -214,8 +211,6 @@ export function calculateBattleProbabilities(player: BDSMPlayer, opponent: BDSMP
         const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
 
         // write cache
-        //if (!_cache[playerHP]) _cache[playerHP] = {}
-        //if (!_cache[playerHP][opponentHP]) _cache[playerHP][opponentHP] = {}
         //_cache[playerHP][opponentHP] = mergedResult;
 
         return mergedResult;
