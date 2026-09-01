@@ -38,9 +38,12 @@ reload-festem Block-Run** umgebaut. Kernpunkte:
 1. **Block statt Handler.** Jede user-sichtbare Funktion (Liga, Quest, Geld,
    ...) ist ein gekapselter `Block` aus benannten `Step`s mit deklarierten
    Metadaten (Abhaengigkeiten, `userMovable`-Flag, Timeouts). Die heutigen 33
-   Handler werden 1:1 als Steps abgebildet und nach Token-/Timer-Kohaesion zu
-   Bloecken gruppiert (Bundles: Season, PentaDrill, Seasonal, Pachinko,
-   Champion, BossBang; Rest standalone; Infra: EventParsing, GoHome).
+   Handler werden 1:1 als Steps abgebildet.
+
+   **Abgeloest durch ADR-006:** die hier geplante Buendelung (Season,
+   PentaDrill, Seasonal, Pachinko, Champion, BossBang) wurde nie gebaut. Der
+   Slot-Hold aus ADR-005 loest das Ping-Pong, fuer das die Buendel gedacht
+   waren. Jeder Handler ist heute ein eigener Single-Step-Block.
 
 2. **Reihenfolge als Daten.** Eine `Registry` (alle Block-Definitionen) ist
    getrennt von einer `Order`-Liste (geordnete Block-IDs). Umordnen = nur die
@@ -51,8 +54,13 @@ reload-festem Block-Run** umgebaut. Kernpunkte:
 3. **Reload-fester Block-Run.** `ActiveChain` (in-memory) wird zu einem
    persistenten `BlockRun { blockId, stepIdx, startedAt, stepStartedAt,
    dispatched, data }` in sessionStorage. Er ueberlebt geplante UND ungeplante
-   Reloads/Verbindungsabbrueche. Continuation lebt im BlockRun, nicht mehr im
-   globalen `lastActionPerformed` (das zuletzt entfernt wird).
+   Reloads/Verbindungsabbrueche. Die Continuation eines laufenden Blocks lebt
+   im BlockRun.
+
+   **Nicht umgesetzt:** `lastActionPerformed` sollte danach entfernt werden.
+   Es steht weiter im `AutoLoopContext` und dient als Gate auf
+   Descriptor-Ebene (siehe ADR-007) -- die Multi-Step-Zerlegung, die es
+   ersetzt haette, entfiel.
 
 4. **Hoechstens ein aktiver Block-Run.** Ein begonnener Block laeuft
    ununterbrochen bis zum Ende (einzige Ausnahme: Watchdog). Der SOFT/HARD-
@@ -76,8 +84,9 @@ reload-festem Block-Run** umgebaut. Kernpunkte:
 
 8. **Strukturiertes, reload-festes Logging.** `[PIPE]`-Format (key=value, ein
    Ereignis pro Zeile, Korrelations-IDs), nicht-rotierender Kontext-Block,
-   2-MB-Ring-Buffer mit write-through, in die bestehende Log-Pipeline
-   integriert. Lean immer aktiv, Diagnose per Menue-Toggle.
+   Ring-Buffer mit write-through, in die bestehende Log-Pipeline integriert.
+   Lean immer aktiv, Diagnose per Menue-Toggle. (Der Ring liegt heute bei 64
+   Chunks a 128 KB, siehe `LogStore.ts`.)
 
 ## Verhaltensneutralitaet
 
@@ -90,14 +99,14 @@ Verhaltensvergleich + Tests + Live-Lauf, pro verhaltensnahem Cluster gegen
 einen Production-Account. Keine bestehende Bot-Faehigkeit wird entfernt oder
 hinzugefuegt. Die Pro-Feature-Timer-Anzeige (pInfo) bleibt erhalten.
 
-## Migration (inkrementell, Koexistenz)
+## Was davon gebaut wurde
 
-Eigene Linie `refactor/v7.37.0-staging` von main. Cluster-Reihenfolge:
-Scheduler-Infra -> Logging -> Block-Mapping/Constraints -> Multi-Step-Zerlegung
-(PoP/Quest/BossBang/ChampionTicket) -> `lastActionPerformed` entfernen ->
-optional Reorder-UI (Ebene 17.2). Migrierte (BlockRun) und nicht-migrierte
-(altes Token) Bloecke koexistieren sicher bis zur Entfernung des Tokens im
-vorletzten Schritt.
+Punkte 2-8 stehen im Code (`BlockTypes`, `BlockScheduler`, `BlockPipeline`,
+`BlockRunStore`, `OrderResolver`, `PipeLogger`), einschliesslich des
+Reorder-UI. Nicht gebaut wurden die Buendelung (ADR-006), die Multi-Step-
+Zerlegung von PoP/Quest/BossBang/ChampionTicket (ADR-007) und die Entfernung
+von `lastActionPerformed`. Der SOFT/HARD-Interrupt-Pfad ist mit dem alten
+Scheduler aus dem Lauf verschwunden.
 
 ## Alternativen
 

@@ -48,7 +48,8 @@ madge ignore rules (hides instead of fixes), barrels (forbidden by ADR-001).
 
 ## Stage 1 result
 
-Six edges broken, baseline 348 → **86** (target for stage 1 was < 300):
+Six edges broken, baseline 348 → **86** (target for stage 1 was < 300; the
+current number lives in `docs-internal/circular-baseline.json`, 85 today):
 
 | Edge | Cycles through it | Pattern |
 |---|---|---|

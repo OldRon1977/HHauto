@@ -31,7 +31,7 @@ Jeder Block durchlaeuft **gate -> hold -> return-home -> release**, vom
 Scheduler verwaltet:
 
 1. **Gate (claim):** Der Scheduler startet einen BlockRun -> der Block besitzt
-   den einzigen aktiven Slot (R4.1/R4.2). Persistiert (sessionStorage),
+   den einzigen aktiven Slot. Persistiert (sessionStorage),
    ueberlebt Reload.
 2. **Hold:** Solange der Block agiert, behaelt er den Slot ueber Reloads
    hinweg. Kein anderer Block kann starten. Continuation lebt im persistenten
@@ -75,7 +75,7 @@ den naechsten Schritt. Wird der Handler idle (busy=false), endet der Run.
 ## Risiken / Sicherheitsnetze
 
 - **Endlos-Hold** (Handler wird nie idle): faengt der Run-Total-Timeout
-  (Watchdog R5.1) -> Abort -> Cooldown -> Home-Routing. totalTimeoutMs ggf.
+  (Watchdog) -> Abort -> Cooldown -> Home-Routing. totalTimeoutMs ggf.
   pro Block grosszuegiger setzen (z.B. PoP mit vielen Per-Item-Reloads).
 - **Doppel-Aktion** bei einem busy=true-Handler ohne Navigation (re-entry auf
   derselben Seite): die Handler-internen Timer/State verhindern Re-Aktion in
