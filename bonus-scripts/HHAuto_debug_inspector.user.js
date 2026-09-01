@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Debug - Full Data Inspector
 // @namespace    HHAuto_Debug
-// @version      4.9.0
+// @version      4.10.0
 // @description  Full game data dumper. DUMP THIS PAGE / DUMP FOR SHARING / AUTO TOUR. Persistent XHR + fetch hooks. Optional PII share-mode pipeline anonymises dumps for public bug reports.
 // @match        http*://*.haremheroes.com/*
 // @match        http*://*.hentaiheroes.com/*
@@ -63,7 +63,7 @@
     // cannot serve that audience.
     //
     // Before extending this file, check whether scripts/catalogue answers it.
-    const VERSION = '4.9.0';
+    const VERSION = '4.10.0';
     const LOG_PREFIX = '[Inspector v' + VERSION + ']';
 
     // PII share-mode toggle. Single source of truth for the share pipeline.
@@ -102,16 +102,22 @@
         { path: '/activities.html?tab=daily_goals',  label: 'ActDailyGoals',       expected: 'activities' },
         { path: '/activities.html?tab=pop',          label: 'ActPoP',              expected: 'activities' },
         { path: '/hero/profile.html',       label: 'HeroProfile',       expected: 'hero_pages' },
-        { path: '/member-progression.html', label: 'MemberProgression', expected: 'member-progression' }
+        { path: '/member-progression.html', label: 'MemberProgression', expected: 'member-progression' },
+        { path: '/love-raids.html',         label: 'LoveRaids',         expected: 'love_raids' },
+        { path: '/sex-god-path.html',       label: 'SexGodPath',        expected: 'sex-god-path' },
+        // battle_type is not optional: a bare /teams.html redirects to home.html
+        // and teams_data never exists there. The game's own links carry it too.
+        { path: '/teams.html?battle_type=leagues',     label: 'BattleTeams', expected: 'teams' },
+        { path: '/edit-team.html?battle_type=leagues', label: 'EditTeam',    expected: 'edit-team' },
+        // The girl list loads after the page, so this step waits longer than the
+        // others before it dumps.
+        { path: '/characters.html',         label: 'Harem',             expected: 'harem', settleMs: 6000 }
     ];
 
+    // Only pages that do not exist unless their event runs. A skip here means
+    // "no event", not "not measured".
     const MANUAL_TOUR = [
-        { path: '/teams.html',              label: 'BattleTeams',       expected: 'teams' },
-        { path: '/edit-team.html',          label: 'EditTeam',          expected: 'edit-team' },
-        { path: '/characters.html',         label: 'Harem',             expected: 'harem' },
-        { path: '/path-of-attraction.html', label: 'PathOfAttraction',  expected: 'path_of_attraction' },
-        { path: '/sex-god-path.html',       label: 'SexGodPath',        expected: 'sex-god-path' },
-        { path: '/love-raids.html',         label: 'LoveRaids',         expected: 'love_raids' }
+        { path: '/path-of-attraction.html', label: 'PathOfAttraction',  expected: 'path_of_attraction' }
     ];
 
     const STATE_KEY = 'hhauto_inspector_state';
@@ -1759,7 +1765,7 @@
         } else {
             waited = { matched: true, actual: getCurrentBodyPage(detectMode()), ctx: detectMode() };
         }
-        await sleep(POST_LOAD_SETTLE_MS);
+        await sleep(step.settleMs || POST_LOAD_SETTLE_MS);
 
         const ctx = detectMode();
         // Hooks were installed at script start and re-applied to any new iframe via
