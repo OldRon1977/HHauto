@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blockiert Commits, die eine echte Spielerkennung tragen.
+#
+# Das ist die einzige Schicht, die wirklich verhindert statt zu entdecken:
+# hier ist noch nichts auf GitHub. Der CI-Schritt darunter ist das Netz für
+# --no-verify und für andere Rechner, auf denen dieser Hook nicht eingerichtet
+# ist (Einrichtung: npm run hooks:install).
+node scripts/check-player-data.mjs --staged || exit 1

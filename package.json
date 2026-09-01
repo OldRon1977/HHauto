@@ -20,7 +20,9 @@
     "bundle:stats": "webpack --config webpack.config.js --profile --json > stats.json",
     "bundle:analyze": "webpack-bundle-analyzer stats.json",
     "check:docs": "node scripts/check-doc-drift.mjs",
-    "check:headers": "node scripts/check-module-headers.mjs"
+    "check:headers": "node scripts/check-module-headers.mjs",
+    "check:player-data": "node scripts/check-player-data.mjs",
+    "hooks:install": "git config core.hooksPath .githooks"
   },
   "repository": {
     "type": "git",

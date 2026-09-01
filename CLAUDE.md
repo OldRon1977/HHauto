@@ -66,12 +66,29 @@ npm run deps:circular:check  # Zyklen gegen die eingefrorene Baseline
 npm run check:gm-grants  # GM-Grants gegen die tatsächliche Nutzung
 npm run check:docs       # storage-keys.md und page-mapping.md gegen den Code
 npm run check:headers    # Used by / Depends on gegen die echten Importe
+npm run check:player-data # keine echten Spielerkennungen im Baum
 npm run build            # HHAuto.user.js gehört in denselben Commit
 ```
 
-Die letzten beiden gibt es, weil beides schon auseinandergelaufen ist:
-`storage-keys.md` stand einmal neun Keys hinter dem Code, und 17 Dateiköpfe
+`check:docs` und `check:headers` gibt es, weil beides schon auseinandergelaufen
+ist: `storage-keys.md` stand einmal neun Keys hinter dem Code, und 17 Dateiköpfe
 nannten Module, die die Datei nicht mehr importieren.
+
+## Mitschnitte tragen keine echten Spieler
+
+Fixtures und Messnotizen werden **beim Aufnehmen** anonymisiert: eigenes Konto
+`1`, fremde Spieler `1000` aufwärts, Namen `Player_N`. Eine Kontonummer gehört
+auch nicht in eine Commit-Nachricht, einen PR-Text oder einen Messbericht.
+
+Das ist zweimal schiefgegangen und war nur durch einen History-Rewrite eines
+öffentlichen Repos wieder herauszubekommen -- mitsamt Force-Push, 879
+betroffenen PR-Refs und einem Support-Ticket. `check:player-data` prüft es,
+und der Pre-Commit-Hook hält es auf, bevor etwas GitHub erreicht. Den Hook auf
+einem neuen Klon einmal einrichten:
+
+```
+npm run hooks:install    # setzt core.hooksPath auf .githooks
+```
 
 ## Live gegen das Spiel messen
 

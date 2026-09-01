@@ -1,0 +1,4 @@
+#!/bin/sh
+# Die Commit-Nachricht ist der zweite Weg nach draußen -- sie steht im Repo und
+# in jedem Klon, und die Datei-Prüfung sieht sie nicht.
+node scripts/check-player-data.mjs --message "$1" || exit 1
