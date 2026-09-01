@@ -53,6 +53,7 @@ import { logHHAuto } from "../Utils/LogUtils";
 import { AutoLoopContext } from "./AutoLoopContext";
 import { ModuleHandlerDescriptor } from "../model/IModule";
 import { shouldRunStandardHandler } from "./AutoLoop.pure";
+import { wouldFightWithPower } from "./AutoLoopActions";
 
 /**
  * How a handler responds to higher-priority interrupts.
@@ -956,32 +957,6 @@ const handleTrollBattle: HandlerConfig = {
   }],
 };
 
-/**
- * Pure helper used by handleTrollBattle. Mirrors the OR-disjunction in the
- * trollBattleOrWait step.fn; if those activation paths drift, the wait-marker
- * either fires too often (blocking event-parsing) or too rarely (issue #1700
- * ping-pong returns). MAINTENANCE: keep in sync with trollBattleOrWait.
- *
- * Spec: spec/Service/AutoLoopActions.wouldFightWithPower.spec.ts (9 cases)
- *       spec/Service/AutoLoopActions.trollWaitForEnergy.spec.ts (3 cases)
- * Lesson: _lessons/mapping-fix-vollstaendig-pruefen.md
- */
-function wouldFightWithPower(
-  eventGirl: EventGirl,
-  eventMythicGirl: EventGirl,
-  raidStarsRaid: LoveRaid | undefined,
-  loveRaid: LoveRaid | undefined,
-): boolean {
-  const autoTrollOn = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === 'true';
-  const mythicEventReady = Boolean(eventMythicGirl?.girl_id) && eventMythicGirl?.is_mythic === true
-    && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === 'true';
-  const eventReady = Boolean(eventGirl?.girl_id) && eventGirl?.is_mythic !== true
-    && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === 'true';
-  const raidStarsReady = Boolean(raidStarsRaid?.id_girl)
-    && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === 'true';
-  const loveRaidReady = LoveRaidManager.isActivated() && Boolean(loveRaid?.id_girl);
-  return autoTrollOn || mythicEventReady || eventReady || raidStarsReady || loveRaidReady;
-}
 
 const handlePachinko: HandlerConfig = {
   name: 'handlePachinko',

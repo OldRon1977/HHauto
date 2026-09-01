@@ -103,6 +103,15 @@ jobs:
       - name: GM grant list matches GM API usage (blocking)
         run: npm run check:gm-grants
 
+      # Both gates exist because both drifted unnoticed: storage-keys.md stood
+      # nine keys behind the code, and 17 file headers named modules that no
+      # longer import the file.
+      - name: Documents that mirror the code still match it (blocking)
+        run: npm run check:docs
+
+      - name: Used by / Depends on headers match the imports (blocking)
+        run: npm run check:headers
+
       - name: Knip dead exports (advisory)
         continue-on-error: true
         run: npm run deps:dead

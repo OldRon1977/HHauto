@@ -18,7 +18,9 @@
     "deps:unused": "depcheck --ignores=\"ts-jest,ts-node\"",
     "dup:check": "jscpd src --min-lines 10 --min-tokens 70 --reporters console,html --output ./coverage/jscpd",
     "bundle:stats": "webpack --config webpack.config.js --profile --json > stats.json",
-    "bundle:analyze": "webpack-bundle-analyzer stats.json"
+    "bundle:analyze": "webpack-bundle-analyzer stats.json",
+    "check:docs": "node scripts/check-doc-drift.mjs",
+    "check:headers": "node scripts/check-module-headers.mjs"
   },
   "repository": {
     "type": "git",
