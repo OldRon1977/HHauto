@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: The script does not run as expected
+    url: https://github.com/OldRon1977/HHauto/wiki/Debugging
+    about: Narrow the problem down and produce a debug log before opening a bug report.
+  - name: Question, or an idea you want to float
+    url: https://github.com/OldRon1977/HHauto/discussions
+    about: Discussions reaches the other users of the script, an issue only reaches me.
+  - name: Wiki
+    url: https://github.com/OldRon1977/HHauto/wiki
+    about: Installation, the menu, debugging, and how reports are handled.

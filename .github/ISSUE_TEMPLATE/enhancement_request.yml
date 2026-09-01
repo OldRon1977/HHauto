@@ -1,0 +1,66 @@
+name: Enhancement request
+description: An existing function that should work differently
+title: "Enhancement: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One enhancement per issue, please. For something the script does not do at all yet, use the feature request instead.
+
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - Hentai Heroes
+        - Harem Heroes
+        - Gay Harem
+        - Comix Harem
+        - Horny Heroes
+        - Pornstar Harem
+        - Trans Pornstar Harem
+        - Gay Pornstar Harem
+        - Manga RPG
+        - Amour Agent
+        - All of them
+    validations:
+      required: true
+
+  - type: input
+    id: feature
+    attributes:
+      label: Which function
+      description: The option or automation you mean, as it is named in the menu
+      placeholder: "Market → Myth. & Leg. Boosters"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: What it does today
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired
+    attributes:
+      label: What it should do instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What the change would save you, or what goes wrong without it
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Screenshots or other context
+    validations:
+      required: false
