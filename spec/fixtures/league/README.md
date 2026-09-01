@@ -4,13 +4,13 @@
 
 - Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-05T12-11-40-985Z.json`
 - Capture date: 2026-05-05T12:11:40Z
-- Page index: 1 (`/leagues.html`)
+- Page: `/leagues.html`
 
 ## Files
 
 ### `opponents-mid-tier.json`
 
-- Source path: `pages[1].teams.opponents_list`
+- Source path: `pages[<leagues>].teams.opponents_list`
 - Selection: indices 49-51 (3 entries, mid-tier by league place 50-52, total 100 entries)
 - Fields kept per entry:
   - Top-level: `id_member` (= `player.id_fighter`), `nickname` (redacted), `level`, `power`, `place`, `country`, `can_fight`
@@ -22,7 +22,7 @@
 
 ### `league-rewards-tier3.json`
 
-- Source path: `pages[1].battle.league_rewards["3"]`
+- Source path: `pages[<leagues>].battle.league_rewards["3"]`
 - Selection: tier 3 in full -- rank brackets `1`, `4`, `15`, `30`, `45`, `60`, `75`, `200`, plus the `name` key
 - Redactions: none (no PII; `shards` arrives as the string sentinel `"[circular]"` from the dump's circular-reference replacer)
 

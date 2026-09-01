@@ -4,7 +4,7 @@
 
 - Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-05T12-11-40-985Z.json`
 - Capture date: 2026-05-05T12:11:40Z
-- Page index: 19 (`/waifu.html`)
+- Page: `/waifu.html`
 
 ## Plan deviation
 
@@ -18,7 +18,7 @@ real path; the plan task notes the substitution.
 
 ### `sample-girls.json`
 
-- Source path: `pages[19].girls_full["game.girls_data_list"]`
+- Source path: `pages[<waifu>].girls_full["game.girls_data_list"]`
 - Selection: 3 girls covering the rarity / max-grade range used by the
   plan
   - `id_girl=118565805` (Untamed Levitya, mythic, `nb_grades=6`,
@@ -53,8 +53,8 @@ real path; the plan task notes the substitution.
 
 If a fresh dump is captured later:
 
-1. Confirm the harem is still on the `/waifu.html` capture (page 19 in
-   the 2026-05-05 dump).
+1. Confirm the harem is still captured on `/waifu.html` (the tour labels its
+   steps, so look up the step by label rather than by index).
 2. Pick the same `id_girl` values if they are still owned. If a girl
    has rotated out of the harem, swap to the closest equivalent in the
    same rarity / max-grade slot and document the substitution here.

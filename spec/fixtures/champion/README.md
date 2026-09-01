@@ -4,7 +4,7 @@
 
 - Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-05T12-11-40-985Z.json`
 - Capture date: 2026-05-05T12:08:27Z
-- Page index: 7 (`/club-champion.html`)
+- Page: `/club-champion.html`
 
 ## Plan deviation
 
@@ -36,8 +36,8 @@ for DOM-derived state is in scope.
 ### `active-champion.json`
 
 - Source paths:
-  - `pages[7].battle.championData` (everything except `team`)
-  - `pages[7].girls_full["game.championData.team"]` (substituted in
+  - `pages[<club-champion>].battle.championData` (everything except `team`)
+  - `pages[<club-champion>].girls_full["game.championData.team"]` (substituted in
     for the circular `team` field)
 - Contents:
   - `champion` -- id, name, lairName, tier, poses, class, bar

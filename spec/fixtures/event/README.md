@@ -4,7 +4,7 @@
 
 - Dump: `INPUT/hhauto_dump_www_hentaiheroes_com_tour_2026-05-05T12-11-40-985Z.json`
 - Capture date: 2026-05-05T12:09:05Z
-- Page index: 13 (`/event.html`)
+- Page: `/event.html`
 
 ## Files
 
@@ -24,15 +24,15 @@ both consumed by event detection logic.
 
 #### `event_data`
 
-- Source path: `pages[13].battle.event_data`
-- `pages[13].battle.current_event` is an exact duplicate in the dump;
+- Source path: `pages[<event>].battle.event_data`
+- `pages[<event>].battle.current_event` is an exact duplicate in the dump;
   only one of the two is fixtured. Keys:
   - `event_name`, `type`, `identifier` -- event identity
   - `seconds_until_event_end`, `event_duration_seconds` -- timers
   - `can_participate`, `participation_info` -- participation gate
   - `progression_href` -- link target
   - `girls` -- substituted in from
-    `pages[13].girls_full["game.event_girls"]` (the inspector
+    `pages[<event>].girls_full["game.event_girls"]` (the inspector
     serialises that there to break the circular reference at
     `battle.event_data.girls`).
   - `event_data` -- empty list in this dump (event-type specific
@@ -43,8 +43,8 @@ both consumed by event detection logic.
 #### `mega_event`
 
 - Source paths:
-  - `pages[13].battle.mega_event_active` -> `mega_event.active`
-  - `pages[13].battle.mega_event_time_remaining` -> `mega_event.time_remaining`
+  - `pages[<event>].battle.mega_event_active` -> `mega_event.active`
+  - `pages[<event>].battle.mega_event_time_remaining` -> `mega_event.time_remaining`
 - Captured snapshot has the mega event active.
 
 #### Girl whitelist

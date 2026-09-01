@@ -12,9 +12,10 @@
 
 ## Files
 
-- `page-00.json` -- snapshot from `pages[0].live_blessings_api.live`
-- `page-14.json` -- snapshot from `pages[14].live_blessings_api.live`
-- `page-29.json` -- snapshot from `pages[29].live_blessings_api.live`
+- `page-00.json` -- snapshot from the first tour step's `live_blessings_api.live`
+- `page-14.json` -- a step from the middle of the tour
+- `page-29.json` -- a step from the end of the tour; the three exist to show
+  the payload does not change across the tour
 
 ## Selection rationale
 

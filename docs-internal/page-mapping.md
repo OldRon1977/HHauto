@@ -1,18 +1,13 @@
 ---
-last-verified: 2026-08-17
-verified-against-version: 8.8.0
+last-verified: 2026-09-01
+verified-against-version: 8.11.0
 status: current
 ---
 
 # Page Mapping Referenz
 
-Alle Seiten-IDs und ihre URL-Zuordnung im HHauto-Skript.
-Quelle: src/config/HHEnvVariables.ts.
-
-**Code-Stand (2026-08-17, gegen v8.8.0 nachgezaehlt):** 53 Page-IDs definiert,
-55 Eintraege in pagesKnownList. Die letzte vollstaendige Verifikation der
-einzelnen URL-Zuordnungen stammt vom 2026-05-05 gegen v7.35.21 -- nachgezaehlt
-wurden hier nur die beiden Zahlen, nicht jede Zeile der Tabelle.
+Diese Datei beschreibt, wie Seiten erkannt werden und was dabei zu beachten
+ist. Welche Seiten es gibt, steht im Code -- siehe unten.
 
 Welche dieser Seiten je in einer Aufnahme vorkamen, ist eine andere Frage als
 welche definiert sind: die Kampf- und Vorkampfseiten erreicht keine Seitentour,
@@ -60,135 +55,17 @@ Activities-Page multiplext mehrere Sub-Seiten via Tab-Parameter und Query-String
 
 ## Page-IDs
 
-### Hauptmenü / Hub
+Die Liste steht in `src/config/HHEnvVariables.ts` -- je Seite drei Zeilen
+(`pagesIDx`, `pagesURLx`, `pagesKnownList.push`). Eine Kopie hier hat sich als
+Drift-Quelle erwiesen: sie stand zwei Eintraege hinter dem Code, ohne dass es
+jemandem auffiel. Zum Nachsehen:
 
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDHome | "home" | /home.html | Startseite |
-| pagesIDActivities | "activities" | /activities.html | Aktivitaeten-Hub |
-| pagesIDMap | "map" | /map.html | Weltkarte |
-| pagesIDShop | "shop" | /shop.html | Shop |
-| pagesIDPachinko | "pachinko" | /pachinko.html | Pachinko |
-| pagesIDClub | "clubs" | /clubs.html | Club |
+```bash
+grep -n "pagesID[A-Za-z]* = \|pagesURL[A-Za-z]* = " src/config/HHEnvVariables.ts
+```
 
-### Activities Sub-Tabs (URL-Parameter)
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDMissions | "missions" | *(keine URL)* | Missionen |
-| pagesIDContests | "contests" | *(keine URL)* | Wettbewerbe |
-| pagesIDDailyGoals | "daily_goals" | *(keine URL)* | Tagesziele |
-| pagesIDPowerplacemain | "powerplacemain" | *(keine URL)* | Place of Power |
-
-### Harem / Characters
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDHarem | "harem" | /characters.html | Harem-Uebersicht |
-| pagesIDGirlPage | "girl" | *(keine URL)* | Einzelne Girl-Seite |
-| pagesIDWaifu | "waifu" | /waifu.html | Waifu-Seite |
-| pagesIDMemberProgression | "member-progression" | /member-progression.html | Fortschritt |
-| pagesIDGirlEquipmentUpgrade | "girl-equipment-upgrade" | /girl-equipment-upgrade.html | Equipment |
-| pagesIDHeroPage | "hero_pages" | /hero/profile.html | Held-Profil |
-
-### Teams
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDBattleTeams | "teams" | /teams.html | Team-Uebersicht |
-| pagesIDEditTeam | "edit-team" | /edit-team.html | Team bearbeiten |
-
-### League / PvP
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDLeaderboard | "leaderboard" | /leagues.html | Liga-Rangliste |
-| pagesIDLeaguePreBattle | "leagues-pre-battle" | *(keine URL)* | Liga Vorkampf |
-| pagesIDLeagueBattle | "league-battle" | /league-battle.html | Liga Kampf |
-
-### Season
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDSeason | "season" | /season.html | Season-Uebersicht |
-| pagesIDSeasonArena | "season_arena" | /season-arena.html | Season-Arena |
-| pagesIDSeasonBattle | "season-battle" | /season-battle.html | Season-Kampf |
-
-### Troll
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDTrollPreBattle | "troll-pre-battle" | /troll-pre-battle.html | Troll Vorkampf |
-| pagesIDTrollBattle | "troll-battle" | /troll-battle.html | Troll-Kampf |
-
-### Pantheon
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDPantheon | "pantheon" | /pantheon.html | Pantheon-Uebersicht |
-| pagesIDPantheonPreBattle | "pantheon-pre-battle" | /pantheon-pre-battle.html | Pantheon Vorkampf |
-| pagesIDPantheonBattle | "pantheon-battle" | /pantheon-battle.html | Pantheon-Kampf |
-
-### Labyrinth
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDLabyrinthEntrance | "labyrinth-entrance" | /labyrinth-entrance.html | Labyrinth-Eingang |
-| pagesIDLabyrinthPoolSelect | "labyrinth-pool-select" | /labyrinth-pool-select.html | Pool-Auswahl |
-| pagesIDLabyrinth | "labyrinth" | /labyrinth.html | Labyrinth |
-| pagesIDLabyrinthPreBattle | "labyrinth-pre-battle" | /labyrinth-pre-battle.html | Labyrinth Vorkampf |
-| pagesIDLabyrinthBattle | "labyrinth-battle" | /labyrinth-battle.html | Labyrinth-Kampf |
-| pagesIDEditLabyrinthTeam | "edit-labyrinth-team" | /edit-labyrinth-team.html | Labyrinth-Team |
-
-### Penta Drill
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDPentaDrill | "penta_drill" | /penta-drill.html | Penta Drill |
-| pagesIDPentaDrillArena | "penta_drill_arena" | /penta-drill-arena.html | Penta Arena |
-| pagesIDEditPentaDrillTeam | "edit-penta-drill-team" | /edit-penta-drill-team | Penta Team |
-| pagesIDPentaDrillPreBattle | "penta_drill_pre_battle" | /penta-drill-pre-battle | Penta Vorkampf |
-| pagesIDPentaDrillBattle | "penta-drill-battle" | /penta-drill-battle.html | Penta-Kampf |
-
-### Champion
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDChampionsPage | "champions" | *(keine URL)* | Champions-Seite |
-| pagesIDChampionsMap | "champions_map" | /champions-map.html | Champions-Karte |
-| pagesIDClubChampion | "club_champion" | /club-champion.html | Club-Champion |
-
-### Events
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDEvent | "event" | /event.html | Event-Seite |
-| pagesIDSeasonalEvent | "seasonal" | /seasonal.html | Seasonal Event |
-| pagesIDBossBang | "boss-bang-battle" | *(keine URL)* | Boss Bang |
-| pagesIDLoveRaid | "love_raids" | /love-raids.html | Love Raids |
-
-### Pfad-Events
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDPoA | "path_of_attraction" | *(keine URL)* | Path of Attraction |
-| pagesIDPoG | "path-of-glory" | /path-of-glory.html | Path of Glory |
-| pagesIDPoV | "path-of-valor" | /path-of-valor.html | Path of Valor |
-| pagesIDSexGodPath | "sex-god-path" | /sex-god-path.html | Sex God Path |
-
-### Quest
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDQuest | "quest" | *(keine URL)* | Quest |
-
-### Sonstiges
-
-| Konstante | Page-ID (page-Attribut) | URL-Pfad | Beschreibung |
-|-----------|---------------------------|----------|--------------|
-| pagesIDLeaguPreBattle | "?" | /leagues-pre-battle.html |  |
-
----
+Was der Code nicht sagt und deshalb hier steht: die Sub-Tabs, die
+Spiel-Varianten und die beiden Eigenheiten oben.
 
 ## Activities Sub-Tabs
 
