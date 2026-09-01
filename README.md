@@ -1,10 +1,15 @@
 # HHauto
 
-[English](https://github.com/OldRon1977/HHauto/wiki/English)
+A Tampermonkey userscript that automates the repetitive parts of Hentai Heroes
+and its sister games.
 
-[Español](https://github.com/OldRon1977/HHauto/wiki/Espa%C3%B1ol)
+**[Install](https://github.com/OldRon1977/HHauto/raw/main/HHAuto.user.js)** ·
+[Wiki](https://github.com/OldRon1977/HHauto/wiki) ·
+[Installation](https://github.com/OldRon1977/HHauto/wiki/Installation) ·
+[Debugging](https://github.com/OldRon1977/HHauto/wiki/Debugging) ·
+[Reporting an issue](https://github.com/OldRon1977/HHauto/wiki/Reporting-an-issue)
 
-[Français](https://github.com/OldRon1977/HHauto/wiki/Fran%C3%A7ais)
+The script menu speaks English, German, French and Spanish; the wiki is English only.
 
 ---
 
