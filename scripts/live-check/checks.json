@@ -38,25 +38,11 @@
           "min": 1
         },
         {
-          "selector": ".data-list .data-row.body-row div[column='match_history'], .data-list .data-row.body-row div[column='match_history_sorting']",
+          "selector": ".data-list .data-row.body-row div[column='match_history_sorting']",
           "min": 1
         }
       ],
       "note": "The code accepts either attribute and carries a note to drop match_history after the w32 update. Which of the two the page serves is worth reading off the run: if only match_history_sorting appears, the fallback can go."
-    },
-    {
-      "id": "league-match-history-legacy",
-      "claim": "the pre-w32 match_history attribute is still served",
-      "source": "src/Module/League.ts:445 (the 'remove match_history after w32 update' note)",
-      "page": "/leagues.html",
-      "kind": "selector",
-      "assert": [
-        {
-          "selector": ".data-list div[column='match_history']",
-          "min": 1
-        }
-      ],
-      "note": "A DRIFT here is good news, not a defect: it means the legacy branch can be deleted."
     },
     {
       "id": "league-end-timer",

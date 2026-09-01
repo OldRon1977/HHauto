@@ -58,8 +58,10 @@ export class LeagueHelper {
         if (!opponent) return 0;
         const forceOneFight = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesForceOneFight) === 'true';
         if(forceOneFight) return 1;
-        // remove match_history after w32 update
-        const matchs = opponent.match_history ? opponent.match_history[opponent.player.id_fighter]: (opponent.match_history_sorting as any)[opponent.player.id_fighter];
+        // The JSON still carries match_history (a record keyed by id_fighter);
+        // match_history_sorting is the sort value, a number. Only the DOM column
+        // was renamed.
+        const matchs = opponent.match_history[opponent.player.id_fighter];
         return matchs ? matchs.filter((match: any)=>match == null).length : 0
     }
     static getLeagueCurrentLevel()
@@ -415,7 +417,7 @@ export class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
                             for (let j=0; j<results.length; j++) {
                                 if (results[j].className == "result ") hide = false;
                             }
@@ -434,7 +436,7 @@ export class LeagueHelper {
                     try {
                         if (!opponents[i].className.includes("player-row")) {
                             let hide = true;
-                            const results = $(opponents[i]).find('div[column = "match_history"], div[column = "match_history_sorting"]')[0].children; // remove match_history after w32 update
+                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
                             for (let j=0; j<results.length; j++) {
                                 if (results[j].className == "result ") hide = false;
                             }
