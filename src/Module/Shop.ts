@@ -23,6 +23,26 @@ import { SK, TK } from "../config/StorageKeys";
 import { Booster } from "./Booster";
 import { decideCheckShop } from "./Shop.pure";
 
+// Shapes of the JSON the game puts into a slot's data-d attribute. Only the
+// fields this module reads are declared; the game ships more.
+interface ValueStackSlotData {
+    quantity: number;
+    item: { value: number };
+}
+interface BoosterSlotData {
+    quantity: number;
+    item: { identifier: string; id_item?: string | number; name: string; rarity: string };
+}
+// The carac fields are addressed by a name built at runtime ('carac' + class),
+// hence the open index signature next to the two fixed fields.
+type ArmorSlotData = { id_equip: string; subtype: number } & Record<string, unknown>;
+
+// Slot counts of the sell menu, keyed carac -> type -> rarity -> lock status.
+type ItemLockCounts = Record<string, number>;
+type ItemRarityCounts = Record<string, ItemLockCounts>;
+type ItemTypeCounts = Record<number, ItemRarityCounts>;
+type ItemCaracCounts = Record<string | number, ItemTypeCounts>;
+
 export class Shop {
 
     static isTimeToCheckShop() {
@@ -58,19 +78,19 @@ export class Shop {
             var assB:Record<string, unknown>[]=[];
             var assG:Record<string, unknown>[]=[];
             var assP:Record<string, unknown>[]=[];
-            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assA.push(d);}});
-            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assB.push(d);}});
-            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assG.push(d);}});
-            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<any>(this.dataset.d,null);if(d)assP.push(d);}});
+            $('#shops div.armor.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<Record<string, unknown> | null>(this.dataset.d,null);if(d)assA.push(d);}});
+            $('#shops div.booster.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<Record<string, unknown> | null>(this.dataset.d,null);if(d)assB.push(d);}});
+            $('#shops div.gift.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<Record<string, unknown> | null>(this.dataset.d,null);if(d)assG.push(d);}});
+            $('#shops div.potion.merchant-inventory-item .slot').each(function(){if (this.dataset.d){const d=safeJsonParse<Record<string, unknown> | null>(this.dataset.d,null);if(d)assP.push(d);}});
     
             var HaveAff=0;
             var HaveExp=0;
             var HaveBooster: Record<string, number>={};
-            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d)HaveAff+=d.quantity*d.item.value;}});
-            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d)HaveExp+=d.quantity*d.item.value;}});
+            $('#shops div.gift.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<ValueStackSlotData | null>(this.dataset.d,null); if(d)HaveAff+=d.quantity*d.item.value;}});
+            $('#shops div.potion.player-inventory-content .slot').each(function(){if (this.dataset.d) { const d=safeJsonParse<ValueStackSlotData | null>(this.dataset.d,null); if(d)HaveExp+=d.quantity*d.item.value;}});
     
             var BoosterIdMap: Record<string, { id_item: string; identifier: string; name: string; rarity: string }>={};
-            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { const d=safeJsonParse<any>(this.dataset.d,null); if(d){ HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}}});
+            $('#shops div.booster.player-inventory-content .slot').each(function(){ if (this.dataset.d) { const d=safeJsonParse<BoosterSlotData | null>(this.dataset.d,null); if(d){ HaveBooster[d.item.identifier] = d.quantity; if(d.item.id_item) BoosterIdMap[d.item.identifier] = { id_item: String(d.item.id_item), identifier: d.item.identifier, name: d.item.name, rarity: d.item.rarity };}}});
     
             setStoredValue(HHStoredVarPrefixKey+TK.haveAff, HaveAff);
             setStoredValue(HHStoredVarPrefixKey+TK.haveExp, HaveExp);
@@ -81,8 +101,7 @@ export class Shop {
             // Debug: log each booster found in player inventory with id_item and quantity
             for (const [identifier, data] of Object.entries(BoosterIdMap)) {
                 const qty = HaveBooster[identifier] || 0;
-                const entry = data as any;
-                logHHAuto(`  Booster inventory: ${entry.name} [${identifier}] id_item=${entry.id_item} rarity=${entry.rarity} qty=${qty}`);
+                logHHAuto(`  Booster inventory: ${data.name} [${identifier}] id_item=${data.id_item} rarity=${data.rarity} qty=${qty}`);
             }
     
             setStoredValue(HHStoredVarPrefixKey+TK.storeContents, JSON.stringify([assA,assB,assG,assP]));
@@ -222,7 +241,7 @@ export class Shop {
                 itemsType.push(i);
             }
     
-            const itemsList: Record<string, any> = {};
+            const itemsList: ItemCaracCounts = {};
             for (const c of itemsCaracs)
             {
                 let filteredCarac;
@@ -553,8 +572,9 @@ export class Shop {
             }
         }
     
-        function checkAjaxComplete(event: any, request: any, settings: any){
-            const match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
+        function checkAjaxComplete(event: JQuery.TriggeredEvent, request: JQuery.jqXHR, settings: JQuery.AjaxSettings){
+            const sentData = typeof settings.data === 'string' ? settings.data : '';
+            const match = sentData.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null) return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
             if (fetchStarted)
@@ -712,7 +732,7 @@ export class Shop {
                     ];
                     for (let i4 = 0; i4 < availebleItems.length; i4++)
                     {
-                        const sellableItemObj = safeJsonParse<any>($(availebleItems[i4]).attr('data-d'), null);
+                        const sellableItemObj = safeJsonParse<ArmorSlotData | null>($(availebleItems[i4]).attr('data-d'), null);
                         if (!sellableItemObj) { continue; }
                         const indexType = typesOfSets.indexOf(sellableItemObj.id_equip);
     
@@ -723,7 +743,7 @@ export class Shop {
                         else
                         {
                             const currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
-                            const itemCarac = sellableItemObj[caracsOfSets[indexType]];
+                            const itemCarac = Number(sellableItemObj[caracsOfSets[indexType]]);
                             //checking best gear in inventory based on best class stat
                             if (currentBest[0] < itemCarac)
                             {

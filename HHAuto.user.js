@@ -23344,8 +23344,7 @@ class Shop {
             // Debug: log each booster found in player inventory with id_item and quantity
             for (const [identifier, data] of Object.entries(BoosterIdMap)) {
                 const qty = HaveBooster[identifier] || 0;
-                const entry = data;
-                logHHAuto(`  Booster inventory: ${entry.name} [${identifier}] id_item=${entry.id_item} rarity=${entry.rarity} qty=${qty}`);
+                logHHAuto(`  Booster inventory: ${data.name} [${identifier}] id_item=${data.id_item} rarity=${data.rarity} qty=${qty}`);
             }
             setStoredValue(HHStoredVarPrefixKey + TK.storeContents, JSON.stringify([assA, assB, assG, assP]));
             setStoredValue(HHStoredVarPrefixKey + TK.charLevel, HeroHelper.getLevel());
@@ -23727,7 +23726,8 @@ class Shop {
             }
         }
         function checkAjaxComplete(event, request, settings) {
-            const match = settings.data.match(/action=market_get_armor&id_member_armor=(\d+)/);
+            const sentData = typeof settings.data === 'string' ? settings.data : '';
+            const match = sentData.match(/action=market_get_armor&id_member_armor=(\d+)/);
             if (match === null)
                 return;
             allLoaded = request.responseJSON.items.length === 0 && request.responseJSON.success; // No more to load
@@ -23877,7 +23877,7 @@ class Shop {
                         }
                         else {
                             const currentBest = arraysOfSets[indexType][sellableItemObj.subtype];
-                            const itemCarac = sellableItemObj[caracsOfSets[indexType]];
+                            const itemCarac = Number(sellableItemObj[caracsOfSets[indexType]]);
                             //checking best gear in inventory based on best class stat
                             if (currentBest[0] < itemCarac) {
                                 currentBest[0] = itemCarac;
