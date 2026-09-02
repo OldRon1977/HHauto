@@ -11,6 +11,7 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
 import { LoveRaid } from '../model/LoveRaid';
+import { MYTHIC_CODE_RE } from "./Booster.pure";
 import { EventModule } from "./Events/EventModule";
 import { isSkinPhase, shardTotalAfterFight, ShardDrop } from "./Events/GirlSkins.pure";
 import { LoveRaidManager } from "./Events/LoveRaidManager";
@@ -639,7 +640,7 @@ export class Booster {
         const parsed = raw
             .split(";")
             .map((s: string) => s.trim().toUpperCase())
-            .filter((s: string) => /^MB([1-9]|1[0-2])$/.test(s));
+            .filter((s: string) => MYTHIC_CODE_RE.test(s));
         if (parsed.length === 0) {
             logHHAuto("Auto-equip mythic: no valid codes in '" + raw + "', treating as off.");
         }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.11.1
+// @version      8.11.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2165,6 +2165,42 @@ function manageTranslationPopUp() {
     }
 }
 
+;// ./src/Module/Booster.pure.ts
+// Booster.pure.ts -- syntax of the "Mythic Slot" priority list.
+//
+// Pure: no DOM, no storage, no imports. The impure half lives in Booster.ts.
+//
+// The one definition of what may stand in that field, so the menu's pattern
+// attribute, the isValid check setDefaults runs against the stored value on
+// every page load, and the runtime parser cannot state different rules. They
+// did: the field was widened to all twelve codes while isValid kept a cap of
+// five, so a longer list was accepted, saved, and then wiped on the next load
+// (issue #1865). The same lesson had already been written down for the buy
+// list in Market.pure.ts (#1844).
+//
+// The list is a preference order, not a slot assignment -- "take whichever of
+// these I happen to own". Its length and Booster.MYTHIC_SLOT_COUNT are two
+// different numbers, so the syntax caps nothing; the walk down the list stops
+// when no slot is free.
+//
+// Used by: config/InputPattern.ts, config/HHStoredVars.ts, Module/Booster.ts
+//
+/** One mythic booster code, MB1..MB12. MB1 is the Sandalwood perfume. */
+const MYTHIC_CODE = "MB(?:[1-9]|1[0-2])";
+/**
+ * Written without anchors because that is what an HTML `pattern` attribute
+ * expects; every other caller anchors it itself.
+ *
+ * Whitespace around a code is tolerated because the parser trims before it
+ * compares -- an entry the parser reads must not paint the field red. An empty
+ * value is valid and means "off".
+ */
+const MYTHIC_LIST_PATTERN = "(?:\\s*" + MYTHIC_CODE + "\\s*(?:;\\s*" + MYTHIC_CODE + "\\s*)*)?";
+/** Anchored form, for checking a whole stored value. */
+const MYTHIC_LIST_RE = new RegExp("^" + MYTHIC_LIST_PATTERN + "$");
+/** Anchored form of a single code, for checking one entry of a split list. */
+const MYTHIC_CODE_RE = new RegExp("^" + MYTHIC_CODE + "$");
+
 ;// ./src/config/StorageKeys.ts
 /**
  * Prefix every HHauto key carries. It lives here, in the leaf module, and not
@@ -2764,6 +2800,10 @@ function getTimeLeft(name) {
 // Defines each variable's storage type (setting vs. temp), default value,
 // validation regex, UI label, and type. Used by the settings menu and storage layer.
 
+// A dependency-free leaf, so this stays within ADR-008 rule 2 ("extract shared
+// constants into dependency-free leaf modules") and adds no import cycle --
+// unlike the PlaceOfPower edge the note below describes.
+
 
 
 
@@ -2874,7 +2914,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoEquipMythicBooster] =
         setMenu: true,
         menuType: "value",
         kobanUsing: false,
-        isValid: /^(\s*(MB[1-9]|MB1[0-2])\s*(;\s*(MB[1-9]|MB1[0-2])\s*){0,4})?$/
+        isValid: MYTHIC_LIST_RE
     };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoChamps] =
     {
@@ -8253,6 +8293,7 @@ function migrateSavedDefaults(defaults, filterKey, maxKey) {
 // Each pattern constrains what the user can enter in a specific settings field
 // (e.g., timers, thresholds, booster filters).
 
+
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
 const HHAuto_inputPattern = {
     nWith1000sSeparator: "[0-9" + thousandsSeparator + "]+",
@@ -8264,7 +8305,10 @@ const HHAuto_inputPattern = {
     // Gem Detector could never be entered (#1844).
     autoBuyBoostersFilter: BUY_LIST_PATTERN,
     autoEquipBoostersSlots: "B[1-4](;B[1-4]){0,3}",
-    autoEquipMythicBooster: "(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
+    // Same story as the buy list above: this field and the isValid check on
+    // the stored value had drifted to different lengths, so a list of more
+    // than five codes was wiped on the next load (#1865).
+    autoEquipMythicBooster: MYTHIC_LIST_PATTERN,
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout: "[0-9]+",
     safeSecondsForContest: "[0-9]+",
@@ -12150,6 +12194,7 @@ var Booster_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _
 
 
 
+
 const DEFAULT_BOOSTERS = { normal: [], mythic: [] };
 /**
  * Manages booster tracking, auto-equip, and Sandalwood Perfume logic for event farming.
@@ -12715,7 +12760,7 @@ class Booster {
         const parsed = raw
             .split(";")
             .map((s) => s.trim().toUpperCase())
-            .filter((s) => /^MB([1-9]|1[0-2])$/.test(s));
+            .filter((s) => MYTHIC_CODE_RE.test(s));
         if (parsed.length === 0) {
             logHHAuto("Auto-equip mythic: no valid codes in '" + raw + "', treating as off.");
         }

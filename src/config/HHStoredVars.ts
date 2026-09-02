@@ -2,6 +2,10 @@
 // Defines each variable's storage type (setting vs. temp), default value,
 // validation regex, UI label, and type. Used by the settings menu and storage layer.
 import { getTextForUI } from "../Helper/LanguageHelper";
+// A dependency-free leaf, so this stays within ADR-008 rule 2 ("extract shared
+// constants into dependency-free leaf modules") and adds no import cycle --
+// unlike the PlaceOfPower edge the note below describes.
+import { MYTHIC_LIST_RE } from "../Module/Booster.pure";
 import { deleteStoredValue, getAndStoreCollectPreferences } from "../Helper/StorageHelper";
 import { clearTimer } from "../Helper/TimerHelper";
 import { HHStoredVarPrefixKey, SK, TK } from './StorageKeys';
@@ -114,7 +118,7 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoEquipMythicBooster] =
     setMenu:true,
     menuType:"value",
     kobanUsing:false,
-    isValid: /^(\s*(MB[1-9]|MB1[0-2])\s*(;\s*(MB[1-9]|MB1[0-2])\s*){0,4})?$/
+    isValid: MYTHIC_LIST_RE
 };
 HHStoredVars[HHStoredVarPrefixKey + SK.autoChamps] =
     {

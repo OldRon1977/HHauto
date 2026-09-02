@@ -2,6 +2,7 @@
 // Each pattern constrains what the user can enter in a specific settings field
 // (e.g., timers, thresholds, booster filters).
 
+import { MYTHIC_LIST_PATTERN } from "../Module/Booster.pure";
 import { BUY_LIST_PATTERN } from "../Module/Market.pure";
 
 const thousandsSeparator = (11111).toLocaleString().replace(/1+/g, '');
@@ -17,7 +18,10 @@ export const HHAuto_inputPattern = {
     // Gem Detector could never be entered (#1844).
     autoBuyBoostersFilter: BUY_LIST_PATTERN,
     autoEquipBoostersSlots:"B[1-4](;B[1-4]){0,3}",
-    autoEquipMythicBooster:"(\\s*(MB[1-9]|MB1[0-2])\\s*(;\\s*(MB[1-9]|MB1[0-2])\\s*){0,11})?",
+    // Same story as the buy list above: this field and the isValid check on
+    // the stored value had drifted to different lengths, so a list of more
+    // than five codes was wiped on the next load (#1865).
+    autoEquipMythicBooster: MYTHIC_LIST_PATTERN,
     //calculatePowerLimits:"(\-?[0-9]+;\-?[0-9]+)|default",
     mousePauseTimeout:"[0-9]+",
     safeSecondsForContest:"[0-9]+",

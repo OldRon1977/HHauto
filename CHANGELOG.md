@@ -7,6 +7,25 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.2 - Mythic Slot keeps a list longer than five codes
+
+The *Mythic Slot* field accepted `MB2;MB3;...;MB12`, but the list was gone the
+next time the menu was opened (issue #1865, reported by Zary).
+
+Two regexes described the field, and only one of them had been widened when
+the list was allowed to name all twelve boosters. The field's own pattern took
+up to twelve codes; the check that runs against the stored value on every page
+load still capped at five, found the longer list invalid and reset the setting
+to its default. The debug log said so in as many words: `HHStoredVar
+HHAuto_Setting_autoEquipMythicBooster is invalid, reseting.`
+
+Both now read the same definition, kept in one place next to the parser that
+consumes it. Nothing caps the list: it is a preference order -- "take whichever
+of these I happen to own" -- while the game's five mythic slots are a different
+number, and the walk down the list stops when no slot is free.
+
+A list that was wiped is not recoverable; it has to be entered once more.
+
 ### v8.11.1 - Lively Scene collects more than one reward again
 
 Lively Scene **Collect all** claimed one reward, reloaded the page and stopped
