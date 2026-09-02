@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.4 - Pachinko x-times stops when there are no girls left
+
+The *Pachinko ×N* run kept pulling on the Epic pachinko after the last girl was
+gone, while it stopped as expected on the Mythic one (issue #1863, reported by
+Zary).
+
+The script had no stop of its own. It watched for the game's "no girls"
+confirmation popup and stopped on that -- which is what the *Bypass no girls*
+switch turns off. The game does not raise that popup on every pachinko, and
+where it does not, nothing ended the run.
+
+The script now counts the girls itself, the same number it already prints as
+"N girls to win" in the pachinko menu, and stops on its own: before a run
+starts, and again whenever it would fire another pull, so a run also ends when
+the last girl is won mid-run. *Bypass no girls* still turns the whole thing off,
+and the Equipment pachinko is exempt because it never offers girls.
+
+Counting had to be corrected for that: the Mythic pachinko marks its girls
+differently from the others, and the old count reported zero for a Mythic pool
+that held three girls. A page that does not show its prize list at all is not
+counted as "no girls" either -- it is not an answer.
+
 ### v8.11.3 - "Last troll with girl" stops locking onto a farmed troll
 
 With *Troll* set to "First/Last troll with girl", the automation kept fighting

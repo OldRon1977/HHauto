@@ -201,6 +201,34 @@
       "note": "An unknown prefix means the mapping table needs a new case, not that the check is broken."
     },
     {
+      "id": "pachinko-panel-type",
+      "claim": "div.playing-zone carries the game's own panel discriminator",
+      "source": "src/Module/Pachinko.ts (getPachinkoPanelType, PANEL_WITHOUT_GIRLS)",
+      "page": "/pachinko.html",
+      "kind": "harvest",
+      "selector": "div.playing-zone[type-panel]",
+      "attribute": "type-panel",
+      "extract": "value",
+      "allow": [
+        "^(event|epic|mythic|equipment|great)$"
+      ],
+      "note": "Measured 2026-09-02, one panel per visit: event/epic/mythic/equipment/great. Only 'equipment' never offers girls. A new value means the no-girls stop has an unclassified panel, not that the check is broken."
+    },
+    {
+      "id": "pachinko-girl-markers",
+      "claim": "girls to win are marked by .girl_shards or .pachinko-pool-girl inside .list-prizes",
+      "source": "src/Module/Pachinko.ts (getNumberOfGirlToWinPatchinko)",
+      "page": "/pachinko.html",
+      "kind": "harvest",
+      "selector": "div.playing-zone .game-rewards .list-prizes > *",
+      "attribute": "class",
+      "extract": "value",
+      "allow": [
+        "girls_reward"
+      ],
+      "note": "Measured 2026-09-02: Event/Epic use girl_shards, Mythic uses pachinko-pool-girl, Equipment only girl_armor. One panel is visible per visit, so this harvests whichever is open."
+    },
+    {
       "id": "girl-equipment-slots",
       "claim": "the girl equipment tab still renders six .equipment_slot elements",
       "source": "src/Module/harem/HaremGirl.ts (optimizeEquipmentSlots)",

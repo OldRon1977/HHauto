@@ -83,6 +83,110 @@ describe("Pachinko", function() {
       expect(Pachinko.shouldContinuePachinkoRun(100, 0, 50)).toBe(false);
     });
   });
+  describe("no-girls stop (issue #1863)", function() {
+    // The DOM shapes below are what the live page served on 2026-09-02, one
+    // panel each. Event and Epic mark their girls with .girl_shards, Mythic
+    // with .pachinko-pool-girl, Equipment with neither.
+    const zone = (panelType: string, prizes: string) =>
+      `<div class="playing-zone" type-panel="${panelType}">`
+      + `<div class="game-rewards"><div class="list-prizes">${prizes}</div></div></div>`;
+    const shards = (n: number) =>
+      `<div class="pachinko-tooltip girls_reward reward-ico girl_shards" data-rewards='${JSON.stringify(new Array(n).fill({ id_girl: 1 }))}'></div>`;
+    const pool = (n: number) =>
+      `<div class="blue_circular_btn pachinko-pool-girl girls_reward reward-ico" data-rewards='${JSON.stringify(new Array(n).fill({ id_girl: 1 }))}'></div>`;
+    const armor = (n: number) =>
+      `<div class="pachinko-tooltip girls_reward reward-ico girl_armor" data-rewards='${JSON.stringify(new Array(n).fill({ rarity: "legendary" }))}'></div>`;
+
+    afterEach(() => { document.body.innerHTML = ""; });
+
+    describe("counting", function() {
+      it("counts the .girl_shards marker (Event, Epic)", function() {
+        document.body.innerHTML = zone('epic', shards(5));
+        expect(Pachinko.getNumberOfGirlToWinPatchinko()).toBe(5);
+      });
+
+      it("counts the .pachinko-pool-girl marker the Mythic pachinko uses", function() {
+        // Reading only .girl_shards reported 0 here while three girls were in
+        // the pool -- that would have stopped the pachinko that still worked.
+        document.body.innerHTML = zone('mythic', pool(3));
+        expect(Pachinko.getNumberOfGirlToWinPatchinko()).toBe(3);
+      });
+
+      it("does not count girl_armor as a girl", function() {
+        document.body.innerHTML = zone('equipment', armor(5));
+        expect(Pachinko.getNumberOfGirlToWinPatchinko()).toBe(0);
+      });
+
+      it("counts nothing when no marker is present", function() {
+        document.body.innerHTML = zone('great', '');
+        expect(Pachinko.getNumberOfGirlToWinPatchinko()).toBe(0);
+      });
+
+      it("reads the panel type the game puts on the playing zone", function() {
+        document.body.innerHTML = zone('mythic', pool(3));
+        expect(Pachinko.getPachinkoPanelType()).toBe('mythic');
+      });
+
+      it("reports an empty panel type when the zone is not on the page", function() {
+        expect(Pachinko.getPachinkoPanelType()).toBe('');
+      });
+    });
+
+    describe("decideStopForNoGirls", function() {
+      it.each([
+        ['great', 0, true, 'no girls left'],
+        ['epic', 0, true, 'no girls left'],
+        ['mythic', 0, true, 'no girls left'],
+        ['event', 0, true, 'no girls left'],
+        ['great', 2, false, 'girls left'],
+        ['equipment', 0, false, 'equipment never has girls'],
+      ])("panel %s with %i girls -> stop %s (%s)", (panel, girls, expected) => {
+        expect(Pachinko.decideStopForNoGirls(false, panel as string, girls as number, true)).toBe(expected);
+      });
+
+      it("never stops while Bypass no girls is on", function() {
+        expect(Pachinko.decideStopForNoGirls(true, 'great', 0, true)).toBe(false);
+        expect(Pachinko.decideStopForNoGirls(true, 'epic', 0, true)).toBe(false);
+      });
+
+      it("does not stop when the prize list was not on the page at all", function() {
+        // A count of zero read from a page that never showed the list is not an
+        // answer. Treating it as one would end every run that looks while the
+        // playing zone is not rendered.
+        expect(Pachinko.decideStopForNoGirls(false, 'epic', 0, false)).toBe(false);
+        expect(Pachinko.decideStopForNoGirls(false, '', 0, false)).toBe(false);
+      });
+    });
+
+    describe("mustStopForNoGirls", function() {
+      afterEach(() => { Pachinko.ByPassNoGirlChecked = false; });
+
+      it("does not stop when the playing zone is not on the page", function() {
+        document.body.innerHTML = "";
+        Pachinko.ByPassNoGirlChecked = false;
+        expect(Pachinko.mustStopForNoGirls()).toBe(false);
+      });
+
+      it("stops an Epic pachinko whose girls are gone", function() {
+        document.body.innerHTML = zone('epic', '');
+        Pachinko.ByPassNoGirlChecked = false;
+        expect(Pachinko.mustStopForNoGirls()).toBe(true);
+      });
+
+      it("keeps going on a Mythic pachinko that still has a pool", function() {
+        document.body.innerHTML = zone('mythic', pool(3));
+        Pachinko.ByPassNoGirlChecked = false;
+        expect(Pachinko.mustStopForNoGirls()).toBe(false);
+      });
+
+      it("keeps going on the Equipment pachinko", function() {
+        document.body.innerHTML = zone('equipment', armor(5));
+        Pachinko.ByPassNoGirlChecked = false;
+        expect(Pachinko.mustStopForNoGirls()).toBe(false);
+      });
+    });
+  });
+
   describe("cancelXPachinkoRun", function() {
     beforeEach(() => {
       jest.useFakeTimers();

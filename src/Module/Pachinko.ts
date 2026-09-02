@@ -126,15 +126,71 @@ export class Pachinko {
         }
     }
 
+    /**
+     * Girls still to win in the pachinko the page is showing.
+     *
+     * Two markers, because the game uses two. Measured 2026-09-02 across all
+     * five panels: Event and Epic carry `.girl_shards`, Mythic carries
+     * `.pachinko-pool-girl` instead (class list "blue_circular_btn
+     * pachinko-pool-girl girls_reward reward-ico"). Reading only the first one
+     * reported 0 for a Mythic pachinko that had three girls in its pool, which
+     * would have stopped the one pachinko that was working (issue #1863).
+     *
+     * Equipment carries neither -- its prize row is `girl_armor`, equipment
+     * with a girl's picture on it. See PANEL_WITHOUT_GIRLS.
+     */
     static getNumberOfGirlToWinPatchinko() {
-        const girlsRewards = $("div.playing-zone .game-rewards .list-prizes .girl_shards");
+        const girlsRewards = $("div.playing-zone .game-rewards .list-prizes .girl_shards, div.playing-zone .game-rewards .list-prizes .pachinko-pool-girl");
         let numberOfGirlsToWin = 0;
-        if (girlsRewards.length > 0) {
+        girlsRewards.each(function () {
             try {
-                numberOfGirlsToWin = safeJsonParse(girlsRewards.attr("data-rewards"), []).length;
+                numberOfGirlsToWin += safeJsonParse($(this).attr("data-rewards"), []).length;
             } catch (exp) { logHHAuto('Could not count pachinko girls to win: ' + exp); }
-        }
+        });
         return numberOfGirlsToWin;
+    }
+
+    /**
+     * Which pachinko the page is showing, from the game's own attribute on
+     * div.playing-zone: event / epic / mythic / equipment / great (measured
+     * 2026-09-02). Preferred over the heading, which is translated, and over
+     * the orb names, which differ per panel and per game.
+     */
+    static getPachinkoPanelType(): string {
+        return $("div.playing-zone").attr("type-panel") ?? '';
+    }
+
+    /** The one pachinko that never offers girls; its prizes are girl_armor. */
+    static PANEL_WITHOUT_GIRLS = 'equipment';
+
+    /**
+     * Whether an X-run must stop because there is nothing left to win.
+     *
+     * Until #1863 the only stop was the game's own "no girls" warning popup,
+     * which the script watches for as #confirm_pachinko. The game does not
+     * raise it everywhere, so on Epic the run kept going. The script counts the
+     * girls itself for the menu ("N girls to win") and can decide on its own.
+     *
+     * `prizesReadable` says whether the prize list was on the page at all. A
+     * count of zero taken from a page that never showed the list is not an
+     * answer, and treating it as one would stop every run that happens to look
+     * while the zone is not rendered.
+     *
+     * Pure counterpart to the DOM reads, so the rule is testable on its own.
+     */
+    static decideStopForNoGirls(bypassChecked: boolean, panelType: string, girlsToWin: number, prizesReadable: boolean): boolean {
+        if (bypassChecked) return false;
+        if (!prizesReadable) return false;
+        if (panelType === Pachinko.PANEL_WITHOUT_GIRLS) return false;
+        return girlsToWin <= 0;
+    }
+
+    static mustStopForNoGirls(): boolean {
+        return Pachinko.decideStopForNoGirls(
+            Pachinko.ByPassNoGirlChecked,
+            Pachinko.getPachinkoPanelType(),
+            Pachinko.getNumberOfGirlToWinPatchinko(),
+            $("div.playing-zone .game-rewards .list-prizes").length > 0);
     }
     
     static getNumberOfOrbsLeft(buttonSelector: string): number {
@@ -278,6 +334,14 @@ export class Pachinko {
         const buttonSelector = Pachinko.getSelectedOptionButtonSelector();
         Pachinko.orbsToGo = Number((<HTMLInputElement>document.getElementById("PachinkoXTimes")).value);
 
+        // Nothing to win, nothing to spend orbs on. Checked here as well as in
+        // every round, so a run cannot even start on an emptied pachinko.
+        if (Pachinko.mustStopForNoGirls()) {
+            logHHAuto('No girl left on this pachinko, not starting the run.');
+            $("#PachinkoError").text(getTextForUI("PachinkoNoGirls", "elementText"));
+            return;
+        }
+
         Pachinko.orbLeftOnAutoStart = Pachinko.getNumberOfOrbsLeft(buttonSelector);
         if (Pachinko.orbLeftOnAutoStart <= 0) {
             logHHAuto('No Orbs left for : ' + selectedOption.text);
@@ -387,6 +451,21 @@ export class Pachinko {
         const continuePachinkoSelectedButton = $(buttonContinueSelector);
         $("#PachinkoPlayedTimes").text(spendedOrbs + "/" + Pachinko.orbsToGo);
         if (Pachinko.shouldContinuePachinkoRun(Pachinko.orbLeftOnAutoStart, currentOrbsLeft, Pachinko.orbsToGo)) {
+            // The game's own warning (#confirm_pachinko above) is not raised on
+            // every pachinko, so the count decides as well -- and it can drop to
+            // zero mid-run, when the last girl is won (issue #1863). Checked here
+            // rather than at the top of the round so a run that has reached its
+            // target still ends through the branch below, which reloads the page
+            // against the played-games desync (#1799) and reports the orbs spent.
+            if (Pachinko.mustStopForNoGirls()) {
+                RewardHelper.closeRewardPopupIfAny(false);
+                logHHAuto(`No girl left on this pachinko, stopping after ${spendedOrbs}/${Pachinko.orbsToGo} orbs.`);
+                Pachinko.stopXPachinkoNoGirl();
+                if (getPage() === ConfigHelper.getHHScriptVars("pagesIDPachinko")) {
+                    safeReload();
+                }
+                return;
+            }
             if (continuePachinkoSelectedButton.length > 0) {
                 continuePachinkoSelectedButton.trigger('click');
             }
