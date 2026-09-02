@@ -1,5 +1,6 @@
 import { getSecondsLeft, setTimer, clearTimer } from '../../src/Helper/TimerHelper';
 import { Troll } from '../../src/Module/Troll';
+import { Harem } from '../../src/Module/harem/Harem';
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
 import { SK, TK } from '../../src/config/StorageKeys';
 import { EventGirl } from '../../src/model/EventGirl';
@@ -394,6 +395,54 @@ describe("Troll module", function () {
             };
             localStorage.setItem(HHStoredVarPrefixKey + SK.plusEventMythic, 'true');
             expect(Troll.isTrollFightActivated()).toBeTruthy();
+        });
+    });
+
+    describe("getTrollWithGirls -- only the full harem may answer (issue #1864)", function () {
+        // Every id missing from the dictionary counts as "girl still to win",
+        // so a partial list reports the maximum for every troll. The home page
+        // serves such a list and used to overwrite the correct count taken on
+        // the harem page.
+        const cacheHaremSize = (count: number) =>
+            localStorage.setItem(
+                HHStoredVarPrefixKey + TK.HaremSize,
+                JSON.stringify({ count, count_date: Date.now() }));
+        const dictionaryOf = (size: number, ownedIds: string[] = []) => {
+            const map = new Map<string, { shards: number }>();
+            ownedIds.forEach(id => map.set(id, { shards: 100 }));
+            for (let i = map.size; i < size; i++) map.set("filler" + i, { shards: 100 });
+            return map;
+        };
+
+        it("refuses a list shorter than the cached harem size", function () {
+            cacheHaremSize(680);
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            expect(Troll.getTrollWithGirls()).toEqual([]);
+        });
+
+        it("refuses an empty list", function () {
+            cacheHaremSize(680);
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(new Map());
+
+            expect(Troll.getTrollWithGirls()).toEqual([]);
+        });
+
+        it("counts against a list that is at least the cached harem size", function () {
+            cacheHaremSize(10);
+            // The three main girls of troll 1 on hentaiheroes are 8, 9 and 10.
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(10, ['8', '9', '10']));
+
+            const counts = Troll.getTrollWithGirls();
+
+            expect(counts.length).toBeGreaterThan(0);
+            expect(counts[0]).toBe(2); // troll 1: the two extra girls are still missing
+        });
+
+        it("accepts any list while no harem size is cached", function () {
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            expect(Troll.getTrollWithGirls().length).toBeGreaterThan(0);
         });
     });
 

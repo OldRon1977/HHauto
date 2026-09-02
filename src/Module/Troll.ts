@@ -48,13 +48,37 @@ export class Troll {
         return Number(getHHVars('Hero.energies.fight.max_regen_amount'));
     }
 
+    /**
+     * Count, per troll, the girls the player has not finished yet.
+     *
+     * Only the full harem can answer this. Every id that is not in the
+     * dictionary counts as "still to win", so a partial list reports the
+     * maximum for every troll -- indistinguishable from the answer for a
+     * player who owns nothing. Issue #1864: on the harem page the count came
+     * out all zeros, and 29 seconds later the home page handed over a much
+     * shorter `girlsDataList`, which overwrote the snapshot with the maximum
+     * for every troll. That value then stuck for months, because the harem
+     * page is visited rarely and the home page constantly.
+     *
+     * A list shorter than the harem size cached by handleHaremSize therefore
+     * counts as "no answer": [] is returned and the caller keeps whatever
+     * snapshot it has. Without a cached size (fresh install) the check cannot
+     * run and any list is accepted, as before.
+     */
     static getTrollWithGirls() {
         const girlDictionary = Harem.getGirlsList();
         const trollGirlsID = ConfigHelper.getHHScriptVars("trollGirlsID");
         const sideTrollGirlsID = ConfigHelper.getHHScriptVars("sideTrollGirlsID");
         const trollWithGirls:number[] = [];
-    
-        if (girlDictionary) {
+        const knownHaremSize = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
+
+        if (girlDictionary && girlDictionary.size > 0
+            && knownHaremSize > 0 && girlDictionary.size < knownHaremSize) {
+            logHHAuto(`Girl list holds ${girlDictionary.size} of ${knownHaremSize} known girls, so it is not the harem. Keeping the stored troll snapshot.`);
+            return trollWithGirls;
+        }
+
+        if (girlDictionary && girlDictionary.size > 0) {
             for (let tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
                 trollWithGirls[tIdx] = 0;
                 for (let pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {

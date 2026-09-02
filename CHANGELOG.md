@@ -7,6 +7,27 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.3 - "Last troll with girl" stops locking onto a farmed troll
+
+With *Troll* set to "First/Last troll with girl", the automation kept fighting
+a troll whose girls were long finished, and Love Raids never got a turn
+(issue #1864, reported by Zary; the same setup as #1780).
+
+The count of unfinished girls per troll is built by looking every troll girl up
+in the player's girl list. A girl that is not in the list counts as still to
+win -- so a list that is not the whole harem reports the maximum for every
+troll, which is exactly what a player who owns nothing would get. The harem
+page delivers the whole harem; the home page delivers a much shorter list. In
+the reported log the count came out correct on the harem page and was
+overwritten 29 seconds later on the home page with the maximum for every troll.
+It then stayed that way across three script versions and three months, because
+the harem page is visited rarely and the home page constantly.
+
+A girl list shorter than the harem size the script already keeps cached is no
+longer treated as an answer: the stored count is kept instead of being
+overwritten, and the debug log says so. On a fresh session the count is taken
+from the harem page as before.
+
 ### v8.11.2 - Mythic Slot keeps a list longer than five codes
 
 The *Mythic Slot* field accepted `MB2;MB3;...;MB12`, but the list was gone the
