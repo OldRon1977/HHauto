@@ -3,7 +3,7 @@
 // @namespace    https://github.com/OldRon1977/HHauto
 // @version      1.3
 // @description  HHAuto Login
-// @author       Zary
+// @author       Zary, OldRon1977
 // @match        https://connect.chibipass.com/*
 // @match        http*://*.haremheroes.com/
 // @match        http*://*.hentaiheroes.com/
@@ -22,18 +22,18 @@
 //
 // WHAT THIS SCRIPT DOES
 // It types your ChibiPass e-mail and password into the login form for you and
-// clicks the login button, then clicks "enter game" on the game's landing page.
-// That is the whole feature. It is a convenience helper for logging in, nothing
-// more.
+// clicks the login button, then clicks the "enter game" button on the game's
+// landing page if one is shown. That is the whole feature. It is a convenience
+// helper for logging in, nothing more.
 //
 // IT SENDS NOTHING ANYWHERE
 // Your credentials go into the two input fields of the official ChibiPass login
-// page and nowhere else -- exactly where you would type them yourself. The
+// form and nowhere else -- exactly where you would type them yourself. The
 // script contains no fetch, no XMLHttpRequest, no sendBeacon, no WebSocket, no
 // image or link tricks, and it declares "@grant none", so it has no access to
 // privileged userscript APIs at all. It does not read cookies, it does not touch
 // localStorage or sessionStorage, and it reports nothing to the author or to any
-// third party. You can verify every word of that by reading the 100 lines below.
+// third party. You can verify every word of that by reading the code below.
 //
 // THE RISK, PLAINLY
 // The risk is not transmission. The risk is THE FILE ITSELF: once you fill in
@@ -63,22 +63,29 @@
 // SCOPE
 // The @match list is intentionally minimal: the ChibiPass login form (where the
 // credentials are entered) plus the landing page ("/") of each game domain,
-// where the "enter game" button lives. Do not widen it; every extra page a
-// credential-bearing script runs on increases exposure. Remove the game domains
-// you do not play.
+// which is where the enter-game click belongs. Do not widen it; every extra
+// page a credential-bearing script runs on increases exposure. Remove the game
+// domains you do not play.
 //
-// The ChibiPass entry is not a page of its own. The form is served into an
-// iframe of the game's landing page
-// (connect.chibipass.com/authentication/start_authentication?product_id=...),
-// so this script only reaches it because it does not declare @noframes. That
-// line carries the whole login half -- do not add @noframes, and do not drop
-// the chibipass @match as unused.
+// The ChibiPass entry is not a page of its own. Its bare root serves an empty
+// document; the form is delivered as an iframe of the game's home.html, which
+// the landing page in turn holds in its #hh_game iframe:
+//
+//     /                                    <- landing page, enterGame() runs here
+//     +- /home.html                        <- the game itself
+//        +- connect.chibipass.com/authentication/start_authentication?...
+//                                          <- the form, login() runs here
+//
+// So the script only reaches the form because it does not declare @noframes.
+// That is what carries the login half -- do not add @noframes, and do not drop
+// the chibipass @match as unused. Because that @match is tested against the
+// frame's own URL, the login works from either entry point; the enter-game half
+// only runs when the landing page "/" is the top document.
 // ==============================================================================
 
 const userEmail = "YOUR_EMAIL";
 const userPass = "YOUR_PASSWORD";
 
-// Waiting for the element to appear.
 function waitForElement(selector, timeout = 10000) {
     return new Promise((resolve, reject) => {
         const interval = 200;
@@ -100,7 +107,7 @@ function waitForElement(selector, timeout = 10000) {
     });
 }
 
-// LOGIN (ChibiPass)
+// Runs inside the ChibiPass form iframe (see SCOPE above).
 async function login() {
     try {
         const email = await waitForElement("#auth-email");
@@ -110,7 +117,12 @@ async function login() {
         email.value = userEmail;
         pass.value = userPass;
 
-        // Forces frameworks (React/Vue) to detect change.
+        // The page's own validation listens for these, and dispatching them
+        // is what makes it accept the values and enable the submit button.
+        // The form is plain server-rendered HTML -- no React, no Vue, no value
+        // tracker on the inputs -- so assigning .value directly is enough. An
+        // input backed by a framework would ignore this and need the native
+        // value setter instead.
         ["input", "change"].forEach(evt => {
             email.dispatchEvent(new Event(evt, { bubbles: true }));
             pass.dispatchEvent(new Event(evt, { bubbles: true }));
@@ -129,7 +141,7 @@ async function login() {
     }
 }
 
-// ENTER THE GAME (iframe)
+// Runs on the game's landing page, which holds the game in an #hh_game iframe.
 function enterGame() {
     const maxAttempts = 30; // 30 x 2s -- one minute, then give up quietly
     let attempts = 0;
@@ -152,7 +164,9 @@ function enterGame() {
                 return true;
             }
         } catch (e) {
-            // Ignore cross-origin error
+            // contentDocument throws on a cross-origin iframe. It is
+            // same-origin on hentaiheroes.com, so this is a guard for the
+            // other domains, not the normal path.
         }
 
         return false;
@@ -163,7 +177,6 @@ function enterGame() {
     }, 2000);
 }
 
-// CONTEXT DETECTION
 function isLoginPage() {
     return window.location.hostname.includes("chibipass.com");
 }
@@ -172,7 +185,6 @@ function isGamePage() {
     return !isLoginPage();
 }
 
-// INIT
 function init() {
     if (!userEmail || !userPass
         || userEmail === "YOUR_EMAIL" || userPass === "YOUR_PASSWORD") {
