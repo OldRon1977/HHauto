@@ -7,6 +7,18 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.6 - The free pachinko row is called Great Pachinko
+
+8.11.5 named that row "Free Pachinko". All three pachinkos in the panel are
+free spins on their own timer, so the name did not separate it from the two
+below it. It now carries the name the game and the config flag already use
+(`isEnabledGreatPachinko`), and the three rows read as one set: Great Pachinko,
+Mythic Pachinko, Equipment Pachinko.
+
+German keeps the English name, the way "Mythic Pachinko" does. The French and
+Spanish forms follow their siblings there and have not been checked against the
+running game.
+
 ### v8.11.5 - The info panel names its rows again
 
 The panel showed one row called "Collect" and three called "Enabled" instead
@@ -23,9 +35,7 @@ the label of the buying switch.
 
 All eight rows now have their own keys, the way the thirteen rows that were
 already correct do. The gift and book rows say "Gifts owned" / "Books owned".
-The free pachinko row is called "Free Pachinko", so the three pachinko rows
-read as one set. Nothing in the menu changed, and no automation behaves
-differently.
+Nothing in the menu changed, and no automation behaves differently.
 
 A test keeps the two vocabularies apart: no pInfo row may use a key that
 MenuTabs passes to a switch.

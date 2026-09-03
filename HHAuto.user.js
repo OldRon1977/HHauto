@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.11.5
+// @version      8.11.6
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -399,7 +399,7 @@ HHAuto_ToolTips.en['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText:
 HHAuto_ToolTips.en['pinfoSalary'] = { version: "8.11.5", elementText: "Salary" };
 HHAuto_ToolTips.en['pinfoClubChamp'] = { version: "8.11.5", elementText: "Club champion" };
 HHAuto_ToolTips.en['pinfoMission'] = { version: "8.11.5", elementText: "Missions" };
-HHAuto_ToolTips.en['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Free Pachinko" };
+HHAuto_ToolTips.en['pinfoGreatPachinko'] = { version: "8.11.6", elementText: "Great Pachinko" };
 HHAuto_ToolTips.en['pinfoContestCollect'] = { version: "8.11.5", elementText: "Contest rewards" };
 HHAuto_ToolTips.en['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Auto-Equip" };
 HHAuto_ToolTips.en['pinfoAffOwned'] = { version: "8.11.5", elementText: "Gifts owned" };
@@ -918,7 +918,7 @@ HHAuto_ToolTips.fr['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText:
 HHAuto_ToolTips.fr['pinfoSalary'] = { version: "8.11.5", elementText: "Salaire", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoClubChamp'] = { version: "8.11.5", elementText: "Champion de club", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoMission'] = { version: "8.11.5", elementText: "Missions", tooltip: "" };
-HHAuto_ToolTips.fr['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Pachinko gratuit", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoGreatPachinko'] = { version: "8.11.6", elementText: "Grand Pachinko", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoContestCollect'] = { version: "8.11.5", elementText: "Récompenses de concours", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Équipement auto.", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoAffOwned'] = { version: "8.11.5", elementText: "Cadeaux en stock", tooltip: "" };
@@ -1285,7 +1285,7 @@ HHAuto_ToolTips.de['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText:
 HHAuto_ToolTips.de['pinfoSalary'] = { version: "8.11.5", elementText: "Einkommen" };
 HHAuto_ToolTips.de['pinfoClubChamp'] = { version: "8.11.5", elementText: "Club-Champion" };
 HHAuto_ToolTips.de['pinfoMission'] = { version: "8.11.5", elementText: "Missionen" };
-HHAuto_ToolTips.de['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Gratis-Pachinko" };
+HHAuto_ToolTips.de['pinfoGreatPachinko'] = { version: "8.11.6", elementText: "Great Pachinko" };
 HHAuto_ToolTips.de['pinfoContestCollect'] = { version: "8.11.5", elementText: "Wettbewerbs-Belohnung" };
 HHAuto_ToolTips.de['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Auto-Anlegen" };
 HHAuto_ToolTips.de['pinfoAffOwned'] = { version: "8.11.5", elementText: "Geschenke im Bestand" };
@@ -1883,7 +1883,7 @@ HHAuto_ToolTips.es['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText:
 HHAuto_ToolTips.es['pinfoSalary'] = { version: "8.11.5", elementText: "Salario", tooltip: "" };
 HHAuto_ToolTips.es['pinfoClubChamp'] = { version: "8.11.5", elementText: "Campeón del club", tooltip: "" };
 HHAuto_ToolTips.es['pinfoMission'] = { version: "8.11.5", elementText: "Misiones", tooltip: "" };
-HHAuto_ToolTips.es['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Pachinko gratis", tooltip: "" };
+HHAuto_ToolTips.es['pinfoGreatPachinko'] = { version: "8.11.6", elementText: "Gran Pachinko", tooltip: "" };
 HHAuto_ToolTips.es['pinfoContestCollect'] = { version: "8.11.5", elementText: "Recompensas de concurso", tooltip: "" };
 HHAuto_ToolTips.es['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Equipar automáticamente", tooltip: "" };
 HHAuto_ToolTips.es['pinfoAffOwned'] = { version: "8.11.5", elementText: "Regalos en posesión", tooltip: "" };
@@ -17950,7 +17950,7 @@ function updateData() {
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) == "true") {
             if (getTimer('nextPachinkoTime') !== -1) {
-                Tegzd += pInfoRow(getTextForUI("pinfoFreePachinko", "elementText"), getTimeLeft('nextPachinkoTime'));
+                Tegzd += pInfoRow(getTextForUI("pinfoGreatPachinko", "elementText"), getTimeLeft('nextPachinkoTime'));
             }
             if (getTimer('nextPachinko2Time') !== -1) {
                 Tegzd += pInfoRow(getTextForUI("autoMythicPachinko", "elementText"), getTimeLeft('nextPachinko2Time'));

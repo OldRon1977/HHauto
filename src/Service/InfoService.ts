@@ -205,7 +205,7 @@ export function updateData() {
         {
             if (getTimer('nextPachinkoTime') !== -1)
             {
-                Tegzd += pInfoRow(getTextForUI("pinfoFreePachinko","elementText"), getTimeLeft('nextPachinkoTime'));
+                Tegzd += pInfoRow(getTextForUI("pinfoGreatPachinko","elementText"), getTimeLeft('nextPachinkoTime'));
             }
             if (getTimer('nextPachinko2Time') !== -1)
             {
