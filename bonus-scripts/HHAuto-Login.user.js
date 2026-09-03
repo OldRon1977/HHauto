@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Login
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.2
+// @version      1.3
 // @description  HHAuto Login
 // @author       Zary
 // @match        https://connect.chibipass.com/*
@@ -61,11 +61,18 @@
 // by hand. HHAuto itself works fine without it.
 //
 // SCOPE
-// The @match list is intentionally minimal: the ChibiPass login page (where the
+// The @match list is intentionally minimal: the ChibiPass login form (where the
 // credentials are entered) plus the landing page ("/") of each game domain,
 // where the "enter game" button lives. Do not widen it; every extra page a
 // credential-bearing script runs on increases exposure. Remove the game domains
 // you do not play.
+//
+// The ChibiPass entry is not a page of its own. The form is served into an
+// iframe of the game's landing page
+// (connect.chibipass.com/authentication/start_authentication?product_id=...),
+// so this script only reaches it because it does not declare @noframes. That
+// line carries the whole login half -- do not add @noframes, and do not drop
+// the chibipass @match as unused.
 // ==============================================================================
 
 const userEmail = "YOUR_EMAIL";
@@ -109,7 +116,11 @@ async function login() {
             pass.dispatchEvent(new Event(evt, { bubbles: true }));
         });
 
-        btn.disabled = false;
+        // The page enables the button itself once it has seen both inputs.
+        // Only force it if that did not happen: after the click the page sets
+        // disabled again as its own guard against a double submit, and
+        // clearing it unconditionally would defeat that guard.
+        if (btn.disabled) btn.disabled = false;
         btn.click();
 
         console.log("Login sent");
@@ -120,6 +131,9 @@ async function login() {
 
 // ENTER THE GAME (iframe)
 function enterGame() {
+    const maxAttempts = 30; // 30 x 2s -- one minute, then give up quietly
+    let attempts = 0;
+
     const tryClick = () => {
         const iframe = document.querySelector("#hh_game");
         if (!iframe) return false;
@@ -128,7 +142,11 @@ function enterGame() {
             const innerDoc = iframe.contentDocument || iframe.contentWindow.document;
             const btn = innerDoc?.querySelector(".igreen");
 
-            if (btn) {
+            // While logged out, the only .igreen on the landing page is the
+            // login icon inside a[rel='phoenix_member_login']. Clicking that
+            // and stopping would end the search before the enter-game button
+            // has appeared, so skip it and keep looking.
+            if (btn && !btn.closest("a[rel='phoenix_member_login']")) {
                 btn.click();
                 console.log("Entered the game.");
                 return true;
@@ -141,7 +159,7 @@ function enterGame() {
     };
 
     const interval = setInterval(() => {
-        if (tryClick()) clearInterval(interval);
+        if (tryClick() || ++attempts >= maxAttempts) clearInterval(interval);
     }, 2000);
 }
 
@@ -169,6 +187,9 @@ function init() {
     }
 }
 
-// Ensures execution even on SPA (React) pages.
+// "load" is the one start point. At the default @run-at document-end the
+// DOMContentLoaded event has already been dispatched, so a listener for it
+// never fires; at document-start both would fire and init would run twice,
+// submitting the form a second time. The ChibiPass form is server-rendered,
+// not an SPA, so there is nothing later to wait for.
 window.addEventListener("load", init);
-document.addEventListener("DOMContentLoaded", init);

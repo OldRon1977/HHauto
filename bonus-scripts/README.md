@@ -22,6 +22,8 @@ purpose — remove the domains you do not play, and do not widen the list.
 
 1. Install the script, fill in `userEmail` / `userPass`.
 2. Log out of the game and open the game domain root (e.g. `https://www.hentaiheroes.com/`).
-3. Complete the ChibiPass redirect: the form on `connect.chibipass.com` must be filled and submitted automatically ("Login sent" in the console).
+3. The ChibiPass form is served into an iframe of that same page, not as a
+   separate redirect. It must be filled and submitted automatically ("Login
+   sent" in the console of the `connect.chibipass.com` frame).
 4. Back on the landing page, the "enter game" button must be clicked automatically ("Entered the game." in the console).
 5. Verify the script does **not** run inside the game (no console entries on `/home.html`).
