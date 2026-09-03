@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.11.4
+// @version      8.11.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -396,6 +396,14 @@ HHAuto_ToolTips.en['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "Se
 HHAuto_ToolTips.en['pinfoPoVCollect'] = { version: "8.10.9", elementText: "PoV rewards" };
 HHAuto_ToolTips.en['pinfoPoGCollect'] = { version: "8.10.9", elementText: "PoG rewards" };
 HHAuto_ToolTips.en['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Penta Drill rewards" };
+HHAuto_ToolTips.en['pinfoSalary'] = { version: "8.11.5", elementText: "Salary" };
+HHAuto_ToolTips.en['pinfoClubChamp'] = { version: "8.11.5", elementText: "Club champion" };
+HHAuto_ToolTips.en['pinfoMission'] = { version: "8.11.5", elementText: "Missions" };
+HHAuto_ToolTips.en['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Free Pachinko" };
+HHAuto_ToolTips.en['pinfoContestCollect'] = { version: "8.11.5", elementText: "Contest rewards" };
+HHAuto_ToolTips.en['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Auto-Equip" };
+HHAuto_ToolTips.en['pinfoAffOwned'] = { version: "8.11.5", elementText: "Gifts owned" };
+HHAuto_ToolTips.en['pinfoExpOwned'] = { version: "8.11.5", elementText: "Books owned" };
 HHAuto_ToolTips.en['boostMissing'] = { version: "8.10.5", elementText: "no booster" };
 HHAuto_ToolTips.en['waitRunThreshold'] = { version: "6.8.0", elementText: "Wait run threshold" };
 HHAuto_ToolTips.en['autoLeaguesSelector'] = { version: "5.6.24", elementText: "Target League", tooltip: "League to target, to try to demote, stay or go in higher league depending" };
@@ -907,6 +915,14 @@ HHAuto_ToolTips.fr['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "É
 HHAuto_ToolTips.fr['pinfoPoVCollect'] = { version: "8.10.9", elementText: "Récompenses du PoV", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoPoGCollect'] = { version: "8.10.9", elementText: "Récompenses du PoG", tooltip: "" };
 HHAuto_ToolTips.fr['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Récompenses du Penta Drill", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoSalary'] = { version: "8.11.5", elementText: "Salaire", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoClubChamp'] = { version: "8.11.5", elementText: "Champion de club", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoMission'] = { version: "8.11.5", elementText: "Missions", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Pachinko gratuit", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoContestCollect'] = { version: "8.11.5", elementText: "Récompenses de concours", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Équipement auto.", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoAffOwned'] = { version: "8.11.5", elementText: "Cadeaux en stock", tooltip: "" };
+HHAuto_ToolTips.fr['pinfoExpOwned'] = { version: "8.11.5", elementText: "Livres en stock", tooltip: "" };
 HHAuto_ToolTips.fr['boostMissing'] = { version: "8.10.5", elementText: "pas de booster", tooltip: "" };
 HHAuto_ToolTips.fr['waitRunThreshold'] = { version: "6.8.0", elementText: "Attente du seuil de réserve", tooltip: "" };
 HHAuto_ToolTips.fr['autoLeaguesSecurityThreshold'] = { version: "5.18.0", elementText: "Seuil de sécurité", tooltip: "(Entier)<br>Limite de points empêchant le script de faire le moindre combat de ligue, afin de vous maintenir dans la ligue visée et d'éviter la montée. À ne changer que si vous acceptez le risque." };
@@ -1266,6 +1282,14 @@ HHAuto_ToolTips.de['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "Se
 HHAuto_ToolTips.de['pinfoPoVCollect'] = { version: "8.10.9", elementText: "PoV-Belohnung" };
 HHAuto_ToolTips.de['pinfoPoGCollect'] = { version: "8.10.9", elementText: "PoG-Belohnung" };
 HHAuto_ToolTips.de['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Penta-Drill-Belohnung" };
+HHAuto_ToolTips.de['pinfoSalary'] = { version: "8.11.5", elementText: "Einkommen" };
+HHAuto_ToolTips.de['pinfoClubChamp'] = { version: "8.11.5", elementText: "Club-Champion" };
+HHAuto_ToolTips.de['pinfoMission'] = { version: "8.11.5", elementText: "Missionen" };
+HHAuto_ToolTips.de['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Gratis-Pachinko" };
+HHAuto_ToolTips.de['pinfoContestCollect'] = { version: "8.11.5", elementText: "Wettbewerbs-Belohnung" };
+HHAuto_ToolTips.de['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Auto-Anlegen" };
+HHAuto_ToolTips.de['pinfoAffOwned'] = { version: "8.11.5", elementText: "Geschenke im Bestand" };
+HHAuto_ToolTips.de['pinfoExpOwned'] = { version: "8.11.5", elementText: "Bücher im Bestand" };
 HHAuto_ToolTips.de['boostMissing'] = { version: "8.10.5", elementText: "kein Booster" };
 HHAuto_ToolTips.de['waitRunThreshold'] = { version: "6.8.0", elementText: "Warte auf Lauf-Schwelle" };
 HHAuto_ToolTips.de['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Sortierung", tooltip: "Wähle, wie Gegner sortiert werden. <br>Angezeigte Reihenfolge (empfohlen für HH++ OCD), <br>Kraftwert (empfohlen für HH++ BDSM oder ganz ohne Skript)<br>oder interne Sim-PowerCalc." };
@@ -1856,6 +1880,14 @@ HHAuto_ToolTips.es['pinfoSeasonalEvent'] = { version: "8.10.9", elementText: "Ev
 HHAuto_ToolTips.es['pinfoPoVCollect'] = { version: "8.10.9", elementText: "Recompensas del PoV", tooltip: "" };
 HHAuto_ToolTips.es['pinfoPoGCollect'] = { version: "8.10.9", elementText: "Recompensas del PoG", tooltip: "" };
 HHAuto_ToolTips.es['pinfoPentaDrillCollect'] = { version: "8.10.9", elementText: "Recompensas del Penta Drill", tooltip: "" };
+HHAuto_ToolTips.es['pinfoSalary'] = { version: "8.11.5", elementText: "Salario", tooltip: "" };
+HHAuto_ToolTips.es['pinfoClubChamp'] = { version: "8.11.5", elementText: "Campeón del club", tooltip: "" };
+HHAuto_ToolTips.es['pinfoMission'] = { version: "8.11.5", elementText: "Misiones", tooltip: "" };
+HHAuto_ToolTips.es['pinfoFreePachinko'] = { version: "8.11.5", elementText: "Pachinko gratis", tooltip: "" };
+HHAuto_ToolTips.es['pinfoContestCollect'] = { version: "8.11.5", elementText: "Recompensas de concurso", tooltip: "" };
+HHAuto_ToolTips.es['pinfoEquipBoosters'] = { version: "8.11.5", elementText: "Equipar automáticamente", tooltip: "" };
+HHAuto_ToolTips.es['pinfoAffOwned'] = { version: "8.11.5", elementText: "Regalos en posesión", tooltip: "" };
+HHAuto_ToolTips.es['pinfoExpOwned'] = { version: "8.11.5", elementText: "Libros en posesión", tooltip: "" };
 HHAuto_ToolTips.es['boostMissing'] = { version: "8.10.5", elementText: "sin potenciador", tooltip: "" };
 HHAuto_ToolTips.es['waitRunThreshold'] = { version: "6.8.0", elementText: "Esperando al umbral de reserva", tooltip: "" };
 HHAuto_ToolTips.es['autoLeaguesSortMode'] = { version: "7.6.0", elementText: "Ordenación", tooltip: "Elige el método de ordenación de rivales. <br>Orden mostrado (opción preferida por quienes usan HH++ OCD), <br>valor de poder (opción preferida por quienes usan HH++ BDSM o ningún script)<br>o el powercalc de la simulación interna." };
@@ -17863,7 +17895,7 @@ function updateData() {
             Tegzd += Troll.getPinfo(contest);
         }
         if (ConfigHelper.getHHScriptVars("isEnabledSalary", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSalary) == "true") {
-            Tegzd += pInfoRow(getTextForUI("autoSalary", "elementText"), getTimeLeft('nextSalaryTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoSalary", "elementText"), getTimeLeft('nextSalaryTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) == "true") {
             Tegzd += Season.getPinfo();
@@ -17884,7 +17916,7 @@ function updateData() {
             Tegzd += pInfoRow(getTextForUI("autoChampsTitle", "elementText"), getTimeLeft('nextChampionTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoClubChamp) == "true") {
-            Tegzd += pInfoRow(getTextForUI("autoClubChamp", "elementText"), getTimeLeft('nextClubChampionTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoClubChamp", "elementText"), getTimeLeft('nextClubChampionTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) == "true" || DailyGoals.isPantheonDailyGoal())) {
             Tegzd += Pantheon.getPinfo();
@@ -17899,10 +17931,10 @@ function updateData() {
             Tegzd += pInfoRow(getTextForUI("autoBuy", "elementText"), getTimeLeft('nextShopTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + SK.autoEquipBoosters) == "true") {
-            Tegzd += pInfoRow(getTextForUI("autoEquipBoosters", "elementText"), getTimeLeft('nextAutoEquipBoosterTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoEquipBoosters", "elementText"), getTimeLeft('nextAutoEquipBoosterTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledMission", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoMission) == "true") {
-            Tegzd += pInfoRow(getTextForUI("autoMission", "elementText"), getTimeLeft('nextMissionTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoMission", "elementText"), getTimeLeft('nextMissionTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledDailyGoals", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true" && getTimer('nextDailyGoalsCollectTime') !== -1) {
             Tegzd += pInfoRow(getTextForUI("pinfoDailyGoals", "elementText"), getTimeLeft('nextDailyGoalsCollectTime'));
@@ -17911,14 +17943,14 @@ function updateData() {
             Tegzd += pInfoRow(getTextForUI("pinfoFreeBundles", "elementText"), getTimeLeft('nextFreeBundlesCollectTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledContest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoContest) == "true") {
-            Tegzd += pInfoRow(getTextForUI("autoContest", "elementText"), getTimeLeft('nextContestCollectTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoContestCollect", "elementText"), getTimeLeft('nextContestCollectTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlaces) == "true") {
             Tegzd += pInfoRow(getTextForUI("powerPlacesTitle", "elementText"), getTimeLeft('minPowerPlacesTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPachinko", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoFreePachinko) == "true") {
             if (getTimer('nextPachinkoTime') !== -1) {
-                Tegzd += pInfoRow(getTextForUI("autoFreePachinko", "elementText"), getTimeLeft('nextPachinkoTime'));
+                Tegzd += pInfoRow(getTextForUI("pinfoFreePachinko", "elementText"), getTimeLeft('nextPachinkoTime'));
             }
             if (getTimer('nextPachinko2Time') !== -1) {
                 Tegzd += pInfoRow(getTextForUI("autoMythicPachinko", "elementText"), getTimeLeft('nextPachinko2Time'));
@@ -17949,10 +17981,10 @@ function updateData() {
             Tegzd += pInfoRow(getTextForUI("pinfoPoGCollect", "elementText"), getTimeLeft('nextPoGCollectAllTime'));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveAff)) {
-            Tegzd += pInfoRow(getTextForUI("autoAffW", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveAff)));
+            Tegzd += pInfoRow(getTextForUI("pinfoAffOwned", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveAff)));
         }
         if (getStoredValue(HHStoredVarPrefixKey + TK.haveExp)) {
-            Tegzd += pInfoRow(getTextForUI("autoExpW", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveExp)));
+            Tegzd += pInfoRow(getTextForUI("pinfoExpOwned", "elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey + TK.haveExp)));
         }
         Tegzd += '</ul>';
         pInfo.style.display = 'block';

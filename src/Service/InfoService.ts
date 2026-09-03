@@ -131,7 +131,7 @@ export function updateData() {
         }
         if (ConfigHelper.getHHScriptVars("isEnabledSalary",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSalary) =="true")
         {
-            Tegzd += pInfoRow(getTextForUI("autoSalary","elementText"), getTimeLeft('nextSalaryTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoSalary","elementText"), getTimeLeft('nextSalaryTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledSeason',false) && getStoredValue(HHStoredVarPrefixKey+SK.autoSeason) =="true")
         {
@@ -159,7 +159,7 @@ export function updateData() {
         }
         if (ConfigHelper.getHHScriptVars("isEnabledClubChamp",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoClubChamp) =="true")
         {
-            Tegzd += pInfoRow(getTextForUI("autoClubChamp","elementText"), getTimeLeft('nextClubChampionTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoClubChamp","elementText"), getTimeLeft('nextClubChampionTime'));
         }
         if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) == "true" || DailyGoals.isPantheonDailyGoal() ))
         {
@@ -179,11 +179,11 @@ export function updateData() {
         }
         if (getStoredValue(HHStoredVarPrefixKey+SK.autoEquipBoosters) =="true")
         {
-            Tegzd += pInfoRow(getTextForUI("autoEquipBoosters","elementText"), getTimeLeft('nextAutoEquipBoosterTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoEquipBoosters","elementText"), getTimeLeft('nextAutoEquipBoosterTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledMission",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoMission) =="true")
         {
-            Tegzd += pInfoRow(getTextForUI("autoMission","elementText"), getTimeLeft('nextMissionTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoMission","elementText"), getTimeLeft('nextMissionTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledDailyGoals",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoDailyGoalsCollect) === "true" && getTimer('nextDailyGoalsCollectTime') !== -1)
         {
@@ -195,7 +195,7 @@ export function updateData() {
         }
         if (ConfigHelper.getHHScriptVars("isEnabledContest",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoContest) =="true")
         {
-            Tegzd += pInfoRow(getTextForUI("autoContest", "elementText"), getTimeLeft('nextContestCollectTime'));
+            Tegzd += pInfoRow(getTextForUI("pinfoContestCollect", "elementText"), getTimeLeft('nextContestCollectTime'));
         }
         if (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces",false) && getStoredValue(HHStoredVarPrefixKey+SK.autoPowerPlaces) =="true")
         {
@@ -205,7 +205,7 @@ export function updateData() {
         {
             if (getTimer('nextPachinkoTime') !== -1)
             {
-                Tegzd += pInfoRow(getTextForUI("autoFreePachinko","elementText"), getTimeLeft('nextPachinkoTime'));
+                Tegzd += pInfoRow(getTextForUI("pinfoFreePachinko","elementText"), getTimeLeft('nextPachinkoTime'));
             }
             if (getTimer('nextPachinko2Time') !== -1)
             {
@@ -246,11 +246,11 @@ export function updateData() {
         }
         if (getStoredValue(HHStoredVarPrefixKey+TK.haveAff))
         {
-            Tegzd += pInfoRow(getTextForUI("autoAffW","elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveAff)));
+            Tegzd += pInfoRow(getTextForUI("pinfoAffOwned","elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveAff)));
         }
         if (getStoredValue(HHStoredVarPrefixKey+TK.haveExp))
         {
-            Tegzd += pInfoRow(getTextForUI("autoExpW","elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveExp)));
+            Tegzd += pInfoRow(getTextForUI("pinfoExpOwned","elementText"), NumberHelper.add1000sSeparator(getStoredValue(HHStoredVarPrefixKey+TK.haveExp)));
         }
         Tegzd += '</ul>';
 

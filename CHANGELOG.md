@@ -7,6 +7,29 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.11.5 - The info panel names its rows again
+
+The panel showed one row called "Collect" and three called "Enabled" instead
+of Salary, Club champion, Missions and Free Pachinko (issue #1869, reported by
+Cirkulis).
+
+The menu gives every group a heading, so a switch inside it can read "Enabled"
+or "Collect" and still be unambiguous -- that is the rule from 8.10.42. The
+panel has no headings: a row is a label and a time. Eight rows were labelled
+with the menu switch's own key, and five of them therefore said "Enabled" or
+"Collect" with no area name anywhere. Two of the remaining three were wrong in
+the other direction: the gift and book rows count what is in stock, but carried
+the label of the buying switch.
+
+All eight rows now have their own keys, the way the thirteen rows that were
+already correct do. The gift and book rows say "Gifts owned" / "Books owned".
+The free pachinko row is called "Free Pachinko", so the three pachinko rows
+read as one set. Nothing in the menu changed, and no automation behaves
+differently.
+
+A test keeps the two vocabularies apart: no pInfo row may use a key that
+MenuTabs passes to a switch.
+
 ### v8.11.4 - Pachinko x-times stops when there are no girls left
 
 The *Pachinko ×N* run kept pulling on the Epic pachinko after the last girl was
