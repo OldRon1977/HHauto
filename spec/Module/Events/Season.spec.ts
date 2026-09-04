@@ -224,6 +224,110 @@ describe("Season event", function () {
         });
     });
 
+    /**
+     * Low points (#1360): the flag order stays as it is -- the script still
+     * only picks a fight it can win -- and the mojo tie-break turns around.
+     * Each test pins the same case with the switch off, so a change that
+     * moved the whole selection instead of the tie-break shows up here.
+     */
+    describe("getBestOppo prefer low mojo", function () {
+
+        // The suite shares one localStorage, so a switch left on here would
+        // decide the tests that follow.
+        beforeEach(() => {
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'false');
+        });
+        afterEach(() => {
+            localStorage.removeItem(HHStoredVarPrefixKey + SK.autoSeasonPreferLowMojo);
+        });
+
+        it("takes the green opponent worth the fewest mojo", function () {
+            const OPPO_MORE = { ...OPPO_A };
+            OPPO_MORE.mojo = 22;
+            const OPPO_LESS = { ...OPPO_A };
+            OPPO_LESS.mojo = 18;
+
+            let result = Season.getBestOppo([OPPO_A, OPPO_MORE, OPPO_LESS]);
+            expect(result.chosenIndex).toBe(1);
+
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            result = Season.getBestOppo([OPPO_A, OPPO_MORE, OPPO_LESS]);
+            expect(result.chosenIndex).toBe(2);
+            expect(result.numberOfReds).toBe(0);
+        });
+
+        it("still prefers a green opponent over an orange one", function () {
+            // OPPO_B (orange) pays less than every green one on offer. The
+            // flag order has to keep it out of the choice all the same.
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            const result = Season.getBestOppo([OPPO_A, OPPO_B, OPPO_C]);
+            expect(result.chosenIndex).toBe(0);
+            expect(result.numberOfReds).toBe(1);
+        });
+
+        it("keeps gains as the tie-break below mojo", function () {
+            const OPPO_LESS = { ...OPPO_A };
+            OPPO_LESS.mojo = 18;
+            const OPPO_LESS_RICHER = { ...OPPO_A };
+            OPPO_LESS_RICHER.mojo = 18;
+            OPPO_LESS_RICHER.aff = 10;
+
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            const result = Season.getBestOppo([OPPO_A, OPPO_LESS, OPPO_LESS_RICHER]);
+            expect(result.chosenIndex).toBe(2);
+        });
+
+        it("takes the red opponent worth the fewest mojo when all three are red", function () {
+            const OPPO_MORE = { ...OPPO_C };
+            OPPO_MORE.mojo = 12;
+            const OPPO_LESS = { ...OPPO_C };
+            OPPO_LESS.mojo = 8;
+
+            let result = Season.getBestOppo([OPPO_C, OPPO_MORE, OPPO_LESS]);
+            expect(result.chosenIndex).toBe(1);
+
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            result = Season.getBestOppo([OPPO_C, OPPO_MORE, OPPO_LESS]);
+            expect(result.chosenIndex).toBe(2);
+            expect(result.numberOfReds).toBe(3);
+        });
+
+        it("takes the fewest mojo behind the win chance after the season ended", function () {
+            mockSeasonTierLevel(64);
+            const OPPO_MORE = { ...OPPO_A };
+            OPPO_MORE.mojo = 22;
+            const OPPO_LESS = { ...OPPO_A };
+            OPPO_LESS.mojo = 18;
+            const OPPO_SAFER = { ...OPPO_A };
+            OPPO_SAFER.mojo = 22;
+            OPPO_SAFER.simu = { ...OPPO_A.simu };
+            OPPO_SAFER.simu.win = 99;
+
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            let result = Season.getBestOppo([OPPO_MORE, OPPO_LESS, OPPO_SAFER]);
+            expect(result.chosenIndex).toBe(2);
+
+            result = Season.getBestOppo([OPPO_MORE, OPPO_LESS, OPPO_A]);
+            expect(result.chosenIndex).toBe(1);
+        });
+
+        it("does not wait for more mojo while low points is on", function () {
+            // Skip low mojo would hold out for the very opponents low points
+            // is after, so it stands down instead of blocking every round.
+            mockSeasonTierLevel(20);
+            MockHelper.mockSetting('autoSeasonSkipLowMojo', 'true');
+            const OPPO_POOR = { ...OPPO_A };
+            OPPO_POOR.mojo = 5;
+
+            let result = Season.getBestOppo([OPPO_POOR, OPPO_POOR, OPPO_POOR]);
+            expect(result.chosenIndex).toBe(-1);
+
+            MockHelper.mockSetting('autoSeasonPreferLowMojo', 'true');
+            result = Season.getBestOppo([OPPO_POOR, OPPO_POOR, OPPO_POOR]);
+            expect(result.chosenIndex).toBe(0);
+        });
+    });
+
     describe("getBestOppo low mojo", function () {
         it("low mojo", function () {
             mockSeasonTierLevel(20);

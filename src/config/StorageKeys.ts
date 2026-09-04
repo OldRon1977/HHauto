@@ -98,6 +98,7 @@ export const SK = {
     autoSeasonFocus: "Setting_autoSeasonIgnoreNoGirls", // now stores a focus mode (off|girl|girlAndSkin) instead of boolean
     autoSeasonPassReds: "Setting_autoSeasonPassReds",
     autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
+    autoSeasonPreferLowMojo: "Setting_autoSeasonPreferLowMojo",
     seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
     autoSeasonMaxTier: "Setting_autoSeasonMaxTier",
     autoSeasonMaxTierNb: "Setting_autoSeasonMaxTierNb",

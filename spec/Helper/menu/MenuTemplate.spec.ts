@@ -61,6 +61,7 @@ const CONTROL_IDS_ADDED_IN_8_10 = [
     'menuSingleColumn',
     'menuCompact',
     'plusSkinSandalWood',   // #1843
+    'autoSeasonPreferLowMojo',  // #1360
 ];
 
 /** Buttons wired by StartService via $("#id"). */

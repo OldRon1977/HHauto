@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.11.6
+// @version      8.12.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -198,6 +198,10 @@ GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr aut
 GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
+// A row another switch has taken out of play (see hhMenuSwitch's disabledBy).
+// Dimmed rather than hidden: a setting that vanishes reads as lost, and the
+// row has to stay visible for the user to see why it is not in effect.
+GM_addStyle('#sMenu .labelAndButton.menuRowDisabled {opacity:.45;}');
 GM_addStyle('#sMenu select {max-width:100%;}');
 // Number fields run to twelve digits plus thousands separators ("999.999.999.999",
 // 15 characters). Smaller type in the fields buys the room; the width is given in
@@ -363,7 +367,8 @@ HHAuto_ToolTips.en['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Max 
 HHAuto_ToolTips.en['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "MT hard", tooltip: "<span class=\"tipHint\">Only relevant while Max Tier is enabled.</span><p><b>ON</b> &mdash; Max Tier is a hard limit: no season fight past it, whatever the Season focus. Below it, the Season focus filter applies to every fight.</p><p><b>OFF</b> (legacy) &mdash; fights run unfiltered while climbing below Max Tier, and a girl Season focus keeps fighting past Max Tier while wanted girl rewards are available.</p>" };
 HHAuto_ToolTips.en['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Run Threshold", tooltip: "Minimum kiss fights before script start spending<br> 0 to spend as soon as energy above threshold" };
 HHAuto_ToolTips.en['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Boosted only", tooltip: "If enabled : Need booster to fight in season" };
-HHAuto_ToolTips.en['autoSeasonSkipLowMojo'] = { version: "8.10.42", elementText: "Skip low mojo", tooltip: "If enabled : Not fight when mojo reward is less than 8 and season level is less than 63. Will still fight to not loose kiss." };
+HHAuto_ToolTips.en['autoSeasonPreferLowMojo'] = { version: "8.12.0", elementText: "Low points", tooltip: "If enabled : among the opponents the script would fight anyway, it takes the one worth the <b>fewest</b> mojo instead of the most.<p>The rating of the opponents does not change, so it still only fights what it can beat &mdash; only the tie-break between them turns around. For playing as many winnable fights as possible without climbing the ranking.</p><p>Skip low mojo would wait for exactly the opponents this looks for, so it is switched off while this is on.</p>" };
+HHAuto_ToolTips.en['autoSeasonSkipLowMojo'] = { version: "8.12.0", elementText: "Skip low mojo", tooltip: "<span class=\"tipHint\">Has no effect while Low points is on.</span>If enabled : Not fight when mojo reward is less than 8 and season level is less than 63. Will still fight to not loose kiss." };
 HHAuto_ToolTips.en['seasonDisplayPowerCalc'] = { version: "7.29.12", elementText: "Display PowerCalc", tooltip: "Display powerCalc in season.<br/>Will still be displayed on auto season" };
 HHAuto_ToolTips.en['autoPentaDrillTitle'] = { version: "7.26.0", elementText: "Penta Drill" };
 HHAuto_ToolTips.en['autoPentaDrill'] = { version: "8.10.42", elementText: "Enabled", tooltip: "if enabled : Automatically fight in Penta Drills (Opponent chosen with lowest power)" };
@@ -898,7 +903,8 @@ HHAuto_ToolTips.fr['seasonFocusGirlSkin'] = { version: "8.5.0", elementText: "Fi
 HHAuto_ToolTips.fr['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Palier max", tooltip: "Palier maximum auquel s'arrêter en saison.<br>Avec PM strict désactivé, un objectif de saison centré sur la fille continue au-delà tant que des récompenses de la fille voulue sont disponibles." };
 HHAuto_ToolTips.fr['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "PM strict", tooltip: "<span class=\"tipHint\">Ne compte que si Palier max est activé.</span><p><b>Activé</b> &mdash; le Palier max est une limite stricte : aucun combat de saison au-delà, quel que soit l'objectif de saison. En dessous, le filtre de l'objectif s'applique à chaque combat.</p><p><b>Désactivé</b> (ancien comportement) &mdash; les combats ne sont pas filtrés tant qu'on monte sous le Palier max, et un objectif centré sur la fille continue au-delà tant que des récompenses de la fille voulue sont disponibles.</p>" };
 HHAuto_ToolTips.fr['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Seuil de réserve", tooltip: "Nombre minimum de combats de baisers avant que le script commence à dépenser.<br> 0 pour dépenser dès que l'énergie dépasse le seuil." };
-HHAuto_ToolTips.fr['autoSeasonSkipLowMojo'] = { version: "8.10.42", elementText: "Ignorer mojo faible", tooltip: "Si activé : ne combat pas quand la récompense de mojo est inférieure à 8 et que le niveau de saison est inférieur à 63. Combattra tout de même pour ne pas perdre de baisers." };
+HHAuto_ToolTips.fr['autoSeasonPreferLowMojo'] = { version: "8.12.0", elementText: "Peu de points", tooltip: "Si activé : parmi les adversaires que le script combattrait de toute façon, il prend celui qui rapporte le <b>moins</b> de mojo au lieu du plus. <p>L'évaluation des adversaires ne change pas : il ne combat toujours que ce qu'il peut gagner &mdash; seul le départage entre eux s'inverse. Pour enchaîner le plus de combats gagnables possible sans monter au classement.</p><p>« Ignorer mojo faible » attendrait justement les adversaires recherchés ici, il est donc désactivé tant que ceci est activé.</p>" };
+HHAuto_ToolTips.fr['autoSeasonSkipLowMojo'] = { version: "8.12.0", elementText: "Ignorer mojo faible", tooltip: "<span class=\"tipHint\">Sans effet tant que « Peu de points » est activé.</span>Si activé : ne combat pas quand la récompense de mojo est inférieure à 8 et que le niveau de saison est inférieur à 63. Combattra tout de même pour ne pas perdre de baisers." };
 HHAuto_ToolTips.fr['seasonDisplayPowerCalc'] = { version: "7.29.12", elementText: "Afficher PowerCalc", tooltip: "Affiche PowerCalc en saison.<br/>Reste affiché avec la saison automatique." };
 HHAuto_ToolTips.fr['autoPentaDrillDelay'] = { version: "8.4.0", elementText: "Délai PD", tooltip: "Délai en secondes entre les actions du Penta Drill (l'attente réelle est une valeur aléatoire entre X et X+3 secondes).<br>Augmentez-le si vous voyez des écrans blancs sur une connexion lente.<br>Autorisé : 3 à 20, par défaut 6." };
 HHAuto_ToolTips.fr['autoSideQuest'] = { version: "8.10.42", elementText: "Quêtes secondaires", tooltip: "Si activé : effectue automatiquement la prochaine quête secondaire disponible (la quête principale activée est prioritaire sur les quêtes secondaires)." };
@@ -1255,7 +1261,8 @@ HHAuto_ToolTips.de['autoSeasonCollectAll'] = { version: "8.10.0", elementText: "
 HHAuto_ToolTips.de['autoSeasonMaxTier'] = { version: "8.10.0", elementText: "Max. Stufe", tooltip: "Stufe, bei der in der Saison aufgehört wird.<br>Mit 'MT hart' aus kämpft ein Saison-Fokus auf Mädels darüber hinaus weiter, solange gewünschte Mädel-Belohnungen erreichbar sind." };
 HHAuto_ToolTips.de['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Lauf-Schwelle", tooltip: "Mindestanzahl Kuss-Kämpfe, bevor das Skript zu verbrauchen beginnt.<br>0, um sofort zu verbrauchen, sobald die Energie über der Schwelle liegt." };
 HHAuto_ToolTips.de['autoSeasonBoostedOnly'] = { version: "8.10.0", elementText: "Nur mit Booster", tooltip: "Wenn aktiv: Es wird nur mit Booster in der Saison gekämpft." };
-HHAuto_ToolTips.de['autoSeasonSkipLowMojo'] = { version: "8.10.42", elementText: "Wenig Mojo überspringen", tooltip: "Wenn aktiv: Kein Kampf, wenn die Mojo-Belohnung unter 8 liegt und die Saison-Stufe unter 63. Es wird trotzdem gekämpft, um nichts zu verlieren." };
+HHAuto_ToolTips.de['autoSeasonPreferLowMojo'] = { version: "8.12.0", elementText: "Wenig Punkte", tooltip: "Wenn aktiv: Unter den Gegnern, gegen die ohnehin gekämpft würde, wird der mit dem <b>wenigsten</b> Mojo genommen statt der mit dem meisten.<p>Die Bewertung der Gegner ändert sich nicht, es wird also weiterhin nur gekämpft, was zu gewinnen ist &mdash; nur die Entscheidung zwischen ihnen dreht sich um. Für möglichst viele gewinnbare Kämpfe, ohne im Rang zu steigen.</p><p>„Wenig Mojo überspringen\" würde auf genau die Gegner warten, die hier gesucht werden, und ist deshalb ausgeschaltet, solange das hier an ist.</p>" };
+HHAuto_ToolTips.de['autoSeasonSkipLowMojo'] = { version: "8.12.0", elementText: "Wenig Mojo überspringen", tooltip: "<span class=\"tipHint\">Ohne Wirkung, solange „Wenig Punkte\" an ist.</span>Wenn aktiv: Kein Kampf, wenn die Mojo-Belohnung unter 8 liegt und die Saison-Stufe unter 63. Es wird trotzdem gekämpft, um nichts zu verlieren." };
 HHAuto_ToolTips.de['seasonDisplayPowerCalc'] = { version: "8.10.0", elementText: "PowerCalc anzeigen", tooltip: "Zeigt den PowerCalc in der Saison.<br/>Wird bei Auto-Saison ohnehin angezeigt." };
 HHAuto_ToolTips.de['autoPentaDrillTitle'] = { version: "8.10.0", elementText: "Penta-Drill" };
 HHAuto_ToolTips.de['autoPentaDrill'] = { version: "8.10.42", elementText: "Aktiviert", tooltip: "Wenn aktiv: Kämpft automatisch im Penta Drill (es wird der Gegner mit der geringsten Kraft gewählt)." };
@@ -1853,7 +1860,8 @@ HHAuto_ToolTips.es['autoSeasonMaxTier'] = { version: "8.5.0", elementText: "Nive
 HHAuto_ToolTips.es['autoSeasonMaxTierHard'] = { version: "8.5.0", elementText: "NM estricto", tooltip: "<span class=\"tipHint\">Sólo importa mientras Nivel máx. esté activado.</span><p><b>Activado</b> &mdash; el Nivel máx. es un límite estricto: ningún combate de temporada más allá, sea cual sea el Objetivo de temporada. Por debajo, el filtro del Objetivo de temporada se aplica a todos los combates.</p><p><b>Apagado</b> (comportamiento antiguo) &mdash; se combate sin filtrar mientras se sube por debajo del Nivel máx., y un objetivo centrado en la chica sigue combatiendo más allá del Nivel máx. mientras haya recompensas de la chica deseada.</p>" };
 HHAuto_ToolTips.es['autoSeasonRunThreshold'] = { version: "6.8.0", elementText: "Umbral de reserva", tooltip: "Número mínimo de combates de besos antes de que el script empiece a gastar.<br> 0 para gastar en cuanto la energía supere el umbral." };
 HHAuto_ToolTips.es['autoSeasonBoostedOnly'] = { version: "6.5.0", elementText: "Sólo con potenciador", tooltip: "Si habilitado: hace falta un potenciador para combatir en la temporada." };
-HHAuto_ToolTips.es['autoSeasonSkipLowMojo'] = { version: "8.10.42", elementText: "Omitir mojo bajo", tooltip: "Si habilitado: no combate cuando la recompensa de mojo es menor que 8 y el nivel de temporada es menor que 63. Aun así combatirá para no perder besos." };
+HHAuto_ToolTips.es['autoSeasonPreferLowMojo'] = { version: "8.12.0", elementText: "Pocos puntos", tooltip: "Si habilitado: entre los oponentes que el script combatiría de todos modos, toma el que da <b>menos</b> mojo en lugar del que da más.<p>La evaluación de los oponentes no cambia, así que sigue combatiendo solo lo que puede ganar &mdash; únicamente se invierte el desempate entre ellos. Para hacer tantos combates ganables como sea posible sin subir en la clasificación.</p><p>«Omitir mojo bajo» esperaría precisamente a los oponentes que se buscan aquí, por eso queda desactivado mientras esto esté activo.</p>" };
+HHAuto_ToolTips.es['autoSeasonSkipLowMojo'] = { version: "8.12.0", elementText: "Omitir mojo bajo", tooltip: "<span class=\"tipHint\">Sin efecto mientras «Pocos puntos» esté activo.</span>Si habilitado: no combate cuando la recompensa de mojo es menor que 8 y el nivel de temporada es menor que 63. Aun así combatirá para no perder besos." };
 HHAuto_ToolTips.es['seasonDisplayPowerCalc'] = { version: "7.29.12", elementText: "Mostrar PowerCalc", tooltip: "Muestra PowerCalc en la temporada.<br/>Se seguirá mostrando con la temporada automática." };
 HHAuto_ToolTips.es['autoPentaDrillTitle'] = { version: "7.26.0", elementText: "Penta Drill", tooltip: "" };
 HHAuto_ToolTips.es['autoPentaDrill'] = { version: "8.10.42", elementText: "Activado", tooltip: "Si habilitado: combate automáticamente en los Penta Drills (se elige al rival de menor poder)." };
@@ -2327,6 +2335,7 @@ const SK = {
     autoSeasonFocus: "Setting_autoSeasonIgnoreNoGirls", // now stores a focus mode (off|girl|girlAndSkin) instead of boolean
     autoSeasonPassReds: "Setting_autoSeasonPassReds",
     autoSeasonSkipLowMojo: "Setting_autoSeasonSkipLowMojo",
+    autoSeasonPreferLowMojo: "Setting_autoSeasonPreferLowMojo",
     seasonDisplayPowerCalc: "Setting_seasonDisplayPowerCalc",
     autoSeasonMaxTier: "Setting_autoSeasonMaxTier",
     autoSeasonMaxTierNb: "Setting_autoSeasonMaxTierNb",
@@ -3668,6 +3677,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonBoostedOnly] =
 HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo] =
     {
         default: "true",
+        storage: "Storage()",
+        HHType: "Setting",
+        valueType: "Boolean",
+        getMenu: true,
+        setMenu: true,
+        menuType: "checked",
+        kobanUsing: false
+    };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonPreferLowMojo] =
+    {
+        default: "false",
         storage: "Storage()",
         HHType: "Setting",
         valueType: "Boolean",
@@ -13637,6 +13657,16 @@ class Season {
         var numberOfReds = 0;
         let currentGains;
         const seasonEnded = Season.getTierLevel() > Season.LAST_SEASON_LEVEL;
+        // Low points (#1360): which opponent wins the tie-break among equally
+        // flagged ones. Off, the mode climbs and the most mojo wins it. On,
+        // the same fight is picked for the fewest points: the flag order
+        // (green over orange over red) is untouched, so the script still
+        // fights what it can beat -- only the mojo comparison turns around,
+        // in all three branches. Asked for by players who want many winnable
+        // fights instead of a high rank, because the rank is what makes event
+        // points and shards expensive later.
+        const preferLowMojo = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonPreferLowMojo) === "true";
+        const isMojoBetter = (candidate, chosen) => preferLowMojo ? candidate < chosen : candidate > chosen;
         for (let index = 0; index < 3; index++) {
             let isBetter = false;
             currentScore = Number(seasonOpponents[index].simu.win);
@@ -13666,7 +13696,7 @@ class Season {
             }
             else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
-                if (chosenMojo < currentMojo) {
+                if (isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
@@ -13676,7 +13706,7 @@ class Season {
             }
             else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
-                if (chosenMojo < currentMojo) {
+                if (isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                 }
                 //same green flag same mojo but better gains
@@ -13694,7 +13724,7 @@ class Season {
                 if (currentScore > chosenRating) {
                     isBetter = true;
                 }
-                else if (currentScore === chosenRating && chosenMojo < currentMojo) {
+                else if (currentScore === chosenRating && isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
@@ -13710,7 +13740,12 @@ class Season {
                 chosenMojo = currentMojo;
             }
         }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses - 1)) {
+        // Skip low mojo waits for a richer opponent, low points asks for the
+        // poorest one. Both at once would wait out nearly every round, so the
+        // waiting stands down here and the menu greys the row out while low
+        // points is on. The stored setting is left alone: turning low points
+        // off brings it back.
+        if (!preferLowMojo && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses - 1)) {
             chosenIndex = -1; // wait more mojo
         }
         return { numberOfReds, chosenIndex };
@@ -30435,9 +30470,16 @@ function hhButton(textKeyId, buttonId, mainStyle = '', labelSyle = '', labelPref
         + `<label ${labelSyle ? 'style="' + labelSyle + '"' : ''} class="myButton" id="${buttonId}">${labelPrefix}${getTextForUI(textKeyId, "elementText")}</label>`
         + `</div>`;
 }
-function hhMenuSwitch(textKeyAndInputId, isEnabledDivId = '', isKobanSwitch = false, isStylingSwitch = false) {
+/**
+ * `disabledBy` names another switch that takes this row out of play while it
+ * is on -- two settings that contradict each other, where the panel would
+ * otherwise offer both and only the code would know which one wins. The row
+ * is greyed and its checkbox disabled by refreshMenuState(); the stored value
+ * is untouched, so it returns as it was when the other switch goes off.
+ */
+function hhMenuSwitch(textKeyAndInputId, isEnabledDivId = '', isKobanSwitch = false, isStylingSwitch = false, disabledBy = '') {
     const { getTextForUI } = MenuPorts;
-    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton">`
+    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton"${disabledBy ? ` data-disabled-by="${disabledBy}"` : ''}>`
         + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
         + `<div class="tooltipHH">`
         + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
@@ -30690,7 +30732,8 @@ function tabs(debugEnabled) {
                 + hhMenuSwitch('autoSeasonCollectAll')
                 + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
                 + group('menuSecOpponents', hhMenuSwitch('autoSeasonBoostedOnly')
-                    + hhMenuSwitch('autoSeasonSkipLowMojo')
+                    + hhMenuSwitch('autoSeasonPreferLowMojo')
+                    + hhMenuSwitch('autoSeasonSkipLowMojo', '', false, false, 'autoSeasonPreferLowMojo')
                     + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
                     + hhMenuSwitch('autoSeasonMaxTierHard')
                     + debugOnly(debugEnabled, hhMenuSwitch('autoSeasonPassReds', '', true)))
@@ -31035,12 +31078,31 @@ function refreshMenuState() {
             if (dot !== null)
                 dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
         }
+        refreshDisabledRows(paneEl);
         const count = countBlocks(states);
         const text = formatBadge(count);
         const state = areaState(count);
         for (const badge of Array.from(panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`))) {
             badge.textContent = text;
             badge.setAttribute('data-state', state);
+        }
+    }
+}
+/**
+ * Grey out the rows a switch elsewhere has taken out of play (see
+ * `disabledBy` in MenuWidgets.hhMenuSwitch). Only the control is disabled and
+ * the row dimmed -- the value stays in storage and in the checkbox, so the row
+ * comes back exactly as the user left it. A row whose controller is not in
+ * this build (a debug-only switch, a dropped setting) stays enabled: a switch
+ * nobody can turn on cannot be blocking anything.
+ */
+function refreshDisabledRows(paneEl) {
+    var _a;
+    for (const rowEl of Array.from(paneEl.querySelectorAll('[data-disabled-by]'))) {
+        const disabled = switchState((_a = rowEl.getAttribute('data-disabled-by')) !== null && _a !== void 0 ? _a : '') === true;
+        rowEl.classList.toggle('menuRowDisabled', disabled);
+        for (const input of Array.from(rowEl.querySelectorAll('input, select'))) {
+            input.disabled = disabled;
         }
     }
 }

@@ -252,6 +252,16 @@ export class Season {
         var numberOfReds = 0;
         let currentGains: any;
         const seasonEnded = Season.getTierLevel() > Season.LAST_SEASON_LEVEL;
+        // Low points (#1360): which opponent wins the tie-break among equally
+        // flagged ones. Off, the mode climbs and the most mojo wins it. On,
+        // the same fight is picked for the fewest points: the flag order
+        // (green over orange over red) is untouched, so the script still
+        // fights what it can beat -- only the mojo comparison turns around,
+        // in all three branches. Asked for by players who want many winnable
+        // fights instead of a high rank, because the rank is what makes event
+        // points and shards expensive later.
+        const preferLowMojo = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonPreferLowMojo) === "true";
+        const isMojoBetter = (candidate: number, chosen: number) => preferLowMojo ? candidate < chosen : candidate > chosen;
 
         for (let index = 0; index < 3; index++) {
             let isBetter = false;
@@ -283,7 +293,7 @@ export class Season {
             }
             else if (chosenFlag === currentFlag && currentFlag === -1) {
                 //same red flag but better mojo
-                if (chosenMojo < currentMojo) {
+                if (isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                 }
                 // same red flag same mojo but better score
@@ -293,7 +303,7 @@ export class Season {
             }
             else if (chosenFlag === currentFlag && currentFlag === 1 && !seasonEnded) {
                 //same green flag but better mojo
-                if (chosenMojo < currentMojo) {
+                if (isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                 }
 
@@ -314,7 +324,7 @@ export class Season {
                     isBetter = true;
                 }
 
-                else if (currentScore === chosenRating && chosenMojo < currentMojo) {
+                else if (currentScore === chosenRating && isMojoBetter(currentMojo, chosenMojo)) {
                     isBetter = true;
                     currentGains = currentAff + currentExp;
                 }
@@ -331,7 +341,12 @@ export class Season {
                 chosenMojo = currentMojo;
             }
         }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses-1) ) {
+        // Skip low mojo waits for a richer opponent, low points asks for the
+        // poorest one. Both at once would wait out nearly every round, so the
+        // waiting stands down here and the menu greys the row out while low
+        // points is on. The stored setting is left alone: turning low points
+        // off brings it back.
+        if (!preferLowMojo && getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo) === "true" && chosenMojo < Season.MIN_MOJO_FIGHT && !seasonEnded && current_kisses < (max_kisses-1) ) {
             chosenIndex = -1; // wait more mojo
         }
         return { numberOfReds, chosenIndex };

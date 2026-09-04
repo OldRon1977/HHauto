@@ -25,9 +25,16 @@ export function hhButton(textKeyId: string, buttonId: string, mainStyle='', labe
             +`</div>`;
 }
 
-export function hhMenuSwitch(textKeyAndInputId: string, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false){
+/**
+ * `disabledBy` names another switch that takes this row out of play while it
+ * is on -- two settings that contradict each other, where the panel would
+ * otherwise offer both and only the code would know which one wins. The row
+ * is greyed and its checkbox disabled by refreshMenuState(); the stored value
+ * is untouched, so it returns as it was when the other switch goes off.
+ */
+export function hhMenuSwitch(textKeyAndInputId: string, isEnabledDivId='', isKobanSwitch=false, isStylingSwitch=false, disabledBy=''){
     const { getTextForUI } = MenuPorts;
-    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton">`
+    return `<div ${isEnabledDivId ? 'id="'+isEnabledDivId+'"' : '' } class="labelAndButton"${disabledBy ? ` data-disabled-by="${disabledBy}"` : ''}>`
         +`<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId,"elementText")}</span>`
         +`<div class="tooltipHH">`
             +`<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId,"tooltip")}</span>`

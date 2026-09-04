@@ -247,7 +247,8 @@ function tabs(debugEnabled: boolean): TabDef[] {
                 'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
             + group('menuSecOpponents',
                 hhMenuSwitch('autoSeasonBoostedOnly')
-                + hhMenuSwitch('autoSeasonSkipLowMojo')
+                + hhMenuSwitch('autoSeasonPreferLowMojo')
+                + hhMenuSwitch('autoSeasonSkipLowMojo', '', false, false, 'autoSeasonPreferLowMojo')
                 + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
                 + hhMenuSwitch('autoSeasonMaxTierHard')
                 + debugOnly(debugEnabled, hhMenuSwitch('autoSeasonPassReds', '', true)))
@@ -645,6 +646,7 @@ export function refreshMenuState(): void {
             const dot = groupEl.querySelector('.menuBlockDot');
             if (dot !== null) dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
         }
+        refreshDisabledRows(paneEl);
         const count = countBlocks(states);
         const text = formatBadge(count);
         const state = areaState(count);
@@ -652,6 +654,24 @@ export function refreshMenuState(): void {
             panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`)) as HTMLElement[]) {
             badge.textContent = text;
             badge.setAttribute('data-state', state);
+        }
+    }
+}
+
+/**
+ * Grey out the rows a switch elsewhere has taken out of play (see
+ * `disabledBy` in MenuWidgets.hhMenuSwitch). Only the control is disabled and
+ * the row dimmed -- the value stays in storage and in the checkbox, so the row
+ * comes back exactly as the user left it. A row whose controller is not in
+ * this build (a debug-only switch, a dropped setting) stays enabled: a switch
+ * nobody can turn on cannot be blocking anything.
+ */
+function refreshDisabledRows(paneEl: HTMLElement): void {
+    for (const rowEl of Array.from(paneEl.querySelectorAll('[data-disabled-by]')) as HTMLElement[]) {
+        const disabled = switchState(rowEl.getAttribute('data-disabled-by') ?? '') === true;
+        rowEl.classList.toggle('menuRowDisabled', disabled);
+        for (const input of Array.from(rowEl.querySelectorAll('input, select')) as (HTMLInputElement | HTMLSelectElement)[]) {
+            input.disabled = disabled;
         }
     }
 }

@@ -7,6 +7,29 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.0 - Season can fight for the fewest points
+
+New season switch **Low points** (issue #1360, asked for by Senyor-K, scope
+confirmed by Cirkulis). Off by default; nothing changes for anyone who does
+not turn it on.
+
+The script picks its season opponent the same way as before: the flag order
+decides first, so it still only takes a fight it can win. What changes is the
+tie-break between equally rated opponents. Off, the one worth the most mojo
+wins it and the account climbs. On, the one worth the fewest mojo wins it, in
+all three branches (green, red, and after the season has ended). Everything
+below mojo -- the girl and XP gains, then the win chance -- keeps its order.
+
+The point of it: a high season rank makes event points and shards more
+expensive later, so a player who wants many winnable fights rather than a rank
+was fighting against the selection until now.
+
+"Skip low mojo" waits for exactly the opponents Low points goes looking for.
+The two together would wait out nearly every round, so Skip low mojo has no
+effect while Low points is on. Its menu row is greyed out to say so, and the
+stored setting is untouched -- switching Low points off brings it back as it
+was.
+
 ### v8.11.6 - The free pachinko row is called Great Pachinko
 
 8.11.5 named that row "Free Pachinko". All three pachinkos in the panel are

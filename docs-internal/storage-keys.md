@@ -206,6 +206,7 @@ Die Spalte "Storage" zeigt den Wert aus der Registry. `--` heisst: nicht in `HHS
 | `autoSeasonFocus` | `Setting_autoSeasonIgnoreNoGirls` | `Storage()` | `Setting` | Season-Fokus (off/girl/girlAndSkin) |
 | `autoSeasonPassReds` | `Setting_autoSeasonPassReds` | `Storage()` | `Setting` | Rote ueberspringen |
 | `autoSeasonSkipLowMojo` | `Setting_autoSeasonSkipLowMojo` | `Storage()` | `Setting` | Niedrige Mojo ueberspringen |
+| `autoSeasonPreferLowMojo` | `Setting_autoSeasonPreferLowMojo` | `Storage()` | `Setting` | Gegner mit dem wenigsten Mojo waehlen |
 | `seasonDisplayPowerCalc` | `Setting_seasonDisplayPowerCalc` | `Storage()` | `Setting` | Power-Anzeige |
 | `autoSeasonMaxTier` | `Setting_autoSeasonMaxTier` | `Storage()` | `Setting` | Max Tier |
 | `autoSeasonMaxTierNb` | `Setting_autoSeasonMaxTierNb` | `Storage()` | `Setting` | Max Tier Anzahl |

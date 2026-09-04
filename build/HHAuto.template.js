@@ -198,6 +198,10 @@ GM_addStyle('#sMenu .labelAndButton {display:grid; grid-template-columns:1fr aut
 GM_addStyle('#sMenu .labelAndButton + .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuGroup.wide .labelAndButton {border-top:1px solid rgba(255,162,62,.13);}');
 GM_addStyle('#sMenu .menuPair {display:flex; align-items:center; gap:4px;}');
+// A row another switch has taken out of play (see hhMenuSwitch's disabledBy).
+// Dimmed rather than hidden: a setting that vanishes reads as lost, and the
+// row has to stay visible for the user to see why it is not in effect.
+GM_addStyle('#sMenu .labelAndButton.menuRowDisabled {opacity:.45;}');
 GM_addStyle('#sMenu select {max-width:100%;}');
 // Number fields run to twelve digits plus thousands separators ("999.999.999.999",
 // 15 characters). Smaller type in the fields buys the room; the width is given in

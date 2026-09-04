@@ -187,6 +187,31 @@ describe('refreshMenuState', () => {
         expect(onTitle.getAttribute('data-state')).toBe('on');
     });
 
+    // A row a switch elsewhere contradicts (#1360: Skip low mojo waits for the
+    // opponents Low points goes looking for). The row is greyed instead of
+    // hidden, and its value is left alone, so it comes back as the user left
+    // it.
+    it('disables a row while the switch that overrides it is on', () => {
+        const row = document.querySelector('[data-disabled-by="autoSeasonPreferLowMojo"]') as HTMLElement;
+        const skip = document.getElementById('autoSeasonSkipLowMojo') as HTMLInputElement;
+        set('autoSeasonSkipLowMojo', true);
+        set('autoSeasonPreferLowMojo', true);
+        refreshMenuState();
+        expect(row.classList.contains('menuRowDisabled')).toBe(true);
+        expect(skip.disabled).toBe(true);
+        expect(skip.checked).toBe(true);
+    });
+
+    it('gives the row back when the override goes off', () => {
+        set('autoSeasonPreferLowMojo', true);
+        refreshMenuState();
+        set('autoSeasonPreferLowMojo', false);
+        refreshMenuState();
+        const row = document.querySelector('[data-disabled-by="autoSeasonPreferLowMojo"]') as HTMLElement;
+        expect(row.classList.contains('menuRowDisabled')).toBe(false);
+        expect((document.getElementById('autoSeasonSkipLowMojo') as HTMLInputElement).disabled).toBe(false);
+    });
+
     it('does nothing when the menu is not in the document', () => {
         document.body.innerHTML = '';
         expect(() => refreshMenuState()).not.toThrow();

@@ -863,6 +863,17 @@ HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonSkipLowMojo] =
     menuType:"checked",
     kobanUsing:false
 };
+HHStoredVars[HHStoredVarPrefixKey + SK.autoSeasonPreferLowMojo] =
+    {
+    default:"false",
+    storage:"Storage()",
+    HHType:"Setting",
+    valueType:"Boolean",
+    getMenu:true,
+    setMenu:true,
+    menuType:"checked",
+    kobanUsing:false
+};
 HHStoredVars[HHStoredVarPrefixKey + SK.autoPentaDrill] =
 {
     default: "false",
