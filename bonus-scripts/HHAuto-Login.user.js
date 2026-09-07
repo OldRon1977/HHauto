@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Login
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.3
+// @version      1.4
 // @description  HHAuto Login
 // @author       Zary, OldRon1977
 // @match        https://connect.chibipass.com/*
@@ -86,6 +86,20 @@
 const userEmail = "YOUR_EMAIL";
 const userPass = "YOUR_PASSWORD";
 
+// How long to wait for the ChibiPass form. The old budget was 10 seconds,
+// which is generous for a hand-made reload and too short for one that happens
+// while the connection is still coming back: the iframe is then empty, the
+// wait expires, and init() does not run again until the next page load.
+const FORM_WAIT_MS = 60000;
+
+// Every message carries this so the browser console can be filtered down to
+// this script. Without it a failure is invisible between a few hundred lines
+// from the other userscripts on the page.
+const TAG = "[HHAuto-Login]";
+
+// One submit per document, whatever calls login().
+let loginSubmitted = false;
+
 function waitForElement(selector, timeout = 10000) {
     return new Promise((resolve, reject) => {
         const interval = 200;
@@ -107,12 +121,31 @@ function waitForElement(selector, timeout = 10000) {
     });
 }
 
+// What the form looks like right now. Logged when a selector is missing, so
+// the next failure says whether the form was absent altogether or whether
+// ChibiPass opened on a different panel than the password one this script
+// fills. The panels measured on 2026-09-03 were: authenticate (the one used
+// here), passwordless-authenticate, register, passwordless-register,
+// forgotten-password, reset-password and external-connect.
+function describeForm() {
+    const active = document.querySelector(".form-container.active");
+    return {
+        activePanel: active ? active.id : null,
+        panels: [...document.querySelectorAll(".form-container")].map(e => e.id),
+        inputs: [...document.querySelectorAll("input")].map(e => e.id).filter(Boolean),
+        readyState: document.readyState,
+    };
+}
+
 // Runs inside the ChibiPass form iframe (see SCOPE above).
 async function login() {
+    if (loginSubmitted) return;
+    loginSubmitted = true;
+
     try {
-        const email = await waitForElement("#auth-email");
-        const pass = await waitForElement("#auth-password");
-        const btn = await waitForElement("#submit-authenticate");
+        const email = await waitForElement("#auth-email", FORM_WAIT_MS);
+        const pass = await waitForElement("#auth-password", FORM_WAIT_MS);
+        const btn = await waitForElement("#submit-authenticate", FORM_WAIT_MS);
 
         email.value = userEmail;
         pass.value = userPass;
@@ -135,9 +168,10 @@ async function login() {
         if (btn.disabled) btn.disabled = false;
         btn.click();
 
-        console.log("Login sent");
+        console.log(TAG, "login sent");
     } catch (err) {
-        console.error("Login error:", err);
+        loginSubmitted = false;
+        console.error(TAG, "login failed:", err, describeForm());
     }
 }
 
@@ -160,7 +194,7 @@ function enterGame() {
             // has appeared, so skip it and keep looking.
             if (btn && !btn.closest("a[rel='phoenix_member_login']")) {
                 btn.click();
-                console.log("Entered the game.");
+                console.log(TAG, "entered the game");
                 return true;
             }
         } catch (e) {
@@ -186,9 +220,14 @@ function isGamePage() {
 }
 
 function init() {
+    // Logged before anything can bail out. Silence used to mean either "the
+    // script did not run in this frame" or "it ran and gave up", and the two
+    // need different fixes.
+    console.log(TAG, isLoginPage() ? "login form" : "game page", location.href);
+
     if (!userEmail || !userPass
         || userEmail === "YOUR_EMAIL" || userPass === "YOUR_PASSWORD") {
-        console.warn("Credentials not defined");
+        console.warn(TAG, "credentials not defined");
         return;
     }
 
