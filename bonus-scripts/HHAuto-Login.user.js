@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HHAuto Login
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      1.4
+// @version      1.5
 // @description  HHAuto Login
 // @author       Zary, OldRon1977
 // @match        https://connect.chibipass.com/*
@@ -238,9 +238,20 @@ function init() {
     }
 }
 
-// "load" is the one start point. At the default @run-at document-end the
-// DOMContentLoaded event has already been dispatched, so a listener for it
-// never fires; at document-start both would fire and init would run twice,
-// submitting the form a second time. The ChibiPass form is server-rendered,
-// not an SPA, so there is nothing later to wait for.
-window.addEventListener("load", init);
+// Do not wait for "load". These pages keep fetching advertising frames for as
+// long as they are open, and anything that waits for the document to settle
+// waits on that too: a reload extension set to ten minutes never fired on this
+// game while the same extension set to one second did. Whether the load event
+// itself is held back was not measured -- but the script has no reason to
+// depend on it either way.
+//
+// At the default @run-at document-end readyState is already "interactive"
+// (measured in all three frames), so init() simply runs. Waiting for the form
+// is waitForElement's job, not the load event's. The DOMContentLoaded branch
+// only matters if a manager injects at document-start; loginSubmitted keeps
+// that to one submit.
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+    init();
+}
