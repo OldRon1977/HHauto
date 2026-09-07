@@ -316,7 +316,7 @@ export class Booster {
      * dose count is then missing rather than zero -- so the depletion check
      * (`<= 0`) never fires and Sandalwood is never re-equipped (issue #1874).
      */
-    static isEquippedBoosterPayload(data: any): boolean {
+    static isEquippedBoosterPayload(data: { id_member_booster_equipped?: unknown } | null | undefined): boolean {
         return !!data && data.id_member_booster_equipped !== undefined && data.id_member_booster_equipped !== null;
     }
 
