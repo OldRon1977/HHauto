@@ -7,6 +7,30 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.3 - The market scrape no longer files a shop entry as an equipped booster
+
+Fixes Sandalwood never being replaced once it runs out (issue #1874, reported
+by fincogneato).
+
+The market page carries two families of elements with the same
+`slot ... mythic` classes: the boosters you have on, and the ones in your
+inventory below them. They differ in their payload -- an equipped one carries
+the id of its equip row and a remaining-uses count, an inventory one carries a
+buy price and no count at all. The scrape that records what is equipped went by
+the classes alone, and in the reported log it filed an inventory entry for
+Sandalwood one and a half seconds after a fresh perfume had been equipped.
+
+From there the script believed the perfume was on and could not be told
+otherwise. The check that re-equips at zero doses compares the count against
+zero, and a missing count is neither a number nor null, so it passed straight
+through. The perfume ran out and nothing replaced it for the rest of the
+session.
+
+The scrape now takes only payloads that are actually equipped boosters, a
+missing dose count reads as "unknown" instead of "plenty", and an entry that
+cannot say how many doses are left is dropped so the perfume is equipped again.
+An account already carrying such an entry recovers on the next pass.
+
 ### v8.12.2 - A refused Sandalwood equip is no longer recorded as worn
 
 Fixes Sandalwood staying off for the rest of a session (issue #1874, reported

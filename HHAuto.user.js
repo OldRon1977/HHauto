@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.2
+// @version      8.12.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -12513,10 +12513,33 @@ class Booster {
                 || boosterStatus.normal.some((booster) => booster.item.identifier === boosterCode && booster.endAt > serverNow);
         }
     }
+    /**
+     * An equipped booster carries the id of its equip row. The market page
+     * serves a second family of elements with the very same `slot ... mythic`
+     * classes under `#player-inventory-booster` -- the ones you can buy or
+     * equip -- and those payloads have `price_buy` and no `usages_remaining`.
+     *
+     * Measured on the live market page: the three equipped slots all carry
+     * `id_member_booster_equipped`, `lifetime`, `expiration` and
+     * `usages_remaining`; the five inventory entries carry `price_buy` and
+     * none of those. An inventory payload that reaches boosterStatus makes
+     * haveBoosterEquiped() answer true for a booster that is not on, and the
+     * dose count is then missing rather than zero -- so the depletion check
+     * (`<= 0`) never fires and Sandalwood is never re-equipped (issue #1874).
+     */
+    static isEquippedBoosterPayload(data) {
+        return !!data && data.id_member_booster_equipped !== undefined && data.id_member_booster_equipped !== null;
+    }
     static collectBoostersFromMarket() {
-        const activeSlots = $('#equiped .booster .slot:not(.empty):not(.mythic)').map((i, el) => $(el).data('d')).toArray();
-        const activeMythicSlots = $('#equiped .booster .slot:not(.empty).mythic').map((i, el) => $(el).data('d')).toArray();
+        const rawSlots = $('#equiped .booster .slot:not(.empty):not(.mythic)').map((i, el) => $(el).data('d')).toArray();
+        const rawMythicSlots = $('#equiped .booster .slot:not(.empty).mythic').map((i, el) => $(el).data('d')).toArray();
+        const activeSlots = rawSlots.filter(Booster.isEquippedBoosterPayload);
+        const activeMythicSlots = rawMythicSlots.filter(Booster.isEquippedBoosterPayload);
+        const dropped = (rawSlots.length - activeSlots.length) + (rawMythicSlots.length - activeMythicSlots.length);
         logHHAuto(`collectBoostersFromMarket: found ${activeSlots.length} normal boosters, ${activeMythicSlots.length} mythic boosters equipped`);
+        if (dropped > 0) {
+            logHHAuto(`collectBoostersFromMarket: ignored ${dropped} slot payload(s) that are not equipped boosters`);
+        }
         const boosterStatus = {
             normal: activeSlots.map((data) => (Object.assign(Object.assign({}, data), { endAt: getHHVars('server_now_ts') + data.expiration }))),
             mythic: activeMythicSlots,
@@ -13111,16 +13134,26 @@ class Booster {
             needForLoveRaid = Booster.needSandalWoodLoveRaid(nextTrollChoosen, loveRaid);
         }
         logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: needForEvent=${needForEvent}, needForMythic=${needForMythic}, needForLoveRaid=${needForLoveRaid}`);
-        // Proactive depletion check: if Sandalwood is equipped but has 0 doses remaining,
-        // remove it from boosterStatus so ownedSandalwoodAndNotEquiped() triggers re-equip.
+        // Drop the Sandalwood entry when it is spent, and equally when it cannot
+        // say how much is left: ownedSandalwoodAndNotEquiped() then reports it as
+        // not equipped and the equip path runs. An entry without a dose count is
+        // what an inventory payload looks like once it has been scraped into
+        // boosterStatus, and leaving it there is what kept the perfume off for
+        // the rest of a session (issue #1874).
         if (needForEvent || needForMythic || needForLoveRaid) {
             const dosesRemaining = Booster.getSandalwoodDosesRemaining();
-            logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: proactive depletion check, dosesRemaining=${dosesRemaining}`);
-            if (dosesRemaining !== null && dosesRemaining <= 0) {
-                logHHAuto('needSandalWoodEquipped: Sandalwood depleted (0 doses), removing from boosterStatus to trigger re-equip');
+            const untrustworthy = Booster.hasUntrustworthySandalwoodEntry();
+            logHHAuto(`[SW-DEBUG] needSandalWoodEquipped: proactive depletion check, dosesRemaining=${dosesRemaining}, untrustworthy=${untrustworthy}`);
+            if (untrustworthy || (dosesRemaining !== null && dosesRemaining <= 0)) {
+                logHHAuto(untrustworthy
+                    ? 'needSandalWoodEquipped: Sandalwood entry carries no dose count, dropping it to trigger re-equip'
+                    : 'needSandalWoodEquipped: Sandalwood depleted (0 doses), removing from boosterStatus to trigger re-equip');
                 const boosterStatus = Booster.getBoosterFromStorage();
                 boosterStatus.mythic = boosterStatus.mythic.filter(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) !== 'MB1'; });
                 setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
+                // The stored status no longer matches the market: let the next
+                // autoEquipBoosters pass refresh it instead of trusting this one.
+                deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
             }
         }
         return ((needForEvent || needForMythic || needForLoveRaid) && Booster.ownedSandalwoodAndNotEquiped());
@@ -13399,15 +13432,34 @@ class Booster {
         });
     }
     /**
-     * Returns the number of remaining Sandalwood doses from boosterStatus.
-     * Returns null if Sandalwood is not currently equipped.
+     * Remaining Sandalwood doses, or null when there is no number to give:
+     * Sandalwood is not tracked as equipped, or its entry carries no usable
+     * count.
+     *
+     * The raw field used to be returned as it stood. An entry without one then
+     * yielded `undefined`, and the caller's `dosesRemaining !== null &&
+     * dosesRemaining <= 0` let it through the first test and failed the second
+     * -- a missing count read as "plenty left" (issue #1874). A count is a
+     * number here or it is null, and null means "ask the market", not "fine".
      */
     static getSandalwoodDosesRemaining() {
         const boosterStatus = Booster.getBoosterFromStorage();
         const sandalwood = boosterStatus.mythic.find(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1'; });
         if (!sandalwood)
             return null;
-        return sandalwood.usages_remaining;
+        const doses = Number(sandalwood.usages_remaining);
+        return Number.isFinite(doses) ? doses : null;
+    }
+    /**
+     * True when Sandalwood is tracked as equipped but its entry cannot say how
+     * many doses are left. The entry is then not trustworthy -- it is what an
+     * inventory payload scraped into boosterStatus looks like -- and the
+     * caller drops it so the equip path runs again (issue #1874).
+     */
+    static hasUntrustworthySandalwoodEntry() {
+        const boosterStatus = Booster.getBoosterFromStorage();
+        const sandalwood = boosterStatus.mythic.find(b => { var _a; return ((_a = b.item) === null || _a === void 0 ? void 0 : _a.identifier) === 'MB1'; });
+        return !!sandalwood && Booster.getSandalwoodDosesRemaining() === null;
     }
 }
 /** Sandalwood identifier constant — id_item is resolved from market data or env config at runtime. */

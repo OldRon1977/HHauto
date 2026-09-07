@@ -257,6 +257,79 @@ describe("Booster", function() {
     });
   });
 
+  // Payload shapes taken from the live market page: an equipped slot carries
+  // id_member_booster_equipped, lifetime, expiration and usages_remaining; an
+  // inventory entry under #player-inventory-booster carries price_buy and none
+  // of those, while wearing the very same `slot ... mythic` classes.
+  describe("collectBoostersFromMarket -- only equipped payloads (issue #1874)", function() {
+    const EQUIPPED_MB1 = {
+      id_member_booster_equipped: 55057495, id_item: 632, id_member: 1,
+      lifetime: 1788611091, expiration: 75945, price_sell: 16500, usages_remaining: 5,
+      item: { id_item: 632, identifier: 'MB1', name: 'Sandalwood perfume', rarity: 'mythic', default_usages: 11 },
+    };
+    const INVENTORY_MB1 = {
+      id_item: 632, id_member: 1, price_buy: 900, price_sell: 16500,
+      item: { id_item: 632, identifier: 'MB1', name: 'Sandalwood perfume', rarity: 'mythic', default_usages: 11 },
+    };
+
+    const renderSlots = (mythic: object[]) => {
+      document.body.innerHTML = '<div id="equiped"><div class="booster"></div></div>';
+      const holder = document.querySelector('#equiped .booster')!;
+      for (const d of mythic) {
+        const el = document.createElement('div');
+        el.className = 'slot size_small slot_market mythic';
+        holder.appendChild(el);
+        $(el).data('d', d);
+      }
+    };
+
+    afterEach(() => { document.body.innerHTML = ''; });
+
+    it("keeps an equipped payload", function() {
+      renderSlots([EQUIPPED_MB1]);
+
+      Booster.collectBoostersFromMarket();
+
+      expect(Booster.getBoosterFromStorage().mythic.length).toBe(1);
+      expect(Booster.getSandalwoodDosesRemaining()).toBe(5);
+    });
+
+    it("ignores an inventory payload wearing the same classes", function() {
+      renderSlots([INVENTORY_MB1]);
+
+      Booster.collectBoostersFromMarket();
+
+      expect(Booster.getBoosterFromStorage().mythic).toEqual([]);
+      expect(Booster.haveBoosterEquiped('MB1')).toBeFalsy();
+    });
+  });
+
+  describe("getSandalwoodDosesRemaining -- a missing count is not a count (issue #1874)", function() {
+    const store = (mythic: object[]) =>
+      sessionStorage.setItem(HHStoredVarPrefixKey + "Temp_boosterStatus", JSON.stringify({ normal: [], mythic }));
+
+    it("returns null when the entry carries no usages_remaining", function() {
+      store([{ item: { identifier: 'MB1' }, price_buy: 900 }]);
+
+      expect(Booster.getSandalwoodDosesRemaining()).toBeNull();
+      expect(Booster.hasUntrustworthySandalwoodEntry()).toBeTruthy();
+    });
+
+    it("returns 0 for a spent perfume, which is a real count", function() {
+      store([{ item: { identifier: 'MB1' }, usages_remaining: 0 }]);
+
+      expect(Booster.getSandalwoodDosesRemaining()).toBe(0);
+      expect(Booster.hasUntrustworthySandalwoodEntry()).toBeFalsy();
+    });
+
+    it("reports nothing untrustworthy when Sandalwood is not tracked at all", function() {
+      store([]);
+
+      expect(Booster.getSandalwoodDosesRemaining()).toBeNull();
+      expect(Booster.hasUntrustworthySandalwoodEntry()).toBeFalsy();
+    });
+  });
+
   describe("needSandalWoodEquipped", function() {
     it("returns false when no settings active", function() {
       expect(Booster.needSandalWoodEquipped(1)).toBeFalsy();

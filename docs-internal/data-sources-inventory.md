@@ -260,6 +260,29 @@ Felder im JSON: `quantity`, `item.{id_item, type, identifier, rarity, price, cur
 | `#shops div.booster.player-inventory-content .slot` | `{quantity, item:{id_item, identifier, name, rarity}}` | Shop | `Module/Shop.ts` | `Shop.collectShopFromMarket()` (HaveBooster + BoosterIdMap) |
 | `#equiped .booster .slot:not(.empty):not(.mythic)` (jQ `.data('d')`) | Normal-Booster-Slot (mit `expiration`) | Shop | `Module/Booster.ts` | `Booster.collectBoostersFromMarket()` |
 | `#equiped .booster .slot:not(.empty).mythic` (jQ `.data('d')`) | Mythic-Booster-Slot (mit `usages_remaining`, `lifetime`) | Shop | `Module/Booster.ts` | `Booster.collectBoostersFromMarket()` |
+
+**Gemessen (2026-09-07, laufende Marktseite):** Die Marktseite traegt die Klassen
+`slot ... mythic` an **zwei** Element-Familien, die sich nur am Vorfahren
+unterscheiden -- getragen unter `#equiped`, besitzt-aber-nicht-getragen unter
+`#player-inventory-booster`. Die Nutzlasten sind verschieden:
+
+| | getragen (`#equiped`) | Inventar (`#player-inventory-booster`) |
+| --- | --- | --- |
+| Schluessel | `id_member_booster_equipped`, `lifetime`, `expiration`, `usages_remaining`, `price_sell` | `price_buy`, `price_sell`, `id_item`, `id_member` |
+| Dosenzahl | vorhanden | **fehlt ganz** |
+
+Dieselbe Falle wie bei der Ruestung weiter oben: der Unterschied ist der
+`..._equipped`-Schluessel, nicht die Klasse. Ein Inventar-Eintrag in
+`boosterStatus` laesst `haveBoosterEquiped()` true sagen fuer einen Booster, der
+nicht anliegt, und die fehlende Dosenzahl ist weder eine Zahl noch `null` --
+`<= 0` greift dann nie (Issue #1874). `collectBoostersFromMarket()` filtert
+seit 8.12.3 auf `id_member_booster_equipped`.
+
+Die volle Dosenzahl steht als `item.default_usages` in derselben Nutzlast
+(gemessen: MB1 11, MB2 100, MB5 100). Das Spiel selbst faellt darauf zurueck,
+wenn `usages_remaining` fehlt oder 0 ist -- in `shared.js`:
+`t.usages_remaining&&t.usages_remaining>0?t.usages_remaining:t.item.default_usages`.
+
 | `#player-inventory.armor .slot:not(.empty)[data-d*='"rarity":"mythic"']` (Selector-Inhalts-Match) | Filter ueber Substring-Match in `data-d` | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` |
 | `[data-d*='"name_add":<X>']` (dyn. Filter) | Filter nach Stat | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
 | `[data-d*='"subtype":<X>']` (dyn. Filter) | Filter nach Item-Subtyp | Shop | `Module/Shop.ts` | `Shop.moduleShopActions()` / `setSlotFilter()` |
