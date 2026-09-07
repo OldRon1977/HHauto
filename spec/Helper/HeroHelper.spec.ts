@@ -137,7 +137,7 @@ describe("HeroHelper", function() {
         mockEquipeResponse(false);
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
-      const result1 = await HeroHelper.equipBooster(TEST_GINSENG);
+      const result1 = await HeroHelper.equipBooster(TEST_SANDALWOOD);
       expect(result1).toBeFalsy();
       // Failure counter should increase
       expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
@@ -147,10 +147,34 @@ describe("HeroHelper", function() {
         mockEquipeError();
       const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
       sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
-      const result = await HeroHelper.equipBooster(TEST_GINSENG);
+      const result = await HeroHelper.equipBooster(TEST_SANDALWOOD);
       expect(result).toBeFalsy();
       // Failure counter should increase on AJAX error too
       expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
+    });
+
+    // Three counted failures switch the user's Sandalwood setting off, so only
+    // a refused Sandalwood may count -- a mythic-list entry the game rejects as
+    // conflicting must not disable an unrelated setting (issue #1874).
+    it("a failure on another booster leaves the Sandalwood counter alone", async function() {
+        mockEquipeResponse(false);
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+
+      const result = await HeroHelper.equipBooster(TEST_GINSENG);
+
+      expect(result).toBeFalsy();
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(0);
+    });
+
+    it("an AJAX error on another booster leaves the Sandalwood counter alone", async function() {
+        mockEquipeError();
+      const boosters = '{"B1":10,"B2":0,"B3":0,"B4":0,"MB1":10,"MB2":0,"MB3":0,"MB4":0}';
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_haveBooster", boosters);
+
+      await HeroHelper.equipBooster(TEST_GINSENG);
+
+      expect(HeroHelper.getSandalWoodEquipFailure()).toBe(0);
     });
 
     it("Multiple failures increment counter", async function() {

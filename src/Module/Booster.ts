@@ -998,6 +998,25 @@ export class Booster {
         logHHAuto(`Booster equip cooldown set for ${seconds} seconds`);
     }
 
+    /**
+     * Doses to assume for a mythic booster whose real count is not in hand.
+     *
+     * A mythic booster is spent per use, not per hour, and only the market
+     * scrape and the equip response carry the real number. A flat 99 was
+     * written for every one of them, which for Sandalwood is wrong by about a
+     * factor of twenty: getSandalwoodDosesRemaining() then reports a stock the
+     * player does not have, and the depletion check that re-equips at 0 doses
+     * waits ~99 troll fights (issue #1874). The last count seen on an equip is
+     * kept in sandalwoodMaxUsages precisely for this; a fresh perfume is worth
+     * that many doses. Without it the old 99 stands, and the next market visit
+     * corrects it either way.
+     */
+    static assumedMythicUsages(identifier: string): number {
+        if (identifier !== Booster.SANDALWOOD_IDENTIFIER) return 99;
+        const known = Number(getStoredValue(HHStoredVarPrefixKey + TK.sandalwoodMaxUsages));
+        return Number.isFinite(known) && known > 0 ? known : 99;
+    }
+
     static markBoosterAsEquippedInStorage(booster: any) {
         const boosterStatus = Booster.getBoosterFromStorage();
         const isMythic = booster.rarity === 'mythic' || (booster.identifier && booster.identifier.startsWith('MB'));
@@ -1007,7 +1026,7 @@ export class Booster {
             if (!alreadyTracked) {
                 boosterStatus.mythic.push({
                     item: booster,
-                    usages_remaining: 99 // Unknown, will be refreshed on next market visit
+                    usages_remaining: Booster.assumedMythicUsages(booster.identifier)
                 });
                 setStoredValue(HHStoredVarPrefixKey+TK.boosterStatus, JSON.stringify(boosterStatus));
                 // Restore the freshness stamp that equipBooster cleared on
@@ -1207,10 +1226,16 @@ export class Booster {
                         logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: 3rd failure, deactivating auto sandalwood settingKey=" + settingKey);
                         setStoredValue(HHStoredVarPrefixKey + settingKey, 'false');
                     } else {
-                        logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
-                        // Server says max boosters equipped - mark it as equipped to prevent retries
-                        Booster.markBoosterAsEquippedInStorage(sandalwoodBooster);
-                        // Set cooldown to prevent spamming equip attempts
+                        logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: setting cooldown after failure #" + numberFailure);
+                        // The cooldown is what stops the retry spam. Writing the
+                        // perfume into boosterStatus as if it were on did that
+                        // too, and much harder: haveBoosterEquiped('MB1') then
+                        // answered true, so needSandalWoodEquipped() returned
+                        // false from there on and no later attempt was ever
+                        // made -- the counter never reached the third failure
+                        // either (issue #1874). It also stamped
+                        // boosterStatusLastUpdate, which kept the market visit
+                        // that would have corrected the lie from happening.
                         Booster.setEquipCooldown(5 * 60);
                     }
                 } else {

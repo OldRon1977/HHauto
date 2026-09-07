@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.1
+// @version      8.12.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -7987,6 +7987,12 @@ class HeroHelper {
                 id_item: itemId,
                 type: "booster"
             };
+            // sandalwoodFailure counts refused Sandalwood equips, and three of them
+            // switch the user's +Event/+Mythic/+Raid Sandalwood setting off. Every
+            // booster used to count into it, so a mythic-list entry the game
+            // refuses as conflicting could turn off an unrelated setting
+            // (issue #1874).
+            const countsAsSandalwoodFailure = booster.identifier === 'MB1';
             return new Promise((resolve) => {
                 // change referer
                 const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
@@ -8014,7 +8020,8 @@ class HeroHelper {
                     // Treat a hang as "state unknown": drop the freshness stamp so the next
                     // auto-equip cycle re-reads boosterStatus from the market.
                     deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                    HeroHelper.getSandalWoodEquipFailure(true);
+                    if (countsAsSandalwoodFailure)
+                        HeroHelper.getSandalWoodEquipFailure(true);
                     settle(false);
                 }, 15000);
                 getHHAjax()(params, function (data) {
@@ -8029,7 +8036,8 @@ class HeroHelper {
                         // boosters while we were paused). Invalidate the freshness timestamp
                         // so autoEquipBoosters refreshes from the market before retrying.
                         deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                        HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                        if (countsAsSandalwoodFailure)
+                            HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     }
                     logHHAuto(`equipBooster: resolving with ${data.success}`);
                     settle(!!data.success);
@@ -8037,7 +8045,8 @@ class HeroHelper {
                     logHHAuto('equipBooster: AJAX error callback - ' + err);
                     // Network/server error also implies our cached state may be wrong — invalidate.
                     deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                    HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                    if (countsAsSandalwoodFailure)
+                        HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                     logHHAuto('equipBooster: resolving with false');
                     settle(false);
                 });
@@ -13129,6 +13138,25 @@ class Booster {
         setTimer('nextBoosterEquipTime', seconds);
         logHHAuto(`Booster equip cooldown set for ${seconds} seconds`);
     }
+    /**
+     * Doses to assume for a mythic booster whose real count is not in hand.
+     *
+     * A mythic booster is spent per use, not per hour, and only the market
+     * scrape and the equip response carry the real number. A flat 99 was
+     * written for every one of them, which for Sandalwood is wrong by about a
+     * factor of twenty: getSandalwoodDosesRemaining() then reports a stock the
+     * player does not have, and the depletion check that re-equips at 0 doses
+     * waits ~99 troll fights (issue #1874). The last count seen on an equip is
+     * kept in sandalwoodMaxUsages precisely for this; a fresh perfume is worth
+     * that many doses. Without it the old 99 stands, and the next market visit
+     * corrects it either way.
+     */
+    static assumedMythicUsages(identifier) {
+        if (identifier !== Booster.SANDALWOOD_IDENTIFIER)
+            return 99;
+        const known = Number(getStoredValue(HHStoredVarPrefixKey + TK.sandalwoodMaxUsages));
+        return Number.isFinite(known) && known > 0 ? known : 99;
+    }
     static markBoosterAsEquippedInStorage(booster) {
         const boosterStatus = Booster.getBoosterFromStorage();
         const isMythic = booster.rarity === 'mythic' || (booster.identifier && booster.identifier.startsWith('MB'));
@@ -13137,7 +13165,7 @@ class Booster {
             if (!alreadyTracked) {
                 boosterStatus.mythic.push({
                     item: booster,
-                    usages_remaining: 99 // Unknown, will be refreshed on next market visit
+                    usages_remaining: Booster.assumedMythicUsages(booster.identifier)
                 });
                 setStoredValue(HHStoredVarPrefixKey + TK.boosterStatus, JSON.stringify(boosterStatus));
                 // Restore the freshness stamp that equipBooster cleared on
@@ -13340,10 +13368,16 @@ class Booster {
                             setStoredValue(HHStoredVarPrefixKey + settingKey, 'false');
                         }
                         else {
-                            logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: marking as already equipped + setting cooldown");
-                            // Server says max boosters equipped - mark it as equipped to prevent retries
-                            Booster.markBoosterAsEquippedInStorage(sandalwoodBooster);
-                            // Set cooldown to prevent spamming equip attempts
+                            logHHAuto("[SW-DEBUG] equipeSandalWoodIfNeeded: setting cooldown after failure #" + numberFailure);
+                            // The cooldown is what stops the retry spam. Writing the
+                            // perfume into boosterStatus as if it were on did that
+                            // too, and much harder: haveBoosterEquiped('MB1') then
+                            // answered true, so needSandalWoodEquipped() returned
+                            // false from there on and no later attempt was ever
+                            // made -- the counter never reached the third failure
+                            // either (issue #1874). It also stamped
+                            // boosterStatusLastUpdate, which kept the market visit
+                            // that would have corrected the lie from happening.
                             Booster.setEquipCooldown(5 * 60);
                         }
                     }

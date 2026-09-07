@@ -161,6 +161,13 @@ export class HeroHelper {
             type: "booster"
         };
 
+        // sandalwoodFailure counts refused Sandalwood equips, and three of them
+        // switch the user's +Event/+Mythic/+Raid Sandalwood setting off. Every
+        // booster used to count into it, so a mythic-list entry the game
+        // refuses as conflicting could turn off an unrelated setting
+        // (issue #1874).
+        const countsAsSandalwoodFailure = booster.identifier === 'MB1';
+
         return new Promise((resolve) => {
             // change referer
             const currentPath = window.location.href.replace('http://', '').replace('https://', '').replace(window.location.hostname, '');
@@ -187,7 +194,7 @@ export class HeroHelper {
                 // Treat a hang as "state unknown": drop the freshness stamp so the next
                 // auto-equip cycle re-reads boosterStatus from the market.
                 deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                HeroHelper.getSandalWoodEquipFailure(true);
+                if (countsAsSandalwoodFailure) HeroHelper.getSandalWoodEquipFailure(true);
                 settle(false);
             }, 15000);
 
@@ -202,7 +209,7 @@ export class HeroHelper {
                     // boosters while we were paused). Invalidate the freshness timestamp
                     // so autoEquipBoosters refreshes from the market before retrying.
                     deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                    HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                    if (countsAsSandalwoodFailure) HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                 }
                 logHHAuto(`equipBooster: resolving with ${data.success}`);
                 settle(!!data.success);
@@ -210,7 +217,7 @@ export class HeroHelper {
                 logHHAuto('equipBooster: AJAX error callback - ' + err);
                 // Network/server error also implies our cached state may be wrong — invalidate.
                 deleteStoredValue(HHStoredVarPrefixKey + TK.boosterStatusLastUpdate);
-                HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
+                if (countsAsSandalwoodFailure) HeroHelper.getSandalWoodEquipFailure(true); // Increase failure
                 logHHAuto('equipBooster: resolving with false');
                 settle(false);
             });

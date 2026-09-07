@@ -208,6 +208,30 @@ describe("Booster", function() {
       expect(Booster.haveBoosterEquiped('MB1')).toBeTruthy();
     });
 
+    // A flat 99 for the perfume is a stock the player does not have: the
+    // depletion check that re-equips at 0 doses then waits ~99 fights (#1874).
+    it("uses the last Sandalwood dose count seen instead of the flat 99", function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodMaxUsages", '5');
+
+      Booster.markBoosterAsEquippedInStorage(TEST_SANDALWOOD);
+
+      expect(Booster.getSandalwoodDosesRemaining()).toBe(5);
+    });
+
+    it("keeps the 99 for Sandalwood while no dose count has been seen", function() {
+      Booster.markBoosterAsEquippedInStorage(TEST_SANDALWOOD);
+
+      expect(Booster.getSandalwoodDosesRemaining()).toBe(99);
+    });
+
+    it("keeps the 99 for other mythic boosters", function() {
+      sessionStorage.setItem(HHStoredVarPrefixKey+"Temp_sandalwoodMaxUsages", '5');
+
+      Booster.markBoosterAsEquippedInStorage({id_item: "640", identifier: "MB6", name: "Alban's travel memories", rarity: "mythic"});
+
+      expect(Booster.getBoosterFromStorage().mythic[0].usages_remaining).toBe(99);
+    });
+
     it("marks normal booster as equipped", function() {
       Booster.markBoosterAsEquippedInStorage(TEST_GINSENG);
       const status = Booster.getBoosterFromStorage();
@@ -431,10 +455,23 @@ describe("Booster", function() {
         expect(HeroHelper.getSandalWoodEquipFailure()).toBe(1);
         // Setting should still be active
         expect(localStorage.getItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood")).toBe('true');
-        // Booster should be marked as equipped in storage
-        expect(Booster.haveBoosterEquiped('MB1')).toBeTruthy();
+        // A refused equip must not be recorded as equipped: that answer feeds
+        // needSandalWoodEquipped(), which would then never ask again (#1874).
+        expect(Booster.haveBoosterEquiped('MB1')).toBeFalsy();
         // Cooldown should be set
         expect(Booster.isEquipOnCooldown()).toBeTruthy();
+      });
+
+      it("asks again once the cooldown has passed (issue #1874)", async function() {
+        setGirl(true, 99, 55);
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythic", 'true');
+        localStorage.setItem(HHStoredVarPrefixKey+"Setting_plusEventMythicSandalWood", 'true');
+
+        await Booster.equipeSandalWoodIfNeeded(99);
+        expect(Booster.needSandalWoodEquipped(99)).toBeFalsy(); // still on cooldown
+
+        clearTimer('nextBoosterEquipTime');
+        expect(Booster.needSandalWoodEquipped(99)).toBeTruthy();
       });
 
       it("Third failure deactivates setting", async function() {

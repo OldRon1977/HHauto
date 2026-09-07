@@ -7,6 +7,27 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.2 - A refused Sandalwood equip is no longer recorded as worn
+
+Fixes Sandalwood staying off for the rest of a session (issue #1874, reported
+by fincogneato). When the game refused the equip -- all five mythic slots
+taken, or the request timing out -- the script wrote the perfume into its
+equipped-booster state anyway, to stop it retrying. From that point it believed
+Sandalwood was on: it never asked again, and it never reached the third refusal
+that would have told the player something was wrong. The retry spam is held off
+by the five-minute cooldown that was already there, so the state is now left
+alone and the next attempt happens once that cooldown passes.
+
+Two things around it:
+
+- The dose count assumed for a perfume the script could not read was a flat 99,
+  about twenty times a real one. The re-equip that triggers at zero doses waited
+  that many troll fights. The last count actually seen on an equip is used now.
+- Three refused Sandalwood equips switch the +Event / +Mythic / +Raid Sandalwood
+  setting off. Every booster counted into that total, so a Mythic Slot entry the
+  game rejects as conflicting could switch off an unrelated setting. Only a
+  refused Sandalwood counts now.
+
 ### v8.12.1 - No more troll fights the main adventure cannot open
 
 Fixes an endless loop on the troll block (issue #1875, reported by ZaryImortal).
