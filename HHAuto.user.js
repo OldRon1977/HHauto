@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.0
+// @version      8.12.1
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -29529,7 +29529,12 @@ class Troll {
                     }
                 }
             }
-            if (Object.keys(sideTrollGirlsID).length > 0) {
+            // The side-troll slots of trollGirlsID are placeholders; the real
+            // counts live in sideTrollGirlsID. Filling them in regardless of the
+            // adventure made "first/last troll with girls" pick a side troll the
+            // main adventure cannot open (issue #1875), so a main-adventure run
+            // leaves those slots at the 0 the loop above wrote.
+            if (!Troll.isMainAdventure() && Object.keys(sideTrollGirlsID).length > 0) {
                 for (const tIdx of Object.keys(sideTrollGirlsID)) {
                     trollWithGirls[Number(tIdx) - 1] = 0;
                     for (let pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
@@ -29574,8 +29579,23 @@ class Troll {
                 || getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
                 || LoveRaidManager.isAnyActivated());
     }
+    static isMainAdventure() {
+        return Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
+    }
+    /**
+     * Side trolls exist only inside their side adventure. The main adventure
+     * cannot open them: the game answers with "Troll not available yet!" on a
+     * page the script does not even initialise on, so a target it keeps
+     * choosing turns into an endless home -> pre-battle -> home loop
+     * (issue #1875). sideTrollzList carries the ids; it is empty on every site
+     * except hentaiheroes.
+     */
+    static isSideTroll(trollId) {
+        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
+    }
     static getLastTrollIdAvailable(logging = false, id_world = undefined) {
-        const isMainAdventure = Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
+        const isMainAdventure = Troll.isMainAdventure();
         if (!id_world) {
             id_world = Number(getHHVars('Hero.infos.questing.id_world'));
         }
@@ -29778,6 +29798,15 @@ class Troll {
                 logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
             if (allowSideEffects)
                 setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+            TTF = 0;
+        }
+        // A side troll passes the unlock check above -- it sits below the last
+        // available id -- but the main adventure still cannot fight it. Events,
+        // love raids and a menu selection all reach this point, so the resolved
+        // target is checked instead of each source.
+        if (TTF > 0 && Troll.isMainAdventure() && Troll.isSideTroll(TTF)) {
+            if (logging)
+                logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure and cannot be fought from the main adventure.`);
             TTF = 0;
         }
         if (TTF <= 0) {

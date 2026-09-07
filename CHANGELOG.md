@@ -7,6 +7,21 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.1 - No more troll fights the main adventure cannot open
+
+Fixes an endless loop on the troll block (issue #1875, reported by ZaryImortal).
+With **Last troll with girls** selected, the script could pick Arthur or Venam
+Kharney -- trolls that belong to a side adventure. The main adventure cannot
+open them: the game answers "Troll not available yet!", the run returns to the
+home page and picks the same troll again, every 32 seconds, without ever
+fighting.
+
+Side-troll girls now count only while the player is on that side adventure, and
+a resolved troll target that belongs to a side adventure is dropped before the
+script navigates. A fixed troll selection falls back to the last available
+troll instead; **First/Last troll with girls** skips the fight and leaves the
+turn to Love Raids. Nothing changes for players on a side adventure.
+
 ### v8.12.0 - Season can fight for the fewest points
 
 New season switch **Low points** (issue #1360, asked for by Senyor-K, scope

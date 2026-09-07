@@ -444,6 +444,28 @@ describe("Troll module", function () {
 
             expect(Troll.getTrollWithGirls().length).toBeGreaterThan(0);
         });
+
+        // On hentaiheroes trolls 20 (Arthur) and 21 (Venam Kharney) belong to a
+        // side adventure; trollGirlsID holds placeholders for them and the real
+        // girls live in sideTrollGirlsID. Issue #1875.
+        it("leaves the side-troll slots empty on the main adventure", function () {
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            const counts = Troll.getTrollWithGirls();
+
+            expect(counts[19]).toBe(0); // troll 20, Arthur
+            expect(counts[20]).toBe(0); // troll 21, Venam Kharney
+        });
+
+        it("counts the side-troll girls on a side adventure", function () {
+            unsafeWindow.shared!.Hero!.infos.questing = { id_world: 22, choices_adventure: 1 };
+            jest.spyOn(Harem, 'getGirlsList').mockReturnValue(dictionaryOf(6));
+
+            const counts = Troll.getTrollWithGirls();
+
+            expect(counts[19]).toBe(4); // troll 20: four girls, none owned
+            expect(counts[20]).toBe(3); // troll 21: three girls, none owned
+        });
     });
 
     describe("getTrollIdToFight", function () {
@@ -581,6 +603,43 @@ describe("Troll module", function () {
             // With logging=true, autoTrollBattleSaveQuest overrides to lastTrollIdAvailable
             const TTF = Troll.getTrollIdToFight(true);
             expect(TTF).toBe(4);
+        });
+
+        // Issue #1875: on world 24 the last available troll is 22, so a side
+        // troll (20, 21) passes the unlock check. Navigating there gets
+        // "Troll not available yet!" from the game and the run loops.
+        describe("side trolls on the main adventure", function () {
+            const world24 = () => {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 24, choices_adventure: 0 };
+            };
+
+            it("does not pick a side troll left over in a trollWithGirls snapshot", function () {
+                world24();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '99');
+                // The snapshot from the reported log: troll 22 is finished, the
+                // last non-zero slot is troll 21, a side troll.
+                jest.spyOn(Troll, 'getTrollWithGirls').mockReturnValue(
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 3, 0]);
+
+                expect(Troll.getTrollIdToFight(false)).toBe(0);
+            });
+
+            it("falls back to the last available troll when a side troll is selected in the menu", function () {
+                world24();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(22);
+            });
+
+            it("keeps the side troll while the player is on that side adventure", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 23, choices_adventure: 1 };
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex, '21');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(21);
+            });
         });
 
         it("falls back to 1 when autoTrollBattle enabled but troll not in trollzList", function () {
