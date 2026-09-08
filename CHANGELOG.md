@@ -7,6 +7,28 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.4 - Upgrade Gear works through every worn mythic, and scrolls for material
+
+Two things ended an "Upgrade Gear" run after a single item.
+
+The material list on the upgrade page is paged: the game renders a first batch
+and loads the next one only in answer to a scroll -- it never fills itself.
+Auto Select picks from what is rendered, so once the first batch no longer
+covered a level, the Level-up button stayed dark and the run read that as "the
+material is spent". It showed up around level 19 to 20, where the requirement
+is largest. The run now scrolls the list to its end before it believes a dark
+button, and asks Auto Select again with the full stock in view.
+
+The second one hit the successful case. At the cap the game navigates off the
+upgrade page by itself, so the code that moved the queue on to the next item
+never ran -- the queue sat in storage until it aged out. The remaining queue is
+now written before the level that reaches the cap, and the market page opens
+whatever is left, so a run walks through every worn mythic below level 20 in
+one go.
+
+Material that genuinely runs out still ends the whole run, and one item is
+taken to level 20 before the next one starts.
+
 ### v8.12.3 - The market scrape no longer files a shop entry as an equipped booster
 
 Fixes Sandalwood never being replaced once it runs out (issue #1874, reported
