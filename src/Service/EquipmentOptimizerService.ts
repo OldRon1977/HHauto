@@ -308,17 +308,25 @@ function resonancePoints(
  * Tier 5 also holds every legendary and epic. Those carry no resonance at
  * all: of the 12 legendary slots in the league, none had a class or theme
  * bonus.
+ *
+ * `theme` may be null, which means "no team theme is known" and not
+ * "balanced" -- Balanced is a theme of its own. A null theme collapses the
+ * scale to tiers 2 and 4, class match or nothing, which is all that can
+ * honestly be said without it. Only Upgrade Gear passes null: it decides
+ * the order in which worn mythics are fed, and a coarser order costs
+ * nothing that a wrong one would. The two equip buttons must not, because
+ * equipping on a guessed theme puts the wrong item on.
  */
 export function gearTier(
     item: ArmorItem,
     playerClass: PlayerClass,
-    theme: GearTheme,
+    theme: GearTheme | null,
     mode: GearMode,
 ): number {
     if (item.rarity !== 'mythic') return 5;
     if (mode === 'current' && item.level < MYTHIC_MAX_LEVEL) return 5;
     const c = classMatches(item, playerClass);
-    const t = themeMatches(item, theme);
+    const t = theme !== null && themeMatches(item, theme);
     if (c && t) return 1;
     if (c) return 2;
     if (t) return 3;
