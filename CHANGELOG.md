@@ -7,6 +7,25 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.5 - Upgrade Gear no longer waits for a team, and stops scrolling sooner
+
+The button refused to do anything until a team theme was known, and told you to
+open your team page first. That was the wrong condition. What it upgrades is
+what you are wearing, and the game knows that without a team; the theme only
+decides which of your worn mythics is fed first. Without one the list is
+ordered by class match and slot, every worn mythic below level 20 is still
+worked through, and the preview says the order is the coarser one. The two
+equip buttons keep the requirement -- those pick items, and picking on a
+guessed theme puts the wrong item on.
+
+The other half is the waiting. Scrolling the material list stopped when the
+game stopped adding to it, which meant every run scrolled to the very end of
+the list even though the requirement was usually covered a few batches in --
+and every item in the queue paid it again on its own page. Auto Select is now
+asked again while the list grows, and the scrolling ends the first time the
+game lights up Level-up. A level that the stock genuinely cannot cover still
+walks the whole list, because that is the only way to know it cannot.
+
 ### v8.12.4 - Upgrade Gear works through every worn mythic, and scrolls for material
 
 Two things ended an "Upgrade Gear" run after a single item.

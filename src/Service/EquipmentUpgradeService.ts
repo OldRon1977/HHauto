@@ -57,11 +57,17 @@ export function upgradePageUrl(target: { id_member_armor: number }): string {
  * Ordered by priority tier so the material goes into the slot that gains
  * the most from it: a mythic matching class and theme grows both bonuses,
  * one matching nothing grows nothing that counts.
+ *
+ * `theme` may be null. What gets upgraded does not depend on it -- the
+ * filter is "worn, mythic, below the cap", and the player wears what the
+ * player wears. The theme only sharpens the order, so without one the list
+ * is ordered by class match and slot and the work still happens. Refusing
+ * to run would withhold the whole feature over a detail of sorting.
  */
 export function pickUpgradeTargets(
     items: ArmorItem[],
     playerClass: PlayerClass,
-    theme: GearTheme,
+    theme: GearTheme | null,
 ): UpgradeTarget[] {
     return items
         .filter(i => i.equipped && i.rarity === 'mythic' && i.level < MYTHIC_MAX_LEVEL)

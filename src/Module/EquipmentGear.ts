@@ -86,6 +86,13 @@ const STALE_QUEUE_MS = 90_000;
  *  not a normal inventory. */
 const MAX_MATERIAL_SCROLLS = 60;
 
+/** How many scroll passes between two Auto Select attempts while the list is
+ *  still filling. Asking after every pass would add its own wait to each of
+ *  the 60, which is the cost paid in the case that needs the passes least --
+ *  the one where the material never suffices. Asking every fifth pass ends
+ *  the common case within seconds and adds twelve attempts to the rare one. */
+const AUTO_SELECT_EVERY = 5;
+
 /** How often the market page may re-open the same head before giving up on
  *  it. Two chances, because the first may be the hand-off after the game's
  *  own redirect and the second a genuine retry; a third means the page is
@@ -764,16 +771,12 @@ export class EquipmentGear {
         if (EquipmentGear.running) return;
         EquipmentGear.running = true;
         try {
+            // A missing theme does not stop this button. What gets upgraded
+            // is what the player is wearing, and that is known without a
+            // team; the theme only sharpens the order. The equip buttons do
+            // stop, because they choose items and a guessed theme would put
+            // the wrong one on -- this one only chooses a sequence.
             const theme = EquipmentGear.resolveTheme();
-            if (!theme) {
-                EquipmentGear.showMessage('Upgrade Gear',
-                    'No team theme known yet. Open your team page once ("Change team" on the'
-                    + ' league page) -- nothing needs to be built, the theme is read on the way in.'
-                    + ' Without it the tiers below would be guesses, and material spent on the wrong'
-                    + ' slot is gone.');
-                logHHAuto('Gear: Upgrade Gear aborted, no team theme. Nothing was changed.');
-                return;
-            }
             const rawClass = Number(HeroHelper.getClass());
             if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
                 EquipmentGear.showMessage('Upgrade Gear', 'Could not read the hero class.');
@@ -792,13 +795,15 @@ export class EquipmentGear {
             const stock = countMaterialStock(all);
 
             logHHAuto(`Gear [Upgrade Gear]: ${targets.length} worn mythic(s) below level ${MYTHIC_MAX_LEVEL},`
-                + ` material stock ${stock.legendary} legendary + ${stock.epic} epic.`);
+                + ` material stock ${stock.legendary} legendary + ${stock.epic} epic.`
+                + (theme ? ` Order by team theme "${theme}" and class.`
+                    : ' No team theme known, so the order is by class match and slot only.'));
             for (const t of targets) {
                 logHHAuto(`  Slot ${t.slot} (${SLOT_NAMES[t.slot]}): ${t.name} at level ${t.level}`
                     + ` [${TIER_NAMES[t.tier]}]`);
             }
 
-            EquipmentGear.showUpgradePlan(targets, stock);
+            EquipmentGear.showUpgradePlan(targets, stock, theme);
         } catch (err) {
             logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
             EquipmentGear.showMessage('Upgrade Gear', 'Failed, nothing was changed. See the log.');
@@ -810,6 +815,7 @@ export class EquipmentGear {
     private static showUpgradePlan(
         targets: UpgradeTarget[],
         stock: { legendary: number; epic: number; other: number },
+        theme: GearTheme | null,
     ): void {
         if (targets.length === 0) {
             EquipmentGear.showMessage('Upgrade Gear',
@@ -827,6 +833,10 @@ export class EquipmentGear {
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Worn mythics below level ${MYTHIC_MAX_LEVEL}, best-matching first &mdash;
                material goes where it grows the most resonance.</p>
+            ${theme ? '' : `<p style="color:#aaa;">No team theme known, so the order below only
+               separates items that match your class from those that do not. Every worn mythic
+               is upgraded either way. Open your team page once ("Change team" on the league
+               page) and the theme sharpens the order next time.</p>`}
             <table>
                 <tr><th>Slot</th><th>Item</th><th>level</th><th>why it is worth it</th></tr>
                 ${rows}
@@ -919,7 +929,8 @@ export class EquipmentGear {
     }
 
     /**
-     * Scroll the material list until the game stops adding to it.
+     * Scroll the material list until Auto Select can cover the next level, or
+     * until the game stops adding to it.
      *
      * The list is paged and the game loads the next batch only in answer to a
      * scroll -- it never fills itself (confirmed on the live page; the counts
@@ -927,11 +938,22 @@ export class EquipmentGear {
      * the end). Auto Select chooses among the rendered pieces, so everything
      * beyond the first batch is invisible to it until this has run.
      *
+     * It stops at "enough", not at "everything". Scrolling the list to its
+     * end regardless was the whole cost of a level: the requirement is
+     * usually covered a few batches in, and the remaining passes bought
+     * nothing while the player watched the page scroll. Every item in the
+     * queue paid it again on its own page, which is where the minutes came
+     * from. Auto Select is therefore asked again while the list grows, and
+     * the first time the game lights up Level-up the scrolling ends.
+     *
      * Two idle passes before stopping, not one: a batch that is still in
      * flight when the first pass is counted would otherwise end the loading
      * early, and stopping early is exactly the failure this exists to remove.
+     *
+     * `enough` is the game's verdict, not a count: nothing here weighs
+     * material or reimplements the cost curve.
      */
-    private static async loadAllMaterial(): Promise<number> {
+    private static async loadMaterialUntilEnough(): Promise<{ count: number; enough: boolean }> {
         let count = EquipmentGear.countMaterialSlots();
         let idle = 0;
         for (let pass = 0; pass < MAX_MATERIAL_SCROLLS; pass++) {
@@ -943,15 +965,21 @@ export class EquipmentGear {
 
             const now = EquipmentGear.countMaterialSlots();
             if (now === count) {
-                if (++idle >= 2) return count;
-            } else {
-                idle = 0;
-                count = now;
+                if (++idle >= 2) return { count, enough: EquipmentGear.levelUpEnabled() };
+                continue;
+            }
+            idle = 0;
+            count = now;
+
+            if (pass % AUTO_SELECT_EVERY === AUTO_SELECT_EVERY - 1) {
+                $('#auto-select').trigger('click');
+                await new Promise(r => setTimeout(r, randomInterval(700, 1200)));
+                if (EquipmentGear.levelUpEnabled()) return { count, enough: true };
             }
         }
         logHHAuto(`Gear: stopped scrolling the material list at ${count} piece(s) after`
             + ` ${MAX_MATERIAL_SCROLLS} passes; it was still growing.`);
-        return count;
+        return { count, enough: EquipmentGear.levelUpEnabled() };
     }
 
     /**
@@ -1041,13 +1069,11 @@ export class EquipmentGear {
                     // requirement is largest and the first batch no longer
                     // carries it.
                     const before = EquipmentGear.countMaterialSlots();
-                    const after = await EquipmentGear.loadAllMaterial();
-                    if (after > before) {
-                        logHHAuto(`Gear: material list grew from ${before} to ${after} piece(s)`
-                            + ' after scrolling; asking Auto Select again.');
-                        $('#auto-select').trigger('click');
-                        await new Promise(r => setTimeout(r, randomInterval(700, 1200)));
-                    }
+                    const loaded = await EquipmentGear.loadMaterialUntilEnough();
+                    logHHAuto(`Gear: material list ${before} -> ${loaded.count} piece(s) after`
+                        + (loaded.enough
+                            ? ' scrolling; Auto Select covers the next level.'
+                            : ' scrolling; still not enough for the next level.'));
                 }
 
                 const verdict = decideNextLevelUp({
