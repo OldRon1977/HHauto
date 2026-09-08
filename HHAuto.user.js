@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.4
+// @version      8.12.5
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -20202,6 +20202,14 @@ function resonancePoints(item, playerClass, theme, projected) {
  * Tier 5 also holds every legendary and epic. Those carry no resonance at
  * all: of the 12 legendary slots in the league, none had a class or theme
  * bonus.
+ *
+ * `theme` may be null, which means "no team theme is known" and not
+ * "balanced" -- Balanced is a theme of its own. A null theme collapses the
+ * scale to tiers 2 and 4, class match or nothing, which is all that can
+ * honestly be said without it. Only Upgrade Gear passes null: it decides
+ * the order in which worn mythics are fed, and a coarser order costs
+ * nothing that a wrong one would. The two equip buttons must not, because
+ * equipping on a guessed theme puts the wrong item on.
  */
 function gearTier(item, playerClass, theme, mode) {
     if (item.rarity !== 'mythic')
@@ -20209,7 +20217,7 @@ function gearTier(item, playerClass, theme, mode) {
     if (mode === 'current' && item.level < MYTHIC_MAX_LEVEL)
         return 5;
     const c = classMatches(item, playerClass);
-    const t = themeMatches(item, theme);
+    const t = theme !== null && themeMatches(item, theme);
     if (c && t)
         return 1;
     if (c)
@@ -20509,6 +20517,12 @@ function upgradePageUrl(target) {
  * Ordered by priority tier so the material goes into the slot that gains
  * the most from it: a mythic matching class and theme grows both bonuses,
  * one matching nothing grows nothing that counts.
+ *
+ * `theme` may be null. What gets upgraded does not depend on it -- the
+ * filter is "worn, mythic, below the cap", and the player wears what the
+ * player wears. The theme only sharpens the order, so without one the list
+ * is ordered by class match and slot and the work still happens. Refusing
+ * to run would withhold the whole feature over a detail of sorting.
  */
 function pickUpgradeTargets(items, playerClass, theme) {
     return items
@@ -20649,6 +20663,12 @@ const STALE_QUEUE_MS = 90000;
  *  armors, so this has to allow a lot of passes; it bounds a changed page,
  *  not a normal inventory. */
 const MAX_MATERIAL_SCROLLS = 60;
+/** How many scroll passes between two Auto Select attempts while the list is
+ *  still filling. Asking after every pass would add its own wait to each of
+ *  the 60, which is the cost paid in the case that needs the passes least --
+ *  the one where the material never suffices. Asking every fifth pass ends
+ *  the common case within seconds and adds twelve attempts to the rare one. */
+const AUTO_SELECT_EVERY = 5;
 /** How often the market page may re-open the same head before giving up on
  *  it. Two chances, because the first may be the hand-off after the game's
  *  own redirect and the second a genuine retry; a third means the page is
@@ -21301,15 +21321,12 @@ class EquipmentGear {
                 return;
             EquipmentGear.running = true;
             try {
+                // A missing theme does not stop this button. What gets upgraded
+                // is what the player is wearing, and that is known without a
+                // team; the theme only sharpens the order. The equip buttons do
+                // stop, because they choose items and a guessed theme would put
+                // the wrong one on -- this one only chooses a sequence.
                 const theme = EquipmentGear.resolveTheme();
-                if (!theme) {
-                    EquipmentGear.showMessage('Upgrade Gear', 'No team theme known yet. Open your team page once ("Change team" on the'
-                        + ' league page) -- nothing needs to be built, the theme is read on the way in.'
-                        + ' Without it the tiers below would be guesses, and material spent on the wrong'
-                        + ' slot is gone.');
-                    logHHAuto('Gear: Upgrade Gear aborted, no team theme. Nothing was changed.');
-                    return;
-                }
                 const rawClass = Number(HeroHelper.getClass());
                 if (rawClass !== 1 && rawClass !== 2 && rawClass !== 3) {
                     EquipmentGear.showMessage('Upgrade Gear', 'Could not read the hero class.');
@@ -21325,12 +21342,14 @@ class EquipmentGear {
                 const targets = pickUpgradeTargets(all, rawClass, theme);
                 const stock = countMaterialStock(all);
                 logHHAuto(`Gear [Upgrade Gear]: ${targets.length} worn mythic(s) below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)},`
-                    + ` material stock ${stock.legendary} legendary + ${stock.epic} epic.`);
+                    + ` material stock ${stock.legendary} legendary + ${stock.epic} epic.`
+                    + (theme ? ` Order by team theme "${theme}" and class.`
+                        : ' No team theme known, so the order is by class match and slot only.'));
                 for (const t of targets) {
                     logHHAuto(`  Slot ${t.slot} (${SLOT_NAMES[t.slot]}): ${t.name} at level ${t.level}`
                         + ` [${TIER_NAMES[t.tier]}]`);
                 }
-                EquipmentGear.showUpgradePlan(targets, stock);
+                EquipmentGear.showUpgradePlan(targets, stock, theme);
             }
             catch (err) {
                 logHHAuto('Gear: Upgrade Gear failed before any change was made: ' + err);
@@ -21341,7 +21360,7 @@ class EquipmentGear {
             }
         });
     }
-    static showUpgradePlan(targets, stock) {
+    static showUpgradePlan(targets, stock, theme) {
         if (targets.length === 0) {
             EquipmentGear.showMessage('Upgrade Gear', `<p>Every mythic you are wearing is already at level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}.</p>`
                 + '<p style="color:#aaa;">Put the items you want to develop on first'
@@ -21355,6 +21374,10 @@ class EquipmentGear {
         <div id="HHGearPreview" style="padding:10px;max-width:720px;font-size:13px;">
             <p>Worn mythics below level ${(/* inlined export .MYTHIC_MAX_LEVEL */20)}, best-matching first &mdash;
                material goes where it grows the most resonance.</p>
+            ${theme ? '' : `<p style="color:#aaa;">No team theme known, so the order below only
+               separates items that match your class from those that do not. Every worn mythic
+               is upgraded either way. Open your team page once ("Change team" on the league
+               page) and the theme sharpens the order next time.</p>`}
             <table>
                 <tr><th>Slot</th><th>Item</th><th>level</th><th>why it is worth it</th></tr>
                 ${rows}
@@ -21439,7 +21462,8 @@ class EquipmentGear {
         return out;
     }
     /**
-     * Scroll the material list until the game stops adding to it.
+     * Scroll the material list until Auto Select can cover the next level, or
+     * until the game stops adding to it.
      *
      * The list is paged and the game loads the next batch only in answer to a
      * scroll -- it never fills itself (confirmed on the live page; the counts
@@ -21447,11 +21471,22 @@ class EquipmentGear {
      * the end). Auto Select chooses among the rendered pieces, so everything
      * beyond the first batch is invisible to it until this has run.
      *
+     * It stops at "enough", not at "everything". Scrolling the list to its
+     * end regardless was the whole cost of a level: the requirement is
+     * usually covered a few batches in, and the remaining passes bought
+     * nothing while the player watched the page scroll. Every item in the
+     * queue paid it again on its own page, which is where the minutes came
+     * from. Auto Select is therefore asked again while the list grows, and
+     * the first time the game lights up Level-up the scrolling ends.
+     *
      * Two idle passes before stopping, not one: a batch that is still in
      * flight when the first pass is counted would otherwise end the loading
      * early, and stopping early is exactly the failure this exists to remove.
+     *
+     * `enough` is the game's verdict, not a count: nothing here weighs
+     * material or reimplements the cost curve.
      */
-    static loadAllMaterial() {
+    static loadMaterialUntilEnough() {
         return EquipmentGear_awaiter(this, void 0, void 0, function* () {
             var _a, _b;
             let count = EquipmentGear.countMaterialSlots();
@@ -21465,16 +21500,21 @@ class EquipmentGear {
                 const now = EquipmentGear.countMaterialSlots();
                 if (now === count) {
                     if (++idle >= 2)
-                        return count;
+                        return { count, enough: EquipmentGear.levelUpEnabled() };
+                    continue;
                 }
-                else {
-                    idle = 0;
-                    count = now;
+                idle = 0;
+                count = now;
+                if (pass % AUTO_SELECT_EVERY === AUTO_SELECT_EVERY - 1) {
+                    $('#auto-select').trigger('click');
+                    yield new Promise(r => setTimeout(r, randomInterval(700, 1200)));
+                    if (EquipmentGear.levelUpEnabled())
+                        return { count, enough: true };
                 }
             }
             logHHAuto(`Gear: stopped scrolling the material list at ${count} piece(s) after`
                 + ` ${MAX_MATERIAL_SCROLLS} passes; it was still growing.`);
-            return count;
+            return { count, enough: EquipmentGear.levelUpEnabled() };
         });
     }
     /**
@@ -21560,13 +21600,11 @@ class EquipmentGear {
                         // requirement is largest and the first batch no longer
                         // carries it.
                         const before = EquipmentGear.countMaterialSlots();
-                        const after = yield EquipmentGear.loadAllMaterial();
-                        if (after > before) {
-                            logHHAuto(`Gear: material list grew from ${before} to ${after} piece(s)`
-                                + ' after scrolling; asking Auto Select again.');
-                            $('#auto-select').trigger('click');
-                            yield new Promise(r => setTimeout(r, randomInterval(700, 1200)));
-                        }
+                        const loaded = yield EquipmentGear.loadMaterialUntilEnough();
+                        logHHAuto(`Gear: material list ${before} -> ${loaded.count} piece(s) after`
+                            + (loaded.enough
+                                ? ' scrolling; Auto Select covers the next level.'
+                                : ' scrolling; still not enough for the next level.'));
                     }
                     const verdict = decideNextLevelUp({
                         currentLevel: startLevel + performed,

@@ -61,6 +61,21 @@ describe('pickUpgradeTargets', () => {
         expect(targets.map(t => t.tier)).toEqual([1, 2, 4]);
     });
 
+    // Upgrading is about the items the player already wears, and those are
+    // known without a team. A missing theme may only coarsen the order.
+    it('still returns every worn mythic when no team theme is known', () => {
+        const both = item({ rarity: 'mythic', level: 5, equipped: true, slot: 1, classId: '3', themeId: 'sun', name: 'both' });
+        const themeOnly = item({ rarity: 'mythic', level: 5, equipped: true, slot: 2, classId: '1', themeId: 'sun', name: 'theme' });
+        const classOnly = item({ rarity: 'mythic', level: 5, equipped: true, slot: 3, classId: '3', themeId: 'fire', name: 'class' });
+
+        const targets = pickUpgradeTargets([both, themeOnly, classOnly], KNOW_HOW, null);
+
+        // Without a theme the scale collapses to "matches my class" and
+        // "does not"; nothing claims a theme match it cannot know.
+        expect(targets.map(t => t.name)).toEqual(['both', 'class', 'theme']);
+        expect(targets.map(t => t.tier)).toEqual([2, 2, 4]);
+    });
+
     it('judges the tier by what the item will be, not what it is', () => {
         // A level-1 mythic is tier 5 today but tier 1 once levelled, and
         // levelling it is the whole point.
