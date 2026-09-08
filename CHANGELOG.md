@@ -7,38 +7,31 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
-### v8.12.5 - Upgrade Gear no longer waits for a team, and stops scrolling sooner
+### v8.12.4 - Upgrade Gear works through every worn mythic, without needing a team
 
-The button refused to do anything until a team theme was known, and told you to
-open your team page first. That was the wrong condition. What it upgrades is
-what you are wearing, and the game knows that without a team; the theme only
-decides which of your worn mythics is fed first. Without one the list is
-ordered by class match and slot, every worn mythic below level 20 is still
-worked through, and the preview says the order is the coarser one. The two
-equip buttons keep the requirement -- those pick items, and picking on a
-guessed theme puts the wrong item on.
+Three things stood between the button and the items you wear.
 
-The other half is the waiting. Scrolling the material list stopped when the
-game stopped adding to it, which meant every run scrolled to the very end of
-the list even though the requirement was usually covered a few batches in --
-and every item in the queue paid it again on its own page. Auto Select is now
-asked again while the list grows, and the scrolling ends the first time the
-game lights up Level-up. A level that the stock genuinely cannot cover still
-walks the whole list, because that is the only way to know it cannot.
-
-### v8.12.4 - Upgrade Gear works through every worn mythic, and scrolls for material
-
-Two things ended an "Upgrade Gear" run after a single item.
+It refused to run until a team theme was known and sent you to the team page
+first. That was the wrong condition. What it upgrades is what you are wearing,
+and the game knows that without a team; the theme only decides which of your
+worn mythics is fed first. Without one the order is by class match and slot,
+every worn mythic below level 20 is still worked through, and the preview says
+the order is the coarser one. The two equip buttons keep the requirement --
+those pick items, and picking on a guessed theme puts the wrong item on.
 
 The material list on the upgrade page is paged: the game renders a first batch
 and loads the next one only in answer to a scroll -- it never fills itself.
 Auto Select picks from what is rendered, so once the first batch no longer
 covered a level, the Level-up button stayed dark and the run read that as "the
 material is spent". It showed up around level 19 to 20, where the requirement
-is largest. The run now scrolls the list to its end before it believes a dark
-button, and asks Auto Select again with the full stock in view.
+is largest. A dark button is now only believed after the list has been
+scrolled, and the scrolling stops the first time the game lights up Level-up
+rather than at the end of the list -- the requirement is usually covered a few
+batches in, and walking the rest bought nothing while you watched it scroll. A
+level the stock genuinely cannot cover still walks the whole list, because
+that is the only way to know it cannot.
 
-The second one hit the successful case. At the cap the game navigates off the
+The third one hit the successful case. At the cap the game navigates off the
 upgrade page by itself, so the code that moved the queue on to the next item
 never ran -- the queue sat in storage until it aged out. The remaining queue is
 now written before the level that reaches the cap, and the market page opens
