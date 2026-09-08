@@ -61,11 +61,36 @@ import { TK } from "../config/StorageKeys";
  *  side of infinity keeps a changed response shape from looping forever. */
 const MAX_INVENTORY_PAGES = 120;
 
-interface UpgradeQueueEntry { id: number; name: string; slot: number; startedAt?: number }
+/** One queued item.
+ *
+ *  `tries` is what bounds the hand-off between the two pages. At the cap the
+ *  game navigates off the upgrade page by itself, so the queue is handed on
+ *  from the market instead, and a head that cannot be opened at all would
+ *  otherwise bounce between the two forever. */
+interface UpgradeQueueEntry {
+    id: number;
+    name: string;
+    slot: number;
+    startedAt?: number;
+    tries?: number;
+}
 
 /** How long a queue may sit untouched before the market page forgets it.
  *  Long enough to survive the navigation the Start button triggers. */
 const STALE_QUEUE_MS = 90_000;
+
+/** How often the market list may be scrolled before accepting that nothing
+ *  more arrives. The game pages it in batches (measured: 100 slots on
+ *  arrival, 299 after scrolling to the end) and the test account held 1614
+ *  armors, so this has to allow a lot of passes; it bounds a changed page,
+ *  not a normal inventory. */
+const MAX_MATERIAL_SCROLLS = 60;
+
+/** How often the market page may re-open the same head before giving up on
+ *  it. Two chances, because the first may be the hand-off after the game's
+ *  own redirect and the second a genuine retry; a third means the page is
+ *  not opening at all. */
+const MAX_QUEUE_HEAD_TRIES = 3;
 
 const SLOT_NAMES: Record<number, string> = {
     1: 'Head', 2: 'Body', 3: 'Legs', 4: 'Flag', 5: 'Pet', 6: 'Weapon',
@@ -93,7 +118,7 @@ export class EquipmentGear {
     static moduleGearActions(): void {
         if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDShop")) return;
 
-        EquipmentGear.dropStaleUpgradeQueue();
+        EquipmentGear.resumeUpgradeQueue();
         EquipmentGear.watchTabSwitch();
 
         // The player's own inventory has its own tab strip
@@ -180,25 +205,68 @@ export class EquipmentGear {
     }
 
     /**
-     * Forget an upgrade queue that is no longer being worked on.
+     * Carry an upgrade run on from the market page, or forget it.
      *
-     * At the cap the game redirects off the upgrade page by itself, so the
-     * loop never reaches its own clean-up and the queue would sit in storage
-     * until the player happened to open an upgrade page again. Being back on
-     * the market with an old queue means the run is over one way or another.
-     * The age check is what keeps this from eating the queue the Start button
-     * just wrote, one navigation earlier.
+     * The market is where a run both starts and lands: at the cap the game
+     * navigates off the upgrade page by itself, so the hand-off to the next
+     * item cannot happen there -- the upgrade page writes the remaining queue
+     * before it triggers that redirect, and this opens whatever it left. The
+     * Start button leaves the same state behind, so both cases are one code
+     * path.
+     *
+     * An old queue is dropped instead: being back here with one means the run
+     * is over one way or another. The age check is what keeps that from
+     * eating the queue the Start button just wrote, one navigation earlier.
      */
-    private static dropStaleUpgradeQueue(): void {
+    private static resumeUpgradeQueue(): void {
+        if (EquipmentGear.resumeNavigating) return;
         const queue = getStoredJSON<UpgradeQueueEntry[]>(HHStoredVarPrefixKey + TK.gearUpgradeQueue, []);
         if (!Array.isArray(queue) || queue.length === 0) return;
+
         const startedAt = Number(queue[0]?.startedAt) || 0;
-        if (Date.now() - startedAt < STALE_QUEUE_MS) return;
-        setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
-        EquipmentGear.releaseAutoLoop();
-        logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
-            + ' the run is no longer on the upgrade page.');
+        if (Date.now() - startedAt >= STALE_QUEUE_MS) {
+            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+            EquipmentGear.releaseAutoLoop();
+            logHHAuto(`Gear: dropping a stale upgrade queue (${queue.length} item(s) left);`
+                + ' the run is no longer on the upgrade page.');
+            return;
+        }
+
+        const head = queue[0];
+        const tries = (Number(head.tries) || 0) + 1;
+        if (tries > MAX_QUEUE_HEAD_TRIES) {
+            // The upgrade page for this item does not open -- it bounces
+            // straight back here, so nothing was spent on it. Skipping it is
+            // the only way the rest of the queue gets its turn.
+            const rest = queue.slice(1);
+            logHHAuto(`Gear: ${head.name} (slot ${head.slot}) did not open after`
+                + ` ${MAX_QUEUE_HEAD_TRIES} attempt(s); skipping it,`
+                + ` ${rest.length} item(s) left.`);
+            if (rest.length === 0) {
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
+                EquipmentGear.releaseAutoLoop();
+                logHHAuto('Gear: upgrade run finished -- nothing left to open.');
+                return;
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+                JSON.stringify(rest.map(r => ({ ...r, startedAt: Date.now(), tries: 0 }))));
+            EquipmentGear.resumeNavigating = true;
+            EquipmentGear.gotoUpgradePage(rest[0].id);
+            return;
+        }
+
+        setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+            JSON.stringify([{ ...head, tries }, ...queue.slice(1)]));
+        logHHAuto(`Gear: upgrade run continues with ${head.name} (slot ${head.slot});`
+            + ` ${queue.length} item(s) left.`);
+        EquipmentGear.resumeNavigating = true;
+        EquipmentGear.gotoUpgradePage(head.id);
     }
+
+    /** One navigation per page load. The market handler runs on every autoloop
+     *  tick, and `location.href` does not take effect before the next one --
+     *  without this the retry budget would be spent waiting for the browser. */
+    private static resumeNavigating = false;
 
     private static tabWatcherBound = false;
 
@@ -765,11 +833,13 @@ export class EquipmentGear {
             </table>
             <p><b>Material:</b> ${stock.legendary.toLocaleString()} legendary and
                ${stock.epic.toLocaleString()} epic items. Mythics are never consumed.</p>
-            <p style="color:#aaa;font-size:11px;">The upgrade page shows each item's exact
+            <p style="color:#aaa;font-size:11px;">One item is taken to level ${MYTHIC_MAX_LEVEL}
+               before the next one starts. The upgrade page states each item's exact
                requirement, and the run stops by itself once the material is spent.</p>
             <p id="HHGearStatus" style="color:#ffb827;"></p>
             <label class="myButton" id="HHGearUpgradeStart" style="font-size:14px;width:100%;text-align:center;">
-                Start with ${esc(targets[0].name)} (slot ${targets[0].slot})</label>
+                Level all ${targets.length} item(s), starting with ${esc(targets[0].name)}
+                (slot ${targets[0].slot})</label>
         </div>`);
 
         $('#HHGearUpgradeStart').on('click', function () {
@@ -814,14 +884,85 @@ export class EquipmentGear {
         return window.location.pathname.indexOf(UPGRADE_PATH) !== -1;
     }
 
+    /** The game's own verdict on whether the picked material covers the next
+     *  level. Read fresh every time: Auto Select and a scroll both change it. */
+    private static levelUpEnabled(): boolean {
+        const button = document.getElementById('level-up') as HTMLButtonElement | null;
+        return button !== null && !button.disabled;
+    }
+
+    /** Material pieces the page has rendered so far. This is the number Auto
+     *  Select works from, not the number the account owns. */
+    private static countMaterialSlots(): number {
+        return document.querySelectorAll('.slot[data-d]').length;
+    }
+
+    /**
+     * The elements that actually scroll the material list.
+     *
+     * Anchored on the list and walked upwards rather than named by a fixed
+     * selector: whether the overflow sits on `.items-container` itself or on
+     * an ancestor is the page's business, and the window is included because
+     * a list that fills the document scrolls with it.
+     */
+    private static materialScrollTargets(): HTMLElement[] {
+        const out: HTMLElement[] = [];
+        let el = document.querySelector('.items-container') as HTMLElement | null;
+        while (el !== null) {
+            if (el.scrollHeight > el.clientHeight + 20) {
+                const overflow = getComputedStyle(el).overflowY;
+                if (overflow === 'auto' || overflow === 'scroll') out.push(el);
+            }
+            el = el.parentElement;
+        }
+        return out;
+    }
+
+    /**
+     * Scroll the material list until the game stops adding to it.
+     *
+     * The list is paged and the game loads the next batch only in answer to a
+     * scroll -- it never fills itself (confirmed on the live page; the counts
+     * measured earlier were 100 slots on arrival and 299 after scrolling to
+     * the end). Auto Select chooses among the rendered pieces, so everything
+     * beyond the first batch is invisible to it until this has run.
+     *
+     * Two idle passes before stopping, not one: a batch that is still in
+     * flight when the first pass is counted would otherwise end the loading
+     * early, and stopping early is exactly the failure this exists to remove.
+     */
+    private static async loadAllMaterial(): Promise<number> {
+        let count = EquipmentGear.countMaterialSlots();
+        let idle = 0;
+        for (let pass = 0; pass < MAX_MATERIAL_SCROLLS; pass++) {
+            for (const target of EquipmentGear.materialScrollTargets()) {
+                target.scrollTop = target.scrollHeight;
+            }
+            window.scrollTo(0, document.scrollingElement?.scrollHeight ?? 0);
+            await new Promise(r => setTimeout(r, randomInterval(600, 900)));
+
+            const now = EquipmentGear.countMaterialSlots();
+            if (now === count) {
+                if (++idle >= 2) return count;
+            } else {
+                idle = 0;
+                count = now;
+            }
+        }
+        logHHAuto(`Gear: stopped scrolling the material list at ${count} piece(s) after`
+            + ` ${MAX_MATERIAL_SCROLLS} passes; it was still growing.`);
+        return count;
+    }
+
     /**
      * Work the queue on the upgrade page: Auto Select, then Level-up, until
      * the item is capped or the material runs out.
      *
      * Auto Select is the game's own material picker, and the Level-up button
-     * only lights up once it has covered the requirement -- so a button that
-     * stays disabled is the game telling us the stock is spent. Nothing here
-     * counts material or reimplements the cost curve.
+     * only lights up once it has covered the requirement. Nothing here counts
+     * material or reimplements the cost curve -- but a dark button is only
+     * believed once the whole material list has been scrolled into the page,
+     * because Auto Select can pick only from what is rendered.
      *
      * Does nothing at all while the queue is empty, which is the state
      * unless the player pressed the button.
@@ -864,22 +1005,66 @@ export class EquipmentGear {
             // value is the only reliable level here. Over-counting a failed
             // call only makes this stop early, which is the safe direction.
             const startLevel = Number(unsafeWindow.item_to_upgrade?.level) || 0;
+            const rest = queue.slice(1);
+
+            /** Hand the queue on before the level that reaches the cap, not
+             *  after: the game navigates off this page the moment an item is
+             *  capped, so nothing below that click is guaranteed to run. The
+             *  market page finds the next item waiting and opens it. When this
+             *  was the last item there is no next page to clean up either, so
+             *  the clean-up happens here too. */
+            let handedOver = false;
+            const handOver = (lastMsg: string) => {
+                if (handedOver) return;
+                handedOver = true;
+                if (rest.length === 0) {
+                    finish(lastMsg);
+                    return;
+                }
+                setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
+                    JSON.stringify(rest.map(r => ({ ...r, startedAt: Date.now(), tries: 0 }))));
+                logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
+            };
+
             let performed = 0;
             for (;;) {
                 $('#auto-select').trigger('click');
                 await new Promise(r => setTimeout(r, randomInterval(700, 1200)));
 
-                const enabled = $('#level-up').length > 0
-                    && !(document.getElementById('level-up') as HTMLButtonElement).disabled;
+                if (!EquipmentGear.levelUpEnabled()) {
+                    // A disabled button is not proof that the material is
+                    // spent. The game renders the material list in batches and
+                    // loads the next one only while it is scrolled, and Auto
+                    // Select picks from what is rendered -- so an unscrolled
+                    // list reads as "not enough material" for a level the
+                    // stock covers. It shows up around 19 -> 20, where the
+                    // requirement is largest and the first batch no longer
+                    // carries it.
+                    const before = EquipmentGear.countMaterialSlots();
+                    const after = await EquipmentGear.loadAllMaterial();
+                    if (after > before) {
+                        logHHAuto(`Gear: material list grew from ${before} to ${after} piece(s)`
+                            + ' after scrolling; asking Auto Select again.');
+                        $('#auto-select').trigger('click');
+                        await new Promise(r => setTimeout(r, randomInterval(700, 1200)));
+                    }
+                }
+
                 const verdict = decideNextLevelUp({
-                    currentLevel: startLevel + performed, levelUpEnabled: enabled,
+                    currentLevel: startLevel + performed,
+                    levelUpEnabled: EquipmentGear.levelUpEnabled(),
                 });
                 if (!verdict.go) {
                     logHHAuto(`Gear: stopping on ${head.name} after ${performed} level(s) -- ${verdict.reason}.`);
                     if (!verdict.done) { finish(verdict.reason); return; }
+                    handOver('every queued item is done.');
                     break;
                 }
 
+                if (startLevel + performed + 1 >= MYTHIC_MAX_LEVEL) {
+                    handOver(`${head.name} reaches level ${MYTHIC_MAX_LEVEL}`
+                        + ' with the level-up going out now.');
+                }
                 $('#level-up').trigger('click');
                 performed++;
                 await new Promise(r => setTimeout(r, randomInterval(1500, 2500)));
@@ -887,11 +1072,7 @@ export class EquipmentGear {
                     + ` (${performed} level(s) this run).`);
             }
 
-            const rest = queue.slice(1);
-            if (rest.length === 0) { finish('every queued item is done.'); return; }
-            setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue,
-                JSON.stringify(rest.map(r => ({ ...r, startedAt: Date.now() }))));
-            logHHAuto(`Gear: moving on to ${rest[0].name} (slot ${rest[0].slot}).`);
+            if (rest.length === 0) return;
             EquipmentGear.gotoUpgradePage(rest[0].id);
         } catch (err) {
             setStoredValue(HHStoredVarPrefixKey + TK.gearUpgradeQueue, '[]');
