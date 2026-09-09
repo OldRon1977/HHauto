@@ -7,6 +7,32 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.11 - The ten-girl gate stops counting girls the player does not own
+
+`Harem.getGirlCount()` feeds the ten-girl condition in
+`PlaceOfPower.isEnabled()` and `PathOfAttraction.isEnabled()`. With no cached
+harem size it fell back to `girlsDataList`, and that variable means something
+different on every page. Measured 2026-09-09 on an account owning nine girls:
+
+| page | variable | entries |
+|---|---|---|
+| `/waifu.html` | `girls_data_list` | 9, every one `shards` 100 |
+| `/characters.html` | `girlsDataList` | 24 |
+| `/home.html` | `girlsDataList` | 9, carrying only `salary` and `pay_in` |
+
+The harem page lists every *known* girl, so the gate read 24 where the answer
+was 9. Filtering is not an option either: those records carry no `shards`,
+`level` or `graded` -- nothing there tells an owned girl from a known one.
+
+Only the two pages that hand out full owned records may answer now:
+`girls_data_list` on the waifu page and `availableGirls` on the team-edit page,
+the same two `moduleHaremCountMax` caches from and the same two `getGirlsList`
+already picks between. Anything else falls through to the salary list and then
+to 0. Under-counting is the safe direction: a feature that stays locked one
+refresh longer costs nothing, while a count that is too high walks the run onto
+a page the account cannot use -- the dead end v8.12.8 closed for Path of
+Attraction.
+
 ### v8.12.10 - A quest that demands a battle no longer stops the account
 
 Measured 2026-09-09 on a world-4 account with `autoTrollBattle` off: the main
