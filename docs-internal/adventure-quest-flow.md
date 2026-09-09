@@ -118,10 +118,25 @@ mit eigener `server_time`, trugen unterschiedliche Werte:
 | `infos.caracs.endurance` | 1418 | 734 |
 | `infos.questing.step` | 310052 | 310052 |
 
-Welche Seite den frischen Stand traegt, wechselt: in einer Messreihe war es
-`home.html`, in der naechsten `hero.html`. Der Questfortschritt war in fast
-allen Aufrufen aktuell, `level`, `Xp` und `caracs` nicht -- die Teile derselben
-Antwort haben verschiedene Aktualitaet.
+Ueber zwei Messschleifen mit je eigener Browsersitzung pro Lesung:
+
+| Schleife | Lesungen | frisch | veraltet | Anteil |
+|---|---|---|---|---|
+| 1 | 12 | 6 | 6 | 50 % |
+| 2 | 16 | 8 | 8 | 50 % |
+| zusammen | 28 | 14 | 14 | **50 %** |
+
+Es ist kein Nachhinken, sondern **zwei feste Momentaufnahmen im Wechsel**: die
+veralteten Lesungen tragen immer exakt dieselben Werte (Level 17, Xp 36389,
+endurance 734), nie etwas dazwischen. Beide Seiten sind gleich betroffen, und
+`questing.step` war in allen 28 Lesungen aktuell.
+
+Gemessen ist die Verteilung. **Geschlossen**, nicht gemessen, ist die Ursache:
+zwei Backend-Knoten mit unterschiedlichem Cache-Stand wuerden das Bild
+erklaeren, geprueft ist das nicht.
+
+Rohdaten liegen ausserhalb des Repos unter
+`~/.config/hhauto-claude/account/measurements/`.
 
 Fortschritt geht dabei **nicht** verloren; eine spaetere Abfrage bestaetigte
 alle Stufen. Wer aber aus einem einzelnen Aufruf schliesst, misst unter
@@ -130,8 +145,9 @@ braucht mehr als eine Lesung.
 
 Fuer das Skript hat das Folgen: `HeroHelper.getLevel()` speist die
 `>= LEVEL_MIN_*`-Bedingungen von Path of Valor (30), Path of Glory (30),
-League (20), Sultry Mysteries (15) und Double Penetration (40). Eine Seite,
-die zu niedrig ausliefert, behaelt diesen Wert fuer ihre gesamte Lebensdauer,
+League (20), Sultry Mysteries (15) und Double Penetration (40). Bei einer Rate von 50 Prozent
+trifft es im Schnitt jede zweite Seitenladung; eine Seite, die zu niedrig
+ausliefert, behaelt diesen Wert fuer ihre gesamte Lebensdauer,
 und die betroffenen Module melden `isEnabled() === false`, ohne Fehler und ohne
 Logzeile. Seit v8.12.7 merkt sich `getLevel` deshalb den Hoechststand
 (`Temp_heroMaxLevel`) und faellt nicht darunter.
