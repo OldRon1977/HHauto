@@ -14,6 +14,7 @@ was entschieden wurde, warum, und was verworfen wurde.
 | [008](ADR-008-import-cycle-reduction.md) | Zyklen-Abbau mit eingefrorener Baseline | 2026-07-05 | warum `npm run deps:circular:check` in der CI steht und was ein neuer Zyklus kostet |
 | [009](ADR-009-focused-activity.md) | Eine Aktivität behält die Pipeline, bis ihre Arbeit getan ist | 2026-08-22 | warum ein Block nach jedem Kampf den Fokus behält (#1841) |
 | [010](ADR-010-navigation-is-not-a-stop.md) | Navigation verwirft den laufenden Run nicht | 2026-08-26 | warum ein ausgeschalteter Auto-Loop den Run nicht sofort killt |
+| [011](ADR-011-a-dedicated-account-may-write.md) | Ein eigenes Prüfkonto darf schreiben | 2026-09-09 | warum die Regel „schreibende Prüfungen bleiben Handarbeit" nur noch für das Konto des Maintainers gilt |
 
 Offen daneben: [`docs-internal/exit-condition-concept.md`](../../docs-internal/exit-condition-concept.md)
 schlägt vor, den schwächsten Teil von ADR-009 abzulösen — drei Entscheidungsfragen,
