@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.10
+// @version      8.12.11
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -9773,16 +9773,48 @@ class Harem {
         }
         return filteredGirlsList;
     }
+    /**
+     * How many girls the player owns. Feeds the ten-girl gate in
+     * PlaceOfPower.isEnabled and PathOfAttraction.isEnabled.
+     *
+     * `girlsDataList` used to answer whenever the cache was empty, and on the
+     * harem page that is the wrong quantity: measured 2026-09-09, it held 24
+     * entries on an account owning 9. Filtering them is not possible either --
+     * those records carry no `shards`, `level` or `graded`, only catalogue
+     * data, so a known girl is indistinguishable from an owned one there.
+     *
+     * Only the two pages that hand out full owned records may answer:
+     * `girls_data_list` on the waifu page (9 entries, every one `shards` 100)
+     * and `availableGirls` on the team-edit page. They are the same two
+     * moduleHaremCountMax caches from, and getGirlsList already picks its
+     * source the same way.
+     *
+     * Everything else falls through to the salary list and then to 0.
+     * Under-counting is the safe direction here: a feature that stays locked
+     * one refresh longer costs nothing, while a count that is too high sends
+     * the run to a page the account cannot use -- the dead end v8.12.8 closed
+     * for Path of Attraction.
+     */
     static getGirlCount() {
-        // Store girls for harem tools
         let girlCount = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
-        const girlsDataList = getHHVars("girlsDataList", false);
-        const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
-        if (girlCount === 0 && girlsDataList) {
-            girlCount = Object.values(girlsDataList).length;
+        if (girlCount === 0) {
+            const page = getPage();
+            let ownedList = null;
+            if (page === ConfigHelper.getHHScriptVars("pagesIDWaifu")) {
+                ownedList = getHHVars("girls_data_list", false);
+            }
+            else if (page === ConfigHelper.getHHScriptVars("pagesIDEditTeam")) {
+                ownedList = getHHVars("availableGirls", false);
+            }
+            if (ownedList) {
+                girlCount = Object.values(ownedList).length;
+            }
         }
-        if (girlCount === 0 && girlsListSec && girlsListSec.length > 0) {
-            girlCount = girlsListSec.length;
+        if (girlCount === 0) {
+            const girlsListSec = getHHVars("shared.GirlSalaryManager.girlsListSec");
+            if (girlsListSec && girlsListSec.length > 0) {
+                girlCount = girlsListSec.length;
+            }
         }
         return girlCount;
     }
