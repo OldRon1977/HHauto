@@ -137,7 +137,7 @@ export class TeamModule {
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
             };
-            getHHAjax()!(params1, function(data:any) {
+            getHHAjax()!(params1, function(_data:any) {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
                 window.history.replaceState(null, '', addNutakuSession(currentPage) as string);

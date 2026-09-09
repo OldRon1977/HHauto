@@ -130,7 +130,7 @@ export function recordForbidden(
         const rawAt = (atStorage ?? storage).getItem(FORBIDDEN_LAST_AT_KEY);
         prevAt = rawAt ? parseInt(rawAt, 10) : 0;
         if (!Number.isFinite(prevAt) || prevAt < 0) prevAt = 0;
-    } catch (e) {
+    } catch {
         // proceed with zeros; we still want to record this Forbidden
     }
 
@@ -139,7 +139,7 @@ export function recordForbidden(
     try {
         storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
         (atStorage ?? storage).setItem(FORBIDDEN_LAST_AT_KEY, String(t));
-    } catch (e) {
+    } catch {
         logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
         return -1;
     }
@@ -158,6 +158,6 @@ function defaultAtStorage(): ForbiddenStreakStorage | null {
 function defaultStorage(): ForbiddenStreakStorage | null {
     try {
         if (typeof sessionStorage !== 'undefined') return sessionStorage;
-    } catch (e) { /* sessionStorage may throw in restricted contexts */ }
+    } catch { /* sessionStorage may throw in restricted contexts */ }
     return null;
 }

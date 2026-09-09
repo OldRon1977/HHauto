@@ -14,7 +14,7 @@
 //          (hero stats, class, level), TeamModule, ParanoiaService.
 import { addNutakuSession } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
-import { getHHAjax, isJSON } from "../Utils/Utils";
+import { getHHAjax } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { KKHero } from "../model/KK/KKHero";
@@ -57,7 +57,6 @@ export function doStatUpgrades()
     var Hero=getHero();
     var stats=[getHHVars('Hero.infos.carac1'),getHHVars('Hero.infos.carac2'),getHHVars('Hero.infos.carac3')];
     var money = HeroHelper.getMoney();
-    var count=0;
     var M=Number(getStoredValue(HHStoredVarPrefixKey+SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() -1];
     var Limit = HeroHelper.getLevel() * 30;//HeroHelper.getLevel()*19+Math.min(HeroHelper.getLevel(),25)*21;
@@ -90,7 +89,6 @@ export function doStatUpgrades()
                     return;
                 }
                 lastStatAttempt = { carac: carac, value: stats[carac-1], ts: nowTs };
-                count++;
                 logHHAuto('money: '+money+' stat'+carac+': '+stats[carac-1]+' [+'+mult+'] price: '+price);
                 money-=price;
                 var params = {

@@ -19,16 +19,14 @@
 //          Troll module (post-fight navigation)
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
-import { isJSON } from "../Utils/Utils";
 import { parsePrice } from "./PriceHelper";
 import { ConfigHelper } from "./ConfigHelper";
 import { getTextForUI } from "./LanguageHelper";
 import { NumberHelper } from "./NumberHelper";
-import { getStoredJSON, getStoredValue, setStoredValue } from "./StorageHelper";
+import { getStoredJSON, setStoredValue } from "./StorageHelper";
 import { randomInterval } from "./TimeHelper";
 import { EventModule } from "../Module/Events/EventModule";
 import { LoveRaidManager } from "../Module/Events/LoveRaidManager";
-import { SeasonalEvent } from "../Module/Events/Seasonal";
 import { queryStringGetParam } from "./UrlHelper";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { TK } from "../config/StorageKeys";
@@ -428,7 +426,7 @@ export class RewardHelper {
         }
 
         const observerPass = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation)
+            mutations.forEach(function(_mutation)
                             {
                 const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0

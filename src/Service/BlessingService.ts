@@ -6,7 +6,7 @@
 //
 // Used by: AutoLoopPageHandlers.ts (Home page), TeamBuilderService.ts
 //
-import { getStoredValue, setStoredValue, getStoredJSON } from "../Helper/StorageHelper";
+import { setStoredValue, getStoredJSON } from "../Helper/StorageHelper";
 import { logHHAuto } from "../Utils/LogUtils";
 import { getHHAjax } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";

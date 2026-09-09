@@ -14,7 +14,6 @@ import { randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../Helper/TimerHelper";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
-import { callItOnce, isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { KKDailyGoal } from "../model/KK/kkDailyGoal";

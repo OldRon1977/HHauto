@@ -9,7 +9,6 @@
 //          and other fight modules that navigate to battle pages
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { getHHVars } from "../Helper/HHHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
@@ -20,7 +19,6 @@ import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from "../model/EventGirl";
-import { LoveRaid } from "../model/LoveRaid";
 import { Troll } from "./Troll";
 import { DailyGoals } from "./DailyGoals";
 import { PentaDrill } from "./PentaDrill";

@@ -76,7 +76,7 @@ export class HentaiHeroes {
         }
         return trollList;
     }
-    static getSideTrolls(languageCode: string): {[key:number]: string} {
+    static getSideTrolls(_languageCode: string): {[key:number]: string} {
         const trollList = {
             20: "Arthur",
             21: "Venam Kharney"
@@ -117,6 +117,6 @@ export class HentaiHeroes {
             21: [['124967437', '755350195', '855205805'], [0], [0]]
         };
     }
-    static updateFeatures(envVariables: any) {
+    static updateFeatures(_envVariables: any) {
     }
 }

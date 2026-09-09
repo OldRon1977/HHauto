@@ -23,7 +23,6 @@ import { getHHAjax } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { KKHaremGirl } from "../../model/KK/KKHaremGirl";
-import { KKHaremSalaryGirl } from "../../model/KK/KKHaremSalaryGirl";
 import { TeamData } from "../../model/TeamData";
 import { HaremFilter } from "./HaremFilter";
 import { HaremGirl } from "./HaremGirl";

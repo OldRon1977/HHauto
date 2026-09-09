@@ -7,7 +7,6 @@
 // Used by: Service/StartService.ts
 //
 import { HeroHelper, getHero } from "../Helper/HeroHelper";
-import { getHHVars } from "../Helper/HHHelper";
 import { getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { parseBuyList } from "./Market.pure";
 import { randomInterval } from "../Helper/TimeHelper";
@@ -23,9 +22,6 @@ export class Market {
         try
         {
             const Hero=getHero();
-            var MS = 'carac' + HeroHelper.getClass();
-            var SS1 = 'carac' + (HeroHelper.getClass() % 3 + 1);
-            var SS2 = 'carac' + ((HeroHelper.getClass() + 1) % 3 + 1);
             var money = HeroHelper.getMoney();
             var kobans = HeroHelper.getKoban();
 

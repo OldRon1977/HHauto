@@ -11,7 +11,6 @@
 // Used by: Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { getHHVars } from "../Helper/HHHelper";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHAuto_inputPattern } from "../config/InputPattern";
 import { Season } from "./Events/Season";

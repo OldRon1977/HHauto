@@ -54,7 +54,7 @@ export function safeJsonParse<T>(json: string | undefined | null, defaultValue: 
     if (json === undefined || json === null) return defaultValue;
     try {
         return reviver ? JSON.parse(json, reviver) : JSON.parse(json);
-    } catch (e) {
+    } catch {
         return defaultValue;
     }
 }

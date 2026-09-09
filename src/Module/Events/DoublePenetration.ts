@@ -16,10 +16,8 @@ import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/Sto
 import { getLimitTimeBeforeEnd, randomInterval, convertTimeToInt } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { kickAutoLoop } from "../../Service/AutoLoopKick";
-import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
@@ -34,7 +32,7 @@ export class DoublePenetration {
         return FeatureGate.isUnlocked('doublePenetration');
     }
 
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, _hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
 

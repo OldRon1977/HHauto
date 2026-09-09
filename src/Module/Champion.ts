@@ -24,7 +24,7 @@ import {
     AJAX_IDLE_SETTLE_MS,
 } from "../Service/AjaxTracker";
 import { logHHAuto } from "../Utils/LogUtils";
-import { getHHAjax, isJSON, safeJsonParse } from "../Utils/Utils";
+import { getHHAjax, safeJsonParse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { ChampionModel } from "../model/Champion";
@@ -385,7 +385,6 @@ export class Champion {
 
         let currentGirlOrder = [...champTeam.map((g: any) => g.id_girl)]; // To be stored as string
         logHHAuto('Ordering champion team', currentGirlOrder);
-        let oneGirlSwitched = false;
 
         const getGirlId = (position: number): number | null => {
             const girlBox = $('.girl-box__draggable:has(".hhgirlOrder.best:contains(\'' + position + '\')")');
@@ -416,7 +415,6 @@ export class Champion {
                     [targettedTeam[i - 1], targettedTeam[oldGirlIndex]] = [targettedTeam[oldGirlIndex], targettedTeam[i - 1]];
                     logHHAuto('Ordering champion targettedTeam', targettedTeam);
                     if(await switchGirls(targettedTeam)) {
-                        oneGirlSwitched = true;
                         // Update current girls order after success switch
                         currentGirlOrder = targettedTeam;
                     } else {

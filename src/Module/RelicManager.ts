@@ -43,18 +43,18 @@ export class LabyrinthRelic {
                 if (tooltipData != '') {
                     this.girlName = safeJsonParse(tooltipData, {name: ''}).name;
                 }
-            } catch (err) { 
+            } catch { 
             }
         }
 
         try {
             this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))![0]);
-        } catch (err) {
+        } catch {
         }
         try {
             const classes = slot.find('.team-relic-icon').children().first().attr('class');
             this.element = classes!.substring(0, classes!.indexOf('_element_relic_icn'));
-        } catch (err) {
+        } catch {
         }
     }
 }
@@ -126,7 +126,7 @@ export class RelicManager {
             // game's per-card claim and the leftmost relic gets claimed instead
             // (issue #1716). A real DOM click on the marked card's button does.
             claimBtn[0].click();
-        } catch (err) {
+        } catch {
             logHHAuto('Error selecting relics, select first no girl relic');
             $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').get(0)?.click();
         }

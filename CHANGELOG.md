@@ -7,6 +7,44 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.3 - 121 identifiers nothing was reading
+
+A sweep of everything ESLint reported as unused in `src/`, by kind rather
+than by regex -- the lesson from the requirement-id regex that once took two
+import lines with it. Each batch was column- or line-anchored from the lint
+report and followed by `tsc --noEmit`.
+
+| Kind | Count | What was done |
+|---|---|---|
+| catch bindings | 35 | `catch (e)` → `catch`; the two `catch ({ errName, message })` kept `message` |
+| import bindings | 44 | removed; 27 whole import lines went with them |
+| function arguments | 26 | renamed to `_name`, the pattern the rule already allows |
+| dead locals | 16 | removed |
+
+The lint ceiling drops with it: **1031 → 907**.
+
+Two of the dead locals were flags, not clutter. `Champion.orderTeam` set
+`oneGirlSwitched = true` after every successful switch and never read it,
+while the reload at the end of the function runs unconditionally -- someone
+meant that reload to be conditional. `PathOfAttraction` had the same shape
+with `modified`. Both are removed, because that is what an unread variable
+is; the Champion one is worth a maintainer's eye.
+
+Two were kept as calls without a binding, because the call is the point:
+`getHero()` in `League.doLeagueBattle` kicks the auto-loop when the page is
+not ready, and `GM_registerMenuCommand` in `StartService` registers the debug
+menu -- only its return handle was dead.
+
+`model/IModule.ts` lost two interfaces, `IModuleStatic` and
+`IRunnableModuleStatic`, plus a header promising "type-check helpers at the
+bottom" that were never written. Neither interface was exported or referenced
+anywhere, so nothing had ever been checked against them; the file is 42 lines
+down to 26 and now describes what it actually holds.
+
+One import that was never called turned out to be load-bearing for the cycle
+count: `LivelyScene → Service/AutoLoop`, removed in 8.13.2. The rest of this
+sweep took the baseline from 52 to **50**.
+
 ### v8.13.2 - 84 import cycles down to 52, through one seam
 
 Seven modules imported `autoLoop` for one reason: to call

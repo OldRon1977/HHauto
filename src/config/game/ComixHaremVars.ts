@@ -52,6 +52,6 @@ export class ComixHarem {
             [['629181593', '686202051', '107847932'], [0], [0]],
         ];
     }
-    static updateFeatures(envVariables: any) {
+    static updateFeatures(_envVariables: any) {
     }
 }

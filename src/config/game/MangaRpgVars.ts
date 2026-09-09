@@ -11,7 +11,7 @@ export class MangaRpg {
             "nutaku.mangarpg.com": { name: "NMRPG_prod", id: "hh_mangarpg", baseImgPath: "https://mh.hh-content.com" }
         }
     }
-    static getTrolls(languageCode: string) {
+    static getTrolls(_languageCode: string) {
         return ['Latest',
             'Jeshtar',
             'EMPTY',

@@ -10,7 +10,7 @@
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
-import { deleteStoredValue, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
+import { getStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt, randomInterval } from "../Helper/TimeHelper";
 import { setTimer, checkTimer } from "../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
@@ -141,7 +141,7 @@ export class Missions {
                     } else 
                         setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1,5));
                 }
-            } catch ({ errName, message }: any) {
+            } catch ({ message }: any) {
                 logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
                 setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
             }
@@ -150,7 +150,7 @@ export class Missions {
         }
     }
 
-    static parseMissions(canCollect:boolean) {
+    static parseMissions(_canCollect:boolean) {
         var missionOngoing:Mission = null as any;
         var missions:Mission[] = [];
         var lastMissionData:Mission = {} as any;

@@ -34,7 +34,7 @@ export class BossBang {
     // gate on their presence with the exact same selector.
     static readonly PROGRESS_REWARD_SELECTOR = 'button[rel="claim"].progress-bar-claim-reward:not([disabled]):visible';
 
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData): any {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, _hhEventData: HHEventData): any {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
 

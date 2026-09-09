@@ -54,7 +54,7 @@ export class EventGirl {
                         logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
                         this.troll_id = undefined as any;
                     }
-                } catch (error) {
+                } catch {
                     try {
                         const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
                         this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
@@ -62,7 +62,7 @@ export class EventGirl {
                             logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
                             this.troll_id = undefined as any;
                         }
-                    } catch (error) {
+                    } catch {
                         logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
                     }
                 }
@@ -73,14 +73,14 @@ export class EventGirl {
                         logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
                         this.champ_id = undefined as any;
                     }
-                } catch (error) {
+                } catch {
                     try {
                         this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
                         if (girlData.source.anchor_win_from.disabled) {
                             logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
                             this.champ_id = undefined as any;
                         }
-                    } catch (error) {
+                    } catch {
                         logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
                     }
                 }
