@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.12
+// @version      8.12.13
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -10144,9 +10144,24 @@ class Harem {
     }
     static moduleHaremCountMax() {
         const girlList = getHHVars('girls_data_list', false) || getHHVars('availableGirls', false);
-        if (Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMinSizeExpirationSecs")) && girlList !== null) {
-            setStoredValue(HHStoredVarPrefixKey + TK.HaremSize, JSON.stringify({ count: Object.keys(girlList).length, count_date: new Date().getTime() }));
-            logHHAuto("Harem size updated to : " + Object.keys(girlList).length);
+        if (girlList === null)
+            return;
+        const count = Object.keys(girlList).length;
+        const cached = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0, count_date: 0 });
+        // The timer alone made a young harem invisible for a day. Measured
+        // 2026-09-09: the cache held 3 from that morning while the waifu page
+        // in front of it listed 13, and the ten-girl gate for Place of Power
+        // and Path of Attraction reads the cache first -- so an account that
+        // had already earned those features would have waited out the day.
+        //
+        // A count larger than the cached one is taken straight away. It cannot
+        // come from the truncated list that issue #1864 was about: that hazard
+        // is a list *shorter* than the harem overwriting a good snapshot, and
+        // a shorter list fails this test. Shrinking still waits for the timer.
+        if (Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars("HaremMinSizeExpirationSecs"))
+            || count > (cached.count || 0)) {
+            setStoredValue(HHStoredVarPrefixKey + TK.HaremSize, JSON.stringify({ count: count, count_date: new Date().getTime() }));
+            logHHAuto("Harem size updated to : " + count);
         }
     }
     static getGirlUpgradeCost(inRarity, inTargetGrade) {
