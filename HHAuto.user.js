@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.7
+// @version      8.12.8
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -22176,6 +22176,8 @@ var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (t
 
 
 
+
+
 class PoaReward {
     constructor(tier, type, slot) {
         this.tier = 0;
@@ -22187,6 +22189,27 @@ class PoaReward {
     }
 }
 class PathOfAttraction {
+    /**
+     * The game's own gate, read off the locked page on 2026-09-09:
+     * "You need to be at least on the Second World of your adventure and
+     * have at least 10 girls in your Harem to participate in the Path of
+     * Attraction event."
+     *
+     * Without it the event counts as enabled for an account that cannot
+     * enter it, and the run cannot get away from the page. The locked tab
+     * still renders: `.event-title.active` carries the requested tab, so
+     * getDisplayedIdEventPage() returns the id and the empty-id guard in
+     * EventModule never fires. Measured in one session, twelve of eighteen
+     * samples sat on that page, going home and back every tick.
+     *
+     * Same shape as PlaceOfPower.isEnabled, which guards the same kind of
+     * dead end.
+     */
+    static isEnabled() {
+        const enoughGirls = Harem.getGirlCount() >= 10;
+        const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
+        return enoughGirls && enoughProgress;
+    }
     static getRemainingTime() {
         const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
         if ($(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate) === undefined)) {
@@ -28993,7 +29016,10 @@ class EventModule {
         const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true";
         const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && (getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true") && SultryMysteries.isEnabled();
         const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
-        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg'));
+        // The account must be able to enter the event, not just have it in
+        // the list. Mirrors isSultryMysteriesEvent, which asks its module the
+        // same way.
+        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')) && PathOfAttraction.isEnabled();
         const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
         const isCumback = "cumback" === eventType;
         const isKinky = "kinky" === eventType;

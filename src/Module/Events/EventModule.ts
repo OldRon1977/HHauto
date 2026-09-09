@@ -435,7 +435,10 @@ export class EventModule {
         const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey+SK.bossBangEvent) ==="true";
         const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && (getStoredValue(HHStoredVarPrefixKey+SK.sultryMysteriesEventRefreshShop) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.sultryMysteriesAutoOpen) === "true") && SultryMysteries.isEnabled();
         const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
-        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg'));
+        // The account must be able to enter the event, not just have it in
+        // the list. Mirrors isSultryMysteriesEvent, which asks its module the
+        // same way.
+        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')) && PathOfAttraction.isEnabled();
         const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
         const isCumback = "cumback" === eventType;
         const isKinky = "kinky" === eventType;
