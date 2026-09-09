@@ -77,7 +77,13 @@ export class PathOfGlory {
             const pogEnd = getSecondsLeft("PoGRemainingTime");
             logHHAuto("PoG end in " + TimeHelper.debugDate(pogEnd));
 
-            if (checkTimer('nextPoGCollectAllTime') && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true")
+            // `pogEnd > 0` is the guard from #1846: getSecondsLeft returns 0
+            // both for "no such timer" and for "already expired", so without
+            // it an unknown remaining time opened the collect-all gate at any
+            // distance from the event end -- and collect-all bypasses the
+            // player's own tier filter. PathOfAttraction failed closed on this
+            // in 8.11; PathOfGlory and PathOfValue did not.
+            if (checkTimer('nextPoGCollectAllTime') && pogEnd > 0 && pogEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true")
             {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
@@ -94,7 +100,14 @@ export class PathOfGlory {
                     setTimer('nextPoGCollectAllTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                 }
             }
-            if (checkTimer('nextPoGCollectTime') && (getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) === "true" || getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollectAll) === "true"))
+            // "Collect all" is the final-window sweep above, not a second
+            // switch for the routine round -- that is what its tooltip says
+            // ("collect all items before end ... configured with Collect all
+            // timer") and what PathOfValue and PathOfAttraction do. Path of
+            // Glory alone carried `|| autoPoGCollectAll` here, from the commit
+            // that first brought both files over, so the same two switches
+            // behaved differently on two otherwise identical features.
+            if (checkTimer('nextPoGCollectTime') && getStoredValue(HHStoredVarPrefixKey+SK.autoPoGCollect) === "true")
             {
                 logHHAuto("Checking Path of Glory for collectable rewards.");
                 logHHAuto("setting autoloop to false");
