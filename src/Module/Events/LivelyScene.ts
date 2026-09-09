@@ -15,7 +15,6 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { randomInterval, convertTimeToInt, getLimitTimeBeforeEnd, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer, checkTimer } from "../../Helper/TimerHelper";
-import { autoLoop } from "../../Service/AutoLoop";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { isJSON } from "../../Utils/Utils";

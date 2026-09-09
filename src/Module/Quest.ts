@@ -16,7 +16,7 @@ import { parsePrice } from "../Helper/PriceHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../Helper/TimerHelper";
-import { autoLoop } from "../Service/AutoLoop";
+import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -260,7 +260,7 @@ export class QuestHelper {
             proceedButtonMatch.click();
             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
             logHHAuto("setting autoloop to true");
-            setTimeout(autoLoop,randomInterval(800,1200));
+            kickAutoLoop(randomInterval(800,1200));
         },randomInterval(500,800));
         return true;
     }
