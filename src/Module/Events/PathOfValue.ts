@@ -78,7 +78,12 @@ export class PathOfValue {
             const povEnd = getSecondsLeft("PoVRemainingTime");
             logHHAuto("PoV end in " + TimeHelper.debugDate(povEnd));
 
-            if (checkTimer('nextPoVCollectAllTime') && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true")
+            // `povEnd > 0` is the guard from #1846: getSecondsLeft returns 0
+            // both for "no such timer" and for "already expired", so without
+            // it an unknown remaining time opened the collect-all gate at any
+            // distance from the event end -- and collect-all bypasses the
+            // player's own tier filter.
+            if (checkTimer('nextPoVCollectAllTime') && povEnd > 0 && povEnd < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey+SK.autoPoVCollectAll) === "true")
             {
                 if ($(ConfigHelper.getHHScriptVars("selectorClaimAllRewards")).length > 0)
                 {
