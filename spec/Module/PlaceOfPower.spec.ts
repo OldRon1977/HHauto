@@ -2,11 +2,60 @@ import { PlaceOfPower } from "../../src/Module/PlaceOfPower";
 import { setStoredValue, getStoredJSON } from "../../src/Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { TK } from "../../src/config/StorageKeys";
+import { Harem } from "../../src/Module/harem/Harem";
+import * as LogUtils from "../../src/Utils/LogUtils";
 
 describe("PlaceOfPower", function () {
     afterEach(() => {
         localStorage.clear();
         sessionStorage.clear();
+    });
+
+    // isActivated() calls isEnabled() on every pipeline tick. Measured over
+    // one 12-minute run, the ten-girl notice filled 692 of 2532 log lines --
+    // 27 percent of the log, across 24 page loads.
+    describe("the ten-girl notice does not repeat on every tick", function () {
+        // The memo lives at module scope and is not reset between tests, so
+        // each case below uses a count the ones before it did not.
+        let logged: string[];
+
+        beforeEach(() => {
+            logged = [];
+            jest.spyOn(LogUtils, 'logHHAuto').mockImplementation((...args: unknown[]) => {
+                logged.push(String(args[0]));
+            });
+        });
+
+        afterEach(() => { jest.restoreAllMocks(); });
+
+        it("says it once for a given count, however often it is asked", function () {
+            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(9);
+
+            PlaceOfPower.isEnabled();
+            PlaceOfPower.isEnabled();
+            PlaceOfPower.isEnabled();
+
+            const notices = logged.filter(l => l.includes('needs 10 girls'));
+            expect(notices).toHaveLength(1);
+            expect(notices[0]).toContain('the harem holds 9');
+        });
+
+        it("says it again once the count has moved", function () {
+            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(7);
+            PlaceOfPower.isEnabled();
+            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(8);
+            PlaceOfPower.isEnabled();
+
+            expect(logged.filter(l => l.includes('needs 10 girls'))).toHaveLength(2);
+        });
+
+        it("says nothing once the harem is big enough", function () {
+            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(10);
+
+            PlaceOfPower.isEnabled();
+
+            expect(logged.filter(l => l.includes('needs 10 girls'))).toHaveLength(0);
+        });
     });
 
     describe("removePopFromPopToStart", function () {

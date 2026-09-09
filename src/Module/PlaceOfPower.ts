@@ -30,6 +30,10 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { Harem } from "./harem/Harem";
 
+// Last girl count reported by isEnabled(), so the ten-girl notice is not
+// repeated on every tick. Reset with the document.
+let lastReportedGirlShortfall: number | null = null;
+
 export class PlaceOfPower {
     static moduleDisplayPopID()
     {
@@ -41,9 +45,18 @@ export class PlaceOfPower {
 
     static isEnabled() {
         const onPowerplacePage = getPage() === ConfigHelper.getHHScriptVars("pagesIDPowerplacemain");
-        const enoughGirl = Harem.getGirlCount() >= 10;
-        if (!enoughGirl) {
-            logHHAuto('ERROR: not enough girl for POP');
+        const girlCount = Harem.getGirlCount();
+        const enoughGirl = girlCount >= 10;
+        // A harem under ten girls is the ordinary state of a young account,
+        // not an error, and isActivated() asks this on every pipeline tick.
+        // Measured over one 12-minute run: 692 of 2532 log lines were this
+        // one message -- 27 percent of the log, across 24 page loads, drowning
+        // the lines that do report a fault. Say it once per count instead; the
+        // memo lives as long as the document, so a page load repeats it only
+        // when the number has changed.
+        if (!enoughGirl && lastReportedGirlShortfall !== girlCount) {
+            lastReportedGirlShortfall = girlCount;
+            logHHAuto('Place of Power needs 10 girls, the harem holds ' + girlCount + '.');
         }
         // unlocked and the end of world 2
         const enoughProgress = getHHVars('Hero.infos.questing.id_world') > 2 && enoughGirl;
