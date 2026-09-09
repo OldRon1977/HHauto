@@ -1043,10 +1043,20 @@ const handleQuest: HandlerConfig = {
           }
         };
         if (questRequirement === 'battle') {
-          if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
-            logHHAuto('Quest requires battle.');
-            logHHAuto('prepare to save one battle for quest');
-            setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+          if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false)) {
+            if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
+              logHHAuto('Quest requires battle.');
+              logHHAuto('prepare to save one battle for quest');
+              setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+            }
+            // With autoTrollBattle off, handleTrollBattle never fights -- every
+            // branch of its shouldFight is gated on that switch. This call is
+            // the only one that runs the quest's battle, so it has to survive
+            // the flag being set: gating it on autoTrollBattleSaveQuest ===
+            // 'false' made it a one-shot, and a fight that did not happen
+            // (no energy, a target that could not be resolved) left the quest
+            // waiting on a battle nobody would start again. The flag is
+            // cleared by GenericBattle once the fight has been fought.
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') {
               ctx.busy = await Troll.doBossBattle();
             }

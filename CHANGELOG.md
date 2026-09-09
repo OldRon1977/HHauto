@@ -7,6 +7,33 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.10 - A quest that demands a battle no longer stops the account
+
+Measured 2026-09-09 on a world-4 account with `autoTrollBattle` off: the main
+quest reached a step that requires a fight, `handleQuest` logged "Quest requires
+battle" and "prepare to save one battle for quest", `Troll.doBossBattle` answered
+"No valid troll target found, skipping." -- and that was the last thing that
+happened. Twelve minutes of empty `handleQuest` ticks followed, with quest energy
+at 310 and nothing else left to do.
+
+Two gates caused it, both reading `autoTrollBattle` where the quest's own demand
+was the reason to act:
+
+`Troll.getTrollIdToFight` resolves the target. Every branch that sets one is
+gated on `autoTrollBattle === "true"`, the quest-item branch included, so with
+troll farming off the target came out 0. `isTrollFightActivated()` already lists
+`autoTrollBattleSaveQuest` beside `autoTrollBattle` rather than under it, and
+`handleQuest` calls `doBossBattle()` precisely when `autoTrollBattle` is off --
+the quest-item branch now agrees with both. World 1 still yields nothing: there
+`lastTrollIdAvailable` is 0, and that 0 is the answer (v8.12.5).
+
+`handleQuest`'s battle branch armed `autoTrollBattleSaveQuest` and then used that
+same marker as its own gate, so it fired once. A fight that did not happen --
+no energy, no resolvable target -- left the quest waiting on a battle nobody
+would start again: `handleTrollBattle` cannot, every arm of its `shouldFight`
+requires `autoTrollBattle`. The arming stays one-shot; the fight is now retried
+each tick until `GenericBattle` clears the marker.
+
 ### v8.12.9 - The free bundle collector reaches the step-up rung
 
 Measured on a live account, 2026-09-09: the shop popup carries nine tabs, and

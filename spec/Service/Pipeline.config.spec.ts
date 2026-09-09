@@ -94,6 +94,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     autoQuest: 'Setting_autoQuest',
     autoSideQuest: 'Setting_autoSideQuest',
     autoMission: 'Setting_autoMission',
+    autoTrollBattle: 'Setting_autoTrollBattle',
   },
   TK: {
     eventsList: 'Temp_eventsList',
@@ -102,6 +103,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     autoLoop: 'Temp_autoLoop',
     questRequirement: 'Temp_questRequirement',
     paranoiaQuestBlocked: 'Temp_paranoiaQuestBlocked',
+    autoTrollBattleSaveQuest: 'Temp_autoTrollBattleSaveQuest',
   },
 }));
 
@@ -661,6 +663,63 @@ describe('Pipeline.config', () => {
       ]);
 
       jest.restoreAllMocks();
+    });
+
+    // Measured 2026-09-09 on a world-4 account with autoTrollBattle off: a
+    // quest step demanded a battle, this branch armed
+    // autoTrollBattleSaveQuest and fired once, the fight did not happen, and
+    // the branch never ran again -- the marker it had just set was its own
+    // gate. handleTrollBattle cannot pick it up either: every arm of its
+    // shouldFight requires autoTrollBattle. Twelve minutes of empty ticks
+    // followed.
+    describe('a quest step that demands a battle, with troll farming off', () => {
+        const TrollMock = jest.requireMock('../../src/Module/Troll').Troll as Record<string, jest.Mock>;
+
+        const questWaitsOnBattle = (saveQuestFlag: string) => {
+            getStoredValueMock.mockImplementation((key: string) => {
+                if (key.endsWith('autoTrollBattleSaveQuest')) return saveQuestFlag;
+                if (key.endsWith('Temp_questRequirement')) return 'battle';
+                if (key.endsWith('Setting_autoTrollBattle')) return 'false';
+                if (key.endsWith('Setting_autoQuest')) return 'true';
+                return undefined;
+            });
+        };
+
+        beforeEach(() => { TrollMock.doBossBattle.mockClear(); });
+
+        it('arms the marker and fights on the first tick', async () => {
+            questWaitsOnBattle('false');
+
+            await handler.steps[0].fn(makeCtx({ canCollectCompetitionActive: true }));
+
+            expect(setStoredValueMock.mock.calls.map(c => [c[0], c[1]])).toContainEqual([
+                expect.stringContaining('autoTrollBattleSaveQuest'),
+                'true',
+            ]);
+            expect(TrollMock.doBossBattle).toHaveBeenCalled();
+        });
+
+        it('keeps trying while the marker is armed and the fight has not happened', async () => {
+            questWaitsOnBattle('true');
+
+            await handler.steps[0].fn(makeCtx({ canCollectCompetitionActive: true }));
+
+            expect(TrollMock.doBossBattle).toHaveBeenCalled();
+        });
+
+        it('leaves the fight to handleTrollBattle while troll farming is on', async () => {
+            getStoredValueMock.mockImplementation((key: string) => {
+                if (key.endsWith('autoTrollBattleSaveQuest')) return 'true';
+                if (key.endsWith('Temp_questRequirement')) return 'battle';
+                if (key.endsWith('Setting_autoTrollBattle')) return 'true';
+                if (key.endsWith('Setting_autoQuest')) return 'true';
+                return undefined;
+            });
+
+            await handler.steps[0].fn(makeCtx({ canCollectCompetitionActive: true }));
+
+            expect(TrollMock.doBossBattle).not.toHaveBeenCalled();
+        });
     });
 
     it('routes home when nothing to do on the quest page (questRequirement none, no energy)', async () => {
