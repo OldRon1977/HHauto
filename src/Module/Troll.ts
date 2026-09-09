@@ -364,8 +364,20 @@ export class Troll {
         if (TTF <= 0) {
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
                 && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                // In world 1 nothing is unlocked yet: getLastTrollIdAvailable
+                // returns id_world - 1 = 0, and that 0 is the answer, not a
+                // failure to find a target. The old backup replaced it with a
+                // hard-wired 1; the game then answers "Troll not available
+                // yet!" on a page the script does not initialise on, so no
+                // handler can leave it -- the dead end of issue #1875, reached
+                // from the main fallback instead of a side troll. Measured
+                // 2026-09-09 on a level-5 account in world 1, quest 7.
+                if (lastTrollIdAvailable <= 0) {
+                    if (logging) logHHAuto('No troll unlocked in this world yet, skipping.');
+                    return 0;
+                }
                 // Only fallback to last troll when not using first/last troll with girls mode
-                TTF = lastTrollIdAvailable > 0 ? lastTrollIdAvailable : 1;
+                TTF = lastTrollIdAvailable;
                 if (logging) logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
             } else {
                 // First/last troll with girls found no valid target, or events/raids only mode
@@ -423,6 +435,14 @@ export class Troll {
 
         if (!TTF || TTF <= 0) {
             const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+            // The retry-then-troll-1 path below assumes some troll is unlocked.
+            // On a world-1 account none is, and troll 1 is the dead page
+            // described in getTrollIdToFight. Leave before the retry: it would
+            // only delay the same navigation by one run.
+            if (Troll.getLastTrollIdAvailable(false) <= 0) {
+                logHHAuto('No troll unlocked in this world yet, skipping fight.');
+                return false;
+            }
             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
                 && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
                 // Fixed troll or "last troll" mode: retry once, then fallback to troll 1
