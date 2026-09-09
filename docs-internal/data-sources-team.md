@@ -1,6 +1,6 @@
 ---
-last-verified: 2026-07-13
-verified-against-version: 8.5.1
+last-verified: 2026-09-09
+verified-against-version: 8.12.18
 status: current
 ---
 
@@ -219,6 +219,40 @@ fixtures and a live dump; role blessing that week: "Week of the Bugger"
 | ``pay_in`` | number |
 | ``ts_pay`` | number |
 | ``shards`` | number |
+
+---
+
+## ``teams_data`` -- the teams on the battle-teams page
+
+Access: ``unsafeWindow.teams_data``. Available on ``/teams.html`` (page id
+``teams``, ``pagesIDBattleTeams``), keyed by the slot index that the DOM
+carries as ``.team-slot-container.selected-team[data-team-index]``.
+Not present on the edit-team page -- ``TeamModule.getSelectedGirls`` reads
+the hexagons there instead.
+
+Measured 2026-09-09 on a live account with one unlocked team of three girls:
+
+| Field | Value seen | Notes |
+|---|---|---|
+| ``girls_ids`` | ``[1, 4, 7]`` | the girls in the team, **occupancy** |
+| ``girls`` | 3 entries, no nulls | same girls, full records |
+| ``max_team_size`` | ``7`` | **capacity**, stated separately |
+| ``total_power`` | ``2969.89`` | matches the page's "Total Power 2,970" |
+| ``slot_index`` | | which of the team slots this is |
+| further | ``caracs``, ``remaining_ego``, ``hitter_girl_id``, ``id_team``, ``theme``, ``synergies``, ``theme_elements``, ``power_display`` | |
+
+The account had 30 entries in ``teams_data`` (one unlocked, the rest empty
+with ``girls_ids: []``); the page shows 16 slots, 4 open and 12 padlocked
+behind a Monthly Card.
+
+**Capacity is not occupancy.** Reading a short ``girls`` array as a broken
+team is what v8.12.18 fixed: the array is short because the team is not full,
+and ``max_team_size`` is where the seven lives. A team with nothing in it has
+``girls_ids: []``, and that is the only case with no answer to give.
+
+Measured effect of the fix, same account, same team: ``#EquipAll`` went from
+"can't get all team members, cancel action" to three successful equips, and
+the team's Total Power from **2,970 to 3,459**.
 
 ---
 
