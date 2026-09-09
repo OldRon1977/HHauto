@@ -11,13 +11,13 @@
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
 import { getHHVars } from "../../Helper/HHHelper";
-import { HeroHelper } from "../../Helper/HeroHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { getStoredArray, getStoredValue } from "../../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
+import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
@@ -45,7 +45,7 @@ export class SultryMysteries {
     static autoOpenRunning = false;
 
     static isEnabled(){
-        return HeroHelper.getLevel()>=ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_SM");
+        return FeatureGate.isUnlocked('sultryMysteries');
     }
 
     static isAutoOpenEnabled(): boolean {

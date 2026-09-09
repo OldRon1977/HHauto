@@ -8,7 +8,6 @@
 // Used by: Service/AutoLoopPageHandlers.ts, Service/ParanoiaService.ts, Service/Pipeline.config.ts, Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { getHHVars } from "../Helper/HHHelper";
 import { getPage, getPopFallbackIndex } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, getStoredJSON, setStoredValue, deleteStoredValue } from "../Helper/StorageHelper";
@@ -25,14 +24,10 @@ import {
 import { autoLoop } from "../Service/AutoLoop";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
+import { FeatureGate } from "../Service/FeatureGate";
 import { isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
-import { Harem } from "./harem/Harem";
-
-// Last girl count reported by isEnabled(), so the ten-girl notice is not
-// repeated on every tick. Reset with the document.
-let lastReportedGirlShortfall: number | null = null;
 
 export class PlaceOfPower {
     static moduleDisplayPopID()
@@ -44,24 +39,12 @@ export class PlaceOfPower {
     }
 
     static isEnabled() {
+        // Standing on the Place of Power page is not an unlock condition, it
+        // is a "do not strand here" clause: a run that navigated there has
+        // work to finish whatever the gate says.
         const onPowerplacePage = getPage() === ConfigHelper.getHHScriptVars("pagesIDPowerplacemain");
-        const girlCount = Harem.getGirlCount();
-        const gate = ConfigHelper.getHHScriptVars("HaremSizeGate");
-        const enoughGirl = girlCount >= gate;
-        // A harem under ten girls is the ordinary state of a young account,
-        // not an error, and isActivated() asks this on every pipeline tick.
-        // Measured over one 12-minute run: 692 of 2532 log lines were this
-        // one message -- 27 percent of the log, across 24 page loads, drowning
-        // the lines that do report a fault. Say it once per count instead; the
-        // memo lives as long as the document, so a page load repeats it only
-        // when the number has changed.
-        if (!enoughGirl && lastReportedGirlShortfall !== girlCount) {
-            lastReportedGirlShortfall = girlCount;
-            logHHAuto('Place of Power needs ' + gate + ' girls, the harem holds ' + girlCount + '.');
-        }
-        // unlocked and the end of world 2
-        const enoughProgress = getHHVars('Hero.infos.questing.id_world') > 2 && enoughGirl;
-        return ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && (enoughProgress || onPowerplacePage);
+        return FeatureGate.isUnlocked('placeOfPower')
+            || (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && onPowerplacePage);
     }
 
     static isActivated() {
