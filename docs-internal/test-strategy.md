@@ -1132,6 +1132,53 @@ findNextChamptionTime with 1 test.
 - File writes only via Python+UTF8 (workspace rule 05)
 - README entry on a version bump (not required for this stage)
 
+## Traps when writing a new test (2026-09-09)
+
+Three came out of one session, all in tests that were green at first.
+
+**A negative assertion is vacuous until the positive one runs.** A test for
+"the script must not click `#skip-quest`" passed before the fix, because
+`QuestHelper.run()` clicks from a `setTimeout` and the test had no fake
+timers -- so nothing was clicked at all and the assertion could not fail.
+Fix: assert in the same test that the button which *should* be pressed was
+pressed. If that fails, the negative half is not evidence.
+
+**A test that asserts the new behaviour must be run against the old code.**
+`git stash push -- <one source file>` and re-running the spec is enough, and
+it is the only cheap proof that a test would have caught the defect. Two of
+the four TeamModule tests written that day failed that check on the first
+attempt for the wrong reason (a page guard the fixture did not satisfy), so
+they were passing without exercising anything.
+
+**Module-level state outlives a test.** `Bundles` remembers when its popup
+walk started, `FeatureGate` remembers the last verdict it reported. Both
+survive `afterEach`. Two ways out, both used here: advance the fake clock per
+test so the memo ages out (`Bundles.spec`), or expose a narrow reset the spec
+calls (`FeatureGate.forgetReportedState`). Relying on test order instead is
+how a green suite hides a broken memo.
+
+### Table-driven where the code became table-driven
+
+ADR-012 replaced eight hand-written `isEnabled` conditions with one table.
+The spec follows the same shape: `spec/Service/FeatureGate.pure.spec.ts`
+runs every case against every kind of condition (level / girls / world), so a
+fourth condition cannot arrive with tests for only one of them. 39 tests come
+out of ~10 written cases.
+
+This does not contradict "no trivial tests for one-line `isEnabled` getters"
+under *Deliberately dropped*: the eight getters have no tests of their own,
+the shared decision behind them does.
+
+Checked by mutation, by hand, on the day it was written -- each of these was
+introduced, the suite run, and reverted:
+
+| Mutation | Failing tests |
+|---|---|
+| threshold of 1 ignored | 21 |
+| `knownValue` accepts numeric strings | 10 |
+| obstacle order swapped | 9 |
+| a row loses its condition | 2 |
+
 ## Change log
 
 | Date | Change |
@@ -1174,3 +1221,4 @@ findNextChamptionTime with 1 test.
 | 2026-08-17 | Stage 5 task 5.3 done: a fresh capture (inspector v4.8.0) unblocked the parser fixtures. New fixture sets `teams/`, `blessings/`, `equipment/` with READMEs; BDSMHelper (synergies + skills), TeamModule.mapAvailableGirl, BlessingService and the parseArmorItem reject case now run on real payloads. The capture confirmed three things no hand-written object had: the element/bonus_identifier mapping, `percentage_value: null` on flat skills, and the absent `pvp_v3` key on Role-only girls. Two gaps recorded (hero armor globals not captured; `item.ico` needed by getRewardTypeByData but stripped by the redaction rule). 1176 -> 1183 tests |
 | 2026-08-17 | Stage 5 task 5.4: inspector v4.9.0 captures the hero's own equipment; `spec/fixtures/equipment/hero-armor.json` added and `parseArmorItem` fed from it. The capture confirms the worn/inventory id asymmetry, the string `chance`, and the absent `resonance_bonuses` key. Two tests deleted in 5.1 return as `the model against the capture`, measured against a real capped mythic. All fixtures re-cut from the surviving dump. Merged via PR #1828. 1183 -> 1185 tests |
 | 2026-08-17 | Stage 5 finished: 1396 -> 1185 tests, 93 -> 82 suites, across PRs #1826, #1827 and #1828. First live run: 11 OK, 1 DRIFT, 0 ERROR -- and the DRIFT was a dead claim in the checker, not a change in the game. The `quality` job, red on main since 2026-08-16, is green again with the lint ceiling at the real number (1046). Carried forward: the `item.ico` decision for `getRewardTypeByData` |
+| 2026-09-09 | ADR-012: eight hand-written `isEnabled` conditions replaced by one table (`Service/FeatureGate`), covered by a table-driven spec pair -- 66 tests from ~14 written cases, all four hand-run mutations caught. `Pantheon.pure.decideIsEnabled` and its four tests folded in. Three test traps from the same session written up above. 1558 -> 1619 tests, 98 -> 100 suites |
