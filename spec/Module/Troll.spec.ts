@@ -642,6 +642,43 @@ describe("Troll module", function () {
             });
         });
 
+        // A fresh account sits in world 1, where getLastTrollIdAvailable
+        // returns id_world - 1 = 0 -- no troll is unlocked yet. Both fallbacks
+        // used to replace that 0 with a hard-wired troll 1, and the game
+        // answers "Troll not available yet!" on a page the script does not
+        // initialise on. Measured 2026-09-09 on a level-5 account, world 1,
+        // quest 7: the run sat on troll-pre-battle.html?id_opponent=1 for
+        // minutes without moving.
+        describe("world 1, before any troll is unlocked", function () {
+            const world1 = () => {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 1, choices_adventure: 0 };
+            };
+
+            it("skips instead of falling back to troll 1", function () {
+                world1();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+
+                expect(Troll.getLastTrollIdAvailable(false)).toBe(0);
+                expect(Troll.getTrollIdToFight(false)).toBe(0);
+            });
+
+            it("does not fight even after the invalid-target retry", async function () {
+                world1();
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+                // The retry guard is what used to force troll 1 on the second run.
+                sessionStorage.setItem(HHStoredVarPrefixKey + TK.TrollInvalid, 'true');
+
+                await expect(Troll.doBossBattle()).resolves.toBe(false);
+            });
+
+            it("still fights normally once a troll is unlocked", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 2, choices_adventure: 0 };
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(1);
+            });
+        });
+
         it("falls back to 1 when autoTrollBattle enabled but troll not in trollzList", function () {
             localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'true');
             // Set world very high so troll index won't be in trollzList

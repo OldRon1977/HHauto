@@ -7,6 +7,24 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.5 - A new account no longer walks into a troll it cannot fight
+
+In world 1 no troll is unlocked yet. The script knew that -- the last available
+troll id is derived as `id_world - 1`, which is 0 -- and then threw the answer
+away: both fallback paths replaced that 0 with a hard-wired troll 1.
+
+The game answers `troll-pre-battle.html?id_opponent=1` with a bare page that
+says "Troll not available yet!" and carries no hero data, so HHauto does not
+initialise on it and no handler can leave it again. Measured on a level-5
+account in world 1, quest 7: the run sat on that page for minutes without
+moving. It is the dead end issue #1875 described for side trolls, reached this
+time through the main fallback, which that fix did not cover.
+
+Both places now ask whether any troll is unlocked at all before falling back.
+If none is, the fight is skipped and the run goes on to the next block. The
+second fallback also leaves before its retry, which would only have delayed the
+same navigation by one run. Once a troll is unlocked nothing changes.
+
 ### v8.12.4 - Upgrade Gear works through every worn mythic, without needing a team
 
 Three things stood between the button and the items you wear.
