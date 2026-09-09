@@ -8,7 +8,6 @@
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/InfoService.ts, Service/ParanoiaService.ts u. a.
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { HeroHelper } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
@@ -21,14 +20,12 @@ import { queryStringGetParam } from "../Helper/UrlHelper";
 import { gotoPage } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
+import { FeatureGate } from "../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { Booster } from "./Booster";
 import { DailyGoals } from './DailyGoals';
-import {
-    decideIsEnabled,
-    decideShouldFight,
-} from './Pantheon.pure';
+import { decideShouldFight } from './Pantheon.pure';
 
 export class Pantheon {
 
@@ -60,11 +57,7 @@ export class Pantheon {
     }
 
     static isEnabled(){
-        return decideIsEnabled({
-            enabled: ConfigHelper.getHHScriptVars("isEnabledPantheon", false),
-            heroLevel: HeroHelper.getLevel(),
-            minLevel: ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON"),
-        });
+        return FeatureGate.isUnlocked('pantheon');
     }
 
     static isTimeToFight(){

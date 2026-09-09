@@ -10,7 +10,6 @@
 //
 import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";
 import { ConfigHelper } from "../../Helper/ConfigHelper";
-import { getHHVars } from "../../Helper/HHHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
@@ -19,10 +18,10 @@ import { TimeHelper, randomInterval, convertTimeToInt, getLimitTimeBeforeEnd } f
 import { getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { autoLoop } from "../../Service/AutoLoop";
 import { logHHAuto } from "../../Utils/LogUtils";
+import { FeatureGate } from "../../Service/FeatureGate";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
-import { Harem } from "../harem/Harem";
 
 class PoaReward {
     tier=0;
@@ -55,9 +54,7 @@ export class PathOfAttraction {
      * dead end.
      */
     static isEnabled(): boolean {
-        const enoughGirls = Harem.getGirlCount() >= ConfigHelper.getHHScriptVars("HaremSizeGate");
-        const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
-        return enoughGirls && enoughProgress;
+        return FeatureGate.isUnlocked('pathOfAttraction');
     }
 
     static rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";

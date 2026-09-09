@@ -9,7 +9,6 @@
 //
 import { getGoToClubChampionButton } from "../../Helper/ButtonHelper";
 import { ConfigHelper } from "../../Helper/ConfigHelper";
-import { HeroHelper } from "../../Helper/HeroHelper";
 import { getTextForUI } from "../../Helper/LanguageHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
@@ -19,6 +18,7 @@ import { checkTimer, setTimer } from "../../Helper/TimerHelper";
 import { autoLoop } from "../../Service/AutoLoop";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
+import { FeatureGate } from "../../Service/FeatureGate";
 import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
@@ -27,7 +27,11 @@ import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 export class DoublePenetration {
 
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledDPEvent", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_DP"); // And 10 gilrs
+        // The ten-girl condition the old comment here claimed is not
+        // measured; it is written down as an open question in
+        // docs-internal/adventure-quest-flow.md instead of sitting beside a
+        // check that never implemented it. FeatureGate.GATES says the same.
+        return FeatureGate.isUnlocked('doublePenetration');
     }
 
     static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
