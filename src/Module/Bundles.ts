@@ -12,7 +12,7 @@ import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
 import { setTimer } from "../Helper/TimerHelper";
-import { autoLoop } from "../Service/AutoLoop";
+import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
@@ -118,7 +118,7 @@ export class Bundles {
                     $("#common-popups .close_cross").trigger('click'); // Close popup
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                 }
 
                 function parseAndCollectFreeBundles(){
