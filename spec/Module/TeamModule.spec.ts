@@ -221,6 +221,17 @@ describe('TeamModule -- edit-team workflow (unequip -> pick -> assign -> stuff)'
         expect(girls[0].skill_tiers_info).toBeDefined();
     });
 
+    it('builds the girls a partial hexagon team holds', () => {
+        // Three of seven hexagons filled -- the state of any account that has
+        // not filled its team. Under the old fixed seven this answered [].
+        editTeamPage([11, 22, 33, null, null, null, null]);
+        availableGirls([11, 22, 33, 44]);
+
+        const girls = TeamModule.getSelectedGirls();
+
+        expect(girls.map(g => g.id_girl)).toEqual([11, 22, 33]);
+    });
+
     it('returns [] on the edit page when availableGirls is missing', () => {
         editTeamPage([11, 22, 33, 44, 55, 66, 77]);
         expect(TeamModule.getSelectedGirls()).toEqual([]);
