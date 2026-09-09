@@ -1,6 +1,6 @@
 ---
 last-verified: 2026-09-09
-verified-against-version: v8.12.8 HHAuto, hentaiheroes.com
+verified-against-version: v8.12.10 HHAuto, hentaiheroes.com
 status: current
 sources:
   - Live-Inventur auf dem Pruefkonto (ADR-011), Level 42, Welt 3, 8 Maedchen
@@ -502,3 +502,85 @@ das die dichteste Quelle der Oberflaeche -- die Werte selbst stehen in
 | button-notification-icon | `.button-notification-icon` | navigiert -> /season.html |
 | Penta Drill | `.penta_drill` /penta-drill.html | navigiert -> ? |
 
+
+## Die Zahlungs-Rueckfrage und ihre kostenlosen Kacheln
+
+Der Reiter-Kasten hinter `#common-popups` ist die einzige Stelle der
+Oberflaeche, an der Kobans, Geld und Energie **ohne Gegenleistung** ausgegeben
+werden. Die Inventur hat ihn nur als "Dialog: Payment Method ..." vermerkt; hier
+steht, was drinsteht.
+
+Geoeffnet wird er ueber `header .currency .reversed_tooltip` -- das Plus neben
+einer Waehrung. Er kann auch von selbst aufgehen: einmal beobachtet auf dem
+ersten `/home.html` nach der Anmeldung, bei vier spaeteren Ladungen nicht. Das
+ist eine Beobachtung, keine Rate.
+
+### Neun Reiter, nicht vier
+
+`#common-popups .payments-wrapper .payment-tabs` traegt neun Reiter. Die
+`type`-Werte in Reihenfolge:
+
+| `type` | Beschriftung | freie Kacheln auf dem Pruefkonto |
+|---|---|---|
+| `starter_offers` | Starter Packs | 1, **deaktiviert** |
+| `stepup_offers` | Step-Up Offers | 1 aktiv, 8 deaktiviert |
+| `special_offers` | Special Offers | 16 aktiv |
+| `period_deal` | Period Deals | je 1 aktiv in `daily`, `weekly`, `monthly` |
+| `monthly_card` | Monthly Cards | 0 |
+| `package` | Koban Packs | 0 |
+| `passes` | Passes | 0 |
+| `prestige` | Prestige | 0 |
+| `recharge_bonus` | Recharge Bonuses | 0 |
+
+`event_bundles` gibt es im Quelltext des Skripts, auf diesem Konto stand der
+Reiter an dem Tag nicht in der Leiste.
+
+`period_deal` hat Unterreiter `.subtabs-container .card-container` mit dem
+Attribut `period_deal` (`daily`, `weekly`, `monthly`); `special_offers` hat
+genau einen.
+
+### Woran ein freier Knopf zu erkennen ist
+
+Jeder Kaufknopf traegt `price`. Die freien tragen `price="0.00"` und die Klasse
+`free-buy-button-shop`, die bezahlten `paid-buy-button-shop`. Die **Farbklasse
+haengt am Reiter**, nicht an der Kostenlosigkeit:
+
+| Reiter | Knopf |
+|---|---|
+| `special_offers`, `period_deal` | `button.free-buy-button-shop.blue_button_L` |
+| `stepup_offers` | `button#free-reward.free-buy-button-shop.purple_button_L` |
+
+Ein Selektor, der auf die Farbe geht, verliert den Step-Up-Reiter. Deshalb liest
+`Bundles.ts` seit v8.12.9 `free-buy-button-shop` (siehe CHANGELOG).
+
+Die Step-Up-Leiter ist eine Kette: die erste Sprosse ist frei, jede weitere
+wird erst nach einem Kauf freigeschaltet. Alle acht spaeteren Knoepfe stehen als
+`disabled` in der Seite -- `:enabled` reicht, um sie auszulassen.
+
+### Was ein Durchgang eingebracht hat
+
+Ein Lauf mit `autoFreeBundlesCollect`, gemessen ueber `shared.Hero` vorher und
+nachher:
+
+| Feld | vorher | nachher |
+|---|---|---|
+| `currencies.hard_currency` | 123 | 603 |
+| `currencies.soft_currency` | 4,87 M | 5,87 M |
+| `energies.fight.amount` | 8 | 43 |
+| `energies.quest.amount` | 295 | 310 |
+
+Damit ist die Liste der Kobanquellen in `game-mechanics.md` 13a um eine
+ergaenzt: **die freien Kacheln der Zahlungs-Rueckfrage.** Das sind einmalige
+Bestaende, keine laufende Quelle -- die 16 Special Offers liefen zwischen 24
+und 67 Tagen, die Step-Up-Sprosse in 20 Stunden ab.
+
+### Eine Nebenbeobachtung
+
+`handleFreeBundles` startete im selben Tick dreimal ("Time to go and check Free
+Bundles" 3x, gleiche Lauf-ID, `ev=resume`). Jeder Start drueckt das Plus erneut.
+Danach zaehlte das Skript **32** freie Knoepfe statt der 16, die eine Lesung
+ohne Skript zeigte, und der Zaehler fiel je Klick um 2. Gemessen ist die
+Verdopplung; **geschlossen**, nicht gemessen, ist die Ursache -- ein erneut
+geoeffnetes Popup, das seinen Inhalt ein zweites Mal einhaengt. Verloren ging
+dabei nichts: der Lauf endete mit "Free bundle collection finished", und die
+Kacheln waren abgeholt.
