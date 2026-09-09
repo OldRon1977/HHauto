@@ -22,7 +22,8 @@ import { Harem } from "../../../src/Module/harem/Harem";
 import { ConfigHelper } from "../../../src/Helper/ConfigHelper";
 import { TimeHelper } from "../../../src/Helper/TimeHelper";
 import { RewardHelper } from "../../../src/Helper/RewardHelper";
-import { setTimer, Timers } from "../../../src/Helper/TimerHelper";
+import { setTimer, Timers, getSecondsLeft } from "../../../src/Helper/TimerHelper";
+import * as LogUtils from "../../../src/Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../../src/config/HHStoredVars";
 import { SK, TK } from "../../../src/config/StorageKeys";
 import { MockHelper } from "../../testHelpers/MockHelpers";
@@ -203,6 +204,79 @@ describe("PathOfAttraction -- #1846", () => {
 // event." Without the check the event counted as enabled for an account that
 // cannot enter it, and the run bounced onto that page every tick -- twelve of
 // eighteen samples in one measured session.
+// The timer element as the event page carries it, measured 2026-09-09 on
+// path_event_110: "#events .nc-panel-header .event-timer span[rel=expires]"
+// with the text "2d 17h", present 800 to 950 ms after navigation in four out
+// of four direct page loads. In one measured session the module stored that
+// value; in another it stored nothing three visits running, and the miss left
+// no trace in the log to tell the two apart.
+const EVENT_PAGE_WITH_TIMER = `
+<div id="events" class="canvas main-event-container">
+  <div class="nc-panel-container"><div class="nc-panel"><div class="nc-panel-header">
+    <div class="nc-pull-right"><div class="event-timer nc-expiration-label timer">
+      <p>Ends in <span rel="expires">2d 17h</span></p>
+    </div></div>
+  </div></div></div>
+</div>`;
+const EVENT_PAGE_WITHOUT_TIMER = `
+<div id="events" class="canvas main-event-container">
+  <div class="nc-panel-container"><div class="nc-panel"><div class="nc-panel-header">
+  </div></div></div>
+</div>`;
+
+describe("PathOfAttraction.getRemainingTime", function () {
+    let logged: string[];
+
+    beforeEach(() => {
+        logged = [];
+        jest.spyOn(LogUtils, 'logHHAuto').mockImplementation((...args: unknown[]) => {
+            logged.push(String(args[0]));
+        });
+        localStorage.clear();
+        sessionStorage.clear();
+        for (const name of Object.keys(Timers)) delete Timers[name];
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        document.body.innerHTML = '';
+        localStorage.clear();
+        sessionStorage.clear();
+        for (const name of Object.keys(Timers)) delete Timers[name];
+        jest.restoreAllMocks();
+    });
+
+    it("stores the remaining time the page shows", function () {
+        document.body.innerHTML = EVENT_PAGE_WITH_TIMER;
+
+        PathOfAttraction.getRemainingTime();
+
+        // 2d 17h
+        expect(Timers["PoARemainingTime"]).toBeDefined();
+        expect(getSecondsLeft("PoARemainingTime")).toBeGreaterThan(2 * 86400);
+        expect(logged.some(l => l.includes('no expiry timer'))).toBe(false);
+    });
+
+    it("says so when the page carries no timer, instead of leaving a silent 0", function () {
+        document.body.innerHTML = EVENT_PAGE_WITHOUT_TIMER;
+
+        PathOfAttraction.getRemainingTime();
+
+        expect(Timers["PoARemainingTime"]).toBeUndefined();
+        expect(logged.some(l => l.includes('no expiry timer'))).toBe(true);
+    });
+
+    it("stays quiet when a remaining time is already known", function () {
+        document.body.innerHTML = EVENT_PAGE_WITHOUT_TIMER;
+        setTimer("PoARemainingTime", 3600);
+        logged.length = 0;
+
+        PathOfAttraction.getRemainingTime();
+
+        expect(logged.some(l => l.includes('no expiry timer'))).toBe(false);
+    });
+});
+
 describe("PathOfAttraction.isEnabled", function () {
     const setWorld = (id_world: number) => {
         unsafeWindow.shared!.Hero = { infos: { questing: { id_world } } } as never;
