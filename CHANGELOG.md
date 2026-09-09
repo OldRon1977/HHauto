@@ -7,6 +7,25 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.17 - Path of Attraction says when it cannot read its own timer
+
+`PathOfAttraction.getRemainingTime()` reads the event's expiry from
+`#events .nc-panel-header .event-timer span[rel=expires]`, and when that finds
+nothing it did nothing at all. Every reader downstream then saw the same 0 that
+an expired event produces -- the ambiguity issue #1846 was about, and the
+reason `run()` fails closed on it.
+
+Measured 2026-09-09 on `path_event_110`: the element is there, it reads
+"2d 17h", and it is present 800 to 950 ms after navigation in four out of four
+direct page loads. In one session the module stored that value; in another it
+stored nothing on three visits running, and the log showed only
+`PoA end in 0d 0h 0m 0s` in both cases. **What the module saw at its own moment
+is not known**, and it could not be known while the miss left no trace.
+
+So the miss is logged now, and only when no remaining time is known yet -- a
+page without a timer that already has one is not worth a line. This is a
+diagnostic, not a fix: the behaviour is unchanged.
+
 ### v8.12.16 - The Skip Quest button is left where it is
 
 `#skip-quest` was the one button type the script could not name. It does not

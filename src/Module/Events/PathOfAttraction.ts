@@ -67,12 +67,25 @@ export class PathOfAttraction {
 
     static getRemainingTime(){
         const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
-    
-        if ( $(poATimerRequest).length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.PoAEndDate) === undefined) )
+        const poATimerNodes = $(poATimerRequest);
+
+        if ( poATimerNodes.length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey+TK.PoAEndDate) === undefined) )
         {
-            const poATimer = Number(convertTimeToInt($(poATimerRequest).text()));
+            const poATimer = Number(convertTimeToInt(poATimerNodes.text()));
             setTimer("PoARemainingTime",poATimer);
             setStoredValue(HHStoredVarPrefixKey+TK.PoAEndDate,Math.ceil(new Date().getTime()/1000)+poATimer);
+        }
+        else if (poATimerNodes.length === 0 && getSecondsLeft("PoARemainingTime") === 0)
+        {
+            // Without this the miss is silent and every reader downstream sees
+            // the same 0 that an expired event produces -- the ambiguity #1846
+            // was about. Measured 2026-09-09: on one visit the timer read
+            // "2d 17h" and the module stored it, on three visits in another
+            // session it stored nothing, and the element itself was present
+            // 800 to 950 ms after navigation in four out of four direct page
+            // loads. What the module saw at its own moment is not yet known,
+            // and it cannot be known while the miss leaves no trace.
+            logHHAuto("PoA: no expiry timer on the page, remaining time stays unknown.");
         }
     }
     static runOld(){
