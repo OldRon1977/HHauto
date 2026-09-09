@@ -81,6 +81,8 @@ jest.mock('../../src/Helper/StorageHelper', () => ({
   getStoredValue: jest.fn().mockReturnValue('[]'),
   setStoredValue: jest.fn(),
   deleteStoredValue: jest.fn(),
+  // "nothing stored": hand the caller back its own default.
+  getStoredJSON: jest.fn((_key: string, fallback: unknown) => fallback),
 }));
 
 jest.mock('../../src/config/HHStoredVars', () => ({
@@ -104,6 +106,7 @@ jest.mock('../../src/config/StorageKeys', () => ({
     questRequirement: 'Temp_questRequirement',
     paranoiaQuestBlocked: 'Temp_paranoiaQuestBlocked',
     autoTrollBattleSaveQuest: 'Temp_autoTrollBattleSaveQuest',
+    HaremSize: 'Temp_HaremSize',
   },
 }));
 
@@ -119,11 +122,12 @@ jest.mock('../../src/Service/PageNavigationService', () => ({
 import { pipeline, getStaleEventIDs, pruneExpiredEvents } from '../../src/Service/Pipeline.config';
 import { Season } from '../../src/Module/Events/Season';
 import { applySlotHold } from '../../src/Service/BlockPipeline';
-import { getStoredValue, setStoredValue, deleteStoredValue } from '../../src/Helper/StorageHelper';
+import { getStoredValue, setStoredValue, deleteStoredValue, getStoredJSON } from '../../src/Helper/StorageHelper';
 import { AutoLoopContext } from '../../src/Service/AutoLoopContext';
 const getStoredValueMock = getStoredValue as jest.Mock;
 const setStoredValueMock = setStoredValue as jest.Mock;
 const deleteStoredValueMock = deleteStoredValue as jest.Mock;
+const getStoredJSONMock = getStoredJSON as jest.Mock;
 
 function makeCtx(overrides: Partial<AutoLoopContext> = {}): AutoLoopContext {
   return {
@@ -583,6 +587,62 @@ describe('Pipeline.config', () => {
       const stale = getStaleEventIDs(now);
       expect(stale).toEqual([]);
       expect(deleteStoredValueMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Measured 2026-09-09: the cached girl count held 3 for a whole session
+  // while the account owned 13, and nothing on the run's path carries the
+  // girl list -- only this handler walks to the waifu page. On the weekly
+  // timer both Place of Power and Path of Attraction would have stayed shut
+  // for a week on an account that had already earned them.
+  describe('handleHaremSize refresh cadence', () => {
+    const handler = pipeline.find(h => h.name === 'handleHaremSize')!;
+    const ConfigHelperMock = jest.requireMock('../../src/Helper/ConfigHelper').ConfigHelper as { getHHScriptVars: jest.Mock };
+    const HOUR = 60 * 60;
+    const WEEK = 7 * 24 * HOUR;
+
+    const cachedHarem = (count: number, ageSeconds: number) => {
+      getStoredJSONMock.mockImplementation((key: string, fallback: unknown) =>
+        key.endsWith('Temp_HaremSize')
+          ? { count, count_date: Date.now() - ageSeconds * 1000 }
+          : fallback);
+    };
+
+    beforeEach(() => {
+      getStoredValueMock.mockImplementation((key: string) =>
+        key.endsWith('Temp_autoLoop') ? 'true' : undefined);
+      ConfigHelperMock.getHHScriptVars.mockImplementation((key: string) => {
+        if (key === 'HaremSizeGate') return 10;
+        if (key === 'HaremSizeGateExpirationSecs') return HOUR;
+        if (key === 'HaremMaxSizeExpirationSecs') return WEEK;
+        return key;
+      });
+    });
+
+    afterEach(() => {
+      getStoredJSONMock.mockImplementation((_key: string, fallback: unknown) => fallback);
+      ConfigHelperMock.getHHScriptVars.mockReturnValue(true);
+      getStoredValueMock.mockReset();
+    });
+
+    it('refreshes hourly while the count is below the ten-girl gate', () => {
+      cachedHarem(3, 2 * HOUR);
+      expect(handler.precondition(makeCtx())).toBe(true);
+    });
+
+    it('does not refresh again within that hour', () => {
+      cachedHarem(3, 10 * 60);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('goes back to the weekly cadence once the gate is passed', () => {
+      cachedHarem(13, 2 * HOUR);
+      expect(handler.precondition(makeCtx())).toBe(false);
+    });
+
+    it('still refreshes a week-old count above the gate', () => {
+      cachedHarem(13, 8 * 24 * HOUR);
+      expect(handler.precondition(makeCtx())).toBe(true);
     });
   });
 
