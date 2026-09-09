@@ -45,6 +45,18 @@ output is what ends up pasted into an issue, and a member id in a public
 thread is the leak this repository already paid for once. Do not put the raw
 id back in.
 
+A `DRIFT` line can carry a `needs:` line under it. That is the entry's
+`requires` field: the condition the account has to meet before the check can
+say anything. A DRIFT with a `needs:` line on an account that does not meet it
+is not a drift, it is a locked feature. Measured 2026-09-09 on a level-36
+account in world 3: seven of seven DRIFTs were of that kind -- Place of Power
+needs ten girls, the armour inventory was empty, the labyrinth was locked, and
+the three league checks flip between runs because the game serves a stale hero
+snapshot about half the time (see `docs-internal/adventure-quest-flow.md`).
+
+Add `requires` to any check whose page only renders past an unlock. It costs a
+sentence and saves the investigation that a bare `0` starts.
+
 A `DRIFT` is a claim the code still makes and the page no longer honours. It is
 the start of an investigation, not a verdict: find the call site, name the page
 and sub-state it runs in, and only then decide. A count of `0` without a stated
