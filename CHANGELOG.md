@@ -7,6 +7,27 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.15 - One walk through the shop popup at a time
+
+Measured 2026-09-09: the pipeline entered `goAndCollectFreeBundles` three times
+within four seconds, and each entry pressed the "+" again. The popup then held
+its content twice over -- the free-button count read **32** where a plain page
+read of the same popup showed 16, and it fell by 2 per claim -- and two walks
+logged "Free bundle collection finished" in the same second.
+
+In the same second, six exceptions came out of the game's own code, two of them
+`Cannot read properties of undefined (reading 'daily')`: the period-deal
+sub-tab that both walks were clicking at once. **Measured** is the timing and
+the doubling; that the game throws because two walks click the same sub-tab is
+**concluded**, not shown.
+
+Nothing was lost -- everything claimable was claimed -- but the second walk has
+no work of its own. The collector now refuses to start one while another is
+running. It remembers when the walk began rather than that it began: a walk's
+steps are 1.5 to 2.5 seconds apart, so one that has not finished within a
+minute counts as gone and the next may start. A flag would have needed the
+page load to clear it.
+
 ### v8.12.14 - The girl count is refreshed while it still decides something
 
 v8.12.13 let a bigger count reach the cache -- but only `moduleHaremCountMax`

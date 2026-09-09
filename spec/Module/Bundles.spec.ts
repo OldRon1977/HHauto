@@ -75,8 +75,15 @@ function shopPopup(tabs: string, content: string): string {
 
 describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', function () {
 
+    // The collector remembers when its walk started, at module scope, and that
+    // memory outlives a test. Each test starts ten minutes further on than the
+    // last, well past the minute after which an unfinished walk counts as gone.
+    let clock = Date.now();
+
     beforeEach(() => {
         jest.useFakeTimers();
+        clock += 10 * 60 * 1000;
+        jest.setSystemTime(clock);
         MockHelper.mockDomain('www.hentaiheroes.com', '/home.html');
         jest.spyOn(PageHelper, 'getPage')
             .mockReturnValue(ConfigHelper.getHHScriptVars('pagesIDHome'));
@@ -142,6 +149,59 @@ describe('Bundles.goAndCollectFreeBundles: which free claims it reaches', functi
 
         expect(disabled).not.toHaveBeenCalled();
         expect(paid).not.toHaveBeenCalled();
+    });
+
+    // Measured 2026-09-09: the pipeline entered the collector three times in
+    // four seconds, each entry pressing "+" again. The popup then held its
+    // content twice over -- 32 free buttons where a plain read showed 16 --
+    // and six game-side exceptions landed inside the doubled tab walk.
+    it('does not press the popup button again while a walk is running', function () {
+        document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
+        const opened = jest.fn();
+        document.querySelector('header .currency .reversed_tooltip')!
+            .addEventListener('click', opened);
+
+        Bundles.goAndCollectFreeBundles();
+        Bundles.goAndCollectFreeBundles();
+        Bundles.goAndCollectFreeBundles();
+        jest.advanceTimersByTime(2000);
+
+        expect(opened).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets the next walk start once the previous one has finished', function () {
+        // No free claim anywhere, so the first walk runs straight to
+        // collectFreeBundlesFinished and clears the flag.
+        document.body.innerHTML = shopPopup(STEPUP_TAB, '');
+        const opened = jest.fn();
+        document.querySelector('header .currency .reversed_tooltip')!
+            .addEventListener('click', opened);
+
+        Bundles.goAndCollectFreeBundles();
+        jest.advanceTimersByTime(2000);
+        Bundles.goAndCollectFreeBundles();
+        jest.advanceTimersByTime(2000);
+
+        expect(opened).toHaveBeenCalledTimes(2);
+    });
+
+    it('starts again once an unfinished walk has aged out', function () {
+        document.body.innerHTML = shopPopup(STEPUP_TAB, STEPUP_CONTENT);
+        const opened = jest.fn();
+        document.querySelector('header .currency .reversed_tooltip')!
+            .addEventListener('click', opened);
+
+        // First walk claims a rung and never reaches its finish path.
+        Bundles.goAndCollectFreeBundles();
+        jest.advanceTimersByTime(2000);
+        // Blocked while the walk still counts as running ...
+        Bundles.goAndCollectFreeBundles();
+        expect(opened).toHaveBeenCalledTimes(1);
+        // ... and free again a minute later.
+        jest.advanceTimersByTime(61_000);
+        Bundles.goAndCollectFreeBundles();
+
+        expect(opened).toHaveBeenCalledTimes(2);
     });
 
     it('still reaches the blue free claim under special offers', function () {

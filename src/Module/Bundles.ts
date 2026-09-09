@@ -19,6 +19,22 @@ import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { classifyExpiryTime, decideExpiryTime, extractTimerText, minScrapedSeconds } from './Bundles.pure';
 
+// One walk through the popup at a time. Measured 2026-09-09: the pipeline
+// entered goAndCollectFreeBundles three times within four seconds, each entry
+// pressing the "+" again. The popup then held its content twice over -- the
+// free-button count read 32 where a plain page read showed 16, and it fell by
+// 2 per claim -- and two walks reported "Free bundle collection finished" in
+// the same second. Six game-side exceptions landed inside that doubled walk,
+// two of them "Cannot read properties of undefined (reading 'daily')", the
+// period-deal sub-tab both walks were clicking at once. Nothing was lost, but
+// the second walk has no work of its own to do.
+//
+// A timestamp rather than a flag, so a walk that dies before its finish path
+// cannot silence the collector: the steps of a walk are 1.5 to 2.5 seconds
+// apart, so one that has not finished within a minute is gone.
+const WALK_ABANDONED_MS = 60_000;
+let collectionStartedAt = 0;
+
 export class Bundles {
     static getExpiryTime(){
         // `.period_deal` names a *tab* in the payment-tabs bar, not an
@@ -62,6 +78,10 @@ export class Bundles {
                     logHHAuto("Error autoFreeBundlesCollect not activated.");
                     return;
                 }
+                if (collectionStartedAt > 0 && Date.now() - collectionStartedAt < WALK_ABANDONED_MS) {
+                    logHHAuto("Free bundle collection already running, not starting a second one.");
+                    return true;  // busy: a walk is in progress
+                }
                 const plusButton = $("header .currency .reversed_tooltip");
                 if(plusButton.length > 0) {
                     logHHAuto("click button for popup.");
@@ -73,6 +93,7 @@ export class Bundles {
                     setTimer('nextFreeBundlesCollectTime', randomInterval(4*60*60,6*60*60));
                     return false;
                 }
+                collectionStartedAt = Date.now();
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
@@ -91,6 +112,7 @@ export class Bundles {
                 const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .free-buy-button-shop:enabled[price='0.00']";
 
                 function collectFreeBundlesFinished(message: string, nextFreeBundlesCollectTime: number) {
+                    collectionStartedAt = 0;
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
                     $("#common-popups .close_cross").trigger('click'); // Close popup
@@ -163,6 +185,7 @@ export class Bundles {
 
                 return true;
             } catch ({ errName, message }: any) {
+                collectionStartedAt = 0;
                 logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
                 setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
                 return false;
