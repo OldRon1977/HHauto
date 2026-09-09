@@ -7,6 +7,20 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.12 - Place of Power says its ten-girl notice once, not every tick
+
+`PlaceOfPower.isActivated()` asks `isEnabled()` on every pipeline tick, and
+`isEnabled()` logged `ERROR: not enough girl for POP` each time. In a measured
+12-minute run that line accounted for **692 of 2532 log lines** -- 27 percent of
+the whole log, over 24 page loads -- and it sat between the lines that report
+actual faults.
+
+It is not an error either: a harem under ten girls is the ordinary state of a
+young account. The notice now names the count it saw ("Place of Power needs 10
+girls, the harem holds 9") and repeats only when that number changes, so a
+reader still learns why Place of Power is quiet without losing the rest of the
+log to it.
+
 ### v8.12.11 - The ten-girl gate stops counting girls the player does not own
 
 `Harem.getGirlCount()` feeds the ten-girl condition in
