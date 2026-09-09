@@ -1,6 +1,6 @@
 ---
 last-verified: 2026-09-09
-verified-against-version: v8.12.6 HHAuto, hentaiheroes.com
+verified-against-version: v8.12.16 HHAuto, hentaiheroes.com
 status: current
 sources:
   - Live-Messung auf einem eigenen Pruefkonto (ADR-011), Welt 1 bis 3, Level 5 bis 17
@@ -28,7 +28,7 @@ gekennzeichnet. Kontokennungen und Spielernamen stehen nicht drin.
 | `use_item` | Questgegenstand einsetzen | der Gegenstand |
 | `battle` | Questschritt verlangt einen Kampf | Kampfenergie |
 | `end_play` | Quest zu Ende, danach Reward-Popup | - |
-| `skip-quest` | in Welt 1 gesehen, wechselte sich mit `free` ab | 0-1 Quest-Energie |
+| `skip-quest` | Schritte ueberspringen; nur bei `skippable` da | Kobans (`skip_cost.hard_currency`) |
 
 ### Was ein Schritt kostet
 
@@ -48,11 +48,30 @@ Ab Welt 3 ist damit nicht mehr die Zahl der Schritte der Engpass, sondern die
 Quest-Energie -- und sobald ein Schritt einen Kampf verlangt, die Kampfenergie,
 die mit 1800 s je Punkt nachwaechst.
 
-`skip-quest` kommt im Quelltext nicht vor (grep, 0 Treffer) und faellt damit in
-den `else`-Zweig von `Quest.ts`, der `questRequirement=unknownQuestButton`
-setzt. **Nicht gemessen** ist, ob dabei gleichzeitig ein bekannter Knopf im
-`#controls` steht; nur dann waere der Zweig zwangslaeufig. Im `#controls` steht
-neben dem Weiter-Knopf regelmaessig ein Werbeknopf
+`skip-quest` kommt im Quelltext dieses Repos nicht vor (grep, 0 Treffer).
+**Im Quelltext des Spiels schon.** Gelesen aus `build/quest.js` am 2026-09-09:
+
+- Der Knopf steht **in** `#controls`, neben dem Weiter-Knopf. Die
+  Aufraeum-Zeile des Spiels nennt beide in einem Selektor:
+  `$("#controls a, #controls .grade-controls, #controls .win img, #controls #skip-quest").remove()`.
+- Er existiert nur, solange der Schritt `skippable` meldet; sonst nimmt ihn das
+  Spiel selbst wieder heraus:
+  `!this.is_skippable && $("#skip-quest").length>0 && $("#skip-quest").remove()`.
+- Sein Klick-Behandler liest `this.skip_cost.hard_currency` und ruft
+  `shared.general.hc_confirm(n, ...)`, danach
+  `hh_ajax({action:"skip_quest_steps"})`. **Er kostet Kobans**, hinter einer
+  Rueckfrage.
+
+Damit ist die frueher offene Frage beantwortet: der Knopf steht gleichzeitig
+mit einem bekannten Weiter-Knopf im `#controls`. Fuer `Quest.ts` hiess das
+zweierlei -- `attr("id")` nimmt den ersten Treffer, also las das Skript
+`skip-quest` und landete im `unknownQuestButton`-Zweig, der `autoQuest`
+abschaltet; und `proceedButtonMatch.click()` klickt den **ganzen** Treffersatz,
+also waere ein dahinterstehender Skip-Knopf mitgedrueckt worden und haette
+seine Koban-Rueckfrage ueber der Quest stehen lassen. Seit v8.12.16 schliessen
+beide Selektoren `#skip-quest` aus.
+
+Im `#controls` steht neben dem Weiter-Knopf regelmaessig ein Werbeknopf
 (`blue_text_button ad_quest`, Text "Go!") ohne `id` -- den filtert der
 Selektor korrekt weg.
 
