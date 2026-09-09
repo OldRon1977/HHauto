@@ -470,6 +470,67 @@ sind.
 
 ---
 
+## 13b. Maedchen leveln und graden (gemessen 2026-09-09)
+
+Zwei verschiedene Dinge, die oft verwechselt werden.
+
+| | Mittel | Wirkung |
+|---|---|---|
+| **Level** | Buecher (Books-Reiter) | Erfahrung, `level`, `xp`. Aendert die Caracs **nicht** direkt. |
+| **Grade** | Geschenke (Gifts-Reiter) + Geld | `graded` +1, alle drei Caracs und `orgasm` **+30 %**, Gehalt steigt |
+
+### Der Ablauf, Schritt fuer Schritt
+
+1. `/girl/<id>` laden und den **Gifts-Reiter klicken**. Der direkte Aufruf
+   `/girl/<id>?resource=affection` zeigt dieselbe Ansicht, aber ein Klick auf
+   den Geschenk-Knopf bleibt dort **wirkungslos** -- gemessen an zwei Laeufen
+   mit identischem Selektor.
+2. Bei `affection = 0` bietet die Seite nur **Market** und **Use**, und `Use`
+   ist ausgegraut, solange kein Vorratsplatz gewaehlt ist. Die Knoepfe
+   **One Grade-Up** und **Max Grade-up** erscheinen erst, wenn Affection
+   vorhanden ist.
+3. Vorratsplaetze sind `.inventory-slot.filled-slot`; der Klick ist ein
+   **Umschalter** (`sel`). Zweimal klicken waehlt wieder ab. Danach `Use`.
+4. **One Grade-Up** fuellt den Balken bis zur naechsten Stufe und oeffnet eine
+   Rueckfrage, die den Preis nennt: *"Filling your Xp/Affection bar will cost
+   you 2. Do you want to proceed?"* -- **ohne Klick auf Yes passiert nichts.**
+5. Ist der Balken voll, steht `can_upgrade` auf `true` und `.upgrade_girl`
+   zeigt auf `/quest/<n>?grade=<k>`.
+6. Dort stehen zwei `.grade-complete-button`: **gruen zahlt mit Geld**, orange
+   mit Kobans. Der gruene ist der richtige.
+
+### Was ein Grade kostet und bringt
+
+Drei Messungen, jeweils Vorher/Nachher ueber alle Felder des `girl`-Objekts:
+
+| Maedchen | Kosten (Geld) | Caracs | `orgasm` |
+|---|---|---|---|
+| A | 36.000 | +30 % | +30 % |
+| B | 36.000 | +30 % | +30 % |
+| C | 72.000 | +30 % | +30 % |
+
+Die **+30 % sind konstant**, die Kosten nicht -- sie haengen am Maedchen.
+`upgrade_link` rueckt danach auf die naechste Questnummer.
+
+Gehaltssumme ueber `girlsDataList` auf `/home.html`: 51.600 vor dem ersten
+Grade, 116.600 nach zweien. **Nicht geklaert** ist das Verhaeltnis von
+`salary` (dort) zu der Anzeige *Income: N/h* auf der Maedchenseite -- das sind
+zwei verschiedene Groessen und duerfen nicht vermischt werden.
+
+### Wie viele Maedchen man hat
+
+`girlsDataList` ist **seitenabhaengig**: auf `/characters.html` stehen alle
+*bekannten* Maedchen mit vollen Datensaetzen, auf `/home.html` nur die
+*besessenen* mit `salary` und `pay_in`. `Harem.getGirlCount()` faellt auf
+`Object.values(girlsDataList).length` zurueck und liefert damit je nach Seite
+verschiedene Zahlen. Wer die 10-Maedchen-Bedingung darauf stuetzt, prueft auf
+der Harem-Seite etwas anderes als auf der Startseite.
+
+`window.girl` traegt ausserdem `id_member` -- die Mitgliedsnummer. Wer das
+Objekt in einen Bericht kopiert, veroeffentlicht sie.
+
+---
+
 ## 14. Cross-References
 
 | Thema | HHAuto-Doku |
