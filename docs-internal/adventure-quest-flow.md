@@ -95,15 +95,29 @@ v8.12.5, Issue #1875 fuer die Variante mit Seiten-Trollen).
 `shared.Hero.energies` traegt mehrere Toepfe. Auf dem Pruefkonto gemessen:
 `quest`, `fight`, `challenge`, `kiss`, `worship`, `reply`, `drill`.
 
-Zwei Zahlen pro Topf sind zu unterscheiden: `amount/max_amount` aus dem
-Objekt und die Anzeige in der Kopfleiste. Die Kopfleiste zeigt eine kleinere
-zweite Zahl (Beispiel: Objekt `85/1000`, Kopfleiste `85/58`). Welche Groesse
-die Kopfleiste nennt, ist **nicht gemessen** -- vermutlich die
-Regenerationsgrenze. Wer die Kopfleiste als Maximum liest, zieht falsche
-Schluesse ueber verfallende Energie.
+Jeder Topf traegt drei Zahlen: `amount`, `max_regen_amount` und `max_amount`.
+Die Kopfleiste zeigt `amount / max_regen_amount`, nicht `max_amount`. Gemessen
+in einer Ladung, fuer beide sichtbaren Balken gleichzeitig:
 
-`fight` ist auf einem jungen Konto die knappe Ressource: sie regeneriert
-langsam, und jeder Questkampf kostet davon. `quest` liegt deutlich hoeher.
+| Kopfleiste | `amount` | `max_regen_amount` | `max_amount` |
+|---|---|---|---|
+| `174/82` | 174 | 82 | 1000 |
+| `3/13` | 3 | 13 | 200 |
+
+`max_regen_amount` ist die Grenze, bis zu der von selbst nachwaechst; darueber
+kommt Energie nur aus Aufstiegen und Gegenstaenden. Steht `amount` darueber
+(174 von 82), ruht die Regeneration -- der Ueberschuss verfaellt nicht, waechst
+aber auch nicht nach.
+
+Das Skript liest an allen sechs Stellen `max_regen_amount`
+(`Quest`, `Troll`, `League`, `Pantheon`, `PentaDrill`, `Season`);
+`max_amount` steht nur im Typ `KKEnergy`. Es rechnet damit mit derselben
+Grenze wie die Anzeige -- geprueft 2026-09-09, kein Handlungsbedarf.
+
+`seconds_per_point` nennt die Nachwachszeit: Quest 450 s, Fight 1800 s,
+Challenge 2100 s, Kiss 3600 s, Drill 3600 s, Worship 8640 s, Reply 10800 s.
+`fight` ist damit auf einem jungen Konto die knappe Ressource, und jeder
+Questkampf kostet davon.
 
 ## Zwei Messfallen
 
