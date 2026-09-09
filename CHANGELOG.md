@@ -7,6 +7,35 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.1 - Path of Glory and Path of Valor decide the same way again
+
+The two modules are the same feature twice -- 148 and 150 lines that differ in
+identifiers. They also differed in two decisions, both from the commit that
+first brought the pair over.
+
+**The collect-all sweep fired on an unknown remaining time.** Both read
+`end < getLimitTimeBeforeEnd()` without asking whether the end was known.
+`getSecondsLeft` answers 0 for "no such timer" as well as for "already
+expired", so `0 < limit` opened the gate at any distance from the event end --
+and the sweep clicks *Claim all*, which walks straight past the tier filter
+the player configured. This is issue #1846, which `PathOfAttraction` failed
+closed on in 8.11 (`poAEnd > 0`) while these two kept the hole. Both have the
+guard now.
+
+**"Collect all" also ran the routine round -- but only in Path of Glory.**
+`PathOfGlory` alone carried `|| autoPoGCollectAll` on the ordinary collect
+condition, so the same two switches behaved differently on two identical
+features. The tooltip describes the final-window sweep ("collect all items
+before end ... configured with Collect all timer"), and `PathOfValue` and
+`PathOfAttraction` both implement that reading; Path of Glory now does too.
+An account that had only "Collect all" switched on for Path of Glory will
+collect at the end of the event instead of continuously -- which is what the
+switch has always said it does.
+
+After this the two files differ only in identifiers, the timer element ids and
+comments. Whoever considers merging them has one behaviour to reason about
+instead of two.
+
 ### v8.13.0 - One table of unlock conditions
 
 Eight modules answered the same question -- *has this account unlocked the
