@@ -451,6 +451,14 @@ Quellen. Ohne die laesst sich kein Haushalt planen und kein Verlust einordnen.
 ein Questschritt kostet Quest-Energie oder Soft Currency, nie Kobans, und er
 schuettet keine aus.
 
+**Eine weitere Quelle, selbst gemessen (2026-09-09):** die kostenlosen Kacheln
+der Zahlungs-Rueckfrage. Ein Durchgang von `autoFreeBundlesCollect` brachte
+`hard_currency` 123 -> 603, dazu 1 M Soft Currency und 35 Kampfenergie. Das ist
+ein einmaliger Bestand, keine laufende Quelle: die Kacheln liefen zwischen 20
+Stunden und 67 Tagen ab und kommen erst mit neuen Angeboten wieder. Was in dem
+Kasten steht und woran ein freier Knopf zu erkennen ist, steht in
+`game-surface-inventory.md`.
+
 **Die Startkarte.** Ein neues Konto bekommt zeitlich begrenzt eine Silver Card
 geschenkt, die sonst echtes Geld kostet; sie schuettet Kobans aus. Wer den
 Kontostand beobachtet, ohne das zu wissen, schreibt den Zuwachs der falschen
