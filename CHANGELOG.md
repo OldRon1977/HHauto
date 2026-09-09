@@ -7,6 +7,22 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.13 - A harem that has grown reaches the cache the same day
+
+`Harem.getGirlCount()` reads the cached size first, and `moduleHaremCountMax`
+refreshed that cache at most once a day even while standing on the page that
+carries the true list. Measured 2026-09-09: the cache held **3** from that
+morning while the waifu page in front of it listed **13** girls, and the
+ten-girl gate for Place of Power and Path of Attraction read the 3. The
+account had earned both features and would have waited out the day for them.
+
+A count *larger* than the cached one is now taken straight away; anything else
+still waits for the daily timer. That keeps the hazard issue #1864 was about --
+a list *shorter* than the harem overwriting a good snapshot, as the home page
+once did to the harem page's -- because a shorter list fails the test. The
+seven-day timer that sends the run to the waifu page in the first place is
+untouched.
+
 ### v8.12.12 - Place of Power says its ten-girl notice once, not every tick
 
 `PlaceOfPower.isActivated()` asks `isEnabled()` on every pipeline tick, and
