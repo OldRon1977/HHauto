@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.9 - The free bundle collector reaches the step-up rung
+
+Measured on a live account, 2026-09-09: the shop popup carries nine tabs, and
+the collector walked four of them. `Step-Up Offers` was not among the four,
+although its ladder starts with a claimable free reward -- 25 combativity on
+that account, expiring in 20 hours.
+
+The tab list is only half of it. Under `stepup_offers` the free claim is
+`button#free-reward.free-buy-button-shop.purple_button_L`, while under
+`special_offers` and `period_deal` the same claim is `blue_button_L`. The query
+asked for the colour, so even a clicked step-up tab would have yielded nothing.
+Both tabs' buttons carry `free-buy-button-shop`; that is what the query asks
+for now, with `[price='0.00']:enabled` still keeping paid and already-claimed
+buttons out. Measured on the same popup: the starter-pack tab's one free button
+is disabled, and the step-up ladder's remaining eight rungs are disabled until
+the rung before them is paid for -- none of them is reached.
+
 ### v8.12.8 - Path of Attraction is skipped while the account cannot enter it
 
 The event page states its own condition: "You need to be at least on the Second
