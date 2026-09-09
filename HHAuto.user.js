@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.6
+// @version      8.12.7
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2533,6 +2533,7 @@ const TK = {
     haveBooster: "Temp_haveBooster",
     haveExp: "Temp_haveExp",
     charLevel: "Temp_charLevel",
+    heroMaxLevel: "Temp_heroMaxLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
     boosterStatusLastUpdate: "Temp_boosterStatusLastUpdate",
@@ -5131,6 +5132,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.burst] =
 HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
     {
         storage: "sessionStorage",
+        HHType: "Temp"
+    };
+// localStorage, nicht sessionStorage: der Hoechststand soll einen neuen Tab
+// ueberleben. Er waechst nur und wird nie zurueckgesetzt.
+HHStoredVars[HHStoredVarPrefixKey + TK.heroMaxLevel] =
+    {
+        storage: "localStorage",
         HHType: "Temp"
     };
 HHStoredVars[HHStoredVarPrefixKey + TK.filteredGirlsList] =
@@ -7953,8 +7961,33 @@ class HeroHelper {
     static getClass() {
         return getHHVars('Hero.infos.class');
     }
+    /**
+     * The hero's level, never below the highest one this browser has seen.
+     *
+     * The game does not serve a consistent snapshot: measured 2026-09-09,
+     * two page loads six seconds apart carried `Hero.infos.level` 36 and 17,
+     * with `Xp` and `caracs` differing to match while `questing` was current
+     * on both. A page that loads the low value keeps it for its whole
+     * lifetime, and every `getLevel() >= LEVEL_MIN_*` gate reads it: at a
+     * true level of 36 a stale 17 silently switches off Path of Valor, Path
+     * of Glory and League -- no error, no log, just three modules that do
+     * nothing.
+     *
+     * A level never decreases, so remembering the maximum is safe and costs
+     * one stored number. The raw global stays available for callers that
+     * want exactly what this page was served -- `Pipeline.config` reads it
+     * directly for its shop-refresh comparison, where a stale-low value only
+     * delays a check.
+     */
     static getLevel() {
-        return getHHVars('Hero.infos.level');
+        var _a;
+        const live = Number(getHHVars('Hero.infos.level'));
+        const seen = Number((_a = getStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel)) !== null && _a !== void 0 ? _a : 0);
+        if (Number.isFinite(live) && live > seen) {
+            setStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel, String(live));
+            return live;
+        }
+        return seen > 0 ? seen : live;
     }
     static getMoney() {
         return getHHVars('Hero.currencies.soft_currency');

@@ -322,6 +322,7 @@ export const TK = {
     haveBooster: "Temp_haveBooster",
     haveExp: "Temp_haveExp",
     charLevel: "Temp_charLevel",
+    heroMaxLevel: "Temp_heroMaxLevel",
     storeContents: "Temp_storeContents",
     boosterStatus: "Temp_boosterStatus",
     boosterStatusLastUpdate: "Temp_boosterStatusLastUpdate",

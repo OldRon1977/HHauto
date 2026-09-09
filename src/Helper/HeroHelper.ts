@@ -124,8 +124,32 @@ export class HeroHelper {
         return getHHVars('Hero.infos.class');
     }
 
+    /**
+     * The hero's level, never below the highest one this browser has seen.
+     *
+     * The game does not serve a consistent snapshot: measured 2026-09-09,
+     * two page loads six seconds apart carried `Hero.infos.level` 36 and 17,
+     * with `Xp` and `caracs` differing to match while `questing` was current
+     * on both. A page that loads the low value keeps it for its whole
+     * lifetime, and every `getLevel() >= LEVEL_MIN_*` gate reads it: at a
+     * true level of 36 a stale 17 silently switches off Path of Valor, Path
+     * of Glory and League -- no error, no log, just three modules that do
+     * nothing.
+     *
+     * A level never decreases, so remembering the maximum is safe and costs
+     * one stored number. The raw global stays available for callers that
+     * want exactly what this page was served -- `Pipeline.config` reads it
+     * directly for its shop-refresh comparison, where a stale-low value only
+     * delays a check.
+     */
     static getLevel():number {
-        return getHHVars('Hero.infos.level');
+        const live = Number(getHHVars('Hero.infos.level'));
+        const seen = Number(getStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel) ?? 0);
+        if (Number.isFinite(live) && live > seen) {
+            setStoredValue(HHStoredVarPrefixKey + TK.heroMaxLevel, String(live));
+            return live;
+        }
+        return seen > 0 ? seen : live;
     }
 
     static getMoney():number {
