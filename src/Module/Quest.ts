@@ -113,7 +113,22 @@ export class QuestHelper {
             return navOk;
         }
         $("#popup_message close").trigger('click');
+        // The level-up popup carries no `close` element at all. Measured
+        // 2026-09-09 on a live account: `#level_up.popup.hero_leveling`
+        // contains exactly one control, `button.blue_button_L` ("Ok"), and
+        // querying it for `close` returns nothing, hidden ones included. Like
+        // the rewards popup below it overlays the quest UI, so the proceed
+        // button underneath never advances while it is open -- a measured run
+        // held it open for six ticks with the level and XP unchanged. The
+        // `close` line stays: other popups in this game do use that element
+        // (`#no_HC > close.closable`), and a skin that gives the level-up one
+        // costs nothing here.
         $("#level_up close").trigger('click');
+        // No `:visible` here: the popup is created when it is shown and gone
+        // from the DOM otherwise (measured -- `#level_up` does not exist on
+        // home.html), so its presence is the signal. `:visible` would also
+        // make this untestable, since jsdom reports zero size for everything.
+        $("#level_up button.blue_button_L:not([disabled])").first().trigger('click');
         // A rewards popup (e.g. a girl earned at the end of a quest) overlays
         // the quest UI; the proceed button underneath then never advances the
         // quest and the loop repeats forever. Claim/close it before looking

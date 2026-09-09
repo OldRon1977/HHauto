@@ -7,6 +7,23 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.6 - The level-up popup gets confirmed instead of waited out
+
+A level-up during questing opens `#level_up`, and that popup covers the quest
+UI: the proceed button underneath stays dark and the quest does not advance
+until someone dismisses it.
+
+The script tried, with `$("#level_up close")`. That popup has no `close`
+element -- measured on a live account, hidden ones included, its markup carries
+exactly one control: `button.blue_button_L`, labelled "Ok". The selector
+matched nothing, and it is the only place in the code that touches `#level_up`.
+A measured run held the popup open across six ticks with the level and XP
+unchanged.
+
+The Ok button is now clicked as well. The `close` line stays: other popups in
+this game do use that element -- `#no_HC` carries `close.closable` -- so a skin
+that gives the level-up one keeps working.
+
 ### v8.12.5 - A new account no longer walks into a troll it cannot fight
 
 In world 1 no troll is unlocked yet. The script knew that -- the last available
