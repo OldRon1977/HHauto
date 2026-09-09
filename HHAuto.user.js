@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.14
+// @version      8.12.15
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -35281,6 +35281,21 @@ function extractTimerText(rawText) {
 
 
 
+// One walk through the popup at a time. Measured 2026-09-09: the pipeline
+// entered goAndCollectFreeBundles three times within four seconds, each entry
+// pressing the "+" again. The popup then held its content twice over -- the
+// free-button count read 32 where a plain page read showed 16, and it fell by
+// 2 per claim -- and two walks reported "Free bundle collection finished" in
+// the same second. Six game-side exceptions landed inside that doubled walk,
+// two of them "Cannot read properties of undefined (reading 'daily')", the
+// period-deal sub-tab both walks were clicking at once. Nothing was lost, but
+// the second walk has no work of its own to do.
+//
+// A timestamp rather than a flag, so a walk that dies before its finish path
+// cannot silence the collector: the steps of a walk are 1.5 to 2.5 seconds
+// apart, so one that has not finished within a minute is gone.
+const WALK_ABANDONED_MS = 60000;
+let collectionStartedAt = 0;
 class Bundles {
     static getExpiryTime() {
         // `.period_deal` names a *tab* in the payment-tabs bar, not an
@@ -35321,6 +35336,10 @@ class Bundles {
                     logHHAuto("Error autoFreeBundlesCollect not activated.");
                     return;
                 }
+                if (collectionStartedAt > 0 && Date.now() - collectionStartedAt < WALK_ABANDONED_MS) {
+                    logHHAuto("Free bundle collection already running, not starting a second one.");
+                    return true; // busy: a walk is in progress
+                }
                 const plusButton = $("header .currency .reversed_tooltip");
                 if (plusButton.length > 0) {
                     logHHAuto("click button for popup.");
@@ -35331,6 +35350,7 @@ class Bundles {
                     setTimer('nextFreeBundlesCollectTime', randomInterval(4 * 60 * 60, 6 * 60 * 60));
                     return false;
                 }
+                collectionStartedAt = Date.now();
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
@@ -35348,6 +35368,7 @@ class Bundles {
                 // already-claimed buttons out.
                 const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .free-buy-button-shop:enabled[price='0.00']";
                 function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
+                    collectionStartedAt = 0;
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);
                     $("#common-popups .close_cross").trigger('click'); // Close popup
@@ -35410,6 +35431,7 @@ class Bundles {
                 return true;
             }
             catch ({ errName, message }) {
+                collectionStartedAt = 0;
                 logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
                 setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));
                 return false;
