@@ -7,6 +7,33 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.18 - A team of fewer than seven girls is a team
+
+`TeamModule.getSelectedGirls()` and `getSelectedGirlsId()` both answered `[]`
+with `Error: can't get all team members, cancel action` whenever the selected
+team did not hold exactly seven girls.
+
+Measured 2026-09-09 on a live account: a three-girl team carries
+`girls_ids: [1, 4, 7]` and three entries in `girls`, **no nulls**, beside its
+own `max_team_size: 7`. The game states capacity separately from occupancy, so
+"not seven" is not "unreadable" -- it is a young account, or any account that
+has not filled its team.
+
+Every consumer gave up on such a team:
+
+- `buildStuffTeamSelectPopUp()` returns at once, so the *Stuff Team* button
+  does nothing;
+- `equipAllGirls()` disables `#EquipAll` and switches `autoLoop` off *before*
+  it asks for the girls, and only the success path put either back -- so the
+  button greyed itself out, equipped nothing, and stayed grey until the next
+  page load.
+
+Both functions now answer with the girls the team actually holds and keep `[]`
+for a team with none. `equipAllGirls` undoes the button and the autoLoop switch
+on that path too. `manageSkillScrollTooltip` keeps its own seven-girl condition:
+whether its scroll arithmetic means anything for a partial team is not
+measured, so it stays as it was.
+
 ### v8.12.17 - Path of Attraction says when it cannot read its own timer
 
 `PathOfAttraction.getRemainingTime()` reads the event's expiry from
