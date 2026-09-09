@@ -13,14 +13,12 @@
 // Used by: TimerHelper (set/check cooldowns), AutoLoop (scheduling),
 //          InfoService (display remaining times)
 
-import { Contest } from '../Module/Contest';
 import { logHHAuto } from "../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK } from "../config/StorageKeys";
 import { hhTimerLocale, timerDefinitions } from "../i18n/empty";
-import { getHHVars } from "./HHHelper";
 import { getStoredValue } from "./StorageHelper";
-import { checkTimerMustExist, getSecondsLeft } from './TimerHelper';
+import { getSecondsLeft } from './TimerHelper';
 
 export class TimeHelper {
 
@@ -49,7 +47,7 @@ export class TimeHelper {
         var n=0;
         return [days,hours,minutes,seconds]
             .map(v => v < 10 ? "0" + v : v)
-            .filter((v,i) => {if (v !== "00"){n++; return true;} return n > 0})
+            .filter((v,_i) => {if (v !== "00"){n++; return true;} return n > 0})
             .join(":");
     }
 

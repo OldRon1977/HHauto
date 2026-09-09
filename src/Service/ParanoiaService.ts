@@ -10,7 +10,6 @@
 //
 // Used by: AutoLoop (checked every iteration when paranoia is on)
 import { ConfigHelper } from "../Helper/ConfigHelper";
-import { getHero } from "../Helper/HeroHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { deleteStoredValue, getStoredJSON, getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
@@ -298,7 +297,6 @@ export class ParanoiaService {
             var b = S1[0][0][0].split('-');
             toNextSwitch = randomInterval(Number(b[0]), Number(b[1]));
         }
-        var ND = new Date().getTime() + toNextSwitch * 1000;
         var message = period + (burst ? " rest" : " burst");
         logHHAuto("PARANOIA: " + message);
         setStoredValue(HHStoredVarPrefixKey + TK.pinfo, message);

@@ -1,29 +1,13 @@
 /**
- * Interface hierarchy for game modules.
+ * ModuleHandlerDescriptor -- the uniform shape a simple module is registered
+ * with, read by `fromDescriptor` in Service/Pipeline.config.ts.
  *
- * Since all modules use static-only classes, these interfaces describe
- * the static (constructor) side of module classes. Use the type-check
- * helpers at the bottom to verify conformance at compile time.
+ * The file used to open with two interfaces describing the static side of
+ * module classes, IModuleStatic and IRunnableModuleStatic, and a promise of
+ * "type-check helpers at the bottom" that were never written. Neither
+ * interface was exported or referenced anywhere, so nothing was ever checked
+ * against them.
  */
-
-// ---------------------------------------------------------------------------
-//  Static interface types (describe the class constructor, not instances)
-// ---------------------------------------------------------------------------
-
-/** Base module – optional enable-check and run method */
-interface IModuleStatic {
-    isEnabled?(): boolean;
-    isActivated?(): boolean;
-}
-
-/** Module with a run() entry-point */
-interface IRunnableModuleStatic extends IModuleStatic {
-    run(): boolean | void | Promise<boolean | void>;
-}
-
-// ---------------------------------------------------------------------------
-//  AutoLoop handler descriptor – used to register simple modules
-// ---------------------------------------------------------------------------
 
 /** Describes a standard AutoLoop handler that can be executed by runStandardHandler */
 export interface ModuleHandlerDescriptor {

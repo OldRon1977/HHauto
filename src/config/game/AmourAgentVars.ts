@@ -10,7 +10,7 @@ export class AmourAgent {
             "www.amouragent.com": { name: "AA_prod", id: "hh_amour"}
         }
     }
-    static getTrolls(languageCode: string) {
+    static getTrolls(_languageCode: string) {
         return ['Latest',
             'Frank',
             'Adriana',

@@ -25,7 +25,6 @@ import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { FeatureGate } from "../Service/FeatureGate";
-import { isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 
@@ -282,7 +281,6 @@ export class PlaceOfPower {
             var currTime;
             var minTime = -1;
             var maxTime = -1;
-            var e;
 
 
             clearTimer('minPowerPlacesTime');
@@ -291,7 +289,6 @@ export class PlaceOfPower {
             const popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
             popListRemaining.each(function() {
                 const $elem=$(this);
-                const elementText=$elem.text();
                 currIndex = $elem.parents('.pop_thumb_expanded').attr('pop_id');
                 if (filteredPops.includes(currIndex) && ! popUnableToStart.includes(currIndex))
                 {
@@ -528,7 +525,6 @@ export class PlaceOfPower {
 
     static selectGirls()
     {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
 
         // How much power is needed
         const powerNeeded = PlaceOfPower.getPowerNeeded();

@@ -11,7 +11,7 @@ export class TransPornstarHarem {
             "nutaku.transpornstarharem.com": { name: "NTPH_prod", id: "hh_startrans", baseImgPath: "https://images.hh-content.com/startrans" }
         }
     }
-    static getTrolls(languageCode: string) {
+    static getTrolls(_languageCode: string) {
         return ['Latest',
             'Ariel Demure',
             'Emma Rose',

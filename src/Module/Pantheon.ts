@@ -11,7 +11,6 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { getPage } from "../Helper/PageHelper";
-import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
 import { randomInterval } from "../Helper/TimeHelper";
 import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";

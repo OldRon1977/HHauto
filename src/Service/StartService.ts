@@ -29,7 +29,6 @@ import { applyMenuDensity, bindMenuStateUpdates, refreshMenuState } from "../Hel
 import { getTextForUI, manageTranslationPopUp } from "../Helper/LanguageHelper";
 import { getPage, haltScript } from "../Helper/PageHelper";
 import { debugDeleteAllVars, debugDeleteTempVars, deleteStoredValue, getStorageItem, getStoredJSON, getStoredValue, migrateHHVars, saveHHStoredVarsDefaults, saveHHVarsSettingsAsJSON, setHHStoredVarToDefault, setStoredValue } from "../Helper/StorageHelper";
-import { randomInterval } from "../Helper/TimeHelper";
 import { getTimeLeft, setTimer, setTimers, Timers } from "../Helper/TimerHelper";
 import { Booster } from "../Module/Booster";
 import { Club } from "../Module/Club";
@@ -44,7 +43,7 @@ import { Troll } from "../Module/Troll";
 import { fillHHPopUp, maskHHPopUp } from "../Utils/HHPopup";
 import { importLegacyLog } from "../Utils/LogStore";
 import { logHHAuto, saveHHDebugLog } from "../Utils/LogUtils";
-import { callItOnce, isJSON, myfileLoad_onChange, replaceCheatClick } from "../Utils/Utils";
+import { myfileLoad_onChange, replaceCheatClick } from "../Utils/Utils";
 import { HHStoredVarPrefixKey, HHStoredVars } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { AdsService } from './AdsService';
@@ -75,7 +74,6 @@ import {
 import { buyListValidationMessage, migrateBuyList, migrateSavedDefaults } from "../Module/Market.pure";
 
 var started=false;
-var debugMenuID;
 var heroRetryTimer: ReturnType<typeof setTimeout> | null = null;
 var heroRetryCount = 0;
 var heroRetryFirstAt = 0;
@@ -204,7 +202,9 @@ export function setDefaults(force = false)
 
 export function hardened_start()
 {
-    debugMenuID = GM_registerMenuCommand(getTextForUI("saveDebug","elementText"), saveHHDebugLog);
+    // The handle GM_registerMenuCommand returns is only good for
+    // GM_unregisterMenuCommand, and nothing here unregisters it.
+    GM_registerMenuCommand(getTextForUI("saveDebug","elementText"), saveHHDebugLog);
     // Install the AJAX request counter as early as possible so any later
     // page-changing module call can wait for in-flight game POSTs to
     // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
@@ -215,8 +215,8 @@ export function hardened_start()
         // AjaxTracker free of any HHStoredVars dependency: HHStoredVars
         // imports PlaceOfPower, which imports AjaxTracker, so a direct
         // import would form a TDZ cycle (issue #1598 follow-up).
-        setOnAjaxForbidden(() => { try { recordForbidden(); } catch (e) {} });
-    } catch (e) { /* tracker is best-effort */ }
+        setOnAjaxForbidden(() => { try { recordForbidden(); } catch {} });
+    } catch { /* tracker is best-effort */ }
 
     if ((unsafeWindow as any).jQuery == undefined) {
         console.log("HHAUTO WARNING: No jQuery found.");
@@ -238,14 +238,14 @@ export function hardened_start()
                     const rawAt = localStorage.getItem(FORBIDDEN_LAST_AT_KEY);
                     prevAt = rawAt ? parseInt(rawAt, 10) : 0;
                     if (!Number.isFinite(prevAt) || prevAt < 0) prevAt = 0;
-                } catch (e) { /* sessionStorage unavailable */ }
+                } catch { /* sessionStorage unavailable */ }
 
                 const now = Date.now();
                 const count = nextStreakCount(prevCount, prevAt, now);
                 try {
                     sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
                     localStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
-                } catch (e) {}
+                } catch {}
 
                 const time = nextForbiddenDelaySeconds(count);
                 logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
@@ -254,7 +254,7 @@ export function hardened_start()
                 // pages cannot fire two reloads back-to-back.
                 safeReload(time * 1000);
             }
-        } catch (error) {}
+        } catch {}
         return;
     }
     if (!started)
@@ -300,10 +300,10 @@ function start() {
             let prevReloads = 0;
             try {
                 prevReloads = sanitizeHeroGiveupReloadCount(sessionStorage.getItem(heroGiveupReloadKey()));
-            } catch (e) { /* sessionStorage unavailable */ }
+            } catch { /* sessionStorage unavailable */ }
             if (shouldReloadAfterHeroGiveup(prevReloads)) {
                 const nextReloads = nextHeroGiveupReloadCount(prevReloads);
-                try { sessionStorage.setItem(heroGiveupReloadKey(), String(nextReloads)); } catch (e) { /* sessionStorage unavailable */ }
+                try { sessionStorage.setItem(heroGiveupReloadKey(), String(nextReloads)); } catch { /* sessionStorage unavailable */ }
                 logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Auto-reloading (attempt ' + nextReloads + '/' + HERO_GIVEUP_MAX_RELOADS + ', page=' + location.pathname + ', elapsed=' + elapsed + 'ms).');
                 safeReload();
             } else {
@@ -334,7 +334,7 @@ function start() {
     heroRetryFirstAt = 0;
     // Boot succeeded: reset the auto-reload budget so a later, unrelated slow
     // load starts fresh (issue #1788).
-    try { sessionStorage.removeItem(heroGiveupReloadKey()); } catch (e) { /* sessionStorage unavailable */ }
+    try { sessionStorage.removeItem(heroGiveupReloadKey()); } catch { /* sessionStorage unavailable */ }
     if($("a[rel='phoenix_member_login']").length > 0)
     {    
         logHHAuto('Not logged in, please login first!');
@@ -572,7 +572,6 @@ function start() {
         });
         $(document).on('change',"#timerResetSelector", function() {
             const timerSelector = <HTMLSelectElement>document.getElementById("timerResetSelector");
-            const timerLeftTime = document.getElementById("timerLeftTime");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer","elementText")  && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector","elementText"))
             {
                 $("#timerLeftTime").text(getTimeLeft(timerSelector.options[timerSelector.selectedIndex].text));
@@ -704,7 +703,7 @@ function start() {
             initialDelayMs = COLD_START_DELAY_MS;
             logHHAuto('Cold start detected (last activity > ' + Math.round(COLD_START_THRESHOLD_MS/1000) + 's ago), delaying first autoLoop by ' + initialDelayMs + 'ms');
         }
-    } catch (e) { /* fall back to normal delay */ }
+    } catch { /* fall back to normal delay */ }
     setTimeout(autoLoop, initialDelayMs);
 
     // Manual survey button

@@ -14,13 +14,13 @@ import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { clearTimer, setTimer } from "../../Helper/TimerHelper";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
-import { SK, TK } from "../../config/StorageKeys";
+import { SK } from "../../config/StorageKeys";
 import { EventGirl } from "../../model/EventGirl";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { KKEventGirl } from "../../model/KK/KKEventGirl";
 
 export class MythicEvent {
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], eventChamps: EventGirl[]) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData, eventsGirlz: EventGirl[], _eventChamps: EventGirl[]) {
         const eventID = hhEvent.eventId;
         const Priority: string[] = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
         const refreshTimer = randomInterval(3600, 4000);

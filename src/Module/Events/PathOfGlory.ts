@@ -9,7 +9,6 @@
 //          (the collect block)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
-import { getHHVars } from "../../Helper/HHHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
@@ -18,7 +17,6 @@ import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { EventModule } from "./EventModule";

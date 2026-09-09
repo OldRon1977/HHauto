@@ -29,7 +29,7 @@ export class Spreadsheet {
         const page = getPage();
         if (page === ConfigHelper.getHHScriptVars("pagesIDHome")) {
 
-            onAjaxResponse(/action=get_girls_blessings/i, (response, opt, xhr, evt) => {
+            onAjaxResponse(/action=get_girls_blessings/i, (_response, _opt, _xhr, _evt) => {
                 setTimeout(async function () {
                     if (!Spreadsheet.canRun()) return;
                     const href = ConfigHelper.getHHScriptVars("spreadsheet");

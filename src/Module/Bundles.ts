@@ -10,7 +10,7 @@ import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { getStoredValue, setStoredValue } from "../Helper/StorageHelper";
-import { TimeHelper, randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
+import { randomInterval, convertTimeToInt } from "../Helper/TimeHelper";
 import { setTimer } from "../Helper/TimerHelper";
 import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { gotoPage } from "../Service/PageNavigationService";
@@ -184,7 +184,7 @@ export class Bundles {
                 setTimeout(switchToBundleTabs,randomInterval(1400, 1800));
 
                 return true;
-            } catch ({ errName, message }: any) {
+            } catch ({ message }: any) {
                 collectionStartedAt = 0;
                 logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
                 setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));

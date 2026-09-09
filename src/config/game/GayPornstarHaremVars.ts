@@ -13,7 +13,7 @@ export class GayPornstarHarem {
         }
     }
 
-    static getTrolls(languageCode: string) {
+    static getTrolls(_languageCode: string) {
         return ['Latest',
             'Tristan Hunter',
             'Jimmy Durano',
@@ -41,6 +41,6 @@ export class GayPornstarHarem {
         ];
     }
 
-    static updateFeatures(envVariables: any) {
+    static updateFeatures(_envVariables: any) {
     }
 }

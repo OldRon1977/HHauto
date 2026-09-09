@@ -99,7 +99,7 @@ export class PathOfAttraction {
         }
     }
 
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, _hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
 
         PathOfAttraction.getRemainingTime();
@@ -331,7 +331,6 @@ export class PathOfAttraction {
         {
             let arrayz;
             let nbReward;
-            let modified=false;
             arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
             if ($("#nc-poa-tape-blocker").length)
             {
@@ -349,7 +348,6 @@ export class PathOfAttraction {
                     if (obj.length >= nbReward) {
                         $("#events .nc-panel-body .scroll-area")[0].scrollLeft-=arrayz[i2].offsetWidth;
                         arrayz[i2].style.display = "none";
-                        modified = true;
                     }
                 }
             }

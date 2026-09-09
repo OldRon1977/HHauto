@@ -17,7 +17,6 @@ import { getHHVars } from "../Helper/HHHelper";
 import { getTextForUI } from "../Helper/LanguageHelper";
 import { NumberHelper } from "../Helper/NumberHelper";
 import { getPage } from "../Helper/PageHelper";
-import { parsePrice } from "../Helper/PriceHelper";
 import { RewardHelper } from "../Helper/RewardHelper";
 import { deleteStoredValue, getStoredValue, getStoredJSON, setStoredValue } from "../Helper/StorageHelper";
 import { convertTimeToInt, randomInterval, TimeHelper } from "../Helper/TimeHelper";
@@ -30,7 +29,7 @@ import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigatio
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
 import { FeatureGate } from "../Service/FeatureGate";
-import { getHHAjax, isJSON } from "../Utils/Utils";
+import { getHHAjax } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { BDSMSimu } from "../model/BDSMSimu";
@@ -253,7 +252,9 @@ export class LeagueHelper {
         const opponentButtons = $('a.go_pre_battle.blue_button_L');
         const opponentSim = $("div.matchRatingNew img.powerLevelScouter");
         const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
-        const Hero=getHero();
+        // getHero() stays for its side effect: it kicks the auto-loop when
+        // shared.Hero is missing, i.e. when the page is not ready yet.
+        getHero();
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
 
         const opponents_list = getHHVars("opponents_list");
@@ -424,7 +425,7 @@ export class LeagueHelper {
                             }
                             if (hide) (<HTMLElement>opponents[i]).style.display="none";
                         }
-                    } catch(e) {}
+                    } catch {}
                 }
                 //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
@@ -443,7 +444,7 @@ export class LeagueHelper {
                             }
                             if (hide) (<HTMLElement>opponents[i]).style.display="";
                         }
-                    } catch(e) {}
+                    } catch {}
                 }
                 //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
@@ -549,7 +550,7 @@ export class LeagueHelper {
                 if(opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
                     try{
                         leagueOpponent = opponentsPowerList.opponentsList.find((el: any) => el.opponent_id == opponent_id);
-                    }catch(error){
+                    }catch{
                         logHHAuto("Error when getting oppo " + opponent_id +" from storage");
                     }
                 }
@@ -561,7 +562,7 @@ export class LeagueHelper {
                         try{
                             simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents); 
                             expectedPoints = Number(NumberHelper.nRounding(simu.expectedValue, 1, -1));
-                        }catch(error){
+                        }catch{
                             logHHAuto("Error in simu for oppo " + opponent_id +", falback to not use powercalc");
                             canUseSimu = false;
                         }
@@ -624,7 +625,6 @@ export class LeagueHelper {
         try{
         // Confirm if on correct screen.
         const currentPower = LeagueHelper.getEnergy();
-        const maxLeagueRegen = LeagueHelper.getEnergyMax();
         const leagueThreshold = Number(getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesThreshold));
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey+TK.Debug)==='true';
         let leagueScoreSecurityThreshold = getStoredValue(HHStoredVarPrefixKey+SK.autoLeaguesSecurityThreshold);

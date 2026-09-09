@@ -64,6 +64,6 @@ export class GayHarem {
             [['167231135', '184523411', '549524850', '560979916', '612527302', '784911160'], [0], [0]],
         ];
     }
-    static updateFeatures(envVariables: any) {
+    static updateFeatures(_envVariables: any) {
     }
 }
