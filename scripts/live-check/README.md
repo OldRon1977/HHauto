@@ -34,11 +34,16 @@ Exit code `0` all clear, `1` at least one DRIFT, `2` could not measure at all
 ```
 live check against https://www.hentaiheroes.com
 
-  OK    session                  logged in (id=…, … kobans, 0 login anchors)
+  OK    session                  logged in (account <4 hex>, … kobans, 0 login anchors)
   OK    league-anchors           4 selectors present
   DRIFT shop-data-d-shape        missing keys: rarity (in 203 payloads)
   SKIP  pachinko-orb-names       [orb_name] matched nothing on this page state
 ```
+
+`account <4 hex>` is four hex characters of a hash, not the member id. This
+output is what ends up pasted into an issue, and a member id in a public
+thread is the leak this repository already paid for once. Do not put the raw
+id back in.
 
 A `DRIFT` is a claim the code still makes and the page no longer honours. It is
 the start of an investigation, not a verdict: find the call site, name the page

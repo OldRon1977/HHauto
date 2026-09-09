@@ -11,6 +11,7 @@
 //
 // Exit codes: 0 all clear, 1 at least one DRIFT, 2 could not measure at all.
 
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,14 +77,20 @@ async function checkSession(page) {
     if (!state.heroId || state.loginAnchors > 0) {
         console.error('');
         console.error('ABORT: this session is not logged in.');
-        console.error(`  shared.Hero.infos.id = ${state.heroId}, login anchors = ${state.loginAnchors}`);
+        console.error(`  shared.Hero.infos.id is ${state.heroId ? 'set' : 'missing'}, login anchors = ${state.loginAnchors}`);
         console.error('  The logged-out page serves a placeholder hero (600 kobans, full energies).');
         console.error('  Every number measured against it looks valid and is garbage.');
         console.error('  The game allows one session per account: close the game in your own browser,');
         console.error('  or run this check there instead.');
         return null;
     }
-    record('OK', 'session', `logged in (id=${state.heroId}, ${state.kobans} kobans, 0 login anchors)`);
+    // The id itself never goes to stdout. This output is what people paste
+    // into an issue, and a member id in a public thread is the leak this
+    // project already paid for once with a history rewrite and a force-push.
+    // Four hex characters are enough to tell two accounts apart across two
+    // runs on one machine, and they identify nobody.
+    const tag = createHash('sha256').update(String(state.heroId)).digest('hex').slice(0, 4);
+    record('OK', 'session', `logged in (account ${tag}, ${state.kobans} kobans, 0 login anchors)`);
     return state;
 }
 
