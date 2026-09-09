@@ -107,13 +107,34 @@ langsam, und jeder Questkampf kostet davon. `quest` liegt deutlich hoeher.
 
 ## Zwei Messfallen
 
-**Der Serverstand und die Anzeige koennen auseinanderlaufen.** Am 2026-09-09
-zeigten laufende Sitzungen Level 30, waehrend vier unabhaengige Aufrufe --
-Erstaufruf, Reload, Cache-Buster-Parameter und eine andere Seite, alle mit
-abgeschaltetem Browser-Cache -- uebereinstimmend Level 17 lieferten.
-Massgeblich ist der Server. **Nicht geklaert** ist, wodurch die Differenz
-entsteht; solange das offen ist, gilt jede Aussage ueber Fortschritt nur mit
-einer frischen Abfrage daneben.
+**Das Spiel liefert keinen einheitlichen Heldenzustand.** Zwei Seitenaufrufe
+mit sechs Sekunden Abstand, beide mit abgeschaltetem Browser-Cache und beide
+mit eigener `server_time`, trugen unterschiedliche Werte:
+
+| Feld | Aufruf A | Aufruf B |
+|---|---|---|
+| `infos.level` | 36 | 17 |
+| `infos.Xp.cur` | 83716 | 36389 |
+| `infos.caracs.endurance` | 1418 | 734 |
+| `infos.questing.step` | 310052 | 310052 |
+
+Welche Seite den frischen Stand traegt, wechselt: in einer Messreihe war es
+`home.html`, in der naechsten `hero.html`. Der Questfortschritt war in fast
+allen Aufrufen aktuell, `level`, `Xp` und `caracs` nicht -- die Teile derselben
+Antwort haben verschiedene Aktualitaet.
+
+Fortschritt geht dabei **nicht** verloren; eine spaetere Abfrage bestaetigte
+alle Stufen. Wer aber aus einem einzelnen Aufruf schliesst, misst unter
+Umstaenden einen Stand von vor Stunden. Eine Aussage ueber den Kontostand
+braucht mehr als eine Lesung.
+
+Fuer das Skript hat das Folgen: `HeroHelper.getLevel()` speist die
+`>= LEVEL_MIN_*`-Bedingungen von Path of Valor (30), Path of Glory (30),
+League (20), Sultry Mysteries (15) und Double Penetration (40). Eine Seite,
+die zu niedrig ausliefert, behaelt diesen Wert fuer ihre gesamte Lebensdauer,
+und die betroffenen Module melden `isEnabled() === false`, ohne Fehler und ohne
+Logzeile. Seit v8.12.7 merkt sich `getLevel` deshalb den Hoechststand
+(`Temp_heroMaxLevel`) und faellt nicht darunter.
 
 **Eine Quest-URL aus einer alten Seite fuehrt ins Leere.** Navigiert man auf
 eine bereits erledigte Quest, antwortet das Spiel mit "Something went wrong.
