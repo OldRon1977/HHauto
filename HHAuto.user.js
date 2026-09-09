@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.9
+// @version      8.12.10
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -30138,8 +30138,16 @@ class Troll {
             if (logging)
                 logHHAuto("Last troll fight: " + TTF);
         }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-            && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true") {
+        // A quest step that demands a battle is its own reason to fight, which
+        // is why isTrollFightActivated() lists autoTrollBattleSaveQuest next to
+        // autoTrollBattle instead of under it, and why handleQuest calls
+        // doBossBattle() precisely when autoTrollBattle is off. Requiring
+        // autoTrollBattle here contradicted both: with troll farming switched
+        // off no branch above ever set a target, so the quest battle resolved
+        // to 0 and the main quest stopped for good. Measured 2026-09-09 on a
+        // world-4 account -- one "No valid troll target found, skipping.", then
+        // twelve minutes of empty handleQuest ticks.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true") {
             TTF = lastTrollIdAvailable;
             if (logging)
                 logHHAuto("Last troll fight for quest item: " + TTF);
@@ -36852,10 +36860,20 @@ const handleQuest = {
                         }
                     };
                     if (questRequirement === 'battle') {
-                        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
-                            logHHAuto('Quest requires battle.');
-                            logHHAuto('prepare to save one battle for quest');
-                            setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+                        if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false)) {
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === 'false') {
+                                logHHAuto('Quest requires battle.');
+                                logHHAuto('prepare to save one battle for quest');
+                                setStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+                            }
+                            // With autoTrollBattle off, handleTrollBattle never fights -- every
+                            // branch of its shouldFight is gated on that switch. This call is
+                            // the only one that runs the quest's battle, so it has to survive
+                            // the flag being set: gating it on autoTrollBattleSaveQuest ===
+                            // 'false' made it a one-shot, and a fight that did not happen
+                            // (no energy, a target that could not be resolved) left the quest
+                            // waiting on a battle nobody would start again. The flag is
+                            // cleared by GenericBattle once the fight has been fought.
                             if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) !== 'true') {
                                 ctx.busy = yield Troll.doBossBattle();
                             }

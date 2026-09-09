@@ -605,6 +605,39 @@ describe("Troll module", function () {
             expect(TTF).toBe(4);
         });
 
+        // Measured 2026-09-09 on a world-4 account with autoTrollBattle off:
+        // a quest step demanded a battle, handleQuest set
+        // autoTrollBattleSaveQuest and called doBossBattle, and this function
+        // answered 0 -- every branch that sets a target was gated on
+        // autoTrollBattle. The quest never moved again. The quest's own demand
+        // is the reason to fight here, the same way isTrollFightActivated()
+        // already treats it.
+        describe("a quest that demands a battle, with troll farming switched off", function () {
+
+            it("fights the last available troll", function () {
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
+                sessionStorage.setItem(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+
+                // lastTrollIdAvailable = id_world - 1 = 4
+                expect(Troll.getTrollIdToFight(false)).toBe(4);
+            });
+
+            it("still skips world 1, where no troll is unlocked", function () {
+                unsafeWindow.shared!.Hero!.infos.questing = { id_world: 1, choices_adventure: 0 };
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
+                sessionStorage.setItem(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'true');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(0);
+            });
+
+            it("does not fight when no quest is waiting on a battle", function () {
+                localStorage.setItem(HHStoredVarPrefixKey + SK.autoTrollBattle, 'false');
+                sessionStorage.setItem(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest, 'false');
+
+                expect(Troll.getTrollIdToFight(false)).toBe(0);
+            });
+        });
+
         // Issue #1875: on world 24 the last available troll is 22, so a side
         // troll (20, 21) passes the unlock check. Navigating there gets
         // "Troll not available yet!" from the game and the run loops.

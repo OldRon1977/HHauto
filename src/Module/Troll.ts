@@ -335,8 +335,16 @@ export class Troll {
             if (logging) logHHAuto("Last troll fight: " + TTF);
         }
 
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-            && getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true")
+        // A quest step that demands a battle is its own reason to fight, which
+        // is why isTrollFightActivated() lists autoTrollBattleSaveQuest next to
+        // autoTrollBattle instead of under it, and why handleQuest calls
+        // doBossBattle() precisely when autoTrollBattle is off. Requiring
+        // autoTrollBattle here contradicted both: with troll farming switched
+        // off no branch above ever set a target, so the quest battle resolved
+        // to 0 and the main quest stopped for good. Measured 2026-09-09 on a
+        // world-4 account -- one "No valid troll target found, skipping.", then
+        // twelve minutes of empty handleQuest ticks.
+        if (getStoredValue(HHStoredVarPrefixKey+TK.autoTrollBattleSaveQuest) === "true")
         {
             TTF = lastTrollIdAvailable;
             if (logging) logHHAuto("Last troll fight for quest item: " + TTF);
