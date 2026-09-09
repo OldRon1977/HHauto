@@ -62,6 +62,12 @@ HHEnvVariables["global"].selectorFilterNotDisplayNone = ':not([style*="display:n
 HHEnvVariables["global"].selectorClaimAllRewards = "#claim-all:not([disabled]):visible:not([style*='visibility: hidden;'])"; // KK use visibility: hidden or visibility: visible to display this button
 HHEnvVariables["global"].HaremMaxSizeExpirationSecs = 7*24*60*60;//7 days
 HHEnvVariables["global"].HaremMinSizeExpirationSecs = 24*60*60;//1 days
+// The girl count the script actually decides on: PlaceOfPower.isEnabled and
+// PathOfAttraction.isEnabled both open at ten. Below that the number is a
+// decision and a young account crosses it in hours, so the refresh that walks
+// to the waifu page runs hourly instead of weekly until the gate is passed.
+HHEnvVariables["global"].HaremSizeGate = 10;
+HHEnvVariables["global"].HaremSizeGateExpirationSecs = 60*60;//1 hour
 HHEnvVariables["global"].LeagueListExpirationSecs = 2*60;//2 min
 HHEnvVariables["global"].minSecsBeforeGoHomeAfterActions = 10;
 HHEnvVariables["global"].dailyRewardMaxRemainingTime = 2*60*60;

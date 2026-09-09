@@ -46,7 +46,8 @@ export class PlaceOfPower {
     static isEnabled() {
         const onPowerplacePage = getPage() === ConfigHelper.getHHScriptVars("pagesIDPowerplacemain");
         const girlCount = Harem.getGirlCount();
-        const enoughGirl = girlCount >= 10;
+        const gate = ConfigHelper.getHHScriptVars("HaremSizeGate");
+        const enoughGirl = girlCount >= gate;
         // A harem under ten girls is the ordinary state of a young account,
         // not an error, and isActivated() asks this on every pipeline tick.
         // Measured over one 12-minute run: 692 of 2532 log lines were this
@@ -56,7 +57,7 @@ export class PlaceOfPower {
         // when the number has changed.
         if (!enoughGirl && lastReportedGirlShortfall !== girlCount) {
             lastReportedGirlShortfall = girlCount;
-            logHHAuto('Place of Power needs 10 girls, the harem holds ' + girlCount + '.');
+            logHHAuto('Place of Power needs ' + gate + ' girls, the harem holds ' + girlCount + '.');
         }
         // unlocked and the end of world 2
         const enoughProgress = getHHVars('Hero.infos.questing.id_world') > 2 && enoughGirl;

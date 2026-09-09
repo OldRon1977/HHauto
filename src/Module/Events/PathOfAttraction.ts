@@ -55,7 +55,7 @@ export class PathOfAttraction {
      * dead end.
      */
     static isEnabled(): boolean {
-        const enoughGirls = Harem.getGirlCount() >= 10;
+        const enoughGirls = Harem.getGirlCount() >= ConfigHelper.getHHScriptVars("HaremSizeGate");
         const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
         return enoughGirls && enoughProgress;
     }

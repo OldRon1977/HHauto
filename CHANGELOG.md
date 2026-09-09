@@ -7,6 +7,26 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.14 - The girl count is refreshed while it still decides something
+
+v8.12.13 let a bigger count reach the cache -- but only `moduleHaremCountMax`
+writes it, and that runs on the waifu, team-edit and battle-team pages alone.
+Nothing else on the run's path carries the girl list, and the only handler that
+walks there, `handleHaremSize`, waited on `HaremMaxSizeExpirationSecs`: seven
+days.
+
+Measured 2026-09-09: through a whole session the cache held **3** while the
+account owned **13**, so `Place of Power needs 10 girls, the harem holds 3.`
+kept printing and Path of Attraction stayed shut. Both would have waited out
+the week.
+
+The count only decides something below ten -- `PlaceOfPower.isEnabled` and
+`PathOfAttraction.isEnabled` are its two readers, and a young account crosses
+that in hours. `handleHaremSize` now refreshes hourly while the cached count is
+under the gate and keeps the weekly cadence above it, where the number changes
+nothing. The ten is `HaremSizeGate` in `HHEnvVariables` now, read by all three
+places instead of written out three times.
+
 ### v8.12.13 - A harem that has grown reaches the cache the same day
 
 `Harem.getGirlCount()` reads the cached size first, and `moduleHaremCountMax`

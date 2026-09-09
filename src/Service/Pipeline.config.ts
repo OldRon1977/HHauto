@@ -717,7 +717,18 @@ const handleHaremSize: HandlerConfig = {
   precondition: (ctx) => {
     if (ctx.busy) return false;
     if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true') return false;
-    if (!Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs'))) return false;
+    // Below the ten-girl gate the count is a decision -- PlaceOfPower.isEnabled
+    // and PathOfAttraction.isEnabled read it -- and a young account crosses it
+    // in hours, while nothing else on the run's path carries the girl list.
+    // Measured 2026-09-09: the cached count held 3 for a whole session while
+    // the account owned 13, and the weekly timer would have kept both features
+    // shut for a week. Above the gate the number decides nothing, so the weekly
+    // walk to the waifu page stands.
+    const cachedGirls = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
+    const haremSizeExpiry = cachedGirls < ConfigHelper.getHHScriptVars('HaremSizeGate')
+      ? ConfigHelper.getHHScriptVars('HaremSizeGateExpirationSecs')
+      : ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs');
+    if (!Harem.HaremSizeNeedsRefresh(haremSizeExpiry)) return false;
     if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDWaifu')) return false;
     if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDEditTeam')) return false;
     if (ctx.lastActionPerformed !== 'none') return false;

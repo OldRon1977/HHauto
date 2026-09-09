@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.13
+// @version      8.12.14
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -10715,6 +10715,12 @@ HHEnvVariables["global"].selectorFilterNotDisplayNone = ':not([style*="display:n
 HHEnvVariables["global"].selectorClaimAllRewards = "#claim-all:not([disabled]):visible:not([style*='visibility: hidden;'])"; // KK use visibility: hidden or visibility: visible to display this button
 HHEnvVariables["global"].HaremMaxSizeExpirationSecs = 7 * 24 * 60 * 60; //7 days
 HHEnvVariables["global"].HaremMinSizeExpirationSecs = 24 * 60 * 60; //1 days
+// The girl count the script actually decides on: PlaceOfPower.isEnabled and
+// PathOfAttraction.isEnabled both open at ten. Below that the number is a
+// decision and a young account crosses it in hours, so the refresh that walks
+// to the waifu page runs hourly instead of weekly until the gate is passed.
+HHEnvVariables["global"].HaremSizeGate = 10;
+HHEnvVariables["global"].HaremSizeGateExpirationSecs = 60 * 60; //1 hour
 HHEnvVariables["global"].LeagueListExpirationSecs = 2 * 60; //2 min
 HHEnvVariables["global"].minSecsBeforeGoHomeAfterActions = 10;
 HHEnvVariables["global"].dailyRewardMaxRemainingTime = 2 * 60 * 60;
@@ -15670,7 +15676,8 @@ class PlaceOfPower {
     static isEnabled() {
         const onPowerplacePage = getPage() === ConfigHelper.getHHScriptVars("pagesIDPowerplacemain");
         const girlCount = Harem.getGirlCount();
-        const enoughGirl = girlCount >= 10;
+        const gate = ConfigHelper.getHHScriptVars("HaremSizeGate");
+        const enoughGirl = girlCount >= gate;
         // A harem under ten girls is the ordinary state of a young account,
         // not an error, and isActivated() asks this on every pipeline tick.
         // Measured over one 12-minute run: 692 of 2532 log lines were this
@@ -15680,7 +15687,7 @@ class PlaceOfPower {
         // when the number has changed.
         if (!enoughGirl && lastReportedGirlShortfall !== girlCount) {
             lastReportedGirlShortfall = girlCount;
-            logHHAuto('Place of Power needs 10 girls, the harem holds ' + girlCount + '.');
+            logHHAuto('Place of Power needs ' + gate + ' girls, the harem holds ' + girlCount + '.');
         }
         // unlocked and the end of world 2
         const enoughProgress = getHHVars('Hero.infos.questing.id_world') > 2 && enoughGirl;
@@ -22265,7 +22272,7 @@ class PathOfAttraction {
      * dead end.
      */
     static isEnabled() {
-        const enoughGirls = Harem.getGirlCount() >= 10;
+        const enoughGirls = Harem.getGirlCount() >= ConfigHelper.getHHScriptVars("HaremSizeGate");
         const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
         return enoughGirls && enoughProgress;
     }
@@ -36579,7 +36586,18 @@ const handleHaremSize = {
             return false;
         if (getStoredValue(HHStoredVarPrefixKey + TK.autoLoop) !== 'true')
             return false;
-        if (!Harem.HaremSizeNeedsRefresh(ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs')))
+        // Below the ten-girl gate the count is a decision -- PlaceOfPower.isEnabled
+        // and PathOfAttraction.isEnabled read it -- and a young account crosses it
+        // in hours, while nothing else on the run's path carries the girl list.
+        // Measured 2026-09-09: the cached count held 3 for a whole session while
+        // the account owned 13, and the weekly timer would have kept both features
+        // shut for a week. Above the gate the number decides nothing, so the weekly
+        // walk to the waifu page stands.
+        const cachedGirls = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
+        const haremSizeExpiry = cachedGirls < ConfigHelper.getHHScriptVars('HaremSizeGate')
+            ? ConfigHelper.getHHScriptVars('HaremSizeGateExpirationSecs')
+            : ConfigHelper.getHHScriptVars('HaremMaxSizeExpirationSecs');
+        if (!Harem.HaremSizeNeedsRefresh(haremSizeExpiry))
             return false;
         if (ctx.currentPage === ConfigHelper.getHHScriptVars('pagesIDWaifu'))
             return false;
