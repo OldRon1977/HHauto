@@ -504,6 +504,7 @@ Timer: `eventSultryMysteryGoing` (Event-Restlaufzeit), `eventSultryMysteryShopRe
 | `haveBooster` | `Temp_haveBooster` | `sessionStorage` | `Temp` | Booster verfuegbar |
 | `haveExp` | `Temp_haveExp` | `sessionStorage` | `Temp` | Experience verfuegbar |
 | `charLevel` | `Temp_charLevel` | `sessionStorage` | `Temp` | Charakter-Level |
+| `heroMaxLevel` | `Temp_heroMaxLevel` | `localStorage` | `Temp` | hoechstes je gesehenes Level; `HeroHelper.getLevel` faellt nie darunter, weil das Spiel `Hero.infos.level` je nach Seitenaufruf veraltet ausliefert |
 | `storeContents` | `Temp_storeContents` | `sessionStorage` | `Temp` | Shop-Inhalt |
 | `boosterStatus` | `Temp_boosterStatus` | `sessionStorage` | `Temp` | Booster-Status |
 | `boosterStatusLastUpdate` | `Temp_boosterStatusLastUpdate` | `sessionStorage` | `Temp` | Timestamp des letzten Booster-Status-Updates |

@@ -15,6 +15,51 @@ describe("HeroHelper", function() {
 
   });
 
+  // The game does not serve a consistent hero snapshot: measured 2026-09-09,
+  // two page loads six seconds apart carried level 36 and level 17. Every
+  // getLevel() >= LEVEL_MIN_* gate reads this, so a stale-low value silently
+  // switches off Path of Valor, Path of Glory and League.
+  describe("getLevel keeps the highest level it has seen", function() {
+    const KEY = HHStoredVarPrefixKey + "Temp_heroMaxLevel";
+
+    beforeEach(function() {
+      localStorage.removeItem(KEY);
+      unsafeWindow.shared!.Hero = { infos: { level: 36 } } as never;
+    });
+
+    afterEach(function() {
+      localStorage.removeItem(KEY);
+    });
+
+    it("returns the live level and remembers it", function() {
+      expect(HeroHelper.getLevel()).toBe(36);
+      expect(localStorage.getItem(KEY)).toBe("36");
+    });
+
+    it("ignores a page that serves a lower level", function() {
+      expect(HeroHelper.getLevel()).toBe(36);
+
+      unsafeWindow.shared!.Hero = { infos: { level: 17 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(36);
+      expect(localStorage.getItem(KEY)).toBe("36");
+    });
+
+    it("follows a real level-up upwards", function() {
+      HeroHelper.getLevel();
+      unsafeWindow.shared!.Hero = { infos: { level: 37 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(37);
+      expect(localStorage.getItem(KEY)).toBe("37");
+    });
+
+    it("returns the live level when nothing has been remembered", function() {
+      unsafeWindow.shared!.Hero = { infos: { level: 3 } } as never;
+
+      expect(HeroHelper.getLevel()).toBe(3);
+    });
+  });
+
   describe("getSandalWoodEquipFailure", function() {
     it("default", function() {
       expect(HeroHelper.getSandalWoodEquipFailure()).toBe(0);

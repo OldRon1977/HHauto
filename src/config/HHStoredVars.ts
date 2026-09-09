@@ -2331,6 +2331,13 @@ HHStoredVars[HHStoredVarPrefixKey + TK.charLevel] =
     storage:"sessionStorage",
     HHType:"Temp"
 };
+// localStorage, nicht sessionStorage: der Hoechststand soll einen neuen Tab
+// ueberleben. Er waechst nur und wird nie zurueckgesetzt.
+HHStoredVars[HHStoredVarPrefixKey + TK.heroMaxLevel] =
+    {
+    storage:"localStorage",
+    HHType:"Temp"
+};
 HHStoredVars[HHStoredVarPrefixKey + TK.filteredGirlsList] =
     {
     storage:"sessionStorage",

@@ -7,6 +7,30 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.7 - A stale page no longer switches off half the script
+
+The game does not serve a consistent hero snapshot. Measured on a live
+account: two page loads six seconds apart, both with the browser cache off and
+each with its own `server_time`, carried `Hero.infos.level` 36 and 17, with
+`Xp` and `caracs` differing to match. `questing` was current on both. Which
+page holds the fresh copy varies -- in one run it was `home.html`, in the next
+`hero.html`.
+
+A page that loads the low value keeps it for its whole lifetime, and
+`HeroHelper.getLevel()` feeds the `>= LEVEL_MIN_*` gate of Path of Valor (30),
+Path of Glory (30), League (20), Sultry Mysteries (15) and Double Penetration
+(40). At a true level of 36 a stale 17 switches the first three off silently:
+no error, no log line, three modules that simply do nothing.
+
+`getLevel()` now keeps the highest level it has seen, in
+`Temp_heroMaxLevel`. A level never decreases, so the maximum is always the
+right answer, and it costs one stored number. Callers that want exactly what
+their page was served still read the global directly -- `Pipeline.config` does,
+for its shop-refresh comparison, where a stale-low value only delays a check.
+
+Nothing is lost to the staleness itself: a later request confirms the real
+state. What it breaks is any decision made from a single reading.
+
 ### v8.12.6 - The level-up popup gets confirmed instead of waited out
 
 A level-up during questing opens `#level_up`, and that popup covers the quest
