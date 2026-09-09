@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.8
+// @version      8.12.9
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -35260,9 +35260,19 @@ class Bundles {
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
                 const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
-                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
+                // `.stepup_offers` measured on a live account 2026-09-09: the
+                // tab bar carries nine tabs, and the step-up ladder's first
+                // rung is an enabled free claim (25 combativity on that
+                // account). Without the class here the tab is never clicked.
+                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal, .stepup_offers';
                 const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
-                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
+                // The free claim is `.free-buy-button-shop`, and the colour
+                // class rides along with the tab's design: `blue_button_L`
+                // under special_offers and period_deal, `purple_button_L`
+                // under stepup_offers. Keying on the colour skipped the
+                // step-up rung; `[price='0.00']:enabled` still keeps paid and
+                // already-claimed buttons out.
+                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .free-buy-button-shop:enabled[price='0.00']";
                 function collectFreeBundlesFinished(message, nextFreeBundlesCollectTime) {
                     logHHAuto(message);
                     setTimer('nextFreeBundlesCollectTime', nextFreeBundlesCollectTime);

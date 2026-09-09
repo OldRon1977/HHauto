@@ -76,9 +76,19 @@ export class Bundles {
                 logHHAuto("setting autoloop to false");
                 setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "false");
                 const bundleTabsContainerQuery = "#common-popups .payments-wrapper .payment-tabs";
-                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal';
+                // `.stepup_offers` measured on a live account 2026-09-09: the
+                // tab bar carries nine tabs, and the step-up ladder's first
+                // rung is an enabled free claim (25 combativity on that
+                // account). Without the class here the tab is never clicked.
+                const bundleTabsListQuery = '.starter_offers, .event_bundles, .special_offers, .period_deal, .stepup_offers';
                 const subTabsQuery = "#common-popups .payments-wrapper .content-container .subtabs-container .card-container";
-                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .blue_button_L:enabled[price='0.00']";
+                // The free claim is `.free-buy-button-shop`, and the colour
+                // class rides along with the tab's design: `blue_button_L`
+                // under special_offers and period_deal, `purple_button_L`
+                // under stepup_offers. Keying on the colour skipped the
+                // step-up rung; `[price='0.00']:enabled` still keeps paid and
+                // already-claimed buttons out.
+                const freeButtonBundleQuery = "#common-popups .payments-wrapper .bundle .bundle-offer-price .free-buy-button-shop:enabled[price='0.00']";
 
                 function collectFreeBundlesFinished(message: string, nextFreeBundlesCollectTime: number) {
                     logHHAuto(message);
