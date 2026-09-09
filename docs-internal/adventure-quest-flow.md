@@ -191,6 +191,31 @@ eine bereits erledigte Quest, antwortet das Spiel mit "Something went wrong.
 Please try again." und laesst den Weiter-Knopf ausgegraut. Der Questpfad
 gehoert vor jedem Lauf frisch aus `Hero.infos.questing.current_url` gelesen.
 
+## Ein gesperrtes Event sieht aus wie ein offenes
+
+Ist ein Event fuer das Konto gesperrt, rendert das Spiel den Reiter trotzdem:
+`.event-title.active` traegt den angeforderten Tab samt eigenem `href`. Fuer
+`EventModule.getDisplayedIdEventPage()` ist das nicht von einem offenen Event
+zu unterscheiden -- die Funktion liefert die Event-ID, nicht den leeren String,
+auf den die Ausstiegsklappe prueft.
+
+Gemessen ueber vier Reiter desselben Kontos (ein gesperrter, drei offene):
+
+| Merkmal | gesperrt | offen |
+|---|---|---|
+| `.event-title.active` mit href | ja | ja |
+| `#events .nc-panel` | 1 | 1 |
+
+Das `nc-panel`, das die Sperrmeldung traegt, steht also auch auf jeder
+spielbaren Seite. **Ein DOM-Merkmal, das die beiden Faelle trennt, ist nicht
+gefunden.** Der Text der Meldung waere eines, ist aber uebersetzt.
+
+Deshalb prueft das Skript seit v8.12.8 die Bedingung selbst, statt sie der
+Seite anzusehen: `PathOfAttraction.isEnabled()` verlangt zehn Maedchen und
+Welt 2, gleiche Bauart wie `PlaceOfPower.isEnabled()`. Ohne diese Pruefung
+lief die Sitzung in eine Schleife -- zwoelf von achtzehn Samples standen auf
+der Event-Seite.
+
 ## Zwei Nebenbeobachtungen am Code
 
 - `Events/LoveRaidManager.ts:263`: die Levelpruefung ist auskommentiert
