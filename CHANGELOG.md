@@ -7,6 +7,33 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.2 - 84 import cycles down to 52, through one seam
+
+Seven modules imported `autoLoop` for one reason: to call
+`setTimeout(autoLoop, delay)` after an action that had switched the loop off.
+Those seven `Module → Service/AutoLoop` edges were worth **32 of the 84
+baseline import cycles** -- measured by removing exactly them and re-running
+madge before anything was rewritten:
+
+| | cycles |
+|---|---|
+| with the seven edges | 84 |
+| without | 52 |
+
+`Service/AutoLoopKick.ts` takes the reference from the boot path instead, the
+way `setPachinkoAutoLoopKick` and `setHeroAutoLoopKick` already did
+(ADR-008 / ARCH-001) -- but as one shared seam rather than a setter per
+module. It imports nothing at all: a leaf cannot join a cycle, so the seam
+cannot become the problem it was written to solve. The delay stays with the
+caller for the same reason, and the reference is read when the timer fires,
+so a kick scheduled before boot still reaches the real loop.
+
+`Module/Events/LivelyScene.ts` imported `autoLoop` without ever calling it;
+that import is gone.
+
+No behaviour change. Pachinko and HeroHelper keep their own setters -- both
+are wired and tested, and moving them removes no cycle.
+
 ### v8.13.1 - Path of Glory and Path of Valor decide the same way again
 
 The two modules are the same feature twice -- 148 and 150 lines that differ in

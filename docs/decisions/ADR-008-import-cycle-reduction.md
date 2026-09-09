@@ -62,9 +62,45 @@ current number lives in `docs-internal/circular-baseline.json`, 85 today):
 
 (Cycle counts overlap; the total drop is 262, not the column sum.)
 
+## Stage 2 result
+
+One edge, seven times: `Module/* → Service/AutoLoop`, imported only to call
+`setTimeout(autoLoop, delay)` after an action that had switched the loop off.
+Baseline 84 → **52**.
+
+Measured before the change by removing exactly those seven imports and
+re-running madge, so the number was known before a line was rewritten:
+
+| | Zyklen |
+|---|---|
+| mit den sieben Kanten | 84 |
+| ohne sie | 52 |
+
+Pattern 3 (injection), as in the `HeroHelper → AutoLoop` row above -- but
+through one shared seam, `Service/AutoLoopKick.ts`, instead of a setter per
+module. The seam imports nothing at all: a leaf cannot join a cycle, so it
+can never become the problem it was written to solve. The delay stays with
+the caller for the same reason (a storage read would have pulled an import
+in).
+
+| Modul | Aufrufstellen |
+|---|---|
+| `Module/Bundles.ts` | 1 |
+| `Module/Quest.ts` | 1 |
+| `Module/League.ts` | 1 |
+| `Module/PlaceOfPower.ts` | 1 |
+| `Module/Events/DoublePenetration.ts` | 2 |
+| `Module/Events/PathOfAttraction.ts` | 1 |
+| `Module/Events/LivelyScene.ts` | 0 -- the import was unused |
+
+`Module/Pachinko.ts` and `Helper/HeroHelper.ts` keep their own
+`setPachinkoAutoLoopKick` / `setHeroAutoLoopKick`: both are wired and tested,
+and moving them to the shared seam removes no cycle. Recorded here so the
+next reader does not take it for an oversight.
+
 ## Follow-up stages
 
-The remaining 86 cycles cluster around two rings; next candidate edges by
+The remaining 52 cycles cluster around two rings; next candidate edges by
 frequency: `Utils/Utils → Helper/StorageHelper`, `Helper/RewardHelper →
 Module/Events/EventModule`, `Service/AutoLoop → Service/AutoLoopPageHandlers`,
 `Utils/HHPopup → Utils/Utils`. Same playbook; baseline may only shrink.

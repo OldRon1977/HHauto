@@ -25,7 +25,7 @@ import { checkTimer, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { pInfoRow } from "../Utils/PInfoRow";
 import { queryStringGetParam } from "../Helper/UrlHelper";
 import { decideShouldFight, ShouldFightState, leaguePromotionCutoff } from './League.pure';
-import { autoLoop } from "../Service/AutoLoop";
+import { kickAutoLoop } from "../Service/AutoLoopKick";
 import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -69,7 +69,7 @@ export class LeagueHelper {
     {
         if(unsafeWindow.current_tier_number === undefined)
         {
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)))
+            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)))
         }
         return unsafeWindow.current_tier_number;
     }

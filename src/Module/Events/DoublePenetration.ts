@@ -15,7 +15,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { getLimitTimeBeforeEnd, randomInterval, convertTimeToInt } from "../../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../../Helper/TimerHelper";
-import { autoLoop } from "../../Service/AutoLoop";
+import { kickAutoLoop } from "../../Service/AutoLoopKick";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { FeatureGate } from "../../Service/FeatureGate";
@@ -128,7 +128,7 @@ export class DoublePenetration {
                             logHHAuto("Double penetration collection finished.");
                             setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                             setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+                            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                         }
                     }
                     collectDpEventRewards();
@@ -139,7 +139,7 @@ export class DoublePenetration {
                     logHHAuto("No double penetration reward to collect.");
                     setTimer('nextDpEventCollectTime',ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60,180));
                     setStoredValue(HHStoredVarPrefixKey+TK.autoLoop, "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey+TK.autoLoopTimeMili)));
                     return false;
                 }
             }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.1
+// @version      8.13.2
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -11487,431 +11487,825 @@ function getGoToClubChampionButton() {
     return `<button data-href="${ConfigHelper.getHHScriptVars("pagesURLClubChampion")}" class="blue_button_L hh-club-poa">${getTextForUI("goToClubChampions", "elementText")}</button>`;
 }
 
-;// ./src/Utils/PInfoRow.ts
-// PInfoRow.ts
+;// ./src/Service/AutoLoopKick.ts
+// AutoLoopKick.ts -- The one seam a module uses to restart the auto-loop
+// after it has switched it off for an action.
 //
-// One row of the pInfo status panel: label on the left, value on the right
-// (#1834). A plain "<li>Label : value</li>" list cuts off the longer rows,
-// because the value is part of the same text node and there is nothing to
-// align.
+// A module that sets `Temp_autoLoop` to "false" for the length of an action
+// has to start the loop again afterwards, and the obvious way to do that --
+// `import { autoLoop } from "../Service/AutoLoop"` -- is what made seven
+// modules members of the baseline import cycles. Measured 2026-09-09 by
+// removing exactly those seven edges and re-running madge: **84 cycles with
+// them, 52 without** (ADR-008 / ARCH-001).
 //
-// A row is a flex line with two children, so the value column stays flush right
-// no matter how long the label gets, and the label may wrap instead of being
-// clipped (see the #pInfo CSS in build/HHAuto.template.js).
+// So the reference comes from the boot path instead, the same way
+// `setPachinkoAutoLoopKick` and `setHeroAutoLoopKick` already worked. Those
+// two keep their own setters: they are wired and tested, and moving them here
+// would not remove a single cycle.
 //
-// Escaping: `label` and `value` are treated as HTML, because callers pass
-// markup (the watchdog row carries a [reactivate] span, others pass &lt;/&gt;
-// entities). `title` is attribute-escaped here, so callers must not escape it
-// themselves. This module imports nothing, so both InfoService and the feature
-// modules can use it without creating an import cycle between them.
-function attr(value) {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-}
-function openTag(attrs) {
-    let tag = "<li";
-    if (attrs.style !== undefined && attrs.style !== "")
-        tag += ' style="' + attr(attrs.style) + '"';
-    if (attrs.title !== undefined && attrs.title !== "")
-        tag += ' title="' + attr(attrs.title) + '"';
-    return tag + ">";
+// This file imports nothing on purpose. A leaf cannot join a cycle, so the
+// seam can never become the problem it was written to solve -- not even for
+// the storage read that supplies the delay, which is why the delay is the
+// caller's to pass.
+//
+// Used by: Bundles.ts, League.ts, PlaceOfPower.ts, Quest.ts,
+//   DoublePenetration.ts, PathOfAttraction.ts; wired in index.ts
+let kick = () => { };
+/** Wired once from the boot path with the real autoLoop. */
+function setAutoLoopKick(fn) {
+    kick = fn;
 }
 /**
- * A label/value row. An empty `value` renders the label across the full width,
- * which is what the rows without a time of their own need (watchdog errors, the
- * troll energy line, debug output).
+ * Restart the auto-loop after `delayMs`.
+ *
+ * The reference is read when the timer fires, not when it is scheduled, so a
+ * kick scheduled before the boot path wired one still runs the real loop.
  */
-function pInfoRow(label, value = "", attrs = {}) {
-    const left = '<span class="pInfoLabel">' + label + "</span>";
-    const right = value === "" ? "" : '<span class="pInfoValue">' + value + "</span>";
-    return openTag(attrs) + left + right + "</li>";
+function kickAutoLoop(delayMs) {
+    setTimeout(() => kick(), delayMs);
 }
 
-;// ./src/model/BDSMPlayer.ts
-// Model for a player in the BDSM (battle simulation) system.
-// Holds combat stats (HP, attack, defense, crit, shields, stun, reflect, etc.)
-// used by the battle simulator to predict fight outcomes.
-//@ts-check
-class BDSMPlayer {
-    constructor(hp, atk, adv_def, critchance, bonuses, tier4, tier5, name = '') {
-        this.name = '';
-        this.hp = hp;
-        this.atk = atk;
-        this.adv_def = adv_def;
-        this.critchance = critchance;
-        this.bonuses = bonuses;
-        this.tier4 = tier4;
-        this.tier5 = tier5;
-        this.name = name;
-    }
-}
-
-;// ./src/Helper/BDSMHelper.ts
-
-
-class BDSMHelper {
-    /**
-     * Extract synergy multipliers from a team object. Each element type
-     * provides a different combat bonus (crit damage, crit chance, defense
-     * reduction, or heal-on-hit).
-     */
-    static fightBonues(team) {
-        return {
-            critDamage: team.synergies.find(({ element: { type } }) => type === 'fire').bonus_multiplier,
-            critChance: team.synergies.find(({ element: { type } }) => type === 'stone').bonus_multiplier,
-            defReduce: team.synergies.find(({ element: { type } }) => type === 'sun').bonus_multiplier,
-            healOnHit: team.synergies.find(({ element: { type } }) => type === 'water').bonus_multiplier
-        };
-    }
-    /**
-     * Build BDSMPlayer models for the player and opponent from raw game data.
-     * Applies league-specific domination bonuses when `inLeague` is true,
-     * since league fights apply elemental ego/attack bonuses while other
-     * modes do not.
-     *
-     * @returns Object with `player`, `opponent` BDSMPlayer instances
-     *          and the computed `dominanceBonuses`.
-     */
-    static getBdsmPlayersData(inHeroData, opponentData, inLeague = false) {
-        // player stats
-        const playerAtk = inHeroData.damage;
-        const playerEgo = inHeroData.remaining_ego;
-        const playerDef = inHeroData.defense;
-        const playerCrit = inHeroData.chance;
-        const playerElements = [];
-        inHeroData.team.theme_elements.forEach((el) => playerElements.push(el.type));
-        const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
-        const opponentAtk = opponentData.damage;
-        const opponentEgo = opponentData.remaining_ego;
-        const opponentDef = opponentData.defense;
-        const opponentCrit = opponentData.chance;
-        const opponentElements = [];
-        opponentData.team.theme_elements.forEach((el) => opponentElements.push(el.type));
-        const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
-        const dominanceBonuses = calculateDominationBonuses(playerElements, opponentElements);
-        const player = new BDSMPlayer(inLeague ? playerEgo * (1 + dominanceBonuses.player.ego) : playerEgo, inLeague ? playerAtk * (1 + dominanceBonuses.player.attack) : playerAtk, opponentDef, calculateCritChanceShare(playerCrit, opponentCrit) + dominanceBonuses.player.chance + playerBonuses.critChance, playerBonuses, estimateTier4SkillValue(inHeroData.team.girls), estimateTier5SkillValue(inHeroData.team.girls), inHeroData.nickname);
-        const opponent = new BDSMPlayer(opponentEgo, opponentAtk, inLeague ? playerDef * (1 - opponentBonuses.defReduce) : playerDef, calculateCritChanceShare(opponentCrit, playerCrit) + dominanceBonuses.opponent.chance + opponentBonuses.critChance, opponentBonuses, estimateTier4SkillValue(opponentData.team.girls), estimateTier5SkillValue(opponentData.team.girls), opponentData.nickname);
-        return { player: player, opponent: opponent, dominanceBonuses: dominanceBonuses };
-    }
+;// ./src/Service/FeatureGate.pure.ts
+// FeatureGate.pure.ts -- Pure decision logic for "has this account unlocked
+// feature X yet".
+//
+// Extracted so the decision can be unit-tested without ConfigHelper, the
+// Hero globals, storage or the DOM. Input = data, output = a verdict.
+// The impure adapter FeatureGate.ts holds the table of requirements, reads
+// the account state and delegates here.
+//
+// Why this exists at all: eight modules answered the same question with
+// eight hand-written conditions, and they drifted. DoublePenetration named
+// "And 10 girls" in a comment and checked only the level; LoveRaidManager
+// carried its level check commented out; the ten-girl condition was written
+// as a literal in two places until v8.12.14 gave it a name. Two of the fixes
+// in the 8.12.9-8.12.18 run were faults in such a condition, not in the
+// feature behind it (ADR-012).
+//
+// Used by: FeatureGate.ts
+/**
+ * A value the account state does not carry is not a low value -- it is no
+ * answer, and a gate must not open on one.
+ *
+ * The game hands these numbers out unevenly: `HeroHelper.getLevel()` reads 0
+ * before any page has been parsed, `Harem.getGirlCount()` returns 0 both for
+ * "no girls" and for "no source on this page", and `id_world` is undefined
+ * off the quest pages. Every one of those becomes 0 here, and 0 fails every
+ * positive requirement. Measured cost of the opposite: with the girl count
+ * read off the harem page it came out 24 on an account owning 9 (v8.12.11),
+ * which would have sent the run onto a page it cannot use.
+ */
+function knownValue(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
 }
 /**
- * Elemental advantage lookup tables.
- * - `chance`: elements that grant a crit-chance bonus when facing the listed counter.
- * - `egoDamage`: elements that grant ego (HP) and attack bonuses when facing the listed counter.
+ * Decide one gate.
+ *
+ * The conditions are checked in a fixed order -- game, level, girls, world --
+ * so the verdict names the same obstacle every time for the same state, and
+ * the log line the adapter builds from it does not flicker between two
+ * equally true reasons.
+ *
+ * All comparisons are non-strict (`>=`), matching every condition this
+ * replaced.
  */
-BDSMHelper.ELEMENTS = {
-    chance: {
-        darkness: 'light',
-        light: 'psychic',
-        psychic: 'darkness'
-    },
-    egoDamage: {
-        fire: 'nature',
-        nature: 'stone',
-        stone: 'sun',
-        sun: 'water',
-        water: 'fire'
+function decideUnlocked(requirement, state) {
+    if (!requirement.gameHasFeature) {
+        return { unlocked: false, missing: 'game' };
     }
+    const checks = [
+        ['level', requirement.minLevel, state.heroLevel],
+        ['girls', requirement.minGirls, state.girlCount],
+        ['world', requirement.minWorld, state.world],
+    ];
+    for (const [obstacle, needs, raw] of checks) {
+        if (needs === undefined)
+            continue;
+        const has = knownValue(raw);
+        if (has < needs) {
+            return { unlocked: false, missing: obstacle, needs, has };
+        }
+    }
+    return { unlocked: true };
+}
+
+;// ./src/Service/FeatureGate.ts
+// FeatureGate.ts -- One table of "what an account needs before a feature is
+// usable", and one place that reads the numbers it is decided on.
+//
+// Before this, eight modules each wrote their own condition. They drifted:
+// DoublePenetration named "And 10 girls" in a comment and checked only the
+// level, LoveRaidManager kept its level check commented out, and the
+// ten-girl threshold was a literal in two files. Worse, each condition read
+// its own numbers, and those numbers are the part that goes wrong -- the
+// girl count means something different on every page (v8.12.11) and its
+// cache went stale for a day (v8.12.13/14). Two faults out of nine in that
+// run were in a gate, not in the feature behind it.
+//
+// The decision itself lives in FeatureGate.pure.ts; this file resolves the
+// table against ConfigHelper and reads the account state.
+//
+// Depends on: FeatureGate.pure.ts (the decision), Harem.ts (girl count)
+// Used by: League.ts, Pantheon.ts, PathOfGlory.ts, PathOfValue.ts,
+//   SultryMysteries.ts, DoublePenetration.ts, PlaceOfPower.ts,
+//   PathOfAttraction.ts
+//
+// See docs/decisions/ADR-012-one-table-of-unlock-conditions.md
+
+
+
+
+
+
+/**
+ * Every unlock condition the script knows, in one place.
+ *
+ * Adding a module here is the whole of adding its gate. What is NOT here is
+ * as important: a condition nobody has measured does not get an entry, it
+ * gets a line in docs-internal. See `doublePenetration` below.
+ */
+const GATES = {
+    league: { label: 'Leagues', enabledVar: 'isEnabledLeagues', levelVar: 'LEVEL_MIN_LEAGUE' },
+    pantheon: { label: 'Pantheon', enabledVar: 'isEnabledPantheon', levelVar: 'LEVEL_MIN_PANTHEON' },
+    // No isEnabledX flag has ever existed for Sultry Mysteries.
+    sultryMysteries: { label: 'Sultry Mysteries', levelVar: 'LEVEL_MIN_EVENT_SM' },
+    pathOfGlory: { label: 'Path of Glory', enabledVar: 'isEnabledPoG', levelVar: 'LEVEL_MIN_POG' },
+    pathOfValor: { label: 'Path of Valor', enabledVar: 'isEnabledPoV', levelVar: 'LEVEL_MIN_POV' },
+    // The old comment on DoublePenetration.isEnabled read "And 10 gilrs",
+    // and the code checked only the level. Whether the game really wants ten
+    // girls here is NOT measured -- docs-internal/adventure-quest-flow.md
+    // says so plainly -- so the behaviour stays level-only and the open
+    // question lives in that document rather than in a comment beside a
+    // condition that does not implement it.
+    doublePenetration: { label: 'Double Penetration', enabledVar: 'isEnabledDPEvent', levelVar: 'LEVEL_MIN_EVENT_DP' },
+    // The game states this one on the locked page itself: ten girls and the
+    // world beyond the second. `id_world > 2` is `>= 3`.
+    placeOfPower: { label: 'Place of Power', enabledVar: 'isEnabledPowerPlaces', girlsVar: 'HaremSizeGate', minWorld: 3 },
+    // "You need to be at least on the Second World of your adventure and
+    // have at least 10 girls in your Harem" -- the event page's own text.
+    pathOfAttraction: { label: 'Path of Attraction', girlsVar: 'HaremSizeGate', minWorld: 2 },
 };
-let _player;
-let _opponent;
-let _runs;
-let _cache;
 /**
- * Run a full probabilistic battle simulation between two players.
- *
- * Recursively explores every possible turn outcome (base hit vs. critical hit)
- * for both sides, weighting each branch by its probability. Returns the
- * aggregate win/loss probability and a distribution of expected league points.
- *
- * The simulation caps at 50 turns to prevent stack overflow on stalemate
- * scenarios (e.g., high healing, low damage).
- *
- * @param player   - The attacker (hero) model.
- * @param opponent - The defender model.
- * @param debugEnabled - When true, logs simulation details.
- * @returns BDSMSimu with win/loss probabilities, point distribution, and scoreClass.
+ * The last verdict reported per feature, so a locked feature says why once
+ * instead of on every pipeline tick. Measured before this existed: one such
+ * line filled 692 of 2532 log lines in a twelve-minute run, 27 percent of
+ * the log (v8.12.12). The memo lives as long as the document; a page load
+ * repeats the line only if the answer has changed since.
  */
-function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
-    if (debugEnabled) {
-        logHHAuto('Running simulation against' + opponent.name);
-    }
-    _player = player;
-    _opponent = opponent;
-    _runs = 0;
-    const setup = (x) => {
-        x.critMultiplier = 2 + x.bonuses.critDamage;
-        x.hp = Math.ceil(x.hp);
-    };
-    setup(_player);
-    setup(_opponent);
-    _player.playerShield = (_player.tier5.id == 12) ? _player.tier5.value * player.hp : 0;
-    _opponent.opponentShield = 0;
-    _player.stunned = 0;
-    _player.alreadyStunned = 0;
-    _opponent.stunned = (_player.tier5.id == 11) ? 2 : 0;
-    _opponent.alreadyStunned = 0;
-    _player.reflect = (_player.tier5.id == 13) ? 2 : 0;
-    _opponent.reflect = 0;
-    let ret;
-    try {
-        // start simulation from player's turn
-        ret = playerTurn(_player.hp, _opponent.hp, _player.playerShield, _opponent.opponentShield, _player.stunned, _opponent.stunned, _player.reflect, _opponent.reflect, 1);
-    }
-    catch ({ errName, message }) {
-        logHHAuto(`An error occurred during the simulation against ${_opponent.name}`, errName, message);
-        return {};
-    }
-    const sum = ret.win + ret.loss;
-    ret.win /= sum;
-    ret.loss /= sum;
-    ret.scoreClass = ret.win > 0.9 ? 'plus' : ret.win < 0.5 ? 'minus' : 'close';
-    if (debugEnabled) {
-        logHHAuto(`Ran ${_runs} simulations against ${_opponent.name}; aggregated win chance: ${ret.win * 100}%`);
-    }
-    return ret;
-    function calculateDmg(x, turns) {
-        const dmg = x.atk * Math.pow((1 + x.tier4.dmg), turns) - x.adv_def * Math.pow((1 + x.tier4.def), turns);
+const lastReported = new Map();
+class FeatureGate {
+    /** The requirement for one feature, resolved against the current game variant. */
+    static requirementFor(name) {
+        const spec = GATES[name];
         return {
-            baseAtk: {
-                probability: 1 - x.critchance,
-                damageAmount: Math.ceil(dmg)
-            },
-            critAtk: {
-                probability: x.critchance,
-                damageAmount: Math.ceil(dmg * x.critMultiplier)
-            }
+            gameHasFeature: spec.enabledVar === undefined
+                ? true
+                : ConfigHelper.getHHScriptVars(spec.enabledVar, false) === true,
+            minLevel: spec.levelVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.levelVar)),
+            minGirls: spec.girlsVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.girlsVar)),
+            minWorld: spec.minWorld,
         };
     }
-    function mergeResult(x, xProbability, y, yProbability) {
-        const points = {};
-        Object.entries(x.points).map(([point, probability]) => [point, probability * xProbability])
-            .concat(Object.entries(y.points).map(([point, probability]) => [point, probability * yProbability]))
-            .forEach(([point, probability]) => {
-            points[point] = (points[point] || 0) + probability;
-        });
-        const win = x.win * xProbability + y.win * yProbability;
-        const loss = x.loss * xProbability + y.loss * yProbability;
-        return { points, win, loss };
+    /**
+     * Read only the numbers this requirement is decided on. Reading the girl
+     * count is not free -- it goes through storage and, without a cache, the
+     * page globals -- and a level gate has no use for it.
+     */
+    static accountStateFor(requirement) {
+        return {
+            heroLevel: requirement.minLevel === undefined ? 0 : HeroHelper.getLevel(),
+            girlCount: requirement.minGirls === undefined ? 0 : Harem.getGirlCount(),
+            world: requirement.minWorld === undefined ? 0 : Number(getHHVars('Hero.infos.questing.id_world', false)),
+        };
     }
-    function playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns) {
-        //Avoid a stack overflow
-        const maxAllowedTurns = 50;
-        if (turns > maxAllowedTurns)
-            throw new Error();
-        // read cache
-        //Simulate base attack and critical attack
-        const { baseAtk, critAtk } = calculateDmg(_player, turns);
-        const baseAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
-        const critAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
-        const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
-        // write cache
-        //_cache[playerHP][opponentHP] = mergedResult;
-        return mergedResult;
+    /** The full verdict, without logging. */
+    static verdict(name) {
+        const requirement = FeatureGate.requirementFor(name);
+        return decideUnlocked(requirement, FeatureGate.accountStateFor(requirement));
     }
-    function playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
-        if (playerStunned > 0) {
-            playerStunned -= 1;
-            //Opponent attack
-            return opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
-        }
-        //Damage
-        const playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
-        opponentHP -= playerDamage;
-        opponentShield = Math.max(0, opponentShield - attack.damageAmount);
-        //Tier 5 skill : Player Execute
-        if (_player.tier5.id == 14) {
-            const opponentHPRate = opponentHP / _opponent.hp;
-            if (opponentHPRate <= _player.tier5.value)
-                opponentHP = 0;
-        }
-        //Tier 5 skill : Opponent Reflect
-        const opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
-        playerHP -= Math.max(0, (opponentReflectDmg - playerShield));
-        playerShield = Math.max(0, playerShield - opponentReflectDmg);
-        opponentReflect -= 1;
-        const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
-        playerHP = Math.min(_player.hp, playerHP + playerHeal);
-        //Check win
-        if (opponentHP <= 0) {
-            const point = Math.min(25, 15 + Math.ceil(10 * playerHP / _player.hp));
-            _runs += 1;
-            return { points: { [point]: 1 }, win: 1, loss: 0 };
-        }
-        else {
-            //Opponent attack
-            return opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
-        }
-    }
-    function opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns) {
-        if (turns == 1) {
-            playerStunned = (_opponent.tier5.id == 11) ? 2 : 0;
-            opponentShield = (_opponent.tier5.id == 12) ? (_opponent.tier5.value * _opponent.hp) : 0;
-            opponentReflect = (_opponent.tier5.id == 13) ? 2 : 0;
-        }
-        //Simulate base attack and critical attack
-        const { baseAtk, critAtk } = calculateDmg(_opponent, turns);
-        const baseAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
-        const critAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
-        const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
-        return mergedResult;
-    }
-    function opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
-        if (opponentStunned > 0) {
-            opponentStunned -= 1;
-            //Next turn
-            turns += 1;
-            return playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
-        }
-        //Damage
-        const opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
-        playerHP -= opponentDamage;
-        playerShield = Math.max(0, playerShield - attack.damageAmount);
-        //Tier 5 skill : Opponent Execute
-        if (_opponent.tier5.id == 14) {
-            const playerHPRate = playerHP / _player.hp;
-            if (playerHPRate <= _opponent.tier5.value)
-                playerHP = 0;
-        }
-        //Tier 5 skill : Player Reflect
-        const playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0;
-        opponentHP -= Math.max(0, (playerReflectDmg - opponentShield));
-        opponentShield = Math.max(0, opponentShield - playerReflectDmg);
-        playerReflect -= 1;
-        const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
-        opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
-        //Check loss
-        if (playerHP <= 0) {
-            const point = Math.max(3, 3 + Math.ceil(10 * (_opponent.hp - opponentHP) / _opponent.hp));
-            _runs += 1;
-            return { points: { [point]: 1 }, win: 0, loss: 1 };
-        }
-        else {
-            //Next turn
-            turns += 1;
-            return playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
-        }
-    }
-}
-/**
- * Estimate tier-4 skill bonuses from skill_tiers_info.
- * The exact skill data is not always available from the API, so we estimate
- * based on the number of skill points invested (0.2% per point for damage).
- */
-function estimateTier4SkillValue(teamGirlsArray) {
-    const skill_tier_4 = { dmg: 0, def: 0 };
-    teamGirlsArray.forEach((girl) => {
-        if (girl.skill_tiers_info[4])
-            skill_tier_4.dmg += girl.skill_tiers_info[4].skill_points_used * 0.002;
-    });
-    return skill_tier_4;
-}
-/**
- * Estimate the tier-5 (leader) skill from the first girl's element.
- * Tier-5 skills are element-dependent:
- *   - sun/darkness  -> Stun (id 11)
- *   - stone/light   -> Shield (id 12)
- *   - psychic/nature -> Reflect (id 13)
- *   - fire/water    -> Execute (id 14)
- * Values are estimated from skill points invested since exact data may be unavailable.
- */
-function estimateTier5SkillValue(teamGirlsArray) {
-    const skill_tier_5 = { id: 0, value: 0 };
-    const girl = teamGirlsArray[0];
-    const skill5_girl = girl.skill_tiers_info[5];
-    if (skill5_girl) {
-        const skill5_girl_element = girl.girl.element_data.type;
-        //Stun
-        if (skill5_girl_element == 'sun' || skill5_girl_element == 'darkness') {
-            skill_tier_5.id = 11;
-            skill_tier_5.value = skill5_girl.skill_points_used * 0.07;
-        }
-        //Shield
-        else if (skill5_girl_element == 'stone' || skill5_girl_element == 'light') {
-            skill_tier_5.id = 12;
-            skill_tier_5.value = skill5_girl.skill_points_used * 0.08;
-        }
-        //Reflect
-        if (skill5_girl_element == 'psychic' || skill5_girl_element == 'nature') {
-            skill_tier_5.id = 13;
-            skill_tier_5.value = skill5_girl.skill_points_used * 0.2;
-        }
-        //Execute
-        if (skill5_girl_element == 'fire' || skill5_girl_element == 'water') {
-            skill_tier_5.id = 14;
-            skill_tier_5.value = skill5_girl.skill_points_used * 0.08;
-        }
-    }
-    return skill_tier_5;
-}
-/**
- * Calculate elemental domination bonuses for both sides.
- * Each element on team A that dominates a matching element on team B
- * grants +10% ego, +10% attack, or +20% crit chance depending on the
- * advantage type (egoDamage vs. chance).
- */
-function calculateDominationBonuses(playerElements, opponentElements) {
-    const bonuses = {
-        player: {
-            ego: 0,
-            attack: 0,
-            chance: 0
-        },
-        opponent: {
-            ego: 0,
-            attack: 0,
-            chance: 0
-        }
-    };
-    [
-        { a: playerElements, b: opponentElements, k: 'player' },
-        { a: opponentElements, b: playerElements, k: 'opponent' }
-    ].forEach(({ a, b, k }) => {
-        a.forEach((element) => {
-            if (BDSMHelper.ELEMENTS.egoDamage[element] && b.includes(BDSMHelper.ELEMENTS.egoDamage[element])) {
-                bonuses[k].ego += 0.1;
-                bonuses[k].attack += 0.1;
+    /**
+     * The one question every caller asks. Reports a change of answer once,
+     * never a repeat.
+     */
+    static isUnlocked(name) {
+        const verdict = FeatureGate.verdict(name);
+        const signature = verdict.unlocked ? 'open' : `${verdict.missing}:${verdict.has}/${verdict.needs}`;
+        if (lastReported.get(name) !== signature) {
+            lastReported.set(name, signature);
+            if (!verdict.unlocked && verdict.missing !== 'game') {
+                logHHAuto(FeatureGate.describe(name, verdict));
             }
-            if (BDSMHelper.ELEMENTS.chance[element] && b.includes(BDSMHelper.ELEMENTS.chance[element])) {
-                bonuses[k].chance += 0.2;
-            }
-        });
-    });
-    return bonuses;
-}
-/**
- * Calculate the base crit chance from the harmony stat ratio.
- * Crit chance is 30% of the player's share of total harmony.
- */
-function calculateCritChanceShare(ownHarmony, otherHarmony) {
-    return 0.3 * ownHarmony / (ownHarmony + otherHarmony);
-}
-/**
- * Sum a specific skill's percentage_value across all girls in a team.
- * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
- */
-function getSkillPercentage(team, id) {
-    return 1 + (team.girls.map((e) => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
+        }
+        return verdict.unlocked;
+    }
+    /** The log line for a locked feature, in one wording for all of them. */
+    static describe(name, verdict) {
+        const label = GATES[name].label;
+        switch (verdict.missing) {
+            case 'level':
+                return `${label} is locked: needs level ${verdict.needs}, the hero is ${verdict.has}.`;
+            case 'girls':
+                return `${label} is locked: needs ${verdict.needs} girls, the harem holds ${verdict.has}.`;
+            case 'world':
+                return `${label} is locked: needs world ${verdict.needs}, the adventure is in ${verdict.has}.`;
+            case 'game':
+                return `${label} is not part of this game.`;
+            default:
+                return `${label} is unlocked.`;
+        }
+    }
+    /** Test seam: the memo outlives a document, and a test is not a document. */
+    static forgetReportedState() {
+        lastReported.clear();
+    }
 }
 
-;// ./src/model/SeasonOpponent.ts
-// Model for a season (Seasons of Love) opponent.
-// Holds the opponent's ID, nickname, mojo/exp/affection rewards,
-// and the pre-computed battle simulation result.
-class SeasonOpponent {
-    constructor(opponent_id, nickname, mojo, exp, aff, simu) {
-        this.simu = {};
-        this.opponent_id = opponent_id;
-        this.nickname = nickname;
-        this.mojo = mojo;
-        this.exp = exp;
-        this.aff = aff;
-        this.simu = simu;
+;// ./src/Module/Events/DoublePenetration.ts
+// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
+//
+// Double Penetration is a time-limited competitive event with its own fight
+// mechanics. This module tracks event progress, manages fight energy, collects
+// milestone rewards, and handles the event-specific UI interactions.
+//
+// Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
+// Used by: EventModule.ts (called when Double Penetration event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DoublePenetration {
+    static isEnabled() {
+        // The ten-girl condition the old comment here claimed is not
+        // measured; it is written down as an open question in
+        // docs-internal/adventure-quest-flow.md instead of sitting beside a
+        // check that never implemented it. FeatureGate.GATES says the same.
+        return FeatureGate.isUnlocked('doublePenetration');
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        let dpRemainingTime = 3600;
+        if (timeLeft !== undefined && timeLeft.length) {
+            dpRemainingTime = Number(convertTimeToInt(timeLeft));
+        }
+        setTimer('eventDPGoing', dpRemainingTime);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + dpRemainingTime * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = false;
+        if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true") {
+            DoublePenetration.goAndCollect(dpRemainingTime);
+        }
+    }
+    static goAndCollect(dpRemainingTime, manualCollectAll = false) {
+        try {
+            const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autodpEventCollectablesList);
+            const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
+            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
+            const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
+            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
+            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
+            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
+            if (needToCollect || needToCollectAll || manualCollectAll) {
+                logHHAuto("Checking double penetration event for collectable rewards.");
+                logHHAuto("setting autoloop to false");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                const buttonsToCollect = [];
+                const listDpEventTiersToClaim = $(dPTierQuery);
+                for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
+                    const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
+                    const currentTierNb = currentButton.getAttribute("tier");
+                    if (needToCollectAll) {
+                        logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
+                        buttonsToCollect.push(currentButton);
+                    }
+                    else if (manualCollectAll) {
+                        logHHAuto("Adding for collection tier from manual collect all: " + currentTierNb);
+                        buttonsToCollect.push(currentButton);
+                    }
+                    else {
+                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
+                        if (rewardsToCollect.includes(freeSlotType)) {
+                            if (isPassPaid) {
+                                // One button for both
+                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
+                                if (rewardsToCollect.includes(paidSlotType)) {
+                                    buttonsToCollect.push(currentButton);
+                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
+                                }
+                                else {
+                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
+                                }
+                            }
+                            else {
+                                buttonsToCollect.push(currentButton);
+                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
+                            }
+                        }
+                    }
+                }
+                if (buttonsToCollect.length > 0) {
+                    function collectDpEventRewards() {
+                        if (buttonsToCollect.length > 0) {
+                            logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
+                            buttonsToCollect[0].click();
+                            buttonsToCollect.shift();
+                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
+                            setTimeout(collectDpEventRewards, randomInterval(500, 800));
+                        }
+                        else {
+                            logHHAuto("Double penetration collection finished.");
+                            setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                        }
+                    }
+                    collectDpEventRewards();
+                    return true;
+                }
+                else {
+                    logHHAuto("No double penetration reward to collect.");
+                    setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logHHAuto(`ERROR during collect DP rewards: ${message}`);
+        }
+        return false;
+    }
+    static run() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'))) {
+            logHHAuto("On Double penetration event.");
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
+                GM_addStyle('#dp-content .left-container .objectives-container .hard-objective .nc-sub-panel div.buttons .redirect-buttons {flex-direction: column;}');
+                if ($(".hard-objective .hh-club-poa").length <= 0) {
+                    const championsGoal = $('.hard-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
+                    championsGoal.append(getGoToClubChampionButton());
+                }
+                if ($(".easy-objective .hh-club-poa").length <= 0) {
+                    const championsGoal = $('.easy-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
+                    championsGoal.append(getGoToClubChampionButton());
+                }
+            }
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+                DoublePenetration.displayRewardsDiv();
+                DoublePenetration.displayCollectAllButton();
+            }
+        }
+    }
+    static hasUnclaimedRewards() {
+        return $(".tier-container button.purple_button_L:visible").length > 0;
+    }
+    static displayRewardsDiv() {
+        try {
+            const target = $('#dp-content .right-container');
+            const hhRewardId = 'HHDpRewards';
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = DoublePenetration.getNotClaimedRewards();
+                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+            }
+        }
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logHHAuto(`ERROR in display DP rewards: ${message}`);
+        }
+    }
+    static getNotClaimedRewards() {
+        const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
+        const freeSlotSelectors = ".free-slot .slot";
+        let paidSlotSelectors = "";
+        if ($("div#nc-poa-tape-blocker").length == 0) {
+            // Season pass paid
+            paidSlotSelectors = ".paid-slot  .slot";
+        }
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static displayCollectAllButton() {
+        if (DoublePenetration.hasUnclaimedRewards() && $('#dpCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="dpCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 135px;width: 80px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#dp-content .tiers-container .player-potions').append(divTooltip);
+            button.one('click', () => {
+                DoublePenetration.goAndCollect(Infinity, true);
+            });
+        }
     }
 }
+
+;// ./src/Module/Events/EventRegistry.ts
+// EventRegistry.ts -- write access to the event registry (Temp_eventsList).
+//
+// The registry is the list handleEventParsing walks to pick the next event
+// page to visit: one entry per event id, carrying next_refresh among other
+// fields. EventModule owns filling it; the operations an individual event
+// module needs live here instead, because EventModule imports those modules
+// and the reverse import would be a new cycle (ARCH-001).
+//
+// Depends on: StorageHelper.ts, HHStoredVars.ts, StorageKeys.ts
+// Used by: EventModule.ts, LivelyScene.ts
+//
+
+
+
+/**
+ * Mark one event as due for a re-read (#1843).
+ *
+ * handleEventParsing picks up any event whose next_refresh has passed, so
+ * setting it to zero is enough to have the pipeline visit the event page on
+ * its next pass -- no extra navigation.
+ *
+ * A no-op for an event that is not in the registry: the entry is created by
+ * parseEventPage, and an id that is not there yet gets visited anyway
+ * (getEventIDsToVisit).
+ */
+function markEventStale(eventId) {
+    if (!eventId)
+        return;
+    const list = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+    if (!list || !list[eventId])
+        return;
+    list[eventId]["next_refresh"] = 0;
+    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
+}
+
+;// ./src/Module/Events/KinkyCumpetition.ts
+// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
+//
+// Kinky Cumpetition is a periodic competitive event. This module parses event
+// page data, tracks timer countdowns and girl reward progress, and manages
+// the event refresh schedule.
+//
+// Depends on: the HHEvent model only -- this module parses, it does not navigate.
+// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
+//
+
+
+class KinkyCumpetition {
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventKinkyCumpetitionGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventKinkyCumpetitionGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            const girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100) {
+                eventList[eventID]["isCompleted"] = false;
+            }
+        }
+    }
+}
+
+;// ./src/Module/Events/LivelyScene.pure.ts
+// LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
+//
+// Extracted from LivelyScene.parse and LivelyScene.parseClaimableRewards
+// so the collect-trigger cascade and the puzzle-piece filter can be
+// unit-tested without DOM access, jQuery, storage, or game globals.
+//
+// Two decisions live here:
+//
+// 1. decideCollectTrigger -- the three-branch OR cascade in
+//    LivelyScene.parse that decides whether to invoke goAndCollect at
+//    all. Triggered by any of:
+//      - autoCollect setting on (continuous polling)
+//      - manualCollectAll flag on (user-initiated full sweep)
+//      - autoCollectAll setting on AND remainingTime is below the
+//        end-of-event threshold
+//
+// 2. selectClaimablePieces -- the loop in parseClaimableRewards that
+//    walks the puzzle-piece list and keeps only the entries that are
+//    unlocked-but-not-claimed AND match the per-piece eligibility
+//    rule: matching rewardType under needToCollect, OR needToCollectAll
+//    (any rewardType), OR manualCollectAll (any rewardType).
+/**
+ * Reproduce the OR cascade in LivelyScene.parse bit by bit:
+ *
+ *   autoCollect
+ *   || manualCollectAll
+ *   || (remainingTime < limitBeforeEnd && autoCollectAll)
+ *
+ * Operator precedence preserved: && binds tighter than ||, so the
+ * end-of-event branch parses as one parenthesised conjunction.
+ */
+function decideCollectTrigger(state) {
+    return (state.autoCollect
+        || state.manualCollectAll
+        || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
+}
+/**
+ * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
+ * Walks the input list and keeps every piece for which:
+ *
+ *   reward_unlocked AND NOT reward_claimed
+ *   AND (
+ *     (rewardsToCollect.includes(rewardType) AND needToCollect)
+ *     OR needToCollectAll
+ *     OR manualCollectAll
+ *   )
+ *
+ * Operator precedence preserved (&& binds tighter than ||): the per-
+ * type allowlist only gates the per-poll branch; the two sweep modes
+ * accept any rewardType.
+ */
+function selectClaimablePieces(pieces, state) {
+    const claimable = [];
+    for (const piece of pieces) {
+        if (piece.reward_unlocked && !piece.reward_claimed) {
+            const allowedByType = state.rewardsToCollect.includes(piece.rewardType)
+                && state.needToCollect;
+            if (allowedByType || state.needToCollectAll || state.manualCollectAll) {
+                claimable.push(piece);
+            }
+        }
+    }
+    return claimable;
+}
+
+;// ./src/Module/Events/LivelyScene.ts
+var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
+//
+// Lively Scene is a time-limited event where the player progresses through
+// scenes to earn rewards. This module tracks scene progression, manages
+// event energy, and collects available rewards automatically.
+//
+// Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, EventRegistry.ts
+// Used by: EventModule.ts (parse), AutoLoopPageHandlers.ts (run, on every
+//          event-page load)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+class LivelyScene {
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        const remainingTime = LivelyScene.readRemainingTime();
+        // An event that ends before its own next_refresh is never looked at
+        // again: pruneExpiredEvents drops the entry as expired first. Keep the
+        // next visit inside the event, so rewards that unlock in the last hour
+        // are still reachable (#1857).
+        const refreshTimer = Math.min(randomInterval(3600, 4000), Math.max(Math.floor(remainingTime / 2), 60));
+        setTimer('eventLivelySceneGoing', remainingTime);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + remainingTime * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
+        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
+        const shouldTrigger = decideCollectTrigger({
+            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+            manualCollectAll,
+            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+            remainingTime,
+            limitBeforeEnd: getLimitTimeBeforeEnd(),
+        });
+        if (shouldTrigger) {
+            LivelyScene.goAndCollect(remainingTime, manualCollectAll);
+        }
+    }
+    /**
+     * Seconds left on the event, read from the page.
+     *
+     * 3600 when the timer is not on the page -- the value parse() has always
+     * defaulted to. Note that this is fail-open for the end-of-event sweep
+     * (3600 is below every collectAllTimer setting); it is kept as it was
+     * because no measurement says the element can be missing here.
+     */
+    static readRemainingTime() {
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft === undefined || !timeLeft.length)
+            return 3600;
+        return Number(convertTimeToInt(timeLeft));
+    }
+    /**
+     * Pick the sweep up again on every event-page load.
+     *
+     * A claim ends in closeRewardPopupIfAny, which reloads the page, so one
+     * loaded DOM yields at most one reward. Continuing therefore has to happen
+     * after the reload -- and parse() cannot do it: it runs only when the
+     * pipeline visits the event page (handleEventParsing) or when plusEvent is
+     * on, because AutoLoopPageHandlers gates parseEventPage on that setting.
+     * run() runs on every event-page load, which is where Path of Attraction
+     * resumes its own sweep as well (#1816, #1857).
+     */
+    static collectOnPageLoad() {
+        return LivelyScene_awaiter(this, void 0, void 0, function* () {
+            const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
+            const remainingTime = LivelyScene.readRemainingTime();
+            const shouldTrigger = decideCollectTrigger({
+                autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
+                manualCollectAll,
+                autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
+                remainingTime,
+                limitBeforeEnd: getLimitTimeBeforeEnd(),
+            });
+            if (shouldTrigger) {
+                yield LivelyScene.goAndCollect(remainingTime, manualCollectAll);
+            }
+        });
+    }
+    static parseClaimableRewards(remainingTime, manualCollectAll = false) {
+        const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList);
+        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
+        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
+        const projected = puzzlePieces.map((piece) => {
+            var _a, _b;
+            return ({
+                reward_unlocked: piece.reward_unlocked,
+                reward_claimed: piece.reward_claimed,
+                rewardType: ((_a = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type,
+                __orig: piece,
+            });
+        });
+        const claimablePieces = selectClaimablePieces(projected, {
+            rewardsToCollect,
+            needToCollect,
+            needToCollectAll,
+            manualCollectAll,
+        }).map((p) => p.__orig);
+        logHHAuto('claimablePieces', claimablePieces);
+        return claimablePieces;
+    }
+    static goAndCollect(remainingTime_1) {
+        return LivelyScene_awaiter(this, arguments, void 0, function* (remainingTime, manualCollectAll = false) {
+            // parse() and run() can both fire on the same page load -- the
+            // pipeline parses the event page the page handler has just drawn --
+            // and two sweeps would click the same puzzle pieces. The flag lives
+            // for one page load; the reload after a claim clears it.
+            if (LivelyScene.collecting) {
+                logHHAuto("LivelyScene collect already running on this page.");
+                return false;
+            }
+            LivelyScene.collecting = true;
+            let claimed = false;
+            try {
+                const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
+                if (manualCollectAll)
+                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
+                if (rewards.length > 0) {
+                    logHHAuto("Going to collect rewards.");
+                    logHHAuto("setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    for (let currentReward = 0; currentReward < rewards.length; currentReward++) {
+                        const reward = rewards[currentReward];
+                        const puzzlePiece = $(`#puzzle_template #puzzle_piece_${reward.id_piece}.claimable`);
+                        if (puzzlePiece.length > 0) {
+                            puzzlePiece.trigger('click');
+                            yield TimeHelper.sleep(randomInterval(200, 400));
+                            const currentCollectButton = $('.lse_side_panel button.purple_button_L.claimable');
+                            if (currentCollectButton.length > 0) {
+                                currentCollectButton.trigger('click');
+                                yield TimeHelper.sleep(randomInterval(400, 700));
+                                // Closing the popup reloads the page, so this DOM
+                                // yields no second claim. parse() has just booked
+                                // the event for an hour from now, which is what
+                                // kept the pipeline from coming back to finish the
+                                // sweep (#1857). Only on a claim that happened, so
+                                // the extra visits stay bounded by the number of
+                                // pieces and cannot become a reload loop (#1738).
+                                markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
+                                claimed = true;
+                                RewardHelper.closeRewardPopupIfAny(); // refresh;
+                                yield TimeHelper.sleep(randomInterval(400, 700));
+                                return true;
+                            }
+                        }
+                    }
+                }
+                else {
+                    logHHAuto("No (more) LivelyScene reward to collect .");
+                    setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
+                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
+                    return false;
+                }
+            }
+            catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
+                setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
+            }
+            finally {
+                // After a claim the flag stays set: this DOM is spent, and the
+                // reload that the popup close starts clears it.
+                if (!claimed)
+                    LivelyScene.collecting = false;
+            }
+            return false;
+        });
+    }
+    static _makeSVG(tag, attrs) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs)
+            el.setAttribute(k, attrs[k]);
+        return el;
+    }
+    static _makeSVGImage($puzzlePiece, iconHref) {
+        const tresorImage = $('image', $puzzlePiece);
+        return LivelyScene._makeSVG('image', {
+            height: 18,
+            width: 18,
+            visibility: 'visible',
+            href: iconHref,
+            x: Number(tresorImage.attr('x')) + 45,
+            y: tresorImage.attr('y')
+        });
+    }
+    static run() {
+        return LivelyScene_awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            LivelyScene.displayCollectAllButton();
+            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+                const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
+                if (puzzlePieces.length > 0) {
+                    for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
+                        const puzzlePiece = puzzlePieces[currentReward];
+                        if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
+                            const rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
+                            const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
+                            const iconHref = RewardHelper.getRewardsIconHref(rewardType);
+                            if ($puzzlePiece.length > 0 && iconHref) {
+                                const image = LivelyScene._makeSVGImage($puzzlePiece, iconHref);
+                                document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`).appendChild(image);
+                                logHHAuto(`Add icon for ${rewardType} to #puzzle_piece_${puzzlePiece.id_piece}`);
+                            }
+                        }
+                    }
+                }
+            }
+            yield LivelyScene.collectOnPageLoad();
+        });
+    }
+    static hasUnclaimedRewards() {
+        return $(".puzzle_piece.claimable:visible").length > 0;
+    }
+    static displayCollectAllButton() {
+        if (LivelyScene.hasUnclaimedRewards() && $('#LivelySceneCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="LivelySceneCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 0px;right: 45px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#lse_content').append(divTooltip);
+            button.one('click', () => {
+                LivelyScene.goAndCollect(Infinity, true);
+            });
+        }
+    }
+}
+/** One collect sweep at a time per page load, see goAndCollect. */
+LivelyScene.collecting = false;
 
 ;// ./src/Module/Events/GirlSkins.pure.ts
 // GirlSkins.pure.ts
@@ -11985,6 +12379,1737 @@ function shardTotalAfterFight(drops, shardsBefore) {
  */
 function isSkinPhase(shards, wantsSkins) {
     return shards >= 100 && wantsSkins;
+}
+
+;// ./src/model/EventGirl.ts
+// Model representing a girl obtainable during an in-game event.
+// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
+// association, shard count, event timing, and mythic status.
+
+
+class EventGirl {
+    constructor(girlData, eventId, seconds_before_end, is_mythic = false, parseSource = true) {
+        this.name = '';
+        this.event_id = '';
+        this.girl_id = girlData.id_girl;
+        this.shards = girlData.shards;
+        this.seconds_before_end = seconds_before_end;
+        this.is_mythic = is_mythic;
+        this.name = girlData.name;
+        this.event_id = eventId;
+        if (parseSource) {
+            this.parseSource(girlData);
+        }
+    }
+    isOnTroll() {
+        return this.troll_id > 0;
+    }
+    isOnChampion() {
+        return this.champ_id > 0;
+    }
+    toString() {
+        if (this.isOnTroll()) {
+            return `Event girl : ${this.name} (${this.shards}/100) at troll ${this.troll_id} on event : ${this.event_id}`;
+        }
+        else if (this.isOnChampion()) {
+            return `Event girl : ${this.name} (${this.shards}/100) at champ ${this.champ_id} on event : ${this.event_id}`;
+        }
+        return `Event girl : ${this.name} (${this.shards}/100) on event : ${this.event_id}`;
+    }
+    parseSource(girlData) {
+        if (girlData.source) {
+            if (girlData.source.name === 'event_troll') {
+                try {
+                    const parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
+                    this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
+                    if (girlData.source.anchor_source.disabled) {
+                        logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                        this.troll_id = undefined;
+                    }
+                }
+                catch (error) {
+                    try {
+                        const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
+                        this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
+                        if (girlData.source.anchor_win_from.disabled) {
+                            logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                            this.troll_id = undefined;
+                        }
+                    }
+                    catch (error) {
+                        logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
+                    }
+                }
+            }
+            else if (girlData.source.name === 'event_champion_girl') {
+                try {
+                    this.champ_id = Number(girlData.source.anchor_source.url.split('/champions/')[1]);
+                    if (girlData.source.anchor_source.disabled) {
+                        logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                        this.champ_id = undefined;
+                    }
+                }
+                catch (error) {
+                    try {
+                        this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
+                        if (girlData.source.anchor_win_from.disabled) {
+                            logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
+                            this.champ_id = undefined;
+                        }
+                    }
+                    catch (error) {
+                        logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
+                    }
+                }
+            }
+            else if (girlData.source.name === 'event_dm') {
+                // Daily missions girl
+            }
+            else if (girlData.source.name === 'pachinko_event') {
+                // pachinko event girl
+            }
+            else {
+                logHHAuto(`Other source found ${girlData.source.name}`);
+            }
+        }
+    }
+}
+
+;// ./src/Module/Events/MythicEvent.ts
+// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
+//
+// Mythic events feature special troll bosses with wave-based progression and
+// unique girl shard rewards. This module tracks wave progress, coordinates
+// with Troll.ts for fight prioritization, and manages event-specific timers
+// and girl shard tracking.
+//
+// Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
+// Used by: EventModule.ts (called when a Mythic event is active)
+//
+
+
+
+
+
+
+
+
+class MythicEvent {
+    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
+        const eventID = hhEvent.eventId;
+        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventMythicGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["isMythic"] = true;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            const girlData = allEventGirlz[currIndex];
+            const ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
+            const timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
+            if ($(ShardsQuery).length > 0) {
+                const remShards = Number($(ShardsQuery)[0].innerText);
+                const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
+                // A girl you already own can still owe you a skin (#1842). The
+                // game says so on the girl itself -- preview.grade_skins_data
+                // carries is_released/is_owned per skin -- so +Girl Skins works
+                // here the same way it already worked for love raids.
+                const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+                if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
+                    eventList[eventID]["isCompleted"] = false;
+                    if (nextWave === -1) {
+                        clearTimer('eventMythicNextWave');
+                    }
+                    else {
+                        setTimer('eventMythicNextWave', nextWave);
+                    }
+                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"], true);
+                    if (remShards !== 0) {
+                        if (eventGirl.isOnTroll()) {
+                            logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
+                            eventsGirlz.push(eventGirl);
+                        }
+                    }
+                    else {
+                        if (nextWave === -1) {
+                            eventList[eventID]["isCompleted"] = true;
+                            clearTimer('eventMythicNextWave');
+                        }
+                    }
+                }
+                else {
+                    // No more needed if girl is owned
+                    clearTimer('eventMythicNextWave');
+                }
+            }
+        }
+    }
+}
+
+;// ./src/Module/Events/PathOfAttraction.ts
+var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
+// reward tracking.
+//
+// Path of Attraction is a tiered event where the player collects points to
+// unlock reward tiers. This module tracks tier progress, collects available
+// rewards, and manages the event page navigation and timer scheduling.
+//
+// Depends on: RewardHelper (reward parsing), ButtonHelper
+// Used by: EventModule.ts (called when Path of Attraction event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+class PoaReward {
+    constructor(tier, type, slot) {
+        this.tier = 0;
+        this.type = '';
+        this.slot = $();
+        this.tier = tier;
+        this.type = type;
+        this.slot = slot;
+    }
+}
+class PathOfAttraction {
+    /**
+     * The game's own gate, read off the locked page on 2026-09-09:
+     * "You need to be at least on the Second World of your adventure and
+     * have at least 10 girls in your Harem to participate in the Path of
+     * Attraction event."
+     *
+     * Without it the event counts as enabled for an account that cannot
+     * enter it, and the run cannot get away from the page. The locked tab
+     * still renders: `.event-title.active` carries the requested tab, so
+     * getDisplayedIdEventPage() returns the id and the empty-id guard in
+     * EventModule never fires. Measured in one session, twelve of eighteen
+     * samples sat on that page, going home and back every tick.
+     *
+     * Same shape as PlaceOfPower.isEnabled, which guards the same kind of
+     * dead end.
+     */
+    static isEnabled() {
+        return FeatureGate.isUnlocked('pathOfAttraction');
+    }
+    static getRemainingTime() {
+        const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
+        const poATimerNodes = $(poATimerRequest);
+        if (poATimerNodes.length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate) === undefined)) {
+            const poATimer = Number(convertTimeToInt(poATimerNodes.text()));
+            setTimer("PoARemainingTime", poATimer);
+            setStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate, Math.ceil(new Date().getTime() / 1000) + poATimer);
+        }
+        else if (poATimerNodes.length === 0 && getSecondsLeft("PoARemainingTime") === 0) {
+            // Without this the miss is silent and every reader downstream sees
+            // the same 0 that an expired event produces -- the ambiguity #1846
+            // was about. Measured 2026-09-09: on one visit the timer read
+            // "2d 17h" and the module stored it, on three visits in another
+            // session it stored nothing, and the element itself was present
+            // 800 to 950 ms after navigation in four out of four direct page
+            // loads. What the module saw at its own moment is not yet known,
+            // and it cannot be known while the miss leaves no trace.
+            logHHAuto("PoA: no expiry timer on the page, remaining time stays unknown.");
+        }
+    }
+    static runOld() {
+        //https://nutaku.haremheroes.com/path-of-attraction.html"
+        const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
+        if (array.length == 0) {
+            return;
+        }
+        const lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
+        for (let i = array.length - 1; i >= 0; i--) {
+            if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
+                array[i].style.display = "none";
+            }
+        }
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        PathOfAttraction.getRemainingTime();
+        const poAEnd = getSecondsLeft("PoARemainingTime");
+        logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
+        let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
+        // No `poAEnd > 0` guard here, unlike run(): this only shortens the
+        // refresh interval, so an unknown remaining time costs a needless early
+        // recheck rather than an unwanted collection. run() has to fail closed
+        // because its comparison decides whether rewards are claimed (#1846).
+        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
+            refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
+        }
+        logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + poAEnd * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimerPoa * 1000;
+        eventList[eventID]["isCompleted"] = PathOfAttraction.isCompleted();
+    }
+    static run() {
+        return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg'))) {
+                logHHAuto("On path of attraction event.");
+                // The shortcut to the club champion is a display choice and gates
+                // nothing but itself (#1816).
+                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
+                    && getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true") {
+                    if ($(".hh-club-poa").length <= 0) {
+                        const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
+                        championsGoal.append(getGoToClubChampionButton());
+                    }
+                }
+                const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
+                // parse() is the only other caller of getRemainingTime(), and it
+                // runs behind the plusEvent switch, which is off by default. So on
+                // a default profile PoARemainingTime was never set on this page.
+                PathOfAttraction.getRemainingTime();
+                const poAEnd = getSecondsLeft("PoARemainingTime");
+                // getSecondsLeft returns 0 for "no such timer" and for "already
+                // expired" alike, so 0 < limitBeforeEnd opened the collect-all gate
+                // whenever the timer was unknown (#1846). A missing timer must fail
+                // closed; the decision is passed on instead of being rebuilt from
+                // the setting inside goAndCollect.
+                const collectAllDue = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true"
+                    && poAEnd > 0
+                    && poAEnd < getLimitTimeBeforeEnd();
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || collectAllDue) {
+                    yield PathOfAttraction.goAndCollect(manualCollectAll, collectAllDue);
+                }
+            }
+        });
+    }
+    static styles() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            setTimeout(PathOfAttraction.Hide, 500);
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
+            PathOfAttraction.displayRewardsDiv();
+        }
+        PathOfAttraction.displayCollectAllButton();
+    }
+    static displayCollectAllButton() {
+        if (PathOfAttraction.hasUnclaimedRewards() && $('#PoaCollectAll').length == 0) {
+            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="PoaCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
+            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: -30px;left: 730px;width: 110px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
+            divTooltip.append(button);
+            $('#poa-content').append(divTooltip);
+            button.one('click', () => {
+                PathOfAttraction.goAndCollect(true);
+            });
+        }
+    }
+    static displayRewardsDiv() {
+        try {
+            const target = $('#poa-content .girls');
+            const hhRewardId = 'HHPoaRewards';
+            if ($('#' + hhRewardId).length <= 0) {
+                const rewardCountByType = PathOfAttraction.getNotClaimedRewards();
+                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+            }
+        }
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logHHAuto(`ERROR in display POA rewards: ${message}`);
+        }
+    }
+    static getNotClaimedRewards() {
+        const arrayz = $('.nc-poa-reward-pair');
+        const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
+        let paidSlotSelectors = "";
+        if ($("div#nc-poa-tape-blocker").length == 0) {
+            // Season pass paid
+            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
+        }
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static _getClaimableRewards(path) {
+        const rewards = [];
+        const listPoATiersToClaim = $(path);
+        for (let currentTier = 0; currentTier < listPoATiersToClaim.length; currentTier++) {
+            const currentRewardTierNb = listPoATiersToClaim[currentTier].getAttribute("data-nc-reward-id");
+            const slotElement = $('.slot', listPoATiersToClaim[currentTier]);
+            const slotType = RewardHelper.getRewardTypeBySlot(slotElement[0]);
+            rewards[currentRewardTierNb] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
+        }
+        return rewards;
+    }
+    static hasUnclaimedRewards() {
+        return $(PathOfAttraction.freeSlotPath + ".claimable" + ', ' + PathOfAttraction.paidSlotPath + ".claimable").length > 0;
+    }
+    static getFreeClaimableRewards() {
+        return PathOfAttraction._getClaimableRewards(PathOfAttraction.freeSlotPath + ".claimable");
+    }
+    static getPaidClaimableRewards() {
+        if ($("#nc-poa-tape-blocker").length) {
+            return [];
+        }
+        else {
+            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
+        }
+    }
+    static isCompleted() {
+        const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
+        const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
+        const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
+        if ($("#nc-poa-tape-blocker").length) {
+            return numberClaimedFree >= numberTiers;
+        }
+        else {
+            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
+        }
+    }
+    static goAndCollect() {
+        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false, needToCollectAllBeforeEnd = false) {
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+            const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
+            if (manualCollectAll)
+                setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
+            if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
+                const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoACollectablesList);
+                logHHAuto("Checking Path of Attraction for collectable rewards.");
+                const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
+                const freeClaimableRewards = PathOfAttraction.getFreeClaimableRewards();
+                const paidClaimableRewards = PathOfAttraction.getPaidClaimableRewards();
+                function getReward(reward) {
+                    return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
+                        logHHAuto("Going to get " + JSON.stringify(reward));
+                        reward.slot.trigger('click');
+                        yield TimeHelper.sleep(randomInterval(300, 800));
+                        $(PathOfAttraction.getRewardButtonPath).trigger('click');
+                        yield TimeHelper.sleep(randomInterval(300, 800));
+                        RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
+                        yield TimeHelper.sleep(randomInterval(1000, 1500)); // Do not collect before page refresh
+                        RewardHelper.closeRewardPopupIfAny(); // Close reward popup
+                        yield TimeHelper.sleep(randomInterval(1000, 1500));
+                    });
+                }
+                logHHAuto("numberTiers: " + numberTiers);
+                if (debugEnabled) {
+                    logHHAuto("freeClaimableRewards", freeClaimableRewards);
+                    logHHAuto("paidClaimableRewards", paidClaimableRewards);
+                }
+                const freeClaimableTiers = Object.keys(freeClaimableRewards);
+                const paidClaimableTiers = Object.keys(paidClaimableRewards);
+                if (numberTiers > 0 && (freeClaimableTiers.length > 0 || paidClaimableTiers.length > 0)) {
+                    logHHAuto(`Collecting rewards, ${freeClaimableTiers.length + paidClaimableTiers.length} rewards to collect , setting autoloop to false`);
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    $(".scroll-area.poa").animate({ scrollLeft: 0 });
+                    yield TimeHelper.sleep(randomInterval(300, 800));
+                    for (let currentTier = 1; currentTier <= numberTiers; currentTier++) {
+                        if (freeClaimableTiers.includes('' + currentTier)) {
+                            // Unconditional modes first: they must not depend on
+                            // the selective filter being readable.
+                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(freeClaimableRewards[currentTier].type)) {
+                                yield getReward(freeClaimableRewards[currentTier]);
+                                return true;
+                            }
+                        }
+                        if (paidClaimableTiers.includes('' + currentTier)) {
+                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(paidClaimableRewards[currentTier].type)) {
+                                yield getReward(paidClaimableRewards[currentTier]);
+                                return true;
+                            }
+                        }
+                    }
+                    logHHAuto("Path of Attraction collection finished.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    return true;
+                }
+                else {
+                    logHHAuto("No Path of Attraction reward to collect.");
+                    setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'false');
+                }
+            }
+            return false;
+        });
+    }
+    static Hide() {
+        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
+            let arrayz;
+            let nbReward;
+            let modified = false;
+            arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
+            if ($("#nc-poa-tape-blocker").length) {
+                nbReward = 1;
+            }
+            else {
+                nbReward = 2;
+            }
+            var obj;
+            if (arrayz.length > 0) {
+                for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                    obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
+                    if (obj.length >= nbReward) {
+                        $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
+                        arrayz[i2].style.display = "none";
+                        modified = true;
+                    }
+                }
+            }
+        }
+    }
+}
+PathOfAttraction.rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";
+PathOfAttraction.freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
+PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
+PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
+
+;// ./src/Module/Events/PlusEvents.ts
+// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
+//
+// Plus Events are a category of events that overlay additional information
+// and rewards on top of normal gameplay. This module parses event data,
+// extracts girl shard progress and troll fight priorities, and displays
+// event overlay information in the UI.
+//
+// Depends on: EventModule.ts (event detection and routing)
+// Used by: EventModule.ts (called when Plus Events are active)
+//
+
+
+
+
+
+
+
+
+
+class PlusEvent {
+    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
+        const eventID = hhEvent.eventId;
+        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+        const refreshTimer = randomInterval(3600, 4000);
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        if (timeLeft !== undefined && timeLeft.length) {
+            setTimer('eventGoing', Number(convertTimeToInt(timeLeft)));
+        }
+        else
+            setTimer('eventGoing', refreshTimer);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = true;
+        const allEventGirlz = hhEventData ? hhEventData.girls : [];
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            const girlData = allEventGirlz[currIndex];
+            // Same as the mythic path (#1842): an owned girl may still owe a
+            // skin, and +Girl Skins says the user wants it.
+            const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
+            if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
+                eventList[eventID]["isCompleted"] = false;
+                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
+                if (eventGirl.isOnTroll()) {
+                    logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
+                    eventsGirlz.push(eventGirl);
+                }
+                if (eventGirl.isOnChampion()) {
+                    logHHAuto(`Event girl : ${eventGirl.toString()}`, eventGirl);
+                    eventChamps.push(eventGirl);
+                }
+            }
+        }
+        if (eventList[eventID]["isCompleted"]) {
+            EventModule.collectEventChestIfPossible();
+        }
+    }
+}
+
+;// ./src/Module/Events/SultryMysteries.pure.ts
+// SultryMysteries.pure.ts -- Pure remaining-time resolution for the Sultry
+// Mysteries event.
+//
+// Extracted from SultryMysteries.parse so the "where does the event's
+// remaining time come from" decision can be unit-tested without DOM
+// access or game globals.
+//
+// On /event.html the grid tab is shown by default, and the countdown
+// selector ('#contains_all #events .nc-panel .timer span[rel="expires"]')
+// only matches an element after the user switches to the shop tab. Read
+// before that switch, it yields an empty string/null -- and computing
+// seconds_before_end from that made the event look already expired.
+//
+// The game exposes the same remaining time on
+// window.sm_event_data.seconds_until_event_end (a numeric string)
+// regardless of which tab is active, so that is tried first. The DOM
+// value is kept as a fallback for older/other game variants, and a
+// caller-supplied default covers the case where neither source is
+// available -- resolveSultryMysteriesSecondsLeft never returns a value
+// derived from an empty/missing reading.
+function resolveSultryMysteriesSecondsLeft(hhVarSecondsUntilEnd, domSecondsLeft, defaultSeconds) {
+    const parsedHHVar = Number(hhVarSecondsUntilEnd);
+    if (hhVarSecondsUntilEnd !== null && hhVarSecondsUntilEnd !== undefined && Number.isFinite(parsedHHVar) && parsedHHVar >= 0) {
+        return parsedHHVar;
+    }
+    if (domSecondsLeft !== null && Number.isFinite(domSecondsLeft) && domSecondsLeft >= 0) {
+        return domSecondsLeft;
+    }
+    return defaultSeconds;
+}
+// ---------------------------------------------------------------------------
+// Grid automation ("Auto-Mystery")
+//
+// The grid is a 6-column, 5-row board of 30 squares numbered 1..30 in
+// reading order. Opening a square costs one key; after
+// grid_refresh_squares_required (15) squares are opened, "Generate new
+// grid" becomes available and resets the board.
+//
+// Opening order is a checkerboard so the first wave spreads over the whole
+// board instead of clustering in the top rows:
+//
+//     X O X O X O        squares  1  3  5
+//     O X O X O X                 8 10 12
+//     X O X O X O                13 15 17
+//     O X O X O X                20 22 24
+//     X O X O X O                25 27 29
+//
+// That is exactly 15 squares -- the refresh threshold -- so the first wave
+// alone unlocks a regenerate. The remaining "O" squares follow in
+// ascending order when the reward goal has not been met yet.
+const SM_GRID_COLUMNS = 6;
+/** True for the "X" squares of the checkerboard (first wave). */
+function isFirstWaveSquare(idSquare, columns = SM_GRID_COLUMNS) {
+    const row = Math.ceil(idSquare / columns);
+    const column = ((idSquare - 1) % columns) + 1;
+    return (row + column) % 2 === 0;
+}
+/**
+ * Ids of the still-locked squares in the order they should be opened:
+ * checkerboard squares first (ascending), then the rest (ascending).
+ * Already-opened squares are skipped, so a half-played grid is picked up
+ * where it was left.
+ */
+function smOpeningOrder(grid, columns = SM_GRID_COLUMNS) {
+    const locked = (grid || [])
+        .filter((square) => square && !square.is_opened && Number.isFinite(Number(square.id_square)))
+        .map((square) => Number(square.id_square))
+        .sort((a, b) => a - b);
+    return [
+        ...locked.filter((id) => isFirstWaveSquare(id, columns)),
+        ...locked.filter((id) => !isFirstWaveSquare(id, columns)),
+    ];
+}
+/** Reward indexes revealed so far, as numbers. */
+function openedRewardIndexes(grid) {
+    const opened = new Set();
+    for (const square of grid || []) {
+        if (square && square.is_opened) {
+            const index = Number(square.reward_index);
+            if (Number.isFinite(index))
+                opened.add(index);
+        }
+    }
+    return opened;
+}
+/**
+ * Per selected reward type: how many squares of the current grid hold it and
+ * how many of those are already open. Counts come from the live rewards_list
+ * rather than fixed numbers, because a regenerated grid may be composed
+ * differently.
+ */
+function smSelectedTypesProgress(rewardsList, grid, selectedTypes) {
+    const opened = openedRewardIndexes(grid);
+    return (selectedTypes || []).map((type) => {
+        var _a, _b, _c;
+        let total = 0;
+        let found = 0;
+        for (const rewardIndex of Object.keys(rewardsList || {})) {
+            if (((_c = (_b = (_a = rewardsList[rewardIndex]) === null || _a === void 0 ? void 0 : _a.rewards) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.type) !== type)
+                continue;
+            total++;
+            if (opened.has(Number(rewardIndex)))
+                found++;
+        }
+        return { type, total, found };
+    });
+}
+/**
+ * Whether every selected reward type has been fully revealed. An empty
+ * selection is complete by definition -- the user then only gets the
+ * "open 15, regenerate, repeat until out of keys" behaviour.
+ */
+function smSelectionComplete(rewardsList, grid, selectedTypes) {
+    return smSelectedTypesProgress(rewardsList, grid, selectedTypes).every((progress) => progress.found >= progress.total);
+}
+function smOpenedCount(grid) {
+    return (grid || []).filter((square) => square && square.is_opened).length;
+}
+/**
+ * The single next step for the grid.
+ *
+ * Regenerating is checked first and does not require keys: it costs
+ * nothing, and a fresh board is worth more than the leftovers of a board
+ * whose interesting squares are already open.
+ *
+ * Opening is only ever proposed with keys in hand. Clicking a locked
+ * square with zero keys makes the game open its "get more keys" popup
+ * (koban purchase), so the caller must never click on a "no_keys" wait.
+ */
+function smNextAction(state) {
+    const grid = state.grid || [];
+    const canRegenerate = smOpenedCount(grid) >= state.squaresRequiredForRefresh;
+    if (canRegenerate && smSelectionComplete(state.rewardsList, grid, state.selectedTypes)) {
+        return { kind: "regenerate" };
+    }
+    const nextSquare = smOpeningOrder(grid)[0];
+    if (nextSquare === undefined) {
+        // Whole board open but the goal still unmet: nothing left to do here.
+        return canRegenerate ? { kind: "regenerate" } : { kind: "wait", reason: "grid_complete" };
+    }
+    if (!Number.isFinite(state.keys) || state.keys <= 0) {
+        return { kind: "wait", reason: "no_keys" };
+    }
+    return { kind: "open", idSquare: nextSquare };
+}
+
+;// ./src/Module/Events/SultryMysteries.ts
+// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and grid automation.
+//
+// Sultry Mysteries is a time-limited event featuring a special event shop
+// and a 6x5 grid of 30 squares. Each square hides a reward and costs one
+// key to open; once at least 15 squares are open the grid can be
+// regenerated. This module monitors the event shop for refresh timers and
+// automates opening grid squares ("Auto-Mystery").
+//
+// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
+// Used by: EventModule.ts (called when Sultry Mysteries event is active)
+//
+
+
+
+
+
+
+
+
+
+
+
+
+// How long to wait before looking for keys again once the grid ran dry.
+// Keys are not granted passively -- they drop from the last Daily Goals
+// chest and from villains -- so there is no point in checking more often,
+// and the script should not sprint off the moment a single key appears.
+const SM_NO_KEYS_RETRY_SECONDS = 3600;
+class SultryMysteries {
+    static isEnabled() {
+        return FeatureGate.isUnlocked('sultryMysteries');
+    }
+    static isAutoOpenEnabled() {
+        return getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true" && SultryMysteries.isEnabled();
+    }
+    static parse(hhEvent, eventList, hhEventData) {
+        const eventID = hhEvent.eventId;
+        const refreshTimer = randomInterval(3600, 4000);
+        // Grid tab (shown by default on /event.html) doesn't render this
+        // timer -- it only appears after switching to the shop tab -- so
+        // sm_event_data.seconds_until_event_end (available on either tab)
+        // is tried first; the DOM reading is a fallback for when that
+        // global isn't there.
+        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
+        const domSecondsLeft = timeLeft !== undefined && timeLeft.length ? Number(convertTimeToInt(timeLeft)) : null;
+        const hhVarSecondsLeft = getHHVars('sm_event_data.seconds_until_event_end', false);
+        const secondsLeft = resolveSultryMysteriesSecondsLeft(hhVarSecondsLeft, domSecondsLeft, 3600);
+        setTimer('eventSultryMysteryGoing', secondsLeft);
+        eventList[eventID] = {};
+        eventList[eventID]["id"] = eventID;
+        eventList[eventID]["type"] = hhEvent.eventType;
+        eventList[eventID]["seconds_before_end"] = new Date().getTime() + secondsLeft * 1000;
+        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
+        eventList[eventID]["isCompleted"] = false;
+        // The grid automation is a pipeline block of its own
+        // (handleSultryMysteries) and is deliberately NOT started from here:
+        // parse runs on every tick that re-parses the event page, which used
+        // to spawn one click chain per tick.
+        if (getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" && checkTimer("eventSultryMysteryShopRefresh")) {
+            logHHAuto("Refresh sultry mysteries shop content.");
+            const shopButton = $('#shop_tab');
+            const gridButton = $('#grid_tab');
+            shopButton.trigger('click');
+            setTimeout(function () {
+                const shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
+                setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
+                eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
+                setTimeout(function () { gridButton.trigger('click'); }, randomInterval(800, 1200));
+            }, randomInterval(300, 500));
+        }
+    }
+    // -----------------------------------------------------------------
+    // Auto-Mystery
+    // -----------------------------------------------------------------
+    /**
+     * Keys currently in hand.
+     *
+     * sm_event_data.event_data.progression.key_amount goes stale as soon as
+     * a square is opened -- the game keeps the running count in a module
+     * closure and only writes it to the sidebar -- so the sidebar is the
+     * authoritative reading, with the global as a fallback for the very
+     * first pass.
+     */
+    static getKeyAmount() {
+        const sidebarText = $('#contains_all #events .get-more-keys-section > p').text();
+        const fromSidebar = Number((sidebarText || '').trim());
+        if (Number.isFinite(fromSidebar) && sidebarText.trim() !== '')
+            return fromSidebar;
+        const fromVars = Number(getHHVars('sm_event_data.event_data.progression.key_amount', false));
+        return Number.isFinite(fromVars) ? fromVars : 0;
+    }
+    static getGrid() {
+        const grid = getHHVars('sm_event_data.event_data.progression.grid', false);
+        return Array.isArray(grid) ? grid : [];
+    }
+    static getRewardsList() {
+        const rewards = getHHVars('sm_event_data.event_data.rewards_list', false);
+        return rewards && typeof rewards === 'object' ? rewards : {};
+    }
+    static getSquaresRequiredForRefresh() {
+        const required = Number(getHHVars('sm_event_data.event_data.grid_refresh_squares_required', false));
+        return Number.isFinite(required) && required > 0 ? required : 15;
+    }
+    static getSelectedRewardTypes() {
+        return getStoredArray(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList);
+    }
+    /**
+     * Close the reward popup the game shows after each opened square.
+     *
+     * Deliberately not RewardHelper.closeRewardPopupIfAny: RewardHelper
+     * imports EventModule, which imports this module, so using it here
+     * would add an import cycle (ARCH-001).
+     */
+    static closeSquareRewardPopup() {
+        const rewardQuery = 'div#rewards_popup button.blue_button_L:not([disabled]):visible';
+        if ($(rewardQuery).length > 0) {
+            logHHAuto("Sultry Mysteries: closing square reward popup.");
+            $(rewardQuery).trigger('click');
+            return true;
+        }
+        return false;
+    }
+    /** Park the automation until keys can plausibly have been earned again. */
+    static scheduleKeyCheck(reason) {
+        const retryIn = SM_NO_KEYS_RETRY_SECONDS + randomInterval(60, 300);
+        logHHAuto(`Sultry Mysteries auto-open paused (${reason}), checking for keys again later.`);
+        setTimer('eventSultryMysteryAutoOpen', retryIn);
+    }
+    static logProgress(grid, rewardsList, selectedTypes) {
+        const opened = smOpenedCount(grid);
+        const required = SultryMysteries.getSquaresRequiredForRefresh();
+        const progress = smSelectedTypesProgress(rewardsList, grid, selectedTypes)
+            .map((entry) => `${entry.type} ${entry.found}/${entry.total}`)
+            .join(', ');
+        logHHAuto(`Sultry Mysteries grid: ${opened}/${required} squares opened, keys: ${SultryMysteries.getKeyAmount()}${progress ? `, goal: ${progress}` : ', no reward goal set'}.`);
+    }
+    /**
+     * Work the grid: open squares in checkerboard order while keys last,
+     * and regenerate the grid once it is allowed and the selected rewards
+     * have all been found. Returns true while it is busy.
+     *
+     * Keys won from the grid itself are spent right away -- the key count
+     * is re-read from the sidebar before every click, so a `progressions`
+     * square simply extends the current run.
+     */
+    static autoOpenGrid(eventID) {
+        // parseEventPage is re-entered on every pipeline tick for as long as
+        // the auto-open timer sits expired. Without this guard every entry
+        // starts its own click chain: squares open in parallel with requests
+        // still in flight, "Generate new grid" fires repeatedly, and the retry
+        // timer is written several times. One run at a time.
+        if (SultryMysteries.autoOpenRunning)
+            return true;
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+            logHHAuto("Switching to Sultry Mysteries screen.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: eventID });
+            return true;
+        }
+        if ($('#contains_all #events .grid-slots').length <= 0) {
+            // Shop tab is showing (or the page is still building the grid).
+            if ($('#grid_tab').length > 0) {
+                logHHAuto("Switching to Sultry Mysteries grid tab.");
+                $('#grid_tab').trigger('click');
+                return true;
+            }
+            SultryMysteries.scheduleKeyCheck("grid not available");
+            return false;
+        }
+        const rewardsList = SultryMysteries.getRewardsList();
+        const selectedTypes = SultryMysteries.getSelectedRewardTypes();
+        SultryMysteries.logProgress(SultryMysteries.getGrid(), rewardsList, selectedTypes);
+        SultryMysteries.autoOpenRunning = true;
+        // End the run and hand the page back. Not called on the regenerate
+        // path: there the reload discards the flag along with the page.
+        function stopRun(reason) {
+            SultryMysteries.autoOpenRunning = false;
+            SultryMysteries.scheduleKeyCheck(reason);
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+        }
+        function step() {
+            const grid = SultryMysteries.getGrid();
+            const action = smNextAction({
+                grid,
+                rewardsList,
+                selectedTypes,
+                keys: SultryMysteries.getKeyAmount(),
+                squaresRequiredForRefresh: SultryMysteries.getSquaresRequiredForRefresh(),
+            });
+            if (action.kind === 'wait') {
+                stopRun(action.reason === 'no_keys' ? 'out of keys' : 'grid fully opened');
+                return;
+            }
+            if (action.kind === 'regenerate') {
+                logHHAuto("Sultry Mysteries: generating a new grid.");
+                $('#contains_all #events .generate-new-grid').trigger('click');
+                // The game rebuilds the grid from the ajax response into a
+                // module-local variable and leaves
+                // sm_event_data.event_data.progression.grid pointing at the
+                // old board, so the only way to keep reading a truthful
+                // state is to reload the page. Confirm the board actually
+                // reset first: reloading on a click that did nothing would
+                // land on the same state and ask for a new grid again.
+                let regenAttempts = 0;
+                function afterRegenerate() {
+                    if ($('#contains_all #events .grid-slots .grid-slot.unlocked').length <= 0) {
+                        safeReload();
+                        return;
+                    }
+                    if (regenAttempts < 10) {
+                        regenAttempts++;
+                        setTimeout(afterRegenerate, randomInterval(300, 500));
+                        return;
+                    }
+                    logHHAuto("Sultry Mysteries: the grid was not regenerated, stopping.");
+                    stopRun("grid not regenerated");
+                }
+                setTimeout(afterRegenerate, randomInterval(800, 1200));
+                return;
+            }
+            const idSquare = action.idSquare;
+            const squareQuery = `#contains_all #events .grid-slots .grid-slot.locked[id_square="${idSquare}"]`;
+            if ($(squareQuery).length <= 0) {
+                logHHAuto(`Sultry Mysteries: square ${idSquare} is no longer clickable, stopping.`);
+                stopRun("square not clickable");
+                return;
+            }
+            logHHAuto(`Sultry Mysteries: opening square ${idSquare}.`);
+            $(squareQuery).trigger('click');
+            // Wait for the game to swap the square to "unlocked" before the
+            // next click; the open request is in flight until then and the
+            // delegated handler would happily fire twice.
+            let attempts = 0;
+            function afterOpen() {
+                const stillLocked = $(squareQuery).length > 0;
+                if (stillLocked && attempts < 20) {
+                    attempts++;
+                    setTimeout(afterOpen, randomInterval(300, 500));
+                    return;
+                }
+                if (stillLocked) {
+                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, stopping.`);
+                    stopRun("square did not open");
+                    return;
+                }
+                SultryMysteries.closeSquareRewardPopup();
+                setTimeout(step, randomInterval(600, 1000));
+            }
+            setTimeout(afterOpen, randomInterval(500, 800));
+        }
+        step();
+        return true;
+    }
+}
+/**
+ * True while a grid run is clicking its way through the board. Guards
+ * against the pipeline starting a second, parallel run on the same page
+ * load (see autoOpenGrid). Reset by every page load.
+ */
+SultryMysteries.autoOpenRunning = false;
+
+;// ./src/Module/Events/EventModule.ts
+var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class EventModule {
+    /**
+     * Remove stale event data from sessionStorage for the given event ID.
+     * Also prunes expired events, disables timers when no mythic/regular events remain,
+     * and cleans up associated girl and champion lists.
+     */
+    static clearEventData(inEventID) {
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+        const eventGirl = EventModule.getEventGirl();
+        const eventMythicGirl = EventModule.getEventMythicGirl();
+        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        let hasMythic = false;
+        let hasEvent = false;
+        for (const prop of Object.keys(eventList)) {
+            // seconds_before_end is stored as a millisecond epoch (see the
+            // sub-event modules: new Date().getTime() + X*1000), despite the
+            // "seconds" name. Coerce explicitly and compare against Date.now()
+            // instead of relying on number<Date valueOf() coercion, which a
+            // refactor or an undefined field can silently break. A non-finite
+            // value is treated as "not yet expired" here (left in place),
+            // matching pruneExpiredEvents -- parseEventPage cleans those up.
+            const secondsBeforeEnd = Number(eventList[prop]["seconds_before_end"]);
+            if ((Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd < Date.now())
+                ||
+                    (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== "true")
+                ||
+                    (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) !== "true" && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) !== "true")) {
+                delete eventList[prop];
+            }
+            else {
+                if (!eventList[prop]["isCompleted"]) {
+                    if (eventList[prop]["isMythic"]) {
+                        hasMythic = true;
+                    }
+                    else {
+                        hasEvent = true;
+                    }
+                }
+            }
+        }
+        if (hasMythic === false) {
+            clearTimer('eventMythicNextWave');
+            clearTimer('eventMythicGoing');
+        }
+        if (hasEvent === false) {
+            clearTimer('eventGoing');
+        }
+        if (Object.keys(eventList).length === 0) {
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
+            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
+        }
+        else {
+            eventChamps = eventChamps.filter(function (a) {
+                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            });
+            if (Object.keys(eventChamps).length === 0) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
+            }
+            else {
+                setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
+            }
+            eventsGirlz = eventsGirlz.filter(function (a) {
+                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            });
+            if (Object.keys(eventsGirlz).length === 0) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
+            }
+            else {
+                setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
+            }
+            if (!eventList.hasOwnProperty(eventGirl.event_id) || eventGirl.event_id === inEventID) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
+            }
+            if (!eventList.hasOwnProperty(eventMythicGirl.event_id) || eventMythicGirl.event_id === inEventID) {
+                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+        }
+    }
+    static getDisplayedIdEventPage(logging = true) {
+        const eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
+        if (!eventHref && logging) {
+            logHHAuto('Error href not found for current event');
+        }
+        if (eventHref) {
+            const parsedURL = new URL(eventHref, window.location.origin);
+            return queryStringGetParam(parsedURL.search, 'tab') || '';
+        }
+        return '';
+    }
+    static showCompletedEvent() {
+        try {
+            if ($('img.eventCompleted').length <= 0) {
+                let oneEventCompleted = false;
+                if ($(`#contains_all #homepage .event-widget a:not([href="#"])`).length > 0) {
+                    const img = $(`<div class="tooltipHH" style="display: inline-block;">`
+                        + `<span class="tooltipHHtext">${getTextForUI('eventCompleted', "tooltip")}</span>`
+                        + `<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted', "tooltip")}" />`
+                        + `</div>`);
+                    const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                    for (const eventID of Object.keys(eventList)) {
+                        if (eventList[eventID]["isCompleted"]) {
+                            const eventTimer = $(`#contains_all #homepage .event-widget a[href*="${eventID}"] .timer p`);
+                            eventTimer.append(img.clone());
+                            oneEventCompleted = true;
+                        }
+                    }
+                }
+                if (!oneEventCompleted) {
+                    const eventTimer = $(`#contains_all #homepage`);
+                    eventTimer.append($(`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['minus']} class="eventCompleted" style="display:none" />`));
+                }
+            }
+        }
+        catch ( /* ignore errors */_a) { /* ignore errors */ }
+    }
+    static parseEventPage() {
+        return EventModule_awaiter(this, arguments, void 0, function* (inTab = "global") {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+                const queryEventTabCheck = $("#contains_all #events");
+                const eventID = EventModule.getDisplayedIdEventPage();
+                if (inTab !== "global" && inTab !== eventID) {
+                    if (eventID === '') {
+                        logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
+                        EventModule.clearEventData(inTab);
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                    }
+                    else {
+                        logHHAuto("Wrong event opened, need to change event page");
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
+                    }
+                    return true;
+                }
+                const hhEvent = EventModule.getEvent(eventID);
+                if (!hhEvent.eventTypeKnown) {
+                    if (queryEventTabCheck.attr('parsed') === undefined) {
+                        logHHAuto("Not parsable event");
+                        queryEventTabCheck[0].setAttribute('parsed', 'true');
+                    }
+                    return false;
+                }
+                if (queryEventTabCheck.attr('parsed') !== undefined) {
+                    if (!EventModule.checkEvent(eventID)) {
+                        return false;
+                    }
+                }
+                queryEventTabCheck[0].setAttribute('parsed', 'true');
+                // Can be undefined at runtime (logged below); the parse()
+                // functions have always received it as-is, so keep the historic
+                // non-optional type at the call sites (WART-001).
+                const hhEventData = (unsafeWindow.event_data || unsafeWindow.current_event);
+                logHHAuto(`On event page : ${eventID} (${(hhEventData === null || hhEventData === void 0 ? void 0 : hhEventData.event_name) || ''})`);
+                EventModule.clearEventData(eventID);
+                const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+                const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+                const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
+                if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
+                    logHHAuto("Error getting current event Data from HH.");
+                }
+                if (hhEvent.isPlusEvent) {
+                    logHHAuto("On going event, parsing...");
+                    PlusEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
+                }
+                if (hhEvent.isPlusEventMythic) {
+                    logHHAuto("On going mythic event, parsing...");
+                    MythicEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
+                }
+                if (hhEvent.isBossBangEvent) {
+                    logHHAuto("On going bossBang event, parsing...");
+                    BossBang.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isSultryMysteriesEvent) {
+                    logHHAuto("On going sultry mysteries event.");
+                    SultryMysteries.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isLivelyScene) {
+                    logHHAuto("On going lively scene event.");
+                    LivelyScene.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isDPEvent) {
+                    logHHAuto("On going double penetration event.");
+                    DoublePenetration.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isPoa) {
+                    logHHAuto("On going path of Attraction event.");
+                    PathOfAttraction.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isCumback) {
+                    logHHAuto("On going cumback contest event.");
+                    CumbackContests.parse(hhEvent, eventList, hhEventData);
+                }
+                if (hhEvent.isKinky) {
+                    logHHAuto("On going kinky cumpetition event.");
+                    KinkyCumpetition.parse(hhEvent, eventList, hhEventData);
+                }
+                if (Object.keys(eventList).length > 0) {
+                    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
+                }
+                else {
+                    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
+                }
+                eventsGirlz = eventsGirlz.filter(function (a) {
+                    var a_weighted = Number(Priority.indexOf('' + a.troll_id));
+                    if (a.is_mythic) {
+                        return true;
+                    }
+                    else {
+                        return a_weighted !== -1;
+                    }
+                });
+                if (eventsGirlz.length > 0 || eventChamps.length > 0) {
+                    if (eventsGirlz.length > 0) {
+                        if (Priority[0] !== '') {
+                            eventsGirlz.sort(function (a, b) {
+                                var a_weighted = Number(Priority.indexOf('' + a.troll_id));
+                                if (a.is_mythic) {
+                                    a_weighted = a_weighted - Priority.length;
+                                }
+                                var b_weighted = Number(Priority.indexOf('' + b.troll_id));
+                                if (b.is_mythic) {
+                                    b_weighted = b_weighted - Priority.length;
+                                }
+                                return a_weighted - b_weighted;
+                            });
+                        }
+                        setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
+                        EventModule.saveEventGirl(eventsGirlz[0]);
+                    }
+                    if (eventChamps.length > 0) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
+                    }
+                    queryEventTabCheck[0].setAttribute('parsed', 'true');
+                }
+                else {
+                    queryEventTabCheck[0].setAttribute('parsed', 'true');
+                    EventModule.clearEventData(eventID);
+                }
+                return false;
+            }
+            else {
+                if (inTab !== "global") {
+                    // Expired-event short-circuit (issue #1738): if the
+                    // entry the precondition picked is already past its
+                    // game-side end (seconds_before_end <= now), don't
+                    // navigate to /event.html with that tab. The game has
+                    // dropped the tab, so the navigation lands on a page
+                    // whose getDisplayedIdEventPage() returns '', the
+                    // outer if(getPage()===pagesIDEvent) branch is never
+                    // reached, and the loop runs forever.
+                    //
+                    // Drop the registry entry directly here so the next
+                    // tick's getStaleEventIDs() does not pick it again.
+                    // Pipeline.config.ts pruneExpiredEvents handles this
+                    // before the trigger fires; this branch is the
+                    // belt-and-braces guard for direct callers.
+                    try {
+                        const evList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+                        const ev = evList[inTab];
+                        const end = Number(ev === null || ev === void 0 ? void 0 : ev.seconds_before_end);
+                        if (Number.isFinite(end) && end <= Date.now()) {
+                            logHHAuto(`Skipping navigation to expired event ${inTab}, dropping stale registry entry.`);
+                            EventModule.clearEventData(inTab);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return true;
+                        }
+                    }
+                    catch ( /* fall through to normal navigation */_a) { /* fall through to normal navigation */ }
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
+                }
+                else {
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"));
+                }
+                return true;
+            }
+        });
+    }
+    static saveEventGirl(eventGirlz) {
+        var chosenTroll = Number(eventGirlz.troll_id);
+        logHHAuto("ET: " + chosenTroll);
+        if (!eventGirlz.is_mythic) {
+            setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
+        }
+        else {
+            setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
+        }
+    }
+    static getEventGirl() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.eventGirl, {});
+    }
+    /**
+     * Mark one event as due for a re-read (#1843). The registry write itself
+     * lives in EventRegistry.ts so LivelyScene can reach it without importing
+     * this module, which imports LivelyScene.
+     */
+    static markEventStale(eventId) {
+        markEventStale(eventId);
+    }
+    static getEventMythicGirl() {
+        return getStoredJSON(HHStoredVarPrefixKey + TK.eventMythicGirl, {});
+    }
+    static getEventType(inEventID) {
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')))
+            return "mythic";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')))
+            return "event";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')))
+            return "bossBang";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')))
+            return "sultryMysteries";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg')))
+            return "doublePenetration";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')))
+            return "poa";
+        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg')))
+            return "livelyscene";
+        if (inEventID.startsWith('cumback_contest_'))
+            return "cumback";
+        if (inEventID.startsWith('kinky_event_'))
+            return "kinky";
+        //    if(inEventID.startsWith('lively_scene_event_')) return "";
+        //    if(inEventID.startsWith('legendary_contest_')) return "";
+        //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
+        return "";
+    }
+    static getEvent(inEventID) {
+        const eventType = EventModule.getEventType(inEventID);
+        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
+        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
+        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true";
+        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && (getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true") && SultryMysteries.isEnabled();
+        const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
+        // The account must be able to enter the event, not just have it in
+        // the list. Mirrors isSultryMysteriesEvent, which asks its module the
+        // same way.
+        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')) && PathOfAttraction.isEnabled();
+        const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
+        const isCumback = "cumback" === eventType;
+        const isKinky = "kinky" === eventType;
+        return {
+            eventTypeKnown: eventType !== '',
+            eventId: inEventID,
+            eventType: eventType,
+            isPlusEvent: isPlusEvent, // and activated
+            isPlusEventMythic: isPlusEventMythic, // and activated
+            isBossBangEvent: isBossBangEvent, // and activated
+            isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
+            isDPEvent: isDPEvent, // and activated
+            isLivelyScene: isLivelyScene, // and activated
+            isPoa: isPoa, // and activated
+            isCumback: isCumback,
+            isKinky: isKinky,
+            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
+        };
+    }
+    static getEventIDsByType(inType) {
+        const eventIDs = [];
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        for (const eventID of Object.keys(eventList)) {
+            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
+                eventIDs.push(eventID);
+            }
+        }
+        return eventIDs;
+    }
+    static isEventActive(inEventID) {
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
+            // seconds_before_end is a millisecond epoch (see clearEventData):
+            // compare explicitly against Date.now(). A non-finite value means
+            // the entry has no known end and is not considered active.
+            const secondsBeforeEnd = Number(eventList[inEventID]["seconds_before_end"]);
+            return Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd > Date.now();
+        }
+        return false;
+    }
+    static checkEvent(inEventID) {
+        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
+        const hhEvent = EventModule.getEvent(inEventID);
+        if (!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled) {
+            return false;
+        }
+        if (!eventList.hasOwnProperty(inEventID)) {
+            return true;
+        }
+        else {
+            if (eventList[inEventID]["isCompleted"]) {
+                return false;
+            }
+            else {
+                return (eventList[inEventID]["next_refresh"] < new Date()
+                    ||
+                        (hhEvent.isPlusEventMythic && checkTimerMustExist('eventMythicNextWave'))
+                    ||
+                        // No eventSultryMysteryAutoOpen condition here on purpose:
+                        // the grid automation is its own pipeline block and
+                        // navigates itself. Re-parsing the event page for as long
+                        // as that timer sat expired started one click chain per
+                        // tick.
+                        (hhEvent.isSultryMysteriesEvent && checkTimerMustExist('eventSultryMysteryShopRefresh'))
+                    ||
+                        (hhEvent.isDPEvent && checkTimerMustExist('nextDpEventCollectTime'))
+                    ||
+                        (hhEvent.isLivelyScene && checkTimerMustExist('nextLivelySceneEventCollectTime')));
+            }
+        }
+    }
+    static displayPrioInDailyMissionGirl(baseQuery) {
+        const allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
+        if (!allEventGirlz)
+            return;
+        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
+            const girlData = allEventGirlz[currIndex];
+            if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
+                const query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
+                if ($(query).length > 0) {
+                    const currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority" title="' + getTextForUI('dailyMissionGirlTitle', 'elementText') + '">DM</div>');
+                    $(query).css('position', 'relative');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                }
+            }
+        }
+    }
+    static hideOwnedGilrs() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.hideOwnedGirls) === "true") {
+            if ($('.nc-event-list-reward.already-owned').length > 10 && $('.nc-event-list-reward.girl_ico').length > 30) {
+                $('.nc-event-list-reward.already-owned').parent().hide();
+            }
+        }
+    }
+    static moduleDisplayEventPriority() {
+        if ($('.HHEventPriority').length > 0) {
+            return;
+        }
+        const baseQuery = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
+        EventModule.displayPrioInDailyMissionGirl(baseQuery);
+        const eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+        const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
+        if (eventGirlz.length > 0 || eventChamps.length > 0) {
+            var girl;
+            var idArray;
+            var currentGirl;
+            for (var ec = eventChamps.length; ec > 0; ec--) {
+                idArray = Number(ec) - 1;
+                girl = Number(eventChamps[idArray].girl_id);
+                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                if ($(query).length > 0) {
+                    currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority">C' + eventChamps[idArray].champ_id + '</div>');
+                    $(query).css('position', 'relative');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                }
+            }
+            for (var e = eventGirlz.length; e > 0; e--) {
+                idArray = Number(e) - 1;
+                girl = Number(eventGirlz[idArray].girl_id);
+                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
+                if ($(query).length > 0) {
+                    currentGirl = $(query).parent()[0];
+                    $(query).prepend('<div class="HHEventPriority">' + e + '</div>');
+                    $($(query)).parent().parent()[0].prepend(currentGirl);
+                    $(query).css('position', 'relative');
+                    $(query).trigger('click');
+                }
+            }
+        }
+    }
+    /**
+     * Render a homepage notif-badge timer and, when no HH timer exists yet,
+     * initialise it from a stored end-date.
+     *
+     * UNIT CONTRACT: timerEndDateName MUST reference a storage key holding a
+     * SECONDS epoch (Math.ceil(Date.now()/1000) + remainingSeconds), because
+     * the init path computes the remaining time as
+     * `getStoredValue(timerEndDateName) - Date.now()/1000`. Callers that store
+     * a millisecond epoch there would arm a wildly wrong timer. Season's
+     * SeasonEndDate is written this way (see Season.getRemainingTime).
+     *
+     * @param scriptId          jQuery selector that, when present, suppresses the badge
+     * @param aRel              rel attribute of the homepage anchor to attach to
+     * @param hhtimerId         id for the injected badge span
+     * @param timerName         HH timer name read via getTimeLeft/getTimer
+     * @param timerEndDateName  storage key holding a SECONDS epoch end-date
+     */
+    static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName) {
+        const displayTimer = $(scriptId).length === 0;
+        if (getTimer(timerName) !== -1) {
+            const domSelector = '#homepage a[rel="' + aRel + '"] .notif-position > span';
+            if ($("#" + hhtimerId).length === 0) {
+                if (displayTimer) {
+                    $(domSelector).prepend('<span id="' + hhtimerId + '"></span>');
+                    GM_addStyle('#' + hhtimerId + '{position: absolute;top: 26px;left: 30px;width: 100px;font-size: .6rem ;z-index: 1;}');
+                }
+            }
+            else {
+                if (!displayTimer) {
+                    const timerEl = $("#" + hhtimerId)[0];
+                    if (timerEl) {
+                        timerEl.remove();
+                    }
+                }
+            }
+            if (displayTimer) {
+                const timerEl = $("#" + hhtimerId)[0];
+                // Defensive: when the homepage banner element identified by aRel
+                // is not in the DOM (e.g. because Kinkoid removed the tile or the
+                // current event is inactive), the prepend above is a no-op and
+                // [0] is undefined here. Skip silently in that case instead of
+                // throwing a TypeError on every AutoLoop tick.
+                if (timerEl) {
+                    timerEl.innerText = getTimeLeft(timerName);
+                }
+            }
+        }
+        else {
+            if (getStoredValue(timerEndDateName) !== undefined) {
+                setTimer(timerName, getStoredValue(timerEndDateName) - (Math.ceil(new Date().getTime()) / 1000));
+            }
+        }
+    }
+    static moduleSimPoVPogMaskReward(containerId) {
+        var arrayz;
+        var nbReward;
+        let modified = false;
+        arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
+        //doesn sure about  " .purchase-pov-pass"-button visibility
+        if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
+            nbReward = 1;
+        }
+        else {
+            nbReward = 2;
+        }
+        var obj;
+        if (arrayz.length > 0) {
+            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
+                obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
+                if (obj.length >= nbReward) {
+                    arrayz[i2].style.display = "none";
+                    modified = true;
+                }
+            }
+        }
+        if (modified) {
+            const divToModify = $('.potions-paths-progress-bar-section');
+            if (divToModify.length > 0) {
+                $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
+            }
+        }
+    }
+    static collectEventChestIfPossible() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.collectEventChest) === "true") {
+            const eventChestId = "#extra-rewards-claim-btn:not([disabled])";
+            if ($(eventChestId).length > 0) {
+                logHHAuto("Collect event chest");
+                $(eventChestId).click();
+            }
+        }
+    }
+    static parsePageForEventId() {
+        function getEventQuery(event) {
+            return `#contains_all #homepage .event-widget a[rel="${event}"]:not([href="#"])`;
+        }
+        const eventQuery = getEventQuery("event");
+        const mythicEventQuery = getEventQuery("mythic_event");
+        const bossBangEventQuery = getEventQuery("boss_bang_event");
+        const sultryMysteriesEventQuery = getEventQuery("sm_event");
+        const dpEventQuery = getEventQuery("dp_event");
+        const livelySceneEventQuery = getEventQuery("lively_scene_event");
+        const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
+        const poaEventQuery = getEventQuery("path_event");
+        const eventIDs = [];
+        const ongoingEventIDs = [];
+        const bossBangEventIDs = [];
+        const currentPage = getPage();
+        function parseForEventId(query, eventList) {
+            let parsedURL;
+            let eventId;
+            const queryResults = $(query);
+            for (let index = 0; index < queryResults.length; index++) {
+                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
+                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
+                const eventName = $(queryResults[index]).children().first().text();
+                if (!eventName || eventName === '') {
+                    logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
+                    continue;
+                }
+                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                    eventList.push(eventId);
+                }
+                if (eventId !== '') {
+                    ongoingEventIDs.push(eventId);
+                }
+            }
+        }
+        if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
+            const currentPageEventId = EventModule.getDisplayedIdEventPage();
+            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId)) {
+                eventIDs.push(currentPageEventId);
+            }
+            let parsedURL;
+            let eventId;
+            const eventsQuery = '.events-list a.event-title:not(.active)';
+            const queryResults = $(eventsQuery);
+            for (let index = 0; index < queryResults.length; index++) {
+                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
+                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
+                if (eventId !== '' && EventModule.checkEvent(eventId)) {
+                    eventIDs.push(eventId);
+                }
+            }
+        }
+        else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            parseForEventId(eventQuery, eventIDs);
+            parseForEventId(mythicEventQuery, eventIDs);
+            parseForEventId(poaEventQuery, eventIDs);
+            parseForEventId(bossBangEventQuery, bossBangEventIDs);
+            parseForEventId(sultryMysteriesEventQuery, eventIDs);
+            parseForEventId(getEventQuery("cumback_contest"), eventIDs);
+            parseForEventId(getEventQuery("kinky_event"), eventIDs);
+            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryShopRefresh") !== -1) {
+                // event is over
+                clearTimer("eventSultryMysteryShopRefresh");
+            }
+            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryAutoOpen") !== -1) {
+                // event is over -- keys are reset at the end of a Sultry
+                // Mysteries event, so a pending key check is meaningless
+                clearTimer("eventSultryMysteryAutoOpen");
+            }
+            if ($(bossBangEventQuery).length <= 0 && (getTimer('nextBossBangTime') !== -1 || getTimer('eventBossBangGoing') !== -1)) {
+                // Event is over. Unlike the collect-all timers of PoV/PoG/
+                // Seasonal -- which their own block re-arms on every run and
+                // which therefore only ever show a countdown -- nextBossBangTime
+                // is armed by goToFightPage even on a finished event (see the
+                // note on the bossBang precondition in Pipeline.config.ts) and
+                // is then never re-armed, because the precondition can no
+                // longer be met once the event is gone. Without this the timer
+                // stays expired forever and the status panel keeps reporting
+                // "Time's up!" for an event that does not exist.
+                clearTimer('nextBossBangTime');
+                clearTimer('eventBossBangGoing');
+            }
+            parseForEventId(dpEventQuery, eventIDs);
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0) {
+                logHHAuto("No double penetration event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
+            }
+            parseForEventId(livelySceneEventQuery, eventIDs);
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0) {
+                logHHAuto("No Lively Scene event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
+            }
+            const queryResults = $(seasonalEventQuery);
+            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0) {
+                logHHAuto("No seasonal event found, deactivate collect.");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
+                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
+            }
+            // Path of Valor / Path of Glory: the home-page selectors for these events
+            // are unreliable (the banner only appears briefly between waves), so a
+            // false-negative here would silently flip the user setting back to off.
+            // The collect logic on the actual event page checks availability before
+            // acting; the toggle does not need to be in sync with the home banner.
+        }
+        return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
+    }
+}
+
+;// ./src/Utils/PInfoRow.ts
+// PInfoRow.ts
+//
+// One row of the pInfo status panel: label on the left, value on the right
+// (#1834). A plain "<li>Label : value</li>" list cuts off the longer rows,
+// because the value is part of the same text node and there is nothing to
+// align.
+//
+// A row is a flex line with two children, so the value column stays flush right
+// no matter how long the label gets, and the label may wrap instead of being
+// clipped (see the #pInfo CSS in build/HHAuto.template.js).
+//
+// Escaping: `label` and `value` are treated as HTML, because callers pass
+// markup (the watchdog row carries a [reactivate] span, others pass &lt;/&gt;
+// entities). `title` is attribute-escaped here, so callers must not escape it
+// themselves. This module imports nothing, so both InfoService and the feature
+// modules can use it without creating an import cycle between them.
+function attr(value) {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+function openTag(attrs) {
+    let tag = "<li";
+    if (attrs.style !== undefined && attrs.style !== "")
+        tag += ' style="' + attr(attrs.style) + '"';
+    if (attrs.title !== undefined && attrs.title !== "")
+        tag += ' title="' + attr(attrs.title) + '"';
+    return tag + ">";
+}
+/**
+ * A label/value row. An empty `value` renders the label across the full width,
+ * which is what the rows without a time of their own need (watchdog errors, the
+ * troll energy line, debug output).
+ */
+function pInfoRow(label, value = "", attrs = {}) {
+    const left = '<span class="pInfoLabel">' + label + "</span>";
+    const right = value === "" ? "" : '<span class="pInfoValue">' + value + "</span>";
+    return openTag(attrs) + left + right + "</li>";
 }
 
 ;// ./src/model/LoveRaid.ts
@@ -12321,6 +14446,452 @@ class LoveRaidManager {
     }
     static getPinfo() {
         return pInfoRow(getTextForUI("loveRaidTitle", "elementText"), getTimeLeft('nextLoveRaidTime'));
+    }
+}
+
+;// ./src/Helper/RewardHelper.ts
+// RewardHelper.ts
+//
+// Detects, classifies, and renders in-game reward slots. The game
+// displays rewards in DOM elements with CSS classes like "slot_soft_currency"
+// or data attributes. This helper inspects those elements to determine
+// the reward type (girl shards, currency, energy, equipment, etc.) and
+// quantity, then can render summary HTML for the HHAuto overlay.
+//
+// Also handles the post-battle reward popup: after a troll fight that
+// drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
+// to detect the popup, parse which girl received shards, update stored
+// event progress, and navigate to the next appropriate page.
+//
+// Why MutationObserver: The reward popup is rendered asynchronously by
+// the game after the battle animation. Polling would be wasteful and
+// unreliable; observing attribute changes catches it immediately.
+//
+// Used by: Event modules (progress tracking), PlaceOfPower, Season,
+//          Troll module (post-fight navigation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+class RewardHelper {
+    static getRewardTypeBySlot(inSlot) {
+        var _a, _b;
+        let reward = "undetected";
+        if (inSlot && ((_a = inSlot.className) === null || _a === void 0 ? void 0 : _a.indexOf('slot')) >= 0) {
+            if (inSlot.getAttribute("cur") !== null) {
+                reward = inSlot.getAttribute("cur");
+            }
+            else if (inSlot.className.indexOf('slot_avatar') >= 0) {
+                if (inSlot.className.indexOf('girl_ico') >= 0) {
+                    reward = 'girl_shards';
+                }
+                else {
+                    reward = 'avatar';
+                }
+            }
+            else if (inSlot.className.indexOf('girl-shards-slot') >= 0 || inSlot.className.indexOf('slot_girl_shards') >= 0) {
+                reward = 'girl_shards';
+            }
+            else if (inSlot.className.indexOf('slot_random_girl') >= 0) {
+                reward = 'random_girl_shards'; // Random girl shards
+            }
+            else if (inSlot.className.indexOf('mythic') >= 0) {
+                reward = 'mythic';
+            }
+            else if (inSlot.className.indexOf('slot_scrolls_') >= 0) {
+                reward = 'scrolls';
+            }
+            else if (inSlot.className.indexOf('slot_seasonal_event_cash') >= 0) {
+                reward = 'event_cash';
+            }
+            else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
+                const objectData = $(inSlot).data("d");
+                reward = objectData.item.type;
+            }
+            else {
+                const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
+                for (const currentRewards of Object.keys(possibleRewards)) {
+                    if (inSlot.className.indexOf('slot_' + currentRewards) >= 0) {
+                        reward = currentRewards;
+                    }
+                }
+            }
+        }
+        else if (inSlot && ((_b = inSlot.className) === null || _b === void 0 ? void 0 : _b.indexOf('shards_girl_ico')) >= 0) {
+            reward = 'girl_shards';
+        }
+        return reward;
+    }
+    static getRewardTypeByData(inData) {
+        var _a, _b;
+        let reward = "undetected";
+        if (inData === null || inData === void 0 ? void 0 : inData.hasOwnProperty("type")) {
+            reward = inData.type;
+        }
+        else if (inData === null || inData === void 0 ? void 0 : inData.hasOwnProperty("ico")) {
+            if (((_a = inData.ico) === null || _a === void 0 ? void 0 : _a.indexOf("items/K")) > 0) {
+                reward = "gift";
+            }
+            else if (((_b = inData.ico) === null || _b === void 0 ? void 0 : _b.indexOf("items/XP")) > 0) {
+                reward = "potion";
+            }
+        }
+        return reward;
+    }
+    static getRewardQuantityByType(rewardType, inSlot) {
+        // TODO update logic for potion / gift to be more accurate
+        switch (rewardType) {
+            case 'girl_shards': return Number($('.shards', inSlot).attr('shards'));
+            case 'random_girl_shards':
+            case 'energy_kiss':
+            case 'energy_quest':
+            case 'energy_fight':
+            case 'energy_drill':
+            case 'xp':
+            case 'soft_currency':
+            case 'hard_currency':
+            case 'event_cash':
+            case 'gift':
+            case 'potion':
+            case 'booster':
+            case 'orbs':
+            case 'gems':
+            case 'scrolls':
+            case 'ticket': return parsePrice($('.amount', inSlot).text());
+            case 'mythic': return 1;
+            case 'avatar': return 1;
+            default:
+                logHHAuto('Error: reward type unknown ' + rewardType);
+                return 0;
+        }
+    }
+    static getPovNotClaimedRewards() {
+        const arrayz = $('.potions-paths-tiers-section .potions-paths-tier.unclaimed');
+        const freeSlotSelectors = ".free-slot:not(.claimed-locked) .slot,.free-slot:not(.claimed-locked) .shards_girl_ico";
+        const paidSlotSelectors = ".paid-slots:not(.paid-locked):not(.claimed-locked) .slot,.paid-slots:not(.paid-locked):not(.claimed-locked) .shards_girl_ico";
+        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
+    }
+    static computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors) {
+        const rewardCountByType = new Map();
+        var rewardType, rewardSlot, rewardAmount;
+        // data-d='{"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary","price":"500000","currency":"sc","value":"2500","carac1":"0","carac2":"0","carac3":"0","endurance":"0","chance":"0.00","ego":"0","damage":"0","duration":"0","skin":"hentai,gay,sexy","name":"Spell book","ico":"https://hh.hh-content.com/pictures/items/XP4.png","display_price":500000},"quantity":"1"}'
+        rewardCountByType['all'] = arrayz.length;
+        if (arrayz.length > 0) {
+            for (var slotIndex = arrayz.length - 1; slotIndex >= 0; slotIndex--) {
+                [freeSlotSelectors, paidSlotSelectors].forEach((selector) => {
+                    rewardSlot = $(selector, arrayz[slotIndex]);
+                    if (rewardSlot.length > 0) {
+                        rewardType = RewardHelper.getRewardTypeBySlot(rewardSlot[0]);
+                        rewardAmount = RewardHelper.getRewardQuantityByType(rewardType, rewardSlot[0]);
+                        if (rewardCountByType.hasOwnProperty(rewardType)) {
+                            rewardCountByType[rewardType] = rewardCountByType[rewardType] + rewardAmount;
+                        }
+                        else {
+                            rewardCountByType[rewardType] = rewardAmount;
+                        }
+                    }
+                });
+            }
+        }
+        return rewardCountByType;
+    }
+    static getRewardsAsHtml(rewardCountByType) {
+        let html = '';
+        if (rewardCountByType)
+            for (const rewardType in rewardCountByType) {
+                const rewardCount = rewardCountByType[rewardType];
+                // Ten of the twenty types in possibleRewardsList have no branch here
+                // -- girl_shards, gems, orbs, gift, potion, booster, scrolls,
+                // mythic, avatar, rejuvenation_stone. They fall into the empty
+                // default, so a tier paying only those renders nothing and
+                // displayRewardsDiv appends an invisible div instead of the recap.
+                switch (rewardType) {
+                    case 'random_girl_shards':
+                        html += '<div class="slot slot_random_girl  size_xs"><span class="random_girl_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'energy_kiss':
+                        html += '<div class="slot slot_energy_kiss  size_xs"><span class="energy_kiss_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'energy_quest':
+                        html += '<div class="slot slot_energy_quest size_xs"><span class="energy_quest_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'energy_fight':
+                        html += '<div class="slot slot_energy_fight  size_xs"><span class="energy_fight_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'energy_drill':
+                        html += '<div class="slot slot_energy_drill  size_xs"><span class="energy_drill_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'xp':
+                        html += '<div class="slot slot_xp size_xs"><span class="xp_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
+                        break;
+                    case 'soft_currency':
+                        html += '<div class="slot slot_soft_currency size_xs"><span class="soft_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
+                        break;
+                    case 'hard_currency':
+                        html += '<div class="slot slot_hard_currency size_xs"><span class="hard_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'event_cash':
+                        html += '<div class="slot slot_seasonal_event_cash size_xs"><span class="mega_event_cash_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    case 'ticket':
+                        html += '<div class="slot slot_ticket size_xs"><span class="ticket_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
+                        break;
+                    default:
+                }
+            }
+        return html;
+    }
+    static getRewardsIconHref(rewardType) {
+        let html = '';
+        if (rewardType) {
+            switch (rewardType) {
+                case 'girl_shards':
+                    html += '/images/pictures/design/shards.png';
+                    break;
+                case 'energy_kiss':
+                    html += '/images/pictures/design/ic_kiss.png';
+                    break;
+                case 'energy_quest':
+                    html += '/images/pictures/design/ic_energy_quest.png';
+                    break;
+                case 'energy_fight':
+                    html += '/images/pictures/design/ic_energy_fight.png';
+                    break;
+                case 'energy_drill':
+                    html += '/images/penta_drill/penta_drill.png';
+                    break;
+                case 'xp':
+                    html += '';
+                    break;
+                case 'soft_currency':
+                    html += '/images/pictures/design/ic_topbar_soft_currency.png';
+                    break;
+                case 'hard_currency':
+                    html += '/images/pictures/design/ic_topbar_hard_currency.png';
+                    break;
+                case 'event_cash':
+                    html += '';
+                    break;
+                case 'ticket':
+                    html += '/images//pictures/design/champion_ticket.png';
+                    break;
+                default:
+            }
+        }
+        return html;
+    }
+    static displayRewardsDiv(target, hhRewardId, rewardCountByType) {
+        const emptyRewardDiv = $('<div id=' + hhRewardId + ' style="display:none;"></div>');
+        try {
+            if ($('#' + hhRewardId).length <= 0) {
+                if (rewardCountByType['all'] > 0) {
+                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
+                    if (rewardsHtml && rewardsHtml != '') {
+                        target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
+                    }
+                    else {
+                        target.append(emptyRewardDiv);
+                    }
+                }
+                else {
+                    target.append(emptyRewardDiv);
+                }
+            }
+        }
+        catch (err) {
+            logHHAuto("ERROR:", err.message);
+            target.append(emptyRewardDiv);
+        }
+    }
+    static displayRewardsPovPogDiv() {
+        const target = $('.potions-paths-first-row');
+        const hhRewardId = 'HHPovPogRewards';
+        if ($('#' + hhRewardId).length <= 0) {
+            const rewardCountByType = RewardHelper.getPovNotClaimedRewards();
+            RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
+        }
+    }
+    static closeRewardPopupIfAny(logging = true, popupId = '') {
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
+        if ($(rewardQuery).length > 0) {
+            if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
+                logHHAuto("Redirect to harem button detected.");
+                return RewardHelper.closeGirlRewardPopupIfAny(logging, popupId);
+            }
+            if (logging)
+                logHHAuto(`Close reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
+            $(rewardQuery).trigger('click');
+            return true;
+        }
+        return false;
+    }
+    static closeGirlRewardPopupIfAny(logging = true, popupId = '') {
+        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
+        if ($(rewardQuery).length > 0) {
+            if (logging)
+                logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
+            $(rewardQuery).trigger('click');
+            return true;
+        }
+        return false;
+    }
+    static ObserveAndGetGirlRewards() {
+        const inCaseTimer = setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 60000); //in case of issue
+        function parseReward() {
+            var _a, _b;
+            const eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
+            const eventGirl = EventModule.getEventGirl();
+            const eventMythicGirl = EventModule.getEventMythicGirl();
+            if (!eventsGirlz || eventsGirlz.length == 0) {
+                return -1;
+            }
+            const foughtTrollId = Number(queryStringGetParam(window.location.search, 'id_opponent'));
+            const loveRaid = LoveRaidManager.getAllRaids();
+            const foughtTrollFromLoveRaid = loveRaid.find(raid => raid.trollId === foughtTrollId);
+            if (eventMythicGirl.troll_id && foughtTrollId != eventMythicGirl.troll_id && eventGirl.troll_id && foughtTrollId != eventGirl.troll_id && !foughtTrollFromLoveRaid) {
+                logHHAuto(`Troll from mythic event (${eventMythicGirl.troll_id}) or from event (${eventGirl.troll_id}) or from LoveRaid not fought, was (${foughtTrollId}) instead.
+                Can be issue in event variable (mythic event finished: ${EventModule.isEventActive(eventMythicGirl.event_id)},  event finished: ${EventModule.isEventActive(eventGirl.event_id)})`);
+            }
+            if ($('#rewards_popup #reward_holder .shards_wrapper').length === 0) {
+                clearTimeout(inCaseTimer);
+                logHHAuto("No girl in reward going back to Troll");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: foughtTrollId });
+                return;
+            }
+            let renewEvent = "";
+            let needLoveRaidUpdate = false;
+            let loveRaidGirlWon = false;
+            const girlShardsWon = $('.shards_wrapper .slot_girl_shards');
+            logHHAuto("Detected girl shard reward");
+            for (var currGirl = 0; currGirl <= girlShardsWon.length; currGirl++) {
+                const girlIdSrc = $("img", girlShardsWon[currGirl]).attr("src") || '';
+                const girlId = Number(girlIdSrc.split('/')[5]);
+                const previousGirlShards = Math.min(Number($('.shards[shards]', girlShardsWon[currGirl]).attr('shards')), 100);
+                let wonShards = Number($('.shards[shards]', girlShardsWon[currGirl]).text().replace(/^\D+/g, ''));
+                if (!(wonShards > 0)) {
+                    logHHAuto('ERROR: Unable to gate number of shards won, default 1 shard.');
+                    wonShards = 1;
+                }
+                const girlShards = Math.min(previousGirlShards + wonShards, 100);
+                if (eventsGirlz.length > 0) {
+                    const girlIndex = eventsGirlz.findIndex((element) => element.girl_id === girlId);
+                    if (girlIndex !== -1) {
+                        eventsGirlz[girlIndex].shards = girlShards;
+                        if (girlShards === 100) {
+                            renewEvent = eventsGirlz[girlIndex].event_id;
+                        }
+                        if (wonShards > 0) {
+                            logHHAuto("Won " + wonShards + " event shards for " + eventsGirlz[girlIndex].name);
+                        }
+                    }
+                }
+                if (eventMythicGirl.girl_id === girlId) {
+                    eventMythicGirl.shards = girlShards;
+                    if (girlShards === 100) {
+                        renewEvent = eventMythicGirl.event_id;
+                    }
+                }
+                else if (eventGirl.girl_id === girlId) {
+                    eventGirl.shards = girlShards;
+                    if (girlShards === 100) {
+                        renewEvent = eventGirl.event_id;
+                    }
+                }
+                else if (loveRaid.some(raid => raid.id_girl === girlId)) {
+                    needLoveRaidUpdate = true;
+                    const raid = loveRaid.find(raid => raid.id_girl === girlId);
+                    raid.girl_shards = girlShards;
+                    if (girlShards === 100) {
+                        loveRaidGirlWon = true;
+                    }
+                }
+            }
+            if (needLoveRaidUpdate) {
+                LoveRaidManager.saveLoveRaids(loveRaid);
+            }
+            setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
+            if (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id)
+                EventModule.saveEventGirl(eventGirl);
+            if (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id)
+                EventModule.saveEventGirl(eventMythicGirl);
+            if (renewEvent !== ""
+                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
+                || (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)
+                || (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
+                clearTimeout(inCaseTimer);
+                logHHAuto(`Need to check back event page: '${renewEvent}' or '${(_a = eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.event_id) !== null && _a !== void 0 ? _a : ''}' or '${(_b = eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.event_id) !== null && _b !== void 0 ? _b : ''}' `);
+                if (renewEvent !== "") {
+                    EventModule.parseEventPage(renewEvent);
+                }
+                else if ((eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
+                    EventModule.parseEventPage(eventMythicGirl.event_id);
+                }
+                else if ((eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)) {
+                    EventModule.parseEventPage(eventGirl.event_id);
+                }
+                return;
+            }
+            else if (loveRaidGirlWon) {
+                clearTimeout(inCaseTimer);
+                logHHAuto("Parse again love Raid.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
+                return;
+            }
+            else {
+                clearTimeout(inCaseTimer);
+                logHHAuto("Go back to troll after troll fight.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: foughtTrollId });
+                return;
+            }
+        }
+        const observerReward = new MutationObserver(function (mutations) {
+            mutations.forEach(parseReward);
+        });
+        if ($('#rewards_popup').length > 0) {
+            if ($('#rewards_popup')[0].style.display !== "block" && $('#rewards_popup')[0].style.display !== "") {
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                logHHAuto("setting autoloop to false to wait for troll rewards");
+                observerReward.observe($('#rewards_popup')[0], {
+                    childList: false,
+                    subtree: false,
+                    attributes: true,
+                    characterData: false
+                });
+            }
+            else {
+                parseReward();
+            }
+        }
+        const observerPass = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
+                if ($(querySkip).length === 0
+                    || $(querySkip)[0].style.display !== "block") {
+                    return;
+                }
+                else {
+                    setTimeout(function () {
+                        $(querySkip)[0].click();
+                        logHHAuto("Clicking on pass battle.");
+                    }, randomInterval(800, 1200));
+                }
+            });
+        });
+        observerPass.observe($('#contains_all .new-battle-buttons-container #new-battle-skip-btn.blue_text_button')[0], {
+            childList: false,
+            subtree: false,
+            attributes: true,
+            characterData: false
+        });
     }
 }
 
@@ -13582,6 +16153,2904 @@ Booster.MYTHIC_CONFLICT_POPUP_WAIT_MS = 2000;
  */
 Booster.MYTHIC_CONFLICTS_PER_PASS = 3;
 
+;// ./src/Module/Troll.ts
+var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+// Troll.ts -- Automates troll battles: energy management, fight selection,
+// reward handling, and mythic event support.
+//
+// Trolls are PvE bosses that cost fight energy to battle. This module manages
+// troll fight scheduling, selects which troll to fight (including event-specific
+// trolls during mythic events), tracks energy regeneration, and processes
+// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
+//
+// Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
+// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class Troll {
+    static getEnergy() {
+        return Number(getHHVars('Hero.energies.fight.amount'));
+    }
+    static getEnergyMax() {
+        return Number(getHHVars('Hero.energies.fight.max_regen_amount'));
+    }
+    /**
+     * Count, per troll, the girls the player has not finished yet.
+     *
+     * Only the full harem can answer this. Every id that is not in the
+     * dictionary counts as "still to win", so a partial list reports the
+     * maximum for every troll -- indistinguishable from the answer for a
+     * player who owns nothing. Issue #1864: on the harem page the count came
+     * out all zeros, and 29 seconds later the home page handed over a much
+     * shorter `girlsDataList`, which overwrote the snapshot with the maximum
+     * for every troll. That value then stuck for months, because the harem
+     * page is visited rarely and the home page constantly.
+     *
+     * A list shorter than the harem size cached by handleHaremSize therefore
+     * counts as "no answer": [] is returned and the caller keeps whatever
+     * snapshot it has. Without a cached size (fresh install) the check cannot
+     * run and any list is accepted, as before.
+     */
+    static getTrollWithGirls() {
+        const girlDictionary = Harem.getGirlsList();
+        const trollGirlsID = ConfigHelper.getHHScriptVars("trollGirlsID");
+        const sideTrollGirlsID = ConfigHelper.getHHScriptVars("sideTrollGirlsID");
+        const trollWithGirls = [];
+        const knownHaremSize = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
+        if (girlDictionary && girlDictionary.size > 0
+            && knownHaremSize > 0 && girlDictionary.size < knownHaremSize) {
+            logHHAuto(`Girl list holds ${girlDictionary.size} of ${knownHaremSize} known girls, so it is not the harem. Keeping the stored troll snapshot.`);
+            return trollWithGirls;
+        }
+        if (girlDictionary && girlDictionary.size > 0) {
+            for (let tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
+                trollWithGirls[tIdx] = 0;
+                for (let pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
+                    for (let gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
+                        const idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
+                        if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
+                            trollWithGirls[tIdx] += 1;
+                        }
+                    }
+                }
+            }
+            // The side-troll slots of trollGirlsID are placeholders; the real
+            // counts live in sideTrollGirlsID. Filling them in regardless of the
+            // adventure made "first/last troll with girls" pick a side troll the
+            // main adventure cannot open (issue #1875), so a main-adventure run
+            // leaves those slots at the 0 the loop above wrote.
+            if (!Troll.isMainAdventure() && Object.keys(sideTrollGirlsID).length > 0) {
+                for (const tIdx of Object.keys(sideTrollGirlsID)) {
+                    trollWithGirls[Number(tIdx) - 1] = 0;
+                    for (let pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
+                        for (let gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
+                            const idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
+                            if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
+                                trollWithGirls[Number(tIdx) - 1] += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return trollWithGirls;
+    }
+    static getPinfo(contest) {
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+        let label = getTextForUI("autoTrollTitle", "elementText") + ' ' + Troll.getEnergy() + '/' + Troll.getEnergyMax() + contest;
+        let value = '';
+        if (runThreshold > 0) {
+            label += ' (' + threshold + '<' + Troll.getEnergy() + '<=' + runThreshold + ')';
+            // This row has no timer of its own, so the wait notice is the only
+            // thing there is to put in the value column.
+            if (Troll.getEnergy() < runThreshold)
+                value = getTextForUI("waitRunThreshold", "elementText");
+        }
+        let Tegzd = pInfoRow(label, value);
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+        if (debugEnabled)
+            Tegzd += pInfoRow(Troll.debugNextTrollToFight());
+        return Tegzd;
+    }
+    static isEnabled() {
+        return ConfigHelper.getHHScriptVars("isEnabledTrollBattle", false) && getHHVars('Hero.infos.questing.id_world') > 0;
+    }
+    static isTrollFightActivated() {
+        return Troll.isEnabled() &&
+            (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true"
+                || getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
+                || getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
+                || LoveRaidManager.isAnyActivated());
+    }
+    static isMainAdventure() {
+        return Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
+    }
+    /**
+     * Side trolls exist only inside their side adventure. The main adventure
+     * cannot open them: the game answers with "Troll not available yet!" on a
+     * page the script does not even initialise on, so a target it keeps
+     * choosing turns into an endless home -> pre-battle -> home loop
+     * (issue #1875). sideTrollzList carries the ids; it is empty on every site
+     * except hentaiheroes.
+     */
+    static isSideTroll(trollId) {
+        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
+    }
+    static getLastTrollIdAvailable(logging = false, id_world = undefined) {
+        const isMainAdventure = Troll.isMainAdventure();
+        if (!id_world) {
+            id_world = Number(getHHVars('Hero.infos.questing.id_world'));
+        }
+        else if (id_world <= 0) {
+            logHHAuto(`id_world given ${id_world} must be wrong, default to current world`);
+            id_world = Number(getHHVars('Hero.infos.questing.id_world'));
+        }
+        let trollIdMapping = [];
+        if (isMainAdventure) {
+            trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
+            if (ConfigHelper.isPshEnvironnement() && id_world > 10) {
+                if (trollIdMapping.hasOwnProperty(id_world)) {
+                    return trollIdMapping[id_world]; // PSH parallel adventures
+                }
+                if (logging)
+                    logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
+            }
+        }
+        else {
+            if (logging)
+                logHHAuto(`Side adventure detected with world ${id_world}`);
+            trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
+        }
+        if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
+            if (logging)
+                logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
+            return trollIdMapping[id_world];
+        }
+        return id_world - 1;
+    }
+    static getTrollIdFromEvent(eventGirl) {
+        if (eventGirl && EventModule.isEventActive(eventGirl.event_id)) {
+            return eventGirl.troll_id;
+        }
+        else {
+            if (eventGirl)
+                EventModule.clearEventData(eventGirl.event_id);
+            logHHAuto("Event troll completed, clear event and get new troll ID");
+            return Troll.getTrollIdToFight();
+        }
+    }
+    static getTrollSelectedIndex() {
+        let autoTrollSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex);
+        if (autoTrollSelectedIndex === undefined || isNaN(autoTrollSelectedIndex)) {
+            autoTrollSelectedIndex = -1;
+        }
+        else {
+            autoTrollSelectedIndex = Number(autoTrollSelectedIndex);
+        }
+        return autoTrollSelectedIndex;
+    }
+    static getTrollIdToFight(logging = true, allowSideEffects = true) {
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+        let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+        const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+        let TTF = 0;
+        const lastTrollIdAvailable = Troll.getLastTrollIdAvailable(logging);
+        const eventGirl = EventModule.getEventGirl();
+        const eventMythicGirl = EventModule.getEventMythicGirl();
+        const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+        const raidStarsRaids = LoveRaidManager.filterByRaidStars(allTrollRaids);
+        // +Raid: user-selected girl bypasses grade filter, auto-mode ("first") respects it
+        const loveRaids = LoveRaidManager.isActivated() ? allTrollRaids : [];
+        if (debugEnabled && logging) {
+            logHHAuto('eventGirl', eventGirl);
+            logHHAuto('eventMythicGirl', eventMythicGirl);
+            logHHAuto('loveRaids', loveRaids);
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && !checkTimer("eventMythicGoing") && eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
+            if (logging)
+                logHHAuto("Mythic Event troll fight");
+            TTF = Troll.getTrollIdFromEvent(eventMythicGirl);
+        }
+        else if (raidStarsRaids.length > 0) {
+            if (logging)
+                logHHAuto("Raid Stars troll fight (selection " + LoveRaidManager.getRaidStarsSelection() + ")");
+            const loveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsRaids, logging);
+            if (loveRaid) {
+                TTF = loveRaid.trollId;
+            }
+        }
+        else if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && !checkTimer("eventGoing") && eventGirl.girl_id && !eventGirl.is_mythic) {
+            if (logging)
+                logHHAuto("Event troll fight");
+            TTF = Troll.getTrollIdFromEvent(eventGirl);
+        }
+        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
+            // Rebuild the "troll with girls" snapshot from the current harem
+            // whenever the girl list is available, instead of caching it once for
+            // the whole browser-tab lifetime. The old code only built it when the
+            // cache was empty, so girls completed later were never reflected: a
+            // fully-farmed troll kept being selected and Love Raids never got a
+            // turn (issue #1780). getTrollWithGirls() returns a non-empty array
+            // only when the girl list is loaded; otherwise fall back to the cached
+            // snapshot, or fetch the list from the Waifu page.
+            const freshTrollWithGirls = Troll.getTrollWithGirls();
+            if (freshTrollWithGirls.length > 0) {
+                trollWithGirls = freshTrollWithGirls;
+                if (allowSideEffects)
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
+            }
+            else if (trollWithGirls === undefined || trollWithGirls.length === 0) {
+                if (logging)
+                    logHHAuto("Need girls list, going to Waifu page to get them");
+                if (!allowSideEffects)
+                    return 0;
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
+                return -1;
+            }
+            if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
+                if (autoTrollSelectedIndex === 98) {
+                    if (debugEnabled && logging)
+                        logHHAuto("First troll with girls from storage");
+                    TTF = trollWithGirls.findIndex((troll) => troll > 0) + 1;
+                    if (TTF > lastTrollIdAvailable) {
+                        if (logging)
+                            logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
+                        TTF = 0;
+                    }
+                }
+                else if (autoTrollSelectedIndex === 99) {
+                    if (debugEnabled && logging)
+                        logHHAuto("Last troll with girls from storage");
+                    TTF = trollWithGirls.findLastIndex((troll) => troll > 0) + 1;
+                    if (TTF > lastTrollIdAvailable) {
+                        // Find the last troll with girls that is actually unlocked
+                        let found = false;
+                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
+                            if (trollWithGirls[i] > 0) {
+                                TTF = i + 1;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            if (logging)
+                                logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
+                            TTF = 0;
+                        }
+                        else {
+                            if (logging)
+                                logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
+                        }
+                    }
+                }
+            }
+            else if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")) {
+                if (logging)
+                    logHHAuto("Can't get troll with girls, going to home page to get girl list.");
+                if (allowSideEffects)
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+            }
+            else {
+                if (logging)
+                    logHHAuto("Can't get troll with girls, going to last troll.");
+                TTF = lastTrollIdAvailable;
+            }
+            // No troll with girls found - fall through to love raids before giving up
+            if (TTF <= 0 && LoveRaidManager.isActivated() && loveRaids.length > 0) {
+                if (logging)
+                    logHHAuto("No troll with girls, checking love raids as fallback.");
+                const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
+                if (loveRaid) {
+                    TTF = loveRaid.trollId;
+                    if (logging)
+                        logHHAuto(`Love raid fallback: fighting troll ${TTF} for raid girl ${loveRaid.id_girl}.`);
+                }
+            }
+        }
+        else if (LoveRaidManager.isActivated() && loveRaids.length > 0) {
+            const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
+            if (loveRaid) {
+                TTF = loveRaid.trollId;
+            }
+        }
+        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && autoTrollSelectedIndex > 0 && autoTrollSelectedIndex < 98) {
+            TTF = autoTrollSelectedIndex;
+            if (logging)
+                logHHAuto("Custom troll fight.");
+        }
+        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+            TTF = lastTrollIdAvailable;
+            if (logging)
+                logHHAuto("Last troll fight: " + TTF);
+        }
+        // A quest step that demands a battle is its own reason to fight, which
+        // is why isTrollFightActivated() lists autoTrollBattleSaveQuest next to
+        // autoTrollBattle instead of under it, and why handleQuest calls
+        // doBossBattle() precisely when autoTrollBattle is off. Requiring
+        // autoTrollBattle here contradicted both: with troll farming switched
+        // off no branch above ever set a target, so the quest battle resolved
+        // to 0 and the main quest stopped for good. Measured 2026-09-09 on a
+        // world-4 account -- one "No valid troll target found, skipping.", then
+        // twelve minutes of empty handleQuest ticks.
+        if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true") {
+            TTF = lastTrollIdAvailable;
+            if (logging)
+                logHHAuto("Last troll fight for quest item: " + TTF);
+            if (allowSideEffects)
+                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+        }
+        const trollz = ConfigHelper.getHHScriptVars("trollzList");
+        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
+        if (TTF > 0 && TTF > lastTrollIdAvailable) {
+            if (logging)
+                logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
+            if (allowSideEffects)
+                setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
+            TTF = 0;
+        }
+        // A side troll passes the unlock check above -- it sits below the last
+        // available id -- but the main adventure still cannot fight it. Events,
+        // love raids and a menu selection all reach this point, so the resolved
+        // target is checked instead of each source.
+        if (TTF > 0 && Troll.isMainAdventure() && Troll.isSideTroll(TTF)) {
+            if (logging)
+                logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure and cannot be fought from the main adventure.`);
+            TTF = 0;
+        }
+        if (TTF <= 0) {
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                // In world 1 nothing is unlocked yet: getLastTrollIdAvailable
+                // returns id_world - 1 = 0, and that 0 is the answer, not a
+                // failure to find a target. The old backup replaced it with a
+                // hard-wired 1; the game then answers "Troll not available
+                // yet!" on a page the script does not initialise on, so no
+                // handler can leave it -- the dead end of issue #1875, reached
+                // from the main fallback instead of a side troll. Measured
+                // 2026-09-09 on a level-5 account in world 1, quest 7.
+                if (lastTrollIdAvailable <= 0) {
+                    if (logging)
+                        logHHAuto('No troll unlocked in this world yet, skipping.');
+                    return 0;
+                }
+                // Only fallback to last troll when not using first/last troll with girls mode
+                TTF = lastTrollIdAvailable;
+                if (logging)
+                    logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
+            }
+            else {
+                // First/last troll with girls found no valid target, or events/raids only mode
+                if (logging)
+                    logHHAuto("No valid troll target found, skipping.");
+                return 0;
+            }
+        }
+        if (TTF > 0 && !trollz.hasOwnProperty(TTF) && !sideTrollz.hasOwnProperty(TTF)) {
+            if (logging)
+                logHHAuto("Error: New troll implemented '" + TTF + "' (List to be updated) or wrong troll target found");
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
+                TTF = 1;
+            }
+            else {
+                return 0;
+            }
+        }
+        return TTF;
+    }
+    static debugNextTrollToFight() {
+        const TTF = Troll.getTrollIdToFight(false, false);
+        const trollz = ConfigHelper.getHHScriptVars("trollzList");
+        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+        return `Next troll: ${trollz[Number(TTF)] ? trollz[Number(TTF)] : sideTrollz[Number(TTF)]} (${TTF})`;
+    }
+    static doBossBattle() {
+        return Troll_awaiter(this, void 0, void 0, function* () {
+            var currentPower = Troll.getEnergy();
+            if (currentPower < 1) {
+                const eventGirl = EventModule.getEventGirl();
+                const eventMythicGirl = EventModule.getEventMythicGirl();
+                const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
+                const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
+                const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
+                const loveRaid = LoveRaidManager.isActivated()
+                    ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
+                    : undefined;
+                if (!Troll.canBuyFight(eventGirl, false).canBuy && !Troll.canBuyFight(eventMythicGirl, false).canBuy &&
+                    !Troll.canBuyFightForRaid(loveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy) {
+                    return false;
+                }
+            }
+            const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
+            if (runThreshold > 0 && currentPower === runThreshold) {
+                setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "true");
+            }
+            let TTF = Troll.getTrollIdToFight();
+            const trollz = ConfigHelper.getHHScriptVars("trollzList");
+            const currentPage = getPage();
+            if (!TTF || TTF <= 0) {
+                const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+                // The retry-then-troll-1 path below assumes some troll is unlocked.
+                // On a world-1 account none is, and troll 1 is the dead page
+                // described in getTrollIdToFight. Leave before the retry: it would
+                // only delay the same navigation by one run.
+                if (Troll.getLastTrollIdAvailable(false) <= 0) {
+                    logHHAuto('No troll unlocked in this world yet, skipping fight.');
+                    return false;
+                }
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
+                    && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
+                    // Fixed troll or "last troll" mode: retry once, then fallback to troll 1
+                    if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
+                        logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
+                        TTF = 1;
+                    }
+                    else {
+                        logHHAuto(`ERROR: Invalid troll N°${TTF}, do not fight, retry...`);
+                        setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "true");
+                        return true;
+                    }
+                }
+                else {
+                    // First/last troll with girls found no valid target, or events/raids only mode
+                    logHHAuto("No troll target found, skipping fight.");
+                    return false;
+                }
+            }
+            // Valid troll resolved: clear the one-shot invalid-retry guard so a future
+            // invalid target can retry once again (the flag was never reset before).
+            if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
+                setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
+            }
+            const needSW = Booster.needSandalWoodEquipped(TTF);
+            if (needSW) {
+                if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
+                    logHHAuto('Sandalwood needed: going to Shop page to update booster status');
+                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
+                    return true;
+                }
+                else {
+                    Booster.collectBoostersFromMarket();
+                    const equipped = yield Booster.equipeSandalWoodIfNeeded(TTF);
+                    if (equipped) {
+                        Booster.collectBoostersFromMarket();
+                    }
+                }
+            }
+            logHHAuto(`Fighting troll N°${TTF}, ${trollz[Number(TTF)]}`);
+            // Battles the latest boss.
+            // Navigate to latest boss.
+            if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF)) {
+                // On the battle screen.
+                yield Troll.CrushThemFights();
+                return true;
+            }
+            else {
+                logHHAuto("Navigating to chosen Troll.");
+                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                logHHAuto("setting autoloop to false");
+                //week 28 new battle modification
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
+                //End week 28 new battle modification
+                return true;
+            }
+        });
+    }
+    static CrushThemFights() {
+        return Troll_awaiter(this, void 0, void 0, function* () {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
+                logHHAuto("On Pre battle page.");
+                const TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
+                const trollz = ConfigHelper.getHHScriptVars("trollzList");
+                const battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
+                const battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
+                const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
+                const battleButtonX10Price = Number(battleButtonX10.attr('price'));
+                const battleButtonX50Price = Number(battleButtonX50.attr('price'));
+                const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+                const previousPower = Number(getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) || 0;
+                const currentPower = Troll.getEnergy();
+                var checkPreviousFightDone = function () {
+                    // The goal of this function is to detect slow server response to avoid loop without fight
+                    if (previousPower > 0 && previousPower === currentPower) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                        logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
+                    }
+                };
+                //check if girl still available at troll in case of event
+                if (TTF !== null) {
+                    let eventTrollGirl;
+                    const eventGirl = EventModule.getEventGirl();
+                    const eventMythicGirl = EventModule.getEventMythicGirl();
+                    let loveRaid = null;
+                    const rewardGirlz = $("#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]");
+                    const trollGirlRewards = rewardGirlz.attr('data-rewards') || '';
+                    const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
+                    if (eventMythicGirl.girl_id && TTF === eventMythicGirl.troll_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
+                        eventTrollGirl = eventMythicGirl;
+                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventMythicGirl.girl_id)) {
+                            logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            EventModule.parseEventPage(eventMythicGirl.event_id);
+                            return true;
+                        }
+                    }
+                    if (eventGirl.girl_id && TTF === eventGirl.troll_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true") {
+                        eventTrollGirl = eventGirl;
+                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventGirl.girl_id)) {
+                            logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
+                            EventModule.parseEventPage(eventGirl.event_id);
+                            return true;
+                        }
+                    }
+                    if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
+                        logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
+                        const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
+                        trollWithGirls[TTF - 1] = 0;
+                        setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
+                        const newTroll = Troll.getTrollIdToFight();
+                        if (newTroll > 0 && TTF !== newTroll) {
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
+                            return true;
+                        }
+                        else {
+                            logHHAuto(`Same troll found and no girls available, stopping troll fight.`);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
+                        }
+                    }
+                    const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
+                    if ((canBuyFightsResult.canBuy && currentPower === 0)
+                        ||
+                            (canBuyFightsResult.canBuy
+                                && currentPower < 50
+                                && canBuyFightsResult.max === 50
+                                && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
+                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))
+                        ||
+                            (canBuyFightsResult.canBuy
+                                && currentPower < 10
+                                && canBuyFightsResult.max === 20
+                                && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
+                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
+                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))) {
+                        Troll.RechargeCombat(canBuyFightsResult);
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
+                        return true;
+                    }
+                    if (LoveRaidManager.isAnyActivated()) {
+                        const trollRaids = LoveRaidManager.getTrollRaids();
+                        loveRaid = trollRaids.find(raid => raid.trollId === TTF);
+                        if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
+                            logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
+                            clearTimer('nextLoveRaidTime');
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
+                            return true;
+                        }
+                        const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid);
+                        if ((canBuyFightsResultLoveRaid.canBuy && currentPower === 0)
+                            ||
+                                (canBuyFightsResultLoveRaid.canBuy
+                                    && currentPower < 50
+                                    && canBuyFightsResultLoveRaid.max === 50
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))
+                            ||
+                                (canBuyFightsResultLoveRaid.canBuy
+                                    && currentPower < 10
+                                    && canBuyFightsResultLoveRaid.max === 20
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
+                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
+                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))) {
+                            Troll.RechargeCombat(canBuyFightsResultLoveRaid);
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
+                            return true;
+                        }
+                    }
+                    if ((Number.isInteger(eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards) || (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win))
+                        && battleButtonX10.length > 0
+                        && battleButtonX50.length > 0
+                        && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) !== "true") {
+                        const remainingEventShards = eventTrollGirl ? Number(100 - (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards)) : 0;
+                        const remainingLoveRaidShards = loveRaid ? Number(100 - (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_shards)) : 0;
+                        const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
+                        const bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
+                            && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
+                            || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
+                            || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
+                        const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                            && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
+                            && (battleButtonX50Price === 0 || HeroHelper.getKoban() >= battleButtonX50Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
+                            && currentPower >= 50
+                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
+                                || bypassThreshold)
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
+                            logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
+                            if (!acquirePostMutex('troll:battleX50')) {
+                                logHHAuto('Troll: another POST in flight, deferring x50 battle');
+                                return;
+                            }
+                            const x50Start = Date.now();
+                            setHHVars('Hero.infos.hc_confirm', true);
+                            Booster.resetBattleResponseFlag();
+                            battleButtonX50[0].click();
+                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+                            logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                // Battle Done.
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                            }
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            yield Booster.waitForBattleResponse();
+                            const x50Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                            const x50Duration = Date.now() - x50Start;
+                            releasePostMutex();
+                            if (x50Idle)
+                                yield awaitServerSettleAfterPost(x50Duration);
+                            else
+                                logHHAuto('Troll: x50 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                            return;
+                        }
+                        else {
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
+                                logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            }
+                        }
+                        const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
+                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
+                            && minShardsX10 && Number.isInteger(Number(minShardsX10)) && remainingShards >= Number(minShardsX10)
+                            && (battleButtonX10Price === 0 || HeroHelper.getKoban() >= battleButtonX10Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
+                            && currentPower >= 10
+                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
+                                || bypassThreshold)
+                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
+                            logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            if (!acquirePostMutex('troll:battleX10')) {
+                                logHHAuto('Troll: another POST in flight, deferring x10 battle');
+                                return;
+                            }
+                            const x10Start = Date.now();
+                            setHHVars('Hero.infos.hc_confirm', true);
+                            Booster.resetBattleResponseFlag();
+                            battleButtonX10[0].click();
+                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+                            logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                // Battle Done.
+                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
+                            }
+                            RewardHelper.ObserveAndGetGirlRewards();
+                            yield Booster.waitForBattleResponse();
+                            const x10Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                            const x10Duration = Date.now() - x10Start;
+                            releasePostMutex();
+                            if (x10Idle)
+                                yield awaitServerSettleAfterPost(x10Duration);
+                            else
+                                logHHAuto('Troll: x10 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                            return;
+                        }
+                        else {
+                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
+                                logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                            }
+                        }
+                    }
+                    //Crushing one by one
+                    if (currentPower > 0) {
+                        if ($('#pre-battle div.battle-buttons a.single-battle-button[disabled]').length > 0) {
+                            logHHAuto("Battle Button seems disabled, force reload of page.");
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
+                        }
+                        if (battleButton === undefined || battleButton.length === 0) {
+                            logHHAuto("Battle Button was undefined. Disabling all auto-battle.");
+                            document.getElementById("autoTrollBattle").checked = false;
+                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
+                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                                document.getElementById("autoQuest").checked = false;
+                                setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
+                                logHHAuto("Auto-quest disabled since it requires battle and auto-battle has errors.");
+                            }
+                            return;
+                        }
+                        logHHAuto("Crushing: " + trollz[Number(TTF)]);
+                        checkPreviousFightDone();
+                        setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
+                        if (!acquirePostMutex('troll:battle')) {
+                            logHHAuto('Troll: another POST in flight, deferring single battle');
+                            return;
+                        }
+                        const battleStart = Date.now();
+                        battleButton[0].click();
+                        const battleIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                        const battleDuration = Date.now() - battleStart;
+                        releasePostMutex();
+                        if (battleIdle)
+                            yield awaitServerSettleAfterPost(battleDuration);
+                        else
+                            logHHAuto('Troll: battle AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                    }
+                    else {
+                        // We need more power.
+                        const battle_price = 1; // TODO what is the expected value here ?
+                        logHHAuto(`Battle requires ${battle_price} power, having ${currentPower}.`);
+                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, battle_price);
+                        if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
+                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "P" + battle_price);
+                        }
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        return;
+                    }
+                }
+                else {
+                    checkPreviousFightDone();
+                    setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
+                    if (!acquirePostMutex('troll:battleNoEvent')) {
+                        logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
+                        return;
+                    }
+                    const battleNoEventStart = Date.now();
+                    battleButton[0].click();
+                    const battleNoEventIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
+                    const battleNoEventDuration = Date.now() - battleNoEventStart;
+                    releasePostMutex();
+                    if (battleNoEventIdle)
+                        yield awaitServerSettleAfterPost(battleNoEventDuration);
+                    else
+                        logHHAuto('Troll: battle (no event) AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                }
+            }
+            else {
+                logHHAuto('Unable to identify page.');
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                return;
+            }
+            return;
+        });
+    }
+    static RechargeCombat(canBuyResult) {
+        const Hero = getHero();
+        if (canBuyResult.canBuy) {
+            logHHAuto('Recharging ' + canBuyResult.toBuy + ' fights for ' + canBuyResult.price + ' kobans.');
+            const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
+            setHHVars('Hero.infos.hc_confirm', true);
+            // We have the power.
+            Hero.recharge($("button.orange_text_button.manual-recharge"), canBuyResult.type, canBuyResult.toBuy, canBuyResult.price);
+            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
+            logHHAuto('Recharged up to ' + canBuyResult.max + ' fights for ' + canBuyResult.price + ' kobans.');
+        }
+    }
+    /**
+     * Shared core for canBuyFight / canBuyFightForRaid (Troll review I5).
+     * Each public wrapper computes its strategy-specific buy amounts, the
+     * activation predicate and the x50 gate, then delegates the common
+     * shard/energy gate, x50-vs-x20 decision, koban check, logging and result
+     * assembly here. Behavior-preserving: the raid path keeps its historical
+     * max(=20)/toBuy(=eventAutoBuy) mismatch through separate maxx20 and
+     * x20BuyAmount params.
+     */
+    static evaluateFightPurchase(p) {
+        const result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: "fight" };
+        // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
+        if (Number.isInteger(p.shards) && p.currentFight === 0 && p.shards < 100) {
+            if (!p.activated) {
+                return result;
+            }
+            result.event_mythic = p.eventMythic;
+            const remainingShards = Number(100 - p.shards);
+            const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
+            if (minShardsx50 !== undefined && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
+                && HeroHelper.getKoban() >= (p.pricePerFight * p.maxx50) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))
+                && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
+                && p.currentFight < p.maxx50
+                && p.x50Allowed) {
+                result.max = p.maxx50;
+                result.canBuy = true;
+                result.price = p.pricePerFight * p.maxx50;
+                result.toBuy = p.maxx50;
+            }
+            else {
+                if (p.logging && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
+                    logHHAuto(`Unable to recharge up to ${p.maxx50} for ${p.pricePerFight * p.maxx50} kobans : current energy : ${p.currentFight}, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                }
+                if (HeroHelper.getKoban() >= (p.pricePerFight * p.x20BuyAmount) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))) {
+                    result.max = p.maxx20;
+                    result.canBuy = true;
+                    result.price = p.pricePerFight * p.x20BuyAmount;
+                    result.toBuy = p.x20BuyAmount;
+                }
+                else if (p.logging) {
+                    logHHAuto(`Unable to recharge up to ${p.x20BuyAmount} for ${p.pricePerFight * p.x20BuyAmount} kobans : current energy : ${p.currentFight}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
+                }
+            }
+        }
+        return result;
+    }
+    static canBuyFight(eventGirl, logging = true) {
+        const type = "fight";
+        const hero = getHero();
+        const MAX_BUY = 200;
+        const currentFight = Troll.getEnergy();
+        const eventAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyTrollNumber)) || 20, MAX_BUY - currentFight);
+        const mythicAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyMythicTrollNumber)) || 20, MAX_BUY - currentFight);
+        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
+        let activated = false;
+        let eventMythic = "false";
+        if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) === "true"
+            && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
+            && getSecondsLeft("eventGoing") !== 0
+            && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) * 3600)
+            && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic))
+            ||
+                (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
+                    && getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombat) === "true"
+                    && getSecondsLeft("eventMythicGoing") !== 0
+                    && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) * 3600)
+                    && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic))) {
+            activated = true;
+            eventMythic = eventGirl.is_mythic.toString();
+        }
+        const maxx50 = eventMythic === "true" ? Math.max(50, mythicAutoBuy) : Math.max(50, eventAutoBuy);
+        const maxx20 = eventMythic === "true" ? mythicAutoBuy : eventAutoBuy;
+        return Troll.evaluateFightPurchase({
+            shards: eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.shards,
+            currentFight,
+            pricePerFight,
+            activated,
+            eventMythic,
+            maxx50,
+            maxx20,
+            x20BuyAmount: maxx20,
+            x50Allowed: (eventMythic === "true" || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"),
+            logging,
+        });
+    }
+    static canBuyFightForRaid(raid, logging = true) {
+        const type = "fight";
+        const hero = getHero();
+        const MAX_BUY = 200;
+        const maxx20 = 20;
+        const currentFight = Troll.getEnergy();
+        const eventAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyLoveRaidTrollNumber)) || maxx20, MAX_BUY - currentFight);
+        const maxx50 = Math.max(50, eventAutoBuy);
+        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
+        const activated = !!(getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
+            && LoveRaidManager.isAnyActivated()
+            && (raid === null || raid === void 0 ? void 0 : raid.seconds_until_event_end) > 0 // new Date() < new Date(raid.end_datetime)
+            && (raid === null || raid === void 0 ? void 0 : raid.id_girl));
+        return Troll.evaluateFightPurchase({
+            shards: raid === null || raid === void 0 ? void 0 : raid.girl_shards,
+            currentFight,
+            pricePerFight,
+            activated,
+            eventMythic: "false",
+            maxx50,
+            maxx20,
+            x20BuyAmount: eventAutoBuy,
+            x50Allowed: true,
+            logging,
+        });
+    }
+}
+
+;// ./src/Helper/menu/MenuOrder.ts
+// MenuOrder.ts
+//
+// Pure order resolution for the settings-menu areas (#1834). No DOM, no
+// storage, no imports: the stored order goes in, the effective order comes out,
+// so this is fully unit-testable (spec/Helper/menu/MenuOrder.spec.ts) and stays
+// a graph leaf.
+//
+// The contract mirrors OrderResolver for the pipeline blocks, minus the
+// constraints -- settings areas may sit in any order:
+//   - an id the build does not know any more is dropped (an area removed in a
+//     later version must not leave a hole in the menu);
+//   - an id the stored order does not mention is inserted after its nearest
+//     preceding neighbour from the default order (a NEW area shows up next to
+//     where it was designed to be, not appended at the bottom where nobody
+//     looks);
+//   - anything unusable (no array, wrong element types, empty after filtering)
+//     falls back to the default order.
+/**
+ * Effective area order from a stored order and the build's default order.
+ * `stored` is deliberately `unknown`: it comes from localStorage via
+ * JSON.parse and may be anything at all.
+ */
+function resolveMenuOrder(stored, defaultIds) {
+    const known = new Set(defaultIds);
+    const placed = new Set();
+    const result = [];
+    if (Array.isArray(stored)) {
+        for (const raw of stored) {
+            if (typeof raw !== "string")
+                continue;
+            if (!known.has(raw) || placed.has(raw))
+                continue;
+            placed.add(raw);
+            result.push(raw);
+        }
+    }
+    if (result.length === 0)
+        return [...defaultIds];
+    // Walking the default order forwards means a run of new areas keeps its
+    // relative order, because each one is already placed when the next looks
+    // for its preceding neighbour.
+    for (let i = 0; i < defaultIds.length; i++) {
+        const id = defaultIds[i];
+        if (placed.has(id))
+            continue;
+        let at = 0;
+        for (let j = i - 1; j >= 0; j--) {
+            const idx = result.indexOf(defaultIds[j]);
+            if (idx !== -1) {
+                at = idx + 1;
+                break;
+            }
+        }
+        result.splice(at, 0, id);
+        placed.add(id);
+    }
+    return result;
+}
+/** True when `order` is the build default -- then nothing needs to be stored. */
+function isDefaultMenuOrder(order, defaultIds) {
+    return order.length === defaultIds.length && order.every((id, i) => id === defaultIds[i]);
+}
+
+;// ./src/Helper/menu/MenuBadge.ts
+// MenuBadge.ts
+//
+// The run-state of one settings block, and the roll-up of an area's blocks for
+// the badge on the tab rail (#1834). No DOM, no storage, no imports: the caller
+// supplies a reader, so this stays fully unit-testable and a graph leaf.
+//
+// What the three states mean, and why not simply "a checkbox is ticked":
+//
+//   - "at least one switch is ticked" is not the same as "this block does
+//     something". Measured against the factory defaults, 7 of the 11 areas
+//     would light up out of the box -- through `showInfo`, `showRewardsRecap`,
+//     `showClubButtonInPoa`, `hideOwnedGirls` and friends, which are pure
+//     display options. Only a block's *acting* switches (`masters`) count.
+//   - The reverse case is the one testers actually run into: `plusEvent` on,
+//     `autoTrollBattle` off. The event-troll block is configured in every
+//     detail and still never runs, because the switch that starts the fighting
+//     is off. A plain on/off marker reports "off" there, which reads as a
+//     deliberate choice rather than the forgotten toggle it is. That case gets
+//     its own state, `conflict`.
+//   - A block that cannot act at all -- thresholds, opponent filters, team
+//     settings, anything display-only -- gets `none` and no marker. Colouring
+//     it would claim it can be on or off when it cannot.
+//
+// So: `on` the block runs, `conflict` it is set up but will not run, `off`
+// nothing is set, `none` there is nothing to be on about.
+/**
+ * The state of one block.
+ *
+ * `isOn` returns `undefined` for a switch that is not in the DOM at all --
+ * debug-only rows, or a switch a later version dropped. A block whose masters
+ * are all missing is `none` rather than `off`, so the marker never claims a
+ * capability the panel does not show. A missing *prerequisite* does not block:
+ * a build without that row cannot have the user turn it on.
+ */
+function blockState(def, isOn) {
+    var _a, _b;
+    const present = def.masters.filter(key => isOn(key) !== undefined);
+    if (present.length === 0)
+        return 'none';
+    const mastersOn = present.some(key => isOn(key) === true);
+    const blocked = ((_a = def.requires) !== null && _a !== void 0 ? _a : []).some(key => isOn(key) === false);
+    if (mastersOn)
+        return blocked ? 'conflict' : 'on';
+    const configured = ((_b = def.options) !== null && _b !== void 0 ? _b : []).some(key => isOn(key) === true);
+    return configured ? 'conflict' : 'off';
+}
+/** Roll one area's block states up into the numbers behind its badge. */
+function countBlocks(states) {
+    let on = 0;
+    let total = 0;
+    let conflicts = 0;
+    for (const state of states) {
+        if (state === 'none')
+            continue;
+        total++;
+        if (state === 'on')
+            on++;
+        else if (state === 'conflict')
+            conflicts++;
+    }
+    return { on, total, conflicts };
+}
+/**
+ * The colour of the whole area, in the same vocabulary as a single block.
+ *
+ * A conflict wins over everything else: it is the only state that asks the user
+ * to do something, and it has to be visible on the rail, or the point of having
+ * it -- spotting the forgotten toggle without opening the area first -- is
+ * lost. Otherwise anything running makes the area `on`; the count next to it
+ * says how much.
+ */
+function areaState(count) {
+    if (count.total === 0)
+        return 'none';
+    if (count.conflicts > 0)
+        return 'conflict';
+    return count.on > 0 ? 'on' : 'off';
+}
+/** `2/6`, or an empty string for an area with nothing to count (e.g. Harem). */
+function formatBadge(count) {
+    return count.total === 0 ? '' : count.on + '/' + count.total;
+}
+
+;// ./src/Helper/menu/MenuWidgets.ts
+// MenuWidgets.ts
+//
+// Options rendering: small, reusable HTML builders that turn a text/input id
+// into a labelled menu row (button, toggle switch, dropdown, text input,
+// optionally with an icon). These are pure string-producing helpers shared by
+// the menu DOM template (MenuTemplate) and by feature modules that inject their
+// own rows (Champion, Pachinko, Labyrinth, TeamModule).
+//
+// Split out of HHMenuHelper as part of WART-002 (behavior-neutral). Reads
+// getTextForUI / config lookups from MenuPorts so this file stays a graph leaf
+// (see MenuPorts.ts).
+
+/**
+ * `labelPrefix` is prepended to the translated label, e.g. "1 " to number a
+ * button inside a step-by-step workflow. Kept out of the translations on
+ * purpose: a step number reads the same in every language.
+ */
+function hhButton(textKeyId, buttonId, mainStyle = '', labelSyle = '', labelPrefix = '') {
+    const { getTextForUI } = MenuPorts;
+    return `<div ${mainStyle ? 'style="' + mainStyle + '"' : ''} class="tooltipHH" >`
+        + `<span class="tooltipHHtext">${getTextForUI(textKeyId, "tooltip")}</span>`
+        + `<label ${labelSyle ? 'style="' + labelSyle + '"' : ''} class="myButton" id="${buttonId}">${labelPrefix}${getTextForUI(textKeyId, "elementText")}</label>`
+        + `</div>`;
+}
+/**
+ * `disabledBy` names another switch that takes this row out of play while it
+ * is on -- two settings that contradict each other, where the panel would
+ * otherwise offer both and only the code would know which one wins. The row
+ * is greyed and its checkbox disabled by refreshMenuState(); the stored value
+ * is untouched, so it returns as it was when the other switch goes off.
+ */
+function hhMenuSwitch(textKeyAndInputId, isEnabledDivId = '', isKobanSwitch = false, isStylingSwitch = false, disabledBy = '') {
+    const { getTextForUI } = MenuPorts;
+    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton"${disabledBy ? ` data-disabled-by="${disabledBy}"` : ''}>`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
+        + `<div class="tooltipHH">`
+        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
+        + `<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''} ${isStylingSwitch ? 'styling' : ''}"></span></label>`
+        + `</div>`
+        + `</div>`;
+}
+function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch = false) {
+    const { getTextForUI, getHHScriptVars } = MenuPorts;
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
+        + `<div class="imgAndObjectRow">`
+        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/${imgPath}" />`
+        + `<div style="padding-left:5px">`
+        + `<div class="tooltipHH">`
+        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
+        + `<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''}"></span></label>`
+        + `</div>`
+        + `</div>`
+        + `</div>`
+        + `</div>`;
+}
+function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
+    const { getTextForUI } = MenuPorts;
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
+        + `<div class="tooltipHH">`
+        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
+        + `<select id="${textKeyAndInputId}" style="${inputStyle}" >${options}</select>`
+        + `</div>`
+        + `</div>`;
+}
+function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle = '', inputClass = '', inputMode = 'text') {
+    const { getTextForUI } = MenuPorts;
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
+        + `<div class="tooltipHH">`
+        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
+        + `<input id="${textKeyAndInputId}" class="${inputClass}" style="${inputStyle}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
+        + `</div>`
+        + `</div>`;
+}
+function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode = 'text', inputClass = '') {
+    const { getTextForUI, getHHScriptVars } = MenuPorts;
+    let htmlRet = `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
+        + `<div class="imgAndObjectRow">`;
+    if (imgPath && imgPath.indexOf('images/') >= 0) {
+        htmlRet += `<img class="iconImg" src="/${imgPath}" />`;
+    }
+    else {
+        htmlRet += `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/${imgPath}" />`;
+    }
+    htmlRet +=
+        `<div style="padding-left:5px">`
+            + `<div class="tooltipHH">`
+            + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
+            + `<input class="${inputClass}" style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
+            + `</div>`
+            + `</div>`
+            + `</div>`
+            + `</div>`;
+    return htmlRet;
+}
+
+;// ./src/Helper/menu/MenuTabs.ts
+// MenuTabs.ts
+//
+// DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
+// area buttons on the left and one pane per area on the right. Replaces the
+// three fixed-width columns,
+// which sized their labels for English and let longer translations overlap.
+//
+// Two rules keep that from coming back:
+//   - a row is a two-column grid (label | control, see the #sMenu CSS in
+//     build/HHAuto.template.js), so a label may wrap to any length and can
+//     never run under its control;
+//   - every group carries a visible heading. That is not decoration: 23 label
+//     texts are reused across the menu ("Collect" alone appears eleven times),
+//     and the heading is what tells them apart.
+//
+// Element ids are unchanged from the column layout — MenuSettings binds values
+// by id, maskInactiveMenus() hides by id, and feature modules look rows up by
+// id. Only the arrangement moved.
+//
+// Two layouts share this markup (#1834): the tab rail, and -- with
+// SK.menuSingleColumn on -- every area stacked in one scrolling list, for
+// players who want the whole configuration under one pair of eyes. The stacked
+// layout is CSS only (#sMenu.menuStacked), so switching costs no rebuild and no
+// reload. The area order is the user's (TK.menuOrder) in both.
+//
+// Reads its storage/translation helpers from MenuPorts so this file stays a
+// graph leaf (see MenuPorts.ts).
+
+
+
+
+
+
+const t = (key) => MenuPorts.getTextForUI(key, "elementText");
+/**
+ * One settings group. `maskId` goes on the group element so the existing
+ * maskInactiveMenus() can hide the whole group on games without that feature.
+ * `wide` makes the group span the full pane and lay its rows out in columns —
+ * used where a row holds a dropdown or a long text field that will not fit
+ * beside a label in a single narrow column.
+ */
+function group(titleKey, rows, maskId = '', wide = false, state = '') {
+    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}${state}>`
+        + `<div class="menuGroupTitle">${state ? `<span class="menuBlockDot"></span>` : ``}${t(titleKey)}</div>`
+        + `<div class="menuGroupRows">${rows}</div>`
+        + `</div>`;
+}
+/**
+ * Declares a group to be a *block*: something that is either running or not,
+ * so its heading can say so (#1834). The definition is carried on the element
+ * as data attributes rather than in a second table beside the markup, so a
+ * block and its switches can only ever be edited in one place, and the repaint
+ * reads exactly what is on screen -- a group this game hides is skipped
+ * because it is not there, not because a list remembered to leave it out.
+ *
+ * The three lists and why a switch lands in one or the other: see BlockDef in
+ * MenuBadge.ts.
+ */
+function block(masters, requires = [], options = []) {
+    return ` data-block="${masters.join(',')}"`
+        + (requires.length > 0 ? ` data-requires="${requires.join(',')}"` : ``)
+        + (options.length > 0 ? ` data-options="${options.join(',')}"` : ``);
+}
+/** A row the widgets cannot build: a switch with its own number field next to it. */
+function switchWithInput(switchId, inputId, pattern, width) {
+    return `<div class="labelAndButton">`
+        + `<span class="HHMenuItemName">${t(switchId)}</span>`
+        + `<div class="tooltipHH menuPair">`
+        + `<span class="tooltipHHtext">${MenuPorts.getTextForUI(switchId, "tooltip")}</span>`
+        + `<label class="switch"><input id="${switchId}" type="checkbox"><span class="slider round"></span></label>`
+        + `<input style="text-align:center; width:${width}" id="${inputId}" required pattern="${pattern}" type="text">`
+        + `</div>`
+        + `</div>`;
+}
+/** Rows hidden unless Debug is on — #1533, 0% usage in a 168-response survey. */
+function debugOnly(enabled, rows) {
+    return `<div${enabled ? '' : ' style="display:none;"'}>${rows}</div>`;
+}
+function tabs(debugEnabled) {
+    const P = HHAuto_inputPattern;
+    return [
+        {
+            id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
+            groups: group('menuSecBasics', hhMenuSwitch('paranoia')
+                + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
+                + hhMenuSwitch('settPerTab')
+                + hhMenuSwitch('showTooltips')
+                + hhMenuSwitch('menuSingleColumn', '', false, true)
+                + hhMenuSwitch('menuCompact', '', false, true))
+                + group('menuSecTiming', hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
+                    + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
+                    + hhMenuSwitch('paranoiaSpendsBefore')
+                    + hhMenuInput('autoPentaDrillDelay', P.autoPentaDrillDelay, 'text-align:center; width:30px')
+                    + hhMenuSwitch('pipelineDiagnose'))
+                + group('menuSecKobans', hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
+                    + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
+                + group('menuSecAutoCollect', hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
+                    + hhMenuSwitch('collectEventChest'), '', false, block(['autoFreeBundlesCollect', 'collectEventChest'])),
+        },
+        {
+            id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
+            groups: group('menuSecInfoPanel', hhMenuSwitch('showInfo')
+                + hhMenuSwitch('showInfoLeft', '', false, true)
+                + hhMenuSwitch('showCalculatePower'))
+                + group('menuSecRewards', hhMenuSwitch('showRewardsRecap')
+                    + hhMenuSwitch('AllMaskRewards', '', false, true))
+                + group('menuSecAds', hhMenuSwitch('showAdsBack', '', false, true)
+                    + hhMenuSwitch('autoAdsClick'), '', false, block(['autoAdsClick'])),
+        },
+        {
+            id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
+            groups: group('autoActivitiesTitle', hhMenuSwitch('autoMission')
+                + hhMenuSwitch('autoMissionCollect')
+                + hhMenuSwitch('autoMissionKFirst')
+                + hhMenuSwitch('compactMissions', '', false, true)
+                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission', false, block(['autoMission', 'autoMissionCollect'], [], ['autoMissionKFirst']))
+                + group('menuSecContests', hhMenuSwitch('autoContest')
+                    + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest', false, block(['autoContest']))
+                + group('dailyGoalsTitle', debugOnly(debugEnabled, hhMenuSwitch('autoDailyGoals'))
+                    + hhMenuSwitch('autoDailyGoalsCollect')
+                    + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals', false, block(['autoDailyGoals', 'autoDailyGoalsCollect']))
+                + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko', false, block(['autoFreePachinko']))
+                + group('menuSecSalary', hhMenuSwitch('autoSalary')
+                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary', false, block(['autoSalary']))
+                + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
+                    + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
+                    + hhMenuSwitch('autoPowerPlacesAll')
+                    + hhMenuSwitch('autoPowerPlacesPrecision')
+                    + hhMenuSwitch('autoPowerPlacesInverted')
+                    + hhMenuSwitch('autoPowerPlacesWaitMax')
+                    + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true, block(['autoPowerPlaces'], [], ['autoPowerPlacesAll', 'autoPowerPlacesPrecision', 'autoPowerPlacesInverted', 'autoPowerPlacesWaitMax']))
+                + group('menuSecQuests', hhMenuSwitch('autoQuest')
+                    + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
+                    + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest', false, block(['autoQuest', 'autoSideQuest']))
+                + group('povTitle', hhMenuSwitch('autoPoVCollect')
+                    + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV', false, block(['autoPoVCollect', 'autoPoVCollectAll']))
+                + group('pogTitle', hhMenuSwitch('autoPoGCollect')
+                    + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG', false, block(['autoPoGCollect', 'autoPoGCollectAll'])),
+        },
+        {
+            // Both names are the game's own area (#1834): the rail and the pane
+            // heading say the same thing in every other area, and 'Battle Troll'
+            // was the script's word for what it does there, not the game's word
+            // for the place. The key itself stays -- Troll.ts still labels the
+            // energy bar with it on the adventure page.
+            id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'menuTabAdventure',
+            groups: group('menuSecStandardTroll', hhMenuSwitch('autoTrollBattle')
+                + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
+                + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
+                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true, block(['autoTrollBattle']))
+                + group('menuSecEventTrolls', hhMenuSwitch('plusEvent')
+                    + hhMenuInput('eventTrollOrder', P.eventTrollOrder, 'width:150px')
+                    + hhMenuSwitch('buyCombat', '', true)
+                    + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
+                    + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuSwitch('plusEventSandalWood'), '', true, block(['plusEvent'], [], ['buyCombat', 'plusEventSandalWood']))
+                + group('menuSecMythicEvent', hhMenuSwitch('plusEventMythic')
+                    + hhMenuSwitch('autoTrollMythicByPassParanoia')
+                    + hhMenuSwitch('buyMythicCombat', '', true)
+                    + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
+                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true, block(['plusEventMythic'], [], ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
+                + group('loveRaidTitle', hhMenuSwitch('plusLoveRaid')
+                    + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
+                    + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
+                    + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
+                    + hhMenuSwitch('buyLoveRaidCombat', '', true)
+                    + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
+                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], [], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
+                + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
+                    + hhMenuSwitch('plusSkinSandalWood')
+                    + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
+                + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)
+                    + hhMenuSwitch('useX10FightsAllowNormalEvent')
+                    + hhMenuInput('minShardsX10', P.minShardsX, 'text-align:center; width:90px')
+                    + hhMenuSwitch('useX50Fights', '', true)
+                    + hhMenuSwitch('useX50FightsAllowNormalEvent')
+                    + hhMenuInput('minShardsX50', P.minShardsX, 'text-align:center; width:90px'), '', true)),
+        },
+        {
+            id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
+            groups: group('menuSecFightCollect', hhMenuSwitch('autoSeason')
+                + hhMenuSwitch('autoSeasonCollect')
+                + hhMenuSwitch('autoSeasonCollectAll')
+                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
+                + group('menuSecOpponents', hhMenuSwitch('autoSeasonBoostedOnly')
+                    + hhMenuSwitch('autoSeasonPreferLowMojo')
+                    + hhMenuSwitch('autoSeasonSkipLowMojo', '', false, false, 'autoSeasonPreferLowMojo')
+                    + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
+                    + hhMenuSwitch('autoSeasonMaxTierHard')
+                    + debugOnly(debugEnabled, hhMenuSwitch('autoSeasonPassReds', '', true)))
+                + group('menuSecThresholds', hhMenuInputWithImg('autoSeasonThreshold', P.autoSeasonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
+                    + hhMenuInputWithImg('autoSeasonRunThreshold', P.autoSeasonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
+                    + hhMenuSwitch('seasonDisplayPowerCalc')),
+        },
+        {
+            id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
+            groups: group('menuSecFightCollect', hhMenuSwitch('autoLeagues')
+                + hhMenuSwitch('autoLeaguesCollect')
+                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true, block(['autoLeagues', 'autoLeaguesCollect']))
+                + group('menuSecOpponents', hhMenuSelect('autoLeaguesSortMode', 'max-width:130px;')
+                    + hhMenuSwitch('autoLeaguesBoostedOnly')
+                    + hhMenuSwitch('autoLeaguesAllowWinCurrent')
+                    + hhMenuSwitch('autoLeaguesForceOneFight')
+                    + hhMenuSwitch('leagueListDisplayPowerCalc'), '', true)
+                + group('menuSecThresholds', hhMenuInputWithImg('autoLeaguesThreshold', P.autoLeaguesThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
+                    + hhMenuInputWithImg('autoLeaguesRunThreshold', P.autoLeaguesRunThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
+                    + hhMenuInput('autoLeaguesSecurityThreshold', P.autoLeaguesSecurityThreshold, 'text-align:center; width:34px', '', 'numeric')),
+        },
+        {
+            id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
+            groups: group('autoChampsTitle', hhMenuSwitch('autoChamps')
+                + hhMenuSwitch('autoChampsForceStart')
+                + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
+                + hhMenuInput('autoChampsFilter', P.autoChampsFilter, 'text-align:center; width:70px')
+                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps', false, block(['autoChamps'], [], ['autoChampsForceStart', 'autoChampsUseEne', 'autoChampsForceStartEventGirl']))
+                + group('menuSecClubChamp', hhMenuSwitch('autoClubChamp')
+                    + hhMenuSwitch('autoClubForceStart')
+                    + hhMenuInputWithImg('autoClubChampMax', P.autoClubChampMax, 'text-align:center; width:50px', 'pictures/design/champion_ticket.png', 'numeric')
+                    + hhMenuSwitch('showClubButtonInPoa')
+                    + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp', false, block(['autoClubChamp'], [], ['autoClubForceStart', 'autoChampAlignTimer']))
+                + group('menuSecTeam', hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
+                    + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuSwitch('autoChampsTeamKeepSecondLine')
+                    + hhMenuSwitch('autoBuildChampsTeam'))
+                + group('autoPantheonTitle', hhMenuSwitch('autoPantheon')
+                    + hhMenuInputWithImg('autoPantheonThreshold', P.autoPantheonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
+                    + hhMenuInputWithImg('autoPantheonRunThreshold', P.autoPantheonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
+                    + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon', false, block(['autoPantheon'], [], ['autoPantheonBoostedOnly'])),
+        },
+        {
+            id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
+            groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
+                + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
+                + hhMenuSwitch('autoLabyHard')
+                + hhMenuSwitch('autoLabySweep')
+                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
+        },
+        {
+            id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
+            groups: group('menuSecStats', hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
+                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop', false, block(['autoStatsSwitch']))
+                + group('menuSecBooks', hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
+                    + hhMenuInput('maxExp', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoExpW']))
+                + group('menuSecGifts', hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
+                    + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
+                    + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoAffW']))
+                + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
+                    + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
+                    + hhMenuSwitch('autoEquipBoosters')
+                    + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
+                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true, block(['autoBuyBoosters', 'autoEquipBoosters']))
+                + group('menuSecMarketTools', hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
+                    + hhMenuSwitch('updateMarket')),
+        },
+        {
+            id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
+            groups: group('menuSecEventDisplay', hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
+                + group('autoPentaDrillTitle', hhMenuSwitch('autoPentaDrill')
+                    + hhMenuSwitch('autoPentaDrillCollect')
+                    + hhMenuSwitch('autoPentaDrillCollectAll')
+                    + hhMenuSwitch('autoPentaDrillBoostedOnly')
+                    + hhMenuInputWithImg('autoPentaDrillThreshold', P.autoPentaDrillThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric')
+                    + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true, block(['autoPentaDrill', 'autoPentaDrillCollect', 'autoPentaDrillCollectAll'], [], ['autoPentaDrillBoostedOnly']))
+                + group('seasonalEventTitle', hhMenuSwitch('autoSeasonalEventCollect')
+                    + hhMenuSwitch('autoSeasonalEventCollectAll')
+                    + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent', false, block(['autoSeasonalEventCollect', 'autoSeasonalEventCollectAll', 'autoSeasonalBuyFreeCard']))
+                + group('doublePenetrationEventTitle', hhMenuSwitch('autodpEventCollect')
+                    + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent', false, block(['autodpEventCollect', 'autodpEventCollectAll']))
+                + group('livelySceneEventTitle', hhMenuSwitch('autoLivelySceneEventCollect')
+                    + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent', false, block(['autoLivelySceneEventCollect', 'autoLivelySceneEventCollectAll']))
+                + group('sultryMysteriesEventTitle', hhMenuSwitch('sultryMysteriesEventRefreshShop')
+                    + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent', false, block(['sultryMysteriesEventRefreshShop', 'sultryMysteriesAutoOpen']))
+                + group('bossBangEventTitle', hhMenuSwitch('bossBangEvent')
+                    + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent', false, block(['bossBangEvent']))
+                + group('poaTitle', hhMenuSwitch('autoPoACollect')
+                    + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa', false, block(['autoPoACollect', 'autoPoACollectAll'])),
+        },
+        {
+            id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
+            groups: group('haremTitle', hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
+                + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
+                + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')),
+        },
+    ];
+}
+/** Ids of every area this build has, in the order the code declares them. */
+function menuAreaIds() {
+    return tabs(false).map(tab => tab.id);
+}
+/** Stored area order, or null when nothing was ever saved / the value is junk. */
+function storedMenuOrder() {
+    const raw = MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.menuOrder);
+    if (typeof raw !== "string" || raw === "")
+        return null;
+    try {
+        return JSON.parse(raw);
+    }
+    catch (_a) {
+        return null;
+    }
+}
+/** The order to render in: the user's, repaired against this build's areas. */
+function effectiveMenuOrder(defaultIds) {
+    return resolveMenuOrder(storedMenuOrder(), defaultIds);
+}
+/** True when the menu should render as one stacked list instead of tabs. */
+function isMenuStacked() {
+    return MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + SK.menuSingleColumn) === "true";
+}
+/** The rail of area buttons plus one pane per area. */
+function buildTabbedBody(debugEnabled) {
+    const declared = tabs(debugEnabled);
+    const order = effectiveMenuOrder(declared.map(tab => tab.id));
+    const defs = order
+        .map(id => declared.find(tab => tab.id === id))
+        .filter((tab) => tab !== undefined);
+    // The badge is filled in by refreshMenuState() once the checkboxes carry
+    // their stored state; rendering it here would always read "0/n". An area
+    // with nothing to count (Harem) has its badge emptied and hidden there,
+    // for the same reason: only the repaint knows what this game shows.
+    const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
+        + `<span class="menuTabIcon">${tab.icon}</span>`
+        + `<span class="menuTabName">${t(tab.nameKey)}</span>`
+        + `<span class="menuTabBadge" data-badge="${tab.id}"></span>`
+        + `</div>`).join('');
+    // The stacked layout hides the rail, so the area count needs a second home
+    // there: the pane heading. Same data-badge, so one repaint fills both.
+    const panes = defs.map(tab => `<div class="menuPane" data-pane="${tab.id}">`
+        + `<div class="menuPaneTitle">${t(tab.titleKey)}`
+        + `<span class="menuTabBadge menuPaneBadge" data-badge="${tab.id}"></span></div>`
+        + `<div class="menuGroups">${tab.groups}</div>`
+        + `</div>`).join('');
+    return `<div class="menuBody">`
+        + `<div class="menuTabs" id="sMenuTabs">${rail}</div>`
+        + `<div class="menuPanes" id="sMenuPanes">${panes}</div>`
+        + `</div>`;
+}
+/** Computed at call time, never at module top level (see StorageKeys guard). */
+function tabStorageKey() {
+    return MenuPorts.storedVarPrefix + TK.menuTab;
+}
+function selectTab(id) {
+    for (const el of document.querySelectorAll('#sMenuTabs .menuTab')) {
+        el.classList.toggle('active', el.dataset.tab === id);
+    }
+    for (const el of document.querySelectorAll('#sMenuPanes .menuPane')) {
+        el.classList.toggle('active', el.dataset.pane === id);
+    }
+    const panes = document.getElementById('sMenuPanes');
+    if (panes !== null)
+        panes.scrollTop = 0;
+}
+/**
+ * Wires the tab rail and restores the area that was open before.
+ *
+ * Must run AFTER maskInactiveMenus(): a game without champions has every group
+ * of that pane hidden, and an area with nothing left in it should not offer a
+ * button at all. If the remembered area is one of those, the first remaining
+ * one is opened instead.
+ */
+function initMenuTabs() {
+    var _a;
+    const rail = document.getElementById('sMenuTabs');
+    if (rail === null)
+        return;
+    const available = [];
+    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
+        const id = tabEl.dataset.tab;
+        if (id === undefined)
+            continue;
+        const pane = document.querySelector(`#sMenuPanes .menuPane[data-pane="${id}"]`);
+        const groups = pane === null ? [] : Array.from(pane.querySelectorAll('.menuGroup'));
+        const anyVisible = groups.some(g => g.style.display !== 'none');
+        if (anyVisible) {
+            available.push(id);
+            tabEl.addEventListener('click', () => {
+                selectTab(id);
+                MenuPorts.setStoredValue(tabStorageKey(), id);
+            });
+        }
+        else {
+            tabEl.style.display = 'none';
+            // The stacked layout shows every pane, so an area with all groups
+            // hidden has to be taken out there as well -- otherwise it renders
+            // as a heading with nothing underneath it.
+            if (pane !== null)
+                pane.classList.add('menuPaneEmpty');
+        }
+    }
+    if (available.length === 0)
+        return;
+    const remembered = String((_a = MenuPorts.getStoredValue(tabStorageKey())) !== null && _a !== void 0 ? _a : '');
+    selectTab(available.includes(remembered) ? remembered : available[0]);
+}
+/**
+ * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
+ * no reload: the panes keep their DOM, their bound inputs and their values. The
+ * remembered area stays selected underneath, which is what makes switching back
+ * land where the user left off.
+ */
+/** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
+function applyMenuDensity(compact) {
+    const menu = document.getElementById('sMenu');
+    if (menu === null)
+        return;
+    menu.classList.toggle('menuCompact', compact);
+}
+function applyMenuLayout(stacked) {
+    const menu = document.getElementById('sMenu');
+    if (menu === null)
+        return;
+    menu.classList.toggle('menuStacked', stacked);
+    const panes = document.getElementById('sMenuPanes');
+    if (panes !== null)
+        panes.scrollTop = 0;
+}
+/**
+ * Re-order rail and panes in place. appendChild on an element that is already a
+ * child moves it, so walking the order once leaves the DOM in exactly that
+ * sequence. Ids the DOM does not have (an area this game hides) are skipped.
+ */
+function applyMenuOrder(order) {
+    const rail = document.getElementById('sMenuTabs');
+    const panes = document.getElementById('sMenuPanes');
+    if (rail === null || panes === null)
+        return;
+    for (const id of order) {
+        const tab = rail.querySelector(`.menuTab[data-tab="${id}"]`);
+        if (tab !== null)
+            rail.appendChild(tab);
+        const pane = panes.querySelector(`.menuPane[data-pane="${id}"]`);
+        if (pane !== null)
+            panes.appendChild(pane);
+    }
+}
+/**
+ * The areas the reorder popup lists: the ones actually on screen, in their
+ * current order. An area this game has no features for is left out -- offering
+ * a row for something the user cannot see would be noise. It is not lost
+ * either: resolveMenuOrder puts any unmentioned area back at its default
+ * position the next time the menu is built.
+ */
+function visibleMenuAreas() {
+    var _a, _b;
+    const rail = document.getElementById('sMenuTabs');
+    if (rail === null)
+        return [];
+    const rows = [];
+    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
+        const id = tabEl.dataset.tab;
+        if (id === undefined || tabEl.style.display === 'none')
+            continue;
+        const iconEl = tabEl.querySelector('.menuTabIcon');
+        const nameEl = tabEl.querySelector('.menuTabName');
+        const icon = iconEl === null ? '' : String((_a = iconEl.textContent) !== null && _a !== void 0 ? _a : '');
+        const name = nameEl === null ? id : String((_b = nameEl.textContent) !== null && _b !== void 0 ? _b : id);
+        rows.push({ id, label: (icon + ' ' + name).trim() });
+    }
+    return rows;
+}
+/**
+ * Read a switch straight from the panel rather than from storage, so the marks
+ * follow a click immediately -- before the value is written. `undefined` means
+ * the row is not in this build's markup (see blockState).
+ */
+function switchState(key) {
+    const el = document.getElementById(key);
+    return el === null ? undefined : el.checked;
+}
+/** `data-block="a,b"` as a list; `[]` when the attribute is absent or empty. */
+function attrList(el, name) {
+    const raw = el.getAttribute(name);
+    return raw === null || raw === '' ? [] : raw.split(',');
+}
+/**
+ * Whether the game hid this group.
+ *
+ * maskInactiveMenus() sets display:none on the group element of a feature this
+ * game does not have, and debugOnly() wraps whole groups in a hidden div --
+ * both leave the switches in the DOM with their stored values. Counting those
+ * would put a block in the denominator that the player cannot see, so the walk
+ * goes up to the pane looking for either kind of hiding.
+ */
+function isHidden(el) {
+    for (let node = el; node !== null; node = node.parentElement) {
+        if (node.style.display === 'none')
+            return true;
+        if (node.classList.contains('menuPane'))
+            break;
+    }
+    return false;
+}
+/** Which label explains which colour, for the tooltip on a block's dot. */
+const STATE_TEXT_KEY = {
+    on: 'menuBlockOn',
+    conflict: 'menuBlockConflict',
+    off: 'menuBlockOff',
+};
+/**
+ * Repaint every block heading and every area count from the current checkbox
+ * states (#1834).
+ *
+ * Everything is read off the panel: which blocks exist, which the game hides,
+ * and what each switch is set to. Nothing here has to be kept in step with the
+ * markup by hand.
+ */
+function refreshMenuState() {
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null)
+        return;
+    for (const paneEl of Array.from(panes.querySelectorAll('.menuPane'))) {
+        const states = [];
+        for (const groupEl of Array.from(paneEl.querySelectorAll('.menuGroup[data-block]'))) {
+            const state = isHidden(groupEl) ? 'none' : blockState({
+                masters: attrList(groupEl, 'data-block'),
+                requires: attrList(groupEl, 'data-requires'),
+                options: attrList(groupEl, 'data-options'),
+            }, switchState);
+            states.push(state);
+            if (state === 'none') {
+                groupEl.removeAttribute('data-state');
+                continue;
+            }
+            groupEl.setAttribute('data-state', state);
+            // What the colour means, in words, for anyone who does not read a
+            // dot the way the panel intends it.
+            const dot = groupEl.querySelector('.menuBlockDot');
+            if (dot !== null)
+                dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
+        }
+        refreshDisabledRows(paneEl);
+        const count = countBlocks(states);
+        const text = formatBadge(count);
+        const state = areaState(count);
+        for (const badge of Array.from(panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`))) {
+            badge.textContent = text;
+            badge.setAttribute('data-state', state);
+        }
+    }
+}
+/**
+ * Grey out the rows a switch elsewhere has taken out of play (see
+ * `disabledBy` in MenuWidgets.hhMenuSwitch). Only the control is disabled and
+ * the row dimmed -- the value stays in storage and in the checkbox, so the row
+ * comes back exactly as the user left it. A row whose controller is not in
+ * this build (a debug-only switch, a dropped setting) stays enabled: a switch
+ * nobody can turn on cannot be blocking anything.
+ */
+function refreshDisabledRows(paneEl) {
+    var _a;
+    for (const rowEl of Array.from(paneEl.querySelectorAll('[data-disabled-by]'))) {
+        const disabled = switchState((_a = rowEl.getAttribute('data-disabled-by')) !== null && _a !== void 0 ? _a : '') === true;
+        rowEl.classList.toggle('menuRowDisabled', disabled);
+        for (const input of Array.from(rowEl.querySelectorAll('input, select'))) {
+            input.disabled = disabled;
+        }
+    }
+}
+let stateHandlersBound = false;
+/**
+ * Keep the marks in step with the panel. Delegated on the panes container, so
+ * it survives a layout switch and covers rows built later.
+ */
+function bindMenuStateUpdates() {
+    if (stateHandlersBound)
+        return;
+    const panes = document.getElementById('sMenuPanes');
+    if (panes === null)
+        return;
+    stateHandlersBound = true;
+    panes.addEventListener('change', (event) => {
+        const target = event.target;
+        if (target === null || target.type !== 'checkbox')
+            return;
+        refreshMenuState();
+    });
+}
+
+;// ./src/Helper/menu/MenuTemplate.ts
+// MenuTemplate.ts
+//
+// DOM construction (layout): assembles the full settings panel (div#sMenu) —
+// a fixed header (name, version, master switch), the tabbed body built by
+// MenuTabs, and a fixed footer with the save/load and tool buttons.
+// `debugEnabled` (read from storage) gates rows that were hidden by survey
+// feedback. Pure string production; the returned markup is injected by
+// StartService.
+//
+// The panel carries the layout as a class (menuStacked, #1834) so the tab rail
+// and the stacked list share one markup and one set of element ids.
+//
+// The master switch lives in the header rather than in the Global tab: it is
+// the one control that has to be reachable from every area. There is still
+// exactly one of it — a second copy would mean a duplicate DOM id and break
+// MenuSettings.
+//
+// Reads its storage/translation helpers from MenuPorts so this file stays a
+// graph leaf (see MenuPorts.ts).
+
+
+
+
+function getMenu() {
+    const { getTextForUI, getStoredValue, storedVarPrefix } = MenuPorts;
+    const debugEnabled = getStoredValue(storedVarPrefix + TK.Debug) === 'true';
+    const header = `<div class="menuHead">`
+        + `<div class="menuBrand">`
+        + `<span class="menuName">HH Automatic ++</span>`
+        + `<span class="menuVer">${GM.info.script.version}</span>`
+        + `</div>`
+        + `<div class="menuMaster">${hhMenuSwitch('master')}</div>`
+        + `<div class="menuWarn">${getTextForUI("noOtherScripts", "elementText")}</div>`
+        + `</div>`;
+    const footer = `<div class="menuFoot">`
+        + hhButton('saveConfig', 'saveConfig')
+        + hhButton('loadConfig', 'loadConfig')
+        + hhButton('saveDefaults', 'saveDefaults')
+        + hhButton('blockOrder', 'blockOrder')
+        + hhButton('menuOrder', 'menuOrder')
+        + `<div class="menuFootRight">`
+        + hhButton('settingsSurvey', 'settingsSurvey')
+        + hhButton('gitHub', 'git')
+        + hhButton('ReportBugs', 'ReportBugs')
+        + hhButton('DebugMenu', 'DebugMenu')
+        + `</div>`
+        + `</div>`;
+    // The layout is a class on the panel, not a different markup: see
+    // applyMenuLayout in MenuTabs.
+    const layoutClass = isMenuStacked() ? ' menuStacked' : '';
+    return `<div id="sMenu" class="HHAutoScriptMenu${layoutClass}" style="display: none;">`
+        + header
+        + buildTabbedBody(debugEnabled)
+        + footer
+        + `</div>`;
+}
+
+;// ./src/Helper/HHMenuHelper.ts
+// HHMenuHelper.ts
+//
+// The HHAuto settings menu. Historically one ~1000-line class; split by
+// responsibility into src/Helper/menu/ (WART-002, behavior-neutral):
+//
+//   - menu/MenuWidgets  — options rendering: labelled row builders (button,
+//                         switch, select, input, image variants)
+//   - menu/MenuTemplate — DOM construction (layout): the full #sMenu HTML
+//   - menu/MenuSettings — settings binding: reading/writing stored settings
+//                         from the menu inputs and wiring input events
+//   - menu/MenuPorts    — dependency-injection ports that let the leaf menu
+//                         files reach cycle-bound helpers without importing them
+//
+// This module keeps the pieces that are tightly bound to many feature modules
+// (the toggle button + dynamic <select> population, section masking and the
+// button colour state) and re-exports the extracted symbols so existing
+// importers keep working.
+//
+// Used by: StartService (on init), AutoLoop (button state refresh), and the
+// feature modules that inject menu rows (Champion, Labyrinth, Pachinko,
+// TeamModule).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class HHMenu {
+    createMenuButton() {
+        if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
+            return;
+        if (getPage() == ConfigHelper.getHHScriptVars("pagesIDHome")) {
+            GM_addStyle(''
+                + '#sMenuButton {'
+                + '   position: absolute;'
+                + '   top: 65px;'
+                + '   right: 15px;'
+                + '   z-index:5000;'
+                + '}'
+                + '@media only screen and (max-width: 1025px) {'
+                + '#sMenuButton {'
+                + '   width: 40px;'
+                + '   height: 40px;'
+                + '   top: 55px;'
+                + '   right: 40px;'
+                + '}}');
+        }
+        else {
+            GM_addStyle(''
+                + '#sMenuButton {'
+                + '   position: absolute;'
+                + '   top: 45px;'
+                + '   right: 15px;'
+                + '   z-index:5000;'
+                + '}'
+                + '@media only screen and (max-width: 1025px) {'
+                + '#sMenuButton {'
+                + '   width: 40px;'
+                + '   height: 40px;'
+                + '   top: 60px;'
+                + '   right: 10px;'
+                + '}}');
+        }
+        $("#contains_all nav").prepend('<div class="square_blue_btn" id="' + HHMenu.BUTTON_MENU_ID + '" ><img src="https://i.postimg.cc/bv7n83z3/script-Icon2.png"></div>');
+        $("#sMenuButton").on("click", () => {
+            const sMenu = document.getElementById("sMenu");
+            if (sMenu != null) {
+                if (sMenu.style.display === "none") {
+                    setMenuValues();
+                    // setMenuValues() rewrites every input from storage, so a
+                    // settings import or a reset since the last open would
+                    // otherwise leave the marks showing the old configuration.
+                    refreshMenuState();
+                    sMenu.style.display = "flex";
+                    $('#contains_all')[0].style.zIndex = '9';
+                }
+                else {
+                    getMenuValues();
+                    sMenu.style.display = "none";
+                    $('#contains_all')[0].style.zIndex = "";
+                }
+            }
+        });
+    }
+    _createHtmlOption(value, text) {
+        var option = document.createElement("option");
+        option.value = value;
+        option.text = text;
+        return option;
+    }
+    _createHtmlSeparator(text) {
+        var option = document.createElement("option");
+        option.disabled = true;
+        option.text = text;
+        return option;
+    }
+    fillTrollSelectMenu(lastTrollIdAvailable) {
+        var trollOptions = document.getElementById("autoTrollSelector");
+        try {
+            trollOptions.add(this._createHtmlSeparator(getTextForUI("mainAdventure", "elementText")));
+            trollOptions.add(this._createHtmlOption('0', getTextForUI("latestTroll", "elementText")));
+            const trollz = ConfigHelper.getHHScriptVars("trollzList");
+            for (var i = 1; i <= lastTrollIdAvailable; i++) {
+                const option = this._createHtmlOption(i + '', trollz[i]);
+                if (option.text !== 'EMPTY' && trollz[i]) {
+                    // Supports for PH and missing trols or parallel advantures (id world "missing")
+                    trollOptions.add(option);
+                }
+            }
+            const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
+            if (Object.keys(sideTrollz).length > 0) {
+                trollOptions.add(this._createHtmlSeparator(getTextForUI("sideAdventure", "elementText")));
+                for (const i of Object.keys(sideTrollz)) {
+                    const option = this._createHtmlOption(i + '', sideTrollz[i]);
+                    if (option.text !== 'EMPTY' && sideTrollz[i]) {
+                        trollOptions.add(option);
+                    }
+                }
+            }
+        }
+        catch ({ errName, message }) {
+            trollOptions.add(this._createHtmlSeparator('Error!'));
+            logHHAuto(`Error filling trolls: ${errName}, ${message}`);
+        }
+        trollOptions.add(this._createHtmlSeparator(getTextForUI("otherTrollOption", "elementText")));
+        trollOptions.add(this._createHtmlOption('98', getTextForUI("firstTrollWithGirls", "elementText")));
+        trollOptions.add(this._createHtmlOption('99', getTextForUI("lastTrollWithGirls", "elementText")));
+    }
+    fillLoveRaidSelectMenu() {
+        var loveRaidOptions = document.getElementById("loveRaidSelector");
+        try {
+            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
+            loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
+            const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
+            LoveRaidManager.getTrollRaids().forEach((raid) => {
+                if (raid.trollId > lastTrollIdAvailable) {
+                    return; // Skip raids on locked trolls
+                }
+                const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
+                loveRaidOptions.add(option);
+            });
+        }
+        catch ({ errName, message }) {
+            loveRaidOptions.add(this._createHtmlSeparator('Error!'));
+            logHHAuto(`Error filling love raids: ${errName}, ${message}`);
+        }
+    }
+    fillLeagueSelectMenu() {
+        var leaguesOptions = document.getElementById("autoLeaguesSelector");
+        try {
+            const leagues = ConfigHelper.getHHScriptVars("leaguesList");
+            for (var j in leagues) {
+                leaguesOptions.add(this._createHtmlOption((Number(j) + 1) + '', leagues[j]));
+            }
+            ;
+        }
+        catch ({ errName, message }) {
+            leaguesOptions.add(this._createHtmlOption('0', 'Error!'));
+            logHHAuto(`Error filling leagues: ${errName}, ${message}`);
+        }
+    }
+    fillLeaguSortMenu() {
+        var sortsOptions = document.getElementById("autoLeaguesSortMode");
+        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.DISPLAYED, getTextForUI("autoLeaguesdisplayedOrder", "elementText")));
+        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.POWER, getTextForUI("autoLeaguesPower", "elementText")));
+        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.POWERCALC, getTextForUI("autoLeaguesPowerCalc", "elementText")));
+    }
+    fillRaidStarsMenu() {
+        var raidStarsOptions = document.getElementById("raidStarsSelector");
+        raidStarsOptions.add(this._createHtmlOption('off', getTextForUI("raidStarsOff", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact3', getTextForUI("raidStarsExact3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('min3', getTextForUI("raidStarsMin3", "elementText")));
+        raidStarsOptions.add(this._createHtmlOption('exact5', getTextForUI("raidStarsExact5", "elementText")));
+    }
+    fillSeasonFocusMenu() {
+        var focusOptions = document.getElementById("seasonFocusSelector");
+        focusOptions.add(this._createHtmlOption('off', getTextForUI("seasonFocusAll", "elementText")));
+        focusOptions.add(this._createHtmlOption('girl', getTextForUI("seasonFocusGirl", "elementText")));
+        focusOptions.add(this._createHtmlOption('girlAndSkin', getTextForUI("seasonFocusGirlSkin", "elementText")));
+    }
+    fillLabyDifficultyMenu() {
+        var sortsOptions = document.getElementById("autoLabyDifficulty");
+        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.EASY, getTextForUI("autoLabyDifficultyEasy", "elementText")));
+        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.NORMAL, getTextForUI("autoLabyDifficultyNormal", "elementText")));
+        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.HARD, getTextForUI("autoLabyDifficultyHard", "elementText")));
+    }
+}
+HHMenu.BUTTON_MENU_ID = 'sMenuButton';
+function maskInactiveMenus() {
+    const menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
+        "isEnabledSeasonalEvent", "isEnabledBossBangEvent", "isEnabledSultryMysteriesEvent",
+        "isEnabledDailyRewards", "isEnabledFreeBundles", "isEnabledMission", "isEnabledContest",
+        "isEnabledTrollBattle", "isEnabledPowerPlaces", "isEnabledSalary", "isEnabledPachinko", "isEnabledQuest", "isEnabledSideQuest", "isEnabledSeason", "isEnabledLeagues",
+        "isEnabledAllChamps", "isEnabledChamps", "isEnabledClubChamp", "isEnabledPantheon", "isEnabledShop"];
+    for (const menu of menuIDList) {
+        const menuElement = document.getElementById(menu);
+        if (menuElement !== null && ConfigHelper.getHHScriptVars(menu, false) !== null && !ConfigHelper.getHHScriptVars(menu, false)) {
+            menuElement.style.display = "none";
+        }
+    }
+}
+function switchHHMenuButton(isActive) {
+    var element = document.getElementById("sMenuButton");
+    if (element !== null) {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.master) === "false") {
+            element.style["background-color"] = "red";
+            element.style["background-image"] = "none";
+        }
+        else if (isActive) {
+            element.style["background-color"] = "green";
+            element.style["background-image"] = "none";
+        }
+        else {
+            element.style.removeProperty('background-color');
+            element.style.removeProperty('background-image');
+        }
+    }
+}
+
+;// ./src/Module/Club.ts
+// Club.ts -- Detects club membership and enables or disables club-related features.
+//
+// Checks whether the player is currently in a club and toggles visibility of
+// club-specific UI elements (e.g. Club Champion buttons). This ensures that
+// club features are only shown when the player has an active membership.
+//
+// Used by: Service/AutoLoopPageHandlers.ts, Service/StartService.ts
+//
+
+
+
+
+class Club {
+    static run() {
+        const onChampTab = $("div.club-champion-members-challenges:visible").length === 1;
+        if (onChampTab) {
+            $('button.orange_button_L.btn_skip_team_cooldown').css('display', 'none');
+            if (!$('button.orange_button_L.btn_skip_champion_cooldown').length) {
+                $('.challenge_container').css('display', 'block');
+            }
+        }
+    }
+    static checkClubStatus() {
+        let chatVars = null;
+        try {
+            chatVars = getHHVars("Chat_vars.CLUB_INFO.id_club", false);
+        }
+        catch (e) {
+            logHHAuto("Catched error : Couldn't parse CLUB_INFO : " + e);
+        }
+        if (chatVars === null || chatVars === false) {
+            HHEnvVariables[ConfigHelper.getHHScriptVars("HHGameName")].isEnabledClubChamp = false;
+        }
+    }
+}
+
+;// ./src/Module/Contest.ts
+// Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
+//
+// Contests are timed competitive events with milestone rewards. This module
+// checks for claimable contest rewards, tracks contest end timers, and
+// implements the "wait for contest" feature that pauses other automation
+// when a contest requiring specific actions is active.
+//
+// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+//
+
+
+
+
+
+
+
+
+
+
+class Contest {
+    static getPinfo() {
+        const color = getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
+        // Two rows rather than one: the old single line carried two times, which
+        // leaves nothing to align right, and "Next" on its own did not say next
+        // what.
+        return pInfoRow('Contest end', getTimeLeft('contestRemainingTime'), { style: `color:${color}` })
+            + pInfoRow('Next contest', getTimeLeft('nextContestTime'), { style: `color:${color}` });
+    }
+    static getClaimsButton() {
+        return $(".contest .ended button[rel='claim']");
+    }
+    static run() {
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
+            logHHAuto("Navigating to contests page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
+            return true; // busy: the page is changing, the scheduler comes back next tick
+        }
+        else {
+            logHHAuto("On contests page.");
+            logHHAuto("Collecting finished contests's reward.");
+            const contest_list = Contest.getClaimsButton();
+            logHHAuto(`Found ${contest_list.length} contest to be collected`);
+            if (contest_list.length > 0) {
+                const firstContestEnded = contest_list.first();
+                const contestContainer = firstContestEnded.parents('.contest');
+                logHHAuto(`Collected contest id : ${contestContainer === null || contestContainer === void 0 ? void 0 : contestContainer.attr('id_contest')}.`);
+                firstContestEnded.trigger('click');
+                // Remove the claimed contest from the DOM so setTimers() won't
+                // see stale claim buttons and create an infinite collect loop.
+                contestContainer.remove();
+                if (contest_list.length > 1) {
+                    // A reload after every claim would produce N-1 reloads in
+                    // quick succession on a 5-tier finish, and each one puts
+                    // pressure on the Forbidden race window the POST mutex
+                    // exists for. Stay on the page, set
+                    // busy=true so the scheduler comes back next tick, and
+                    // collect the next reward then. The DOM-removal above
+                    // ensures getClaimsButton() reports the remaining
+                    // reward count correctly on the follow-up tick.
+                    return true;
+                }
+            }
+            return Contest.setTimers();
+        }
+    }
+    static setTimers() {
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
+            logHHAuto("Navigating to contests page.");
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
+            return true; // busy: the page is changing, the scheduler comes back next tick
+        }
+        else {
+            try {
+                const nextContestSelector = '#contests .next_contest .contest_timer span';
+                const remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
+                let nextContestTime = unsafeWindow.contests_timer.next_contest;
+                const duration = unsafeWindow.contests_timer.duration;
+                let remaining_time = unsafeWindow.contests_timer.remaining_time;
+                const safeTime = TimeHelper.getContestSafeTime();
+                if ($(nextContestSelector).length > 0) {
+                    nextContestTime = Number(convertTimeToInt($(nextContestSelector).first().text()));
+                    if (nextContestTime < 0)
+                        nextContestTime = unsafeWindow.contests_timer.next_contest;
+                }
+                if ($(remainingTimeSelector).length > 0) {
+                    remaining_time = Number(convertTimeToInt($(remainingTimeSelector).first().text()));
+                    if (remaining_time < 0)
+                        remaining_time = unsafeWindow.contests_timer.remaining_time;
+                }
+                if (remaining_time < duration) {
+                    setTimer('contestRemainingTime', remaining_time);
+                }
+                else
+                    setTimer('contestRemainingTime', -1);
+                setTimer('nextContestTime', nextContestTime + safeTime);
+                if (Contest.getClaimsButton().length > 0) {
+                    setTimer('nextContestCollectTime', 0);
+                }
+                else {
+                    setTimer('nextContestCollectTime', nextContestTime + safeTime);
+                }
+            }
+            catch (err) {
+                logHHAuto('ERROR getting next contest timers, ignore...');
+                setTimer('contestRemainingTime', 3600);
+                setTimer('nextContestTime', 4000);
+                setTimer('nextContestCollectTime', 4000);
+            }
+            // Not busy
+            return false;
+        }
+    }
+    static waitContestActive() {
+        return !checkTimerMustExist('contestRemainingTime') && checkTimerMustExist('nextContestTime');
+    }
+    static styles() {
+        if (getStoredValue(HHStoredVarPrefixKey + SK.compactEndedContests) === "true") {
+            const contestsContainerPath = '#contests > div > div.left_part > .scroll_area > .contest > .contest_header.ended';
+            GM_addStyle(contestsContainerPath + ' {'
+                + 'height: 50px;'
+                + 'font-size: 0.7rem;'
+                + '}');
+            GM_addStyle(contestsContainerPath + ' > .contest_title {'
+                + 'font-size: 14px;'
+                + 'left: 140px;'
+                + 'bottom: 24px;'
+                + '}');
+            GM_addStyle(contestsContainerPath + ' > .personal_rewards {'
+                + 'height: 40px;'
+                + 'margin-top: -42px;'
+                + 'padding-top: 1px;'
+                + 'width: 380px;'
+                + '}');
+            GM_addStyle(contestsContainerPath + ' > .personal_rewards > button {'
+                + 'height: 23px;'
+                + 'margin-right: 241px;'
+                + 'margin-top: -6px;'
+                + 'width: 120px;'
+                + '}');
+            GM_addStyle(contestsContainerPath + ' > .contest_expiration_timer {'
+                + 'bottom: 95px;'
+                + '}');
+        }
+    }
+}
+
+;// ./src/Module/DailyGoals.ts
+// DailyGoals.ts -- Automates daily goals: claims rewards and tracks refresh timers.
+//
+// The game offers daily goals with rewards upon completion. This module
+// monitors goal completion status, claims available rewards, and manages
+// the refresh timer so goals are checked at appropriate intervals.
+//
+// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+//
+
+
+
+
+
+
+
+
+
+
+class DailyGoals {
+    static isAutoDailyGoalsActivated() {
+        return getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoals) === "true";
+    }
+    static getNewGoalsTimer() {
+        const timerRequest = `#daily_goals .daily-goals-timer span[rel=expires]`;
+        if ($(timerRequest).length > 0) {
+            const goalsTimer = Number(convertTimeToInt($(timerRequest).text()));
+            return goalsTimer;
+        }
+        logHHAuto('ERROR: can\'t get Daily goals timer, default to maxCollectionDelay');
+        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
+    }
+    static styles() {
+        if ($("#daily_goals #ad_activities").length) {
+            $("#daily_goals .daily-goals-objectives-container").removeClass('height-for-ad').removeClass('height-with-ad');
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + SK.compactDailyGoals) === "true") {
+            const dailGoalsContainerPath = '#daily_goals .daily-goals-container .daily-goals-left-part .daily-goals-objectives-container';
+            GM_addStyle(dailGoalsContainerPath + ' {'
+                + 'flex-wrap:wrap;'
+                + 'padding: 5px;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward .daily_goals_potion_icn {'
+                + 'background-size: 20px;'
+                + 'height: 30px;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward > p {'
+                + 'margin-top: 0;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective {'
+                + 'width:49%;'
+                + 'margin-bottom:5px;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-status .objective-progress-bar {'
+                + 'height: 20px;'
+                + 'width: 11.1rem;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-status .objective-progress-bar > p {'
+                + 'font-size: 0.7rem;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward {'
+                + 'height: 40px;'
+                + 'width: 40px;'
+                + '}');
+            GM_addStyle(dailGoalsContainerPath + ' p {'
+                + 'overflow: hidden;'
+                + 'text-overflow: ellipsis;'
+                + 'white-space: nowrap;'
+                + 'max-width: 174px;'
+                + 'font-size: 0.7rem;'
+                + '}');
+        }
+        setTimeout(DailyGoalsIcon.styles, 500);
+    }
+    static goAndCollect() {
+        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList);
+        if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true") {
+            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals")) {
+                try {
+                    logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    const nextDailyGoalsTimer = DailyGoals.getNewGoalsTimer();
+                    const buttonsToCollect = [];
+                    const listDailyGoalsTiersToClaim = $("#daily_goals .progress-section .progress-bar-rewards-container .progress-bar-reward");
+                    const potionsNum = Number($('.progress-section div.potions-total > div > p').text());
+                    for (let currentTier = 0; currentTier < listDailyGoalsTiersToClaim.length; currentTier++) {
+                        const currentButton = $("button[rel='claim']", listDailyGoalsTiersToClaim[currentTier]);
+                        if (currentButton.length > 0) {
+                            const currentTierNb = currentButton[0].getAttribute("tier");
+                            const currentChest = $(".progress-bar-rewards-container", listDailyGoalsTiersToClaim[currentTier]);
+                            const currentRewardsList = currentChest.length > 0 ? currentChest.data("rewards") : [];
+                            if (nextDailyGoalsTimer <= ConfigHelper.getHHScriptVars("dailyRewardMaxRemainingTime") && nextDailyGoalsTimer > 0) {
+                                logHHAuto("Force adding for collection chest n° " + currentTierNb);
+                                buttonsToCollect.push(currentButton[0]);
+                            }
+                            else {
+                                let validToCollect = true;
+                                for (const reward of currentRewardsList) {
+                                    const rewardType = RewardHelper.getRewardTypeByData(reward);
+                                    if (!rewardsToCollect.includes(rewardType)) {
+                                        logHHAuto(`Not adding for collection chest n° ${currentTierNb} because ${rewardType} is not in immediate collection list.`);
+                                        validToCollect = false;
+                                        break;
+                                    }
+                                }
+                                if (validToCollect) {
+                                    buttonsToCollect.push(currentButton[0]);
+                                    logHHAuto("Adding for collection chest n° " + currentTierNb);
+                                }
+                            }
+                        }
+                    }
+                    if (buttonsToCollect.length > 0 || potionsNum < 100) {
+                        function collectDailyGoalsRewards() {
+                            if (buttonsToCollect.length > 0) {
+                                logHHAuto("Collecting chest n° " + buttonsToCollect[0].getAttribute('tier'));
+                                buttonsToCollect[0].click();
+                                buttonsToCollect.shift();
+                                setTimeout(collectDailyGoalsRewards, randomInterval(300, 500));
+                            }
+                            else {
+                                logHHAuto("Daily Goals collection finished.");
+                                setTimer('nextDailyGoalsCollectTime', randomInterval(30 * 60, 35 * 60));
+                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            }
+                        }
+                        collectDailyGoalsRewards();
+                        return true;
+                    }
+                    else {
+                        logHHAuto("No Daily Goals reward to collect.");
+                        setTimer('nextDailyGoalsCollectTime', nextDailyGoalsTimer + randomInterval(3600, 4000));
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                        return false;
+                    }
+                }
+                catch (err) {
+                    // Pre-fix this destructured `{ errName, message }` from the
+                    // thrown value, which crashed on primitive throws (the
+                    // destructure itself raised TypeError) and silently logged
+                    // `undefined` on non-Error objects. Standard catch handles
+                    // both safely; the message extraction stays defensive so a
+                    // primitive throw still produces a readable log line.
+                    const errMessage = err instanceof Error ? err.message : String(err);
+                    logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
+                    setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
+                    return false;
+                }
+            }
+            else {
+                logHHAuto("Switching to Daily Goals screen.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDDailyGoals"));
+                return true;
+            }
+        }
+        // Default branch: timer not yet elapsed or autoDailyGoalsCollect
+        // disabled. Pre-fix the function fell through with an implicit
+        // `undefined` return that the Pipeline adapter coerced to falsy
+        // (busy=false). Spell that out explicitly to match the declared
+        // boolean return type and to survive a future strict-TS push.
+        return false;
+    }
+    static parse() {
+        // parse() is registered as a page handler on the missions and
+        // contests pages too (AutoLoopPageHandlers), not just on the
+        // daily-goals page. On those pages unsafeWindow.daily_goals_list
+        // is not populated. Without a guard the method falls through, logs
+        // "Can't parse Daily Goals" and overwrites the dailyGoalsList cache
+        // with an empty array -- which wipes the cache between two real
+        // daily-goals visits, so isPantheonDailyGoal() reports false and the
+        // pantheon booster-override for an active daily goal never fires.
+        // The early return leaves the cache intact
+        // and hands back whatever was last parsed.
+        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
+            return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
+        }
+        const supportedGoals = [];
+        for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++) {
+            const goal = unsafeWindow.daily_goals_list[currentTier];
+            if (goal && goal.progress_data.current < goal.progress_data.max)
+                switch (goal.anchor) {
+                    case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
+                    case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
+                        supportedGoals.push(goal);
+                        break;
+                }
+        }
+        setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(supportedGoals));
+        logHHAuto("Daily Goals", supportedGoals);
+        return supportedGoals;
+    }
+    static _isDailyGoalType(anchor, update) {
+        const dailyGoals = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
+        let find = false;
+        if (dailyGoals && dailyGoals.length > 0) {
+            for (let currentTier = 0; currentTier < dailyGoals.length; currentTier++) {
+                const goal = dailyGoals[currentTier];
+                if (goal && goal.progress_data.current < goal.progress_data.max)
+                    switch (goal.anchor) {
+                        case anchor:
+                            if (update)
+                                goal.progress_data.current += 1;
+                            find = true;
+                            break;
+                    }
+            }
+            if (find)
+                setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(dailyGoals));
+        }
+        return find;
+    }
+    static isPantheonDailyGoal() {
+        return DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), false);
+    }
+    static incrementPantheonDailyGoal() {
+        return DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), true);
+    }
+}
+class DailyGoalsIcon {
+    static getIcon() {
+        //static getIcon(current: number, max: number){
+        // TODO translation
+        return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal"></i>`);
+    }
+    static displayPantheon() {
+        const ocdhelp = $('#worship_data');
+        if (ocdhelp.length > 0) {
+            if ($('.daily_goals_potion_icn', ocdhelp).length <= 0) {
+                logHHAuto('displayPantheon');
+                GM_addStyle('#worship_data .daily_goals_potion_icn.hhauto {'
+                    + 'background-size: 15px;'
+                    + 'width: 15px;'
+                    + 'height: 15px;'
+                    + 'left: 4px;'
+                    + 'top: -4px;'
+                    + 'position: absolute;'
+                    + '}');
+                ocdhelp.append(DailyGoalsIcon.getIcon());
+            }
+        }
+    }
+    static styles() {
+        if (DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), false)) {
+            DailyGoalsIcon.displayPantheon();
+        }
+    }
+}
+
+;// ./src/model/BDSMPlayer.ts
+// Model for a player in the BDSM (battle simulation) system.
+// Holds combat stats (HP, attack, defense, crit, shields, stun, reflect, etc.)
+// used by the battle simulator to predict fight outcomes.
+//@ts-check
+class BDSMPlayer {
+    constructor(hp, atk, adv_def, critchance, bonuses, tier4, tier5, name = '') {
+        this.name = '';
+        this.hp = hp;
+        this.atk = atk;
+        this.adv_def = adv_def;
+        this.critchance = critchance;
+        this.bonuses = bonuses;
+        this.tier4 = tier4;
+        this.tier5 = tier5;
+        this.name = name;
+    }
+}
+
+;// ./src/Helper/BDSMHelper.ts
+
+
+class BDSMHelper {
+    /**
+     * Extract synergy multipliers from a team object. Each element type
+     * provides a different combat bonus (crit damage, crit chance, defense
+     * reduction, or heal-on-hit).
+     */
+    static fightBonues(team) {
+        return {
+            critDamage: team.synergies.find(({ element: { type } }) => type === 'fire').bonus_multiplier,
+            critChance: team.synergies.find(({ element: { type } }) => type === 'stone').bonus_multiplier,
+            defReduce: team.synergies.find(({ element: { type } }) => type === 'sun').bonus_multiplier,
+            healOnHit: team.synergies.find(({ element: { type } }) => type === 'water').bonus_multiplier
+        };
+    }
+    /**
+     * Build BDSMPlayer models for the player and opponent from raw game data.
+     * Applies league-specific domination bonuses when `inLeague` is true,
+     * since league fights apply elemental ego/attack bonuses while other
+     * modes do not.
+     *
+     * @returns Object with `player`, `opponent` BDSMPlayer instances
+     *          and the computed `dominanceBonuses`.
+     */
+    static getBdsmPlayersData(inHeroData, opponentData, inLeague = false) {
+        // player stats
+        const playerAtk = inHeroData.damage;
+        const playerEgo = inHeroData.remaining_ego;
+        const playerDef = inHeroData.defense;
+        const playerCrit = inHeroData.chance;
+        const playerElements = [];
+        inHeroData.team.theme_elements.forEach((el) => playerElements.push(el.type));
+        const playerBonuses = BDSMHelper.fightBonues(inHeroData.team);
+        const opponentAtk = opponentData.damage;
+        const opponentEgo = opponentData.remaining_ego;
+        const opponentDef = opponentData.defense;
+        const opponentCrit = opponentData.chance;
+        const opponentElements = [];
+        opponentData.team.theme_elements.forEach((el) => opponentElements.push(el.type));
+        const opponentBonuses = BDSMHelper.fightBonues(opponentData.team);
+        const dominanceBonuses = calculateDominationBonuses(playerElements, opponentElements);
+        const player = new BDSMPlayer(inLeague ? playerEgo * (1 + dominanceBonuses.player.ego) : playerEgo, inLeague ? playerAtk * (1 + dominanceBonuses.player.attack) : playerAtk, opponentDef, calculateCritChanceShare(playerCrit, opponentCrit) + dominanceBonuses.player.chance + playerBonuses.critChance, playerBonuses, estimateTier4SkillValue(inHeroData.team.girls), estimateTier5SkillValue(inHeroData.team.girls), inHeroData.nickname);
+        const opponent = new BDSMPlayer(opponentEgo, opponentAtk, inLeague ? playerDef * (1 - opponentBonuses.defReduce) : playerDef, calculateCritChanceShare(opponentCrit, playerCrit) + dominanceBonuses.opponent.chance + opponentBonuses.critChance, opponentBonuses, estimateTier4SkillValue(opponentData.team.girls), estimateTier5SkillValue(opponentData.team.girls), opponentData.nickname);
+        return { player: player, opponent: opponent, dominanceBonuses: dominanceBonuses };
+    }
+}
+/**
+ * Elemental advantage lookup tables.
+ * - `chance`: elements that grant a crit-chance bonus when facing the listed counter.
+ * - `egoDamage`: elements that grant ego (HP) and attack bonuses when facing the listed counter.
+ */
+BDSMHelper.ELEMENTS = {
+    chance: {
+        darkness: 'light',
+        light: 'psychic',
+        psychic: 'darkness'
+    },
+    egoDamage: {
+        fire: 'nature',
+        nature: 'stone',
+        stone: 'sun',
+        sun: 'water',
+        water: 'fire'
+    }
+};
+let _player;
+let _opponent;
+let _runs;
+let _cache;
+/**
+ * Run a full probabilistic battle simulation between two players.
+ *
+ * Recursively explores every possible turn outcome (base hit vs. critical hit)
+ * for both sides, weighting each branch by its probability. Returns the
+ * aggregate win/loss probability and a distribution of expected league points.
+ *
+ * The simulation caps at 50 turns to prevent stack overflow on stalemate
+ * scenarios (e.g., high healing, low damage).
+ *
+ * @param player   - The attacker (hero) model.
+ * @param opponent - The defender model.
+ * @param debugEnabled - When true, logs simulation details.
+ * @returns BDSMSimu with win/loss probabilities, point distribution, and scoreClass.
+ */
+function calculateBattleProbabilities(player, opponent, debugEnabled = false) {
+    if (debugEnabled) {
+        logHHAuto('Running simulation against' + opponent.name);
+    }
+    _player = player;
+    _opponent = opponent;
+    _runs = 0;
+    const setup = (x) => {
+        x.critMultiplier = 2 + x.bonuses.critDamage;
+        x.hp = Math.ceil(x.hp);
+    };
+    setup(_player);
+    setup(_opponent);
+    _player.playerShield = (_player.tier5.id == 12) ? _player.tier5.value * player.hp : 0;
+    _opponent.opponentShield = 0;
+    _player.stunned = 0;
+    _player.alreadyStunned = 0;
+    _opponent.stunned = (_player.tier5.id == 11) ? 2 : 0;
+    _opponent.alreadyStunned = 0;
+    _player.reflect = (_player.tier5.id == 13) ? 2 : 0;
+    _opponent.reflect = 0;
+    let ret;
+    try {
+        // start simulation from player's turn
+        ret = playerTurn(_player.hp, _opponent.hp, _player.playerShield, _opponent.opponentShield, _player.stunned, _opponent.stunned, _player.reflect, _opponent.reflect, 1);
+    }
+    catch ({ errName, message }) {
+        logHHAuto(`An error occurred during the simulation against ${_opponent.name}`, errName, message);
+        return {};
+    }
+    const sum = ret.win + ret.loss;
+    ret.win /= sum;
+    ret.loss /= sum;
+    ret.scoreClass = ret.win > 0.9 ? 'plus' : ret.win < 0.5 ? 'minus' : 'close';
+    if (debugEnabled) {
+        logHHAuto(`Ran ${_runs} simulations against ${_opponent.name}; aggregated win chance: ${ret.win * 100}%`);
+    }
+    return ret;
+    function calculateDmg(x, turns) {
+        const dmg = x.atk * Math.pow((1 + x.tier4.dmg), turns) - x.adv_def * Math.pow((1 + x.tier4.def), turns);
+        return {
+            baseAtk: {
+                probability: 1 - x.critchance,
+                damageAmount: Math.ceil(dmg)
+            },
+            critAtk: {
+                probability: x.critchance,
+                damageAmount: Math.ceil(dmg * x.critMultiplier)
+            }
+        };
+    }
+    function mergeResult(x, xProbability, y, yProbability) {
+        const points = {};
+        Object.entries(x.points).map(([point, probability]) => [point, probability * xProbability])
+            .concat(Object.entries(y.points).map(([point, probability]) => [point, probability * yProbability]))
+            .forEach(([point, probability]) => {
+            points[point] = (points[point] || 0) + probability;
+        });
+        const win = x.win * xProbability + y.win * yProbability;
+        const loss = x.loss * xProbability + y.loss * yProbability;
+        return { points, win, loss };
+    }
+    function playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns) {
+        //Avoid a stack overflow
+        const maxAllowedTurns = 50;
+        if (turns > maxAllowedTurns)
+            throw new Error();
+        // read cache
+        //Simulate base attack and critical attack
+        const { baseAtk, critAtk } = calculateDmg(_player, turns);
+        const baseAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
+        const critAtkResult = playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
+        const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
+        // write cache
+        //_cache[playerHP][opponentHP] = mergedResult;
+        return mergedResult;
+    }
+    function playerAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
+        if (playerStunned > 0) {
+            playerStunned -= 1;
+            //Opponent attack
+            return opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
+        }
+        //Damage
+        const playerDamage = Math.max(0, (attack.damageAmount - opponentShield));
+        opponentHP -= playerDamage;
+        opponentShield = Math.max(0, opponentShield - attack.damageAmount);
+        //Tier 5 skill : Player Execute
+        if (_player.tier5.id == 14) {
+            const opponentHPRate = opponentHP / _opponent.hp;
+            if (opponentHPRate <= _player.tier5.value)
+                opponentHP = 0;
+        }
+        //Tier 5 skill : Opponent Reflect
+        const opponentReflectDmg = (opponentReflect > 0 && opponentHP > 0) ? Math.ceil(_opponent.tier5.value * attack.damageAmount) : 0;
+        playerHP -= Math.max(0, (opponentReflectDmg - playerShield));
+        playerShield = Math.max(0, playerShield - opponentReflectDmg);
+        opponentReflect -= 1;
+        const playerHeal = Math.ceil(_player.bonuses.healOnHit * playerDamage);
+        playerHP = Math.min(_player.hp, playerHP + playerHeal);
+        //Check win
+        if (opponentHP <= 0) {
+            const point = Math.min(25, 15 + Math.ceil(10 * playerHP / _player.hp));
+            _runs += 1;
+            return { points: { [point]: 1 }, win: 1, loss: 0 };
+        }
+        else {
+            //Opponent attack
+            return opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
+        }
+    }
+    function opponentTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns) {
+        if (turns == 1) {
+            playerStunned = (_opponent.tier5.id == 11) ? 2 : 0;
+            opponentShield = (_opponent.tier5.id == 12) ? (_opponent.tier5.value * _opponent.hp) : 0;
+            opponentReflect = (_opponent.tier5.id == 13) ? 2 : 0;
+        }
+        //Simulate base attack and critical attack
+        const { baseAtk, critAtk } = calculateDmg(_opponent, turns);
+        const baseAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, baseAtk, turns);
+        const critAtkResult = opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, critAtk, turns);
+        const mergedResult = mergeResult(baseAtkResult, baseAtk.probability, critAtkResult, critAtk.probability);
+        return mergedResult;
+    }
+    function opponentAttack(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, attack, turns) {
+        if (opponentStunned > 0) {
+            opponentStunned -= 1;
+            //Next turn
+            turns += 1;
+            return playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
+        }
+        //Damage
+        const opponentDamage = Math.max(0, (attack.damageAmount - playerShield));
+        playerHP -= opponentDamage;
+        playerShield = Math.max(0, playerShield - attack.damageAmount);
+        //Tier 5 skill : Opponent Execute
+        if (_opponent.tier5.id == 14) {
+            const playerHPRate = playerHP / _player.hp;
+            if (playerHPRate <= _opponent.tier5.value)
+                playerHP = 0;
+        }
+        //Tier 5 skill : Player Reflect
+        const playerReflectDmg = (playerReflect > 0 && playerHP > 0) ? Math.ceil(_player.tier5.value * attack.damageAmount) : 0;
+        opponentHP -= Math.max(0, (playerReflectDmg - opponentShield));
+        opponentShield = Math.max(0, opponentShield - playerReflectDmg);
+        playerReflect -= 1;
+        const opponentHeal = Math.ceil(_opponent.bonuses.healOnHit * opponentDamage);
+        opponentHP = Math.min(_opponent.hp, opponentHP + opponentHeal);
+        //Check loss
+        if (playerHP <= 0) {
+            const point = Math.max(3, 3 + Math.ceil(10 * (_opponent.hp - opponentHP) / _opponent.hp));
+            _runs += 1;
+            return { points: { [point]: 1 }, win: 0, loss: 1 };
+        }
+        else {
+            //Next turn
+            turns += 1;
+            return playerTurn(playerHP, opponentHP, playerShield, opponentShield, playerStunned, opponentStunned, playerReflect, opponentReflect, turns);
+        }
+    }
+}
+/**
+ * Estimate tier-4 skill bonuses from skill_tiers_info.
+ * The exact skill data is not always available from the API, so we estimate
+ * based on the number of skill points invested (0.2% per point for damage).
+ */
+function estimateTier4SkillValue(teamGirlsArray) {
+    const skill_tier_4 = { dmg: 0, def: 0 };
+    teamGirlsArray.forEach((girl) => {
+        if (girl.skill_tiers_info[4])
+            skill_tier_4.dmg += girl.skill_tiers_info[4].skill_points_used * 0.002;
+    });
+    return skill_tier_4;
+}
+/**
+ * Estimate the tier-5 (leader) skill from the first girl's element.
+ * Tier-5 skills are element-dependent:
+ *   - sun/darkness  -> Stun (id 11)
+ *   - stone/light   -> Shield (id 12)
+ *   - psychic/nature -> Reflect (id 13)
+ *   - fire/water    -> Execute (id 14)
+ * Values are estimated from skill points invested since exact data may be unavailable.
+ */
+function estimateTier5SkillValue(teamGirlsArray) {
+    const skill_tier_5 = { id: 0, value: 0 };
+    const girl = teamGirlsArray[0];
+    const skill5_girl = girl.skill_tiers_info[5];
+    if (skill5_girl) {
+        const skill5_girl_element = girl.girl.element_data.type;
+        //Stun
+        if (skill5_girl_element == 'sun' || skill5_girl_element == 'darkness') {
+            skill_tier_5.id = 11;
+            skill_tier_5.value = skill5_girl.skill_points_used * 0.07;
+        }
+        //Shield
+        else if (skill5_girl_element == 'stone' || skill5_girl_element == 'light') {
+            skill_tier_5.id = 12;
+            skill_tier_5.value = skill5_girl.skill_points_used * 0.08;
+        }
+        //Reflect
+        if (skill5_girl_element == 'psychic' || skill5_girl_element == 'nature') {
+            skill_tier_5.id = 13;
+            skill_tier_5.value = skill5_girl.skill_points_used * 0.2;
+        }
+        //Execute
+        if (skill5_girl_element == 'fire' || skill5_girl_element == 'water') {
+            skill_tier_5.id = 14;
+            skill_tier_5.value = skill5_girl.skill_points_used * 0.08;
+        }
+    }
+    return skill_tier_5;
+}
+/**
+ * Calculate elemental domination bonuses for both sides.
+ * Each element on team A that dominates a matching element on team B
+ * grants +10% ego, +10% attack, or +20% crit chance depending on the
+ * advantage type (egoDamage vs. chance).
+ */
+function calculateDominationBonuses(playerElements, opponentElements) {
+    const bonuses = {
+        player: {
+            ego: 0,
+            attack: 0,
+            chance: 0
+        },
+        opponent: {
+            ego: 0,
+            attack: 0,
+            chance: 0
+        }
+    };
+    [
+        { a: playerElements, b: opponentElements, k: 'player' },
+        { a: opponentElements, b: playerElements, k: 'opponent' }
+    ].forEach(({ a, b, k }) => {
+        a.forEach((element) => {
+            if (BDSMHelper.ELEMENTS.egoDamage[element] && b.includes(BDSMHelper.ELEMENTS.egoDamage[element])) {
+                bonuses[k].ego += 0.1;
+                bonuses[k].attack += 0.1;
+            }
+            if (BDSMHelper.ELEMENTS.chance[element] && b.includes(BDSMHelper.ELEMENTS.chance[element])) {
+                bonuses[k].chance += 0.2;
+            }
+        });
+    });
+    return bonuses;
+}
+/**
+ * Calculate the base crit chance from the harmony stat ratio.
+ * Crit chance is 30% of the player's share of total harmony.
+ */
+function calculateCritChanceShare(ownHarmony, otherHarmony) {
+    return 0.3 * ownHarmony / (ownHarmony + otherHarmony);
+}
+/**
+ * Sum a specific skill's percentage_value across all girls in a team.
+ * Returns 1 + (total percentage / 100), suitable for use as a multiplier.
+ */
+function getSkillPercentage(team, id) {
+    return 1 + (team.girls.map((e) => { var _a, _b; return (_b = (_a = e.skills[id]) === null || _a === void 0 ? void 0 : _a.skill.percentage_value) !== null && _b !== void 0 ? _b : 0; }).reduce((a, b) => a + b, 0) / 100);
+}
+
+;// ./src/Module/League.pure.ts
+// League.pure.ts -- Pure decision logic for league automation.
+//
+// Extracted from LeagueHelper.isTimeToFight to enable direct unit tests
+// without spying on static methods. No globals, no storage, no jQuery,
+// no DOM. Input = data, output = decision.
+//
+// The impure adapter LeagueHelper.isTimeToFight reads globals and storage,
+// builds a ShouldFightState, and delegates here.
+/**
+ * Decide whether the league module should fight right now.
+ *
+ * Mirrors the original logic of LeagueHelper.isTimeToFight bit by bit:
+ *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
+ *                          run out)
+ *   - energyAboveThreshold: humanLikeRun loosens the upper bound, otherwise
+ *                          energy must exceed max(threshold, runThreshold - 1)
+ *   - paranoiaOverride:    spend any positive amount of paranoia energy as
+ *                          long as energy > 0
+ *   - boosterCheck:        either boosters are not required, or they are
+ *                          required AND equipped
+ *
+ * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
+ * spending is active.
+ */
+/**
+ * Size of the league promotion zone.
+ *
+ * Kinkoid rule (March 2026): a player is promoted if they finish in the
+ * **higher** of the top 15% of the bracket OR the top 20. Hard-coding 20 was
+ * only correct for ~100-player brackets (15% of 100 = 15 < 20); larger
+ * brackets promote more than 20. A non-finite or non-positive bracket size
+ * falls back to the floor of 20.
+ *
+ * @param bracketSize number of players in the league bracket
+ * @returns how many top ranks get promoted (always >= 20)
+ */
+function leaguePromotionCutoff(bracketSize) {
+    if (!Number.isFinite(bracketSize) || bracketSize <= 0)
+        return 20;
+    return Math.max(Math.round(0.15 * bracketSize), 20);
+}
+function decideShouldFight(state) {
+    const { energy, threshold, runThreshold, humanLikeRun, timerLeft, paranoiaSpending, boosterRequired, boosterEquipped, } = state;
+    const timerExpired = timerLeft <= 0;
+    const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
+        energy > Math.max(threshold, runThreshold - 1);
+    const paranoiaOverride = energy > 0 && paranoiaSpending > 0;
+    const boosterCheck = (boosterRequired && boosterEquipped) || !boosterRequired;
+    return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
+}
+
+;// ./src/model/SeasonOpponent.ts
+// Model for a season (Seasons of Love) opponent.
+// Holds the opponent's ID, nickname, mojo/exp/affection rewards,
+// and the pre-computed battle simulation result.
+class SeasonOpponent {
+    constructor(opponent_id, nickname, mojo, exp, aff, simu) {
+        this.simu = {};
+        this.opponent_id = opponent_id;
+        this.nickname = nickname;
+        this.mojo = mojo;
+        this.exp = exp;
+        this.aff = aff;
+        this.simu = simu;
+    }
+}
+
 ;// ./src/Module/Events/Season.pure.ts
 // Season.pure.ts -- Pure decision logic extracted from Season.isTimeToFight
 // for the "fight blocked only by a missing booster" fast-retry case.
@@ -14273,1346 +19742,6 @@ class Season {
 Season.LAST_SEASON_LEVEL = 63;
 Season.MIN_MOJO_FIGHT = 8;
 
-;// ./src/Module/League.pure.ts
-// League.pure.ts -- Pure decision logic for league automation.
-//
-// Extracted from LeagueHelper.isTimeToFight to enable direct unit tests
-// without spying on static methods. No globals, no storage, no jQuery,
-// no DOM. Input = data, output = decision.
-//
-// The impure adapter LeagueHelper.isTimeToFight reads globals and storage,
-// builds a ShouldFightState, and delegates here.
-/**
- * Decide whether the league module should fight right now.
- *
- * Mirrors the original logic of LeagueHelper.isTimeToFight bit by bit:
- *   - timerExpired:        timerLeft <= 0 (checkTimer returns true once it has
- *                          run out)
- *   - energyAboveThreshold: humanLikeRun loosens the upper bound, otherwise
- *                          energy must exceed max(threshold, runThreshold - 1)
- *   - paranoiaOverride:    spend any positive amount of paranoia energy as
- *                          long as energy > 0
- *   - boosterCheck:        either boosters are not required, or they are
- *                          required AND equipped
- *
- * Returns true if (timer expired AND energy ok AND booster ok) OR paranoia
- * spending is active.
- */
-/**
- * Size of the league promotion zone.
- *
- * Kinkoid rule (March 2026): a player is promoted if they finish in the
- * **higher** of the top 15% of the bracket OR the top 20. Hard-coding 20 was
- * only correct for ~100-player brackets (15% of 100 = 15 < 20); larger
- * brackets promote more than 20. A non-finite or non-positive bracket size
- * falls back to the floor of 20.
- *
- * @param bracketSize number of players in the league bracket
- * @returns how many top ranks get promoted (always >= 20)
- */
-function leaguePromotionCutoff(bracketSize) {
-    if (!Number.isFinite(bracketSize) || bracketSize <= 0)
-        return 20;
-    return Math.max(Math.round(0.15 * bracketSize), 20);
-}
-function decideShouldFight(state) {
-    const { energy, threshold, runThreshold, humanLikeRun, timerLeft, paranoiaSpending, boosterRequired, boosterEquipped, } = state;
-    const timerExpired = timerLeft <= 0;
-    const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
-        energy > Math.max(threshold, runThreshold - 1);
-    const paranoiaOverride = energy > 0 && paranoiaSpending > 0;
-    const boosterCheck = (boosterRequired && boosterEquipped) || !boosterRequired;
-    return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
-}
-
-;// ./src/Service/FeatureGate.pure.ts
-// FeatureGate.pure.ts -- Pure decision logic for "has this account unlocked
-// feature X yet".
-//
-// Extracted so the decision can be unit-tested without ConfigHelper, the
-// Hero globals, storage or the DOM. Input = data, output = a verdict.
-// The impure adapter FeatureGate.ts holds the table of requirements, reads
-// the account state and delegates here.
-//
-// Why this exists at all: eight modules answered the same question with
-// eight hand-written conditions, and they drifted. DoublePenetration named
-// "And 10 girls" in a comment and checked only the level; LoveRaidManager
-// carried its level check commented out; the ten-girl condition was written
-// as a literal in two places until v8.12.14 gave it a name. Two of the fixes
-// in the 8.12.9-8.12.18 run were faults in such a condition, not in the
-// feature behind it (ADR-012).
-//
-// Used by: FeatureGate.ts
-/**
- * A value the account state does not carry is not a low value -- it is no
- * answer, and a gate must not open on one.
- *
- * The game hands these numbers out unevenly: `HeroHelper.getLevel()` reads 0
- * before any page has been parsed, `Harem.getGirlCount()` returns 0 both for
- * "no girls" and for "no source on this page", and `id_world` is undefined
- * off the quest pages. Every one of those becomes 0 here, and 0 fails every
- * positive requirement. Measured cost of the opposite: with the girl count
- * read off the harem page it came out 24 on an account owning 9 (v8.12.11),
- * which would have sent the run onto a page it cannot use.
- */
-function knownValue(value) {
-    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
-}
-/**
- * Decide one gate.
- *
- * The conditions are checked in a fixed order -- game, level, girls, world --
- * so the verdict names the same obstacle every time for the same state, and
- * the log line the adapter builds from it does not flicker between two
- * equally true reasons.
- *
- * All comparisons are non-strict (`>=`), matching every condition this
- * replaced.
- */
-function decideUnlocked(requirement, state) {
-    if (!requirement.gameHasFeature) {
-        return { unlocked: false, missing: 'game' };
-    }
-    const checks = [
-        ['level', requirement.minLevel, state.heroLevel],
-        ['girls', requirement.minGirls, state.girlCount],
-        ['world', requirement.minWorld, state.world],
-    ];
-    for (const [obstacle, needs, raw] of checks) {
-        if (needs === undefined)
-            continue;
-        const has = knownValue(raw);
-        if (has < needs) {
-            return { unlocked: false, missing: obstacle, needs, has };
-        }
-    }
-    return { unlocked: true };
-}
-
-;// ./src/Service/FeatureGate.ts
-// FeatureGate.ts -- One table of "what an account needs before a feature is
-// usable", and one place that reads the numbers it is decided on.
-//
-// Before this, eight modules each wrote their own condition. They drifted:
-// DoublePenetration named "And 10 girls" in a comment and checked only the
-// level, LoveRaidManager kept its level check commented out, and the
-// ten-girl threshold was a literal in two files. Worse, each condition read
-// its own numbers, and those numbers are the part that goes wrong -- the
-// girl count means something different on every page (v8.12.11) and its
-// cache went stale for a day (v8.12.13/14). Two faults out of nine in that
-// run were in a gate, not in the feature behind it.
-//
-// The decision itself lives in FeatureGate.pure.ts; this file resolves the
-// table against ConfigHelper and reads the account state.
-//
-// Depends on: FeatureGate.pure.ts (the decision), Harem.ts (girl count)
-// Used by: League.ts, Pantheon.ts, PathOfGlory.ts, PathOfValue.ts,
-//   SultryMysteries.ts, DoublePenetration.ts, PlaceOfPower.ts,
-//   PathOfAttraction.ts
-//
-// See docs/decisions/ADR-012-one-table-of-unlock-conditions.md
-
-
-
-
-
-
-/**
- * Every unlock condition the script knows, in one place.
- *
- * Adding a module here is the whole of adding its gate. What is NOT here is
- * as important: a condition nobody has measured does not get an entry, it
- * gets a line in docs-internal. See `doublePenetration` below.
- */
-const GATES = {
-    league: { label: 'Leagues', enabledVar: 'isEnabledLeagues', levelVar: 'LEVEL_MIN_LEAGUE' },
-    pantheon: { label: 'Pantheon', enabledVar: 'isEnabledPantheon', levelVar: 'LEVEL_MIN_PANTHEON' },
-    // No isEnabledX flag has ever existed for Sultry Mysteries.
-    sultryMysteries: { label: 'Sultry Mysteries', levelVar: 'LEVEL_MIN_EVENT_SM' },
-    pathOfGlory: { label: 'Path of Glory', enabledVar: 'isEnabledPoG', levelVar: 'LEVEL_MIN_POG' },
-    pathOfValor: { label: 'Path of Valor', enabledVar: 'isEnabledPoV', levelVar: 'LEVEL_MIN_POV' },
-    // The old comment on DoublePenetration.isEnabled read "And 10 gilrs",
-    // and the code checked only the level. Whether the game really wants ten
-    // girls here is NOT measured -- docs-internal/adventure-quest-flow.md
-    // says so plainly -- so the behaviour stays level-only and the open
-    // question lives in that document rather than in a comment beside a
-    // condition that does not implement it.
-    doublePenetration: { label: 'Double Penetration', enabledVar: 'isEnabledDPEvent', levelVar: 'LEVEL_MIN_EVENT_DP' },
-    // The game states this one on the locked page itself: ten girls and the
-    // world beyond the second. `id_world > 2` is `>= 3`.
-    placeOfPower: { label: 'Place of Power', enabledVar: 'isEnabledPowerPlaces', girlsVar: 'HaremSizeGate', minWorld: 3 },
-    // "You need to be at least on the Second World of your adventure and
-    // have at least 10 girls in your Harem" -- the event page's own text.
-    pathOfAttraction: { label: 'Path of Attraction', girlsVar: 'HaremSizeGate', minWorld: 2 },
-};
-/**
- * The last verdict reported per feature, so a locked feature says why once
- * instead of on every pipeline tick. Measured before this existed: one such
- * line filled 692 of 2532 log lines in a twelve-minute run, 27 percent of
- * the log (v8.12.12). The memo lives as long as the document; a page load
- * repeats the line only if the answer has changed since.
- */
-const lastReported = new Map();
-class FeatureGate {
-    /** The requirement for one feature, resolved against the current game variant. */
-    static requirementFor(name) {
-        const spec = GATES[name];
-        return {
-            gameHasFeature: spec.enabledVar === undefined
-                ? true
-                : ConfigHelper.getHHScriptVars(spec.enabledVar, false) === true,
-            minLevel: spec.levelVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.levelVar)),
-            minGirls: spec.girlsVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.girlsVar)),
-            minWorld: spec.minWorld,
-        };
-    }
-    /**
-     * Read only the numbers this requirement is decided on. Reading the girl
-     * count is not free -- it goes through storage and, without a cache, the
-     * page globals -- and a level gate has no use for it.
-     */
-    static accountStateFor(requirement) {
-        return {
-            heroLevel: requirement.minLevel === undefined ? 0 : HeroHelper.getLevel(),
-            girlCount: requirement.minGirls === undefined ? 0 : Harem.getGirlCount(),
-            world: requirement.minWorld === undefined ? 0 : Number(getHHVars('Hero.infos.questing.id_world', false)),
-        };
-    }
-    /** The full verdict, without logging. */
-    static verdict(name) {
-        const requirement = FeatureGate.requirementFor(name);
-        return decideUnlocked(requirement, FeatureGate.accountStateFor(requirement));
-    }
-    /**
-     * The one question every caller asks. Reports a change of answer once,
-     * never a repeat.
-     */
-    static isUnlocked(name) {
-        const verdict = FeatureGate.verdict(name);
-        const signature = verdict.unlocked ? 'open' : `${verdict.missing}:${verdict.has}/${verdict.needs}`;
-        if (lastReported.get(name) !== signature) {
-            lastReported.set(name, signature);
-            if (!verdict.unlocked && verdict.missing !== 'game') {
-                logHHAuto(FeatureGate.describe(name, verdict));
-            }
-        }
-        return verdict.unlocked;
-    }
-    /** The log line for a locked feature, in one wording for all of them. */
-    static describe(name, verdict) {
-        const label = GATES[name].label;
-        switch (verdict.missing) {
-            case 'level':
-                return `${label} is locked: needs level ${verdict.needs}, the hero is ${verdict.has}.`;
-            case 'girls':
-                return `${label} is locked: needs ${verdict.needs} girls, the harem holds ${verdict.has}.`;
-            case 'world':
-                return `${label} is locked: needs world ${verdict.needs}, the adventure is in ${verdict.has}.`;
-            case 'game':
-                return `${label} is not part of this game.`;
-            default:
-                return `${label} is unlocked.`;
-        }
-    }
-    /** Test seam: the memo outlives a document, and a test is not a document. */
-    static forgetReportedState() {
-        lastReported.clear();
-    }
-}
-
-;// ./src/model/LeagueOpponent.ts
-// Model for a league opponent displayed in the league battle screen.
-// Holds the opponent's ID, nickname, power level, and the pre-computed
-// battle simulation result used to decide whether to fight.
-//@ts-check
-class LeagueOpponent {
-    // constructor(opponent_id: any,rank: number,nickname: string,level: number,power: number,player_league_points: number,simuPoints: number,nb_boosters: number, kkOpponent:KKLeagueOpponent, simu:BDSMSimu){
-    constructor(opponent_id, nickname, power, simuPoints, simu) {
-        // nb_boosters: number = 0;
-        // kkOpponent:KKLeagueOpponent = {} as any;
-        this.simu = {};
-        this.opponent_id = opponent_id;
-        this.nickname = nickname;
-        this.power = power;
-        this.simuPoints = simuPoints;
-        this.simu = simu;
-    }
-}
-
-;// ./src/Module/League.ts
-var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// League.ts -- Automates league fights: opponent selection, win probability, and
-// power calculation display.
-//
-// Leagues are the primary PvP mode. This module selects optimal opponents by
-// calculating win probability using the BDSM (Battle Data Simulation Model)
-// system from BDSMHelper, manages fight energy, and displays power calculations
-// in the UI. Supports both regular and boosted fights.
-//
-// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
-// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class LeagueHelper {
-    /* get time in sec */
-    static getLeagueEndTime() {
-        let league_end = -1;
-        const league_end_in = $('#leagues .league_end_in .timer span[rel="expires"]').text();
-        if (league_end_in !== undefined && league_end_in !== null && league_end_in.length > 0) {
-            league_end = Number(convertTimeToInt(league_end_in));
-        }
-        return league_end;
-    }
-    static numberOfFightAvailable(opponent) {
-        if (!opponent)
-            return 0;
-        const forceOneFight = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesForceOneFight) === 'true';
-        if (forceOneFight)
-            return 1;
-        // The JSON still carries match_history (a record keyed by id_fighter);
-        // match_history_sorting is the sort value, a number. Only the DOM column
-        // was renamed.
-        const matchs = opponent.match_history[opponent.player.id_fighter];
-        return matchs ? matchs.filter((match) => match == null).length : 0;
-    }
-    static getLeagueCurrentLevel() {
-        if (unsafeWindow.current_tier_number === undefined) {
-            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-        }
-        return unsafeWindow.current_tier_number;
-    }
-    static styles() {
-        GM_addStyle('#leagues .league_content .league_table .data-list .data-row .data-column[column="can_fight"] {'
-            + 'min-width: 8.5rem;}');
-        GM_addStyle('@media only screen and (min-width: 1026px) {'
-            + '.matchRatingNew {'
-            + 'display: flex;'
-            + 'flex-wrap: nowrap;'
-            + 'align-items: center;'
-            + 'justify-content: center;'
-            + 'text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000; '
-            + 'line-height: 17px; '
-            + 'max-width: 65px; '
-            + 'font-size: 12px;}}');
-        GM_addStyle('@media only screen and (max-width: 1025px) {'
-            + '.matchRatingNew {'
-            + 'width: auto;'
-            + 'display: flex;'
-            + 'flex-wrap: nowrap;'
-            + 'align-items: center;'
-            + 'justify-content: center;'
-            + 'text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000; '
-            + 'line-height: 17px; '
-            + 'max-width: 65px; '
-            + 'font-size: 12px;}}');
-        GM_addStyle('.plus {'
-            + 'color: #66CD00;}');
-        GM_addStyle('.minus {'
-            + 'color: #FF2F2F;}');
-        GM_addStyle('.close {'
-            + 'color: #FFA500;}');
-        GM_addStyle('.powerLevelScouter {'
-            + 'width: 25px;}');
-        GM_addStyle('#leagues .league_content .league_table .data-list .data-row .data-column[column="nickname"].clubmate .nickname { color: #00CC00 }');
-    }
-    static addChangeTeamButton() {
-        $('.league_buttons_block').append(getGoToChangeTeamButton());
-        GM_addStyle('#leagues .league_content .league_buttons {'
-            + 'max-width: none;}');
-        GM_addStyle('#leagues .league_content .league_buttons .league_buttons_block {'
-            + 'width: auto;}');
-    }
-    static getSimPowerOpponent(heroFighter, opponents) {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
-        const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
-        const oppoPoints = simu.points;
-        let expectedValue = 0;
-        for (let i = 25; i >= 3; i--) {
-            if (oppoPoints[i]) {
-                expectedValue += i * oppoPoints[i];
-            }
-        }
-        simu.expectedValue = expectedValue;
-        return simu;
-    }
-    static displayOppoSimuOnButton(id_fighter, simu, force = 0) {
-        const opponentGoButton = $('a[href*="id_opponent=' + id_fighter + '"]');
-        if ((opponentGoButton.length <= 0 || $('.powerLevelScouter', opponentGoButton).length > 0) && !force) {
-            return;
-        }
-        const percentage = NumberHelper.nRounding(100 * simu.win, 2, -1);
-        const points = NumberHelper.nRounding(simu.expectedValue, 1, -1);
-        const pointText = `${percentage}% (${points})` +
-            `<span style="margin:0;display:none;" id="HHPowerCalcScore">${percentage}</span>
-        <span style="margin:0;display:none;" id="HHPowerCalcPoints">${points}</span>`;
-        opponentGoButton.html(`<div class="matchRatingNew ${simu.scoreClass}"><img class="powerLevelScouter" src=${ConfigHelper.getHHScriptVars("powerCalcImages")[simu.scoreClass]}>${pointText}</div>`);
-    }
-    static getEnergy() {
-        return Number(getHHVars('Hero.energies.challenge.amount'));
-    }
-    static getEnergyMax() {
-        return Number(getHHVars('Hero.energies.challenge.max_regen_amount'));
-    }
-    static isEnabled() {
-        return FeatureGate.isUnlocked('league');
-    }
-    static isAutoLeagueActivated() {
-        return getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true" && LeagueHelper.isEnabled();
-    }
-    static getPinfo() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
-        const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
-        let label = getTextForUI("autoLeaguesTitle", "elementText") + ' ' + LeagueHelper.getEnergy() + '/' + LeagueHelper.getEnergyMax();
-        if (runThreshold > 0) {
-            label += ' (' + threshold + '<' + LeagueHelper.getEnergy() + '<=' + runThreshold + ')';
-        }
-        if (boostLimited) {
-            label += ' ' + getTextForUI("boostMissing", "elementText");
-        }
-        const waiting = runThreshold > 0 && LeagueHelper.getEnergy() < runThreshold;
-        const value = waiting ? getTextForUI("waitRunThreshold", "elementText") : getTimeLeft('nextLeaguesTime');
-        return pInfoRow(label, value, boostLimited
-            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
-            : {});
-    }
-    static isTimeToFight() {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
-        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun) === "true";
-        const league_end = LeagueHelper.getLeagueEndTime();
-        if (league_end > 0 && league_end <= (60 * 60)) {
-            logHHAuto("Last League hour");
-        }
-        const energy = LeagueHelper.getEnergy();
-        const paranoiaSpending = ParanoiaService.checkParanoiaSpendings('challenge');
-        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true";
-        const haveBoosterEquiped = Booster.haveBoosterEquiped();
-        const timerExpired = checkTimer('nextLeaguesTime');
-        // checkTimer returns true once the timer has run out; convert to the
-        // numeric form the pure function expects (negative or zero = expired).
-        const timerLeft = timerExpired ? 0 : 1;
-        const state = {
-            energy,
-            threshold,
-            runThreshold,
-            humanLikeRun,
-            timerLeft,
-            paranoiaSpending,
-            boosterRequired: needBoosterToFight,
-            boosterEquipped: haveBoosterEquiped,
-        };
-        const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
-            energy > Math.max(threshold, runThreshold - 1);
-        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
-            logHHAuto('Time for league but no booster equipped');
-        }
-        return decideShouldFight(state);
-    }
-    static moduleSimLeague() {
-        try {
-            LeagueHelper.moduleSimLeagueHideBeatenOppo();
-            if ($('.change_team_container').length <= 0) {
-                LeagueHelper.addChangeTeamButton();
-            }
-            if ($("#popup_message_league").length > 0 || getStoredValue(HHStoredVarPrefixKey + SK.leagueListDisplayPowerCalc) !== "true") {
-                return;
-            }
-            const opponentButtons = $('a.go_pre_battle.blue_button_L');
-            const opponentSim = $("div.matchRatingNew img.powerLevelScouter");
-            const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
-            const Hero = getHero();
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            const opponents_list = getHHVars("opponents_list");
-            if (!opponents_list) {
-                logHHAuto('ERROR: Can\'t find opponent list');
-                return;
-            }
-            else {
-                const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
-                const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
-                const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
-                const opponentsToSimulate = opponents_list.filter((opponents) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
-                const SimPower = function () {
-                    return League_awaiter(this, void 0, void 0, function* () {
-                        if (allOpponentsSimDisplayed) {
-                            return;
-                        }
-                        if (debugEnabled)
-                            logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
-                        const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-                        let opponentsPowerListChanged = false;
-                        for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
-                            const opponents = opponentsToSimulate[opponentIndex];
-                            let simu;
-                            let leagueOpponent;
-                            if (debugEnabled)
-                                logHHAuto(`Simulating opponent ${opponentIndex + 1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
-                            if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
-                                try {
-                                    leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponents.player.id_fighter);
-                                    if (leagueOpponent)
-                                        simu = leagueOpponent.simu;
-                                }
-                                catch (error) {
-                                    logHHAuto("Error when getting oppo " + opponents.player.id_fighter + "from storage");
-                                    if (debugEnabled)
-                                        logHHAuto(error);
-                                }
-                            }
-                            if (!simu) {
-                                simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
-                                leagueOpponent = new LeagueOpponent(opponents.player.id_fighter, 
-                                // opponents.place,
-                                opponents.nickname, 
-                                // opponents.level,
-                                opponents.power, 
-                                // opponents.player_league_points,
-                                Number(NumberHelper.nRounding(simu.expectedValue, 1, -1)), 
-                                // 0, // Boster numbers?
-                                // opponents,
-                                simu);
-                                opponentsPowerList.opponentsList.push(leagueOpponent);
-                                opponentsPowerListChanged = true;
-                            }
-                            LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
-                            yield TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
-                        }
-                        if (opponentsPowerListChanged) {
-                            logHHAuto('Save opponent list for later');
-                            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
-                        }
-                    });
-                };
-                SimPower();
-            }
-            const listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
-            if (document.getElementById("HHListUpdate") === null) {
-                $(".leagues_middle_header_script").append(listUpdateStatus);
-            }
-            if (allOpponentsSimDisplayed || opponentSim.length <= 1) {
-                const buttonLaunchList = '<span class="tooltipHHtext">' + getTextForUI("RefreshOppoList", "tooltip") + '</span><label style="width:100%;" class="myButton" id="RefreshOppoList">' + getTextForUI("RefreshOppoList", "elementText") + '</label>';
-                if (document.getElementById("RefreshOppoList") === null) {
-                    $("#HHListUpdate").html('').append(buttonLaunchList);
-                    $("#RefreshOppoList").on("click", function () {
-                        $("#RefreshOppoList").remove();
-                        $('a[href*="id_opponent"]').each(function () {
-                            $(this).html('Go'); // TODO translate
-                        });
-                    });
-                }
-            }
-            else {
-                $("#HHListUpdate").html('Building:' + opponentSim.length + "/" + opponentButtons.length);
-            }
-            const buttonSortList = '<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("sortPowerCalc", "tooltip") + '</span><label style="width:100%;" class="myButton" id="sortPowerCalc">' + getTextForUI("sortPowerCalc", "elementText") + '</label></div>';
-            const league_table = $('.league_content .data-list');
-            if (document.getElementById("sortPowerCalc") === null && $('.matchRatingNew', league_table).length > 0) {
-                $('.leagues_middle_header_script').append(buttonSortList);
-                $("#sortPowerCalc").on("click", function () {
-                    const items = $('.data-row.body-row:visible', league_table).map((i, el) => el).toArray();
-                    items.sort(function (a, b) {
-                        const score_a = $('#HHPowerCalcScore', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(a))[0].innerText);
-                        const score_b = $('#HHPowerCalcScore', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(b))[0].innerText);
-                        const points_a = $('#HHPowerCalcPoints', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(a))[0].innerText);
-                        const points_b = $('#HHPowerCalcPoints', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(b))[0].innerText);
-                        if (score_b === score_a) {
-                            return points_b - points_a;
-                        }
-                        else {
-                            return score_b - score_a;
-                        }
-                    });
-                    for (const item in items) {
-                        $(items[item]).detach();
-                        league_table.append(items[item]);
-                    }
-                    $('.league_content .league_table').animate({ scrollTop: 0 });
-                });
-            }
-        }
-        catch (err) {
-            const { errName, message } = (err !== null && err !== void 0 ? err : {});
-            logHHAuto(`Error module Sim League: ${errName}, ${message}`);
-        }
-    }
-    static moduleSimLeagueHideBeatenOppo() {
-        const beatenOpponents = '<div style="position: absolute;left: 190px;top: 14px;width:100px;"  class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("HideBeatenOppo", "tooltip") + '</span><label style="width:100%;" class="myButton" id="HideBeatenOppo">' + getTextForUI("HideBeatenOppo", "elementText") + '</label></div>';
-        if ((document.getElementById("beaten_opponents") === null && document.getElementById("league_filter") === null) // button from HH OCD script
-            && document.getElementById("HideBeatenOppo") === null) {
-            if ($(".leagues_middle_header_script").length == 0) {
-                // #leagues-tabs was removed in the League DOM
-                // rework. .league_content is the wrapper that already
-                // anchors every other league selector in this file (see
-                // styles() above and the .data-list selectors below), and
-                // it is the direct parent of .league_table, so prepending
-                // here puts the header right above the opponent list
-                // instead of inside the scrollable table itself.
-                $('#leagues .league_content').prepend('<div class="leagues_middle_header_script"></div>');
-                GM_addStyle('.leagues_middle_header_script {'
-                    + 'display: flow-root;'
-                    + 'margin-top: 4px;}');
-            }
-            function removeBeatenOpponents() {
-                var board = document.getElementsByClassName("data-list")[0];
-                if (!board)
-                    return;
-                var opponents = board.getElementsByClassName("data-row body-row");
-                for (var i = 0; i < opponents.length; i++) {
-                    try {
-                        if (!opponents[i].className.includes("player-row")) {
-                            let hide = true;
-                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
-                            for (let j = 0; j < results.length; j++) {
-                                if (results[j].className == "result ")
-                                    hide = false;
-                            }
-                            if (hide)
-                                opponents[i].style.display = "none";
-                        }
-                    }
-                    catch (e) { }
-                }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
-            }
-            function displayBeatenOpponents() {
-                var board = document.getElementsByClassName("data-list")[0];
-                if (!board)
-                    return;
-                var opponents = board.getElementsByClassName("data-row body-row");
-                for (var i = 0; i < opponents.length; i++) {
-                    try {
-                        if (!opponents[i].className.includes("player-row")) {
-                            let hide = true;
-                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
-                            for (let j = 0; j < results.length; j++) {
-                                if (results[j].className == "result ")
-                                    hide = false;
-                            }
-                            if (hide)
-                                opponents[i].style.display = "";
-                        }
-                    }
-                    catch (e) { }
-                }
-                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
-            }
-            $(".leagues_middle_header_script").append(beatenOpponents);
-            let hideBeatenOppo = getStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo);
-            if (!hideBeatenOppo) {
-                hideBeatenOppo = 0;
-                setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
-            }
-            if (hideBeatenOppo == 1) {
-                removeBeatenOpponents();
-                $('#HideBeatenOppo').html(getTextForUI("display", "elementText"));
-            }
-            else {
-                $('#HideBeatenOppo').html(getTextForUI("HideBeatenOppo", "elementText"));
-            }
-            $("#HideBeatenOppo").on('click', function () {
-                if (hideBeatenOppo == 0) {
-                    removeBeatenOpponents();
-                    hideBeatenOppo = 1;
-                    setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
-                    $('#HideBeatenOppo').html(getTextForUI("display", "elementText"));
-                }
-                else {
-                    displayBeatenOpponents();
-                    hideBeatenOppo = 0;
-                    setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
-                    $('#HideBeatenOppo').html(getTextForUI("HideBeatenOppo", "elementText"));
-                }
-            });
-            const sort_by = document.querySelectorAll('.data-column.head-column');
-            for (var sort of sort_by) {
-                sort.addEventListener('click', function () {
-                    if (hideBeatenOppo == 1)
-                        removeBeatenOpponents();
-                });
-            }
-        }
-    }
-    static _getTempLeagueOpponentList() {
-        const maxLeagueListDurationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
-        const opponentsPowerList = getStoredJSON(HHStoredVarPrefixKey + TK.LeagueOpponentList, { expirationDate: 0, opponentsList: [] });
-        if (Object.keys(opponentsPowerList.opponentsList).length === 0 || opponentsPowerList.expirationDate < new Date()) {
-            deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
-            opponentsPowerList.expirationDate = new Date().getTime() + maxLeagueListDurationSecs * 1000;
-        }
-        else {
-            logHHAuto('Found valid opponent list in storage, reuse it');
-        }
-        return opponentsPowerList;
-    }
-    static hasVanillaPowerColumn() {
-        return $('.body-row .data-column[column="power"]').first().html() == $('.body-row .data-column[column="power"]').first().text();
-    }
-    static getLeagueOpponentListData(isFirstCall = true) {
-        const Data = [];
-        let opponent_id;
-        let fightButton;
-        let opponentsPowerList;
-        const sortMode = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSortIndex);
-        let usePowerCalc = sortMode === LeagueHelper.SORT_POWERCALC;
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        if (debugEnabled)
-            logHHAuto(`Storting method: ${sortMode}`);
-        const hasScriptChangedPowerBefore = !LeagueHelper.hasVanillaPowerColumn();
-        if (hasScriptChangedPowerBefore)
-            logHHAuto('Power columned changed from vanilla game, can be HH++ BDSM or other script');
-        const tableRow = $(".data-list .data-row.body-row");
-        logHHAuto('Number of player in league:' + tableRow.length + '. Number of opponent not fought in league:' + $('.data-list .data-row.body-row a').length);
-        const opponents_list = getHHVars("opponents_list");
-        let heroFighter;
-        if (usePowerCalc) {
-            opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
-            try {
-                heroFighter = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
-            }
-            catch (error) {
-                logHHAuto('Error, falback to not use powercalc');
-                if (debugEnabled)
-                    logHHAuto(error);
-                usePowerCalc = false;
-            }
-        }
-        let opponentsPowerListChanged = false;
-        let canUseSimu = usePowerCalc && !!opponents_list && !!heroFighter;
-        tableRow.each(function () {
-            fightButton = $('a', $(this));
-            if (fightButton.length > 0) {
-                opponent_id = queryStringGetParam(new URL(fightButton.attr("href"), window.location.origin).search, 'id_opponent');
-                let leagueOpponent;
-                if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
-                    try {
-                        leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponent_id);
-                    }
-                    catch (error) {
-                        logHHAuto("Error when getting oppo " + opponent_id + " from storage");
-                    }
-                }
-                if (!leagueOpponent) {
-                    let expectedPoints = 0;
-                    const opponents = opponents_list.find((el) => el.player.id_fighter == opponent_id);
-                    let simu = {};
-                    if (canUseSimu) {
-                        try {
-                            simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
-                            expectedPoints = Number(NumberHelper.nRounding(simu.expectedValue, 1, -1));
-                        }
-                        catch (error) {
-                            logHHAuto("Error in simu for oppo " + opponent_id + ", falback to not use powercalc");
-                            canUseSimu = false;
-                        }
-                    }
-                    leagueOpponent = new LeagueOpponent(opponent_id, 
-                    // Number($('.data-column[column="place"]', $(this)).text()),
-                    $('.nickname', $(this)).text(), 
-                    // Number($('.data-column[column="level"]', $(this)).text()),
-                    opponents.power, 
-                    // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
-                    expectedPoints, 
-                    // opponents,
-                    simu);
-                    if (opponentsPowerList && opponentsPowerList.opponentsList) {
-                        opponentsPowerList.opponentsList.push(leagueOpponent);
-                        opponentsPowerListChanged = true;
-                    }
-                }
-                Data.push(leagueOpponent);
-            }
-        });
-        if (opponentsPowerListChanged) {
-            logHHAuto('Save updated opponent list for later');
-            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
-        }
-        const hasScriptChangedPowerAfter = !LeagueHelper.hasVanillaPowerColumn();
-        if (!hasScriptChangedPowerBefore && hasScriptChangedPowerAfter) {
-            if (isFirstCall) {
-                logHHAuto('User script edited power column during computation, try again');
-                return LeagueHelper.getLeagueOpponentListData(false);
-            }
-            else {
-                logHHAuto('User script edited power column during computation twice, stop');
-                return [];
-            }
-        }
-        if (canUseSimu) { // sortMode === LeagueHelper.SORT_POWERCALC
-            Data.sort((a, b) => (b.simuPoints > a.simuPoints) ? 1 : ((a.simuPoints > b.simuPoints) ? -1 : 0)); // sort by higher score
-        }
-        else if (sortMode === LeagueHelper.SORT_POWER) {
-            Data.sort((a, b) => {
-                const aValue = Math.abs(26 - a.power);
-                const bValue = Math.abs(26 - b.power);
-                return (aValue > bValue) ? 1 : ((bValue > aValue) ? -1 : 0);
-            }); // sort by lower power
-        } // sortMode === LeagueHelper.SORT_DISPLAYED // No sorting, keep html order
-        if (usePowerCalc) {
-            logHHAuto('Save opponent list for later');
-            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify({ expirationDate: opponentsPowerList.expirationDate, opponentsList: Data }));
-        }
-        return Data;
-    }
-    static doLeagueBattle() {
-        try {
-            // Confirm if on correct screen.
-            const currentPower = LeagueHelper.getEnergy();
-            const maxLeagueRegen = LeagueHelper.getEnergyMax();
-            const leagueThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold));
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            let leagueScoreSecurityThreshold = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSecurityThreshold);
-            if (leagueScoreSecurityThreshold) {
-                leagueScoreSecurityThreshold = Number(leagueScoreSecurityThreshold);
-            }
-            else {
-                leagueScoreSecurityThreshold = 40;
-            }
-            var page = getPage();
-            const Hero = getHero();
-            if (page === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")) {
-                // On the battle screen.
-                // CrushThemFights(); // TODO ??? // now managed by doBattle
-            }
-            else if (page === ConfigHelper.getHHScriptVars("pagesIDLeaderboard")) {
-                logHHAuto("On leaderboard page.");
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesCollect) === "true") {
-                    if ($('#leagues .forced_info button[rel="claim"]').length > 0) {
-                        $('#leagues .forced_info button[rel="claim"]').trigger('click'); //click reward
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
-                    }
-                }
-                logHHAuto('parsing enemies');
-                var Data = LeagueHelper.getLeagueOpponentListData();
-                const league_end = LeagueHelper.getLeagueEndTime();
-                if (currentPower < 1 && Data.length > 0) {
-                    logHHAuto("No power for leagues.");
-                    //prevent paranoia to wait for league
-                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
-                    const next_refresh = getHHVars('Hero.energies.challenge.next_refresh_ts');
-                    setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 3 * 60));
-                    return;
-                }
-                if (Data.length == 0) {
-                    logHHAuto('No valid targets!');
-                    //prevent paranoia to wait for league
-                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
-                    if ($('#leagues .forced_info').length > 0) {
-                        setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
-                    }
-                    else {
-                        logHHAuto('Set timer to league ends.');
-                        setTimer('nextLeaguesTime', randomInterval(league_end - 5 * 60, league_end));
-                    }
-                }
-                else {
-                    var getPlayerCurrentLevel = LeagueHelper.getLeagueCurrentLevel();
-                    if (isNaN(getPlayerCurrentLevel)) {
-                        logHHAuto("Could not get current Rank, stopping League.");
-                        //prevent paranoia to wait for league
-                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
-                        setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
-                        return;
-                    }
-                    var currentRank = Number($('.data-list .data-row.body-row.player-row .data-column[column="place"]').text());
-                    var currentScore = Number($('.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]').text().replace(/\D/g, ''));
-                    const leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSelectedIndex)) + 1;
-                    if (leagueTargetValue < Number(getPlayerCurrentLevel)) {
-                        var totalOpponents = Number($('.data-list .data-row.body-row').length) + 1;
-                        var maxDemote = 0;
-                        if (screen.width < 1026) {
-                            totalOpponents = totalOpponents + 1;
-                        }
-                        var rankDemote = totalOpponents - 14;
-                        if (currentRank > (totalOpponents - 15)) {
-                            rankDemote = totalOpponents - 15;
-                        }
-                        logHHAuto("Current league above target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to demote. max rank : " + rankDemote + "/" + totalOpponents);
-                        const getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankDemote + ")").filter(function () {
-                            return Number($(this).text().trim()) === rankDemote;
-                        });
-                        if (getRankDemote.length > 0) {
-                            maxDemote = Number($(".data-column[column='player_league_points']", getRankDemote.parent()).text().replace(/\D/g, ''));
-                        }
-                        else {
-                            maxDemote = 0;
-                        }
-                        logHHAuto("Current league above target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to demote. Score should not be higher than : " + maxDemote);
-                        if (currentScore + leagueScoreSecurityThreshold >= maxDemote) {
-                            if (league_end <= (60 * 60)) {
-                                logHHAuto("Can't do league as could go above demote, as last hour setting timer to 5 mins");
-                                setTimer('nextLeaguesTime', randomInterval(5 * 60, 8 * 60));
-                            }
-                            else {
-                                logHHAuto("Can't do league as could go above demote, setting timer to 30 mins");
-                                setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
-                            }
-                            //prevent paranoia to wait for league
-                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            return;
-                        }
-                    }
-                    const leagues = ConfigHelper.getHHScriptVars("leaguesList");
-                    var maxStay = -1;
-                    var maxLeague = $("div.tier_icons img").length;
-                    if (maxLeague === undefined) {
-                        maxLeague = leagues.length;
-                    }
-                    if (leagueTargetValue === Number(getPlayerCurrentLevel) && leagueTargetValue < maxLeague) {
-                        // Promotion zone (Kinkoid rule, March 2026): the higher of
-                        // the top 15% of the bracket or the top 20. Derived from the
-                        // bracket size so it stays correct for larger brackets;
-                        // hard-coding 20 was only right for ~100-player brackets.
-                        const bracketSize = $(".data-list .data-row.body-row").length;
-                        const promotionCount = leaguePromotionCutoff(bracketSize);
-                        var rankStay = promotionCount + 1;
-                        if (currentRank > promotionCount) {
-                            rankStay = promotionCount;
-                        }
-                        logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Promotion cutoff (higher of 15%/top20): " + promotionCount + ", max rank : " + rankStay);
-                        const getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankStay + ")").filter(function () {
-                            return Number($(this).text().trim()) === rankStay;
-                        });
-                        if (getRankStay.length > 0) {
-                            maxStay = Number($(".data-column[column='player_league_points']", getRankStay.parent()).text().replace(/\D/g, ''));
-                        }
-                        else {
-                            maxStay = 0;
-                        }
-                        logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Score should not be higher than : " + maxStay);
-                        if (currentScore + leagueScoreSecurityThreshold >= maxStay && getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesAllowWinCurrent) !== "true") {
-                            logHHAuto("Can't do league as could go above stay, setting timer to 30 mins");
-                            setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
-                            //prevent paranoia to wait for league
-                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            return;
-                        }
-                    }
-                    logHHAuto(Data.length + ' valid targets!');
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    logHHAuto("setting autoloop to false");
-                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
-                    if (runThreshold > 0) {
-                        setStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun, "true");
-                    }
-                    const nextOpponent = Data[0];
-                    const opponents_list = getHHVars("opponents_list");
-                    const opponentDataFromList = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find((obj) => obj.player.id_fighter == nextOpponent.opponent_id);
-                    if (debugEnabled && opponentDataFromList)
-                        logHHAuto("opponentDataFromList ", JSON.stringify(opponentDataFromList));
-                    if (!opponentDataFromList)
-                        logHHAuto(`ERROR opponent ${nextOpponent.opponent_id} not found in JS list`);
-                    logHHAuto(`Going to fight ${nextOpponent.nickname} (${nextOpponent.opponent_id}) with power ${nextOpponent.power}. Can fight: ${opponentDataFromList === null || opponentDataFromList === void 0 ? void 0 : opponentDataFromList.can_fight}`);
-                    if (debugEnabled)
-                        logHHAuto(JSON.stringify(nextOpponent));
-                    // change referer
-                    window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaguPreBattle") + '?id_opponent=' + nextOpponent.opponent_id));
-                    const numberOfFightAvailable = LeagueHelper.numberOfFightAvailable(opponentDataFromList);
-                    let numberOfBattle = 1;
-                    if (numberOfFightAvailable > 1 && currentPower >= (numberOfFightAvailable + leagueThreshold)) {
-                        if (maxStay > 0 && currentScore + (numberOfFightAvailable * leagueScoreSecurityThreshold) >= maxStay)
-                            logHHAuto('Can\'t do ' + numberOfFightAvailable + ' fights in league as could go above stay');
-                        else
-                            numberOfBattle = numberOfFightAvailable;
-                    }
-                    logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
-                    // Schedule the next league fight *before* triggering
-                    // the battle. Three cases:
-                    //
-                    //   a) Energy left after this batch (currentPower minus
-                    //      numberOfBattle > 0): set a short cool-down (60-120s)
-                    //      so the pipeline picks the next opponent on the
-                    //      following tick. Without this branch the user-visible
-                    //      bug returns: e.g. 4 challenge tokens against a
-                    //      2-fight opponent burned 2 tokens, then the timer
-                    //      jumped to next_refresh_ts (~36 min) and the 2
-                    //      remaining tokens sat unused for half an hour.
-                    //
-                    //   b) Energy fully spent and the server reported a refresh
-                    //      timestamp: wait for next_refresh_ts plus a small
-                    //      jitter window. This is the same idiom Pantheon /
-                    //      Season / PentaDrill use.
-                    //
-                    //   c) Energy fully spent but next_refresh_ts is 0 (energy
-                    //      capped, no pending refresh): fall back to a 15-17 min
-                    //      timer.
-                    //
-                    // Setting the timer *before* the battle trigger keeps two
-                    // properties: it survives the safeReload() in the multi-battle
-                    // AJAX callback, because storage is re-read on bundle boot, and
-                    // the popup info never reads "No timer".
-                    const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
-                    const remainingPower = currentPower - numberOfBattle;
-                    if (remainingPower > 0) {
-                        // Short cool-down so the next AutoLoop tick can pick
-                        // the next opponent. The user expectation is "open
-                        // league, fight all 15 battles in a row" which is
-                        // how a human would do it. The Pipeline minIntervalMs
-                        // for handleLeague is aligned to this value so the
-                        // Scheduler does not silently extend the gap.
-                        setTimer('nextLeaguesTime', randomInterval(2, 5));
-                    }
-                    else if (nextRefreshTs === 0) {
-                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
-                    }
-                    else {
-                        setTimer('nextLeaguesTime', randomInterval(nextRefreshTs + 10, nextRefreshTs + 180));
-                    }
-                    if (numberOfBattle <= 1) {
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"), { number_of_battles: 1, id_opponent: nextOpponent.opponent_id });
-                    }
-                    else {
-                        var params1 = {
-                            action: "do_battles_leagues",
-                            id_opponent: nextOpponent.opponent_id,
-                            number_of_battles: numberOfBattle
-                        };
-                        params1 = addNutakuSession(params1);
-                        getHHAjax()(params1, function (data) {
-                            // change referer
-                            window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaderboard")));
-                            RewardHelper.closeRewardPopupIfAny();
-                            // C1: route through safeReload so any in-flight
-                            // game AJAX gets to settle before the URL change
-                            // cancels open XHRs (issue #1598).
-                            safeReload();
-                            Hero.updates(data.hero_changes);
-                        });
-                    }
-                }
-            }
-            else {
-                // Switch to the correct screen, but only when no other
-                // classic AutoLoop handler is currently working. Pipeline
-                // handlers have no lastActionPerformed guard, so without
-                // this check the league chain would navigate to the
-                // leaderboard while e.g. Quest is still on its own page,
-                // producing a leaderboard<->quest ping-pong loop
-                // (issue #1664). Skip silently; the Scheduler minInterval
-                // cool-down will retry on the next eligible tick.
-                const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
-                if (lastActionPerformed !== undefined
-                    && lastActionPerformed !== "none"
-                    && lastActionPerformed !== "league") {
-                    logHHAuto("Skip switching to leagues screen, busy with: " + lastActionPerformed);
-                    return;
-                }
-                logHHAuto("Switching to leagues screen.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
-                return;
-            }
-        }
-        catch (err) {
-            const { errName, message } = (err !== null && err !== void 0 ? err : {});
-            logHHAuto(`Error do League: ${errName}, ${message}`);
-            setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-        }
-    }
-    static LeagueDisplayGetOpponentPopup(numberDone, remainingTime) {
-        // #leagues_middle does not exist in the League DOM;
-        // #leagues itself is the stable League page container, and the
-        // popup is positioned absolute so its exact DOM parent doesn't
-        // affect layout.
-        $("#leagues").prepend('<div id="popup_message_league" class="HHpopup_message" name="popup_message_league" ><a id="popup_message_league_close" class="close">&times;</a>' + getTextForUI("OpponentListBuilding", "elementText") + ' : <br>' + numberDone + ' ' + getTextForUI("OpponentParsed", "elementText") + ' (' + remainingTime + ')</div>');
-        $("#popup_message_league_close").on("click", () => { safeReload(); });
-    }
-    static LeagueClearDisplayGetOpponentPopup() {
-        $("#popup_message_league").each(function () { this.remove(); });
-    }
-    static LeagueUpdateGetOpponentPopup(numberDone, remainingTime) {
-        LeagueHelper.LeagueClearDisplayGetOpponentPopup();
-        LeagueHelper.LeagueDisplayGetOpponentPopup(numberDone, remainingTime);
-    }
-}
-LeagueHelper.SORT_DISPLAYED = LEAGUE_SORT.DISPLAYED;
-LeagueHelper.SORT_POWER = LEAGUE_SORT.POWER;
-LeagueHelper.SORT_POWERCALC = LEAGUE_SORT.POWERCALC;
-
-;// ./src/Module/DailyGoals.ts
-// DailyGoals.ts -- Automates daily goals: claims rewards and tracks refresh timers.
-//
-// The game offers daily goals with rewards upon completion. This module
-// monitors goal completion status, claims available rewards, and manages
-// the refresh timer so goals are checked at appropriate intervals.
-//
-// Used by: Module/GenericBattle.ts, Module/Pantheon.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
-//
-
-
-
-
-
-
-
-
-
-
-class DailyGoals {
-    static isAutoDailyGoalsActivated() {
-        return getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoals) === "true";
-    }
-    static getNewGoalsTimer() {
-        const timerRequest = `#daily_goals .daily-goals-timer span[rel=expires]`;
-        if ($(timerRequest).length > 0) {
-            const goalsTimer = Number(convertTimeToInt($(timerRequest).text()));
-            return goalsTimer;
-        }
-        logHHAuto('ERROR: can\'t get Daily goals timer, default to maxCollectionDelay');
-        return ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180);
-    }
-    static styles() {
-        if ($("#daily_goals #ad_activities").length) {
-            $("#daily_goals .daily-goals-objectives-container").removeClass('height-for-ad').removeClass('height-with-ad');
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.compactDailyGoals) === "true") {
-            const dailGoalsContainerPath = '#daily_goals .daily-goals-container .daily-goals-left-part .daily-goals-objectives-container';
-            GM_addStyle(dailGoalsContainerPath + ' {'
-                + 'flex-wrap:wrap;'
-                + 'padding: 5px;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward .daily_goals_potion_icn {'
-                + 'background-size: 20px;'
-                + 'height: 30px;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward > p {'
-                + 'margin-top: 0;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective {'
-                + 'width:49%;'
-                + 'margin-bottom:5px;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-status .objective-progress-bar {'
-                + 'height: 20px;'
-                + 'width: 11.1rem;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-status .objective-progress-bar > p {'
-                + 'font-size: 0.7rem;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' .daily-goals-objective .daily-goals-objective-reward {'
-                + 'height: 40px;'
-                + 'width: 40px;'
-                + '}');
-            GM_addStyle(dailGoalsContainerPath + ' p {'
-                + 'overflow: hidden;'
-                + 'text-overflow: ellipsis;'
-                + 'white-space: nowrap;'
-                + 'max-width: 174px;'
-                + 'font-size: 0.7rem;'
-                + '}');
-        }
-        setTimeout(DailyGoalsIcon.styles, 500);
-    }
-    static goAndCollect() {
-        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoDailyGoalsCollectablesList);
-        if (checkTimer('nextDailyGoalsCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoDailyGoalsCollect) === "true") {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDDailyGoals")) {
-                try {
-                    logHHAuto("Checking Daily Goals for collectable rewards. Setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    const nextDailyGoalsTimer = DailyGoals.getNewGoalsTimer();
-                    const buttonsToCollect = [];
-                    const listDailyGoalsTiersToClaim = $("#daily_goals .progress-section .progress-bar-rewards-container .progress-bar-reward");
-                    const potionsNum = Number($('.progress-section div.potions-total > div > p').text());
-                    for (let currentTier = 0; currentTier < listDailyGoalsTiersToClaim.length; currentTier++) {
-                        const currentButton = $("button[rel='claim']", listDailyGoalsTiersToClaim[currentTier]);
-                        if (currentButton.length > 0) {
-                            const currentTierNb = currentButton[0].getAttribute("tier");
-                            const currentChest = $(".progress-bar-rewards-container", listDailyGoalsTiersToClaim[currentTier]);
-                            const currentRewardsList = currentChest.length > 0 ? currentChest.data("rewards") : [];
-                            if (nextDailyGoalsTimer <= ConfigHelper.getHHScriptVars("dailyRewardMaxRemainingTime") && nextDailyGoalsTimer > 0) {
-                                logHHAuto("Force adding for collection chest n° " + currentTierNb);
-                                buttonsToCollect.push(currentButton[0]);
-                            }
-                            else {
-                                let validToCollect = true;
-                                for (const reward of currentRewardsList) {
-                                    const rewardType = RewardHelper.getRewardTypeByData(reward);
-                                    if (!rewardsToCollect.includes(rewardType)) {
-                                        logHHAuto(`Not adding for collection chest n° ${currentTierNb} because ${rewardType} is not in immediate collection list.`);
-                                        validToCollect = false;
-                                        break;
-                                    }
-                                }
-                                if (validToCollect) {
-                                    buttonsToCollect.push(currentButton[0]);
-                                    logHHAuto("Adding for collection chest n° " + currentTierNb);
-                                }
-                            }
-                        }
-                    }
-                    if (buttonsToCollect.length > 0 || potionsNum < 100) {
-                        function collectDailyGoalsRewards() {
-                            if (buttonsToCollect.length > 0) {
-                                logHHAuto("Collecting chest n° " + buttonsToCollect[0].getAttribute('tier'));
-                                buttonsToCollect[0].click();
-                                buttonsToCollect.shift();
-                                setTimeout(collectDailyGoalsRewards, randomInterval(300, 500));
-                            }
-                            else {
-                                logHHAuto("Daily Goals collection finished.");
-                                setTimer('nextDailyGoalsCollectTime', randomInterval(30 * 60, 35 * 60));
-                                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            }
-                        }
-                        collectDailyGoalsRewards();
-                        return true;
-                    }
-                    else {
-                        logHHAuto("No Daily Goals reward to collect.");
-                        setTimer('nextDailyGoalsCollectTime', nextDailyGoalsTimer + randomInterval(3600, 4000));
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        return false;
-                    }
-                }
-                catch (err) {
-                    // Pre-fix this destructured `{ errName, message }` from the
-                    // thrown value, which crashed on primitive throws (the
-                    // destructure itself raised TypeError) and silently logged
-                    // `undefined` on non-Error objects. Standard catch handles
-                    // both safely; the message extraction stays defensive so a
-                    // primitive throw still produces a readable log line.
-                    const errMessage = err instanceof Error ? err.message : String(err);
-                    logHHAuto(`ERROR during daily goals run: ${errMessage}, retry in 1h`);
-                    setTimer('nextDailyGoalsCollectTime', randomInterval(3600, 4000));
-                    return false;
-                }
-            }
-            else {
-                logHHAuto("Switching to Daily Goals screen.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDDailyGoals"));
-                return true;
-            }
-        }
-        // Default branch: timer not yet elapsed or autoDailyGoalsCollect
-        // disabled. Pre-fix the function fell through with an implicit
-        // `undefined` return that the Pipeline adapter coerced to falsy
-        // (busy=false). Spell that out explicitly to match the declared
-        // boolean return type and to survive a future strict-TS push.
-        return false;
-    }
-    static parse() {
-        // parse() is registered as a page handler on the missions and
-        // contests pages too (AutoLoopPageHandlers), not just on the
-        // daily-goals page. On those pages unsafeWindow.daily_goals_list
-        // is not populated. Without a guard the method falls through, logs
-        // "Can't parse Daily Goals" and overwrites the dailyGoalsList cache
-        // with an empty array -- which wipes the cache between two real
-        // daily-goals visits, so isPantheonDailyGoal() reports false and the
-        // pantheon booster-override for an active daily goal never fires.
-        // The early return leaves the cache intact
-        // and hands back whatever was last parsed.
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDDailyGoals") || !unsafeWindow.daily_goals_list) {
-            return getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
-        }
-        const supportedGoals = [];
-        for (let currentTier = 0; currentTier < unsafeWindow.daily_goals_list.length; currentTier++) {
-            const goal = unsafeWindow.daily_goals_list[currentTier];
-            if (goal && goal.progress_data.current < goal.progress_data.max)
-                switch (goal.anchor) {
-                    case ConfigHelper.getHHScriptVars("pagesURLChampionsMap"):
-                    case ConfigHelper.getHHScriptVars("pagesURLPantheon"):
-                        supportedGoals.push(goal);
-                        break;
-                }
-        }
-        setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(supportedGoals));
-        logHHAuto("Daily Goals", supportedGoals);
-        return supportedGoals;
-    }
-    static _isDailyGoalType(anchor, update) {
-        const dailyGoals = getStoredJSON(HHStoredVarPrefixKey + TK.dailyGoalsList, []);
-        let find = false;
-        if (dailyGoals && dailyGoals.length > 0) {
-            for (let currentTier = 0; currentTier < dailyGoals.length; currentTier++) {
-                const goal = dailyGoals[currentTier];
-                if (goal && goal.progress_data.current < goal.progress_data.max)
-                    switch (goal.anchor) {
-                        case anchor:
-                            if (update)
-                                goal.progress_data.current += 1;
-                            find = true;
-                            break;
-                    }
-            }
-            if (find)
-                setStoredValue(HHStoredVarPrefixKey + TK.dailyGoalsList, JSON.stringify(dailyGoals));
-        }
-        return find;
-    }
-    static isPantheonDailyGoal() {
-        return DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), false);
-    }
-    static incrementPantheonDailyGoal() {
-        return DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), true);
-    }
-}
-class DailyGoalsIcon {
-    static getIcon() {
-        //static getIcon(current: number, max: number){
-        // TODO translation
-        return $(`<i class="daily_goals_potion_icn general_potion_icn hhauto" title="Have daily goal"></i>`);
-    }
-    static displayPantheon() {
-        const ocdhelp = $('#worship_data');
-        if (ocdhelp.length > 0) {
-            if ($('.daily_goals_potion_icn', ocdhelp).length <= 0) {
-                logHHAuto('displayPantheon');
-                GM_addStyle('#worship_data .daily_goals_potion_icn.hhauto {'
-                    + 'background-size: 15px;'
-                    + 'width: 15px;'
-                    + 'height: 15px;'
-                    + 'left: 4px;'
-                    + 'top: -4px;'
-                    + 'position: absolute;'
-                    + '}');
-                ocdhelp.append(DailyGoalsIcon.getIcon());
-            }
-        }
-    }
-    static styles() {
-        if (DailyGoals.isAutoDailyGoalsActivated() && DailyGoals._isDailyGoalType(ConfigHelper.getHHScriptVars("pagesURLPantheon"), false)) {
-            DailyGoalsIcon.displayPantheon();
-        }
-    }
-}
-
 ;// ./src/Module/Pantheon.pure.ts
 // Pantheon.pure.ts -- Pure decision logic for the pantheon auto module.
 //
@@ -16120,7 +20249,7 @@ class PlaceOfPower {
                 logHHAuto("build popToStart : " + PopToStart);
                 setStoredValue(HHStoredVarPrefixKey + TK.PopToStart, JSON.stringify(PopToStart));
                 setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 return false;
             }
         });
@@ -16621,315 +20750,12 @@ class QuestHelper {
             proceedButtonMatch.click();
             setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
             logHHAuto("setting autoloop to true");
-            setTimeout(autoLoop, randomInterval(800, 1200));
+            kickAutoLoop(randomInterval(800, 1200));
         }, randomInterval(500, 800));
         return true;
     }
 }
 QuestHelper.SITE_QUEST_PAGE = '/side-quests.html';
-
-;// ./src/Service/ParanoiaService.ts
-// ParanoiaService.ts
-//
-// Anti-detection system that alternates between "burst" (active) and
-// "rest" (idle) periods to mimic human play patterns. During rest,
-// all actions stop and the script sits on the home page.
-//
-// Before entering rest, optionally spends remaining energy to avoid
-// wasting regeneration during downtime. Mythic events can bypass
-// paranoia to avoid missing time-limited waves.
-//
-// Used by: AutoLoop (checked every iteration when paranoia is on)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class ParanoiaService {
-    static checkParanoiaSpendings(spendingFunction = undefined) {
-        var pSpendings = new Map([]);
-        // not set
-        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
-            return -1;
-        }
-        else {
-            pSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) !== undefined && pSpendings.has('quest')) {
-            pSpendings.delete('quest');
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) !== undefined && pSpendings.has('challenge')) {
-            pSpendings.delete('challenge');
-        }
-        // for all count remaining
-        if (spendingFunction === undefined) {
-            var spendingsRemaining = 0;
-            for (var i of pSpendings.values()) {
-                spendingsRemaining += Number(i);
-            }
-            return spendingsRemaining;
-        }
-        else {
-            // return value if exist else -1
-            return pSpendings.get(spendingFunction) || -1;
-        }
-    }
-    static clearParanoiaSpendings() {
-        ParanoiaService.countParanoiaLoop = 0;
-        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
-        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
-    }
-    static updatedParanoiaSpendings(inSpendingFunction, inSpent) {
-        var currentPSpendings = new Map([]);
-        // not set
-        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
-            return;
-        }
-        else {
-            currentPSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
-            if (currentPSpendings.has(inSpendingFunction)) {
-                let currValue = currentPSpendings.get(inSpendingFunction) || 0;
-                currValue -= inSpent;
-                if (currValue > 0) {
-                    logHHAuto("Spent " + inSpent + " " + inSpendingFunction + ", remains " + currValue + " before Paranoia.");
-                    currentPSpendings.set(inSpendingFunction, currValue);
-                }
-                else {
-                    currentPSpendings.delete(inSpendingFunction);
-                }
-            }
-            logHHAuto("Remains to spend before Paranoia : " + JSON.stringify(currentPSpendings, replacerMap));
-            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(currentPSpendings, replacerMap));
-        }
-    }
-    //sets spending to do before paranoia
-    static setParanoiaSpendings() {
-        var maxPointsDuringParanoia;
-        var totalPointsEndParanoia;
-        var paranoiaSpendings = new Map([]);
-        var paranoiaSpend;
-        var currentEnergy;
-        var maxEnergy;
-        var toNextSwitch;
-        const tempNextSwitch = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
-        if (tempNextSwitch !== undefined && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
-            toNextSwitch = Number((Number(tempNextSwitch) - new Date().getTime()) / 1000);
-            if (LeagueHelper.isAutoLeagueActivated()) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) === undefined) {
-                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.challenge.next_refresh_ts'))) / Number(getHHVars('Hero.energies.challenge.seconds_per_point')));
-                    currentEnergy = LeagueHelper.getEnergy();
-                    maxEnergy = LeagueHelper.getEnergyMax();
-                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
-                    //if point refreshed during paranoia would go above max
-                    if (totalPointsEndParanoia >= maxEnergy) {
-                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
-                        paranoiaSpendings.set("challenge", paranoiaSpend);
-                        logHHAuto("Setting Paranoia spendings for league : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
-                    }
-                    else {
-                        logHHAuto("Setting Paranoia spendings for league : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
-                    }
-                }
-            }
-            if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true"))) {
-                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) === undefined) {
-                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.quest.next_refresh_ts'))) / Number(getHHVars('Hero.energies.quest.seconds_per_point')));
-                    currentEnergy = QuestHelper.getEnergy();
-                    maxEnergy = QuestHelper.getEnergyMax();
-                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
-                    //if point refreshed during paranoia would go above max
-                    if (totalPointsEndParanoia >= maxEnergy) {
-                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
-                        paranoiaSpendings.set("quest", paranoiaSpend);
-                        logHHAuto("Setting Paranoia spendings for quest : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
-                    }
-                    else {
-                        logHHAuto("Setting Paranoia spendings for quest : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
-                    }
-                }
-            }
-            if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
-                maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.fight.next_refresh_ts'))) / Number(getHHVars('Hero.energies.fight.seconds_per_point')));
-                currentEnergy = Troll.getEnergy();
-                maxEnergy = Troll.getEnergyMax();
-                totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
-                //if point refreshed during paranoia would go above max
-                if (totalPointsEndParanoia >= maxEnergy) {
-                    paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
-                    paranoiaSpendings.set("fight", paranoiaSpend);
-                    logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
-                }
-                else {
-                    logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
-                }
-            }
-            if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
-                const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus);
-                if (seasonFocus === "girl" || seasonFocus === "girlAndSkin") {
-                    logHHAuto('Season auto is on but Season focus restricts fights, no spending kisses.');
-                }
-                else {
-                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.kiss.next_refresh_ts'))) / Number(getHHVars('Hero.energies.kiss.seconds_per_point')));
-                    currentEnergy = Season.getEnergy();
-                    maxEnergy = Season.getEnergyMax();
-                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
-                    //if point refreshed during paranoia would go above max
-                    if (totalPointsEndParanoia >= maxEnergy) {
-                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
-                        paranoiaSpendings.set("kiss", paranoiaSpend);
-                        logHHAuto("Setting Paranoia spendings for Season : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
-                    }
-                    else {
-                        logHHAuto("Setting Paranoia spendings for Season : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
-                    }
-                }
-            }
-            if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true") {
-                maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.worship.next_refresh_ts'))) / Number(getHHVars('Hero.energies.worship.seconds_per_point')));
-                currentEnergy = Pantheon.getEnergy();
-                maxEnergy = Pantheon.getEnergyMax();
-                totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
-                //if point refreshed during paranoia would go above max
-                if (totalPointsEndParanoia >= maxEnergy) {
-                    paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
-                    paranoiaSpendings.set("worship", paranoiaSpend);
-                    logHHAuto("Setting Paranoia spendings for Pantheon : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
-                }
-                else {
-                    logHHAuto("Setting Paranoia spendings for Pantheon : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
-                }
-            }
-            logHHAuto("Setting paranoia spending to : " + JSON.stringify(paranoiaSpendings, replacerMap));
-            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(paranoiaSpendings, replacerMap));
-        }
-    }
-    static flipParanoia() {
-        var burst = getBurst();
-        var Setting = getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSettings);
-        var S1 = Setting.split('/').map((s) => s.split('|').map((s) => s.split(':')));
-        var toNextSwitch;
-        var period;
-        var n = new Date().getHours();
-        S1[2].some((x) => { if (n < x[0]) {
-            period = x[1];
-            return true;
-        } return false; });
-        if (burst) {
-            var periods = Object.assign({}, ...S1[1].map((d) => ({ [d[0]]: d[1].split('-') })));
-            const nextSwitchVal = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
-            toNextSwitch = nextSwitchVal ? Number((Number(nextSwitchVal) - new Date().getTime()) / 1000) : randomInterval(Number(periods[period][0]), Number(periods[period][1]));
-            //match mythic new wave with end of sleep
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true" && getTimer("eventMythicNextWave") !== -1 && toNextSwitch > getSecondsLeft("eventMythicNextWave")) {
-                logHHAuto("Forced rest only until next mythic wave.");
-                toNextSwitch = getSecondsLeft("eventMythicNextWave");
-            }
-            //bypass Paranoia if ongoing mythic
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
-                const eventMythicGirl = EventModule.getEventMythicGirl();
-                if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-                    //             {
-                    //mythic onGoing and still have some fight above threshold
-                    if (Troll.getEnergy() > 0) //trollThreshold)
-                     {
-                        logHHAuto("Forced bypass Paranoia for mythic (can fight).");
-                        setTimer('paranoiaSwitch', 60);
-                        return;
-                    }
-                    //mythic ongoing and can buyCombat
-                    if (Troll.canBuyFight(eventMythicGirl).canBuy && Troll.getEnergy() == 0) {
-                        logHHAuto("Forced bypass Paranoia for mythic (can buy).");
-                        setTimer('paranoiaSwitch', 60);
-                        return;
-                    }
-                }
-            }
-            if (ParanoiaService.checkParanoiaSpendings() === -1 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
-                setStoredValue(HHStoredVarPrefixKey + TK.NextSwitch, new Date().getTime() + toNextSwitch * 1000);
-                ParanoiaService.setParanoiaSpendings();
-                return;
-            }
-            if (ParanoiaService.checkParanoiaSpendings() === 0 || getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "false") {
-                ParanoiaService.clearParanoiaSpendings();
-                PlaceOfPower.cleanTempPopToStart();
-                //going into hiding
-                setStoredValue(HHStoredVarPrefixKey + TK.burst, "false");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
-            else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
-                // manage wrong values in storage to avoid infinite loop
-                ParanoiaService.countParanoiaLoop++;
-                if (ParanoiaService.countParanoiaLoop > ParanoiaService.MAX_LOOP) {
-                    logHHAuto(`10 times flip without actions, clearParanoiaSpending and update (count: ${ParanoiaService.countParanoiaClear++}) `);
-                    ParanoiaService.clearParanoiaSpendings();
-                    ParanoiaService.setParanoiaSpendings();
-                }
-                if (ParanoiaService.countParanoiaClear < ParanoiaService.MAX_LOOP)
-                    return;
-                else
-                    logHHAuto(`10 times clearParanoiaSpending and update, let flip continue`);
-            }
-            else {
-                //refresh remaining
-                //let spending go before going in paranoia
-                return;
-            }
-        }
-        else {
-            //going to work
-            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-            logHHAuto("setting autoloop to false");
-            setStoredValue(HHStoredVarPrefixKey + TK.burst, "true");
-            var b = S1[0][0][0].split('-');
-            toNextSwitch = randomInterval(Number(b[0]), Number(b[1]));
-        }
-        var ND = new Date().getTime() + toNextSwitch * 1000;
-        var message = period + (burst ? " rest" : " burst");
-        logHHAuto("PARANOIA: " + message);
-        setStoredValue(HHStoredVarPrefixKey + TK.pinfo, message);
-        setTimer('paranoiaSwitch', toNextSwitch);
-        //force recheck non completed event after paranoia
-        if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-        }
-    }
-}
-ParanoiaService.MAX_LOOP = 10;
-ParanoiaService.countParanoiaLoop = 0;
-ParanoiaService.countParanoiaClear = 0;
-function replacerMap(key, value) {
-    const originalObject = this[key];
-    if (originalObject instanceof Map) {
-        return {
-            dataType: 'Map',
-            value: Array.from(originalObject.entries()), // or with spread: value: [...originalObject]
-        };
-    }
-    else {
-        return value;
-    }
-}
-function reviverMap(key, value) {
-    if (typeof value === 'object' && value !== null) {
-        if (value.dataType === 'Map') {
-            return new Map(value.value);
-        }
-    }
-    return value;
-}
 
 ;// ./src/Module/PentaDrill.ts
 var PentaDrill_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
@@ -17257,153 +21083,6 @@ class PentaDrill {
             return;
         }
         // TODO maksk all claimed rewards in PentaDrill
-    }
-}
-
-;// ./src/Module/Contest.ts
-// Contest.ts -- Handles contest reward claiming and "wait for contest" logic.
-//
-// Contests are timed competitive events with milestone rewards. This module
-// checks for claimable contest rewards, tracks contest end timers, and
-// implements the "wait for contest" feature that pauses other automation
-// when a contest requiring specific actions is active.
-//
-// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
-//
-
-
-
-
-
-
-
-
-
-
-class Contest {
-    static getPinfo() {
-        const color = getStoredValue(HHStoredVarPrefixKey + SK.waitforContest) !== "true" ? 'white' : TimeHelper.canCollectCompetitionActive() ? 'LimeGreen' : 'red';
-        // Two rows rather than one: the old single line carried two times, which
-        // leaves nothing to align right, and "Next" on its own did not say next
-        // what.
-        return pInfoRow('Contest end', getTimeLeft('contestRemainingTime'), { style: `color:${color}` })
-            + pInfoRow('Next contest', getTimeLeft('nextContestTime'), { style: `color:${color}` });
-    }
-    static getClaimsButton() {
-        return $(".contest .ended button[rel='claim']");
-    }
-    static run() {
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
-            logHHAuto("Navigating to contests page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
-            return true; // busy: the page is changing, the scheduler comes back next tick
-        }
-        else {
-            logHHAuto("On contests page.");
-            logHHAuto("Collecting finished contests's reward.");
-            const contest_list = Contest.getClaimsButton();
-            logHHAuto(`Found ${contest_list.length} contest to be collected`);
-            if (contest_list.length > 0) {
-                const firstContestEnded = contest_list.first();
-                const contestContainer = firstContestEnded.parents('.contest');
-                logHHAuto(`Collected contest id : ${contestContainer === null || contestContainer === void 0 ? void 0 : contestContainer.attr('id_contest')}.`);
-                firstContestEnded.trigger('click');
-                // Remove the claimed contest from the DOM so setTimers() won't
-                // see stale claim buttons and create an infinite collect loop.
-                contestContainer.remove();
-                if (contest_list.length > 1) {
-                    // A reload after every claim would produce N-1 reloads in
-                    // quick succession on a 5-tier finish, and each one puts
-                    // pressure on the Forbidden race window the POST mutex
-                    // exists for. Stay on the page, set
-                    // busy=true so the scheduler comes back next tick, and
-                    // collect the next reward then. The DOM-removal above
-                    // ensures getClaimsButton() reports the remaining
-                    // reward count correctly on the follow-up tick.
-                    return true;
-                }
-            }
-            return Contest.setTimers();
-        }
-    }
-    static setTimers() {
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDContests")) {
-            logHHAuto("Navigating to contests page.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDContests"));
-            return true; // busy: the page is changing, the scheduler comes back next tick
-        }
-        else {
-            try {
-                const nextContestSelector = '#contests .next_contest .contest_timer span';
-                const remainingTimeSelector = '#contests .contest .in_progress .contest_timer .text span';
-                let nextContestTime = unsafeWindow.contests_timer.next_contest;
-                const duration = unsafeWindow.contests_timer.duration;
-                let remaining_time = unsafeWindow.contests_timer.remaining_time;
-                const safeTime = TimeHelper.getContestSafeTime();
-                if ($(nextContestSelector).length > 0) {
-                    nextContestTime = Number(convertTimeToInt($(nextContestSelector).first().text()));
-                    if (nextContestTime < 0)
-                        nextContestTime = unsafeWindow.contests_timer.next_contest;
-                }
-                if ($(remainingTimeSelector).length > 0) {
-                    remaining_time = Number(convertTimeToInt($(remainingTimeSelector).first().text()));
-                    if (remaining_time < 0)
-                        remaining_time = unsafeWindow.contests_timer.remaining_time;
-                }
-                if (remaining_time < duration) {
-                    setTimer('contestRemainingTime', remaining_time);
-                }
-                else
-                    setTimer('contestRemainingTime', -1);
-                setTimer('nextContestTime', nextContestTime + safeTime);
-                if (Contest.getClaimsButton().length > 0) {
-                    setTimer('nextContestCollectTime', 0);
-                }
-                else {
-                    setTimer('nextContestCollectTime', nextContestTime + safeTime);
-                }
-            }
-            catch (err) {
-                logHHAuto('ERROR getting next contest timers, ignore...');
-                setTimer('contestRemainingTime', 3600);
-                setTimer('nextContestTime', 4000);
-                setTimer('nextContestCollectTime', 4000);
-            }
-            // Not busy
-            return false;
-        }
-    }
-    static waitContestActive() {
-        return !checkTimerMustExist('contestRemainingTime') && checkTimerMustExist('nextContestTime');
-    }
-    static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.compactEndedContests) === "true") {
-            const contestsContainerPath = '#contests > div > div.left_part > .scroll_area > .contest > .contest_header.ended';
-            GM_addStyle(contestsContainerPath + ' {'
-                + 'height: 50px;'
-                + 'font-size: 0.7rem;'
-                + '}');
-            GM_addStyle(contestsContainerPath + ' > .contest_title {'
-                + 'font-size: 14px;'
-                + 'left: 140px;'
-                + 'bottom: 24px;'
-                + '}');
-            GM_addStyle(contestsContainerPath + ' > .personal_rewards {'
-                + 'height: 40px;'
-                + 'margin-top: -42px;'
-                + 'padding-top: 1px;'
-                + 'width: 380px;'
-                + '}');
-            GM_addStyle(contestsContainerPath + ' > .personal_rewards > button {'
-                + 'height: 23px;'
-                + 'margin-right: 241px;'
-                + 'margin-top: -6px;'
-                + 'width: 120px;'
-                + '}');
-            GM_addStyle(contestsContainerPath + ' > .contest_expiration_timer {'
-                + 'bottom: 95px;'
-                + '}');
-        }
     }
 }
 
@@ -19816,43 +23495,6 @@ class Champion {
     }
 }
 
-;// ./src/Module/Club.ts
-// Club.ts -- Detects club membership and enables or disables club-related features.
-//
-// Checks whether the player is currently in a club and toggles visibility of
-// club-specific UI elements (e.g. Club Champion buttons). This ensures that
-// club features are only shown when the player has an active membership.
-//
-// Used by: Service/AutoLoopPageHandlers.ts, Service/StartService.ts
-//
-
-
-
-
-class Club {
-    static run() {
-        const onChampTab = $("div.club-champion-members-challenges:visible").length === 1;
-        if (onChampTab) {
-            $('button.orange_button_L.btn_skip_team_cooldown').css('display', 'none');
-            if (!$('button.orange_button_L.btn_skip_champion_cooldown').length) {
-                $('.challenge_container').css('display', 'block');
-            }
-        }
-    }
-    static checkClubStatus() {
-        let chatVars = null;
-        try {
-            chatVars = getHHVars("Chat_vars.CLUB_INFO.id_club", false);
-        }
-        catch (e) {
-            logHHAuto("Catched error : Couldn't parse CLUB_INFO : " + e);
-        }
-        if (chatVars === null || chatVars === false) {
-            HHEnvVariables[ConfigHelper.getHHScriptVars("HHGameName")].isEnabledClubChamp = false;
-        }
-    }
-}
-
 ;// ./src/Module/ClubChampion.pure.ts
 // ClubChampion.pure.ts -- Pure decision logic for the club-champion auto module.
 //
@@ -22046,690 +25688,6 @@ function fmtSigned(value) {
 function fmtSignedPct(value) {
     return (value > 0 ? '+' : '') + value.toFixed(1) + 'pp';
 }
-
-;// ./src/Module/Events/EventRegistry.ts
-// EventRegistry.ts -- write access to the event registry (Temp_eventsList).
-//
-// The registry is the list handleEventParsing walks to pick the next event
-// page to visit: one entry per event id, carrying next_refresh among other
-// fields. EventModule owns filling it; the operations an individual event
-// module needs live here instead, because EventModule imports those modules
-// and the reverse import would be a new cycle (ARCH-001).
-//
-// Depends on: StorageHelper.ts, HHStoredVars.ts, StorageKeys.ts
-// Used by: EventModule.ts, LivelyScene.ts
-//
-
-
-
-/**
- * Mark one event as due for a re-read (#1843).
- *
- * handleEventParsing picks up any event whose next_refresh has passed, so
- * setting it to zero is enough to have the pipeline visit the event page on
- * its next pass -- no extra navigation.
- *
- * A no-op for an event that is not in the registry: the entry is created by
- * parseEventPage, and an id that is not there yet gets visited anyway
- * (getEventIDsToVisit).
- */
-function markEventStale(eventId) {
-    if (!eventId)
-        return;
-    const list = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-    if (!list || !list[eventId])
-        return;
-    list[eventId]["next_refresh"] = 0;
-    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(list));
-}
-
-;// ./src/Module/Events/LivelyScene.pure.ts
-// LivelyScene.pure.ts -- Pure decision logic for the Lively Scene event.
-//
-// Extracted from LivelyScene.parse and LivelyScene.parseClaimableRewards
-// so the collect-trigger cascade and the puzzle-piece filter can be
-// unit-tested without DOM access, jQuery, storage, or game globals.
-//
-// Two decisions live here:
-//
-// 1. decideCollectTrigger -- the three-branch OR cascade in
-//    LivelyScene.parse that decides whether to invoke goAndCollect at
-//    all. Triggered by any of:
-//      - autoCollect setting on (continuous polling)
-//      - manualCollectAll flag on (user-initiated full sweep)
-//      - autoCollectAll setting on AND remainingTime is below the
-//        end-of-event threshold
-//
-// 2. selectClaimablePieces -- the loop in parseClaimableRewards that
-//    walks the puzzle-piece list and keeps only the entries that are
-//    unlocked-but-not-claimed AND match the per-piece eligibility
-//    rule: matching rewardType under needToCollect, OR needToCollectAll
-//    (any rewardType), OR manualCollectAll (any rewardType).
-/**
- * Reproduce the OR cascade in LivelyScene.parse bit by bit:
- *
- *   autoCollect
- *   || manualCollectAll
- *   || (remainingTime < limitBeforeEnd && autoCollectAll)
- *
- * Operator precedence preserved: && binds tighter than ||, so the
- * end-of-event branch parses as one parenthesised conjunction.
- */
-function decideCollectTrigger(state) {
-    return (state.autoCollect
-        || state.manualCollectAll
-        || (state.remainingTime < state.limitBeforeEnd && state.autoCollectAll));
-}
-/**
- * Reproduce the loop in LivelyScene.parseClaimableRewards bit by bit.
- * Walks the input list and keeps every piece for which:
- *
- *   reward_unlocked AND NOT reward_claimed
- *   AND (
- *     (rewardsToCollect.includes(rewardType) AND needToCollect)
- *     OR needToCollectAll
- *     OR manualCollectAll
- *   )
- *
- * Operator precedence preserved (&& binds tighter than ||): the per-
- * type allowlist only gates the per-poll branch; the two sweep modes
- * accept any rewardType.
- */
-function selectClaimablePieces(pieces, state) {
-    const claimable = [];
-    for (const piece of pieces) {
-        if (piece.reward_unlocked && !piece.reward_claimed) {
-            const allowedByType = state.rewardsToCollect.includes(piece.rewardType)
-                && state.needToCollect;
-            if (allowedByType || state.needToCollectAll || state.manualCollectAll) {
-                claimable.push(piece);
-            }
-        }
-    }
-    return claimable;
-}
-
-;// ./src/Module/Events/LivelyScene.ts
-var LivelyScene_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// LivelyScene.ts -- Lively Scene event: scene progress and rewards.
-//
-// Lively Scene is a time-limited event where the player progresses through
-// scenes to earn rewards. This module tracks scene progression, manages
-// event energy, and collects available rewards automatically.
-//
-// Depends on: LivelyScene.pure.ts (piece selection), RewardHelper, EventRegistry.ts
-// Used by: EventModule.ts (parse), AutoLoopPageHandlers.ts (run, on every
-//          event-page load)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-class LivelyScene {
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        const remainingTime = LivelyScene.readRemainingTime();
-        // An event that ends before its own next_refresh is never looked at
-        // again: pruneExpiredEvents drops the entry as expired first. Keep the
-        // next visit inside the event, so rewards that unlock in the last hour
-        // are still reachable (#1857).
-        const refreshTimer = Math.min(randomInterval(3600, 4000), Math.max(Math.floor(remainingTime / 2), 60));
-        setTimer('eventLivelySceneGoing', remainingTime);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + remainingTime * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = $(".puzzle_piece.locked:visible,.puzzle_piece.claimable").length == 0;
-        const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
-        const shouldTrigger = decideCollectTrigger({
-            autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
-            manualCollectAll,
-            autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
-            remainingTime,
-            limitBeforeEnd: getLimitTimeBeforeEnd(),
-        });
-        if (shouldTrigger) {
-            LivelyScene.goAndCollect(remainingTime, manualCollectAll);
-        }
-    }
-    /**
-     * Seconds left on the event, read from the page.
-     *
-     * 3600 when the timer is not on the page -- the value parse() has always
-     * defaulted to. Note that this is fail-open for the end-of-event sweep
-     * (3600 is below every collectAllTimer setting); it is kept as it was
-     * because no measurement says the element can be missing here.
-     */
-    static readRemainingTime() {
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft === undefined || !timeLeft.length)
-            return 3600;
-        return Number(convertTimeToInt(timeLeft));
-    }
-    /**
-     * Pick the sweep up again on every event-page load.
-     *
-     * A claim ends in closeRewardPopupIfAny, which reloads the page, so one
-     * loaded DOM yields at most one reward. Continuing therefore has to happen
-     * after the reload -- and parse() cannot do it: it runs only when the
-     * pipeline visits the event page (handleEventParsing) or when plusEvent is
-     * on, because AutoLoopPageHandlers gates parseEventPage on that setting.
-     * run() runs on every event-page load, which is where Path of Attraction
-     * resumes its own sweep as well (#1816, #1857).
-     */
-    static collectOnPageLoad() {
-        return LivelyScene_awaiter(this, void 0, void 0, function* () {
-            const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll) === 'true';
-            const remainingTime = LivelyScene.readRemainingTime();
-            const shouldTrigger = decideCollectTrigger({
-                autoCollect: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true",
-                manualCollectAll,
-                autoCollectAll: getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true",
-                remainingTime,
-                limitBeforeEnd: getLimitTimeBeforeEnd(),
-            });
-            if (shouldTrigger) {
-                yield LivelyScene.goAndCollect(remainingTime, manualCollectAll);
-            }
-        });
-    }
-    static parseClaimableRewards(remainingTime, manualCollectAll = false) {
-        const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
-        const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectablesList);
-        const needToCollectAll = remainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollectAll) === "true";
-        const needToCollect = (checkTimer('nextLivelySceneEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true");
-        const projected = puzzlePieces.map((piece) => {
-            var _a, _b;
-            return ({
-                reward_unlocked: piece.reward_unlocked,
-                reward_claimed: piece.reward_claimed,
-                rewardType: ((_a = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = piece === null || piece === void 0 ? void 0 : piece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type,
-                __orig: piece,
-            });
-        });
-        const claimablePieces = selectClaimablePieces(projected, {
-            rewardsToCollect,
-            needToCollect,
-            needToCollectAll,
-            manualCollectAll,
-        }).map((p) => p.__orig);
-        logHHAuto('claimablePieces', claimablePieces);
-        return claimablePieces;
-    }
-    static goAndCollect(remainingTime_1) {
-        return LivelyScene_awaiter(this, arguments, void 0, function* (remainingTime, manualCollectAll = false) {
-            // parse() and run() can both fire on the same page load -- the
-            // pipeline parses the event page the page handler has just drawn --
-            // and two sweeps would click the same puzzle pieces. The flag lives
-            // for one page load; the reload after a claim clears it.
-            if (LivelyScene.collecting) {
-                logHHAuto("LivelyScene collect already running on this page.");
-                return false;
-            }
-            LivelyScene.collecting = true;
-            let claimed = false;
-            try {
-                const rewards = LivelyScene.parseClaimableRewards(remainingTime, manualCollectAll);
-                if (manualCollectAll)
-                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'true');
-                if (rewards.length > 0) {
-                    logHHAuto("Going to collect rewards.");
-                    logHHAuto("setting autoloop to false");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    for (let currentReward = 0; currentReward < rewards.length; currentReward++) {
-                        const reward = rewards[currentReward];
-                        const puzzlePiece = $(`#puzzle_template #puzzle_piece_${reward.id_piece}.claimable`);
-                        if (puzzlePiece.length > 0) {
-                            puzzlePiece.trigger('click');
-                            yield TimeHelper.sleep(randomInterval(200, 400));
-                            const currentCollectButton = $('.lse_side_panel button.purple_button_L.claimable');
-                            if (currentCollectButton.length > 0) {
-                                currentCollectButton.trigger('click');
-                                yield TimeHelper.sleep(randomInterval(400, 700));
-                                // Closing the popup reloads the page, so this DOM
-                                // yields no second claim. parse() has just booked
-                                // the event for an hour from now, which is what
-                                // kept the pipeline from coming back to finish the
-                                // sweep (#1857). Only on a claim that happened, so
-                                // the extra visits stay bounded by the number of
-                                // pieces and cannot become a reload loop (#1738).
-                                markEventStale(queryStringGetParam(window.location.search, 'tab') || '');
-                                claimed = true;
-                                RewardHelper.closeRewardPopupIfAny(); // refresh;
-                                yield TimeHelper.sleep(randomInterval(400, 700));
-                                return true;
-                            }
-                        }
-                    }
-                }
-                else {
-                    logHHAuto("No (more) LivelyScene reward to collect .");
-                    setTimer('nextLivelySceneEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
-                    return false;
-                }
-            }
-            catch (err) {
-                const message = err instanceof Error ? err.message : String(err);
-                logHHAuto(`ERROR during collect LivelyScene rewards: ${message}`);
-                setStoredValue(HHStoredVarPrefixKey + TK.lseManualCollectAll, 'false');
-            }
-            finally {
-                // After a claim the flag stays set: this DOM is spent, and the
-                // reload that the popup close starts clears it.
-                if (!claimed)
-                    LivelyScene.collecting = false;
-            }
-            return false;
-        });
-    }
-    static _makeSVG(tag, attrs) {
-        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        for (var k in attrs)
-            el.setAttribute(k, attrs[k]);
-        return el;
-    }
-    static _makeSVGImage($puzzlePiece, iconHref) {
-        const tresorImage = $('image', $puzzlePiece);
-        return LivelyScene._makeSVG('image', {
-            height: 18,
-            width: 18,
-            visibility: 'visible',
-            href: iconHref,
-            x: Number(tresorImage.attr('x')) + 45,
-            y: tresorImage.attr('y')
-        });
-    }
-    static run() {
-        return LivelyScene_awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
-            LivelyScene.displayCollectAllButton();
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-                const puzzlePieces = getHHVars('current_event.event_data.puzzle_pieces');
-                if (puzzlePieces.length > 0) {
-                    for (let currentReward = 0; currentReward < puzzlePieces.length; currentReward++) {
-                        const puzzlePiece = puzzlePieces[currentReward];
-                        if (puzzlePiece.reward_unlocked && !puzzlePiece.reward_claimed) {
-                            const rewardType = ((_a = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _a === void 0 ? void 0 : _a.shards) ? 'girl_shards' : (_b = puzzlePiece === null || puzzlePiece === void 0 ? void 0 : puzzlePiece.reward) === null || _b === void 0 ? void 0 : _b.rewards[0].type;
-                            const $puzzlePiece = $(`#puzzle_template #puzzle_piece_${puzzlePiece.id_piece}.claimable`);
-                            const iconHref = RewardHelper.getRewardsIconHref(rewardType);
-                            if ($puzzlePiece.length > 0 && iconHref) {
-                                const image = LivelyScene._makeSVGImage($puzzlePiece, iconHref);
-                                document.getElementById(`puzzle_piece_${puzzlePiece.id_piece}`).appendChild(image);
-                                logHHAuto(`Add icon for ${rewardType} to #puzzle_piece_${puzzlePiece.id_piece}`);
-                            }
-                        }
-                    }
-                }
-            }
-            yield LivelyScene.collectOnPageLoad();
-        });
-    }
-    static hasUnclaimedRewards() {
-        return $(".puzzle_piece.claimable:visible").length > 0;
-    }
-    static displayCollectAllButton() {
-        if (LivelyScene.hasUnclaimedRewards() && $('#LivelySceneCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="LivelySceneCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 0px;right: 45px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#lse_content').append(divTooltip);
-            button.one('click', () => {
-                LivelyScene.goAndCollect(Infinity, true);
-            });
-        }
-    }
-}
-/** One collect sweep at a time per page load, see goAndCollect. */
-LivelyScene.collecting = false;
-
-;// ./src/Module/Events/PathOfAttraction.ts
-var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// PathOfAttraction.ts -- Path of Attraction (PoA) event: tier collection and
-// reward tracking.
-//
-// Path of Attraction is a tiered event where the player collects points to
-// unlock reward tiers. This module tracks tier progress, collects available
-// rewards, and manages the event page navigation and timer scheduling.
-//
-// Depends on: RewardHelper (reward parsing), ButtonHelper
-// Used by: EventModule.ts (called when Path of Attraction event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-class PoaReward {
-    constructor(tier, type, slot) {
-        this.tier = 0;
-        this.type = '';
-        this.slot = $();
-        this.tier = tier;
-        this.type = type;
-        this.slot = slot;
-    }
-}
-class PathOfAttraction {
-    /**
-     * The game's own gate, read off the locked page on 2026-09-09:
-     * "You need to be at least on the Second World of your adventure and
-     * have at least 10 girls in your Harem to participate in the Path of
-     * Attraction event."
-     *
-     * Without it the event counts as enabled for an account that cannot
-     * enter it, and the run cannot get away from the page. The locked tab
-     * still renders: `.event-title.active` carries the requested tab, so
-     * getDisplayedIdEventPage() returns the id and the empty-id guard in
-     * EventModule never fires. Measured in one session, twelve of eighteen
-     * samples sat on that page, going home and back every tick.
-     *
-     * Same shape as PlaceOfPower.isEnabled, which guards the same kind of
-     * dead end.
-     */
-    static isEnabled() {
-        return FeatureGate.isUnlocked('pathOfAttraction');
-    }
-    static getRemainingTime() {
-        const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
-        const poATimerNodes = $(poATimerRequest);
-        if (poATimerNodes.length > 0 && (getSecondsLeft("PoARemainingTime") === 0 || getStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate) === undefined)) {
-            const poATimer = Number(convertTimeToInt(poATimerNodes.text()));
-            setTimer("PoARemainingTime", poATimer);
-            setStoredValue(HHStoredVarPrefixKey + TK.PoAEndDate, Math.ceil(new Date().getTime() / 1000) + poATimer);
-        }
-        else if (poATimerNodes.length === 0 && getSecondsLeft("PoARemainingTime") === 0) {
-            // Without this the miss is silent and every reader downstream sees
-            // the same 0 that an expired event produces -- the ambiguity #1846
-            // was about. Measured 2026-09-09: on one visit the timer read
-            // "2d 17h" and the module stored it, on three visits in another
-            // session it stored nothing, and the element itself was present
-            // 800 to 950 ms after navigation in four out of four direct page
-            // loads. What the module saw at its own moment is not yet known,
-            // and it cannot be known while the miss leaves no trace.
-            logHHAuto("PoA: no expiry timer on the page, remaining time stays unknown.");
-        }
-    }
-    static runOld() {
-        //https://nutaku.haremheroes.com/path-of-attraction.html"
-        const array = $('#path_of_attraction div.poa.container div.all-objectives .objective.completed');
-        if (array.length == 0) {
-            return;
-        }
-        const lengthNeeded = $('.golden-block.locked').length > 0 ? 1 : 2;
-        for (let i = array.length - 1; i >= 0; i--) {
-            if ($(array[i]).find('.picked-reward').length == lengthNeeded) {
-                array[i].style.display = "none";
-            }
-        }
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        PathOfAttraction.getRemainingTime();
-        const poAEnd = getSecondsLeft("PoARemainingTime");
-        logHHAuto("PoA end in " + TimeHelper.debugDate(poAEnd));
-        let refreshTimerPoa = ConfigHelper.getHHScriptVars('maxCollectionDelay');
-        // No `poAEnd > 0` guard here, unlike run(): this only shortens the
-        // refresh interval, so an unknown remaining time costs a needless early
-        // recheck rather than an unwanted collection. run() has to fail closed
-        // because its comparison decides whether rewards are claimed (#1846).
-        if (poAEnd < Math.max(refreshTimerPoa, getLimitTimeBeforeEnd()) && getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true") {
-            refreshTimerPoa = Math.min(refreshTimerPoa, getLimitTimeBeforeEnd());
-        }
-        logHHAuto("PoA next refres in " + TimeHelper.debugDate(refreshTimerPoa));
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + poAEnd * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimerPoa * 1000;
-        eventList[eventID]["isCompleted"] = PathOfAttraction.isCompleted();
-    }
-    static run() {
-        return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg'))) {
-                logHHAuto("On path of attraction event.");
-                // The shortcut to the club champion is a display choice and gates
-                // nothing but itself (#1816).
-                if (ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)
-                    && getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true") {
-                    if ($(".hh-club-poa").length <= 0) {
-                        const championsGoal = $('#poa-content .buttons:has(button[data-href="/champions-map.html"])');
-                        championsGoal.append(getGoToClubChampionButton());
-                    }
-                }
-                const manualCollectAll = getStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll) === 'true';
-                // parse() is the only other caller of getRemainingTime(), and it
-                // runs behind the plusEvent switch, which is off by default. So on
-                // a default profile PoARemainingTime was never set on this page.
-                PathOfAttraction.getRemainingTime();
-                const poAEnd = getSecondsLeft("PoARemainingTime");
-                // getSecondsLeft returns 0 for "no such timer" and for "already
-                // expired" alike, so 0 < limitBeforeEnd opened the collect-all gate
-                // whenever the timer was unknown (#1846). A missing timer must fail
-                // closed; the decision is passed on instead of being rebuilt from
-                // the setting inside goAndCollect.
-                const collectAllDue = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollectAll) === "true"
-                    && poAEnd > 0
-                    && poAEnd < getLimitTimeBeforeEnd();
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true" || manualCollectAll || collectAllDue) {
-                    yield PathOfAttraction.goAndCollect(manualCollectAll, collectAllDue);
-                }
-            }
-        });
-    }
-    static styles() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            setTimeout(PathOfAttraction.Hide, 500);
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-            PathOfAttraction.displayRewardsDiv();
-        }
-        PathOfAttraction.displayCollectAllButton();
-    }
-    static displayCollectAllButton() {
-        if (PathOfAttraction.hasUnclaimedRewards() && $('#PoaCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="PoaCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: -30px;left: 730px;width: 110px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#poa-content').append(divTooltip);
-            button.one('click', () => {
-                PathOfAttraction.goAndCollect(true);
-            });
-        }
-    }
-    static displayRewardsDiv() {
-        try {
-            const target = $('#poa-content .girls');
-            const hhRewardId = 'HHPoaRewards';
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = PathOfAttraction.getNotClaimedRewards();
-                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
-            }
-        }
-        catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            logHHAuto(`ERROR in display POA rewards: ${message}`);
-        }
-    }
-    static getNotClaimedRewards() {
-        const arrayz = $('.nc-poa-reward-pair');
-        const freeSlotSelectors = ".nc-poa-free-reward.claimable .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
-            paidSlotSelectors = ".nc-poa-locked-reward.claimable .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static _getClaimableRewards(path) {
-        const rewards = [];
-        const listPoATiersToClaim = $(path);
-        for (let currentTier = 0; currentTier < listPoATiersToClaim.length; currentTier++) {
-            const currentRewardTierNb = listPoATiersToClaim[currentTier].getAttribute("data-nc-reward-id");
-            const slotElement = $('.slot', listPoATiersToClaim[currentTier]);
-            const slotType = RewardHelper.getRewardTypeBySlot(slotElement[0]);
-            rewards[currentRewardTierNb] = new PoaReward(Number(currentRewardTierNb), slotType, slotElement);
-        }
-        return rewards;
-    }
-    static hasUnclaimedRewards() {
-        return $(PathOfAttraction.freeSlotPath + ".claimable" + ', ' + PathOfAttraction.paidSlotPath + ".claimable").length > 0;
-    }
-    static getFreeClaimableRewards() {
-        return PathOfAttraction._getClaimableRewards(PathOfAttraction.freeSlotPath + ".claimable");
-    }
-    static getPaidClaimableRewards() {
-        if ($("#nc-poa-tape-blocker").length) {
-            return [];
-        }
-        else {
-            return PathOfAttraction._getClaimableRewards(PathOfAttraction.paidSlotPath + ".claimable");
-        }
-    }
-    static isCompleted() {
-        const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
-        const numberClaimedFree = $(PathOfAttraction.freeSlotPath + ".claimed").length;
-        const numberClaimedPaid = $(PathOfAttraction.paidSlotPath + ".claimed").length;
-        if ($("#nc-poa-tape-blocker").length) {
-            return numberClaimedFree >= numberTiers;
-        }
-        else {
-            return numberClaimedFree >= numberTiers && numberClaimedPaid >= numberTiers;
-        }
-    }
-    static goAndCollect() {
-        return PathOfAttraction_awaiter(this, arguments, void 0, function* (manualCollectAll = false, needToCollectAllBeforeEnd = false) {
-            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-            const needToCollect = getStoredValue(HHStoredVarPrefixKey + SK.autoPoACollect) === "true";
-            if (manualCollectAll)
-                setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'true');
-            if (needToCollect || needToCollectAllBeforeEnd || manualCollectAll) {
-                const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoACollectablesList);
-                logHHAuto("Checking Path of Attraction for collectable rewards.");
-                const numberTiers = $(PathOfAttraction.rewardPairTierPath).length;
-                const freeClaimableRewards = PathOfAttraction.getFreeClaimableRewards();
-                const paidClaimableRewards = PathOfAttraction.getPaidClaimableRewards();
-                function getReward(reward) {
-                    return PathOfAttraction_awaiter(this, void 0, void 0, function* () {
-                        logHHAuto("Going to get " + JSON.stringify(reward));
-                        reward.slot.trigger('click');
-                        yield TimeHelper.sleep(randomInterval(300, 800));
-                        $(PathOfAttraction.getRewardButtonPath).trigger('click');
-                        yield TimeHelper.sleep(randomInterval(300, 800));
-                        RewardHelper.closeRewardPopupIfAny(); // Will refresh the page
-                        yield TimeHelper.sleep(randomInterval(1000, 1500)); // Do not collect before page refresh
-                        RewardHelper.closeRewardPopupIfAny(); // Close reward popup
-                        yield TimeHelper.sleep(randomInterval(1000, 1500));
-                    });
-                }
-                logHHAuto("numberTiers: " + numberTiers);
-                if (debugEnabled) {
-                    logHHAuto("freeClaimableRewards", freeClaimableRewards);
-                    logHHAuto("paidClaimableRewards", paidClaimableRewards);
-                }
-                const freeClaimableTiers = Object.keys(freeClaimableRewards);
-                const paidClaimableTiers = Object.keys(paidClaimableRewards);
-                if (numberTiers > 0 && (freeClaimableTiers.length > 0 || paidClaimableTiers.length > 0)) {
-                    logHHAuto(`Collecting rewards, ${freeClaimableTiers.length + paidClaimableTiers.length} rewards to collect , setting autoloop to false`);
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                    $(".scroll-area.poa").animate({ scrollLeft: 0 });
-                    yield TimeHelper.sleep(randomInterval(300, 800));
-                    for (let currentTier = 1; currentTier <= numberTiers; currentTier++) {
-                        if (freeClaimableTiers.includes('' + currentTier)) {
-                            // Unconditional modes first: they must not depend on
-                            // the selective filter being readable.
-                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(freeClaimableRewards[currentTier].type)) {
-                                yield getReward(freeClaimableRewards[currentTier]);
-                                return true;
-                            }
-                        }
-                        if (paidClaimableTiers.includes('' + currentTier)) {
-                            if (needToCollectAllBeforeEnd || manualCollectAll || rewardsToCollect.includes(paidClaimableRewards[currentTier].type)) {
-                                yield getReward(paidClaimableRewards[currentTier]);
-                                return true;
-                            }
-                        }
-                    }
-                    logHHAuto("Path of Attraction collection finished.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                    return true;
-                }
-                else {
-                    logHHAuto("No Path of Attraction reward to collect.");
-                    setStoredValue(HHStoredVarPrefixKey + TK.poaManualCollectAll, 'false');
-                }
-            }
-            return false;
-        });
-    }
-    static Hide() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
-            let arrayz;
-            let nbReward;
-            let modified = false;
-            arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
-            if ($("#nc-poa-tape-blocker").length) {
-                nbReward = 1;
-            }
-            else {
-                nbReward = 2;
-            }
-            var obj;
-            if (arrayz.length > 0) {
-                for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                    obj = $(arrayz[i2]).find('.nc-poa-reward-container.claimed');
-                    if (obj.length >= nbReward) {
-                        $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
-                        arrayz[i2].style.display = "none";
-                        modified = true;
-                    }
-                }
-            }
-        }
-    }
-}
-PathOfAttraction.rewardPairTierPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-step-indicator";
-PathOfAttraction.freeSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-free-reward";
-PathOfAttraction.paidSlotPath = "#nc-poa-tape-rewards .nc-poa-reward-pair .nc-poa-locked-reward";
-PathOfAttraction.getRewardButtonPath = "#poa-content .objective .reward button.purple_button_L";
 
 ;// ./src/Module/Events/PathOfGlory.ts
 // PathOfGlory.ts -- Path of Glory (PoG) event: tier collection and reward tracking.
@@ -28070,16 +31028,18 @@ function autoLoop() {
     });
 }
 
-;// ./src/Module/Events/DoublePenetration.ts
-// DoublePenetration.ts -- Double Penetration event: fight tracking and rewards.
+;// ./src/Service/ParanoiaService.ts
+// ParanoiaService.ts
 //
-// Double Penetration is a time-limited competitive event with its own fight
-// mechanics. This module tracks event progress, manages fight energy, collects
-// milestone rewards, and handles the event-specific UI interactions.
+// Anti-detection system that alternates between "burst" (active) and
+// "rest" (idle) periods to mimic human play patterns. During rest,
+// all actions stop and the script sits on the home page.
 //
-// Depends on: RewardHelper (reward parsing), PageNavigationService, ButtonHelper
-// Used by: EventModule.ts (called when Double Penetration event is active)
+// Before entering rest, optionally spends remaining energy to avoid
+// wasting regeneration during downtime. Mythic events can bypass
+// paranoia to avoid missing time-limited waves.
 //
+// Used by: AutoLoop (checked every iteration when paranoia is on)
 
 
 
@@ -28093,860 +31053,305 @@ function autoLoop() {
 
 
 
-class DoublePenetration {
-    static isEnabled() {
-        // The ten-girl condition the old comment here claimed is not
-        // measured; it is written down as an open question in
-        // docs-internal/adventure-quest-flow.md instead of sitting beside a
-        // check that never implemented it. FeatureGate.GATES says the same.
-        return FeatureGate.isUnlocked('doublePenetration');
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        const refreshTimer = randomInterval(3600, 4000);
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        let dpRemainingTime = 3600;
-        if (timeLeft !== undefined && timeLeft.length) {
-            dpRemainingTime = Number(convertTimeToInt(timeLeft));
+
+
+
+
+class ParanoiaService {
+    static checkParanoiaSpendings(spendingFunction = undefined) {
+        var pSpendings = new Map([]);
+        // not set
+        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
+            return -1;
         }
-        setTimer('eventDPGoing', dpRemainingTime);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + dpRemainingTime * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = false;
-        if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" || dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true") {
-            DoublePenetration.goAndCollect(dpRemainingTime);
+        else {
+            pSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) !== undefined && pSpendings.has('quest')) {
+            pSpendings.delete('quest');
+        }
+        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) !== undefined && pSpendings.has('challenge')) {
+            pSpendings.delete('challenge');
+        }
+        // for all count remaining
+        if (spendingFunction === undefined) {
+            var spendingsRemaining = 0;
+            for (var i of pSpendings.values()) {
+                spendingsRemaining += Number(i);
+            }
+            return spendingsRemaining;
+        }
+        else {
+            // return value if exist else -1
+            return pSpendings.get(spendingFunction) || -1;
         }
     }
-    static goAndCollect(dpRemainingTime, manualCollectAll = false) {
-        try {
-            const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autodpEventCollectablesList);
-            const needToCollectAll = dpRemainingTime < getLimitTimeBeforeEnd() && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollectAll) === "true";
-            const needToCollect = (checkTimer('nextDpEventCollectTime') && getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true");
-            const dPTierQuery = "#dp-content .tiers-container .player-progression-container .tier-container:has(button.display-block)";
-            const dPFreeSlotQuery = ".free-slot .slot,.free-slot .slot_girl_shards";
-            const dPPaidSlotQuery = ".paid-slot .slot,.paid-slot .slot_girl_shards";
-            const isPassPaid = $("#nc-poa-tape-blocker button.unlock-poa-bonus-rewards:visible").length <= 0;
-            if (needToCollect || needToCollectAll || manualCollectAll) {
-                logHHAuto("Checking double penetration event for collectable rewards.");
-                logHHAuto("setting autoloop to false");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                const buttonsToCollect = [];
-                const listDpEventTiersToClaim = $(dPTierQuery);
-                for (let currentTier = 0; currentTier < listDpEventTiersToClaim.length; currentTier++) {
-                    const currentButton = $("button[rel='reward-claim']", listDpEventTiersToClaim[currentTier])[0];
-                    const currentTierNb = currentButton.getAttribute("tier");
-                    if (needToCollectAll) {
-                        logHHAuto("Adding for collection tier before end of event: " + currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    }
-                    else if (manualCollectAll) {
-                        logHHAuto("Adding for collection tier from manual collect all: " + currentTierNb);
-                        buttonsToCollect.push(currentButton);
-                    }
-                    else {
-                        const freeSlotType = RewardHelper.getRewardTypeBySlot($(dPFreeSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                        if (rewardsToCollect.includes(freeSlotType)) {
-                            if (isPassPaid) {
-                                // One button for both
-                                const paidSlotType = RewardHelper.getRewardTypeBySlot($(dPPaidSlotQuery, listDpEventTiersToClaim[currentTier])[0]);
-                                if (rewardsToCollect.includes(paidSlotType)) {
-                                    buttonsToCollect.push(currentButton);
-                                    logHHAuto("Adding for collection tier (free + paid) : " + currentTierNb);
-                                }
-                                else {
-                                    logHHAuto("Can't add tier " + currentTierNb + " as paid reward isn't to be colled");
-                                }
-                            }
-                            else {
-                                buttonsToCollect.push(currentButton);
-                                logHHAuto("Adding for collection tier (only free) : " + currentTierNb);
-                            }
-                        }
-                    }
-                }
-                if (buttonsToCollect.length > 0) {
-                    function collectDpEventRewards() {
-                        if (buttonsToCollect.length > 0) {
-                            logHHAuto("Collecting tier : " + buttonsToCollect[0].getAttribute('tier'));
-                            buttonsToCollect[0].click();
-                            buttonsToCollect.shift();
-                            setTimeout(RewardHelper.closeRewardPopupIfAny, randomInterval(300, 500));
-                            setTimeout(collectDpEventRewards, randomInterval(500, 800));
-                        }
-                        else {
-                            logHHAuto("Double penetration collection finished.");
-                            setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                            setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                        }
-                    }
-                    collectDpEventRewards();
-                    return true;
+    static clearParanoiaSpendings() {
+        ParanoiaService.countParanoiaLoop = 0;
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked);
+        deleteStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked);
+    }
+    static updatedParanoiaSpendings(inSpendingFunction, inSpent) {
+        var currentPSpendings = new Map([]);
+        // not set
+        if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings) === undefined) {
+            return;
+        }
+        else {
+            currentPSpendings = getStoredJSON(HHStoredVarPrefixKey + TK.paranoiaSpendings, new Map(), reviverMap);
+            if (currentPSpendings.has(inSpendingFunction)) {
+                let currValue = currentPSpendings.get(inSpendingFunction) || 0;
+                currValue -= inSpent;
+                if (currValue > 0) {
+                    logHHAuto("Spent " + inSpent + " " + inSpendingFunction + ", remains " + currValue + " before Paranoia.");
+                    currentPSpendings.set(inSpendingFunction, currValue);
                 }
                 else {
-                    logHHAuto("No double penetration reward to collect.");
-                    setTimer('nextDpEventCollectTime', ConfigHelper.getHHScriptVars("maxCollectionDelay") + randomInterval(60, 180));
-                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
-                    return false;
+                    currentPSpendings.delete(inSpendingFunction);
                 }
             }
+            logHHAuto("Remains to spend before Paranoia : " + JSON.stringify(currentPSpendings, replacerMap));
+            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(currentPSpendings, replacerMap));
+        }
+    }
+    //sets spending to do before paranoia
+    static setParanoiaSpendings() {
+        var maxPointsDuringParanoia;
+        var totalPointsEndParanoia;
+        var paranoiaSpendings = new Map([]);
+        var paranoiaSpend;
+        var currentEnergy;
+        var maxEnergy;
+        var toNextSwitch;
+        const tempNextSwitch = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+        if (tempNextSwitch !== undefined && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
+            toNextSwitch = Number((Number(tempNextSwitch) - new Date().getTime()) / 1000);
+            if (LeagueHelper.isAutoLeagueActivated()) {
+                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked) === undefined) {
+                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.challenge.next_refresh_ts'))) / Number(getHHVars('Hero.energies.challenge.seconds_per_point')));
+                    currentEnergy = LeagueHelper.getEnergy();
+                    maxEnergy = LeagueHelper.getEnergyMax();
+                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
+                    //if point refreshed during paranoia would go above max
+                    if (totalPointsEndParanoia >= maxEnergy) {
+                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
+                        paranoiaSpendings.set("challenge", paranoiaSpend);
+                        logHHAuto("Setting Paranoia spendings for league : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
+                    }
+                    else {
+                        logHHAuto("Setting Paranoia spendings for league : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
+                    }
+                }
+            }
+            if (ConfigHelper.getHHScriptVars('isEnabledQuest', false) && (getStoredValue(HHStoredVarPrefixKey + SK.autoQuest) === "true" || (ConfigHelper.getHHScriptVars("isEnabledSideQuest", false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSideQuest) === "true"))) {
+                if (getStoredValue(HHStoredVarPrefixKey + TK.paranoiaQuestBlocked) === undefined) {
+                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.quest.next_refresh_ts'))) / Number(getHHVars('Hero.energies.quest.seconds_per_point')));
+                    currentEnergy = QuestHelper.getEnergy();
+                    maxEnergy = QuestHelper.getEnergyMax();
+                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
+                    //if point refreshed during paranoia would go above max
+                    if (totalPointsEndParanoia >= maxEnergy) {
+                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
+                        paranoiaSpendings.set("quest", paranoiaSpend);
+                        logHHAuto("Setting Paranoia spendings for quest : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
+                    }
+                    else {
+                        logHHAuto("Setting Paranoia spendings for quest : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
+                    }
+                }
+            }
+            if (ConfigHelper.getHHScriptVars('isEnabledTrollBattle', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && getHHVars('Hero.infos.questing.id_world') > 0) {
+                maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.fight.next_refresh_ts'))) / Number(getHHVars('Hero.energies.fight.seconds_per_point')));
+                currentEnergy = Troll.getEnergy();
+                maxEnergy = Troll.getEnergyMax();
+                totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
+                //if point refreshed during paranoia would go above max
+                if (totalPointsEndParanoia >= maxEnergy) {
+                    paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
+                    paranoiaSpendings.set("fight", paranoiaSpend);
+                    logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
+                }
+                else {
+                    logHHAuto("Setting Paranoia spendings for troll : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
+                }
+            }
+            if (ConfigHelper.getHHScriptVars('isEnabledSeason', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoSeason) === "true") {
+                const seasonFocus = getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonFocus);
+                if (seasonFocus === "girl" || seasonFocus === "girlAndSkin") {
+                    logHHAuto('Season auto is on but Season focus restricts fights, no spending kisses.');
+                }
+                else {
+                    maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.kiss.next_refresh_ts'))) / Number(getHHVars('Hero.energies.kiss.seconds_per_point')));
+                    currentEnergy = Season.getEnergy();
+                    maxEnergy = Season.getEnergyMax();
+                    totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
+                    //if point refreshed during paranoia would go above max
+                    if (totalPointsEndParanoia >= maxEnergy) {
+                        paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
+                        paranoiaSpendings.set("kiss", paranoiaSpend);
+                        logHHAuto("Setting Paranoia spendings for Season : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
+                    }
+                    else {
+                        logHHAuto("Setting Paranoia spendings for Season : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
+                    }
+                }
+            }
+            if (ConfigHelper.getHHScriptVars('isEnabledPantheon', false) && getStoredValue(HHStoredVarPrefixKey + SK.autoPantheon) === "true") {
+                maxPointsDuringParanoia = Math.ceil((toNextSwitch - Number(getHHVars('Hero.energies.worship.next_refresh_ts'))) / Number(getHHVars('Hero.energies.worship.seconds_per_point')));
+                currentEnergy = Pantheon.getEnergy();
+                maxEnergy = Pantheon.getEnergyMax();
+                totalPointsEndParanoia = currentEnergy + maxPointsDuringParanoia;
+                //if point refreshed during paranoia would go above max
+                if (totalPointsEndParanoia >= maxEnergy) {
+                    paranoiaSpend = totalPointsEndParanoia - maxEnergy + 1;
+                    paranoiaSpendings.set("worship", paranoiaSpend);
+                    logHHAuto("Setting Paranoia spendings for Pantheon : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") spending " + paranoiaSpend);
+                }
+                else {
+                    logHHAuto("Setting Paranoia spendings for Pantheon : " + currentEnergy + "+" + maxPointsDuringParanoia + " max gained in " + toNextSwitch + " secs => (" + totalPointsEndParanoia + "/" + maxEnergy + ") No spending ");
+                }
+            }
+            logHHAuto("Setting paranoia spending to : " + JSON.stringify(paranoiaSpendings, replacerMap));
+            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaSpendings, JSON.stringify(paranoiaSpendings, replacerMap));
+        }
+    }
+    static flipParanoia() {
+        var burst = getBurst();
+        var Setting = getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSettings);
+        var S1 = Setting.split('/').map((s) => s.split('|').map((s) => s.split(':')));
+        var toNextSwitch;
+        var period;
+        var n = new Date().getHours();
+        S1[2].some((x) => { if (n < x[0]) {
+            period = x[1];
             return true;
-        }
-        catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            logHHAuto(`ERROR during collect DP rewards: ${message}`);
-        }
-        return false;
-    }
-    static run() {
-        if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'))) {
-            logHHAuto("On Double penetration event.");
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showClubButtonInPoa) === "true" && ConfigHelper.getHHScriptVars("isEnabledClubChamp", false)) {
-                GM_addStyle('#dp-content .left-container .objectives-container .hard-objective .nc-sub-panel div.buttons .redirect-buttons {flex-direction: column;}');
-                if ($(".hard-objective .hh-club-poa").length <= 0) {
-                    const championsGoal = $('.hard-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
-                    championsGoal.append(getGoToClubChampionButton());
-                }
-                if ($(".easy-objective .hh-club-poa").length <= 0) {
-                    const championsGoal = $('.easy-objective .redirect-buttons:has(button[data-href="/champions-map.html"])');
-                    championsGoal.append(getGoToClubChampionButton());
-                }
+        } return false; });
+        if (burst) {
+            var periods = Object.assign({}, ...S1[1].map((d) => ({ [d[0]]: d[1].split('-') })));
+            const nextSwitchVal = getStoredValue(HHStoredVarPrefixKey + TK.NextSwitch);
+            toNextSwitch = nextSwitchVal ? Number((Number(nextSwitchVal) - new Date().getTime()) / 1000) : randomInterval(Number(periods[period][0]), Number(periods[period][1]));
+            //match mythic new wave with end of sleep
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true" && getTimer("eventMythicNextWave") !== -1 && toNextSwitch > getSecondsLeft("eventMythicNextWave")) {
+                logHHAuto("Forced rest only until next mythic wave.");
+                toNextSwitch = getSecondsLeft("eventMythicNextWave");
             }
-            if (getStoredValue(HHStoredVarPrefixKey + SK.showRewardsRecap) === "true") {
-                DoublePenetration.displayRewardsDiv();
-                DoublePenetration.displayCollectAllButton();
-            }
-        }
-    }
-    static hasUnclaimedRewards() {
-        return $(".tier-container button.purple_button_L:visible").length > 0;
-    }
-    static displayRewardsDiv() {
-        try {
-            const target = $('#dp-content .right-container');
-            const hhRewardId = 'HHDpRewards';
-            if ($('#' + hhRewardId).length <= 0) {
-                const rewardCountByType = DoublePenetration.getNotClaimedRewards();
-                RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
-            }
-        }
-        catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            logHHAuto(`ERROR in display DP rewards: ${message}`);
-        }
-    }
-    static getNotClaimedRewards() {
-        const arrayz = $('#dp-content .tier-container:has(.tier-level button[rel="reward-claim"]:visible)');
-        const freeSlotSelectors = ".free-slot .slot";
-        let paidSlotSelectors = "";
-        if ($("div#nc-poa-tape-blocker").length == 0) {
-            // Season pass paid
-            paidSlotSelectors = ".paid-slot  .slot";
-        }
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static displayCollectAllButton() {
-        if (DoublePenetration.hasUnclaimedRewards() && $('#dpCollectAll').length == 0) {
-            const button = $(`<button class="purple_button_L" style="padding:0px 5px" id="dpCollectAll">${getTextForUI("collectAllButton", "elementText")}</button>`);
-            const divTooltip = $(`<div class="tooltipHH" style="position: absolute;top: 135px;width: 80px;font-size: small; z-index:5"><span class="tooltipHHtext">${getTextForUI("collectAllButton", "tooltip")}</span></div>`);
-            divTooltip.append(button);
-            $('#dp-content .tiers-container .player-potions').append(divTooltip);
-            button.one('click', () => {
-                DoublePenetration.goAndCollect(Infinity, true);
-            });
-        }
-    }
-}
-
-;// ./src/Module/Events/KinkyCumpetition.ts
-// KinkyCumpetition.ts -- Kinky Cumpetition event handling.
-//
-// Kinky Cumpetition is a periodic competitive event. This module parses event
-// page data, tracks timer countdowns and girl reward progress, and manages
-// the event refresh schedule.
-//
-// Depends on: the HHEvent model only -- this module parses, it does not navigate.
-// Used by: EventModule.ts (called when Kinky Cumpetition event is active)
-//
-
-
-class KinkyCumpetition {
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        const refreshTimer = randomInterval(3600, 4000);
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventKinkyCumpetitionGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventKinkyCumpetitionGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        const allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            const girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100) {
-                eventList[eventID]["isCompleted"] = false;
-            }
-        }
-    }
-}
-
-;// ./src/model/EventGirl.ts
-// Model representing a girl obtainable during an in-game event.
-// Wraps the raw KKEventGirl API data and extracts the girl ID, troll/champion
-// association, shard count, event timing, and mythic status.
-
-
-class EventGirl {
-    constructor(girlData, eventId, seconds_before_end, is_mythic = false, parseSource = true) {
-        this.name = '';
-        this.event_id = '';
-        this.girl_id = girlData.id_girl;
-        this.shards = girlData.shards;
-        this.seconds_before_end = seconds_before_end;
-        this.is_mythic = is_mythic;
-        this.name = girlData.name;
-        this.event_id = eventId;
-        if (parseSource) {
-            this.parseSource(girlData);
-        }
-    }
-    isOnTroll() {
-        return this.troll_id > 0;
-    }
-    isOnChampion() {
-        return this.champ_id > 0;
-    }
-    toString() {
-        if (this.isOnTroll()) {
-            return `Event girl : ${this.name} (${this.shards}/100) at troll ${this.troll_id} on event : ${this.event_id}`;
-        }
-        else if (this.isOnChampion()) {
-            return `Event girl : ${this.name} (${this.shards}/100) at champ ${this.champ_id} on event : ${this.event_id}`;
-        }
-        return `Event girl : ${this.name} (${this.shards}/100) on event : ${this.event_id}`;
-    }
-    parseSource(girlData) {
-        if (girlData.source) {
-            if (girlData.source.name === 'event_troll') {
-                try {
-                    const parsedURL = new URL(girlData.source.anchor_source.url, window.location.origin);
-                    this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
-                    if (girlData.source.anchor_source.disabled) {
-                        logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                        this.troll_id = undefined;
+            //bypass Paranoia if ongoing mythic
+            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollMythicByPassParanoia) === "true") {
+                const eventMythicGirl = EventModule.getEventMythicGirl();
+                if (eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
+                    //             {
+                    //mythic onGoing and still have some fight above threshold
+                    if (Troll.getEnergy() > 0) //trollThreshold)
+                     {
+                        logHHAuto("Forced bypass Paranoia for mythic (can fight).");
+                        setTimer('paranoiaSwitch', 60);
+                        return;
                     }
-                }
-                catch (error) {
-                    try {
-                        const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
-                        this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
-                        if (girlData.source.anchor_win_from.disabled) {
-                            logHHAuto(`Troll ${this.troll_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                            this.troll_id = undefined;
-                        }
-                    }
-                    catch (error) {
-                        logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
+                    //mythic ongoing and can buyCombat
+                    if (Troll.canBuyFight(eventMythicGirl).canBuy && Troll.getEnergy() == 0) {
+                        logHHAuto("Forced bypass Paranoia for mythic (can buy).");
+                        setTimer('paranoiaSwitch', 60);
+                        return;
                     }
                 }
             }
-            else if (girlData.source.name === 'event_champion_girl') {
-                try {
-                    this.champ_id = Number(girlData.source.anchor_source.url.split('/champions/')[1]);
-                    if (girlData.source.anchor_source.disabled) {
-                        logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                        this.champ_id = undefined;
-                    }
-                }
-                catch (error) {
-                    try {
-                        this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
-                        if (girlData.source.anchor_win_from.disabled) {
-                            logHHAuto(`Champion ${this.champ_id} is not available for ${this.is_mythic ? 'mythic ' : ''}girl ${this.name} (${this.girl_id}) ignoring`);
-                            this.champ_id = undefined;
-                        }
-                    }
-                    catch (error) {
-                        logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
-                    }
-                }
+            if (ParanoiaService.checkParanoiaSpendings() === -1 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
+                setStoredValue(HHStoredVarPrefixKey + TK.NextSwitch, new Date().getTime() + toNextSwitch * 1000);
+                ParanoiaService.setParanoiaSpendings();
+                return;
             }
-            else if (girlData.source.name === 'event_dm') {
-                // Daily missions girl
+            if (ParanoiaService.checkParanoiaSpendings() === 0 || getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "false") {
+                ParanoiaService.clearParanoiaSpendings();
+                PlaceOfPower.cleanTempPopToStart();
+                //going into hiding
+                setStoredValue(HHStoredVarPrefixKey + TK.burst, "false");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
             }
-            else if (girlData.source.name === 'pachinko_event') {
-                // pachinko event girl
+            else if (ParanoiaService.checkParanoiaSpendings() > 0 && getStoredValue(HHStoredVarPrefixKey + SK.paranoiaSpendsBefore) === "true") {
+                // manage wrong values in storage to avoid infinite loop
+                ParanoiaService.countParanoiaLoop++;
+                if (ParanoiaService.countParanoiaLoop > ParanoiaService.MAX_LOOP) {
+                    logHHAuto(`10 times flip without actions, clearParanoiaSpending and update (count: ${ParanoiaService.countParanoiaClear++}) `);
+                    ParanoiaService.clearParanoiaSpendings();
+                    ParanoiaService.setParanoiaSpendings();
+                }
+                if (ParanoiaService.countParanoiaClear < ParanoiaService.MAX_LOOP)
+                    return;
+                else
+                    logHHAuto(`10 times clearParanoiaSpending and update, let flip continue`);
             }
             else {
-                logHHAuto(`Other source found ${girlData.source.name}`);
+                //refresh remaining
+                //let spending go before going in paranoia
+                return;
             }
         }
-    }
-}
-
-;// ./src/Module/Events/MythicEvent.ts
-// MythicEvent.ts -- Mythic event: wave tracking and troll fight coordination.
-//
-// Mythic events feature special troll bosses with wave-based progression and
-// unique girl shard rewards. This module tracks wave progress, coordinates
-// with Troll.ts for fight prioritization, and manages event-specific timers
-// and girl shard tracking.
-//
-// Depends on: EventGirl and GirlSkins.pure.ts (girl and skin data)
-// Used by: EventModule.ts (called when a Mythic event is active)
-//
-
-
-
-
-
-
-
-
-class MythicEvent {
-    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
-        const eventID = hhEvent.eventId;
-        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        const refreshTimer = randomInterval(3600, 4000);
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventMythicGoing', Number(convertTimeToInt(timeLeft)));
+        else {
+            //going to work
+            setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+            logHHAuto("setting autoloop to false");
+            setStoredValue(HHStoredVarPrefixKey + TK.burst, "true");
+            var b = S1[0][0][0].split('-');
+            toNextSwitch = randomInterval(Number(b[0]), Number(b[1]));
         }
-        else
-            setTimer('eventMythicGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["isMythic"] = true;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        const allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            const girlData = allEventGirlz[currIndex];
-            const ShardsQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.number';
-            const timerQuery = '#events .nc-panel .nc-panel-body .nc-event-reward-container .nc-events-prize-locations-container .shards-info span.timer';
-            if ($(ShardsQuery).length > 0) {
-                const remShards = Number($(ShardsQuery)[0].innerText);
-                const nextWave = ($(timerQuery).length > 0) ? convertTimeToInt($(timerQuery)[0].innerText) : -1;
-                // A girl you already own can still owe you a skin (#1842). The
-                // game says so on the girl itself -- preview.grade_skins_data
-                // carries is_released/is_owned per skin -- so +Girl Skins works
-                // here the same way it already worked for love raids.
-                const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
-                if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
-                    eventList[eventID]["isCompleted"] = false;
-                    if (nextWave === -1) {
-                        clearTimer('eventMythicNextWave');
-                    }
-                    else {
-                        setTimer('eventMythicNextWave', nextWave);
-                    }
-                    const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"], true);
-                    if (remShards !== 0) {
-                        if (eventGirl.isOnTroll()) {
-                            logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
-                            eventsGirlz.push(eventGirl);
-                        }
-                    }
-                    else {
-                        if (nextWave === -1) {
-                            eventList[eventID]["isCompleted"] = true;
-                            clearTimer('eventMythicNextWave');
-                        }
-                    }
-                }
-                else {
-                    // No more needed if girl is owned
-                    clearTimer('eventMythicNextWave');
-                }
-            }
-        }
-    }
-}
-
-;// ./src/Module/Events/PlusEvents.ts
-// PlusEvents.ts -- Plus Events: parsing and display for event overlay info.
-//
-// Plus Events are a category of events that overlay additional information
-// and rewards on top of normal gameplay. This module parses event data,
-// extracts girl shard progress and troll fight priorities, and displays
-// event overlay information in the UI.
-//
-// Depends on: EventModule.ts (event detection and routing)
-// Used by: EventModule.ts (called when Plus Events are active)
-//
-
-
-
-
-
-
-
-
-
-class PlusEvent {
-    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
-        const eventID = hhEvent.eventId;
-        const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-        const refreshTimer = randomInterval(3600, 4000);
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        if (timeLeft !== undefined && timeLeft.length) {
-            setTimer('eventGoing', Number(convertTimeToInt(timeLeft)));
-        }
-        else
-            setTimer('eventGoing', refreshTimer);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + Number(convertTimeToInt(timeLeft)) * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = true;
-        const allEventGirlz = hhEventData ? hhEventData.girls : [];
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            const girlData = allEventGirlz[currIndex];
-            // Same as the mythic path (#1842): an owned girl may still owe a
-            // skin, and +Girl Skins says the user wants it.
-            const wantsSkins = getStoredValue(HHStoredVarPrefixKey + SK.plusGirlSkins) === "true";
-            if (isStillWorthFighting(girlData.shards, wantsSkins, girlData)) {
-                eventList[eventID]["isCompleted"] = false;
-                const eventGirl = new EventGirl(girlData, eventID, eventList[eventID]["seconds_before_end"]);
-                if (eventGirl.isOnTroll()) {
-                    logHHAuto(`Event girl : ${eventGirl.toString()} with priority : ${Priority.indexOf('' + eventGirl.troll_id)}`, eventGirl);
-                    eventsGirlz.push(eventGirl);
-                }
-                if (eventGirl.isOnChampion()) {
-                    logHHAuto(`Event girl : ${eventGirl.toString()}`, eventGirl);
-                    eventChamps.push(eventGirl);
-                }
-            }
-        }
-        if (eventList[eventID]["isCompleted"]) {
-            EventModule.collectEventChestIfPossible();
-        }
-    }
-}
-
-;// ./src/Module/Events/SultryMysteries.pure.ts
-// SultryMysteries.pure.ts -- Pure remaining-time resolution for the Sultry
-// Mysteries event.
-//
-// Extracted from SultryMysteries.parse so the "where does the event's
-// remaining time come from" decision can be unit-tested without DOM
-// access or game globals.
-//
-// On /event.html the grid tab is shown by default, and the countdown
-// selector ('#contains_all #events .nc-panel .timer span[rel="expires"]')
-// only matches an element after the user switches to the shop tab. Read
-// before that switch, it yields an empty string/null -- and computing
-// seconds_before_end from that made the event look already expired.
-//
-// The game exposes the same remaining time on
-// window.sm_event_data.seconds_until_event_end (a numeric string)
-// regardless of which tab is active, so that is tried first. The DOM
-// value is kept as a fallback for older/other game variants, and a
-// caller-supplied default covers the case where neither source is
-// available -- resolveSultryMysteriesSecondsLeft never returns a value
-// derived from an empty/missing reading.
-function resolveSultryMysteriesSecondsLeft(hhVarSecondsUntilEnd, domSecondsLeft, defaultSeconds) {
-    const parsedHHVar = Number(hhVarSecondsUntilEnd);
-    if (hhVarSecondsUntilEnd !== null && hhVarSecondsUntilEnd !== undefined && Number.isFinite(parsedHHVar) && parsedHHVar >= 0) {
-        return parsedHHVar;
-    }
-    if (domSecondsLeft !== null && Number.isFinite(domSecondsLeft) && domSecondsLeft >= 0) {
-        return domSecondsLeft;
-    }
-    return defaultSeconds;
-}
-// ---------------------------------------------------------------------------
-// Grid automation ("Auto-Mystery")
-//
-// The grid is a 6-column, 5-row board of 30 squares numbered 1..30 in
-// reading order. Opening a square costs one key; after
-// grid_refresh_squares_required (15) squares are opened, "Generate new
-// grid" becomes available and resets the board.
-//
-// Opening order is a checkerboard so the first wave spreads over the whole
-// board instead of clustering in the top rows:
-//
-//     X O X O X O        squares  1  3  5
-//     O X O X O X                 8 10 12
-//     X O X O X O                13 15 17
-//     O X O X O X                20 22 24
-//     X O X O X O                25 27 29
-//
-// That is exactly 15 squares -- the refresh threshold -- so the first wave
-// alone unlocks a regenerate. The remaining "O" squares follow in
-// ascending order when the reward goal has not been met yet.
-const SM_GRID_COLUMNS = 6;
-/** True for the "X" squares of the checkerboard (first wave). */
-function isFirstWaveSquare(idSquare, columns = SM_GRID_COLUMNS) {
-    const row = Math.ceil(idSquare / columns);
-    const column = ((idSquare - 1) % columns) + 1;
-    return (row + column) % 2 === 0;
-}
-/**
- * Ids of the still-locked squares in the order they should be opened:
- * checkerboard squares first (ascending), then the rest (ascending).
- * Already-opened squares are skipped, so a half-played grid is picked up
- * where it was left.
- */
-function smOpeningOrder(grid, columns = SM_GRID_COLUMNS) {
-    const locked = (grid || [])
-        .filter((square) => square && !square.is_opened && Number.isFinite(Number(square.id_square)))
-        .map((square) => Number(square.id_square))
-        .sort((a, b) => a - b);
-    return [
-        ...locked.filter((id) => isFirstWaveSquare(id, columns)),
-        ...locked.filter((id) => !isFirstWaveSquare(id, columns)),
-    ];
-}
-/** Reward indexes revealed so far, as numbers. */
-function openedRewardIndexes(grid) {
-    const opened = new Set();
-    for (const square of grid || []) {
-        if (square && square.is_opened) {
-            const index = Number(square.reward_index);
-            if (Number.isFinite(index))
-                opened.add(index);
-        }
-    }
-    return opened;
-}
-/**
- * Per selected reward type: how many squares of the current grid hold it and
- * how many of those are already open. Counts come from the live rewards_list
- * rather than fixed numbers, because a regenerated grid may be composed
- * differently.
- */
-function smSelectedTypesProgress(rewardsList, grid, selectedTypes) {
-    const opened = openedRewardIndexes(grid);
-    return (selectedTypes || []).map((type) => {
-        var _a, _b, _c;
-        let total = 0;
-        let found = 0;
-        for (const rewardIndex of Object.keys(rewardsList || {})) {
-            if (((_c = (_b = (_a = rewardsList[rewardIndex]) === null || _a === void 0 ? void 0 : _a.rewards) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.type) !== type)
-                continue;
-            total++;
-            if (opened.has(Number(rewardIndex)))
-                found++;
-        }
-        return { type, total, found };
-    });
-}
-/**
- * Whether every selected reward type has been fully revealed. An empty
- * selection is complete by definition -- the user then only gets the
- * "open 15, regenerate, repeat until out of keys" behaviour.
- */
-function smSelectionComplete(rewardsList, grid, selectedTypes) {
-    return smSelectedTypesProgress(rewardsList, grid, selectedTypes).every((progress) => progress.found >= progress.total);
-}
-function smOpenedCount(grid) {
-    return (grid || []).filter((square) => square && square.is_opened).length;
-}
-/**
- * The single next step for the grid.
- *
- * Regenerating is checked first and does not require keys: it costs
- * nothing, and a fresh board is worth more than the leftovers of a board
- * whose interesting squares are already open.
- *
- * Opening is only ever proposed with keys in hand. Clicking a locked
- * square with zero keys makes the game open its "get more keys" popup
- * (koban purchase), so the caller must never click on a "no_keys" wait.
- */
-function smNextAction(state) {
-    const grid = state.grid || [];
-    const canRegenerate = smOpenedCount(grid) >= state.squaresRequiredForRefresh;
-    if (canRegenerate && smSelectionComplete(state.rewardsList, grid, state.selectedTypes)) {
-        return { kind: "regenerate" };
-    }
-    const nextSquare = smOpeningOrder(grid)[0];
-    if (nextSquare === undefined) {
-        // Whole board open but the goal still unmet: nothing left to do here.
-        return canRegenerate ? { kind: "regenerate" } : { kind: "wait", reason: "grid_complete" };
-    }
-    if (!Number.isFinite(state.keys) || state.keys <= 0) {
-        return { kind: "wait", reason: "no_keys" };
-    }
-    return { kind: "open", idSquare: nextSquare };
-}
-
-;// ./src/Module/Events/SultryMysteries.ts
-// SultryMysteries.ts -- Sultry Mysteries event: shop refresh and grid automation.
-//
-// Sultry Mysteries is a time-limited event featuring a special event shop
-// and a 6x5 grid of 30 squares. Each square hides a reward and costs one
-// key to open; once at least 15 squares are open the grid can be
-// regenerated. This module monitors the event shop for refresh timers and
-// automates opening grid squares ("Auto-Mystery").
-//
-// Depends on: SultryMysteries.pure.ts (shop logic), PageNavigationService
-// Used by: EventModule.ts (called when Sultry Mysteries event is active)
-//
-
-
-
-
-
-
-
-
-
-
-
-
-// How long to wait before looking for keys again once the grid ran dry.
-// Keys are not granted passively -- they drop from the last Daily Goals
-// chest and from villains -- so there is no point in checking more often,
-// and the script should not sprint off the moment a single key appears.
-const SM_NO_KEYS_RETRY_SECONDS = 3600;
-class SultryMysteries {
-    static isEnabled() {
-        return FeatureGate.isUnlocked('sultryMysteries');
-    }
-    static isAutoOpenEnabled() {
-        return getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true" && SultryMysteries.isEnabled();
-    }
-    static parse(hhEvent, eventList, hhEventData) {
-        const eventID = hhEvent.eventId;
-        const refreshTimer = randomInterval(3600, 4000);
-        // Grid tab (shown by default on /event.html) doesn't render this
-        // timer -- it only appears after switching to the shop tab -- so
-        // sm_event_data.seconds_until_event_end (available on either tab)
-        // is tried first; the DOM reading is a fallback for when that
-        // global isn't there.
-        const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
-        const domSecondsLeft = timeLeft !== undefined && timeLeft.length ? Number(convertTimeToInt(timeLeft)) : null;
-        const hhVarSecondsLeft = getHHVars('sm_event_data.seconds_until_event_end', false);
-        const secondsLeft = resolveSultryMysteriesSecondsLeft(hhVarSecondsLeft, domSecondsLeft, 3600);
-        setTimer('eventSultryMysteryGoing', secondsLeft);
-        eventList[eventID] = {};
-        eventList[eventID]["id"] = eventID;
-        eventList[eventID]["type"] = hhEvent.eventType;
-        eventList[eventID]["seconds_before_end"] = new Date().getTime() + secondsLeft * 1000;
-        eventList[eventID]["next_refresh"] = new Date().getTime() + refreshTimer * 1000;
-        eventList[eventID]["isCompleted"] = false;
-        // The grid automation is a pipeline block of its own
-        // (handleSultryMysteries) and is deliberately NOT started from here:
-        // parse runs on every tick that re-parses the event page, which used
-        // to spawn one click chain per tick.
-        if (getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" && checkTimer("eventSultryMysteryShopRefresh")) {
-            logHHAuto("Refresh sultry mysteries shop content.");
-            const shopButton = $('#shop_tab');
-            const gridButton = $('#grid_tab');
-            shopButton.trigger('click');
-            setTimeout(function () {
-                const shopTimeLeft = $('#contains_all #events #shop_tab_container .shop-section .shop-timer span[rel="expires"]').text();
-                setTimer('eventSultryMysteryShopRefresh', Number(convertTimeToInt(shopTimeLeft)) + randomInterval(60, 180));
-                eventList[eventID]["next_shop_refresh"] = new Date().getTime() + Number(shopTimeLeft) * 1000;
-                setTimeout(function () { gridButton.trigger('click'); }, randomInterval(800, 1200));
-            }, randomInterval(300, 500));
-        }
-    }
-    // -----------------------------------------------------------------
-    // Auto-Mystery
-    // -----------------------------------------------------------------
-    /**
-     * Keys currently in hand.
-     *
-     * sm_event_data.event_data.progression.key_amount goes stale as soon as
-     * a square is opened -- the game keeps the running count in a module
-     * closure and only writes it to the sidebar -- so the sidebar is the
-     * authoritative reading, with the global as a fallback for the very
-     * first pass.
-     */
-    static getKeyAmount() {
-        const sidebarText = $('#contains_all #events .get-more-keys-section > p').text();
-        const fromSidebar = Number((sidebarText || '').trim());
-        if (Number.isFinite(fromSidebar) && sidebarText.trim() !== '')
-            return fromSidebar;
-        const fromVars = Number(getHHVars('sm_event_data.event_data.progression.key_amount', false));
-        return Number.isFinite(fromVars) ? fromVars : 0;
-    }
-    static getGrid() {
-        const grid = getHHVars('sm_event_data.event_data.progression.grid', false);
-        return Array.isArray(grid) ? grid : [];
-    }
-    static getRewardsList() {
-        const rewards = getHHVars('sm_event_data.event_data.rewards_list', false);
-        return rewards && typeof rewards === 'object' ? rewards : {};
-    }
-    static getSquaresRequiredForRefresh() {
-        const required = Number(getHHVars('sm_event_data.event_data.grid_refresh_squares_required', false));
-        return Number.isFinite(required) && required > 0 ? required : 15;
-    }
-    static getSelectedRewardTypes() {
-        return getStoredArray(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpenCollectablesList);
-    }
-    /**
-     * Close the reward popup the game shows after each opened square.
-     *
-     * Deliberately not RewardHelper.closeRewardPopupIfAny: RewardHelper
-     * imports EventModule, which imports this module, so using it here
-     * would add an import cycle (ARCH-001).
-     */
-    static closeSquareRewardPopup() {
-        const rewardQuery = 'div#rewards_popup button.blue_button_L:not([disabled]):visible';
-        if ($(rewardQuery).length > 0) {
-            logHHAuto("Sultry Mysteries: closing square reward popup.");
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
-    }
-    /** Park the automation until keys can plausibly have been earned again. */
-    static scheduleKeyCheck(reason) {
-        const retryIn = SM_NO_KEYS_RETRY_SECONDS + randomInterval(60, 300);
-        logHHAuto(`Sultry Mysteries auto-open paused (${reason}), checking for keys again later.`);
-        setTimer('eventSultryMysteryAutoOpen', retryIn);
-    }
-    static logProgress(grid, rewardsList, selectedTypes) {
-        const opened = smOpenedCount(grid);
-        const required = SultryMysteries.getSquaresRequiredForRefresh();
-        const progress = smSelectedTypesProgress(rewardsList, grid, selectedTypes)
-            .map((entry) => `${entry.type} ${entry.found}/${entry.total}`)
-            .join(', ');
-        logHHAuto(`Sultry Mysteries grid: ${opened}/${required} squares opened, keys: ${SultryMysteries.getKeyAmount()}${progress ? `, goal: ${progress}` : ', no reward goal set'}.`);
-    }
-    /**
-     * Work the grid: open squares in checkerboard order while keys last,
-     * and regenerate the grid once it is allowed and the selected rewards
-     * have all been found. Returns true while it is busy.
-     *
-     * Keys won from the grid itself are spent right away -- the key count
-     * is re-read from the sidebar before every click, so a `progressions`
-     * square simply extends the current run.
-     */
-    static autoOpenGrid(eventID) {
-        // parseEventPage is re-entered on every pipeline tick for as long as
-        // the auto-open timer sits expired. Without this guard every entry
-        // starts its own click chain: squares open in parallel with requests
-        // still in flight, "Generate new grid" fires repeatedly, and the retry
-        // timer is written several times. One run at a time.
-        if (SultryMysteries.autoOpenRunning)
-            return true;
-        if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-            logHHAuto("Switching to Sultry Mysteries screen.");
-            gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: eventID });
-            return true;
-        }
-        if ($('#contains_all #events .grid-slots').length <= 0) {
-            // Shop tab is showing (or the page is still building the grid).
-            if ($('#grid_tab').length > 0) {
-                logHHAuto("Switching to Sultry Mysteries grid tab.");
-                $('#grid_tab').trigger('click');
-                return true;
-            }
-            SultryMysteries.scheduleKeyCheck("grid not available");
-            return false;
-        }
-        const rewardsList = SultryMysteries.getRewardsList();
-        const selectedTypes = SultryMysteries.getSelectedRewardTypes();
-        SultryMysteries.logProgress(SultryMysteries.getGrid(), rewardsList, selectedTypes);
-        SultryMysteries.autoOpenRunning = true;
-        // End the run and hand the page back. Not called on the regenerate
-        // path: there the reload discards the flag along with the page.
-        function stopRun(reason) {
-            SultryMysteries.autoOpenRunning = false;
-            SultryMysteries.scheduleKeyCheck(reason);
+        var ND = new Date().getTime() + toNextSwitch * 1000;
+        var message = period + (burst ? " rest" : " burst");
+        logHHAuto("PARANOIA: " + message);
+        setStoredValue(HHStoredVarPrefixKey + TK.pinfo, message);
+        setTimer('paranoiaSwitch', toNextSwitch);
+        //force recheck non completed event after paranoia
+        if (getStoredValue(HHStoredVarPrefixKey + TK.burst) == "true") {
             gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
-        function step() {
-            const grid = SultryMysteries.getGrid();
-            const action = smNextAction({
-                grid,
-                rewardsList,
-                selectedTypes,
-                keys: SultryMysteries.getKeyAmount(),
-                squaresRequiredForRefresh: SultryMysteries.getSquaresRequiredForRefresh(),
-            });
-            if (action.kind === 'wait') {
-                stopRun(action.reason === 'no_keys' ? 'out of keys' : 'grid fully opened');
-                return;
-            }
-            if (action.kind === 'regenerate') {
-                logHHAuto("Sultry Mysteries: generating a new grid.");
-                $('#contains_all #events .generate-new-grid').trigger('click');
-                // The game rebuilds the grid from the ajax response into a
-                // module-local variable and leaves
-                // sm_event_data.event_data.progression.grid pointing at the
-                // old board, so the only way to keep reading a truthful
-                // state is to reload the page. Confirm the board actually
-                // reset first: reloading on a click that did nothing would
-                // land on the same state and ask for a new grid again.
-                let regenAttempts = 0;
-                function afterRegenerate() {
-                    if ($('#contains_all #events .grid-slots .grid-slot.unlocked').length <= 0) {
-                        safeReload();
-                        return;
-                    }
-                    if (regenAttempts < 10) {
-                        regenAttempts++;
-                        setTimeout(afterRegenerate, randomInterval(300, 500));
-                        return;
-                    }
-                    logHHAuto("Sultry Mysteries: the grid was not regenerated, stopping.");
-                    stopRun("grid not regenerated");
-                }
-                setTimeout(afterRegenerate, randomInterval(800, 1200));
-                return;
-            }
-            const idSquare = action.idSquare;
-            const squareQuery = `#contains_all #events .grid-slots .grid-slot.locked[id_square="${idSquare}"]`;
-            if ($(squareQuery).length <= 0) {
-                logHHAuto(`Sultry Mysteries: square ${idSquare} is no longer clickable, stopping.`);
-                stopRun("square not clickable");
-                return;
-            }
-            logHHAuto(`Sultry Mysteries: opening square ${idSquare}.`);
-            $(squareQuery).trigger('click');
-            // Wait for the game to swap the square to "unlocked" before the
-            // next click; the open request is in flight until then and the
-            // delegated handler would happily fire twice.
-            let attempts = 0;
-            function afterOpen() {
-                const stillLocked = $(squareQuery).length > 0;
-                if (stillLocked && attempts < 20) {
-                    attempts++;
-                    setTimeout(afterOpen, randomInterval(300, 500));
-                    return;
-                }
-                if (stillLocked) {
-                    logHHAuto(`Sultry Mysteries: square ${idSquare} did not open, stopping.`);
-                    stopRun("square did not open");
-                    return;
-                }
-                SultryMysteries.closeSquareRewardPopup();
-                setTimeout(step, randomInterval(600, 1000));
-            }
-            setTimeout(afterOpen, randomInterval(500, 800));
-        }
-        step();
-        return true;
     }
 }
-/**
- * True while a grid run is clicking its way through the board. Guards
- * against the pipeline starting a second, parallel run on the same page
- * load (see autoOpenGrid). Reset by every page load.
- */
-SultryMysteries.autoOpenRunning = false;
+ParanoiaService.MAX_LOOP = 10;
+ParanoiaService.countParanoiaLoop = 0;
+ParanoiaService.countParanoiaClear = 0;
+function replacerMap(key, value) {
+    const originalObject = this[key];
+    if (originalObject instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(originalObject.entries()), // or with spread: value: [...originalObject]
+        };
+    }
+    else {
+        return value;
+    }
+}
+function reviverMap(key, value) {
+    if (typeof value === 'object' && value !== null) {
+        if (value.dataType === 'Map') {
+            return new Map(value.value);
+        }
+    }
+    return value;
+}
 
-;// ./src/Module/Events/EventModule.ts
-var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+;// ./src/model/LeagueOpponent.ts
+// Model for a league opponent displayed in the league battle screen.
+// Holds the opponent's ID, nickname, power level, and the pre-computed
+// battle simulation result used to decide whether to fight.
+//@ts-check
+class LeagueOpponent {
+    // constructor(opponent_id: any,rank: number,nickname: string,level: number,power: number,player_league_points: number,simuPoints: number,nb_boosters: number, kkOpponent:KKLeagueOpponent, simu:BDSMSimu){
+    constructor(opponent_id, nickname, power, simuPoints, simu) {
+        // nb_boosters: number = 0;
+        // kkOpponent:KKLeagueOpponent = {} as any;
+        this.simu = {};
+        this.opponent_id = opponent_id;
+        this.nickname = nickname;
+        this.power = power;
+        this.simuPoints = simuPoints;
+        this.simu = simu;
+    }
+}
+
+;// ./src/Module/League.ts
+var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -28955,6 +31360,17 @@ var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisAr
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// League.ts -- Automates league fights: opponent selection, win probability, and
+// power calculation display.
+//
+// Leagues are the primary PvP mode. This module selects optimal opponents by
+// calculating win probability using the BDSM (Battle Data Simulation Model)
+// system from BDSMHelper, manages fight energy, and displays power calculations
+// in the UI. Supports both regular and boosted fights.
+//
+// Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
+// Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+//
 
 
 
@@ -28975,3168 +31391,790 @@ var EventModule_awaiter = (undefined && undefined.__awaiter) || function (thisAr
 
 
 
-class EventModule {
-    /**
-     * Remove stale event data from sessionStorage for the given event ID.
-     * Also prunes expired events, disables timers when no mythic/regular events remain,
-     * and cleans up associated girl and champion lists.
-     */
-    static clearEventData(inEventID) {
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        const eventGirl = EventModule.getEventGirl();
-        const eventMythicGirl = EventModule.getEventMythicGirl();
-        let eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-        let hasMythic = false;
-        let hasEvent = false;
-        for (const prop of Object.keys(eventList)) {
-            // seconds_before_end is stored as a millisecond epoch (see the
-            // sub-event modules: new Date().getTime() + X*1000), despite the
-            // "seconds" name. Coerce explicitly and compare against Date.now()
-            // instead of relying on number<Date valueOf() coercion, which a
-            // refactor or an undefined field can silently break. A non-finite
-            // value is treated as "not yet expired" here (left in place),
-            // matching pruneExpiredEvents -- parseEventPage cleans those up.
-            const secondsBeforeEnd = Number(eventList[prop]["seconds_before_end"]);
-            if ((Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd < Date.now())
-                ||
-                    (eventList[prop]["type"] === 'mythic' && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'event' && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'bossBang' && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) !== "true")
-                ||
-                    (eventList[prop]["type"] === 'sultryMysteries' && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) !== "true" && getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) !== "true")) {
-                delete eventList[prop];
-            }
-            else {
-                if (!eventList[prop]["isCompleted"]) {
-                    if (eventList[prop]["isMythic"]) {
-                        hasMythic = true;
-                    }
-                    else {
-                        hasEvent = true;
-                    }
-                }
-            }
+
+
+
+
+
+
+class LeagueHelper {
+    /* get time in sec */
+    static getLeagueEndTime() {
+        let league_end = -1;
+        const league_end_in = $('#leagues .league_end_in .timer span[rel="expires"]').text();
+        if (league_end_in !== undefined && league_end_in !== null && league_end_in.length > 0) {
+            league_end = Number(convertTimeToInt(league_end_in));
         }
-        if (hasMythic === false) {
-            clearTimer('eventMythicNextWave');
-            clearTimer('eventMythicGoing');
-        }
-        if (hasEvent === false) {
-            clearTimer('eventGoing');
-        }
-        if (Object.keys(eventList).length === 0) {
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
-            sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
-        }
-        else {
-            eventChamps = eventChamps.filter(function (a) {
-                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
-                    return false;
-                }
-                else {
-                    return true;
-                }
-            });
-            if (Object.keys(eventChamps).length === 0) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.autoChampsEventGirls);
-            }
-            else {
-                setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
-            }
-            eventsGirlz = eventsGirlz.filter(function (a) {
-                if (!eventList.hasOwnProperty(a.event_id) || a.event_id === inEventID) {
-                    return false;
-                }
-                else {
-                    return true;
-                }
-            });
-            if (Object.keys(eventsGirlz).length === 0) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsGirlz);
-            }
-            else {
-                setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
-            }
-            if (!eventList.hasOwnProperty(eventGirl.event_id) || eventGirl.event_id === inEventID) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventGirl);
-            }
-            if (!eventList.hasOwnProperty(eventMythicGirl.event_id) || eventMythicGirl.event_id === inEventID) {
-                sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventMythicGirl);
-            }
-            setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
-        }
+        return league_end;
     }
-    static getDisplayedIdEventPage(logging = true) {
-        const eventHref = $("#contains_all #events .events-list .event-title.active").attr("href") || '';
-        if (!eventHref && logging) {
-            logHHAuto('Error href not found for current event');
-        }
-        if (eventHref) {
-            const parsedURL = new URL(eventHref, window.location.origin);
-            return queryStringGetParam(parsedURL.search, 'tab') || '';
-        }
-        return '';
+    static numberOfFightAvailable(opponent) {
+        if (!opponent)
+            return 0;
+        const forceOneFight = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesForceOneFight) === 'true';
+        if (forceOneFight)
+            return 1;
+        // The JSON still carries match_history (a record keyed by id_fighter);
+        // match_history_sorting is the sort value, a number. Only the DOM column
+        // was renamed.
+        const matchs = opponent.match_history[opponent.player.id_fighter];
+        return matchs ? matchs.filter((match) => match == null).length : 0;
     }
-    static showCompletedEvent() {
-        try {
-            if ($('img.eventCompleted').length <= 0) {
-                let oneEventCompleted = false;
-                if ($(`#contains_all #homepage .event-widget a:not([href="#"])`).length > 0) {
-                    const img = $(`<div class="tooltipHH" style="display: inline-block;">`
-                        + `<span class="tooltipHHtext">${getTextForUI('eventCompleted', "tooltip")}</span>`
-                        + `<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['plus']} class="eventCompleted" title="${getTextForUI('eventCompleted', "tooltip")}" />`
-                        + `</div>`);
-                    const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                    for (const eventID of Object.keys(eventList)) {
-                        if (eventList[eventID]["isCompleted"]) {
-                            const eventTimer = $(`#contains_all #homepage .event-widget a[href*="${eventID}"] .timer p`);
-                            eventTimer.append(img.clone());
-                            oneEventCompleted = true;
-                        }
-                    }
-                }
-                if (!oneEventCompleted) {
-                    const eventTimer = $(`#contains_all #homepage`);
-                    eventTimer.append($(`<img src=${ConfigHelper.getHHScriptVars("powerCalcImages")['minus']} class="eventCompleted" style="display:none" />`));
-                }
+    static getLeagueCurrentLevel() {
+        if (unsafeWindow.current_tier_number === undefined) {
+            kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+        }
+        return unsafeWindow.current_tier_number;
+    }
+    static styles() {
+        GM_addStyle('#leagues .league_content .league_table .data-list .data-row .data-column[column="can_fight"] {'
+            + 'min-width: 8.5rem;}');
+        GM_addStyle('@media only screen and (min-width: 1026px) {'
+            + '.matchRatingNew {'
+            + 'display: flex;'
+            + 'flex-wrap: nowrap;'
+            + 'align-items: center;'
+            + 'justify-content: center;'
+            + 'text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000; '
+            + 'line-height: 17px; '
+            + 'max-width: 65px; '
+            + 'font-size: 12px;}}');
+        GM_addStyle('@media only screen and (max-width: 1025px) {'
+            + '.matchRatingNew {'
+            + 'width: auto;'
+            + 'display: flex;'
+            + 'flex-wrap: nowrap;'
+            + 'align-items: center;'
+            + 'justify-content: center;'
+            + 'text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000; '
+            + 'line-height: 17px; '
+            + 'max-width: 65px; '
+            + 'font-size: 12px;}}');
+        GM_addStyle('.plus {'
+            + 'color: #66CD00;}');
+        GM_addStyle('.minus {'
+            + 'color: #FF2F2F;}');
+        GM_addStyle('.close {'
+            + 'color: #FFA500;}');
+        GM_addStyle('.powerLevelScouter {'
+            + 'width: 25px;}');
+        GM_addStyle('#leagues .league_content .league_table .data-list .data-row .data-column[column="nickname"].clubmate .nickname { color: #00CC00 }');
+    }
+    static addChangeTeamButton() {
+        $('.league_buttons_block').append(getGoToChangeTeamButton());
+        GM_addStyle('#leagues .league_content .league_buttons {'
+            + 'max-width: none;}');
+        GM_addStyle('#leagues .league_content .league_buttons .league_buttons_block {'
+            + 'width: auto;}');
+    }
+    static getSimPowerOpponent(heroFighter, opponents) {
+        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+        const leaguePlayers = BDSMHelper.getBdsmPlayersData(heroFighter, opponents.player, true);
+        const simu = calculateBattleProbabilities(leaguePlayers.player, leaguePlayers.opponent, debugEnabled);
+        const oppoPoints = simu.points;
+        let expectedValue = 0;
+        for (let i = 25; i >= 3; i--) {
+            if (oppoPoints[i]) {
+                expectedValue += i * oppoPoints[i];
             }
         }
-        catch ( /* ignore errors */_a) { /* ignore errors */ }
+        simu.expectedValue = expectedValue;
+        return simu;
     }
-    static parseEventPage() {
-        return EventModule_awaiter(this, arguments, void 0, function* (inTab = "global") {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-                const queryEventTabCheck = $("#contains_all #events");
-                const eventID = EventModule.getDisplayedIdEventPage();
-                if (inTab !== "global" && inTab !== eventID) {
-                    if (eventID === '') {
-                        logHHAuto("ERROR: No event Id found in current page, clear event data and go to home");
-                        EventModule.clearEventData(inTab);
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                    }
-                    else {
-                        logHHAuto("Wrong event opened, need to change event page");
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
-                    }
-                    return true;
-                }
-                const hhEvent = EventModule.getEvent(eventID);
-                if (!hhEvent.eventTypeKnown) {
-                    if (queryEventTabCheck.attr('parsed') === undefined) {
-                        logHHAuto("Not parsable event");
-                        queryEventTabCheck[0].setAttribute('parsed', 'true');
-                    }
-                    return false;
-                }
-                if (queryEventTabCheck.attr('parsed') !== undefined) {
-                    if (!EventModule.checkEvent(eventID)) {
-                        return false;
-                    }
-                }
-                queryEventTabCheck[0].setAttribute('parsed', 'true');
-                // Can be undefined at runtime (logged below); the parse()
-                // functions have always received it as-is, so keep the historic
-                // non-optional type at the call sites (WART-001).
-                const hhEventData = (unsafeWindow.event_data || unsafeWindow.current_event);
-                logHHAuto(`On event page : ${eventID} (${(hhEventData === null || hhEventData === void 0 ? void 0 : hhEventData.event_name) || ''})`);
-                EventModule.clearEventData(eventID);
-                const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                let eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-                const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-                const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
-                if ((hhEvent.isPlusEvent || hhEvent.isPlusEventMythic) && !hhEventData) {
-                    logHHAuto("Error getting current event Data from HH.");
-                }
-                if (hhEvent.isPlusEvent) {
-                    logHHAuto("On going event, parsing...");
-                    PlusEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
-                }
-                if (hhEvent.isPlusEventMythic) {
-                    logHHAuto("On going mythic event, parsing...");
-                    MythicEvent.parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps);
-                }
-                if (hhEvent.isBossBangEvent) {
-                    logHHAuto("On going bossBang event, parsing...");
-                    BossBang.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isSultryMysteriesEvent) {
-                    logHHAuto("On going sultry mysteries event.");
-                    SultryMysteries.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isLivelyScene) {
-                    logHHAuto("On going lively scene event.");
-                    LivelyScene.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isDPEvent) {
-                    logHHAuto("On going double penetration event.");
-                    DoublePenetration.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isPoa) {
-                    logHHAuto("On going path of Attraction event.");
-                    PathOfAttraction.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isCumback) {
-                    logHHAuto("On going cumback contest event.");
-                    CumbackContests.parse(hhEvent, eventList, hhEventData);
-                }
-                if (hhEvent.isKinky) {
-                    logHHAuto("On going kinky cumpetition event.");
-                    KinkyCumpetition.parse(hhEvent, eventList, hhEventData);
-                }
-                if (Object.keys(eventList).length > 0) {
-                    setStoredValue(HHStoredVarPrefixKey + TK.eventsList, JSON.stringify(eventList));
-                }
-                else {
-                    sessionStorage.removeItem(HHStoredVarPrefixKey + TK.eventsList);
-                }
-                eventsGirlz = eventsGirlz.filter(function (a) {
-                    var a_weighted = Number(Priority.indexOf('' + a.troll_id));
-                    if (a.is_mythic) {
-                        return true;
-                    }
-                    else {
-                        return a_weighted !== -1;
-                    }
-                });
-                if (eventsGirlz.length > 0 || eventChamps.length > 0) {
-                    if (eventsGirlz.length > 0) {
-                        if (Priority[0] !== '') {
-                            eventsGirlz.sort(function (a, b) {
-                                var a_weighted = Number(Priority.indexOf('' + a.troll_id));
-                                if (a.is_mythic) {
-                                    a_weighted = a_weighted - Priority.length;
-                                }
-                                var b_weighted = Number(Priority.indexOf('' + b.troll_id));
-                                if (b.is_mythic) {
-                                    b_weighted = b_weighted - Priority.length;
-                                }
-                                return a_weighted - b_weighted;
-                            });
-                        }
-                        setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
-                        EventModule.saveEventGirl(eventsGirlz[0]);
-                    }
-                    if (eventChamps.length > 0) {
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoChampsEventGirls, JSON.stringify(eventChamps));
-                    }
-                    queryEventTabCheck[0].setAttribute('parsed', 'true');
-                }
-                else {
-                    queryEventTabCheck[0].setAttribute('parsed', 'true');
-                    EventModule.clearEventData(eventID);
-                }
-                return false;
-            }
-            else {
-                if (inTab !== "global") {
-                    // Expired-event short-circuit (issue #1738): if the
-                    // entry the precondition picked is already past its
-                    // game-side end (seconds_before_end <= now), don't
-                    // navigate to /event.html with that tab. The game has
-                    // dropped the tab, so the navigation lands on a page
-                    // whose getDisplayedIdEventPage() returns '', the
-                    // outer if(getPage()===pagesIDEvent) branch is never
-                    // reached, and the loop runs forever.
-                    //
-                    // Drop the registry entry directly here so the next
-                    // tick's getStaleEventIDs() does not pick it again.
-                    // Pipeline.config.ts pruneExpiredEvents handles this
-                    // before the trigger fires; this branch is the
-                    // belt-and-braces guard for direct callers.
-                    try {
-                        const evList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-                        const ev = evList[inTab];
-                        const end = Number(ev === null || ev === void 0 ? void 0 : ev.seconds_before_end);
-                        if (Number.isFinite(end) && end <= Date.now()) {
-                            logHHAuto(`Skipping navigation to expired event ${inTab}, dropping stale registry entry.`);
-                            EventModule.clearEventData(inTab);
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            return true;
-                        }
-                    }
-                    catch ( /* fall through to normal navigation */_a) { /* fall through to normal navigation */ }
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"), { tab: inTab });
-                }
-                else {
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDEvent"));
-                }
-                return true;
-            }
-        });
-    }
-    static saveEventGirl(eventGirlz) {
-        var chosenTroll = Number(eventGirlz.troll_id);
-        logHHAuto("ET: " + chosenTroll);
-        if (!eventGirlz.is_mythic) {
-            setStoredValue(HHStoredVarPrefixKey + TK.eventGirl, JSON.stringify(eventGirlz));
+    static displayOppoSimuOnButton(id_fighter, simu, force = 0) {
+        const opponentGoButton = $('a[href*="id_opponent=' + id_fighter + '"]');
+        if ((opponentGoButton.length <= 0 || $('.powerLevelScouter', opponentGoButton).length > 0) && !force) {
+            return;
         }
-        else {
-            setStoredValue(HHStoredVarPrefixKey + TK.eventMythicGirl, JSON.stringify(eventGirlz));
+        const percentage = NumberHelper.nRounding(100 * simu.win, 2, -1);
+        const points = NumberHelper.nRounding(simu.expectedValue, 1, -1);
+        const pointText = `${percentage}% (${points})` +
+            `<span style="margin:0;display:none;" id="HHPowerCalcScore">${percentage}</span>
+        <span style="margin:0;display:none;" id="HHPowerCalcPoints">${points}</span>`;
+        opponentGoButton.html(`<div class="matchRatingNew ${simu.scoreClass}"><img class="powerLevelScouter" src=${ConfigHelper.getHHScriptVars("powerCalcImages")[simu.scoreClass]}>${pointText}</div>`);
+    }
+    static getEnergy() {
+        return Number(getHHVars('Hero.energies.challenge.amount'));
+    }
+    static getEnergyMax() {
+        return Number(getHHVars('Hero.energies.challenge.max_regen_amount'));
+    }
+    static isEnabled() {
+        return FeatureGate.isUnlocked('league');
+    }
+    static isAutoLeagueActivated() {
+        return getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true" && LeagueHelper.isEnabled();
+    }
+    static getPinfo() {
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
+        const boostLimited = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true" && !Booster.haveBoosterEquiped();
+        let label = getTextForUI("autoLeaguesTitle", "elementText") + ' ' + LeagueHelper.getEnergy() + '/' + LeagueHelper.getEnergyMax();
+        if (runThreshold > 0) {
+            label += ' (' + threshold + '<' + LeagueHelper.getEnergy() + '<=' + runThreshold + ')';
         }
+        if (boostLimited) {
+            label += ' ' + getTextForUI("boostMissing", "elementText");
+        }
+        const waiting = runThreshold > 0 && LeagueHelper.getEnergy() < runThreshold;
+        const value = waiting ? getTextForUI("waitRunThreshold", "elementText") : getTimeLeft('nextLeaguesTime');
+        return pInfoRow(label, value, boostLimited
+            ? { style: 'color:red!important;', title: getTextForUI("boostMissing", "elementText") }
+            : {});
     }
-    static getEventGirl() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.eventGirl, {});
-    }
-    /**
-     * Mark one event as due for a re-read (#1843). The registry write itself
-     * lives in EventRegistry.ts so LivelyScene can reach it without importing
-     * this module, which imports LivelyScene.
-     */
-    static markEventStale(eventId) {
-        markEventStale(eventId);
-    }
-    static getEventMythicGirl() {
-        return getStoredJSON(HHStoredVarPrefixKey + TK.eventMythicGirl, {});
-    }
-    static getEventType(inEventID) {
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')))
-            return "mythic";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')))
-            return "event";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')))
-            return "bossBang";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')))
-            return "sultryMysteries";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg')))
-            return "doublePenetration";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')))
-            return "poa";
-        if (inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg')))
-            return "livelyscene";
-        if (inEventID.startsWith('cumback_contest_'))
-            return "cumback";
-        if (inEventID.startsWith('kinky_event_'))
-            return "kinky";
-        //    if(inEventID.startsWith('lively_scene_event_')) return "";
-        //    if(inEventID.startsWith('legendary_contest_')) return "";
-        //    if(inEventID.startsWith('dpg_event_')) return ""; // Double date
-        return "";
-    }
-    static getEvent(inEventID) {
-        const eventType = EventModule.getEventType(inEventID);
-        const isPlusEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('eventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true";
-        const isPlusEventMythic = inEventID.startsWith(ConfigHelper.getHHScriptVars('mythicEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true";
-        const isBossBangEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('bossBangEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.bossBangEvent) === "true";
-        const isSultryMysteriesEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('sultryMysteriesEventIDReg')) && (getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesEventRefreshShop) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true") && SultryMysteries.isEnabled();
-        const isDPEvent = inEventID.startsWith(ConfigHelper.getHHScriptVars('doublePenetrationEventIDReg'));
-        // The account must be able to enter the event, not just have it in
-        // the list. Mirrors isSultryMysteriesEvent, which asks its module the
-        // same way.
-        const isPoa = inEventID.startsWith(ConfigHelper.getHHScriptVars('poaEventIDReg')) && PathOfAttraction.isEnabled();
-        const isLivelyScene = inEventID.startsWith(ConfigHelper.getHHScriptVars('livelySceneEventIDReg'));
-        const isCumback = "cumback" === eventType;
-        const isKinky = "kinky" === eventType;
-        return {
-            eventTypeKnown: eventType !== '',
-            eventId: inEventID,
-            eventType: eventType,
-            isPlusEvent: isPlusEvent, // and activated
-            isPlusEventMythic: isPlusEventMythic, // and activated
-            isBossBangEvent: isBossBangEvent, // and activated
-            isSultryMysteriesEvent: isSultryMysteriesEvent, // and activated
-            isDPEvent: isDPEvent, // and activated
-            isLivelyScene: isLivelyScene, // and activated
-            isPoa: isPoa, // and activated
-            isCumback: isCumback,
-            isKinky: isKinky,
-            isEnabled: isPlusEvent || isPlusEventMythic || isBossBangEvent || isSultryMysteriesEvent || isDPEvent || isPoa || isLivelyScene
+    static isTimeToFight() {
+        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold)) || 0;
+        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
+        const humanLikeRun = getStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun) === "true";
+        const league_end = LeagueHelper.getLeagueEndTime();
+        if (league_end > 0 && league_end <= (60 * 60)) {
+            logHHAuto("Last League hour");
+        }
+        const energy = LeagueHelper.getEnergy();
+        const paranoiaSpending = ParanoiaService.checkParanoiaSpendings('challenge');
+        const needBoosterToFight = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesBoostedOnly) === "true";
+        const haveBoosterEquiped = Booster.haveBoosterEquiped();
+        const timerExpired = checkTimer('nextLeaguesTime');
+        // checkTimer returns true once the timer has run out; convert to the
+        // numeric form the pure function expects (negative or zero = expired).
+        const timerLeft = timerExpired ? 0 : 1;
+        const state = {
+            energy,
+            threshold,
+            runThreshold,
+            humanLikeRun,
+            timerLeft,
+            paranoiaSpending,
+            boosterRequired: needBoosterToFight,
+            boosterEquipped: haveBoosterEquiped,
         };
+        const energyAboveThreshold = (humanLikeRun && energy > threshold) ||
+            energy > Math.max(threshold, runThreshold - 1);
+        if (timerExpired && energyAboveThreshold && needBoosterToFight && !haveBoosterEquiped) {
+            logHHAuto('Time for league but no booster equipped');
+        }
+        return decideShouldFight(state);
     }
-    static getEventIDsByType(inType) {
-        const eventIDs = [];
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        for (const eventID of Object.keys(eventList)) {
-            if (eventList[eventID]["type"] === inType && !eventList[eventID]["isCompleted"]) {
-                eventIDs.push(eventID);
+    static moduleSimLeague() {
+        try {
+            LeagueHelper.moduleSimLeagueHideBeatenOppo();
+            if ($('.change_team_container').length <= 0) {
+                LeagueHelper.addChangeTeamButton();
             }
-        }
-        return eventIDs;
-    }
-    static isEventActive(inEventID) {
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        if (eventList.hasOwnProperty(inEventID) && !eventList[inEventID]["isCompleted"]) {
-            // seconds_before_end is a millisecond epoch (see clearEventData):
-            // compare explicitly against Date.now(). A non-finite value means
-            // the entry has no known end and is not considered active.
-            const secondsBeforeEnd = Number(eventList[inEventID]["seconds_before_end"]);
-            return Number.isFinite(secondsBeforeEnd) && secondsBeforeEnd > Date.now();
-        }
-        return false;
-    }
-    static checkEvent(inEventID) {
-        const eventList = getStoredJSON(HHStoredVarPrefixKey + TK.eventsList, {});
-        const hhEvent = EventModule.getEvent(inEventID);
-        if (!hhEvent.eventTypeKnown || hhEvent.eventTypeKnown && !hhEvent.isEnabled) {
-            return false;
-        }
-        if (!eventList.hasOwnProperty(inEventID)) {
-            return true;
-        }
-        else {
-            if (eventList[inEventID]["isCompleted"]) {
-                return false;
+            if ($("#popup_message_league").length > 0 || getStoredValue(HHStoredVarPrefixKey + SK.leagueListDisplayPowerCalc) !== "true") {
+                return;
+            }
+            const opponentButtons = $('a.go_pre_battle.blue_button_L');
+            const opponentSim = $("div.matchRatingNew img.powerLevelScouter");
+            const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
+            const Hero = getHero();
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+            const opponents_list = getHHVars("opponents_list");
+            if (!opponents_list) {
+                logHHAuto('ERROR: Can\'t find opponent list');
+                return;
             }
             else {
-                return (eventList[inEventID]["next_refresh"] < new Date()
-                    ||
-                        (hhEvent.isPlusEventMythic && checkTimerMustExist('eventMythicNextWave'))
-                    ||
-                        // No eventSultryMysteryAutoOpen condition here on purpose:
-                        // the grid automation is its own pipeline block and
-                        // navigates itself. Re-parsing the event page for as long
-                        // as that timer sat expired started one click chain per
-                        // tick.
-                        (hhEvent.isSultryMysteriesEvent && checkTimerMustExist('eventSultryMysteryShopRefresh'))
-                    ||
-                        (hhEvent.isDPEvent && checkTimerMustExist('nextDpEventCollectTime'))
-                    ||
-                        (hhEvent.isLivelyScene && checkTimerMustExist('nextLivelySceneEventCollectTime')));
+                const heroFighter = opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
+                const containsSimuScore = function (opponents) { return $('a[href*="id_opponent=' + opponents.player.id_fighter + '"] .matchRatingNew').length > 0; };
+                const containsOcdScore = function (opponents) { return $('.matchRating', $('a[href*="id_opponent=' + opponents.player.id_fighter + '"]').parent()).length > 0; };
+                const opponentsToSimulate = opponents_list.filter((opponents) => LeagueHelper.numberOfFightAvailable(opponents) > 0 && !containsSimuScore(opponents) && !containsOcdScore(opponents));
+                const SimPower = function () {
+                    return League_awaiter(this, void 0, void 0, function* () {
+                        if (allOpponentsSimDisplayed) {
+                            return;
+                        }
+                        if (debugEnabled)
+                            logHHAuto('Simulating league opponents, remaining to simulate: ' + opponentsToSimulate.length);
+                        const opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+                        let opponentsPowerListChanged = false;
+                        for (let opponentIndex = 0; opponentIndex < opponentsToSimulate.length; opponentIndex++) {
+                            const opponents = opponentsToSimulate[opponentIndex];
+                            let simu;
+                            let leagueOpponent;
+                            if (debugEnabled)
+                                logHHAuto(`Simulating opponent ${opponentIndex + 1}/${opponentsToSimulate.length} - id: ${opponents.player.id_fighter}, nickname: ${opponents.nickname}`);
+                            if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
+                                try {
+                                    leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponents.player.id_fighter);
+                                    if (leagueOpponent)
+                                        simu = leagueOpponent.simu;
+                                }
+                                catch (error) {
+                                    logHHAuto("Error when getting oppo " + opponents.player.id_fighter + "from storage");
+                                    if (debugEnabled)
+                                        logHHAuto(error);
+                                }
+                            }
+                            if (!simu) {
+                                simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
+                                leagueOpponent = new LeagueOpponent(opponents.player.id_fighter, 
+                                // opponents.place,
+                                opponents.nickname, 
+                                // opponents.level,
+                                opponents.power, 
+                                // opponents.player_league_points,
+                                Number(NumberHelper.nRounding(simu.expectedValue, 1, -1)), 
+                                // 0, // Boster numbers?
+                                // opponents,
+                                simu);
+                                opponentsPowerList.opponentsList.push(leagueOpponent);
+                                opponentsPowerListChanged = true;
+                            }
+                            LeagueHelper.displayOppoSimuOnButton(opponents.player.id_fighter, simu);
+                            yield TimeHelper.sleep(randomInterval(10, 30)); // Allow browser to render
+                        }
+                        if (opponentsPowerListChanged) {
+                            logHHAuto('Save opponent list for later');
+                            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+                        }
+                    });
+                };
+                SimPower();
             }
-        }
-    }
-    static displayPrioInDailyMissionGirl(baseQuery) {
-        const allEventGirlz = unsafeWindow.event_data ? unsafeWindow.event_data.girls : [];
-        if (!allEventGirlz)
-            return;
-        for (let currIndex = 0; currIndex < allEventGirlz.length; currIndex++) {
-            const girlData = allEventGirlz[currIndex];
-            if (girlData.shards < 100 && girlData.source && girlData.source.name === 'event_dm') {
-                const query = baseQuery + "[data-select-girl-id=" + girlData.id_girl + "]";
-                if ($(query).length > 0) {
-                    const currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority" title="' + getTextForUI('dailyMissionGirlTitle', 'elementText') + '">DM</div>');
-                    $(query).css('position', 'relative');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                }
+            const listUpdateStatus = '<div style="position: absolute;left: 720px;top: 0px;width:100px;" class="tooltipHH" id="HHListUpdate"></div>';
+            if (document.getElementById("HHListUpdate") === null) {
+                $(".leagues_middle_header_script").append(listUpdateStatus);
             }
-        }
-    }
-    static hideOwnedGilrs() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.hideOwnedGirls) === "true") {
-            if ($('.nc-event-list-reward.already-owned').length > 10 && $('.nc-event-list-reward.girl_ico').length > 30) {
-                $('.nc-event-list-reward.already-owned').parent().hide();
-            }
-        }
-    }
-    static moduleDisplayEventPriority() {
-        if ($('.HHEventPriority').length > 0) {
-            return;
-        }
-        const baseQuery = "#events .scroll-area .nc-event-list-reward-container .nc-event-list-reward";
-        EventModule.displayPrioInDailyMissionGirl(baseQuery);
-        const eventGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-        const eventChamps = getStoredJSON(HHStoredVarPrefixKey + TK.autoChampsEventGirls, []);
-        if (eventGirlz.length > 0 || eventChamps.length > 0) {
-            var girl;
-            var idArray;
-            var currentGirl;
-            for (var ec = eventChamps.length; ec > 0; ec--) {
-                idArray = Number(ec) - 1;
-                girl = Number(eventChamps[idArray].girl_id);
-                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
-                if ($(query).length > 0) {
-                    currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority">C' + eventChamps[idArray].champ_id + '</div>');
-                    $(query).css('position', 'relative');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                }
-            }
-            for (var e = eventGirlz.length; e > 0; e--) {
-                idArray = Number(e) - 1;
-                girl = Number(eventGirlz[idArray].girl_id);
-                const query = baseQuery + "[data-select-girl-id=" + girl + "]";
-                if ($(query).length > 0) {
-                    currentGirl = $(query).parent()[0];
-                    $(query).prepend('<div class="HHEventPriority">' + e + '</div>');
-                    $($(query)).parent().parent()[0].prepend(currentGirl);
-                    $(query).css('position', 'relative');
-                    $(query).trigger('click');
-                }
-            }
-        }
-    }
-    /**
-     * Render a homepage notif-badge timer and, when no HH timer exists yet,
-     * initialise it from a stored end-date.
-     *
-     * UNIT CONTRACT: timerEndDateName MUST reference a storage key holding a
-     * SECONDS epoch (Math.ceil(Date.now()/1000) + remainingSeconds), because
-     * the init path computes the remaining time as
-     * `getStoredValue(timerEndDateName) - Date.now()/1000`. Callers that store
-     * a millisecond epoch there would arm a wildly wrong timer. Season's
-     * SeasonEndDate is written this way (see Season.getRemainingTime).
-     *
-     * @param scriptId          jQuery selector that, when present, suppresses the badge
-     * @param aRel              rel attribute of the homepage anchor to attach to
-     * @param hhtimerId         id for the injected badge span
-     * @param timerName         HH timer name read via getTimeLeft/getTimer
-     * @param timerEndDateName  storage key holding a SECONDS epoch end-date
-     */
-    static displayGenericRemainingTime(scriptId, aRel, hhtimerId, timerName, timerEndDateName) {
-        const displayTimer = $(scriptId).length === 0;
-        if (getTimer(timerName) !== -1) {
-            const domSelector = '#homepage a[rel="' + aRel + '"] .notif-position > span';
-            if ($("#" + hhtimerId).length === 0) {
-                if (displayTimer) {
-                    $(domSelector).prepend('<span id="' + hhtimerId + '"></span>');
-                    GM_addStyle('#' + hhtimerId + '{position: absolute;top: 26px;left: 30px;width: 100px;font-size: .6rem ;z-index: 1;}');
+            if (allOpponentsSimDisplayed || opponentSim.length <= 1) {
+                const buttonLaunchList = '<span class="tooltipHHtext">' + getTextForUI("RefreshOppoList", "tooltip") + '</span><label style="width:100%;" class="myButton" id="RefreshOppoList">' + getTextForUI("RefreshOppoList", "elementText") + '</label>';
+                if (document.getElementById("RefreshOppoList") === null) {
+                    $("#HHListUpdate").html('').append(buttonLaunchList);
+                    $("#RefreshOppoList").on("click", function () {
+                        $("#RefreshOppoList").remove();
+                        $('a[href*="id_opponent"]').each(function () {
+                            $(this).html('Go'); // TODO translate
+                        });
+                    });
                 }
             }
             else {
-                if (!displayTimer) {
-                    const timerEl = $("#" + hhtimerId)[0];
-                    if (timerEl) {
-                        timerEl.remove();
-                    }
-                }
+                $("#HHListUpdate").html('Building:' + opponentSim.length + "/" + opponentButtons.length);
             }
-            if (displayTimer) {
-                const timerEl = $("#" + hhtimerId)[0];
-                // Defensive: when the homepage banner element identified by aRel
-                // is not in the DOM (e.g. because Kinkoid removed the tile or the
-                // current event is inactive), the prepend above is a no-op and
-                // [0] is undefined here. Skip silently in that case instead of
-                // throwing a TypeError on every AutoLoop tick.
-                if (timerEl) {
-                    timerEl.innerText = getTimeLeft(timerName);
-                }
-            }
-        }
-        else {
-            if (getStoredValue(timerEndDateName) !== undefined) {
-                setTimer(timerName, getStoredValue(timerEndDateName) - (Math.ceil(new Date().getTime()) / 1000));
-            }
-        }
-    }
-    static moduleSimPoVPogMaskReward(containerId) {
-        var arrayz;
-        var nbReward;
-        let modified = false;
-        arrayz = $('.potions-paths-tier:not([style*="display:none"]):not([style*="display: none"])');
-        //doesn sure about  " .purchase-pov-pass"-button visibility
-        if ($('#' + containerId + ' .potions-paths-second-row .purchase-pass:not([style*="display:none"]):not([style*="display: none"])').length) {
-            nbReward = 1;
-        }
-        else {
-            nbReward = 2;
-        }
-        var obj;
-        if (arrayz.length > 0) {
-            for (var i2 = arrayz.length - 1; i2 >= 0; i2--) {
-                obj = $(arrayz[i2]).find('.claimed-slot:not([style*="display:none"]):not([style*="display: none"])');
-                if (obj.length >= nbReward) {
-                    arrayz[i2].style.display = "none";
-                    modified = true;
-                }
-            }
-        }
-        if (modified) {
-            const divToModify = $('.potions-paths-progress-bar-section');
-            if (divToModify.length > 0) {
-                $('.potions-paths-progress-bar-section')[0].scrollTop = 0;
-            }
-        }
-    }
-    static collectEventChestIfPossible() {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.collectEventChest) === "true") {
-            const eventChestId = "#extra-rewards-claim-btn:not([disabled])";
-            if ($(eventChestId).length > 0) {
-                logHHAuto("Collect event chest");
-                $(eventChestId).click();
-            }
-        }
-    }
-    static parsePageForEventId() {
-        function getEventQuery(event) {
-            return `#contains_all #homepage .event-widget a[rel="${event}"]:not([href="#"])`;
-        }
-        const eventQuery = getEventQuery("event");
-        const mythicEventQuery = getEventQuery("mythic_event");
-        const bossBangEventQuery = getEventQuery("boss_bang_event");
-        const sultryMysteriesEventQuery = getEventQuery("sm_event");
-        const dpEventQuery = getEventQuery("dp_event");
-        const livelySceneEventQuery = getEventQuery("lively_scene_event");
-        const seasonalEventQuery = '#contains_all #homepage .seasonal-event a, #contains_all #homepage .mega-event a';
-        const poaEventQuery = getEventQuery("path_event");
-        const eventIDs = [];
-        const ongoingEventIDs = [];
-        const bossBangEventIDs = [];
-        const currentPage = getPage();
-        function parseForEventId(query, eventList) {
-            let parsedURL;
-            let eventId;
-            const queryResults = $(query);
-            for (let index = 0; index < queryResults.length; index++) {
-                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
-                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
-                const eventName = $(queryResults[index]).children().first().text();
-                if (!eventName || eventName === '') {
-                    logHHAuto(`Error: No name displayed for event ${eventId}, ignoring it.`);
-                    continue;
-                }
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
-                    eventList.push(eventId);
-                }
-                if (eventId !== '') {
-                    ongoingEventIDs.push(eventId);
-                }
-            }
-        }
-        if (currentPage === ConfigHelper.getHHScriptVars("pagesIDEvent")) {
-            const currentPageEventId = EventModule.getDisplayedIdEventPage();
-            if (currentPageEventId !== null && EventModule.checkEvent(currentPageEventId)) {
-                eventIDs.push(currentPageEventId);
-            }
-            let parsedURL;
-            let eventId;
-            const eventsQuery = '.events-list a.event-title:not(.active)';
-            const queryResults = $(eventsQuery);
-            for (let index = 0; index < queryResults.length; index++) {
-                parsedURL = new URL(queryResults[index].getAttribute("href") || '', window.location.origin);
-                eventId = queryStringGetParam(parsedURL.search, 'tab') || '';
-                if (eventId !== '' && EventModule.checkEvent(eventId)) {
-                    eventIDs.push(eventId);
-                }
-            }
-        }
-        else if (currentPage === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            parseForEventId(eventQuery, eventIDs);
-            parseForEventId(mythicEventQuery, eventIDs);
-            parseForEventId(poaEventQuery, eventIDs);
-            parseForEventId(bossBangEventQuery, bossBangEventIDs);
-            parseForEventId(sultryMysteriesEventQuery, eventIDs);
-            parseForEventId(getEventQuery("cumback_contest"), eventIDs);
-            parseForEventId(getEventQuery("kinky_event"), eventIDs);
-            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryShopRefresh") !== -1) {
-                // event is over
-                clearTimer("eventSultryMysteryShopRefresh");
-            }
-            if ($(sultryMysteriesEventQuery).length <= 0 && getTimer("eventSultryMysteryAutoOpen") !== -1) {
-                // event is over -- keys are reset at the end of a Sultry
-                // Mysteries event, so a pending key check is meaningless
-                clearTimer("eventSultryMysteryAutoOpen");
-            }
-            if ($(bossBangEventQuery).length <= 0 && (getTimer('nextBossBangTime') !== -1 || getTimer('eventBossBangGoing') !== -1)) {
-                // Event is over. Unlike the collect-all timers of PoV/PoG/
-                // Seasonal -- which their own block re-arms on every run and
-                // which therefore only ever show a countdown -- nextBossBangTime
-                // is armed by goToFightPage even on a finished event (see the
-                // note on the bossBang precondition in Pipeline.config.ts) and
-                // is then never re-armed, because the precondition can no
-                // longer be met once the event is gone. Without this the timer
-                // stays expired forever and the status panel keeps reporting
-                // "Time's up!" for an event that does not exist.
-                clearTimer('nextBossBangTime');
-                clearTimer('eventBossBangGoing');
-            }
-            parseForEventId(dpEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect) === "true" && $(dpEventQuery).length === 0) {
-                logHHAuto("No double penetration event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autodpEventCollect, "false");
-            }
-            parseForEventId(livelySceneEventQuery, eventIDs);
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect) === "true" && $(livelySceneEventQuery).length === 0) {
-                logHHAuto("No Lively Scene event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoLivelySceneEventCollect, "false");
-            }
-            const queryResults = $(seasonalEventQuery);
-            if ((getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect) === "true" || getStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll) === "true") && queryResults.length === 0) {
-                logHHAuto("No seasonal event found, deactivate collect.");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollect, "false");
-                setStoredValue(HHStoredVarPrefixKey + SK.autoSeasonalEventCollectAll, "false");
-            }
-            // Path of Valor / Path of Glory: the home-page selectors for these events
-            // are unreliable (the banner only appears briefly between waves), so a
-            // false-negative here would silently flip the user setting back to off.
-            // The collect logic on the actual event page checks availability before
-            // acting; the toggle does not need to be in sync with the home banner.
-        }
-        return { eventIDs: eventIDs, bossBangEventIDs: bossBangEventIDs };
-    }
-}
-
-;// ./src/Helper/RewardHelper.ts
-// RewardHelper.ts
-//
-// Detects, classifies, and renders in-game reward slots. The game
-// displays rewards in DOM elements with CSS classes like "slot_soft_currency"
-// or data attributes. This helper inspects those elements to determine
-// the reward type (girl shards, currency, energy, equipment, etc.) and
-// quantity, then can render summary HTML for the HHAuto overlay.
-//
-// Also handles the post-battle reward popup: after a troll fight that
-// drops girl shards, ObserveAndGetGirlRewards() uses a MutationObserver
-// to detect the popup, parse which girl received shards, update stored
-// event progress, and navigate to the next appropriate page.
-//
-// Why MutationObserver: The reward popup is rendered asynchronously by
-// the game after the battle animation. Polling would be wasteful and
-// unreliable; observing attribute changes catches it immediately.
-//
-// Used by: Event modules (progress tracking), PlaceOfPower, Season,
-//          Troll module (post-fight navigation)
-
-
-
-
-
-
-
-
-
-
-
-
-
-class RewardHelper {
-    static getRewardTypeBySlot(inSlot) {
-        var _a, _b;
-        let reward = "undetected";
-        if (inSlot && ((_a = inSlot.className) === null || _a === void 0 ? void 0 : _a.indexOf('slot')) >= 0) {
-            if (inSlot.getAttribute("cur") !== null) {
-                reward = inSlot.getAttribute("cur");
-            }
-            else if (inSlot.className.indexOf('slot_avatar') >= 0) {
-                if (inSlot.className.indexOf('girl_ico') >= 0) {
-                    reward = 'girl_shards';
-                }
-                else {
-                    reward = 'avatar';
-                }
-            }
-            else if (inSlot.className.indexOf('girl-shards-slot') >= 0 || inSlot.className.indexOf('slot_girl_shards') >= 0) {
-                reward = 'girl_shards';
-            }
-            else if (inSlot.className.indexOf('slot_random_girl') >= 0) {
-                reward = 'random_girl_shards'; // Random girl shards
-            }
-            else if (inSlot.className.indexOf('mythic') >= 0) {
-                reward = 'mythic';
-            }
-            else if (inSlot.className.indexOf('slot_scrolls_') >= 0) {
-                reward = 'scrolls';
-            }
-            else if (inSlot.className.indexOf('slot_seasonal_event_cash') >= 0) {
-                reward = 'event_cash';
-            }
-            else if (inSlot.getAttribute("data-d") !== null && $(inSlot).data("d")) {
-                const objectData = $(inSlot).data("d");
-                reward = objectData.item.type;
-            }
-            else {
-                const possibleRewards = ConfigHelper.getHHScriptVars("possibleRewardsList");
-                for (const currentRewards of Object.keys(possibleRewards)) {
-                    if (inSlot.className.indexOf('slot_' + currentRewards) >= 0) {
-                        reward = currentRewards;
-                    }
-                }
-            }
-        }
-        else if (inSlot && ((_b = inSlot.className) === null || _b === void 0 ? void 0 : _b.indexOf('shards_girl_ico')) >= 0) {
-            reward = 'girl_shards';
-        }
-        return reward;
-    }
-    static getRewardTypeByData(inData) {
-        var _a, _b;
-        let reward = "undetected";
-        if (inData === null || inData === void 0 ? void 0 : inData.hasOwnProperty("type")) {
-            reward = inData.type;
-        }
-        else if (inData === null || inData === void 0 ? void 0 : inData.hasOwnProperty("ico")) {
-            if (((_a = inData.ico) === null || _a === void 0 ? void 0 : _a.indexOf("items/K")) > 0) {
-                reward = "gift";
-            }
-            else if (((_b = inData.ico) === null || _b === void 0 ? void 0 : _b.indexOf("items/XP")) > 0) {
-                reward = "potion";
-            }
-        }
-        return reward;
-    }
-    static getRewardQuantityByType(rewardType, inSlot) {
-        // TODO update logic for potion / gift to be more accurate
-        switch (rewardType) {
-            case 'girl_shards': return Number($('.shards', inSlot).attr('shards'));
-            case 'random_girl_shards':
-            case 'energy_kiss':
-            case 'energy_quest':
-            case 'energy_fight':
-            case 'energy_drill':
-            case 'xp':
-            case 'soft_currency':
-            case 'hard_currency':
-            case 'event_cash':
-            case 'gift':
-            case 'potion':
-            case 'booster':
-            case 'orbs':
-            case 'gems':
-            case 'scrolls':
-            case 'ticket': return parsePrice($('.amount', inSlot).text());
-            case 'mythic': return 1;
-            case 'avatar': return 1;
-            default:
-                logHHAuto('Error: reward type unknown ' + rewardType);
-                return 0;
-        }
-    }
-    static getPovNotClaimedRewards() {
-        const arrayz = $('.potions-paths-tiers-section .potions-paths-tier.unclaimed');
-        const freeSlotSelectors = ".free-slot:not(.claimed-locked) .slot,.free-slot:not(.claimed-locked) .shards_girl_ico";
-        const paidSlotSelectors = ".paid-slots:not(.paid-locked):not(.claimed-locked) .slot,.paid-slots:not(.paid-locked):not(.claimed-locked) .shards_girl_ico";
-        return RewardHelper.computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors);
-    }
-    static computeRewardsCount(arrayz, freeSlotSelectors, paidSlotSelectors) {
-        const rewardCountByType = new Map();
-        var rewardType, rewardSlot, rewardAmount;
-        // data-d='{"item":{"id_item":"323","type":"potion","identifier":"XP4","rarity":"legendary","price":"500000","currency":"sc","value":"2500","carac1":"0","carac2":"0","carac3":"0","endurance":"0","chance":"0.00","ego":"0","damage":"0","duration":"0","skin":"hentai,gay,sexy","name":"Spell book","ico":"https://hh.hh-content.com/pictures/items/XP4.png","display_price":500000},"quantity":"1"}'
-        rewardCountByType['all'] = arrayz.length;
-        if (arrayz.length > 0) {
-            for (var slotIndex = arrayz.length - 1; slotIndex >= 0; slotIndex--) {
-                [freeSlotSelectors, paidSlotSelectors].forEach((selector) => {
-                    rewardSlot = $(selector, arrayz[slotIndex]);
-                    if (rewardSlot.length > 0) {
-                        rewardType = RewardHelper.getRewardTypeBySlot(rewardSlot[0]);
-                        rewardAmount = RewardHelper.getRewardQuantityByType(rewardType, rewardSlot[0]);
-                        if (rewardCountByType.hasOwnProperty(rewardType)) {
-                            rewardCountByType[rewardType] = rewardCountByType[rewardType] + rewardAmount;
+            const buttonSortList = '<div style="position: absolute;left: 780px;top: 14px;width:75px;" class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("sortPowerCalc", "tooltip") + '</span><label style="width:100%;" class="myButton" id="sortPowerCalc">' + getTextForUI("sortPowerCalc", "elementText") + '</label></div>';
+            const league_table = $('.league_content .data-list');
+            if (document.getElementById("sortPowerCalc") === null && $('.matchRatingNew', league_table).length > 0) {
+                $('.leagues_middle_header_script').append(buttonSortList);
+                $("#sortPowerCalc").on("click", function () {
+                    const items = $('.data-row.body-row:visible', league_table).map((i, el) => el).toArray();
+                    items.sort(function (a, b) {
+                        const score_a = $('#HHPowerCalcScore', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(a))[0].innerText);
+                        const score_b = $('#HHPowerCalcScore', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcScore', $(b))[0].innerText);
+                        const points_a = $('#HHPowerCalcPoints', $(a)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(a))[0].innerText);
+                        const points_b = $('#HHPowerCalcPoints', $(b)).length === 0 ? 0 : Number($('#HHPowerCalcPoints', $(b))[0].innerText);
+                        if (score_b === score_a) {
+                            return points_b - points_a;
                         }
                         else {
-                            rewardCountByType[rewardType] = rewardAmount;
+                            return score_b - score_a;
                         }
+                    });
+                    for (const item in items) {
+                        $(items[item]).detach();
+                        league_table.append(items[item]);
                     }
+                    $('.league_content .league_table').animate({ scrollTop: 0 });
                 });
-            }
-        }
-        return rewardCountByType;
-    }
-    static getRewardsAsHtml(rewardCountByType) {
-        let html = '';
-        if (rewardCountByType)
-            for (const rewardType in rewardCountByType) {
-                const rewardCount = rewardCountByType[rewardType];
-                // Ten of the twenty types in possibleRewardsList have no branch here
-                // -- girl_shards, gems, orbs, gift, potion, booster, scrolls,
-                // mythic, avatar, rejuvenation_stone. They fall into the empty
-                // default, so a tier paying only those renders nothing and
-                // displayRewardsDiv appends an invisible div instead of the recap.
-                switch (rewardType) {
-                    case 'random_girl_shards':
-                        html += '<div class="slot slot_random_girl  size_xs"><span class="random_girl_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_kiss':
-                        html += '<div class="slot slot_energy_kiss  size_xs"><span class="energy_kiss_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_quest':
-                        html += '<div class="slot slot_energy_quest size_xs"><span class="energy_quest_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_fight':
-                        html += '<div class="slot slot_energy_fight  size_xs"><span class="energy_fight_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'energy_drill':
-                        html += '<div class="slot slot_energy_drill  size_xs"><span class="energy_drill_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'xp':
-                        html += '<div class="slot slot_xp size_xs"><span class="xp_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
-                        break;
-                    case 'soft_currency':
-                        html += '<div class="slot slot_soft_currency size_xs"><span class="soft_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 1, -1) + '</div></div>';
-                        break;
-                    case 'hard_currency':
-                        html += '<div class="slot slot_hard_currency size_xs"><span class="hard_currency_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'event_cash':
-                        html += '<div class="slot slot_seasonal_event_cash size_xs"><span class="mega_event_cash_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    case 'ticket':
-                        html += '<div class="slot slot_ticket size_xs"><span class="ticket_icn"></span><div class="amount">' + NumberHelper.nRounding(rewardCount, 0, -1) + '</div></div>';
-                        break;
-                    default:
-                }
-            }
-        return html;
-    }
-    static getRewardsIconHref(rewardType) {
-        let html = '';
-        if (rewardType) {
-            switch (rewardType) {
-                case 'girl_shards':
-                    html += '/images/pictures/design/shards.png';
-                    break;
-                case 'energy_kiss':
-                    html += '/images/pictures/design/ic_kiss.png';
-                    break;
-                case 'energy_quest':
-                    html += '/images/pictures/design/ic_energy_quest.png';
-                    break;
-                case 'energy_fight':
-                    html += '/images/pictures/design/ic_energy_fight.png';
-                    break;
-                case 'energy_drill':
-                    html += '/images/penta_drill/penta_drill.png';
-                    break;
-                case 'xp':
-                    html += '';
-                    break;
-                case 'soft_currency':
-                    html += '/images/pictures/design/ic_topbar_soft_currency.png';
-                    break;
-                case 'hard_currency':
-                    html += '/images/pictures/design/ic_topbar_hard_currency.png';
-                    break;
-                case 'event_cash':
-                    html += '';
-                    break;
-                case 'ticket':
-                    html += '/images//pictures/design/champion_ticket.png';
-                    break;
-                default:
-            }
-        }
-        return html;
-    }
-    static displayRewardsDiv(target, hhRewardId, rewardCountByType) {
-        const emptyRewardDiv = $('<div id=' + hhRewardId + ' style="display:none;"></div>');
-        try {
-            if ($('#' + hhRewardId).length <= 0) {
-                if (rewardCountByType['all'] > 0) {
-                    const rewardsHtml = RewardHelper.getRewardsAsHtml(rewardCountByType);
-                    if (rewardsHtml && rewardsHtml != '') {
-                        target.append($('<div id=' + hhRewardId + ' class="HHRewardNotCollected"><h1 style="font-size: small;">' + getTextForUI('rewardsToCollectTitle', "elementText") + '</h1>' + rewardsHtml + '</div>'));
-                    }
-                    else {
-                        target.append(emptyRewardDiv);
-                    }
-                }
-                else {
-                    target.append(emptyRewardDiv);
-                }
             }
         }
         catch (err) {
-            logHHAuto("ERROR:", err.message);
-            target.append(emptyRewardDiv);
+            const { errName, message } = (err !== null && err !== void 0 ? err : {});
+            logHHAuto(`Error module Sim League: ${errName}, ${message}`);
         }
     }
-    static displayRewardsPovPogDiv() {
-        const target = $('.potions-paths-first-row');
-        const hhRewardId = 'HHPovPogRewards';
-        if ($('#' + hhRewardId).length <= 0) {
-            const rewardCountByType = RewardHelper.getPovNotClaimedRewards();
-            RewardHelper.displayRewardsDiv(target, hhRewardId, rewardCountByType);
-        }
-    }
-    static closeRewardPopupIfAny(logging = true, popupId = '') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.blue_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length > 0) {
-            if ($(rewardQuery).attr('id') === 'redirect-to-harem') {
-                logHHAuto("Redirect to harem button detected.");
-                return RewardHelper.closeGirlRewardPopupIfAny(logging, popupId);
+    static moduleSimLeagueHideBeatenOppo() {
+        const beatenOpponents = '<div style="position: absolute;left: 190px;top: 14px;width:100px;"  class="tooltipHH"><span class="tooltipHHtext">' + getTextForUI("HideBeatenOppo", "tooltip") + '</span><label style="width:100%;" class="myButton" id="HideBeatenOppo">' + getTextForUI("HideBeatenOppo", "elementText") + '</label></div>';
+        if ((document.getElementById("beaten_opponents") === null && document.getElementById("league_filter") === null) // button from HH OCD script
+            && document.getElementById("HideBeatenOppo") === null) {
+            if ($(".leagues_middle_header_script").length == 0) {
+                // #leagues-tabs was removed in the League DOM
+                // rework. .league_content is the wrapper that already
+                // anchors every other league selector in this file (see
+                // styles() above and the .data-list selectors below), and
+                // it is the direct parent of .league_table, so prepending
+                // here puts the header right above the opponent list
+                // instead of inside the scrollable table itself.
+                $('#leagues .league_content').prepend('<div class="leagues_middle_header_script"></div>');
+                GM_addStyle('.leagues_middle_header_script {'
+                    + 'display: flow-root;'
+                    + 'margin-top: 4px;}');
             }
-            if (logging)
-                logHHAuto(`Close reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
-    }
-    static closeGirlRewardPopupIfAny(logging = true, popupId = '') {
-        const rewardQuery = `div#${popupId != '' ? popupId : 'rewards_popup'} button.purple_button_L:not([disabled]):visible`;
-        if ($(rewardQuery).length > 0) {
-            if (logging)
-                logHHAuto(`Close girl reward popup ${popupId != '' ? popupId : 'rewards_popup'}.`);
-            $(rewardQuery).trigger('click');
-            return true;
-        }
-        return false;
-    }
-    static ObserveAndGetGirlRewards() {
-        const inCaseTimer = setTimeout(function () { gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome")); }, 60000); //in case of issue
-        function parseReward() {
-            var _a, _b;
-            const eventsGirlz = getStoredJSON(HHStoredVarPrefixKey + TK.eventsGirlz, []);
-            const eventGirl = EventModule.getEventGirl();
-            const eventMythicGirl = EventModule.getEventMythicGirl();
-            if (!eventsGirlz || eventsGirlz.length == 0) {
-                return -1;
-            }
-            const foughtTrollId = Number(queryStringGetParam(window.location.search, 'id_opponent'));
-            const loveRaid = LoveRaidManager.getAllRaids();
-            const foughtTrollFromLoveRaid = loveRaid.find(raid => raid.trollId === foughtTrollId);
-            if (eventMythicGirl.troll_id && foughtTrollId != eventMythicGirl.troll_id && eventGirl.troll_id && foughtTrollId != eventGirl.troll_id && !foughtTrollFromLoveRaid) {
-                logHHAuto(`Troll from mythic event (${eventMythicGirl.troll_id}) or from event (${eventGirl.troll_id}) or from LoveRaid not fought, was (${foughtTrollId}) instead.
-                Can be issue in event variable (mythic event finished: ${EventModule.isEventActive(eventMythicGirl.event_id)},  event finished: ${EventModule.isEventActive(eventGirl.event_id)})`);
-            }
-            if ($('#rewards_popup #reward_holder .shards_wrapper').length === 0) {
-                clearTimeout(inCaseTimer);
-                logHHAuto("No girl in reward going back to Troll");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: foughtTrollId });
-                return;
-            }
-            let renewEvent = "";
-            let needLoveRaidUpdate = false;
-            let loveRaidGirlWon = false;
-            const girlShardsWon = $('.shards_wrapper .slot_girl_shards');
-            logHHAuto("Detected girl shard reward");
-            for (var currGirl = 0; currGirl <= girlShardsWon.length; currGirl++) {
-                const girlIdSrc = $("img", girlShardsWon[currGirl]).attr("src") || '';
-                const girlId = Number(girlIdSrc.split('/')[5]);
-                const previousGirlShards = Math.min(Number($('.shards[shards]', girlShardsWon[currGirl]).attr('shards')), 100);
-                let wonShards = Number($('.shards[shards]', girlShardsWon[currGirl]).text().replace(/^\D+/g, ''));
-                if (!(wonShards > 0)) {
-                    logHHAuto('ERROR: Unable to gate number of shards won, default 1 shard.');
-                    wonShards = 1;
-                }
-                const girlShards = Math.min(previousGirlShards + wonShards, 100);
-                if (eventsGirlz.length > 0) {
-                    const girlIndex = eventsGirlz.findIndex((element) => element.girl_id === girlId);
-                    if (girlIndex !== -1) {
-                        eventsGirlz[girlIndex].shards = girlShards;
-                        if (girlShards === 100) {
-                            renewEvent = eventsGirlz[girlIndex].event_id;
-                        }
-                        if (wonShards > 0) {
-                            logHHAuto("Won " + wonShards + " event shards for " + eventsGirlz[girlIndex].name);
+            function removeBeatenOpponents() {
+                var board = document.getElementsByClassName("data-list")[0];
+                if (!board)
+                    return;
+                var opponents = board.getElementsByClassName("data-row body-row");
+                for (var i = 0; i < opponents.length; i++) {
+                    try {
+                        if (!opponents[i].className.includes("player-row")) {
+                            let hide = true;
+                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
+                            for (let j = 0; j < results.length; j++) {
+                                if (results[j].className == "result ")
+                                    hide = false;
+                            }
+                            if (hide)
+                                opponents[i].style.display = "none";
                         }
                     }
+                    catch (e) { }
                 }
-                if (eventMythicGirl.girl_id === girlId) {
-                    eventMythicGirl.shards = girlShards;
-                    if (girlShards === 100) {
-                        renewEvent = eventMythicGirl.event_id;
-                    }
-                }
-                else if (eventGirl.girl_id === girlId) {
-                    eventGirl.shards = girlShards;
-                    if (girlShards === 100) {
-                        renewEvent = eventGirl.event_id;
-                    }
-                }
-                else if (loveRaid.some(raid => raid.id_girl === girlId)) {
-                    needLoveRaidUpdate = true;
-                    const raid = loveRaid.find(raid => raid.id_girl === girlId);
-                    raid.girl_shards = girlShards;
-                    if (girlShards === 100) {
-                        loveRaidGirlWon = true;
-                    }
-                }
+                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
-            if (needLoveRaidUpdate) {
-                LoveRaidManager.saveLoveRaids(loveRaid);
+            function displayBeatenOpponents() {
+                var board = document.getElementsByClassName("data-list")[0];
+                if (!board)
+                    return;
+                var opponents = board.getElementsByClassName("data-row body-row");
+                for (var i = 0; i < opponents.length; i++) {
+                    try {
+                        if (!opponents[i].className.includes("player-row")) {
+                            let hide = true;
+                            const results = $(opponents[i]).find('div[column = "match_history_sorting"]')[0].children;
+                            for (let j = 0; j < results.length; j++) {
+                                if (results[j].className == "result ")
+                                    hide = false;
+                            }
+                            if (hide)
+                                opponents[i].style.display = "";
+                        }
+                    }
+                    catch (e) { }
+                }
+                //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
-            setStoredValue(HHStoredVarPrefixKey + TK.eventsGirlz, JSON.stringify(eventsGirlz));
-            if (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id)
-                EventModule.saveEventGirl(eventGirl);
-            if (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id)
-                EventModule.saveEventGirl(eventMythicGirl);
-            if (renewEvent !== ""
-                //|| Number(getStoredValue(HHStoredVarPrefixKey+TK.EventFightsBeforeRefresh")) < 1
-                || (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)
-                || (eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
-                clearTimeout(inCaseTimer);
-                logHHAuto(`Need to check back event page: '${renewEvent}' or '${(_a = eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.event_id) !== null && _a !== void 0 ? _a : ''}' or '${(_b = eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.event_id) !== null && _b !== void 0 ? _b : ''}' `);
-                if (renewEvent !== "") {
-                    EventModule.parseEventPage(renewEvent);
-                }
-                else if ((eventMythicGirl === null || eventMythicGirl === void 0 ? void 0 : eventMythicGirl.girl_id) && EventModule.checkEvent(eventMythicGirl.event_id)) {
-                    EventModule.parseEventPage(eventMythicGirl.event_id);
-                }
-                else if ((eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && EventModule.checkEvent(eventGirl.event_id)) {
-                    EventModule.parseEventPage(eventGirl.event_id);
-                }
-                return;
+            $(".leagues_middle_header_script").append(beatenOpponents);
+            let hideBeatenOppo = getStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo);
+            if (!hideBeatenOppo) {
+                hideBeatenOppo = 0;
+                setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
             }
-            else if (loveRaidGirlWon) {
-                clearTimeout(inCaseTimer);
-                logHHAuto("Parse again love Raid.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
-                return;
+            if (hideBeatenOppo == 1) {
+                removeBeatenOpponents();
+                $('#HideBeatenOppo').html(getTextForUI("display", "elementText"));
             }
             else {
-                clearTimeout(inCaseTimer);
-                logHHAuto("Go back to troll after troll fight.");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: foughtTrollId });
-                return;
+                $('#HideBeatenOppo').html(getTextForUI("HideBeatenOppo", "elementText"));
             }
-        }
-        const observerReward = new MutationObserver(function (mutations) {
-            mutations.forEach(parseReward);
-        });
-        if ($('#rewards_popup').length > 0) {
-            if ($('#rewards_popup')[0].style.display !== "block" && $('#rewards_popup')[0].style.display !== "") {
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                logHHAuto("setting autoloop to false to wait for troll rewards");
-                observerReward.observe($('#rewards_popup')[0], {
-                    childList: false,
-                    subtree: false,
-                    attributes: true,
-                    characterData: false
+            $("#HideBeatenOppo").on('click', function () {
+                if (hideBeatenOppo == 0) {
+                    removeBeatenOpponents();
+                    hideBeatenOppo = 1;
+                    setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
+                    $('#HideBeatenOppo').html(getTextForUI("display", "elementText"));
+                }
+                else {
+                    displayBeatenOpponents();
+                    hideBeatenOppo = 0;
+                    setStoredValue(HHStoredVarPrefixKey + TK.hideBeatenOppo, hideBeatenOppo);
+                    $('#HideBeatenOppo').html(getTextForUI("HideBeatenOppo", "elementText"));
+                }
+            });
+            const sort_by = document.querySelectorAll('.data-column.head-column');
+            for (var sort of sort_by) {
+                sort.addEventListener('click', function () {
+                    if (hideBeatenOppo == 1)
+                        removeBeatenOpponents();
                 });
             }
-            else {
-                parseReward();
-            }
         }
-        const observerPass = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
-                if ($(querySkip).length === 0
-                    || $(querySkip)[0].style.display !== "block") {
-                    return;
-                }
-                else {
-                    setTimeout(function () {
-                        $(querySkip)[0].click();
-                        logHHAuto("Clicking on pass battle.");
-                    }, randomInterval(800, 1200));
-                }
-            });
-        });
-        observerPass.observe($('#contains_all .new-battle-buttons-container #new-battle-skip-btn.blue_text_button')[0], {
-            childList: false,
-            subtree: false,
-            attributes: true,
-            characterData: false
-        });
     }
-}
-
-;// ./src/Module/Troll.ts
-var Troll_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-// Troll.ts -- Automates troll battles: energy management, fight selection,
-// reward handling, and mythic event support.
-//
-// Trolls are PvE bosses that cost fight energy to battle. This module manages
-// troll fight scheduling, selects which troll to fight (including event-specific
-// trolls during mythic events), tracks energy regeneration, and processes
-// fight rewards. Coordinates with MythicEvent.ts for event troll priorities.
-//
-// Depends on: EventModule.ts and LoveRaidManager.ts (event routing), Harem, Booster
-// Used by: Helper/HHMenuHelper.ts, Module/GenericBattle.ts, Module/MonthlyCard.ts, Service/AutoLoop.ts u. a.
-//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class Troll {
-    static getEnergy() {
-        return Number(getHHVars('Hero.energies.fight.amount'));
-    }
-    static getEnergyMax() {
-        return Number(getHHVars('Hero.energies.fight.max_regen_amount'));
-    }
-    /**
-     * Count, per troll, the girls the player has not finished yet.
-     *
-     * Only the full harem can answer this. Every id that is not in the
-     * dictionary counts as "still to win", so a partial list reports the
-     * maximum for every troll -- indistinguishable from the answer for a
-     * player who owns nothing. Issue #1864: on the harem page the count came
-     * out all zeros, and 29 seconds later the home page handed over a much
-     * shorter `girlsDataList`, which overwrote the snapshot with the maximum
-     * for every troll. That value then stuck for months, because the harem
-     * page is visited rarely and the home page constantly.
-     *
-     * A list shorter than the harem size cached by handleHaremSize therefore
-     * counts as "no answer": [] is returned and the caller keeps whatever
-     * snapshot it has. Without a cached size (fresh install) the check cannot
-     * run and any list is accepted, as before.
-     */
-    static getTrollWithGirls() {
-        const girlDictionary = Harem.getGirlsList();
-        const trollGirlsID = ConfigHelper.getHHScriptVars("trollGirlsID");
-        const sideTrollGirlsID = ConfigHelper.getHHScriptVars("sideTrollGirlsID");
-        const trollWithGirls = [];
-        const knownHaremSize = getStoredJSON(HHStoredVarPrefixKey + TK.HaremSize, { count: 0 }).count || 0;
-        if (girlDictionary && girlDictionary.size > 0
-            && knownHaremSize > 0 && girlDictionary.size < knownHaremSize) {
-            logHHAuto(`Girl list holds ${girlDictionary.size} of ${knownHaremSize} known girls, so it is not the harem. Keeping the stored troll snapshot.`);
-            return trollWithGirls;
+    static _getTempLeagueOpponentList() {
+        const maxLeagueListDurationSecs = ConfigHelper.getHHScriptVars("LeagueListExpirationSecs");
+        const opponentsPowerList = getStoredJSON(HHStoredVarPrefixKey + TK.LeagueOpponentList, { expirationDate: 0, opponentsList: [] });
+        if (Object.keys(opponentsPowerList.opponentsList).length === 0 || opponentsPowerList.expirationDate < new Date()) {
+            deleteStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList);
+            opponentsPowerList.expirationDate = new Date().getTime() + maxLeagueListDurationSecs * 1000;
         }
-        if (girlDictionary && girlDictionary.size > 0) {
-            for (let tIdx = 0; tIdx < trollGirlsID.length; tIdx++) {
-                trollWithGirls[tIdx] = 0;
-                for (let pIdx = 0; pIdx < trollGirlsID[tIdx].length; pIdx++) {
-                    for (let gIdx = 0; gIdx < trollGirlsID[tIdx][pIdx].length; gIdx++) {
-                        const idGirl = parseInt(trollGirlsID[tIdx][pIdx][gIdx], 10);
-                        if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
-                            trollWithGirls[tIdx] += 1;
-                        }
-                    }
-                }
-            }
-            // The side-troll slots of trollGirlsID are placeholders; the real
-            // counts live in sideTrollGirlsID. Filling them in regardless of the
-            // adventure made "first/last troll with girls" pick a side troll the
-            // main adventure cannot open (issue #1875), so a main-adventure run
-            // leaves those slots at the 0 the loop above wrote.
-            if (!Troll.isMainAdventure() && Object.keys(sideTrollGirlsID).length > 0) {
-                for (const tIdx of Object.keys(sideTrollGirlsID)) {
-                    trollWithGirls[Number(tIdx) - 1] = 0;
-                    for (let pIdx = 0; pIdx < sideTrollGirlsID[tIdx].length; pIdx++) {
-                        for (let gIdx = 0; gIdx < sideTrollGirlsID[tIdx][pIdx].length; gIdx++) {
-                            const idGirl = parseInt(sideTrollGirlsID[tIdx][pIdx][gIdx], 10);
-                            if (idGirl !== 0 && (girlDictionary.get("" + idGirl) === undefined || girlDictionary.get("" + idGirl).shards < 100)) {
-                                trollWithGirls[Number(tIdx) - 1] += 1;
-                            }
-                        }
-                    }
-                }
-            }
+        else {
+            logHHAuto('Found valid opponent list in storage, reuse it');
         }
-        return trollWithGirls;
+        return opponentsPowerList;
     }
-    static getPinfo(contest) {
-        const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) || 0;
-        const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-        let label = getTextForUI("autoTrollTitle", "elementText") + ' ' + Troll.getEnergy() + '/' + Troll.getEnergyMax() + contest;
-        let value = '';
-        if (runThreshold > 0) {
-            label += ' (' + threshold + '<' + Troll.getEnergy() + '<=' + runThreshold + ')';
-            // This row has no timer of its own, so the wait notice is the only
-            // thing there is to put in the value column.
-            if (Troll.getEnergy() < runThreshold)
-                value = getTextForUI("waitRunThreshold", "elementText");
-        }
-        let Tegzd = pInfoRow(label, value);
+    static hasVanillaPowerColumn() {
+        return $('.body-row .data-column[column="power"]').first().html() == $('.body-row .data-column[column="power"]').first().text();
+    }
+    static getLeagueOpponentListData(isFirstCall = true) {
+        const Data = [];
+        let opponent_id;
+        let fightButton;
+        let opponentsPowerList;
+        const sortMode = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSortIndex);
+        let usePowerCalc = sortMode === LeagueHelper.SORT_POWERCALC;
         const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         if (debugEnabled)
-            Tegzd += pInfoRow(Troll.debugNextTrollToFight());
-        return Tegzd;
-    }
-    static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledTrollBattle", false) && getHHVars('Hero.infos.questing.id_world') > 0;
-    }
-    static isTrollFightActivated() {
-        return Troll.isEnabled() &&
-            (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-                || getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true"
-                || getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
-                || getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
-                || LoveRaidManager.isAnyActivated());
-    }
-    static isMainAdventure() {
-        return Number(getHHVars('Hero.infos.questing.choices_adventure')) === 0;
-    }
-    /**
-     * Side trolls exist only inside their side adventure. The main adventure
-     * cannot open them: the game answers with "Troll not available yet!" on a
-     * page the script does not even initialise on, so a target it keeps
-     * choosing turns into an endless home -> pre-battle -> home loop
-     * (issue #1875). sideTrollzList carries the ids; it is empty on every site
-     * except hentaiheroes.
-     */
-    static isSideTroll(trollId) {
-        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
-        return Object.prototype.hasOwnProperty.call(sideTrollz, trollId);
-    }
-    static getLastTrollIdAvailable(logging = false, id_world = undefined) {
-        const isMainAdventure = Troll.isMainAdventure();
-        if (!id_world) {
-            id_world = Number(getHHVars('Hero.infos.questing.id_world'));
-        }
-        else if (id_world <= 0) {
-            logHHAuto(`id_world given ${id_world} must be wrong, default to current world`);
-            id_world = Number(getHHVars('Hero.infos.questing.id_world'));
-        }
-        let trollIdMapping = [];
-        if (isMainAdventure) {
-            trollIdMapping = ConfigHelper.getHHScriptVars("trollIdMapping");
-            if (ConfigHelper.isPshEnvironnement() && id_world > 10) {
-                if (trollIdMapping.hasOwnProperty(id_world)) {
-                    return trollIdMapping[id_world]; // PSH parallel adventures
-                }
-                if (logging)
-                    logHHAuto(`Error Troll ID mapping need to be updated with world ${id_world}`);
+            logHHAuto(`Storting method: ${sortMode}`);
+        const hasScriptChangedPowerBefore = !LeagueHelper.hasVanillaPowerColumn();
+        if (hasScriptChangedPowerBefore)
+            logHHAuto('Power columned changed from vanilla game, can be HH++ BDSM or other script');
+        const tableRow = $(".data-list .data-row.body-row");
+        logHHAuto('Number of player in league:' + tableRow.length + '. Number of opponent not fought in league:' + $('.data-list .data-row.body-row a').length);
+        const opponents_list = getHHVars("opponents_list");
+        let heroFighter;
+        if (usePowerCalc) {
+            opponentsPowerList = LeagueHelper._getTempLeagueOpponentList();
+            try {
+                heroFighter = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find((el) => el.player.id_fighter == HeroHelper.getPlayerId()).player;
+            }
+            catch (error) {
+                logHHAuto('Error, falback to not use powercalc');
+                if (debugEnabled)
+                    logHHAuto(error);
+                usePowerCalc = false;
             }
         }
-        else {
-            if (logging)
-                logHHAuto(`Side adventure detected with world ${id_world}`);
-            trollIdMapping = ConfigHelper.getHHScriptVars("sideTrollIdMapping");
-        }
-        if (Object.keys(trollIdMapping).length > 0 && trollIdMapping.hasOwnProperty(id_world)) {
-            if (logging)
-                logHHAuto(`Troll ID mapping (${trollIdMapping[id_world]}) found for world ${id_world}`);
-            return trollIdMapping[id_world];
-        }
-        return id_world - 1;
-    }
-    static getTrollIdFromEvent(eventGirl) {
-        if (eventGirl && EventModule.isEventActive(eventGirl.event_id)) {
-            return eventGirl.troll_id;
-        }
-        else {
-            if (eventGirl)
-                EventModule.clearEventData(eventGirl.event_id);
-            logHHAuto("Event troll completed, clear event and get new troll ID");
-            return Troll.getTrollIdToFight();
-        }
-    }
-    static getTrollSelectedIndex() {
-        let autoTrollSelectedIndex = getStoredValue(HHStoredVarPrefixKey + SK.autoTrollSelectedIndex);
-        if (autoTrollSelectedIndex === undefined || isNaN(autoTrollSelectedIndex)) {
-            autoTrollSelectedIndex = -1;
-        }
-        else {
-            autoTrollSelectedIndex = Number(autoTrollSelectedIndex);
-        }
-        return autoTrollSelectedIndex;
-    }
-    static getTrollIdToFight(logging = true, allowSideEffects = true) {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
-        let trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
-        const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
-        let TTF = 0;
-        const lastTrollIdAvailable = Troll.getLastTrollIdAvailable(logging);
-        const eventGirl = EventModule.getEventGirl();
-        const eventMythicGirl = EventModule.getEventMythicGirl();
-        const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-        const raidStarsRaids = LoveRaidManager.filterByRaidStars(allTrollRaids);
-        // +Raid: user-selected girl bypasses grade filter, auto-mode ("first") respects it
-        const loveRaids = LoveRaidManager.isActivated() ? allTrollRaids : [];
-        if (debugEnabled && logging) {
-            logHHAuto('eventGirl', eventGirl);
-            logHHAuto('eventMythicGirl', eventMythicGirl);
-            logHHAuto('loveRaids', loveRaids);
-        }
-        if (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true" && !checkTimer("eventMythicGoing") && eventMythicGirl.girl_id && eventMythicGirl.is_mythic) {
-            if (logging)
-                logHHAuto("Mythic Event troll fight");
-            TTF = Troll.getTrollIdFromEvent(eventMythicGirl);
-        }
-        else if (raidStarsRaids.length > 0) {
-            if (logging)
-                logHHAuto("Raid Stars troll fight (selection " + LoveRaidManager.getRaidStarsSelection() + ")");
-            const loveRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsRaids, logging);
-            if (loveRaid) {
-                TTF = loveRaid.trollId;
-            }
-        }
-        else if (getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true" && !checkTimer("eventGoing") && eventGirl.girl_id && !eventGirl.is_mythic) {
-            if (logging)
-                logHHAuto("Event troll fight");
-            TTF = Troll.getTrollIdFromEvent(eventGirl);
-        }
-        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
-            // Rebuild the "troll with girls" snapshot from the current harem
-            // whenever the girl list is available, instead of caching it once for
-            // the whole browser-tab lifetime. The old code only built it when the
-            // cache was empty, so girls completed later were never reflected: a
-            // fully-farmed troll kept being selected and Love Raids never got a
-            // turn (issue #1780). getTrollWithGirls() returns a non-empty array
-            // only when the girl list is loaded; otherwise fall back to the cached
-            // snapshot, or fetch the list from the Waifu page.
-            const freshTrollWithGirls = Troll.getTrollWithGirls();
-            if (freshTrollWithGirls.length > 0) {
-                trollWithGirls = freshTrollWithGirls;
-                if (allowSideEffects)
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
-            }
-            else if (trollWithGirls === undefined || trollWithGirls.length === 0) {
-                if (logging)
-                    logHHAuto("Need girls list, going to Waifu page to get them");
-                if (!allowSideEffects)
-                    return 0;
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDWaifu"));
-                return -1;
-            }
-            if (trollWithGirls !== undefined && trollWithGirls.length > 0) {
-                if (autoTrollSelectedIndex === 98) {
-                    if (debugEnabled && logging)
-                        logHHAuto("First troll with girls from storage");
-                    TTF = trollWithGirls.findIndex((troll) => troll > 0) + 1;
-                    if (TTF > lastTrollIdAvailable) {
-                        if (logging)
-                            logHHAuto(`First troll with girls (${TTF}) is beyond last available (${lastTrollIdAvailable}), no valid troll target.`);
-                        TTF = 0;
+        let opponentsPowerListChanged = false;
+        let canUseSimu = usePowerCalc && !!opponents_list && !!heroFighter;
+        tableRow.each(function () {
+            fightButton = $('a', $(this));
+            if (fightButton.length > 0) {
+                opponent_id = queryStringGetParam(new URL(fightButton.attr("href"), window.location.origin).search, 'id_opponent');
+                let leagueOpponent;
+                if (opponentsPowerList && opponentsPowerList.opponentsList.length > 0) {
+                    try {
+                        leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponent_id);
+                    }
+                    catch (error) {
+                        logHHAuto("Error when getting oppo " + opponent_id + " from storage");
                     }
                 }
-                else if (autoTrollSelectedIndex === 99) {
-                    if (debugEnabled && logging)
-                        logHHAuto("Last troll with girls from storage");
-                    TTF = trollWithGirls.findLastIndex((troll) => troll > 0) + 1;
-                    if (TTF > lastTrollIdAvailable) {
-                        // Find the last troll with girls that is actually unlocked
-                        let found = false;
-                        for (let i = lastTrollIdAvailable - 1; i >= 0; i--) {
-                            if (trollWithGirls[i] > 0) {
-                                TTF = i + 1;
-                                found = true;
-                                break;
-                            }
+                if (!leagueOpponent) {
+                    let expectedPoints = 0;
+                    const opponents = opponents_list.find((el) => el.player.id_fighter == opponent_id);
+                    let simu = {};
+                    if (canUseSimu) {
+                        try {
+                            simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
+                            expectedPoints = Number(NumberHelper.nRounding(simu.expectedValue, 1, -1));
                         }
-                        if (!found) {
-                            if (logging)
-                                logHHAuto(`No unlocked troll has girls (last available: ${lastTrollIdAvailable}), no valid troll target.`);
-                            TTF = 0;
-                        }
-                        else {
-                            if (logging)
-                                logHHAuto(`Last troll with girls capped to ${TTF} (last available: ${lastTrollIdAvailable}).`);
+                        catch (error) {
+                            logHHAuto("Error in simu for oppo " + opponent_id + ", falback to not use powercalc");
+                            canUseSimu = false;
                         }
                     }
-                }
-            }
-            else if (getPage() !== ConfigHelper.getHHScriptVars("pagesIDHome")) {
-                if (logging)
-                    logHHAuto("Can't get troll with girls, going to home page to get girl list.");
-                if (allowSideEffects)
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-            }
-            else {
-                if (logging)
-                    logHHAuto("Can't get troll with girls, going to last troll.");
-                TTF = lastTrollIdAvailable;
-            }
-            // No troll with girls found - fall through to love raids before giving up
-            if (TTF <= 0 && LoveRaidManager.isActivated() && loveRaids.length > 0) {
-                if (logging)
-                    logHHAuto("No troll with girls, checking love raids as fallback.");
-                const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
-                if (loveRaid) {
-                    TTF = loveRaid.trollId;
-                    if (logging)
-                        logHHAuto(`Love raid fallback: fighting troll ${TTF} for raid girl ${loveRaid.id_girl}.`);
-                }
-            }
-        }
-        else if (LoveRaidManager.isActivated() && loveRaids.length > 0) {
-            const loveRaid = LoveRaidManager.getRaidToFight(loveRaids, logging);
-            if (loveRaid) {
-                TTF = loveRaid.trollId;
-            }
-        }
-        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true" && autoTrollSelectedIndex > 0 && autoTrollSelectedIndex < 98) {
-            TTF = autoTrollSelectedIndex;
-            if (logging)
-                logHHAuto("Custom troll fight.");
-        }
-        else if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
-            TTF = lastTrollIdAvailable;
-            if (logging)
-                logHHAuto("Last troll fight: " + TTF);
-        }
-        // A quest step that demands a battle is its own reason to fight, which
-        // is why isTrollFightActivated() lists autoTrollBattleSaveQuest next to
-        // autoTrollBattle instead of under it, and why handleQuest calls
-        // doBossBattle() precisely when autoTrollBattle is off. Requiring
-        // autoTrollBattle here contradicted both: with troll farming switched
-        // off no branch above ever set a target, so the quest battle resolved
-        // to 0 and the main quest stopped for good. Measured 2026-09-09 on a
-        // world-4 account -- one "No valid troll target found, skipping.", then
-        // twelve minutes of empty handleQuest ticks.
-        if (getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) === "true") {
-            TTF = lastTrollIdAvailable;
-            if (logging)
-                logHHAuto("Last troll fight for quest item: " + TTF);
-            if (allowSideEffects)
-                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-        }
-        const trollz = ConfigHelper.getHHScriptVars("trollzList");
-        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
-        // Check if selected troll is actually unlocked (love raid girls can be on locked trolls)
-        if (TTF > 0 && TTF > lastTrollIdAvailable) {
-            if (logging)
-                logHHAuto(`Troll ${TTF} (${trollz[Number(TTF)]}) not unlocked (last available: ${lastTrollIdAvailable}), resetting raid selector to "Choose a girl".`);
-            if (allowSideEffects)
-                setStoredValue(HHStoredVarPrefixKey + SK.autoLoveRaidSelectedIndex, "0");
-            TTF = 0;
-        }
-        // A side troll passes the unlock check above -- it sits below the last
-        // available id -- but the main adventure still cannot fight it. Events,
-        // love raids and a menu selection all reach this point, so the resolved
-        // target is checked instead of each source.
-        if (TTF > 0 && Troll.isMainAdventure() && Troll.isSideTroll(TTF)) {
-            if (logging)
-                logHHAuto(`Troll ${TTF} (${sideTrollz[Number(TTF)]}) belongs to a side adventure and cannot be fought from the main adventure.`);
-            TTF = 0;
-        }
-        if (TTF <= 0) {
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-                && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
-                // In world 1 nothing is unlocked yet: getLastTrollIdAvailable
-                // returns id_world - 1 = 0, and that 0 is the answer, not a
-                // failure to find a target. The old backup replaced it with a
-                // hard-wired 1; the game then answers "Troll not available
-                // yet!" on a page the script does not initialise on, so no
-                // handler can leave it -- the dead end of issue #1875, reached
-                // from the main fallback instead of a side troll. Measured
-                // 2026-09-09 on a level-5 account in world 1, quest 7.
-                if (lastTrollIdAvailable <= 0) {
-                    if (logging)
-                        logHHAuto('No troll unlocked in this world yet, skipping.');
-                    return 0;
-                }
-                // Only fallback to last troll when not using first/last troll with girls mode
-                TTF = lastTrollIdAvailable;
-                if (logging)
-                    logHHAuto(`Error: wrong troll target found. Backup to ${TTF}`);
-            }
-            else {
-                // First/last troll with girls found no valid target, or events/raids only mode
-                if (logging)
-                    logHHAuto("No valid troll target found, skipping.");
-                return 0;
-            }
-        }
-        if (TTF > 0 && !trollz.hasOwnProperty(TTF) && !sideTrollz.hasOwnProperty(TTF)) {
-            if (logging)
-                logHHAuto("Error: New troll implemented '" + TTF + "' (List to be updated) or wrong troll target found");
-            if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true") {
-                TTF = 1;
-            }
-            else {
-                return 0;
-            }
-        }
-        return TTF;
-    }
-    static debugNextTrollToFight() {
-        const TTF = Troll.getTrollIdToFight(false, false);
-        const trollz = ConfigHelper.getHHScriptVars("trollzList");
-        const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
-        return `Next troll: ${trollz[Number(TTF)] ? trollz[Number(TTF)] : sideTrollz[Number(TTF)]} (${TTF})`;
-    }
-    static doBossBattle() {
-        return Troll_awaiter(this, void 0, void 0, function* () {
-            var currentPower = Troll.getEnergy();
-            if (currentPower < 1) {
-                const eventGirl = EventModule.getEventGirl();
-                const eventMythicGirl = EventModule.getEventMythicGirl();
-                const allTrollRaids = LoveRaidManager.isAnyActivated() ? LoveRaidManager.getTrollRaids() : [];
-                const raidStarsFiltered = LoveRaidManager.filterByRaidStars(allTrollRaids);
-                const raidStarsRaid = LoveRaidManager.getRaidStarsRaidToFight(raidStarsFiltered);
-                const loveRaid = LoveRaidManager.isActivated()
-                    ? LoveRaidManager.getRaidToFight(allTrollRaids, false)
-                    : undefined;
-                if (!Troll.canBuyFight(eventGirl, false).canBuy && !Troll.canBuyFight(eventMythicGirl, false).canBuy &&
-                    !Troll.canBuyFightForRaid(loveRaid, false).canBuy && !Troll.canBuyFightForRaid(raidStarsRaid, false).canBuy) {
-                    return false;
-                }
-            }
-            const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollRunThreshold)) || 0;
-            if (runThreshold > 0 && currentPower === runThreshold) {
-                setStoredValue(HHStoredVarPrefixKey + TK.TrollHumanLikeRun, "true");
-            }
-            let TTF = Troll.getTrollIdToFight();
-            const trollz = ConfigHelper.getHHScriptVars("trollzList");
-            const currentPage = getPage();
-            if (!TTF || TTF <= 0) {
-                const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
-                // The retry-then-troll-1 path below assumes some troll is unlocked.
-                // On a world-1 account none is, and troll 1 is the dead page
-                // described in getTrollIdToFight. Leave before the retry: it would
-                // only delay the same navigation by one run.
-                if (Troll.getLastTrollIdAvailable(false) <= 0) {
-                    logHHAuto('No troll unlocked in this world yet, skipping fight.');
-                    return false;
-                }
-                if (getStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle) === "true"
-                    && autoTrollSelectedIndex !== 98 && autoTrollSelectedIndex !== 99) {
-                    // Fixed troll or "last troll" mode: retry once, then fallback to troll 1
-                    if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
-                        logHHAuto(`ERROR: Invalid troll N°${TTF}, again, going to first troll`);
-                        TTF = 1;
-                    }
-                    else {
-                        logHHAuto(`ERROR: Invalid troll N°${TTF}, do not fight, retry...`);
-                        setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "true");
-                        return true;
+                    leagueOpponent = new LeagueOpponent(opponent_id, 
+                    // Number($('.data-column[column="place"]', $(this)).text()),
+                    $('.nickname', $(this)).text(), 
+                    // Number($('.data-column[column="level"]', $(this)).text()),
+                    opponents.power, 
+                    // Number($('.data-column[column="player_league_points"]', $(this)).text().replace(/\D/g, '')),
+                    expectedPoints, 
+                    // opponents,
+                    simu);
+                    if (opponentsPowerList && opponentsPowerList.opponentsList) {
+                        opponentsPowerList.opponentsList.push(leagueOpponent);
+                        opponentsPowerListChanged = true;
                     }
                 }
-                else {
-                    // First/last troll with girls found no valid target, or events/raids only mode
-                    logHHAuto("No troll target found, skipping fight.");
-                    return false;
-                }
-            }
-            // Valid troll resolved: clear the one-shot invalid-retry guard so a future
-            // invalid target can retry once again (the flag was never reset before).
-            if (getStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid) === "true") {
-                setStoredValue(HHStoredVarPrefixKey + TK.TrollInvalid, "false");
-            }
-            const needSW = Booster.needSandalWoodEquipped(TTF);
-            if (needSW) {
-                if (currentPage !== ConfigHelper.getHHScriptVars("pagesIDShop")) {
-                    logHHAuto('Sandalwood needed: going to Shop page to update booster status');
-                    gotoPage(ConfigHelper.getHHScriptVars("pagesIDShop"));
-                    return true;
-                }
-                else {
-                    Booster.collectBoostersFromMarket();
-                    const equipped = yield Booster.equipeSandalWoodIfNeeded(TTF);
-                    if (equipped) {
-                        Booster.collectBoostersFromMarket();
-                    }
-                }
-            }
-            logHHAuto(`Fighting troll N°${TTF}, ${trollz[Number(TTF)]}`);
-            // Battles the latest boss.
-            // Navigate to latest boss.
-            if (currentPage === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle") && window.location.search.includes("id_opponent=" + TTF)) {
-                // On the battle screen.
-                yield Troll.CrushThemFights();
-                return true;
-            }
-            else {
-                logHHAuto("Navigating to chosen Troll.");
-                setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                logHHAuto("setting autoloop to false");
-                //week 28 new battle modification
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
-                //End week 28 new battle modification
-                return true;
+                Data.push(leagueOpponent);
             }
         });
+        if (opponentsPowerListChanged) {
+            logHHAuto('Save updated opponent list for later');
+            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify(opponentsPowerList));
+        }
+        const hasScriptChangedPowerAfter = !LeagueHelper.hasVanillaPowerColumn();
+        if (!hasScriptChangedPowerBefore && hasScriptChangedPowerAfter) {
+            if (isFirstCall) {
+                logHHAuto('User script edited power column during computation, try again');
+                return LeagueHelper.getLeagueOpponentListData(false);
+            }
+            else {
+                logHHAuto('User script edited power column during computation twice, stop');
+                return [];
+            }
+        }
+        if (canUseSimu) { // sortMode === LeagueHelper.SORT_POWERCALC
+            Data.sort((a, b) => (b.simuPoints > a.simuPoints) ? 1 : ((a.simuPoints > b.simuPoints) ? -1 : 0)); // sort by higher score
+        }
+        else if (sortMode === LeagueHelper.SORT_POWER) {
+            Data.sort((a, b) => {
+                const aValue = Math.abs(26 - a.power);
+                const bValue = Math.abs(26 - b.power);
+                return (aValue > bValue) ? 1 : ((bValue > aValue) ? -1 : 0);
+            }); // sort by lower power
+        } // sortMode === LeagueHelper.SORT_DISPLAYED // No sorting, keep html order
+        if (usePowerCalc) {
+            logHHAuto('Save opponent list for later');
+            setStoredValue(HHStoredVarPrefixKey + TK.LeagueOpponentList, JSON.stringify({ expirationDate: opponentsPowerList.expirationDate, opponentsList: Data }));
+        }
+        return Data;
     }
-    static CrushThemFights() {
-        return Troll_awaiter(this, void 0, void 0, function* () {
-            if (getPage() === ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle")) {
-                logHHAuto("On Pre battle page.");
-                const TTF = Number(queryStringGetParam(window.location.search, 'id_opponent'));
-                const trollz = ConfigHelper.getHHScriptVars("trollzList");
-                const battleButton = $('#pre-battle .battle-buttons .green_button_L.battle-action-button');
-                const battleButtonX10 = $('#pre-battle .battle-buttons button.autofight[data-battles="10"]');
-                const battleButtonX50 = $('#pre-battle .battle-buttons button.autofight[data-battles="50"]');
-                const battleButtonX10Price = Number(battleButtonX10.attr('price'));
-                const battleButtonX50Price = Number(battleButtonX50.attr('price'));
-                const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
-                const previousPower = Number(getStoredValue(HHStoredVarPrefixKey + TK.trollPoints)) || 0;
-                const currentPower = Troll.getEnergy();
-                var checkPreviousFightDone = function () {
-                    // The goal of this function is to detect slow server response to avoid loop without fight
-                    if (previousPower > 0 && previousPower === currentPower) {
-                        setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
-                        logHHAuto("Server seems slow to reply, setting autoloop to false to wait for troll page to load");
+    static doLeagueBattle() {
+        try {
+            // Confirm if on correct screen.
+            const currentPower = LeagueHelper.getEnergy();
+            const maxLeagueRegen = LeagueHelper.getEnergyMax();
+            const leagueThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold));
+            const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
+            let leagueScoreSecurityThreshold = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSecurityThreshold);
+            if (leagueScoreSecurityThreshold) {
+                leagueScoreSecurityThreshold = Number(leagueScoreSecurityThreshold);
+            }
+            else {
+                leagueScoreSecurityThreshold = 40;
+            }
+            var page = getPage();
+            const Hero = getHero();
+            if (page === ConfigHelper.getHHScriptVars("pagesIDLeagueBattle")) {
+                // On the battle screen.
+                // CrushThemFights(); // TODO ??? // now managed by doBattle
+            }
+            else if (page === ConfigHelper.getHHScriptVars("pagesIDLeaderboard")) {
+                logHHAuto("On leaderboard page.");
+                if (getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesCollect) === "true") {
+                    if ($('#leagues .forced_info button[rel="claim"]').length > 0) {
+                        $('#leagues .forced_info button[rel="claim"]').trigger('click'); //click reward
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
                     }
-                };
-                //check if girl still available at troll in case of event
-                if (TTF !== null) {
-                    let eventTrollGirl;
-                    const eventGirl = EventModule.getEventGirl();
-                    const eventMythicGirl = EventModule.getEventMythicGirl();
-                    let loveRaid = null;
-                    const rewardGirlz = $("#pre-battle .oponnent-panel .opponent_rewards .rewards_list .slot.girl_ico[data-rewards]");
-                    const trollGirlRewards = rewardGirlz.attr('data-rewards') || '';
-                    const autoTrollSelectedIndex = Troll.getTrollSelectedIndex();
-                    if (eventMythicGirl.girl_id && TTF === eventMythicGirl.troll_id && eventMythicGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true") {
-                        eventTrollGirl = eventMythicGirl;
-                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventMythicGirl.girl_id)) {
-                            logHHAuto(`Seems ${eventMythicGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
-                            EventModule.parseEventPage(eventMythicGirl.event_id);
-                            return true;
-                        }
-                    }
-                    if (eventGirl.girl_id && TTF === eventGirl.troll_id && !eventGirl.is_mythic && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true") {
-                        eventTrollGirl = eventGirl;
-                        if (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + eventGirl.girl_id)) {
-                            logHHAuto(`Seems ${eventGirl.name} is no more available at troll ${trollz[Number(TTF)]}. Going to event page.`);
-                            EventModule.parseEventPage(eventGirl.event_id);
-                            return true;
-                        }
-                    }
-                    if (rewardGirlz.length === 0 && (autoTrollSelectedIndex === 98 || autoTrollSelectedIndex === 99)) {
-                        logHHAuto(`Seems no more girls available at troll ${trollz[Number(TTF)]}, looking for next troll.`);
-                        const trollWithGirls = getStoredJSON(HHStoredVarPrefixKey + TK.trollWithGirls, []);
-                        trollWithGirls[TTF - 1] = 0;
-                        setStoredValue(HHStoredVarPrefixKey + TK.trollWithGirls, JSON.stringify(trollWithGirls));
-                        const newTroll = Troll.getTrollIdToFight();
-                        if (newTroll > 0 && TTF !== newTroll) {
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: newTroll });
-                            return true;
-                        }
-                        else {
-                            logHHAuto(`Same troll found and no girls available, stopping troll fight.`);
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            return;
-                        }
-                    }
-                    const canBuyFightsResult = Troll.canBuyFight(eventTrollGirl);
-                    if ((canBuyFightsResult.canBuy && currentPower === 0)
-                        ||
-                            (canBuyFightsResult.canBuy
-                                && currentPower < 50
-                                && canBuyFightsResult.max === 50
-                                && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")
-                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))
-                        ||
-                            (canBuyFightsResult.canBuy
-                                && currentPower < 10
-                                && canBuyFightsResult.max === 20
-                                && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                                && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")
-                                && TTF === (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.troll_id))) {
-                        Troll.RechargeCombat(canBuyFightsResult);
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
-                        return true;
-                    }
-                    if (LoveRaidManager.isAnyActivated()) {
-                        const trollRaids = LoveRaidManager.getTrollRaids();
-                        loveRaid = trollRaids.find(raid => raid.trollId === TTF);
-                        if (loveRaid && (rewardGirlz.length === 0 || !trollGirlRewards.includes('"id_girl":' + loveRaid.id_girl))) {
-                            logHHAuto(`Seems girl ${loveRaid.id_girl} is no more available at troll ${trollz[Number(TTF)]}. Going to love Raid.`);
-                            clearTimer('nextLoveRaidTime');
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDLoveRaid"));
-                            return true;
-                        }
-                        const canBuyFightsResultLoveRaid = Troll.canBuyFightForRaid(loveRaid);
-                        if ((canBuyFightsResultLoveRaid.canBuy && currentPower === 0)
-                            ||
-                                (canBuyFightsResultLoveRaid.canBuy
-                                    && currentPower < 50
-                                    && canBuyFightsResultLoveRaid.max === 50
-                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"
-                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))
-                            ||
-                                (canBuyFightsResultLoveRaid.canBuy
-                                    && currentPower < 10
-                                    && canBuyFightsResultLoveRaid.max === 20
-                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                                    && getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true"
-                                    && TTF === (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.trollId))) {
-                            Troll.RechargeCombat(canBuyFightsResultLoveRaid);
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDTrollPreBattle"), { id_opponent: TTF });
-                            return true;
-                        }
-                    }
-                    if ((Number.isInteger(eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards) || (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win))
-                        && battleButtonX10.length > 0
-                        && battleButtonX50.length > 0
-                        && getStoredValue(HHStoredVarPrefixKey + TK.autoTrollBattleSaveQuest) !== "true") {
-                        const remainingEventShards = eventTrollGirl ? Number(100 - (eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.shards)) : 0;
-                        const remainingLoveRaidShards = loveRaid ? Number(100 - (loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_shards)) : 0;
-                        const remainingShards = remainingEventShards + remainingLoveRaidShards; // If Troll have both
-                        const bypassThreshold = (((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic)
-                            && canBuyFightsResult.canBuy) // eventGirl available and buy comb true
-                            || ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) && getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true")
-                            || ((loveRaid === null || loveRaid === void 0 ? void 0 : loveRaid.girl_to_win) && getStoredValue(HHStoredVarPrefixKey + SK.autoTrollLoveRaidByPassThreshold) === "true"));
-                        const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                            && minShardsx50 && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
-                            && (battleButtonX50Price === 0 || HeroHelper.getKoban() >= battleButtonX50Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
-                            && currentPower >= 50
-                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 50)
-                                || bypassThreshold)
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true")) {
-                            logHHAuto("Going to crush 50 times: " + trollz[Number(TTF)] + ' for ' + battleButtonX50Price + ' kobans.');
-                            if (!acquirePostMutex('troll:battleX50')) {
-                                logHHAuto('Troll: another POST in flight, deferring x50 battle');
-                                return;
-                            }
-                            const x50Start = Date.now();
-                            setHHVars('Hero.infos.hc_confirm', true);
-                            Booster.resetBattleResponseFlag();
-                            battleButtonX50[0].click();
-                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            logHHAuto(`Crushed 50 times: ${trollz[Number(TTF)]} for ${battleButtonX50Price} kobans.`);
-                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                                // Battle Done.
-                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                            }
-                            RewardHelper.ObserveAndGetGirlRewards();
-                            yield Booster.waitForBattleResponse();
-                            const x50Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
-                            const x50Duration = Date.now() - x50Start;
-                            releasePostMutex();
-                            if (x50Idle)
-                                yield awaitServerSettleAfterPost(x50Duration);
-                            else
-                                logHHAuto('Troll: x50 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
-                            return;
-                        }
-                        else {
-                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                                logHHAuto(`Unable to use x50 for ${battleButtonX50Price} kobans,fights : ${Troll.getEnergy()}/50, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                            }
-                        }
-                        const minShardsX10 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10);
-                        if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true"
-                            && minShardsX10 && Number.isInteger(Number(minShardsX10)) && remainingShards >= Number(minShardsX10)
-                            && (battleButtonX10Price === 0 || HeroHelper.getKoban() >= battleButtonX10Price + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank)))
-                            && currentPower >= 10
-                            && (currentPower >= (Number(getStoredValue(HHStoredVarPrefixKey + SK.autoTrollThreshold)) + 10)
-                                || bypassThreshold)
-                            && ((eventTrollGirl === null || eventTrollGirl === void 0 ? void 0 : eventTrollGirl.is_mythic) || getStoredValue(HHStoredVarPrefixKey + SK.useX10FightsAllowNormalEvent) === "true")) {
-                            logHHAuto(`Going to crush 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                            if (!acquirePostMutex('troll:battleX10')) {
-                                logHHAuto('Troll: another POST in flight, deferring x10 battle');
-                                return;
-                            }
-                            const x10Start = Date.now();
-                            setHHVars('Hero.infos.hc_confirm', true);
-                            Booster.resetBattleResponseFlag();
-                            battleButtonX10[0].click();
-                            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-                            logHHAuto(`Crushed 10 times: ${trollz[Number(TTF)]} for ${battleButtonX10Price} kobans.`);
-                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                                // Battle Done.
-                                setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "none");
-                            }
-                            RewardHelper.ObserveAndGetGirlRewards();
-                            yield Booster.waitForBattleResponse();
-                            const x10Idle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
-                            const x10Duration = Date.now() - x10Start;
-                            releasePostMutex();
-                            if (x10Idle)
-                                yield awaitServerSettleAfterPost(x10Duration);
-                            else
-                                logHHAuto('Troll: x10 AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
-                            return;
-                        }
-                        else {
-                            if (getStoredValue(HHStoredVarPrefixKey + SK.useX10Fights) === "true") {
-                                logHHAuto(`Unable to use x10 for ${battleButtonX10Price} kobans,fights : ${Troll.getEnergy()}/10, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX10)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                            }
-                        }
-                    }
-                    //Crushing one by one
-                    if (currentPower > 0) {
-                        if ($('#pre-battle div.battle-buttons a.single-battle-button[disabled]').length > 0) {
-                            logHHAuto("Battle Button seems disabled, force reload of page.");
-                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                            return;
-                        }
-                        if (battleButton === undefined || battleButton.length === 0) {
-                            logHHAuto("Battle Button was undefined. Disabling all auto-battle.");
-                            document.getElementById("autoTrollBattle").checked = false;
-                            setStoredValue(HHStoredVarPrefixKey + SK.autoTrollBattle, "false");
-                            if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                                document.getElementById("autoQuest").checked = false;
-                                setStoredValue(HHStoredVarPrefixKey + SK.autoQuest, "false");
-                                logHHAuto("Auto-quest disabled since it requires battle and auto-battle has errors.");
-                            }
-                            return;
-                        }
-                        logHHAuto("Crushing: " + trollz[Number(TTF)]);
-                        checkPreviousFightDone();
-                        setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
-                        if (!acquirePostMutex('troll:battle')) {
-                            logHHAuto('Troll: another POST in flight, deferring single battle');
-                            return;
-                        }
-                        const battleStart = Date.now();
-                        battleButton[0].click();
-                        const battleIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
-                        const battleDuration = Date.now() - battleStart;
-                        releasePostMutex();
-                        if (battleIdle)
-                            yield awaitServerSettleAfterPost(battleDuration);
-                        else
-                            logHHAuto('Troll: battle AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                }
+                logHHAuto('parsing enemies');
+                var Data = LeagueHelper.getLeagueOpponentListData();
+                const league_end = LeagueHelper.getLeagueEndTime();
+                if (currentPower < 1 && Data.length > 0) {
+                    logHHAuto("No power for leagues.");
+                    //prevent paranoia to wait for league
+                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
+                    const next_refresh = getHHVars('Hero.energies.challenge.next_refresh_ts');
+                    setTimer('nextLeaguesTime', randomInterval(next_refresh + 10, next_refresh + 3 * 60));
+                    return;
+                }
+                if (Data.length == 0) {
+                    logHHAuto('No valid targets!');
+                    //prevent paranoia to wait for league
+                    setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
+                    if ($('#leagues .forced_info').length > 0) {
+                        setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
                     }
                     else {
-                        // We need more power.
-                        const battle_price = 1; // TODO what is the expected value here ?
-                        logHHAuto(`Battle requires ${battle_price} power, having ${currentPower}.`);
-                        setStoredValue(HHStoredVarPrefixKey + TK.battlePowerRequired, battle_price);
-                        if (getStoredValue(HHStoredVarPrefixKey + TK.questRequirement) === "battle") {
-                            setStoredValue(HHStoredVarPrefixKey + TK.questRequirement, "P" + battle_price);
-                        }
-                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
-                        return;
+                        logHHAuto('Set timer to league ends.');
+                        setTimer('nextLeaguesTime', randomInterval(league_end - 5 * 60, league_end));
                     }
                 }
                 else {
-                    checkPreviousFightDone();
-                    setStoredValue(HHStoredVarPrefixKey + TK.trollPoints, currentPower);
-                    if (!acquirePostMutex('troll:battleNoEvent')) {
-                        logHHAuto('Troll: another POST in flight, deferring single battle (no event)');
+                    var getPlayerCurrentLevel = LeagueHelper.getLeagueCurrentLevel();
+                    if (isNaN(getPlayerCurrentLevel)) {
+                        logHHAuto("Could not get current Rank, stopping League.");
+                        //prevent paranoia to wait for league
+                        setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
+                        setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
                         return;
                     }
-                    const battleNoEventStart = Date.now();
-                    battleButton[0].click();
-                    const battleNoEventIdle = yield waitForAjaxIdle((/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000), (/* inlined export .AJAX_IDLE_SETTLE_MS */250));
-                    const battleNoEventDuration = Date.now() - battleNoEventStart;
-                    releasePostMutex();
-                    if (battleNoEventIdle)
-                        yield awaitServerSettleAfterPost(battleNoEventDuration);
-                    else
-                        logHHAuto('Troll: battle (no event) AJAX still busy after ' + (/* inlined export .AJAX_IDLE_TIMEOUT_MS */15000) + 'ms, skipping settle');
+                    var currentRank = Number($('.data-list .data-row.body-row.player-row .data-column[column="place"]').text());
+                    var currentScore = Number($('.data-list .data-row.body-row.player-row .data-column[column="player_league_points"]').text().replace(/\D/g, ''));
+                    const leagueTargetValue = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSelectedIndex)) + 1;
+                    if (leagueTargetValue < Number(getPlayerCurrentLevel)) {
+                        var totalOpponents = Number($('.data-list .data-row.body-row').length) + 1;
+                        var maxDemote = 0;
+                        if (screen.width < 1026) {
+                            totalOpponents = totalOpponents + 1;
+                        }
+                        var rankDemote = totalOpponents - 14;
+                        if (currentRank > (totalOpponents - 15)) {
+                            rankDemote = totalOpponents - 15;
+                        }
+                        logHHAuto("Current league above target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to demote. max rank : " + rankDemote + "/" + totalOpponents);
+                        const getRankDemote = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankDemote + ")").filter(function () {
+                            return Number($(this).text().trim()) === rankDemote;
+                        });
+                        if (getRankDemote.length > 0) {
+                            maxDemote = Number($(".data-column[column='player_league_points']", getRankDemote.parent()).text().replace(/\D/g, ''));
+                        }
+                        else {
+                            maxDemote = 0;
+                        }
+                        logHHAuto("Current league above target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to demote. Score should not be higher than : " + maxDemote);
+                        if (currentScore + leagueScoreSecurityThreshold >= maxDemote) {
+                            if (league_end <= (60 * 60)) {
+                                logHHAuto("Can't do league as could go above demote, as last hour setting timer to 5 mins");
+                                setTimer('nextLeaguesTime', randomInterval(5 * 60, 8 * 60));
+                            }
+                            else {
+                                logHHAuto("Can't do league as could go above demote, setting timer to 30 mins");
+                                setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
+                            }
+                            //prevent paranoia to wait for league
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
+                        }
+                    }
+                    const leagues = ConfigHelper.getHHScriptVars("leaguesList");
+                    var maxStay = -1;
+                    var maxLeague = $("div.tier_icons img").length;
+                    if (maxLeague === undefined) {
+                        maxLeague = leagues.length;
+                    }
+                    if (leagueTargetValue === Number(getPlayerCurrentLevel) && leagueTargetValue < maxLeague) {
+                        // Promotion zone (Kinkoid rule, March 2026): the higher of
+                        // the top 15% of the bracket or the top 20. Derived from the
+                        // bracket size so it stays correct for larger brackets;
+                        // hard-coding 20 was only right for ~100-player brackets.
+                        const bracketSize = $(".data-list .data-row.body-row").length;
+                        const promotionCount = leaguePromotionCutoff(bracketSize);
+                        var rankStay = promotionCount + 1;
+                        if (currentRank > promotionCount) {
+                            rankStay = promotionCount;
+                        }
+                        logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Promotion cutoff (higher of 15%/top20): " + promotionCount + ", max rank : " + rankStay);
+                        const getRankStay = $(".data-list .data-row.body-row .data-column[column='place']:contains(" + rankStay + ")").filter(function () {
+                            return Number($(this).text().trim()) === rankStay;
+                        });
+                        if (getRankStay.length > 0) {
+                            maxStay = Number($(".data-column[column='player_league_points']", getRankStay.parent()).text().replace(/\D/g, ''));
+                        }
+                        else {
+                            maxStay = 0;
+                        }
+                        logHHAuto("Current league is target (" + Number(getPlayerCurrentLevel) + "/" + leagueTargetValue + "), needs to stay. Score should not be higher than : " + maxStay);
+                        if (currentScore + leagueScoreSecurityThreshold >= maxStay && getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesAllowWinCurrent) !== "true") {
+                            logHHAuto("Can't do league as could go above stay, setting timer to 30 mins");
+                            setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
+                            //prevent paranoia to wait for league
+                            setStoredValue(HHStoredVarPrefixKey + TK.paranoiaLeagueBlocked, "true");
+                            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                            return;
+                        }
+                    }
+                    logHHAuto(Data.length + ' valid targets!');
+                    setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "false");
+                    logHHAuto("setting autoloop to false");
+                    const runThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesRunThreshold)) || 0;
+                    if (runThreshold > 0) {
+                        setStoredValue(HHStoredVarPrefixKey + TK.LeagueHumanLikeRun, "true");
+                    }
+                    const nextOpponent = Data[0];
+                    const opponents_list = getHHVars("opponents_list");
+                    const opponentDataFromList = opponents_list === null || opponents_list === void 0 ? void 0 : opponents_list.find((obj) => obj.player.id_fighter == nextOpponent.opponent_id);
+                    if (debugEnabled && opponentDataFromList)
+                        logHHAuto("opponentDataFromList ", JSON.stringify(opponentDataFromList));
+                    if (!opponentDataFromList)
+                        logHHAuto(`ERROR opponent ${nextOpponent.opponent_id} not found in JS list`);
+                    logHHAuto(`Going to fight ${nextOpponent.nickname} (${nextOpponent.opponent_id}) with power ${nextOpponent.power}. Can fight: ${opponentDataFromList === null || opponentDataFromList === void 0 ? void 0 : opponentDataFromList.can_fight}`);
+                    if (debugEnabled)
+                        logHHAuto(JSON.stringify(nextOpponent));
+                    // change referer
+                    window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaguPreBattle") + '?id_opponent=' + nextOpponent.opponent_id));
+                    const numberOfFightAvailable = LeagueHelper.numberOfFightAvailable(opponentDataFromList);
+                    let numberOfBattle = 1;
+                    if (numberOfFightAvailable > 1 && currentPower >= (numberOfFightAvailable + leagueThreshold)) {
+                        if (maxStay > 0 && currentScore + (numberOfFightAvailable * leagueScoreSecurityThreshold) >= maxStay)
+                            logHHAuto('Can\'t do ' + numberOfFightAvailable + ' fights in league as could go above stay');
+                        else
+                            numberOfBattle = numberOfFightAvailable;
+                    }
+                    logHHAuto("Going to fight " + numberOfBattle + " times (Number fights available from opponent:" + numberOfFightAvailable + ")");
+                    // Schedule the next league fight *before* triggering
+                    // the battle. Three cases:
+                    //
+                    //   a) Energy left after this batch (currentPower minus
+                    //      numberOfBattle > 0): set a short cool-down (60-120s)
+                    //      so the pipeline picks the next opponent on the
+                    //      following tick. Without this branch the user-visible
+                    //      bug returns: e.g. 4 challenge tokens against a
+                    //      2-fight opponent burned 2 tokens, then the timer
+                    //      jumped to next_refresh_ts (~36 min) and the 2
+                    //      remaining tokens sat unused for half an hour.
+                    //
+                    //   b) Energy fully spent and the server reported a refresh
+                    //      timestamp: wait for next_refresh_ts plus a small
+                    //      jitter window. This is the same idiom Pantheon /
+                    //      Season / PentaDrill use.
+                    //
+                    //   c) Energy fully spent but next_refresh_ts is 0 (energy
+                    //      capped, no pending refresh): fall back to a 15-17 min
+                    //      timer.
+                    //
+                    // Setting the timer *before* the battle trigger keeps two
+                    // properties: it survives the safeReload() in the multi-battle
+                    // AJAX callback, because storage is re-read on bundle boot, and
+                    // the popup info never reads "No timer".
+                    const nextRefreshTs = getHHVars('Hero.energies.challenge.next_refresh_ts');
+                    const remainingPower = currentPower - numberOfBattle;
+                    if (remainingPower > 0) {
+                        // Short cool-down so the next AutoLoop tick can pick
+                        // the next opponent. The user expectation is "open
+                        // league, fight all 15 battles in a row" which is
+                        // how a human would do it. The Pipeline minIntervalMs
+                        // for handleLeague is aligned to this value so the
+                        // Scheduler does not silently extend the gap.
+                        setTimer('nextLeaguesTime', randomInterval(2, 5));
+                    }
+                    else if (nextRefreshTs === 0) {
+                        setTimer('nextLeaguesTime', randomInterval(15 * 60, 17 * 60));
+                    }
+                    else {
+                        setTimer('nextLeaguesTime', randomInterval(nextRefreshTs + 10, nextRefreshTs + 180));
+                    }
+                    if (numberOfBattle <= 1) {
+                        gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeagueBattle"), { number_of_battles: 1, id_opponent: nextOpponent.opponent_id });
+                    }
+                    else {
+                        var params1 = {
+                            action: "do_battles_leagues",
+                            id_opponent: nextOpponent.opponent_id,
+                            number_of_battles: numberOfBattle
+                        };
+                        params1 = addNutakuSession(params1);
+                        getHHAjax()(params1, function (data) {
+                            // change referer
+                            window.history.replaceState(null, '', addNutakuSession(ConfigHelper.getHHScriptVars("pagesURLLeaderboard")));
+                            RewardHelper.closeRewardPopupIfAny();
+                            // C1: route through safeReload so any in-flight
+                            // game AJAX gets to settle before the URL change
+                            // cancels open XHRs (issue #1598).
+                            safeReload();
+                            Hero.updates(data.hero_changes);
+                        });
+                    }
                 }
             }
             else {
-                logHHAuto('Unable to identify page.');
-                gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
+                // Switch to the correct screen, but only when no other
+                // classic AutoLoop handler is currently working. Pipeline
+                // handlers have no lastActionPerformed guard, so without
+                // this check the league chain would navigate to the
+                // leaderboard while e.g. Quest is still on its own page,
+                // producing a leaderboard<->quest ping-pong loop
+                // (issue #1664). Skip silently; the Scheduler minInterval
+                // cool-down will retry on the next eligible tick.
+                const lastActionPerformed = getStoredValue(HHStoredVarPrefixKey + TK.lastActionPerformed);
+                if (lastActionPerformed !== undefined
+                    && lastActionPerformed !== "none"
+                    && lastActionPerformed !== "league") {
+                    logHHAuto("Skip switching to leagues screen, busy with: " + lastActionPerformed);
+                    return;
+                }
+                logHHAuto("Switching to leagues screen.");
+                gotoPage(ConfigHelper.getHHScriptVars("pagesIDLeaderboard"));
                 return;
             }
-            return;
-        });
-    }
-    static RechargeCombat(canBuyResult) {
-        const Hero = getHero();
-        if (canBuyResult.canBuy) {
-            logHHAuto('Recharging ' + canBuyResult.toBuy + ' fights for ' + canBuyResult.price + ' kobans.');
-            const hcConfirmValue = getHHVars('Hero.infos.hc_confirm');
-            setHHVars('Hero.infos.hc_confirm', true);
-            // We have the power.
-            Hero.recharge($("button.orange_text_button.manual-recharge"), canBuyResult.type, canBuyResult.toBuy, canBuyResult.price);
-            setHHVars('Hero.infos.hc_confirm', hcConfirmValue);
-            logHHAuto('Recharged up to ' + canBuyResult.max + ' fights for ' + canBuyResult.price + ' kobans.');
+        }
+        catch (err) {
+            const { errName, message } = (err !== null && err !== void 0 ? err : {});
+            logHHAuto(`Error do League: ${errName}, ${message}`);
+            setTimer('nextLeaguesTime', randomInterval(30 * 60, 35 * 60));
+            gotoPage(ConfigHelper.getHHScriptVars("pagesIDHome"));
         }
     }
-    /**
-     * Shared core for canBuyFight / canBuyFightForRaid (Troll review I5).
-     * Each public wrapper computes its strategy-specific buy amounts, the
-     * activation predicate and the x50 gate, then delegates the common
-     * shard/energy gate, x50-vs-x20 decision, koban check, logging and result
-     * assembly here. Behavior-preserving: the raid path keeps its historical
-     * max(=20)/toBuy(=eventAutoBuy) mismatch through separate maxx20 and
-     * x20BuyAmount params.
-     */
-    static evaluateFightPurchase(p) {
-        const result = { canBuy: false, price: 0, max: 0, toBuy: 0, event_mythic: "false", type: "fight" };
-        // #1565: only buy when energy is empty (0) and girl not yet won (shards < 100)
-        if (Number.isInteger(p.shards) && p.currentFight === 0 && p.shards < 100) {
-            if (!p.activated) {
-                return result;
-            }
-            result.event_mythic = p.eventMythic;
-            const remainingShards = Number(100 - p.shards);
-            const minShardsx50 = getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50);
-            if (minShardsx50 !== undefined && Number.isInteger(Number(minShardsx50)) && remainingShards >= Number(minShardsx50)
-                && HeroHelper.getKoban() >= (p.pricePerFight * p.maxx50) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))
-                && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true"
-                && p.currentFight < p.maxx50
-                && p.x50Allowed) {
-                result.max = p.maxx50;
-                result.canBuy = true;
-                result.price = p.pricePerFight * p.maxx50;
-                result.toBuy = p.maxx50;
-            }
-            else {
-                if (p.logging && getStoredValue(HHStoredVarPrefixKey + SK.useX50Fights) === "true") {
-                    logHHAuto(`Unable to recharge up to ${p.maxx50} for ${p.pricePerFight * p.maxx50} kobans : current energy : ${p.currentFight}, remaining shards : ${remainingShards}/${getStoredValue(HHStoredVarPrefixKey + SK.minShardsX50)}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                }
-                if (HeroHelper.getKoban() >= (p.pricePerFight * p.x20BuyAmount) + Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))) {
-                    result.max = p.maxx20;
-                    result.canBuy = true;
-                    result.price = p.pricePerFight * p.x20BuyAmount;
-                    result.toBuy = p.x20BuyAmount;
-                }
-                else if (p.logging) {
-                    logHHAuto(`Unable to recharge up to ${p.x20BuyAmount} for ${p.pricePerFight * p.x20BuyAmount} kobans : current energy : ${p.currentFight}, kobans : ${HeroHelper.getKoban()}/${Number(getStoredValue(HHStoredVarPrefixKey + SK.kobanBank))}`);
-                }
-            }
-        }
-        return result;
+    static LeagueDisplayGetOpponentPopup(numberDone, remainingTime) {
+        // #leagues_middle does not exist in the League DOM;
+        // #leagues itself is the stable League page container, and the
+        // popup is positioned absolute so its exact DOM parent doesn't
+        // affect layout.
+        $("#leagues").prepend('<div id="popup_message_league" class="HHpopup_message" name="popup_message_league" ><a id="popup_message_league_close" class="close">&times;</a>' + getTextForUI("OpponentListBuilding", "elementText") + ' : <br>' + numberDone + ' ' + getTextForUI("OpponentParsed", "elementText") + ' (' + remainingTime + ')</div>');
+        $("#popup_message_league_close").on("click", () => { safeReload(); });
     }
-    static canBuyFight(eventGirl, logging = true) {
-        const type = "fight";
-        const hero = getHero();
-        const MAX_BUY = 200;
-        const currentFight = Troll.getEnergy();
-        const eventAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyTrollNumber)) || 20, MAX_BUY - currentFight);
-        const mythicAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyMythicTrollNumber)) || 20, MAX_BUY - currentFight);
-        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
-        let activated = false;
-        let eventMythic = "false";
-        if ((getStoredValue(HHStoredVarPrefixKey + SK.buyCombat) === "true"
-            && getStoredValue(HHStoredVarPrefixKey + SK.plusEvent) === "true"
-            && getSecondsLeft("eventGoing") !== 0
-            && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) === 0 || getSecondsLeft("eventGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyCombTimer)) * 3600)
-            && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.girl_id) && !(eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic))
-            ||
-                (getStoredValue(HHStoredVarPrefixKey + SK.plusEventMythic) === "true"
-                    && getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombat) === "true"
-                    && getSecondsLeft("eventMythicGoing") !== 0
-                    && (Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) === 0 || getSecondsLeft("eventMythicGoing") <= Number(getStoredValue(HHStoredVarPrefixKey + SK.buyMythicCombTimer)) * 3600)
-                    && (eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.is_mythic))) {
-            activated = true;
-            eventMythic = eventGirl.is_mythic.toString();
-        }
-        const maxx50 = eventMythic === "true" ? Math.max(50, mythicAutoBuy) : Math.max(50, eventAutoBuy);
-        const maxx20 = eventMythic === "true" ? mythicAutoBuy : eventAutoBuy;
-        return Troll.evaluateFightPurchase({
-            shards: eventGirl === null || eventGirl === void 0 ? void 0 : eventGirl.shards,
-            currentFight,
-            pricePerFight,
-            activated,
-            eventMythic,
-            maxx50,
-            maxx20,
-            x20BuyAmount: maxx20,
-            x50Allowed: (eventMythic === "true" || getStoredValue(HHStoredVarPrefixKey + SK.useX50FightsAllowNormalEvent) === "true"),
-            logging,
-        });
+    static LeagueClearDisplayGetOpponentPopup() {
+        $("#popup_message_league").each(function () { this.remove(); });
     }
-    static canBuyFightForRaid(raid, logging = true) {
-        const type = "fight";
-        const hero = getHero();
-        const MAX_BUY = 200;
-        const maxx20 = 20;
-        const currentFight = Troll.getEnergy();
-        const eventAutoBuy = Math.min(Number(getStoredValue(HHStoredVarPrefixKey + SK.autoBuyLoveRaidTrollNumber)) || maxx20, MAX_BUY - currentFight);
-        const maxx50 = Math.max(50, eventAutoBuy);
-        const pricePerFight = hero.energies[type].seconds_per_point * (unsafeWindow.hh_prices[type + '_cost_per_minute'] / 60);
-        const activated = !!(getStoredValue(HHStoredVarPrefixKey + SK.buyLoveRaidCombat) === "true"
-            && LoveRaidManager.isAnyActivated()
-            && (raid === null || raid === void 0 ? void 0 : raid.seconds_until_event_end) > 0 // new Date() < new Date(raid.end_datetime)
-            && (raid === null || raid === void 0 ? void 0 : raid.id_girl));
-        return Troll.evaluateFightPurchase({
-            shards: raid === null || raid === void 0 ? void 0 : raid.girl_shards,
-            currentFight,
-            pricePerFight,
-            activated,
-            eventMythic: "false",
-            maxx50,
-            maxx20,
-            x20BuyAmount: eventAutoBuy,
-            x50Allowed: true,
-            logging,
-        });
+    static LeagueUpdateGetOpponentPopup(numberDone, remainingTime) {
+        LeagueHelper.LeagueClearDisplayGetOpponentPopup();
+        LeagueHelper.LeagueDisplayGetOpponentPopup(numberDone, remainingTime);
     }
 }
-
-;// ./src/Helper/menu/MenuOrder.ts
-// MenuOrder.ts
-//
-// Pure order resolution for the settings-menu areas (#1834). No DOM, no
-// storage, no imports: the stored order goes in, the effective order comes out,
-// so this is fully unit-testable (spec/Helper/menu/MenuOrder.spec.ts) and stays
-// a graph leaf.
-//
-// The contract mirrors OrderResolver for the pipeline blocks, minus the
-// constraints -- settings areas may sit in any order:
-//   - an id the build does not know any more is dropped (an area removed in a
-//     later version must not leave a hole in the menu);
-//   - an id the stored order does not mention is inserted after its nearest
-//     preceding neighbour from the default order (a NEW area shows up next to
-//     where it was designed to be, not appended at the bottom where nobody
-//     looks);
-//   - anything unusable (no array, wrong element types, empty after filtering)
-//     falls back to the default order.
-/**
- * Effective area order from a stored order and the build's default order.
- * `stored` is deliberately `unknown`: it comes from localStorage via
- * JSON.parse and may be anything at all.
- */
-function resolveMenuOrder(stored, defaultIds) {
-    const known = new Set(defaultIds);
-    const placed = new Set();
-    const result = [];
-    if (Array.isArray(stored)) {
-        for (const raw of stored) {
-            if (typeof raw !== "string")
-                continue;
-            if (!known.has(raw) || placed.has(raw))
-                continue;
-            placed.add(raw);
-            result.push(raw);
-        }
-    }
-    if (result.length === 0)
-        return [...defaultIds];
-    // Walking the default order forwards means a run of new areas keeps its
-    // relative order, because each one is already placed when the next looks
-    // for its preceding neighbour.
-    for (let i = 0; i < defaultIds.length; i++) {
-        const id = defaultIds[i];
-        if (placed.has(id))
-            continue;
-        let at = 0;
-        for (let j = i - 1; j >= 0; j--) {
-            const idx = result.indexOf(defaultIds[j]);
-            if (idx !== -1) {
-                at = idx + 1;
-                break;
-            }
-        }
-        result.splice(at, 0, id);
-        placed.add(id);
-    }
-    return result;
-}
-/** True when `order` is the build default -- then nothing needs to be stored. */
-function isDefaultMenuOrder(order, defaultIds) {
-    return order.length === defaultIds.length && order.every((id, i) => id === defaultIds[i]);
-}
-
-;// ./src/Helper/menu/MenuBadge.ts
-// MenuBadge.ts
-//
-// The run-state of one settings block, and the roll-up of an area's blocks for
-// the badge on the tab rail (#1834). No DOM, no storage, no imports: the caller
-// supplies a reader, so this stays fully unit-testable and a graph leaf.
-//
-// What the three states mean, and why not simply "a checkbox is ticked":
-//
-//   - "at least one switch is ticked" is not the same as "this block does
-//     something". Measured against the factory defaults, 7 of the 11 areas
-//     would light up out of the box -- through `showInfo`, `showRewardsRecap`,
-//     `showClubButtonInPoa`, `hideOwnedGirls` and friends, which are pure
-//     display options. Only a block's *acting* switches (`masters`) count.
-//   - The reverse case is the one testers actually run into: `plusEvent` on,
-//     `autoTrollBattle` off. The event-troll block is configured in every
-//     detail and still never runs, because the switch that starts the fighting
-//     is off. A plain on/off marker reports "off" there, which reads as a
-//     deliberate choice rather than the forgotten toggle it is. That case gets
-//     its own state, `conflict`.
-//   - A block that cannot act at all -- thresholds, opponent filters, team
-//     settings, anything display-only -- gets `none` and no marker. Colouring
-//     it would claim it can be on or off when it cannot.
-//
-// So: `on` the block runs, `conflict` it is set up but will not run, `off`
-// nothing is set, `none` there is nothing to be on about.
-/**
- * The state of one block.
- *
- * `isOn` returns `undefined` for a switch that is not in the DOM at all --
- * debug-only rows, or a switch a later version dropped. A block whose masters
- * are all missing is `none` rather than `off`, so the marker never claims a
- * capability the panel does not show. A missing *prerequisite* does not block:
- * a build without that row cannot have the user turn it on.
- */
-function blockState(def, isOn) {
-    var _a, _b;
-    const present = def.masters.filter(key => isOn(key) !== undefined);
-    if (present.length === 0)
-        return 'none';
-    const mastersOn = present.some(key => isOn(key) === true);
-    const blocked = ((_a = def.requires) !== null && _a !== void 0 ? _a : []).some(key => isOn(key) === false);
-    if (mastersOn)
-        return blocked ? 'conflict' : 'on';
-    const configured = ((_b = def.options) !== null && _b !== void 0 ? _b : []).some(key => isOn(key) === true);
-    return configured ? 'conflict' : 'off';
-}
-/** Roll one area's block states up into the numbers behind its badge. */
-function countBlocks(states) {
-    let on = 0;
-    let total = 0;
-    let conflicts = 0;
-    for (const state of states) {
-        if (state === 'none')
-            continue;
-        total++;
-        if (state === 'on')
-            on++;
-        else if (state === 'conflict')
-            conflicts++;
-    }
-    return { on, total, conflicts };
-}
-/**
- * The colour of the whole area, in the same vocabulary as a single block.
- *
- * A conflict wins over everything else: it is the only state that asks the user
- * to do something, and it has to be visible on the rail, or the point of having
- * it -- spotting the forgotten toggle without opening the area first -- is
- * lost. Otherwise anything running makes the area `on`; the count next to it
- * says how much.
- */
-function areaState(count) {
-    if (count.total === 0)
-        return 'none';
-    if (count.conflicts > 0)
-        return 'conflict';
-    return count.on > 0 ? 'on' : 'off';
-}
-/** `2/6`, or an empty string for an area with nothing to count (e.g. Harem). */
-function formatBadge(count) {
-    return count.total === 0 ? '' : count.on + '/' + count.total;
-}
-
-;// ./src/Helper/menu/MenuWidgets.ts
-// MenuWidgets.ts
-//
-// Options rendering: small, reusable HTML builders that turn a text/input id
-// into a labelled menu row (button, toggle switch, dropdown, text input,
-// optionally with an icon). These are pure string-producing helpers shared by
-// the menu DOM template (MenuTemplate) and by feature modules that inject their
-// own rows (Champion, Pachinko, Labyrinth, TeamModule).
-//
-// Split out of HHMenuHelper as part of WART-002 (behavior-neutral). Reads
-// getTextForUI / config lookups from MenuPorts so this file stays a graph leaf
-// (see MenuPorts.ts).
-
-/**
- * `labelPrefix` is prepended to the translated label, e.g. "1 " to number a
- * button inside a step-by-step workflow. Kept out of the translations on
- * purpose: a step number reads the same in every language.
- */
-function hhButton(textKeyId, buttonId, mainStyle = '', labelSyle = '', labelPrefix = '') {
-    const { getTextForUI } = MenuPorts;
-    return `<div ${mainStyle ? 'style="' + mainStyle + '"' : ''} class="tooltipHH" >`
-        + `<span class="tooltipHHtext">${getTextForUI(textKeyId, "tooltip")}</span>`
-        + `<label ${labelSyle ? 'style="' + labelSyle + '"' : ''} class="myButton" id="${buttonId}">${labelPrefix}${getTextForUI(textKeyId, "elementText")}</label>`
-        + `</div>`;
-}
-/**
- * `disabledBy` names another switch that takes this row out of play while it
- * is on -- two settings that contradict each other, where the panel would
- * otherwise offer both and only the code would know which one wins. The row
- * is greyed and its checkbox disabled by refreshMenuState(); the stored value
- * is untouched, so it returns as it was when the other switch goes off.
- */
-function hhMenuSwitch(textKeyAndInputId, isEnabledDivId = '', isKobanSwitch = false, isStylingSwitch = false, disabledBy = '') {
-    const { getTextForUI } = MenuPorts;
-    return `<div ${isEnabledDivId ? 'id="' + isEnabledDivId + '"' : ''} class="labelAndButton"${disabledBy ? ` data-disabled-by="${disabledBy}"` : ''}>`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-        + `<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''} ${isStylingSwitch ? 'styling' : ''}"></span></label>`
-        + `</div>`
-        + `</div>`;
-}
-function hhMenuSwitchWithImg(textKeyAndInputId, imgPath, isKobanSwitch = false) {
-    const { getTextForUI, getHHScriptVars } = MenuPorts;
-    return `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
-        + `<div class="imgAndObjectRow">`
-        + `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/${imgPath}" />`
-        + `<div style="padding-left:5px">`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-        + `<label class="switch"><input id="${textKeyAndInputId}" type="checkbox"><span class="slider round ${isKobanSwitch ? 'kobans' : ''}"></span></label>`
-        + `</div>`
-        + `</div>`
-        + `</div>`
-        + `</div>`;
-}
-function hhMenuSelect(textKeyAndInputId, inputStyle = '', options = '') {
-    const { getTextForUI } = MenuPorts;
-    return `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-        + `<select id="${textKeyAndInputId}" style="${inputStyle}" >${options}</select>`
-        + `</div>`
-        + `</div>`;
-}
-function hhMenuInput(textKeyAndInputId, inputPattern, inputStyle = '', inputClass = '', inputMode = 'text') {
-    const { getTextForUI } = MenuPorts;
-    return `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
-        + `<div class="tooltipHH">`
-        + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-        + `<input id="${textKeyAndInputId}" class="${inputClass}" style="${inputStyle}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
-        + `</div>`
-        + `</div>`;
-}
-function hhMenuInputWithImg(textKeyAndInputId, inputPattern, inputStyle, imgPath, inputMode = 'text', inputClass = '') {
-    const { getTextForUI, getHHScriptVars } = MenuPorts;
-    let htmlRet = `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${getTextForUI(textKeyAndInputId, "elementText")}</span>`
-        + `<div class="imgAndObjectRow">`;
-    if (imgPath && imgPath.indexOf('images/') >= 0) {
-        htmlRet += `<img class="iconImg" src="/${imgPath}" />`;
-    }
-    else {
-        htmlRet += `<img class="iconImg" src="${getHHScriptVars("baseImgPath")}/${imgPath}" />`;
-    }
-    htmlRet +=
-        `<div style="padding-left:5px">`
-            + `<div class="tooltipHH">`
-            + `<span class="tooltipHHtext">${getTextForUI(textKeyAndInputId, "tooltip")}</span>`
-            + `<input class="${inputClass}" style="${inputStyle}" id="${textKeyAndInputId}" required pattern="${inputPattern}" type="text" inputMode="${inputMode}">`
-            + `</div>`
-            + `</div>`
-            + `</div>`
-            + `</div>`;
-    return htmlRet;
-}
-
-;// ./src/Helper/menu/MenuTabs.ts
-// MenuTabs.ts
-//
-// DOM construction (layout): the tabbed body of the #sMenu panel — a rail of
-// area buttons on the left and one pane per area on the right. Replaces the
-// three fixed-width columns,
-// which sized their labels for English and let longer translations overlap.
-//
-// Two rules keep that from coming back:
-//   - a row is a two-column grid (label | control, see the #sMenu CSS in
-//     build/HHAuto.template.js), so a label may wrap to any length and can
-//     never run under its control;
-//   - every group carries a visible heading. That is not decoration: 23 label
-//     texts are reused across the menu ("Collect" alone appears eleven times),
-//     and the heading is what tells them apart.
-//
-// Element ids are unchanged from the column layout — MenuSettings binds values
-// by id, maskInactiveMenus() hides by id, and feature modules look rows up by
-// id. Only the arrangement moved.
-//
-// Two layouts share this markup (#1834): the tab rail, and -- with
-// SK.menuSingleColumn on -- every area stacked in one scrolling list, for
-// players who want the whole configuration under one pair of eyes. The stacked
-// layout is CSS only (#sMenu.menuStacked), so switching costs no rebuild and no
-// reload. The area order is the user's (TK.menuOrder) in both.
-//
-// Reads its storage/translation helpers from MenuPorts so this file stays a
-// graph leaf (see MenuPorts.ts).
-
-
-
-
-
-
-const t = (key) => MenuPorts.getTextForUI(key, "elementText");
-/**
- * One settings group. `maskId` goes on the group element so the existing
- * maskInactiveMenus() can hide the whole group on games without that feature.
- * `wide` makes the group span the full pane and lay its rows out in columns —
- * used where a row holds a dropdown or a long text field that will not fit
- * beside a label in a single narrow column.
- */
-function group(titleKey, rows, maskId = '', wide = false, state = '') {
-    return `<div class="menuGroup${wide ? ' wide' : ''}"${maskId ? ` id="${maskId}"` : ''}${state}>`
-        + `<div class="menuGroupTitle">${state ? `<span class="menuBlockDot"></span>` : ``}${t(titleKey)}</div>`
-        + `<div class="menuGroupRows">${rows}</div>`
-        + `</div>`;
-}
-/**
- * Declares a group to be a *block*: something that is either running or not,
- * so its heading can say so (#1834). The definition is carried on the element
- * as data attributes rather than in a second table beside the markup, so a
- * block and its switches can only ever be edited in one place, and the repaint
- * reads exactly what is on screen -- a group this game hides is skipped
- * because it is not there, not because a list remembered to leave it out.
- *
- * The three lists and why a switch lands in one or the other: see BlockDef in
- * MenuBadge.ts.
- */
-function block(masters, requires = [], options = []) {
-    return ` data-block="${masters.join(',')}"`
-        + (requires.length > 0 ? ` data-requires="${requires.join(',')}"` : ``)
-        + (options.length > 0 ? ` data-options="${options.join(',')}"` : ``);
-}
-/** A row the widgets cannot build: a switch with its own number field next to it. */
-function switchWithInput(switchId, inputId, pattern, width) {
-    return `<div class="labelAndButton">`
-        + `<span class="HHMenuItemName">${t(switchId)}</span>`
-        + `<div class="tooltipHH menuPair">`
-        + `<span class="tooltipHHtext">${MenuPorts.getTextForUI(switchId, "tooltip")}</span>`
-        + `<label class="switch"><input id="${switchId}" type="checkbox"><span class="slider round"></span></label>`
-        + `<input style="text-align:center; width:${width}" id="${inputId}" required pattern="${pattern}" type="text">`
-        + `</div>`
-        + `</div>`;
-}
-/** Rows hidden unless Debug is on — #1533, 0% usage in a 168-response survey. */
-function debugOnly(enabled, rows) {
-    return `<div${enabled ? '' : ' style="display:none;"'}>${rows}</div>`;
-}
-function tabs(debugEnabled) {
-    const P = HHAuto_inputPattern;
-    return [
-        {
-            id: 'global', icon: '⚙️', nameKey: 'menuTabGlobal', titleKey: 'globalTitle',
-            groups: group('menuSecBasics', hhMenuSwitch('paranoia')
-                + switchWithInput('mousePause', 'mousePauseTimeout', P.mousePauseTimeout, '40px')
-                + hhMenuSwitch('settPerTab')
-                + hhMenuSwitch('showTooltips')
-                + hhMenuSwitch('menuSingleColumn', '', false, true)
-                + hhMenuSwitch('menuCompact', '', false, true))
-                + group('menuSecTiming', hhMenuInput('collectAllTimer', P.collectAllTimer, 'text-align:center; width:30px')
-                    + switchWithInput('waitforContest', 'safeSecondsForContest', P.safeSecondsForContest, '40px')
-                    + hhMenuSwitch('paranoiaSpendsBefore')
-                    + hhMenuInput('autoPentaDrillDelay', P.autoPentaDrillDelay, 'text-align:center; width:30px')
-                    + hhMenuSwitch('pipelineDiagnose'))
-                + group('menuSecKobans', hhMenuSwitchWithImg('spendKobans0', 'design/menu/affil_prog.svg', true)
-                    + hhMenuInputWithImg('kobanBank', P.nWith1000sSeparator, '', 'pictures/design/ic_hard_currency.png', 'text', 'maxMoneyInputField'))
-                + group('menuSecAutoCollect', hhMenuSwitch('autoFreeBundlesCollect', 'isEnabledFreeBundles')
-                    + hhMenuSwitch('collectEventChest'), '', false, block(['autoFreeBundlesCollect', 'collectEventChest'])),
-        },
-        {
-            id: 'display', icon: '👁️', nameKey: 'menuTabDisplay', titleKey: 'displayTitle',
-            groups: group('menuSecInfoPanel', hhMenuSwitch('showInfo')
-                + hhMenuSwitch('showInfoLeft', '', false, true)
-                + hhMenuSwitch('showCalculatePower'))
-                + group('menuSecRewards', hhMenuSwitch('showRewardsRecap')
-                    + hhMenuSwitch('AllMaskRewards', '', false, true))
-                + group('menuSecAds', hhMenuSwitch('showAdsBack', '', false, true)
-                    + hhMenuSwitch('autoAdsClick'), '', false, block(['autoAdsClick'])),
-        },
-        {
-            id: 'daily', icon: '📅', nameKey: 'menuTabDaily', titleKey: 'menuTabDaily',
-            groups: group('autoActivitiesTitle', hhMenuSwitch('autoMission')
-                + hhMenuSwitch('autoMissionCollect')
-                + hhMenuSwitch('autoMissionKFirst')
-                + hhMenuSwitch('compactMissions', '', false, true)
-                + hhMenuSwitch('invertMissions', '', false, true), 'isEnabledMission', false, block(['autoMission', 'autoMissionCollect'], [], ['autoMissionKFirst']))
-                + group('menuSecContests', hhMenuSwitch('autoContest')
-                    + hhMenuSwitch('compactEndedContests', '', false, true), 'isEnabledContest', false, block(['autoContest']))
-                + group('dailyGoalsTitle', debugOnly(debugEnabled, hhMenuSwitch('autoDailyGoals'))
-                    + hhMenuSwitch('autoDailyGoalsCollect')
-                    + hhMenuSwitch('compactDailyGoals', '', false, true), 'isEnabledDailyGoals', false, block(['autoDailyGoals', 'autoDailyGoalsCollect']))
-                + group('menuSecPachinko', hhMenuSwitch('autoFreePachinko'), 'isEnabledPachinko', false, block(['autoFreePachinko']))
-                + group('menuSecSalary', hhMenuSwitch('autoSalary')
-                    + hhMenuInput('autoSalaryMinSalary', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledSalary', false, block(['autoSalary']))
-                + group('powerPlacesTitle', hhMenuSwitch('autoPowerPlaces')
-                    + hhMenuInput('autoPowerPlacesIndexFilter', P.autoPowerPlacesIndexFilter, '', 'menuListInput menuListWide')
-                    + hhMenuSwitch('autoPowerPlacesAll')
-                    + hhMenuSwitch('autoPowerPlacesPrecision')
-                    + hhMenuSwitch('autoPowerPlacesInverted')
-                    + hhMenuSwitch('autoPowerPlacesWaitMax')
-                    + hhMenuSwitch('compactPowerPlace', '', false, true), 'isEnabledPowerPlaces', true, block(['autoPowerPlaces'], [], ['autoPowerPlacesAll', 'autoPowerPlacesPrecision', 'autoPowerPlacesInverted', 'autoPowerPlacesWaitMax']))
-                + group('menuSecQuests', hhMenuSwitch('autoQuest')
-                    + hhMenuSwitch('autoSideQuest', 'isEnabledSideQuest')
-                    + hhMenuInputWithImg('autoQuestThreshold', P.autoQuestThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_quest.png', 'numeric'), 'isEnabledQuest', false, block(['autoQuest', 'autoSideQuest']))
-                + group('povTitle', hhMenuSwitch('autoPoVCollect')
-                    + hhMenuSwitch('autoPoVCollectAll'), 'isEnabledPoV', false, block(['autoPoVCollect', 'autoPoVCollectAll']))
-                + group('pogTitle', hhMenuSwitch('autoPoGCollect')
-                    + hhMenuSwitch('autoPoGCollectAll'), 'isEnabledPoG', false, block(['autoPoGCollect', 'autoPoGCollectAll'])),
-        },
-        {
-            // Both names are the game's own area (#1834): the rail and the pane
-            // heading say the same thing in every other area, and 'Battle Troll'
-            // was the script's word for what it does there, not the game's word
-            // for the place. The key itself stays -- Troll.ts still labels the
-            // energy bar with it on the adventure page.
-            id: 'adventure', icon: '🗺️', nameKey: 'menuTabAdventure', titleKey: 'menuTabAdventure',
-            groups: group('menuSecStandardTroll', hhMenuSwitch('autoTrollBattle')
-                + hhMenuSelect('autoTrollSelector', 'max-width:170px;')
-                + hhMenuInputWithImg('autoTrollThreshold', P.autoTrollThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric')
-                + hhMenuInputWithImg('autoTrollRunThreshold', P.autoTrollRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_energy_fight.png', 'numeric'), 'isEnabledTrollBattle', true, block(['autoTrollBattle']))
-                + group('menuSecEventTrolls', hhMenuSwitch('plusEvent')
-                    + hhMenuInput('eventTrollOrder', P.eventTrollOrder, 'width:150px')
-                    + hhMenuSwitch('buyCombat', '', true)
-                    + hhMenuInput('buyCombTimer', P.buyCombTimer, 'text-align:center; width:44px', '', 'numeric')
-                    + hhMenuInput('autoBuyTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventSandalWood'), '', true, block(['plusEvent'], [], ['buyCombat', 'plusEventSandalWood']))
-                + group('menuSecMythicEvent', hhMenuSwitch('plusEventMythic')
-                    + hhMenuSwitch('autoTrollMythicByPassParanoia')
-                    + hhMenuSwitch('buyMythicCombat', '', true)
-                    + hhMenuInput('autoBuyMythicTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuInput('buyMythicCombTimer', P.buyMythicCombTimer, 'text-align:center; width:44px', '', 'numeric')
-                    + hhMenuSwitch('plusEventMythicSandalWood'), '', true, block(['plusEventMythic'], [], ['autoTrollMythicByPassParanoia', 'buyMythicCombat', 'plusEventMythicSandalWood']))
-                + group('loveRaidTitle', hhMenuSwitch('plusLoveRaid')
-                    + hhMenuSelect('loveRaidSelector', 'max-width:170px;')
-                    + hhMenuSwitch('autoTrollLoveRaidByPassThreshold')
-                    + hhMenuSelect('raidStarsSelector', 'max-width:90px;')
-                    + hhMenuSwitch('buyLoveRaidCombat', '', true)
-                    + hhMenuInput('autoBuyLoveRaidTrollNumber', P.autoBuyTrollNumber, 'text-align:center; width:44px')
-                    + hhMenuSwitch('plusEventLoveRaidSandalWood'), '', true, block(['plusLoveRaid'], [], ['autoTrollLoveRaidByPassThreshold', 'buyLoveRaidCombat', 'plusEventLoveRaidSandalWood']))
-                + group('menuSecShardsSkins', hhMenuSwitch('plusGirlSkins')
-                    + hhMenuSwitch('plusSkinSandalWood')
-                    + hhMenuInput('sandalwoodMinShardsThreshold', P.sandalwoodLimit, 'text-align:center; width:90px'))
-                + debugOnly(debugEnabled, group('menuSecMultiFights', hhMenuSwitch('useX10Fights', '', true)
-                    + hhMenuSwitch('useX10FightsAllowNormalEvent')
-                    + hhMenuInput('minShardsX10', P.minShardsX, 'text-align:center; width:90px')
-                    + hhMenuSwitch('useX50Fights', '', true)
-                    + hhMenuSwitch('useX50FightsAllowNormalEvent')
-                    + hhMenuInput('minShardsX50', P.minShardsX, 'text-align:center; width:90px'), '', true)),
-        },
-        {
-            id: 'season', icon: '❄️', nameKey: 'menuTabSeason', titleKey: 'autoSeasonTitle',
-            groups: group('menuSecFightCollect', hhMenuSwitch('autoSeason')
-                + hhMenuSwitch('autoSeasonCollect')
-                + hhMenuSwitch('autoSeasonCollectAll')
-                + hhMenuSelect('seasonFocusSelector', 'max-width:130px;'), 'isEnabledSeason', true, block(['autoSeason', 'autoSeasonCollect', 'autoSeasonCollectAll']))
-                + group('menuSecOpponents', hhMenuSwitch('autoSeasonBoostedOnly')
-                    + hhMenuSwitch('autoSeasonPreferLowMojo')
-                    + hhMenuSwitch('autoSeasonSkipLowMojo', '', false, false, 'autoSeasonPreferLowMojo')
-                    + switchWithInput('autoSeasonMaxTier', 'autoSeasonMaxTierNb', P.autoSeasonMaxTierNb, '34px')
-                    + hhMenuSwitch('autoSeasonMaxTierHard')
-                    + debugOnly(debugEnabled, hhMenuSwitch('autoSeasonPassReds', '', true)))
-                + group('menuSecThresholds', hhMenuInputWithImg('autoSeasonThreshold', P.autoSeasonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
-                    + hhMenuInputWithImg('autoSeasonRunThreshold', P.autoSeasonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_kiss.png', 'numeric')
-                    + hhMenuSwitch('seasonDisplayPowerCalc')),
-        },
-        {
-            id: 'leagues', icon: '🏆', nameKey: 'menuTabLeagues', titleKey: 'autoLeaguesTitle',
-            groups: group('menuSecFightCollect', hhMenuSwitch('autoLeagues')
-                + hhMenuSwitch('autoLeaguesCollect')
-                + hhMenuSelect('autoLeaguesSelector', 'max-width:150px;'), 'isEnabledLeagues', true, block(['autoLeagues', 'autoLeaguesCollect']))
-                + group('menuSecOpponents', hhMenuSelect('autoLeaguesSortMode', 'max-width:130px;')
-                    + hhMenuSwitch('autoLeaguesBoostedOnly')
-                    + hhMenuSwitch('autoLeaguesAllowWinCurrent')
-                    + hhMenuSwitch('autoLeaguesForceOneFight')
-                    + hhMenuSwitch('leagueListDisplayPowerCalc'), '', true)
-                + group('menuSecThresholds', hhMenuInputWithImg('autoLeaguesThreshold', P.autoLeaguesThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
-                    + hhMenuInputWithImg('autoLeaguesRunThreshold', P.autoLeaguesRunThreshold, 'text-align:center; width:34px', 'pictures/design/league_points.png', 'numeric')
-                    + hhMenuInput('autoLeaguesSecurityThreshold', P.autoLeaguesSecurityThreshold, 'text-align:center; width:34px', '', 'numeric')),
-        },
-        {
-            id: 'champions', icon: '🥊', nameKey: 'menuTabChampions', titleKey: 'autoChampsTitle',
-            groups: group('autoChampsTitle', hhMenuSwitch('autoChamps')
-                + hhMenuSwitch('autoChampsForceStart')
-                + hhMenuSwitchWithImg('autoChampsUseEne', 'pictures/design/ic_energy_quest.png')
-                + hhMenuInput('autoChampsFilter', P.autoChampsFilter, 'text-align:center; width:70px')
-                + hhMenuSwitch('autoChampsForceStartEventGirl'), 'isEnabledChamps', false, block(['autoChamps'], [], ['autoChampsForceStart', 'autoChampsUseEne', 'autoChampsForceStartEventGirl']))
-                + group('menuSecClubChamp', hhMenuSwitch('autoClubChamp')
-                    + hhMenuSwitch('autoClubForceStart')
-                    + hhMenuInputWithImg('autoClubChampMax', P.autoClubChampMax, 'text-align:center; width:50px', 'pictures/design/champion_ticket.png', 'numeric')
-                    + hhMenuSwitch('showClubButtonInPoa')
-                    + hhMenuSwitch('autoChampAlignTimer'), 'isEnabledClubChamp', false, block(['autoClubChamp'], [], ['autoClubForceStart', 'autoChampAlignTimer']))
-                + group('menuSecTeam', hhMenuInput('autoChampsTeamLoop', P.autoChampsTeamLoop, 'text-align:center; width:34px', '', 'numeric')
-                    + hhMenuInput('autoChampsGirlThreshold', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                    + hhMenuSwitch('autoChampsTeamKeepSecondLine')
-                    + hhMenuSwitch('autoBuildChampsTeam'))
-                + group('autoPantheonTitle', hhMenuSwitch('autoPantheon')
-                    + hhMenuInputWithImg('autoPantheonThreshold', P.autoPantheonThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
-                    + hhMenuInputWithImg('autoPantheonRunThreshold', P.autoPantheonRunThreshold, 'text-align:center; width:34px', 'pictures/design/ic_worship.svg', 'numeric')
-                    + hhMenuSwitch('autoPantheonBoostedOnly'), 'isEnabledPantheon', false, block(['autoPantheon'], [], ['autoPantheonBoostedOnly'])),
-        },
-        {
-            id: 'labyrinth', icon: '🌀', nameKey: 'menuTabLabyrinth', titleKey: 'autoLabyrinthTitle',
-            groups: group('autoLabyrinthTitle', hhMenuSwitch('autoLabyrinth')
-                + hhMenuSelect('autoLabyDifficulty', 'max-width:110px;')
-                + hhMenuSwitch('autoLabyHard')
-                + hhMenuSwitch('autoLabySweep')
-                + hhMenuSwitch('autoLabyCustomTeamBuilder'), 'isEnabledLabyrinth', true, block(['autoLabyrinth'], [], ['autoLabyHard', 'autoLabySweep', 'autoLabyCustomTeamBuilder'])),
-        },
-        {
-            id: 'shop', icon: '🛒', nameKey: 'menuTabShop', titleKey: 'autoBuy',
-            groups: group('menuSecStats', hhMenuSwitchWithImg('autoStatsSwitch', 'design/ic_plus.svg')
-                + hhMenuInput('autoStats', P.nWith1000sSeparator, '', 'maxMoneyInputField'), 'isEnabledShop', false, block(['autoStatsSwitch']))
-                + group('menuSecBooks', hhMenuSwitchWithImg('autoExpW', 'design/ic_books_gray.svg')
-                    + hhMenuInput('maxExp', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                    + hhMenuInput('autoExp', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoExpW']))
-                + group('menuSecGifts', hhMenuSwitchWithImg('autoAffW', 'design/ic_gifts_gray.svg')
-                    + hhMenuInput('maxAff', P.nWith1000sSeparator, '', 'maxMoneyInputField')
-                    + hhMenuInput('autoAff', P.nWith1000sSeparator, '', 'maxMoneyInputField'), '', false, block(['autoAffW']))
-                + group('menuSecBoosters', hhMenuSwitchWithImg('autoBuyBoosters', 'design/ic_boosters_gray.svg', true)
-                    + hhMenuInput('autoBuyBoostersFilter', P.autoBuyBoostersFilter, '', 'menuListInput')
-                    + hhMenuSwitch('autoEquipBoosters')
-                    + hhMenuInput('autoEquipBoostersSlots', P.autoEquipBoostersSlots, '', 'menuListInput')
-                    + hhMenuInput('autoEquipMythicBooster', P.autoEquipMythicBooster, '', 'menuListInput'), '', true, block(['autoBuyBoosters', 'autoEquipBoosters']))
-                + group('menuSecMarketTools', hhMenuSwitchWithImg('showMarketTools', 'design/menu/panel.svg')
-                    + hhMenuSwitch('updateMarket')),
-        },
-        {
-            id: 'events', icon: '🎪', nameKey: 'menuTabEvents', titleKey: 'eventTitle',
-            groups: group('menuSecEventDisplay', hhMenuSwitch('hideOwnedGirls', '', false, true), 'isEnabledEvents')
-                + group('autoPentaDrillTitle', hhMenuSwitch('autoPentaDrill')
-                    + hhMenuSwitch('autoPentaDrillCollect')
-                    + hhMenuSwitch('autoPentaDrillCollectAll')
-                    + hhMenuSwitch('autoPentaDrillBoostedOnly')
-                    + hhMenuInputWithImg('autoPentaDrillThreshold', P.autoPentaDrillThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric')
-                    + hhMenuInputWithImg('autoPentaDrillRunThreshold', P.autoPentaDrillRunThreshold, 'text-align:center; width:34px', 'images/penta_drill/penta_drill.png', 'numeric'), 'isEnabledPentaDrill', true, block(['autoPentaDrill', 'autoPentaDrillCollect', 'autoPentaDrillCollectAll'], [], ['autoPentaDrillBoostedOnly']))
-                + group('seasonalEventTitle', hhMenuSwitch('autoSeasonalEventCollect')
-                    + hhMenuSwitch('autoSeasonalEventCollectAll')
-                    + hhMenuSwitch('autoSeasonalBuyFreeCard'), 'isEnabledSeasonalEvent', false, block(['autoSeasonalEventCollect', 'autoSeasonalEventCollectAll', 'autoSeasonalBuyFreeCard']))
-                + group('doublePenetrationEventTitle', hhMenuSwitch('autodpEventCollect')
-                    + hhMenuSwitch('autodpEventCollectAll'), 'isEnabledDPEvent', false, block(['autodpEventCollect', 'autodpEventCollectAll']))
-                + group('livelySceneEventTitle', hhMenuSwitch('autoLivelySceneEventCollect')
-                    + hhMenuSwitch('autoLivelySceneEventCollectAll'), 'isEnabledLivelySceneEvent', false, block(['autoLivelySceneEventCollect', 'autoLivelySceneEventCollectAll']))
-                + group('sultryMysteriesEventTitle', hhMenuSwitch('sultryMysteriesEventRefreshShop')
-                    + hhMenuSwitch('sultryMysteriesAutoOpen'), 'isEnabledSultryMysteriesEvent', false, block(['sultryMysteriesEventRefreshShop', 'sultryMysteriesAutoOpen']))
-                + group('bossBangEventTitle', hhMenuSwitch('bossBangEvent')
-                    + hhMenuInput('bossBangMinTeam', P.bossBangMinTeam, 'text-align:center; width:34px', '', 'numeric'), 'isEnabledBossBangEvent', false, block(['bossBangEvent']))
-                + group('poaTitle', hhMenuSwitch('autoPoACollect')
-                    + hhMenuSwitch('autoPoACollectAll'), 'isEnabledPoa', false, block(['autoPoACollect', 'autoPoACollectAll'])),
-        },
-        {
-            id: 'harem', icon: '💕', nameKey: 'menuTabHarem', titleKey: 'haremTitle',
-            groups: group('haremTitle', hhMenuSwitch('showHaremAvatarMissingGirls', '', false, true)
-                + hhMenuSwitchWithImg('showHaremTools', 'design/menu/panel.svg')
-                + hhMenuSwitchWithImg('showHaremSkillsButtons', 'design/menu/panel.svg')),
-        },
-    ];
-}
-/** Ids of every area this build has, in the order the code declares them. */
-function menuAreaIds() {
-    return tabs(false).map(tab => tab.id);
-}
-/** Stored area order, or null when nothing was ever saved / the value is junk. */
-function storedMenuOrder() {
-    const raw = MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + TK.menuOrder);
-    if (typeof raw !== "string" || raw === "")
-        return null;
-    try {
-        return JSON.parse(raw);
-    }
-    catch (_a) {
-        return null;
-    }
-}
-/** The order to render in: the user's, repaired against this build's areas. */
-function effectiveMenuOrder(defaultIds) {
-    return resolveMenuOrder(storedMenuOrder(), defaultIds);
-}
-/** True when the menu should render as one stacked list instead of tabs. */
-function isMenuStacked() {
-    return MenuPorts.getStoredValue(MenuPorts.storedVarPrefix + SK.menuSingleColumn) === "true";
-}
-/** The rail of area buttons plus one pane per area. */
-function buildTabbedBody(debugEnabled) {
-    const declared = tabs(debugEnabled);
-    const order = effectiveMenuOrder(declared.map(tab => tab.id));
-    const defs = order
-        .map(id => declared.find(tab => tab.id === id))
-        .filter((tab) => tab !== undefined);
-    // The badge is filled in by refreshMenuState() once the checkboxes carry
-    // their stored state; rendering it here would always read "0/n". An area
-    // with nothing to count (Harem) has its badge emptied and hidden there,
-    // for the same reason: only the repaint knows what this game shows.
-    const rail = defs.map(tab => `<div class="menuTab" data-tab="${tab.id}">`
-        + `<span class="menuTabIcon">${tab.icon}</span>`
-        + `<span class="menuTabName">${t(tab.nameKey)}</span>`
-        + `<span class="menuTabBadge" data-badge="${tab.id}"></span>`
-        + `</div>`).join('');
-    // The stacked layout hides the rail, so the area count needs a second home
-    // there: the pane heading. Same data-badge, so one repaint fills both.
-    const panes = defs.map(tab => `<div class="menuPane" data-pane="${tab.id}">`
-        + `<div class="menuPaneTitle">${t(tab.titleKey)}`
-        + `<span class="menuTabBadge menuPaneBadge" data-badge="${tab.id}"></span></div>`
-        + `<div class="menuGroups">${tab.groups}</div>`
-        + `</div>`).join('');
-    return `<div class="menuBody">`
-        + `<div class="menuTabs" id="sMenuTabs">${rail}</div>`
-        + `<div class="menuPanes" id="sMenuPanes">${panes}</div>`
-        + `</div>`;
-}
-/** Computed at call time, never at module top level (see StorageKeys guard). */
-function tabStorageKey() {
-    return MenuPorts.storedVarPrefix + TK.menuTab;
-}
-function selectTab(id) {
-    for (const el of document.querySelectorAll('#sMenuTabs .menuTab')) {
-        el.classList.toggle('active', el.dataset.tab === id);
-    }
-    for (const el of document.querySelectorAll('#sMenuPanes .menuPane')) {
-        el.classList.toggle('active', el.dataset.pane === id);
-    }
-    const panes = document.getElementById('sMenuPanes');
-    if (panes !== null)
-        panes.scrollTop = 0;
-}
-/**
- * Wires the tab rail and restores the area that was open before.
- *
- * Must run AFTER maskInactiveMenus(): a game without champions has every group
- * of that pane hidden, and an area with nothing left in it should not offer a
- * button at all. If the remembered area is one of those, the first remaining
- * one is opened instead.
- */
-function initMenuTabs() {
-    var _a;
-    const rail = document.getElementById('sMenuTabs');
-    if (rail === null)
-        return;
-    const available = [];
-    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
-        const id = tabEl.dataset.tab;
-        if (id === undefined)
-            continue;
-        const pane = document.querySelector(`#sMenuPanes .menuPane[data-pane="${id}"]`);
-        const groups = pane === null ? [] : Array.from(pane.querySelectorAll('.menuGroup'));
-        const anyVisible = groups.some(g => g.style.display !== 'none');
-        if (anyVisible) {
-            available.push(id);
-            tabEl.addEventListener('click', () => {
-                selectTab(id);
-                MenuPorts.setStoredValue(tabStorageKey(), id);
-            });
-        }
-        else {
-            tabEl.style.display = 'none';
-            // The stacked layout shows every pane, so an area with all groups
-            // hidden has to be taken out there as well -- otherwise it renders
-            // as a heading with nothing underneath it.
-            if (pane !== null)
-                pane.classList.add('menuPaneEmpty');
-        }
-    }
-    if (available.length === 0)
-        return;
-    const remembered = String((_a = MenuPorts.getStoredValue(tabStorageKey())) !== null && _a !== void 0 ? _a : '');
-    selectTab(available.includes(remembered) ? remembered : available[0]);
-}
-/**
- * Switch between the tab rail and the stacked list. CSS-only, so no rebuild and
- * no reload: the panes keep their DOM, their bound inputs and their values. The
- * remembered area stays selected underneath, which is what makes switching back
- * land where the user left off.
- */
-/** Denser rows and smaller type. CSS-only, like applyMenuLayout. */
-function applyMenuDensity(compact) {
-    const menu = document.getElementById('sMenu');
-    if (menu === null)
-        return;
-    menu.classList.toggle('menuCompact', compact);
-}
-function applyMenuLayout(stacked) {
-    const menu = document.getElementById('sMenu');
-    if (menu === null)
-        return;
-    menu.classList.toggle('menuStacked', stacked);
-    const panes = document.getElementById('sMenuPanes');
-    if (panes !== null)
-        panes.scrollTop = 0;
-}
-/**
- * Re-order rail and panes in place. appendChild on an element that is already a
- * child moves it, so walking the order once leaves the DOM in exactly that
- * sequence. Ids the DOM does not have (an area this game hides) are skipped.
- */
-function applyMenuOrder(order) {
-    const rail = document.getElementById('sMenuTabs');
-    const panes = document.getElementById('sMenuPanes');
-    if (rail === null || panes === null)
-        return;
-    for (const id of order) {
-        const tab = rail.querySelector(`.menuTab[data-tab="${id}"]`);
-        if (tab !== null)
-            rail.appendChild(tab);
-        const pane = panes.querySelector(`.menuPane[data-pane="${id}"]`);
-        if (pane !== null)
-            panes.appendChild(pane);
-    }
-}
-/**
- * The areas the reorder popup lists: the ones actually on screen, in their
- * current order. An area this game has no features for is left out -- offering
- * a row for something the user cannot see would be noise. It is not lost
- * either: resolveMenuOrder puts any unmentioned area back at its default
- * position the next time the menu is built.
- */
-function visibleMenuAreas() {
-    var _a, _b;
-    const rail = document.getElementById('sMenuTabs');
-    if (rail === null)
-        return [];
-    const rows = [];
-    for (const tabEl of Array.from(rail.querySelectorAll('.menuTab'))) {
-        const id = tabEl.dataset.tab;
-        if (id === undefined || tabEl.style.display === 'none')
-            continue;
-        const iconEl = tabEl.querySelector('.menuTabIcon');
-        const nameEl = tabEl.querySelector('.menuTabName');
-        const icon = iconEl === null ? '' : String((_a = iconEl.textContent) !== null && _a !== void 0 ? _a : '');
-        const name = nameEl === null ? id : String((_b = nameEl.textContent) !== null && _b !== void 0 ? _b : id);
-        rows.push({ id, label: (icon + ' ' + name).trim() });
-    }
-    return rows;
-}
-/**
- * Read a switch straight from the panel rather than from storage, so the marks
- * follow a click immediately -- before the value is written. `undefined` means
- * the row is not in this build's markup (see blockState).
- */
-function switchState(key) {
-    const el = document.getElementById(key);
-    return el === null ? undefined : el.checked;
-}
-/** `data-block="a,b"` as a list; `[]` when the attribute is absent or empty. */
-function attrList(el, name) {
-    const raw = el.getAttribute(name);
-    return raw === null || raw === '' ? [] : raw.split(',');
-}
-/**
- * Whether the game hid this group.
- *
- * maskInactiveMenus() sets display:none on the group element of a feature this
- * game does not have, and debugOnly() wraps whole groups in a hidden div --
- * both leave the switches in the DOM with their stored values. Counting those
- * would put a block in the denominator that the player cannot see, so the walk
- * goes up to the pane looking for either kind of hiding.
- */
-function isHidden(el) {
-    for (let node = el; node !== null; node = node.parentElement) {
-        if (node.style.display === 'none')
-            return true;
-        if (node.classList.contains('menuPane'))
-            break;
-    }
-    return false;
-}
-/** Which label explains which colour, for the tooltip on a block's dot. */
-const STATE_TEXT_KEY = {
-    on: 'menuBlockOn',
-    conflict: 'menuBlockConflict',
-    off: 'menuBlockOff',
-};
-/**
- * Repaint every block heading and every area count from the current checkbox
- * states (#1834).
- *
- * Everything is read off the panel: which blocks exist, which the game hides,
- * and what each switch is set to. Nothing here has to be kept in step with the
- * markup by hand.
- */
-function refreshMenuState() {
-    const panes = document.getElementById('sMenuPanes');
-    if (panes === null)
-        return;
-    for (const paneEl of Array.from(panes.querySelectorAll('.menuPane'))) {
-        const states = [];
-        for (const groupEl of Array.from(paneEl.querySelectorAll('.menuGroup[data-block]'))) {
-            const state = isHidden(groupEl) ? 'none' : blockState({
-                masters: attrList(groupEl, 'data-block'),
-                requires: attrList(groupEl, 'data-requires'),
-                options: attrList(groupEl, 'data-options'),
-            }, switchState);
-            states.push(state);
-            if (state === 'none') {
-                groupEl.removeAttribute('data-state');
-                continue;
-            }
-            groupEl.setAttribute('data-state', state);
-            // What the colour means, in words, for anyone who does not read a
-            // dot the way the panel intends it.
-            const dot = groupEl.querySelector('.menuBlockDot');
-            if (dot !== null)
-                dot.setAttribute('title', t(STATE_TEXT_KEY[state]));
-        }
-        refreshDisabledRows(paneEl);
-        const count = countBlocks(states);
-        const text = formatBadge(count);
-        const state = areaState(count);
-        for (const badge of Array.from(panes.ownerDocument.querySelectorAll(`[data-badge="${paneEl.dataset.pane}"]`))) {
-            badge.textContent = text;
-            badge.setAttribute('data-state', state);
-        }
-    }
-}
-/**
- * Grey out the rows a switch elsewhere has taken out of play (see
- * `disabledBy` in MenuWidgets.hhMenuSwitch). Only the control is disabled and
- * the row dimmed -- the value stays in storage and in the checkbox, so the row
- * comes back exactly as the user left it. A row whose controller is not in
- * this build (a debug-only switch, a dropped setting) stays enabled: a switch
- * nobody can turn on cannot be blocking anything.
- */
-function refreshDisabledRows(paneEl) {
-    var _a;
-    for (const rowEl of Array.from(paneEl.querySelectorAll('[data-disabled-by]'))) {
-        const disabled = switchState((_a = rowEl.getAttribute('data-disabled-by')) !== null && _a !== void 0 ? _a : '') === true;
-        rowEl.classList.toggle('menuRowDisabled', disabled);
-        for (const input of Array.from(rowEl.querySelectorAll('input, select'))) {
-            input.disabled = disabled;
-        }
-    }
-}
-let stateHandlersBound = false;
-/**
- * Keep the marks in step with the panel. Delegated on the panes container, so
- * it survives a layout switch and covers rows built later.
- */
-function bindMenuStateUpdates() {
-    if (stateHandlersBound)
-        return;
-    const panes = document.getElementById('sMenuPanes');
-    if (panes === null)
-        return;
-    stateHandlersBound = true;
-    panes.addEventListener('change', (event) => {
-        const target = event.target;
-        if (target === null || target.type !== 'checkbox')
-            return;
-        refreshMenuState();
-    });
-}
-
-;// ./src/Helper/menu/MenuTemplate.ts
-// MenuTemplate.ts
-//
-// DOM construction (layout): assembles the full settings panel (div#sMenu) —
-// a fixed header (name, version, master switch), the tabbed body built by
-// MenuTabs, and a fixed footer with the save/load and tool buttons.
-// `debugEnabled` (read from storage) gates rows that were hidden by survey
-// feedback. Pure string production; the returned markup is injected by
-// StartService.
-//
-// The panel carries the layout as a class (menuStacked, #1834) so the tab rail
-// and the stacked list share one markup and one set of element ids.
-//
-// The master switch lives in the header rather than in the Global tab: it is
-// the one control that has to be reachable from every area. There is still
-// exactly one of it — a second copy would mean a duplicate DOM id and break
-// MenuSettings.
-//
-// Reads its storage/translation helpers from MenuPorts so this file stays a
-// graph leaf (see MenuPorts.ts).
-
-
-
-
-function getMenu() {
-    const { getTextForUI, getStoredValue, storedVarPrefix } = MenuPorts;
-    const debugEnabled = getStoredValue(storedVarPrefix + TK.Debug) === 'true';
-    const header = `<div class="menuHead">`
-        + `<div class="menuBrand">`
-        + `<span class="menuName">HH Automatic ++</span>`
-        + `<span class="menuVer">${GM.info.script.version}</span>`
-        + `</div>`
-        + `<div class="menuMaster">${hhMenuSwitch('master')}</div>`
-        + `<div class="menuWarn">${getTextForUI("noOtherScripts", "elementText")}</div>`
-        + `</div>`;
-    const footer = `<div class="menuFoot">`
-        + hhButton('saveConfig', 'saveConfig')
-        + hhButton('loadConfig', 'loadConfig')
-        + hhButton('saveDefaults', 'saveDefaults')
-        + hhButton('blockOrder', 'blockOrder')
-        + hhButton('menuOrder', 'menuOrder')
-        + `<div class="menuFootRight">`
-        + hhButton('settingsSurvey', 'settingsSurvey')
-        + hhButton('gitHub', 'git')
-        + hhButton('ReportBugs', 'ReportBugs')
-        + hhButton('DebugMenu', 'DebugMenu')
-        + `</div>`
-        + `</div>`;
-    // The layout is a class on the panel, not a different markup: see
-    // applyMenuLayout in MenuTabs.
-    const layoutClass = isMenuStacked() ? ' menuStacked' : '';
-    return `<div id="sMenu" class="HHAutoScriptMenu${layoutClass}" style="display: none;">`
-        + header
-        + buildTabbedBody(debugEnabled)
-        + footer
-        + `</div>`;
-}
-
-;// ./src/Helper/HHMenuHelper.ts
-// HHMenuHelper.ts
-//
-// The HHAuto settings menu. Historically one ~1000-line class; split by
-// responsibility into src/Helper/menu/ (WART-002, behavior-neutral):
-//
-//   - menu/MenuWidgets  — options rendering: labelled row builders (button,
-//                         switch, select, input, image variants)
-//   - menu/MenuTemplate — DOM construction (layout): the full #sMenu HTML
-//   - menu/MenuSettings — settings binding: reading/writing stored settings
-//                         from the menu inputs and wiring input events
-//   - menu/MenuPorts    — dependency-injection ports that let the leaf menu
-//                         files reach cycle-bound helpers without importing them
-//
-// This module keeps the pieces that are tightly bound to many feature modules
-// (the toggle button + dynamic <select> population, section masking and the
-// button colour state) and re-exports the extracted symbols so existing
-// importers keep working.
-//
-// Used by: StartService (on init), AutoLoop (button state refresh), and the
-// feature modules that inject menu rows (Champion, Labyrinth, Pachinko,
-// TeamModule).
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class HHMenu {
-    createMenuButton() {
-        if ($('#' + HHMenu.BUTTON_MENU_ID).length > 0)
-            return;
-        if (getPage() == ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            GM_addStyle(''
-                + '#sMenuButton {'
-                + '   position: absolute;'
-                + '   top: 65px;'
-                + '   right: 15px;'
-                + '   z-index:5000;'
-                + '}'
-                + '@media only screen and (max-width: 1025px) {'
-                + '#sMenuButton {'
-                + '   width: 40px;'
-                + '   height: 40px;'
-                + '   top: 55px;'
-                + '   right: 40px;'
-                + '}}');
-        }
-        else {
-            GM_addStyle(''
-                + '#sMenuButton {'
-                + '   position: absolute;'
-                + '   top: 45px;'
-                + '   right: 15px;'
-                + '   z-index:5000;'
-                + '}'
-                + '@media only screen and (max-width: 1025px) {'
-                + '#sMenuButton {'
-                + '   width: 40px;'
-                + '   height: 40px;'
-                + '   top: 60px;'
-                + '   right: 10px;'
-                + '}}');
-        }
-        $("#contains_all nav").prepend('<div class="square_blue_btn" id="' + HHMenu.BUTTON_MENU_ID + '" ><img src="https://i.postimg.cc/bv7n83z3/script-Icon2.png"></div>');
-        $("#sMenuButton").on("click", () => {
-            const sMenu = document.getElementById("sMenu");
-            if (sMenu != null) {
-                if (sMenu.style.display === "none") {
-                    setMenuValues();
-                    // setMenuValues() rewrites every input from storage, so a
-                    // settings import or a reset since the last open would
-                    // otherwise leave the marks showing the old configuration.
-                    refreshMenuState();
-                    sMenu.style.display = "flex";
-                    $('#contains_all')[0].style.zIndex = '9';
-                }
-                else {
-                    getMenuValues();
-                    sMenu.style.display = "none";
-                    $('#contains_all')[0].style.zIndex = "";
-                }
-            }
-        });
-    }
-    _createHtmlOption(value, text) {
-        var option = document.createElement("option");
-        option.value = value;
-        option.text = text;
-        return option;
-    }
-    _createHtmlSeparator(text) {
-        var option = document.createElement("option");
-        option.disabled = true;
-        option.text = text;
-        return option;
-    }
-    fillTrollSelectMenu(lastTrollIdAvailable) {
-        var trollOptions = document.getElementById("autoTrollSelector");
-        try {
-            trollOptions.add(this._createHtmlSeparator(getTextForUI("mainAdventure", "elementText")));
-            trollOptions.add(this._createHtmlOption('0', getTextForUI("latestTroll", "elementText")));
-            const trollz = ConfigHelper.getHHScriptVars("trollzList");
-            for (var i = 1; i <= lastTrollIdAvailable; i++) {
-                const option = this._createHtmlOption(i + '', trollz[i]);
-                if (option.text !== 'EMPTY' && trollz[i]) {
-                    // Supports for PH and missing trols or parallel advantures (id world "missing")
-                    trollOptions.add(option);
-                }
-            }
-            const sideTrollz = ConfigHelper.getHHScriptVars("sideTrollzList");
-            if (Object.keys(sideTrollz).length > 0) {
-                trollOptions.add(this._createHtmlSeparator(getTextForUI("sideAdventure", "elementText")));
-                for (const i of Object.keys(sideTrollz)) {
-                    const option = this._createHtmlOption(i + '', sideTrollz[i]);
-                    if (option.text !== 'EMPTY' && sideTrollz[i]) {
-                        trollOptions.add(option);
-                    }
-                }
-            }
-        }
-        catch ({ errName, message }) {
-            trollOptions.add(this._createHtmlSeparator('Error!'));
-            logHHAuto(`Error filling trolls: ${errName}, ${message}`);
-        }
-        trollOptions.add(this._createHtmlSeparator(getTextForUI("otherTrollOption", "elementText")));
-        trollOptions.add(this._createHtmlOption('98', getTextForUI("firstTrollWithGirls", "elementText")));
-        trollOptions.add(this._createHtmlOption('99', getTextForUI("lastTrollWithGirls", "elementText")));
-    }
-    fillLoveRaidSelectMenu() {
-        var loveRaidOptions = document.getElementById("loveRaidSelector");
-        try {
-            loveRaidOptions.add(this._createHtmlOption('0', getTextForUI("chooseARaid", "elementText")));
-            loveRaidOptions.add(this._createHtmlOption('first', getTextForUI("firstEndingRaid", "elementText")));
-            const lastTrollIdAvailable = Troll.getLastTrollIdAvailable();
-            LoveRaidManager.getTrollRaids().forEach((raid) => {
-                if (raid.trollId > lastTrollIdAvailable) {
-                    return; // Skip raids on locked trolls
-                }
-                const option = this._createHtmlOption(raid.trollId + '_' + raid.id_girl, raid.event_name);
-                loveRaidOptions.add(option);
-            });
-        }
-        catch ({ errName, message }) {
-            loveRaidOptions.add(this._createHtmlSeparator('Error!'));
-            logHHAuto(`Error filling love raids: ${errName}, ${message}`);
-        }
-    }
-    fillLeagueSelectMenu() {
-        var leaguesOptions = document.getElementById("autoLeaguesSelector");
-        try {
-            const leagues = ConfigHelper.getHHScriptVars("leaguesList");
-            for (var j in leagues) {
-                leaguesOptions.add(this._createHtmlOption((Number(j) + 1) + '', leagues[j]));
-            }
-            ;
-        }
-        catch ({ errName, message }) {
-            leaguesOptions.add(this._createHtmlOption('0', 'Error!'));
-            logHHAuto(`Error filling leagues: ${errName}, ${message}`);
-        }
-    }
-    fillLeaguSortMenu() {
-        var sortsOptions = document.getElementById("autoLeaguesSortMode");
-        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.DISPLAYED, getTextForUI("autoLeaguesdisplayedOrder", "elementText")));
-        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.POWER, getTextForUI("autoLeaguesPower", "elementText")));
-        sortsOptions.add(this._createHtmlOption(LEAGUE_SORT.POWERCALC, getTextForUI("autoLeaguesPowerCalc", "elementText")));
-    }
-    fillRaidStarsMenu() {
-        var raidStarsOptions = document.getElementById("raidStarsSelector");
-        raidStarsOptions.add(this._createHtmlOption('off', getTextForUI("raidStarsOff", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('exact3', getTextForUI("raidStarsExact3", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('min3', getTextForUI("raidStarsMin3", "elementText")));
-        raidStarsOptions.add(this._createHtmlOption('exact5', getTextForUI("raidStarsExact5", "elementText")));
-    }
-    fillSeasonFocusMenu() {
-        var focusOptions = document.getElementById("seasonFocusSelector");
-        focusOptions.add(this._createHtmlOption('off', getTextForUI("seasonFocusAll", "elementText")));
-        focusOptions.add(this._createHtmlOption('girl', getTextForUI("seasonFocusGirl", "elementText")));
-        focusOptions.add(this._createHtmlOption('girlAndSkin', getTextForUI("seasonFocusGirlSkin", "elementText")));
-    }
-    fillLabyDifficultyMenu() {
-        var sortsOptions = document.getElementById("autoLabyDifficulty");
-        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.EASY, getTextForUI("autoLabyDifficultyEasy", "elementText")));
-        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.NORMAL, getTextForUI("autoLabyDifficultyNormal", "elementText")));
-        sortsOptions.add(this._createHtmlOption(LABY_DIFFICULTY.HARD, getTextForUI("autoLabyDifficultyHard", "elementText")));
-    }
-}
-HHMenu.BUTTON_MENU_ID = 'sMenuButton';
-function maskInactiveMenus() {
-    const menuIDList = ["isEnabledDailyGoals", "isEnabledPoV", "isEnabledPoG", "isEnabledPentaDrill",
-        "isEnabledSeasonalEvent", "isEnabledBossBangEvent", "isEnabledSultryMysteriesEvent",
-        "isEnabledDailyRewards", "isEnabledFreeBundles", "isEnabledMission", "isEnabledContest",
-        "isEnabledTrollBattle", "isEnabledPowerPlaces", "isEnabledSalary", "isEnabledPachinko", "isEnabledQuest", "isEnabledSideQuest", "isEnabledSeason", "isEnabledLeagues",
-        "isEnabledAllChamps", "isEnabledChamps", "isEnabledClubChamp", "isEnabledPantheon", "isEnabledShop"];
-    for (const menu of menuIDList) {
-        const menuElement = document.getElementById(menu);
-        if (menuElement !== null && ConfigHelper.getHHScriptVars(menu, false) !== null && !ConfigHelper.getHHScriptVars(menu, false)) {
-            menuElement.style.display = "none";
-        }
-    }
-}
-function switchHHMenuButton(isActive) {
-    var element = document.getElementById("sMenuButton");
-    if (element !== null) {
-        if (getStoredValue(HHStoredVarPrefixKey + SK.master) === "false") {
-            element.style["background-color"] = "red";
-            element.style["background-image"] = "none";
-        }
-        else if (isActive) {
-            element.style["background-color"] = "green";
-            element.style["background-image"] = "none";
-        }
-        else {
-            element.style.removeProperty('background-color');
-            element.style.removeProperty('background-image');
-        }
-    }
-}
+LeagueHelper.SORT_DISPLAYED = LEAGUE_SORT.DISPLAYED;
+LeagueHelper.SORT_POWER = LEAGUE_SORT.POWER;
+LeagueHelper.SORT_POWERCALC = LEAGUE_SORT.POWERCALC;
 
 ;// ./src/Module/Market.ts
 // Market.ts -- Auto-buys items from the in-game market using soft currency.
@@ -35617,7 +35655,7 @@ class Bundles {
                     $("#common-popups .close_cross").trigger('click'); // Close popup
                     setStoredValue(HHStoredVarPrefixKey + TK.autoLoop, "true");
                     logHHAuto("setting autoloop to true");
-                    setTimeout(autoLoop, Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
+                    kickAutoLoop(Number(getStoredValue(HHStoredVarPrefixKey + TK.autoLoopTimeMili)));
                 }
                 function parseAndCollectFreeBundles() {
                     const freeBundlesNumber = $(freeButtonBundleQuery).length;
@@ -38366,12 +38404,19 @@ function getBlockScheduler() {
 
 
 
+
 // Inject the autoLoop kick into Pachinko so it can restart the loop after a
 // run without a static Module->Service import (lesson zirkulaerer-import-tdz-crash).
 setPachinkoAutoLoopKick(autoLoop);
 // Same pattern for HeroHelper's page-not-ready retry (ARCH-001: the static
 // HeroHelper -> AutoLoop import sat in 154 baseline cycles).
 setHeroAutoLoopKick(autoLoop);
+// The shared seam for every module that switches autoLoop off for an action
+// and has to start it again: seven such static Module -> Service/AutoLoop
+// imports sat in 32 of the baseline cycles (measured 84 with them, 52
+// without). Pachinko and HeroHelper keep their own setters above -- they are
+// already wired and tested, and moving them here removes no cycle.
+setAutoLoopKick(autoLoop);
 // And for StorageHelper's settings-reset path (ARCH-001: the static
 // StorageHelper -> StartService import sat in 127 baseline cycles).
 setSetDefaultsRef(StartService_setDefaults);

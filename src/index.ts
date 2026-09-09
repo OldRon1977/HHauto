@@ -19,6 +19,7 @@ import { getBlockScheduler, buildRegistryAndOrder } from "./Service/BlockPipelin
 import { setPipelineRegistryProvider } from "./Service/PipelineOrderService";
 import { setPachinkoAutoLoopKick } from "./Module/Pachinko";
 import { setHeroAutoLoopKick } from "./Helper/HeroHelper";
+import { setAutoLoopKick } from "./Service/AutoLoopKick";
 import { setSetDefaultsRef } from "./Helper/StorageHelper";
 import { setMenuPorts } from "./Helper/menu/MenuPorts";
 import { ConfigHelper } from "./Helper/ConfigHelper";
@@ -129,6 +130,12 @@ setPachinkoAutoLoopKick(autoLoop);
 // Same pattern for HeroHelper's page-not-ready retry (ARCH-001: the static
 // HeroHelper -> AutoLoop import sat in 154 baseline cycles).
 setHeroAutoLoopKick(autoLoop);
+// The shared seam for every module that switches autoLoop off for an action
+// and has to start it again: seven such static Module -> Service/AutoLoop
+// imports sat in 32 of the baseline cycles (measured 84 with them, 52
+// without). Pachinko and HeroHelper keep their own setters above -- they are
+// already wired and tested, and moving them here removes no cycle.
+setAutoLoopKick(autoLoop);
 // And for StorageHelper's settings-reset path (ARCH-001: the static
 // StorageHelper -> StartService import sat in 127 baseline cycles).
 setSetDefaultsRef(setDefaults);
