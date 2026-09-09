@@ -141,12 +141,30 @@ export class QuestHelper {
             rewardConfirm.first().trigger('click');
             return true;
         }
-        var proceedButtonMatch = $("#controls button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])");
+        // `#skip-quest` is not a way forward. The game's own quest.js puts it
+        // inside `#controls` beside the next button, adds it only while the
+        // step reports `skippable`, and removes it again otherwise
+        // (`!this.is_skippable && $("#skip-quest").remove()`). Its click
+        // handler reads `this.skip_cost.hard_currency` and opens
+        // `shared.general.hc_confirm(n, ...)` -- a koban price, behind a
+        // confirmation.
+        //
+        // Two things follow for the selector below. `proceedButtonMatch.attr("id")`
+        // takes the first match, and a world-1 run with this very selector
+        // read `skip-quest` as the type; that falls into the unknown-button
+        // branch, which switches autoQuest off and asks the player to continue
+        // by hand. And `proceedButtonMatch.click()` at the end of this function
+        // triggers every element of the set, so the skip button would be
+        // pressed alongside the real one and leave its koban confirmation
+        // sitting over the quest.
+        const notSkip = ":not(#skip-quest)";
+        const notAdOrHidden = ":not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])";
+        var proceedButtonMatch = $("#controls button" + notAdOrHidden + notSkip);
         if (proceedButtonMatch.length === 0)
         {
             // Choice button 
             logHHAuto("Search for choice buttons");
-            proceedButtonMatch = $(".buttons-container button:not([class*='ad_']):not([style*='display:none']):not([style*='display: none'])").first();
+            proceedButtonMatch = $(".buttons-container button" + notAdOrHidden + notSkip).first();
         }
         if (proceedButtonMatch.length === 0)
         {

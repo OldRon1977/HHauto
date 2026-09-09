@@ -1,6 +1,6 @@
 import { QuestHelper } from '../../src/Module/Quest';
 import { HHStoredVarPrefixKey } from '../../src/config/HHStoredVars';
-import { SK } from '../../src/config/StorageKeys';
+import { SK, TK } from '../../src/config/StorageKeys';
 import { MockHelper } from '../testHelpers/MockHelpers';
 import * as PageHelper from '../../src/Helper/PageHelper';
 import type { KKHero } from '../../src/model/KK/KKHero';
@@ -21,6 +21,101 @@ const LEVEL_UP_POPUP = `
     <button class="blue_button_L">Ok</button>
   </div>
 </div>`;
+
+/**
+ * The skip button as the game builds it. Measured from quest.js on
+ * 2026-09-09: it lives inside `#controls` beside the next button, the game
+ * adds it only while the step reports `skippable` and removes it otherwise,
+ * and its click handler reads `skip_cost.hard_currency` and opens
+ * `hc_confirm`. It is a koban price, never a way forward.
+ */
+const SKIP_BUTTON = `
+  <button id="skip-quest" class="blue_text_button">
+    <div class="skip-quest-label">Skip Quest</div>
+    <div class="energy-cost-container"><div class="hc-cost">30</div></div>
+  </button>`;
+const NEXT_BUTTON = `
+  <button id="free" class="next-button green_text_button">Continue</button>`;
+// The order inside #controls is the game's to choose, and both orders hurt in
+// a different way, so both are covered below.
+const SKIP_FIRST = `<div id="controls">${SKIP_BUTTON}${NEXT_BUTTON}</div>`;
+const SKIP_SECOND = `<div id="controls">${NEXT_BUTTON}${SKIP_BUTTON}</div>`;
+
+describe('QuestHelper.run: the skip button is not a way forward', function () {
+
+    beforeEach(() => {
+        // run() clicks the resume button from a setTimeout, so the clicking
+        // tests below need a clock they can advance.
+        jest.useFakeTimers();
+        MockHelper.mockDomain('www.hentaiheroes.com', '/quest/205');
+        unsafeWindow.shared!.Hero = {
+            infos: {
+                level: 9,
+                questing: { id_world: 2, id_quest: 205, current_url: '/quest/205' },
+            },
+            currencies: { soft_currency: 1000, hard_currency: 750 },
+        } as unknown as KKHero;
+        localStorage.setItem(HHStoredVarPrefixKey + SK.autoQuest, 'true');
+        jest.spyOn(PageHelper, 'getPage').mockReturnValue('quest');
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        jest.runOnlyPendingTimers();
+        jest.useRealTimers();
+        document.body.innerHTML = '';
+        localStorage.clear();
+        sessionStorage.clear();
+        jest.restoreAllMocks();
+    });
+
+    it('reads the real next button when the skip button comes first', function () {
+        document.body.innerHTML = SKIP_FIRST;
+        const proceeded = jest.fn();
+        document.querySelector('#free')!.addEventListener('click', proceeded);
+
+        QuestHelper.run();
+        jest.advanceTimersByTime(5000);
+
+        // attr("id") takes the first match: with the skip button in the set
+        // the type reads "skip-quest", which lands in the unknown branch and
+        // switches autoQuest off instead of proceeding.
+        expect(sessionStorage.getItem(HHStoredVarPrefixKey + TK.questRequirement))
+            .not.toBe('unknownQuestButton');
+        expect(proceeded).toHaveBeenCalled();
+    });
+
+    it('does not press the skip button along with the next one', function () {
+        // The click at the end of run() fires on the whole matched set, so a
+        // skip button standing behind the next one used to be pressed too --
+        // and its handler opens the koban confirmation over the quest.
+        document.body.innerHTML = SKIP_SECOND;
+        const skipped = jest.fn();
+        const proceeded = jest.fn();
+        document.querySelector('#skip-quest')!.addEventListener('click', skipped);
+        document.querySelector('#free')!.addEventListener('click', proceeded);
+
+        QuestHelper.run();
+        jest.advanceTimersByTime(5000);
+
+        expect(proceeded).toHaveBeenCalled();
+        expect(skipped).not.toHaveBeenCalled();
+    });
+
+    it('still finds the next button when no skip button is offered', function () {
+        document.body.innerHTML = `
+          <div id="controls">
+            <button id="free" class="next-button green_text_button">Continue</button>
+          </div>`;
+        const proceeded = jest.fn();
+        document.querySelector('#free')!.addEventListener('click', proceeded);
+
+        QuestHelper.run();
+        jest.advanceTimersByTime(5000);
+
+        expect(proceeded).toHaveBeenCalled();
+    });
+});
 
 describe('QuestHelper.run: popups that block the quest', function () {
 

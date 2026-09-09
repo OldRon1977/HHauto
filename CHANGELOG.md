@@ -7,6 +7,32 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.12.16 - The Skip Quest button is left where it is
+
+`#skip-quest` was the one button type the script could not name. It does not
+appear in this repository's source, and a world-1 run with the selector
+`Quest.ts` uses read it as the button type -- which lands in the unknown-button
+branch, and that branch **switches autoQuest off** and asks the player to carry
+on by hand.
+
+Read out of the game's own `build/quest.js` on 2026-09-09:
+
+- it sits inside `#controls`, beside the next button -- the game's own cleanup
+  selector is `$("#controls a, #controls .grade-controls, #controls .win img,
+  #controls #skip-quest")`;
+- it exists only while the step reports `skippable`, and the game removes it
+  otherwise: `!this.is_skippable && $("#skip-quest").length>0 &&
+  $("#skip-quest").remove()`;
+- its click handler reads `this.skip_cost.hard_currency` and calls
+  `shared.general.hc_confirm(n, ...)` before `hh_ajax({action:
+  "skip_quest_steps"})`. It is a koban price behind a confirmation.
+
+So it is never the way forward, and it costs the script twice. Besides being
+misread as the button type, `proceedButtonMatch.click()` fires on the whole
+matched set -- a skip button standing *behind* the next one was pressed along
+with it, leaving the koban confirmation open over the quest. Both selectors in
+`QuestHelper.run` now exclude it, and both orders are covered by tests.
+
 ### v8.12.15 - One walk through the shop popup at a time
 
 Measured 2026-09-09: the pipeline entered `goAndCollectFreeBundles` three times
