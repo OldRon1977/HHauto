@@ -260,7 +260,13 @@ export class LoveRaidManager {
         return raidsGirls;
     }
     static isEnabled(){
-        return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);// && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
+        // No progress condition here on purpose. A level check against
+        // LEVEL_MIN_POG sat commented out at the end of this line for long
+        // enough that nobody could say whether it was ever meant to run --
+        // so it is not in the FeatureGate table either (ADR-012). Whether
+        // Love Raids have a level threshold at all is unmeasured and written
+        // down as such in docs-internal/adventure-quest-flow.md.
+        return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);
     }
     static isActivated(){
         return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";

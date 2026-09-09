@@ -1,39 +1,17 @@
 // Pantheon.pure.ts -- Pure decision logic for the pantheon auto module.
 //
-// Extracted from Pantheon.isEnabled and Pantheon.isTimeToFight so the
-// boolean cascades can be unit-tested without globals, storage, jQuery,
-// or DOM access. Input = data, output = decision.
+// Extracted from Pantheon.isTimeToFight so the boolean cascade can be
+// unit-tested without globals, storage, jQuery, or DOM access.
+// Input = data, output = decision.
 //
-// The impure adapter Pantheon.isEnabled reads ConfigHelper plus
-// HeroHelper, builds an IsEnabledState, and delegates here. The impure
-// adapter Pantheon.isTimeToFight reads ConfigHelper, storage, the
-// Hero energy global, ParanoiaService, Booster, and DailyGoals; it
+// The impure adapter Pantheon.isTimeToFight reads ConfigHelper, storage,
+// the Hero energy global, ParanoiaService, Booster, and DailyGoals; it
 // then builds a ShouldFightState and delegates here.
-
-export type IsEnabledState = {
-    /**
-     * ConfigHelper.getHHScriptVars("isEnabledPantheon", false) -- the
-     * pantheon module is currently advertised by the game variant.
-     */
-    enabled: boolean;
-    heroLevel: number;
-    /**
-     * ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON") -- the level
-     * gate the game enforces. >= comparison is preserved.
-     */
-    minLevel: number;
-};
-
-/**
- * Reproduce Pantheon.isEnabled bit by bit:
- *
- *   isEnabledPantheon AND heroLevel >= LEVEL_MIN_PANTHEON
- *
- * The level gate is non-strict (>=), matching the original.
- */
-export function decideIsEnabled(state: IsEnabledState): boolean {
-    return state.enabled && state.heroLevel >= state.minLevel;
-}
+//
+// The level gate that used to live here as decideIsEnabled moved into the
+// shared table in Service/FeatureGate.ts -- it was the same "advertised by
+// the game AND level high enough" cascade seven other modules wrote out by
+// hand (ADR-012).
 
 export type ShouldFightState = {
     energy: number;

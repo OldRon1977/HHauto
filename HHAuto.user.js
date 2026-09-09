@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.12.18
+// @version      8.13.0
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -9568,7 +9568,8 @@ var Harem_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _ar
 // the harem page UI interactions.
 //
 // Depends on: HaremGirl.ts (individual girl data)
-// Used by: Module/PlaceOfPower.ts, Module/TeamModule.ts, Module/Troll.ts, Module/harem/HaremGirl.ts u. a.
+// Used by: Service/FeatureGate.ts (the girl count behind every ten-girl
+//   gate), Module/TeamModule.ts, Module/Troll.ts, Service/Pipeline.config.ts u. a.
 //
 
 
@@ -12258,7 +12259,13 @@ class LoveRaidManager {
         return raidsGirls;
     }
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false); // && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
+        // No progress condition here on purpose. A level check against
+        // LEVEL_MIN_POG sat commented out at the end of this line for long
+        // enough that nobody could say whether it was ever meant to run --
+        // so it is not in the FeatureGate table either (ADR-012). Whether
+        // Love Raids have a level threshold at all is unmeasured and written
+        // down as such in docs-internal/adventure-quest-flow.md.
+        return ConfigHelper.getHHScriptVars("isEnabledRaidOfLive", false);
     }
     static isActivated() {
         return LoveRaidManager.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.plusLoveRaid) === "true";
@@ -14318,6 +14325,201 @@ function decideShouldFight(state) {
     return ((timerExpired && energyAboveThreshold && boosterCheck) || paranoiaOverride);
 }
 
+;// ./src/Service/FeatureGate.pure.ts
+// FeatureGate.pure.ts -- Pure decision logic for "has this account unlocked
+// feature X yet".
+//
+// Extracted so the decision can be unit-tested without ConfigHelper, the
+// Hero globals, storage or the DOM. Input = data, output = a verdict.
+// The impure adapter FeatureGate.ts holds the table of requirements, reads
+// the account state and delegates here.
+//
+// Why this exists at all: eight modules answered the same question with
+// eight hand-written conditions, and they drifted. DoublePenetration named
+// "And 10 girls" in a comment and checked only the level; LoveRaidManager
+// carried its level check commented out; the ten-girl condition was written
+// as a literal in two places until v8.12.14 gave it a name. Two of the fixes
+// in the 8.12.9-8.12.18 run were faults in such a condition, not in the
+// feature behind it (ADR-012).
+//
+// Used by: FeatureGate.ts
+/**
+ * A value the account state does not carry is not a low value -- it is no
+ * answer, and a gate must not open on one.
+ *
+ * The game hands these numbers out unevenly: `HeroHelper.getLevel()` reads 0
+ * before any page has been parsed, `Harem.getGirlCount()` returns 0 both for
+ * "no girls" and for "no source on this page", and `id_world` is undefined
+ * off the quest pages. Every one of those becomes 0 here, and 0 fails every
+ * positive requirement. Measured cost of the opposite: with the girl count
+ * read off the harem page it came out 24 on an account owning 9 (v8.12.11),
+ * which would have sent the run onto a page it cannot use.
+ */
+function knownValue(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0;
+}
+/**
+ * Decide one gate.
+ *
+ * The conditions are checked in a fixed order -- game, level, girls, world --
+ * so the verdict names the same obstacle every time for the same state, and
+ * the log line the adapter builds from it does not flicker between two
+ * equally true reasons.
+ *
+ * All comparisons are non-strict (`>=`), matching every condition this
+ * replaced.
+ */
+function decideUnlocked(requirement, state) {
+    if (!requirement.gameHasFeature) {
+        return { unlocked: false, missing: 'game' };
+    }
+    const checks = [
+        ['level', requirement.minLevel, state.heroLevel],
+        ['girls', requirement.minGirls, state.girlCount],
+        ['world', requirement.minWorld, state.world],
+    ];
+    for (const [obstacle, needs, raw] of checks) {
+        if (needs === undefined)
+            continue;
+        const has = knownValue(raw);
+        if (has < needs) {
+            return { unlocked: false, missing: obstacle, needs, has };
+        }
+    }
+    return { unlocked: true };
+}
+
+;// ./src/Service/FeatureGate.ts
+// FeatureGate.ts -- One table of "what an account needs before a feature is
+// usable", and one place that reads the numbers it is decided on.
+//
+// Before this, eight modules each wrote their own condition. They drifted:
+// DoublePenetration named "And 10 girls" in a comment and checked only the
+// level, LoveRaidManager kept its level check commented out, and the
+// ten-girl threshold was a literal in two files. Worse, each condition read
+// its own numbers, and those numbers are the part that goes wrong -- the
+// girl count means something different on every page (v8.12.11) and its
+// cache went stale for a day (v8.12.13/14). Two faults out of nine in that
+// run were in a gate, not in the feature behind it.
+//
+// The decision itself lives in FeatureGate.pure.ts; this file resolves the
+// table against ConfigHelper and reads the account state.
+//
+// Depends on: FeatureGate.pure.ts (the decision), Harem.ts (girl count)
+// Used by: League.ts, Pantheon.ts, PathOfGlory.ts, PathOfValue.ts,
+//   SultryMysteries.ts, DoublePenetration.ts, PlaceOfPower.ts,
+//   PathOfAttraction.ts
+//
+// See docs/decisions/ADR-012-one-table-of-unlock-conditions.md
+
+
+
+
+
+
+/**
+ * Every unlock condition the script knows, in one place.
+ *
+ * Adding a module here is the whole of adding its gate. What is NOT here is
+ * as important: a condition nobody has measured does not get an entry, it
+ * gets a line in docs-internal. See `doublePenetration` below.
+ */
+const GATES = {
+    league: { label: 'Leagues', enabledVar: 'isEnabledLeagues', levelVar: 'LEVEL_MIN_LEAGUE' },
+    pantheon: { label: 'Pantheon', enabledVar: 'isEnabledPantheon', levelVar: 'LEVEL_MIN_PANTHEON' },
+    // No isEnabledX flag has ever existed for Sultry Mysteries.
+    sultryMysteries: { label: 'Sultry Mysteries', levelVar: 'LEVEL_MIN_EVENT_SM' },
+    pathOfGlory: { label: 'Path of Glory', enabledVar: 'isEnabledPoG', levelVar: 'LEVEL_MIN_POG' },
+    pathOfValor: { label: 'Path of Valor', enabledVar: 'isEnabledPoV', levelVar: 'LEVEL_MIN_POV' },
+    // The old comment on DoublePenetration.isEnabled read "And 10 gilrs",
+    // and the code checked only the level. Whether the game really wants ten
+    // girls here is NOT measured -- docs-internal/adventure-quest-flow.md
+    // says so plainly -- so the behaviour stays level-only and the open
+    // question lives in that document rather than in a comment beside a
+    // condition that does not implement it.
+    doublePenetration: { label: 'Double Penetration', enabledVar: 'isEnabledDPEvent', levelVar: 'LEVEL_MIN_EVENT_DP' },
+    // The game states this one on the locked page itself: ten girls and the
+    // world beyond the second. `id_world > 2` is `>= 3`.
+    placeOfPower: { label: 'Place of Power', enabledVar: 'isEnabledPowerPlaces', girlsVar: 'HaremSizeGate', minWorld: 3 },
+    // "You need to be at least on the Second World of your adventure and
+    // have at least 10 girls in your Harem" -- the event page's own text.
+    pathOfAttraction: { label: 'Path of Attraction', girlsVar: 'HaremSizeGate', minWorld: 2 },
+};
+/**
+ * The last verdict reported per feature, so a locked feature says why once
+ * instead of on every pipeline tick. Measured before this existed: one such
+ * line filled 692 of 2532 log lines in a twelve-minute run, 27 percent of
+ * the log (v8.12.12). The memo lives as long as the document; a page load
+ * repeats the line only if the answer has changed since.
+ */
+const lastReported = new Map();
+class FeatureGate {
+    /** The requirement for one feature, resolved against the current game variant. */
+    static requirementFor(name) {
+        const spec = GATES[name];
+        return {
+            gameHasFeature: spec.enabledVar === undefined
+                ? true
+                : ConfigHelper.getHHScriptVars(spec.enabledVar, false) === true,
+            minLevel: spec.levelVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.levelVar)),
+            minGirls: spec.girlsVar === undefined ? undefined : Number(ConfigHelper.getHHScriptVars(spec.girlsVar)),
+            minWorld: spec.minWorld,
+        };
+    }
+    /**
+     * Read only the numbers this requirement is decided on. Reading the girl
+     * count is not free -- it goes through storage and, without a cache, the
+     * page globals -- and a level gate has no use for it.
+     */
+    static accountStateFor(requirement) {
+        return {
+            heroLevel: requirement.minLevel === undefined ? 0 : HeroHelper.getLevel(),
+            girlCount: requirement.minGirls === undefined ? 0 : Harem.getGirlCount(),
+            world: requirement.minWorld === undefined ? 0 : Number(getHHVars('Hero.infos.questing.id_world', false)),
+        };
+    }
+    /** The full verdict, without logging. */
+    static verdict(name) {
+        const requirement = FeatureGate.requirementFor(name);
+        return decideUnlocked(requirement, FeatureGate.accountStateFor(requirement));
+    }
+    /**
+     * The one question every caller asks. Reports a change of answer once,
+     * never a repeat.
+     */
+    static isUnlocked(name) {
+        const verdict = FeatureGate.verdict(name);
+        const signature = verdict.unlocked ? 'open' : `${verdict.missing}:${verdict.has}/${verdict.needs}`;
+        if (lastReported.get(name) !== signature) {
+            lastReported.set(name, signature);
+            if (!verdict.unlocked && verdict.missing !== 'game') {
+                logHHAuto(FeatureGate.describe(name, verdict));
+            }
+        }
+        return verdict.unlocked;
+    }
+    /** The log line for a locked feature, in one wording for all of them. */
+    static describe(name, verdict) {
+        const label = GATES[name].label;
+        switch (verdict.missing) {
+            case 'level':
+                return `${label} is locked: needs level ${verdict.needs}, the hero is ${verdict.has}.`;
+            case 'girls':
+                return `${label} is locked: needs ${verdict.needs} girls, the harem holds ${verdict.has}.`;
+            case 'world':
+                return `${label} is locked: needs world ${verdict.needs}, the adventure is in ${verdict.has}.`;
+            case 'game':
+                return `${label} is not part of this game.`;
+            default:
+                return `${label} is unlocked.`;
+        }
+    }
+    /** Test seam: the memo outlives a document, and a test is not a document. */
+    static forgetReportedState() {
+        lastReported.clear();
+    }
+}
+
 ;// ./src/model/LeagueOpponent.ts
 // Model for a league opponent displayed in the league battle screen.
 // Holds the opponent's ID, nickname, power level, and the pre-computed
@@ -14358,6 +14560,7 @@ var League_awaiter = (undefined && undefined.__awaiter) || function (thisArg, _a
 // Depends on: BDSMHelper and BDSMSimu (win probability), League.pure.ts (parsing)
 // Used by: Module/MonthlyCard.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
 //
+
 
 
 
@@ -14485,7 +14688,7 @@ class LeagueHelper {
         return Number(getHHVars('Hero.energies.challenge.max_regen_amount'));
     }
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledLeagues", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_LEAGUE");
+        return FeatureGate.isUnlocked('league');
     }
     static isAutoLeagueActivated() {
         return getStoredValue(HHStoredVarPrefixKey + SK.autoLeagues) === "true" && LeagueHelper.isEnabled();
@@ -15413,25 +15616,18 @@ class DailyGoalsIcon {
 ;// ./src/Module/Pantheon.pure.ts
 // Pantheon.pure.ts -- Pure decision logic for the pantheon auto module.
 //
-// Extracted from Pantheon.isEnabled and Pantheon.isTimeToFight so the
-// boolean cascades can be unit-tested without globals, storage, jQuery,
-// or DOM access. Input = data, output = decision.
+// Extracted from Pantheon.isTimeToFight so the boolean cascade can be
+// unit-tested without globals, storage, jQuery, or DOM access.
+// Input = data, output = decision.
 //
-// The impure adapter Pantheon.isEnabled reads ConfigHelper plus
-// HeroHelper, builds an IsEnabledState, and delegates here. The impure
-// adapter Pantheon.isTimeToFight reads ConfigHelper, storage, the
-// Hero energy global, ParanoiaService, Booster, and DailyGoals; it
+// The impure adapter Pantheon.isTimeToFight reads ConfigHelper, storage,
+// the Hero energy global, ParanoiaService, Booster, and DailyGoals; it
 // then builds a ShouldFightState and delegates here.
-/**
- * Reproduce Pantheon.isEnabled bit by bit:
- *
- *   isEnabledPantheon AND heroLevel >= LEVEL_MIN_PANTHEON
- *
- * The level gate is non-strict (>=), matching the original.
- */
-function decideIsEnabled(state) {
-    return state.enabled && state.heroLevel >= state.minLevel;
-}
+//
+// The level gate that used to live here as decideIsEnabled moved into the
+// shared table in Service/FeatureGate.ts -- it was the same "advertised by
+// the game AND level high enough" cascade seven other modules wrote out by
+// hand (ADR-012).
 /**
  * Reproduce Pantheon.isTimeToFight bit by bit. Original line:
  *
@@ -15516,11 +15712,7 @@ class Pantheon {
             : {});
     }
     static isEnabled() {
-        return decideIsEnabled({
-            enabled: ConfigHelper.getHHScriptVars("isEnabledPantheon", false),
-            heroLevel: HeroHelper.getLevel(),
-            minLevel: ConfigHelper.getHHScriptVars("LEVEL_MIN_PANTHEON"),
-        });
+        return FeatureGate.isUnlocked('pantheon');
     }
     static isTimeToFight() {
         const threshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoPantheonThreshold)) || 0;
@@ -15660,10 +15852,6 @@ var PlaceOfPower_awaiter = (undefined && undefined.__awaiter) || function (thisA
 
 
 
-
-// Last girl count reported by isEnabled(), so the ten-girl notice is not
-// repeated on every tick. Reset with the document.
-let lastReportedGirlShortfall = null;
 class PlaceOfPower {
     static moduleDisplayPopID() {
         if ($('.HHPopIDs').length > 0) {
@@ -15674,24 +15862,12 @@ class PlaceOfPower {
         });
     }
     static isEnabled() {
+        // Standing on the Place of Power page is not an unlock condition, it
+        // is a "do not strand here" clause: a run that navigated there has
+        // work to finish whatever the gate says.
         const onPowerplacePage = getPage() === ConfigHelper.getHHScriptVars("pagesIDPowerplacemain");
-        const girlCount = Harem.getGirlCount();
-        const gate = ConfigHelper.getHHScriptVars("HaremSizeGate");
-        const enoughGirl = girlCount >= gate;
-        // A harem under ten girls is the ordinary state of a young account,
-        // not an error, and isActivated() asks this on every pipeline tick.
-        // Measured over one 12-minute run: 692 of 2532 log lines were this
-        // one message -- 27 percent of the log, across 24 page loads, drowning
-        // the lines that do report a fault. Say it once per count instead; the
-        // memo lives as long as the document, so a page load repeats it only
-        // when the number has changed.
-        if (!enoughGirl && lastReportedGirlShortfall !== girlCount) {
-            lastReportedGirlShortfall = girlCount;
-            logHHAuto('Place of Power needs ' + gate + ' girls, the harem holds ' + girlCount + '.');
-        }
-        // unlocked and the end of world 2
-        const enoughProgress = getHHVars('Hero.infos.questing.id_world') > 2 && enoughGirl;
-        return ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && (enoughProgress || onPowerplacePage);
+        return FeatureGate.isUnlocked('placeOfPower')
+            || (ConfigHelper.getHHScriptVars("isEnabledPowerPlaces", false) && onPowerplacePage);
     }
     static isActivated() {
         return PlaceOfPower.isEnabled() && getStoredValue(HHStoredVarPrefixKey + SK.autoPowerPlaces) === "true";
@@ -22261,7 +22437,6 @@ var PathOfAttraction_awaiter = (undefined && undefined.__awaiter) || function (t
 
 
 
-
 class PoaReward {
     constructor(tier, type, slot) {
         this.tier = 0;
@@ -22290,9 +22465,7 @@ class PathOfAttraction {
      * dead end.
      */
     static isEnabled() {
-        const enoughGirls = Harem.getGirlCount() >= ConfigHelper.getHHScriptVars("HaremSizeGate");
-        const enoughProgress = Number(getHHVars('Hero.infos.questing.id_world')) >= 2;
-        return enoughGirls && enoughProgress;
+        return FeatureGate.isUnlocked('pathOfAttraction');
     }
     static getRemainingTime() {
         const poATimerRequest = '#events .nc-panel-header .event-timer span[rel=expires]';
@@ -22594,7 +22767,7 @@ class PathOfGlory {
         EventModule.displayGenericRemainingTime("#scriptPogTime", "path-of-glory", "HHAutoPoGTimer", "PoGRemainingTime", HHStoredVarPrefixKey + TK.PoGEndDate);
     }
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledPoG", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POG");
+        return FeatureGate.isUnlocked('pathOfGlory');
     }
     static getRewardButtonToCollect() {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoGCollectablesList);
@@ -22723,7 +22896,7 @@ class PathOfValue {
         EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey + TK.PoVEndDate);
     }
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
+        return FeatureGate.isUnlocked('pathOfValor');
     }
     static getRewardButtonToCollect() {
         const rewardsToCollect = getStoredArray(HHStoredVarPrefixKey + SK.autoPoVCollectablesList);
@@ -27904,7 +28077,11 @@ function autoLoop() {
 
 class DoublePenetration {
     static isEnabled() {
-        return ConfigHelper.getHHScriptVars("isEnabledDPEvent", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_DP"); // And 10 gilrs
+        // The ten-girl condition the old comment here claimed is not
+        // measured; it is written down as an open question in
+        // docs-internal/adventure-quest-flow.md instead of sitting beside a
+        // check that never implemented it. FeatureGate.GATES says the same.
+        return FeatureGate.isUnlocked('doublePenetration');
     }
     static parse(hhEvent, eventList, hhEventData) {
         const eventID = hhEvent.eventId;
@@ -28520,7 +28697,7 @@ function smNextAction(state) {
 const SM_NO_KEYS_RETRY_SECONDS = 3600;
 class SultryMysteries {
     static isEnabled() {
-        return HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_EVENT_SM");
+        return FeatureGate.isUnlocked('sultryMysteries');
     }
     static isAutoOpenEnabled() {
         return getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true" && SultryMysteries.isEnabled();

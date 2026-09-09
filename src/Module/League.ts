@@ -29,6 +29,7 @@ import { autoLoop } from "../Service/AutoLoop";
 import { addNutakuSession, gotoPage, safeReload } from "../Service/PageNavigationService";
 import { ParanoiaService } from "../Service/ParanoiaService";
 import { logHHAuto } from "../Utils/LogUtils";
+import { FeatureGate } from "../Service/FeatureGate";
 import { getHHAjax, isJSON } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
@@ -172,7 +173,7 @@ export class LeagueHelper {
     }
 
     static isEnabled(){
-        return ConfigHelper.getHHScriptVars("isEnabledLeagues", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_LEAGUE");
+        return FeatureGate.isUnlocked('league');
     }
 
     static isAutoLeagueActivated(){

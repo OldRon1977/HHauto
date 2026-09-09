@@ -1,21 +1,21 @@
 import {
-    IsEnabledState,
     ShouldFightState,
-    decideIsEnabled,
     decideShouldFight,
 } from "../../src/Module/Pantheon.pure";
 
 /**
  * Pure-function tests for the pantheon decisions.
  *
- * decideIsEnabled covers the gate "module advertised by the game variant
- * AND hero level meets the minimum". decideShouldFight covers the full
+ * decideShouldFight covers the full
  * fight-now boolean cascade with energy/threshold/runThreshold,
  * humanLikeRun, the pantheon timer, paranoia spending, the booster
  * requirement, and the daily-goal override.
  *
+ * The level gate that used to live here moved to FeatureGate.pure with the
+ * seven other modules that wrote out the same cascade -- its cases are in
+ * spec/Service/FeatureGate.pure.spec.ts now (ADR-012).
+ *
  * Threshold contract preserved from the original code:
- *   - level gate is non-strict (>=)
  *   - energy gate is strict (>) on both branches
  *   - runThreshold is consulted as `runThreshold - 1` (off-by-one is
  *     intentional in the original isTimeToFight)
@@ -24,33 +24,6 @@ import {
  *     (needBoosterToFight AND haveBoosterEquipped) OR !needBoosterToFight
  *     OR isDailyGoal
  */
-describe("decideIsEnabled", () => {
-    const buildState = (
-        overrides: Partial<IsEnabledState> = {},
-    ): IsEnabledState => ({
-        enabled: false,
-        heroLevel: 0,
-        minLevel: 16,
-        ...overrides,
-    });
-
-    it("returns false when the module is disabled regardless of level", () => {
-        expect(decideIsEnabled(buildState({ enabled: false, heroLevel: 500 }))).toBe(false);
-    });
-
-    it("returns false when the hero level is below the minimum", () => {
-        expect(decideIsEnabled(buildState({ enabled: true, heroLevel: 5 }))).toBe(false);
-    });
-
-    it("returns true when the hero level equals the minimum (non-strict >=)", () => {
-        expect(decideIsEnabled(buildState({ enabled: true, heroLevel: 16 }))).toBe(true);
-    });
-
-    it("returns true when the hero level is above the minimum", () => {
-        expect(decideIsEnabled(buildState({ enabled: true, heroLevel: 500 }))).toBe(true);
-    });
-});
-
 describe("decideShouldFight", () => {
     const buildState = (
         overrides: Partial<ShouldFightState> = {},

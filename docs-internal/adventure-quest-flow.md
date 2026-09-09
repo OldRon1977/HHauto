@@ -237,14 +237,21 @@ der Event-Seite.
 
 ## Zwei Nebenbeobachtungen am Code
 
-- `Events/LoveRaidManager.ts:263`: die Levelpruefung ist auskommentiert
-  (`// && HeroHelper.getLevel() >= LEVEL_MIN_POG`). Love Raids haben damit
-  heute keine Levelschwelle. Ob das Absicht ist, steht nicht dabei.
-- `Events/DoublePenetration.ts:30`: der Kommentar nennt "And 10 girls", die
-  Bedingung wird aber nicht geprueft -- nur das Level. Dieselbe Bauart, die
-  bei Place of Power zur toten Seite gefuehrt hat, dort allerdings mit
-  vorhandener Pruefung. **Nicht gemessen**, was die DP-Seite auf einem Konto
-  unter zehn Maedchen ausliefert.
+- **Love Raids ohne Levelschwelle.** An `LoveRaidManager.isEnabled` stand
+  eine auskommentierte Levelpruefung gegen `LEVEL_MIN_POG`. Sie ist entfernt,
+  das Verhalten bleibt: Love Raids haben heute keine Levelschwelle, und in der
+  Tabelle aus ADR-012 stehen sie deshalb nicht. **Zu messen bleibt**, ob das
+  Spiel eine Schwelle kennt -- ob die auskommentierte Zeile also je richtig
+  war.
+- **Double Penetration und die zehn Maedchen.** Der Kommentar an
+  `DoublePenetration.isEnabled` nannte "And 10 girls", geprueft wurde nur das
+  Level. Seit ADR-012 steht die Bedingung in der Tabelle in
+  `Service/FeatureGate.ts` -- und zwar **ohne** Maedchenbedingung, weil sie
+  ungemessen ist. Ein Test haelt das fest, damit sie niemand aus dem alten
+  Kommentar heraus nachtraegt. **Zu messen bleibt**, was die DP-Seite auf
+  einem Konto unter zehn Maedchen ausliefert; erst dann gehoert die Zeile in
+  die Tabelle. Dieselbe Bauart hat bei Place of Power zur toten Seite
+  gefuehrt, dort allerdings mit vorhandener Pruefung.
 
 ## Verweise
 

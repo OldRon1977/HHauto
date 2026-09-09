@@ -10,7 +10,6 @@
 //          (the collect block)
 //
 import { ConfigHelper } from "../../Helper/ConfigHelper";
-import { HeroHelper } from "../../Helper/HeroHelper";
 import { getHHVars } from "../../Helper/HHHelper";
 import { getPage } from "../../Helper/PageHelper";
 import { RewardHelper } from "../../Helper/RewardHelper";
@@ -19,6 +18,7 @@ import { TimeHelper, convertTimeToInt, getLimitTimeBeforeEnd, randomInterval } f
 import { checkTimer, getSecondsLeft, setTimer } from "../../Helper/TimerHelper";
 import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
+import { FeatureGate } from "../../Service/FeatureGate";
 import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
@@ -40,7 +40,7 @@ export class PathOfValue {
         EventModule.displayGenericRemainingTime("#scriptPovTime", "path-of-valor", "HHAutoPoVTimer", "PoVRemainingTime", HHStoredVarPrefixKey+TK.PoVEndDate);
     }
     static isEnabled(){
-        return ConfigHelper.getHHScriptVars("isEnabledPoV", false) && HeroHelper.getLevel() >= ConfigHelper.getHHScriptVars("LEVEL_MIN_POV");
+        return FeatureGate.isUnlocked('pathOfValor');
     }
     static getRewardButtonToCollect(): HTMLElement[] {
         const rewardsToCollect = getStoredArray<string>(HHStoredVarPrefixKey + SK.autoPoVCollectablesList);

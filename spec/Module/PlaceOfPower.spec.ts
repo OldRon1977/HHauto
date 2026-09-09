@@ -3,7 +3,10 @@ import { setStoredValue, getStoredJSON } from "../../src/Helper/StorageHelper";
 import { HHStoredVarPrefixKey } from "../../src/config/HHStoredVars";
 import { TK } from "../../src/config/StorageKeys";
 import { Harem } from "../../src/Module/harem/Harem";
-import * as LogUtils from "../../src/Utils/LogUtils";
+import { FeatureGate } from "../../src/Service/FeatureGate";
+import { ConfigHelper } from "../../src/Helper/ConfigHelper";
+import * as PageHelper from "../../src/Helper/PageHelper";
+import { MockHelper } from "../testHelpers/MockHelpers";
 
 describe("PlaceOfPower", function () {
     afterEach(() => {
@@ -11,50 +14,36 @@ describe("PlaceOfPower", function () {
         sessionStorage.clear();
     });
 
-    // isActivated() calls isEnabled() on every pipeline tick. Measured over
-    // one 12-minute run, the ten-girl notice filled 692 of 2532 log lines --
-    // 27 percent of the log, across 24 page loads.
-    describe("the ten-girl notice does not repeat on every tick", function () {
-        // The memo lives at module scope and is not reset between tests, so
-        // each case below uses a count the ones before it did not.
-        let logged: string[];
-
+    // What is left of PlaceOfPower.isEnabled once the unlock condition moved
+    // into the shared table (ADR-012): the clause that keeps a run which is
+    // already standing on the Place of Power page from being sent away
+    // mid-work. The condition itself, and the once-per-change notice that
+    // used to live here, are covered in spec/Service/FeatureGate.spec.ts.
+    describe("standing on the page is not an unlock condition", function () {
         beforeEach(() => {
-            logged = [];
-            jest.spyOn(LogUtils, 'logHHAuto').mockImplementation((...args: unknown[]) => {
-                logged.push(String(args[0]));
-            });
+            MockHelper.mockDomain("www.hentaiheroes.com", "/pop.html");
+            FeatureGate.forgetReportedState();
+            jest.spyOn(Harem, "getGirlCount").mockReturnValue(3);
         });
 
-        afterEach(() => { jest.restoreAllMocks(); });
-
-        it("says it once for a given count, however often it is asked", function () {
-            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(9);
-
-            PlaceOfPower.isEnabled();
-            PlaceOfPower.isEnabled();
-            PlaceOfPower.isEnabled();
-
-            const notices = logged.filter(l => l.includes('needs 10 girls'));
-            expect(notices).toHaveLength(1);
-            expect(notices[0]).toContain('the harem holds 9');
+        afterEach(() => {
+            jest.restoreAllMocks();
+            FeatureGate.forgetReportedState();
+            document.body.innerHTML = "";
         });
 
-        it("says it again once the count has moved", function () {
-            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(7);
-            PlaceOfPower.isEnabled();
-            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(8);
-            PlaceOfPower.isEnabled();
+        it("stays enabled on the Place of Power page although the gate is shut", function () {
+            jest.spyOn(PageHelper, "getPage")
+                .mockReturnValue(ConfigHelper.getHHScriptVars("pagesIDPowerplacemain"));
 
-            expect(logged.filter(l => l.includes('needs 10 girls'))).toHaveLength(2);
+            expect(FeatureGate.isUnlocked("placeOfPower")).toBe(false);
+            expect(PlaceOfPower.isEnabled()).toBe(true);
         });
 
-        it("says nothing once the harem is big enough", function () {
-            jest.spyOn(Harem, 'getGirlCount').mockReturnValue(10);
+        it("is disabled anywhere else while the gate is shut", function () {
+            jest.spyOn(PageHelper, "getPage").mockReturnValue("home");
 
-            PlaceOfPower.isEnabled();
-
-            expect(logged.filter(l => l.includes('needs 10 girls'))).toHaveLength(0);
+            expect(PlaceOfPower.isEnabled()).toBe(false);
         });
     });
 

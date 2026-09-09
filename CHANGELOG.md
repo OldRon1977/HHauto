@@ -7,6 +7,52 @@ All notable changes to HHauto are documented here. Format loosely follows
 This file replaces the in-README "Latest Updates" section as of v7.35.52.
 Older entries below were migrated 1:1 from `README.md`.
 
+### v8.13.0 - One table of unlock conditions
+
+Eight modules answered the same question -- *has this account unlocked the
+feature at all?* -- with eight hand-written conditions, and they had drifted.
+`DoublePenetration.isEnabled` carried the comment `// And 10 gilrs` beside a
+check that only looked at the level. `LoveRaidManager` kept its level check
+commented out. The ten-girl threshold was a literal in two files until
+v8.12.14 gave it a name.
+
+The heavier part is that each condition read its own numbers, and the numbers
+are what goes wrong. Two of the nine fixes in the 8.12.9-8.12.18 run were
+faults in a gate rather than in the feature behind it: v8.12.11, where the
+girl count came out 24 on an account owning 9, and v8.12.13/14, where the same
+count sat at 3 for a day while the page in front of it listed 13.
+
+`Service/FeatureGate.ts` now holds one table of what each feature needs, and
+`FeatureGate.pure.ts` decides it. Three rules the table carries:
+
+- **A value that is no answer is not a low answer.** `0`, `NaN`, `undefined`,
+  a negative number -- all become 0, and 0 opens no gate. The game hands these
+  out unevenly: `getLevel()` is 0 before any page is parsed, `getGirlCount()`
+  is 0 for "no source on this page" as well as for "no girls", and `id_world`
+  is missing off the quest pages.
+- **Read only what the condition needs.** A level gate does not fetch the girl
+  count, which costs storage and, without a cache, the page globals.
+- **A locked feature says why once**, naming the requirement and the value it
+  saw -- not per tick, where one such line was 692 of 2532 log lines
+  (v8.12.12).
+
+Behaviour is unchanged except for the log: seven features that used to be
+locked silently now report their obstacle once per change of answer, and a
+feature this game variant does not have reports nothing at all.
+
+Deliberately *not* in the table: the ten-girl condition
+`DoublePenetration`'s old comment claimed. Nobody has measured it, so it stays
+an open question in `docs-internal/adventure-quest-flow.md`, and a test holds
+the absence in place so it is not added from the comment alone.
+
+Rejected along the way, with the reasoning in the ADR: a global lock that
+would disable the script below a level. Checked against the nine fixes above,
+it would have hidden one, *is* the subject of another, and would have masked a
+third without fixing it -- while six were level-independent. The clearest case
+is v8.12.18: level 52, thirteen girls, and still a three-girl team.
+
+See `docs/decisions/ADR-012-one-table-of-unlock-conditions.md`.
+
 ### v8.12.18 - A team of fewer than seven girls is a team
 
 `TeamModule.getSelectedGirls()` and `getSelectedGirlsId()` both answered `[]`
