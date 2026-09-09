@@ -141,7 +141,7 @@ export function installAjaxTracker(): boolean {
             (this as any).__hhUrl = url;
             (this as any).__hhIsAjaxPost =
                 (this as any).__hhMethod === 'POST' && isAjaxPostUrl(url);
-        } catch (e) { /* ignore */ }
+        } catch { /* ignore */ }
         return origOpen.apply(this, [method, url, ...rest] as any);
     };
 
@@ -164,7 +164,7 @@ export function installAjaxTracker(): boolean {
                 if (isAjaxPost && this.status === 403 && onAjaxForbidden) {
                     onAjaxForbidden();
                 }
-            } catch (e) { /* ignore */ }
+            } catch { /* ignore */ }
             decrement();
         }, { once: true });
 
@@ -172,10 +172,10 @@ export function installAjaxTracker(): boolean {
     };
 
     restoreOpen = (): void => {
-        try { xhrCtor.prototype.open = origOpen; } catch (e) { /* ignore */ }
+        try { xhrCtor.prototype.open = origOpen; } catch { /* ignore */ }
     };
     restoreSend = (): void => {
-        try { xhrCtor.prototype.send = origSend; } catch (e) { /* ignore */ }
+        try { xhrCtor.prototype.send = origSend; } catch { /* ignore */ }
     };
     installed = true;
     logHHAuto('[AjaxTracker] installed');
@@ -321,10 +321,10 @@ function sleep(ms: number): Promise<void> {
 /** Reset internal state and remove the prototype hook. Test-only. */
 export function _resetAjaxTrackerForTests(): void {
     if (restoreSend) {
-        try { restoreSend(); } catch (e) { /* ignore */ }
+        try { restoreSend(); } catch { /* ignore */ }
     }
     if (restoreOpen) {
-        try { restoreOpen(); } catch (e) { /* ignore */ }
+        try { restoreOpen(); } catch { /* ignore */ }
     }
     restoreSend = null;
     restoreOpen = null;

@@ -5,13 +5,13 @@
 // implements the "wait for contest" feature that pauses other automation
 // when a contest requiring specific actions is active.
 //
-// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts, Service/StartService.ts
 //
 import { ConfigHelper } from "../Helper/ConfigHelper";
 import { getPage } from "../Helper/PageHelper";
 import { getStoredValue } from "../Helper/StorageHelper";
 import { TimeHelper, convertTimeToInt } from "../Helper/TimeHelper";
-import { checkTimer, checkTimerMustExist, getTimeLeft, setTimer } from "../Helper/TimerHelper";
+import { checkTimerMustExist, getTimeLeft, setTimer } from "../Helper/TimerHelper";
 import { pInfoRow } from "../Utils/PInfoRow";
 import { gotoPage } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
@@ -104,7 +104,7 @@ export class Contest {
                 } else {
                     setTimer('nextContestCollectTime', nextContestTime + safeTime);
                 }
-            } catch (err) {
+            } catch {
                 logHHAuto('ERROR getting next contest timers, ignore...');
                 setTimer('contestRemainingTime', 3600);
                 setTimer('nextContestTime', 4000);

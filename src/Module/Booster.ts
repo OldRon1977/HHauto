@@ -6,7 +6,7 @@ import { randomInterval } from "../Helper/TimeHelper";
 import { checkTimer, setTimer } from "../Helper/TimerHelper";
 import { gotoPage, safeReload } from "../Service/PageNavigationService";
 import { logHHAuto } from "../Utils/LogUtils";
-import { isJSON, onAjaxResponse } from "../Utils/Utils";
+import { onAjaxResponse } from "../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../config/HHStoredVars";
 import { SK, TK } from "../config/StorageKeys";
 import { EventGirl } from '../model/EventGirl';
@@ -47,7 +47,7 @@ export class Booster {
             return Promise.resolve();
         }
         logHHAuto('[SW-DEBUG] waitForBattleResponse: waiting for AJAX response (10s timeout)...');
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, _reject) => {
             Booster._battleResponseResolve = resolve;
             setTimeout(() => {
                 if (Booster._battleResponseResolve === resolve) {
@@ -86,7 +86,7 @@ export class Booster {
 
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses () {
-        onAjaxResponse(/(action|class)/, (response: any, opt: any, xhr: any, evt: any) => {
+        onAjaxResponse(/(action|class)/, (response: any, opt: any, _xhr: any, _evt: any) => {
                 (async function() {
                     const boosterStatus = Booster.getBoosterFromStorage();
 

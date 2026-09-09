@@ -13,7 +13,7 @@ import { convertTimeToInt, randomInterval } from "../../Helper/TimeHelper";
 import { setTimer } from "../../Helper/TimerHelper";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
-import { SK, TK } from "../../config/StorageKeys";
+import { SK } from "../../config/StorageKeys";
 import { EventGirl } from "../../model/EventGirl";
 import { HHEvent, HHEventData, HHEventList } from "../../model/HHEvent";
 import { KKEventGirl } from "../../model/KK/KKEventGirl";

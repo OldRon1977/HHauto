@@ -15,9 +15,7 @@ import { RewardHelper } from "../../Helper/RewardHelper";
 import { getStoredValue, getStoredArray, setStoredValue } from "../../Helper/StorageHelper";
 import { randomInterval, convertTimeToInt, getLimitTimeBeforeEnd, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer, checkTimer } from "../../Helper/TimerHelper";
-import { gotoPage } from "../../Service/PageNavigationService";
 import { logHHAuto } from "../../Utils/LogUtils";
-import { isJSON } from "../../Utils/Utils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
 import { SK, TK } from "../../config/StorageKeys";
 import { queryStringGetParam } from "../../Helper/UrlHelper";
@@ -39,7 +37,7 @@ export class LivelyScene {
         return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
     }
 
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, _hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         const remainingTime = LivelyScene.readRemainingTime();
         // An event that ends before its own next_refresh is never looked at

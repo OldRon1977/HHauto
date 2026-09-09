@@ -218,7 +218,7 @@ function bindOnce(): void {
         if (!tooltipsEnabled) return;
         try {
             show(event.currentTarget as HTMLElement);
-        } catch (err) {
+        } catch {
             logHHAuto('Error in tooltip construction');
         }
     });

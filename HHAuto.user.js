@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaremHeroes Automatic++
 // @namespace    https://github.com/OldRon1977/HHauto
-// @version      8.13.2
+// @version      8.13.3
 // @description  Open the menu in HaremHeroes(topright) to toggle AutoControlls. Supports AutoSalary, AutoContest, AutoMission, AutoQuest, AutoTrollBattle, AutoArenaBattle and AutoPachinko(Free), AutoLeagues, AutoChampions and AutoStatUpgrades. Messages are printed in local console.
 // @author       JD and Dorten(a bit), Roukys, cossname, YotoTheOne, CLSchwab, deuxge, react31, PrimusVox, OldRon1977, tsokh, UncleBob800
 // @match        http*://*.haremheroes.com/*
@@ -2673,7 +2673,7 @@ class TimeHelper {
         var n = 0;
         return [days, hours, minutes, seconds]
             .map(v => v < 10 ? "0" + v : v)
-            .filter((v, i) => { if (v !== "00") {
+            .filter((v, _i) => { if (v !== "00") {
             n++;
             return true;
         } return n > 0; })
@@ -7081,7 +7081,7 @@ function installAjaxTracker() {
             this.__hhIsAjaxPost =
                 this.__hhMethod === 'POST' && isAjaxPostUrl(url);
         }
-        catch (e) { /* ignore */ }
+        catch ( /* ignore */_a) { /* ignore */ }
         return origOpen.apply(this, [method, url, ...rest]);
     };
     xhrCtor.prototype.send = function (...args) {
@@ -7106,7 +7106,7 @@ function installAjaxTracker() {
                     onAjaxForbidden();
                 }
             }
-            catch (e) { /* ignore */ }
+            catch ( /* ignore */_a) { /* ignore */ }
             decrement();
         }, { once: true });
         return origSend.apply(this, args);
@@ -7115,13 +7115,13 @@ function installAjaxTracker() {
         try {
             xhrCtor.prototype.open = origOpen;
         }
-        catch (e) { /* ignore */ }
+        catch ( /* ignore */_a) { /* ignore */ }
     };
     restoreSend = () => {
         try {
             xhrCtor.prototype.send = origSend;
         }
-        catch (e) { /* ignore */ }
+        catch ( /* ignore */_a) { /* ignore */ }
     };
     installed = true;
     logHHAuto('[AjaxTracker] installed');
@@ -7257,13 +7257,13 @@ function _resetAjaxTrackerForTests() {
         try {
             restoreSend();
         }
-        catch (e) { /* ignore */ }
+        catch ( /* ignore */_a) { /* ignore */ }
     }
     if (restoreOpen) {
         try {
             restoreOpen();
         }
-        catch (e) { /* ignore */ }
+        catch ( /* ignore */_b) { /* ignore */ }
     }
     restoreSend = null;
     restoreOpen = null;
@@ -7597,7 +7597,7 @@ function safeJsonParse(json, defaultValue, reviver) {
     try {
         return reviver ? JSON.parse(json, reviver) : JSON.parse(json);
     }
-    catch (e) {
+    catch (_a) {
         return defaultValue;
     }
 }
@@ -7902,7 +7902,6 @@ function doStatUpgrades() {
     var Hero = getHero();
     var stats = [getHHVars('Hero.infos.carac1'), getHHVars('Hero.infos.carac2'), getHHVars('Hero.infos.carac3')];
     var money = HeroHelper.getMoney();
-    var count = 0;
     var M = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoStats));
     var MainStat = stats[HeroHelper.getClass() - 1];
     var Limit = HeroHelper.getLevel() * 30; //HeroHelper.getLevel()*19+Math.min(HeroHelper.getLevel(),25)*21;
@@ -7931,7 +7930,6 @@ function doStatUpgrades() {
                     return;
                 }
                 lastStatAttempt = { carac: carac, value: stats[carac - 1], ts: nowTs };
-                count++;
                 logHHAuto('money: ' + money + ' stat' + carac + ': ' + stats[carac - 1] + ' [+' + mult + '] price: ' + price);
                 money -= price;
                 var params = {
@@ -10203,7 +10201,7 @@ class AmourAgent {
             "www.amouragent.com": { name: "AA_prod", id: "hh_amour" }
         };
     }
-    static getTrolls(languageCode) {
+    static getTrolls(_languageCode) {
         return ['Latest',
             'Frank',
             'Adriana',
@@ -10268,7 +10266,7 @@ class ComixHarem {
             [['629181593', '686202051', '107847932'], [0], [0]],
         ];
     }
-    static updateFeatures(envVariables) {
+    static updateFeatures(_envVariables) {
     }
 }
 ComixHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
@@ -10335,7 +10333,7 @@ class GayHarem {
             [['167231135', '184523411', '549524850', '560979916', '612527302', '784911160'], [0], [0]],
         ];
     }
-    static updateFeatures(envVariables) {
+    static updateFeatures(_envVariables) {
     }
 }
 GayHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Bella
@@ -10353,7 +10351,7 @@ class GayPornstarHarem {
             "nutaku.gaypornstarharem.com": { name: "NGPSH_prod", id: "hh_stargay", baseImgPath: "https://images.hh-content.com/stargay" }
         };
     }
-    static getTrolls(languageCode) {
+    static getTrolls(_languageCode) {
         return ['Latest',
             'Tristan Hunter',
             'Jimmy Durano',
@@ -10379,7 +10377,7 @@ class GayPornstarHarem {
             [['316283043', '856464976', '619419056'], [0], [0]],
         ];
     }
-    static updateFeatures(envVariables) {
+    static updateFeatures(_envVariables) {
     }
 }
 GayPornstarHarem.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // Cuervos & Sandor
@@ -10460,7 +10458,7 @@ class HentaiHeroes {
         }
         return trollList;
     }
-    static getSideTrolls(languageCode) {
+    static getSideTrolls(_languageCode) {
         const trollList = {
             20: "Arthur",
             21: "Venam Kharney"
@@ -10499,7 +10497,7 @@ class HentaiHeroes {
             21: [['124967437', '755350195', '855205805'], [0], [0]]
         };
     }
-    static updateFeatures(envVariables) {
+    static updateFeatures(_envVariables) {
     }
 }
 HentaiHeroes.spreadsheet = 'https://docs.google.com/spreadsheets/d/1kVZxcZZMa82lS4k-IpxTTTELAeaipjR_v1twlqW5vbI'; // zoopokemon
@@ -10518,7 +10516,7 @@ class MangaRpg {
             "nutaku.mangarpg.com": { name: "NMRPG_prod", id: "hh_mangarpg", baseImgPath: "https://mh.hh-content.com" }
         };
     }
-    static getTrolls(languageCode) {
+    static getTrolls(_languageCode) {
         return ['Latest',
             'Jeshtar',
             'EMPTY',
@@ -10622,7 +10620,7 @@ class TransPornstarHarem {
             "nutaku.transpornstarharem.com": { name: "NTPH_prod", id: "hh_startrans", baseImgPath: "https://images.hh-content.com/startrans" }
         };
     }
-    static getTrolls(languageCode) {
+    static getTrolls(_languageCode) {
         return ['Latest',
             'Ariel Demure',
             'Emma Rose',
@@ -11234,7 +11232,7 @@ var BossBang_awaiter = (undefined && undefined.__awaiter) || function (thisArg, 
 
 
 class BossBang {
-    static parse(hhEvent, eventList, hhEventData) {
+    static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
         const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
@@ -11751,7 +11749,7 @@ class DoublePenetration {
         // check that never implemented it. FeatureGate.GATES says the same.
         return FeatureGate.isUnlocked('doublePenetration');
     }
-    static parse(hhEvent, eventList, hhEventData) {
+    static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
         const timeLeft = $('#contains_all #events .nc-panel .timer span[rel="expires"]').text();
@@ -12089,7 +12087,7 @@ class LivelyScene {
     static isEnabled() {
         return ConfigHelper.getHHScriptVars("isEnabledLivelySceneEvent", false); // And 10 girls 3*
     }
-    static parse(hhEvent, eventList, hhEventData) {
+    static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         const remainingTime = LivelyScene.readRemainingTime();
         // An event that ends before its own next_refresh is never looked at
@@ -12427,7 +12425,7 @@ class EventGirl {
                         this.troll_id = undefined;
                     }
                 }
-                catch (error) {
+                catch (_a) {
                     try {
                         const parsedURL = new URL(girlData.source.anchor_win_from[0].url, window.location.origin);
                         this.troll_id = Number(queryStringGetParam(parsedURL.search, 'id_opponent'));
@@ -12436,7 +12434,7 @@ class EventGirl {
                             this.troll_id = undefined;
                         }
                     }
-                    catch (error) {
+                    catch (_b) {
                         logHHAuto(`Can't get troll from girl ${this.name} (${this.girl_id})`);
                     }
                 }
@@ -12449,7 +12447,7 @@ class EventGirl {
                         this.champ_id = undefined;
                     }
                 }
-                catch (error) {
+                catch (_c) {
                     try {
                         this.champ_id = Number(girlData.source.anchor_win_from[0].url.split('/champions/')[1]);
                         if (girlData.source.anchor_win_from.disabled) {
@@ -12457,7 +12455,7 @@ class EventGirl {
                             this.champ_id = undefined;
                         }
                     }
-                    catch (error) {
+                    catch (_d) {
                         logHHAuto(`Can't get champion from girl ${this.name} (${this.girl_id})`);
                     }
                 }
@@ -12495,7 +12493,7 @@ class EventGirl {
 
 
 class MythicEvent {
-    static parse(hhEvent, eventList, hhEventData, eventsGirlz, eventChamps) {
+    static parse(hhEvent, eventList, hhEventData, eventsGirlz, _eventChamps) {
         const eventID = hhEvent.eventId;
         const Priority = (getStoredValue(HHStoredVarPrefixKey + SK.eventTrollOrder) || '').split(";");
         const refreshTimer = randomInterval(3600, 4000);
@@ -12652,7 +12650,7 @@ class PathOfAttraction {
             }
         }
     }
-    static parse(hhEvent, eventList, hhEventData) {
+    static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         PathOfAttraction.getRemainingTime();
         const poAEnd = getSecondsLeft("PoARemainingTime");
@@ -12856,7 +12854,6 @@ class PathOfAttraction {
         if (getPage() === ConfigHelper.getHHScriptVars("pagesIDEvent") && window.location.search.includes("tab=" + ConfigHelper.getHHScriptVars('poaEventIDReg')) && getStoredValue(HHStoredVarPrefixKey + SK.AllMaskRewards) === "true") {
             let arrayz;
             let nbReward;
-            let modified = false;
             arrayz = $('.nc-poa-reward-pair:not([style*="display:none"]):not([style*="display: none"])');
             if ($("#nc-poa-tape-blocker").length) {
                 nbReward = 1;
@@ -12871,7 +12868,6 @@ class PathOfAttraction {
                     if (obj.length >= nbReward) {
                         $("#events .nc-panel-body .scroll-area")[0].scrollLeft -= arrayz[i2].offsetWidth;
                         arrayz[i2].style.display = "none";
-                        modified = true;
                     }
                 }
             }
@@ -13128,7 +13124,7 @@ class SultryMysteries {
     static isAutoOpenEnabled() {
         return getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true" && SultryMysteries.isEnabled();
     }
-    static parse(hhEvent, eventList, hhEventData) {
+    static parse(hhEvent, eventList, _hhEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
         // Grid tab (shown by default on /event.html) doesn't render this
@@ -14872,7 +14868,7 @@ class RewardHelper {
             }
         }
         const observerPass = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
+            mutations.forEach(function (_mutation) {
                 const querySkip = '#contains_all #new_battle .new-battle-buttons-container #new-battle-skip-btn.blue_text_button[style]';
                 if ($(querySkip).length === 0
                     || $(querySkip)[0].style.display !== "block") {
@@ -14939,7 +14935,7 @@ class Booster {
             return Promise.resolve();
         }
         logHHAuto('[SW-DEBUG] waitForBattleResponse: waiting for AJAX response (10s timeout)...');
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve, _reject) => {
             Booster._battleResponseResolve = resolve;
             setTimeout(() => {
                 if (Booster._battleResponseResolve === resolve) {
@@ -14976,7 +14972,7 @@ class Booster {
     }
     //all following lines credit:Tom208 OCD script
     static collectBoostersFromAjaxResponses() {
-        onAjaxResponse(/(action|class)/, (response, opt, xhr, evt) => {
+        onAjaxResponse(/(action|class)/, (response, opt, _xhr, _evt) => {
             (function () {
                 return Booster_awaiter(this, void 0, void 0, function* () {
                     var _a, _b, _c;
@@ -18229,7 +18225,7 @@ class Club {
 // implements the "wait for contest" feature that pauses other automation
 // when a contest requiring specific actions is active.
 //
-// Used by: Helper/TimeHelper.ts, Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts u. a.
+// Used by: Service/AutoLoop.ts, Service/AutoLoopPageHandlers.ts, Service/InfoService.ts, Service/Pipeline.config.ts, Service/StartService.ts
 //
 
 
@@ -18324,7 +18320,7 @@ class Contest {
                     setTimer('nextContestCollectTime', nextContestTime + safeTime);
                 }
             }
-            catch (err) {
+            catch (_a) {
                 logHHAuto('ERROR getting next contest timers, ignore...');
                 setTimer('contestRemainingTime', 3600);
                 setTimer('nextContestTime', 4000);
@@ -20198,13 +20194,11 @@ class PlaceOfPower {
                 var currTime;
                 var minTime = -1;
                 var maxTime = -1;
-                var e;
                 clearTimer('minPowerPlacesTime');
                 clearTimer('maxPowerPlacesTime');
                 const popListRemaining = $('#pop_info .pop_thumb .pop_thumb_remaining > span');
                 popListRemaining.each(function () {
                     const $elem = $(this);
-                    const elementText = $elem.text();
                     currIndex = $elem.parents('.pop_thumb_expanded').attr('pop_id');
                     if (filteredPops.includes(currIndex) && !popUnableToStart.includes(currIndex)) {
                         currTime = convertTimeToInt($elem.text());
@@ -20418,7 +20412,6 @@ class PlaceOfPower {
         return powerText;
     }
     static selectGirls() {
-        const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
         // How much power is needed
         const powerNeeded = PlaceOfPower.getPowerNeeded();
         // Goal is to select girls which add to required power without going over
@@ -21344,19 +21337,19 @@ class LabyrinthRelic {
                     this.girlName = safeJsonParse(tooltipData, { name: '' }).name;
                 }
             }
-            catch (err) {
+            catch (_a) {
             }
         }
         try {
             this.benefit = Number((slot.find('.relic-description').text().match(/\d+.\d/) || slot.find('.relic-description').text().match(/\d+/))[0]);
         }
-        catch (err) {
+        catch (_b) {
         }
         try {
             const classes = slot.find('.team-relic-icon').children().first().attr('class');
             this.element = classes.substring(0, classes.indexOf('_element_relic_icn'));
         }
-        catch (err) {
+        catch (_c) {
         }
     }
 }
@@ -21432,7 +21425,7 @@ class RelicManager {
                 // (issue #1716). A real DOM click on the marked card's button does.
                 claimBtn[0].click();
             }
-            catch (err) {
+            catch (_b) {
                 logHHAuto('Error selecting relics, select first no girl relic');
                 (_a = $('#labyrinth_reward_popup #reward_holder .relic-container:not(.large-card) .relic-card-buttons .claim-relic-btn').get(0)) === null || _a === void 0 ? void 0 : _a.click();
             }
@@ -22266,7 +22259,7 @@ class Spreadsheet {
             return;
         const page = getPage();
         if (page === ConfigHelper.getHHScriptVars("pagesIDHome")) {
-            onAjaxResponse(/action=get_girls_blessings/i, (response, opt, xhr, evt) => {
+            onAjaxResponse(/action=get_girls_blessings/i, (_response, _opt, _xhr, _evt) => {
                 setTimeout(function () {
                     return Spreadsheet_awaiter(this, void 0, void 0, function* () {
                         if (!Spreadsheet.canRun())
@@ -23260,7 +23253,6 @@ class Champion {
             };
             let currentGirlOrder = [...champTeam.map((g) => g.id_girl)]; // To be stored as string
             logHHAuto('Ordering champion team', currentGirlOrder);
-            let oneGirlSwitched = false;
             const getGirlId = (position) => {
                 const girlBox = $('.girl-box__draggable:has(".hhgirlOrder.best:contains(\'' + position + '\')")');
                 if (girlBox.length > 0) {
@@ -23289,7 +23281,6 @@ class Champion {
                         [targettedTeam[i - 1], targettedTeam[oldGirlIndex]] = [targettedTeam[oldGirlIndex], targettedTeam[i - 1]];
                         logHHAuto('Ordering champion targettedTeam', targettedTeam);
                         if (yield switchGirls(targettedTeam)) {
-                            oneGirlSwitched = true;
                             // Update current girls order after success switch
                             currentGirlOrder = targettedTeam;
                         }
@@ -29178,7 +29169,7 @@ class TeamModule {
             var params1 = {
                 action: "girl_equipment_unequip_all_girls"
             };
-            getHHAjax()(params1, function (data) {
+            getHHAjax()(params1, function (_data) {
                 $("#UnequipAll").removeAttr('disabled');
                 // change referer
                 window.history.replaceState(null, '', addNutakuSession(currentPage));
@@ -31296,7 +31287,6 @@ class ParanoiaService {
             var b = S1[0][0][0].split('-');
             toNextSwitch = randomInterval(Number(b[0]), Number(b[1]));
         }
-        var ND = new Date().getTime() + toNextSwitch * 1000;
         var message = period + (burst ? " rest" : " burst");
         logHHAuto("PARANOIA: " + message);
         setStoredValue(HHStoredVarPrefixKey + TK.pinfo, message);
@@ -31566,7 +31556,9 @@ class LeagueHelper {
             const opponentButtons = $('a.go_pre_battle.blue_button_L');
             const opponentSim = $("div.matchRatingNew img.powerLevelScouter");
             const allOpponentsSimDisplayed = (opponentSim.length >= opponentButtons.length);
-            const Hero = getHero();
+            // getHero() stays for its side effect: it kicks the auto-loop when
+            // shared.Hero is missing, i.e. when the page is not ready yet.
+            getHero();
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
             const opponents_list = getHHVars("opponents_list");
             if (!opponents_list) {
@@ -31716,7 +31708,7 @@ class LeagueHelper {
                                 opponents[i].style.display = "none";
                         }
                     }
-                    catch (e) { }
+                    catch (_a) { }
                 }
                 //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
@@ -31738,7 +31730,7 @@ class LeagueHelper {
                                 opponents[i].style.display = "";
                         }
                     }
-                    catch (e) { }
+                    catch (_a) { }
                 }
                 //($('#leagues .league_content .league_table') as any).getNiceScroll().resize()
             }
@@ -31833,7 +31825,7 @@ class LeagueHelper {
                     try {
                         leagueOpponent = opponentsPowerList.opponentsList.find((el) => el.opponent_id == opponent_id);
                     }
-                    catch (error) {
+                    catch (_a) {
                         logHHAuto("Error when getting oppo " + opponent_id + " from storage");
                     }
                 }
@@ -31846,7 +31838,7 @@ class LeagueHelper {
                             simu = LeagueHelper.getSimPowerOpponent(heroFighter, opponents);
                             expectedPoints = Number(NumberHelper.nRounding(simu.expectedValue, 1, -1));
                         }
-                        catch (error) {
+                        catch (_b) {
                             logHHAuto("Error in simu for oppo " + opponent_id + ", falback to not use powercalc");
                             canUseSimu = false;
                         }
@@ -31903,7 +31895,6 @@ class LeagueHelper {
         try {
             // Confirm if on correct screen.
             const currentPower = LeagueHelper.getEnergy();
-            const maxLeagueRegen = LeagueHelper.getEnergyMax();
             const leagueThreshold = Number(getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesThreshold));
             const debugEnabled = getStoredValue(HHStoredVarPrefixKey + TK.Debug) === 'true';
             let leagueScoreSecurityThreshold = getStoredValue(HHStoredVarPrefixKey + SK.autoLeaguesSecurityThreshold);
@@ -32199,9 +32190,6 @@ class Market {
     static doShopping() {
         try {
             const Hero = getHero();
-            var MS = 'carac' + HeroHelper.getClass();
-            var SS1 = 'carac' + (HeroHelper.getClass() % 3 + 1);
-            var SS2 = 'carac' + ((HeroHelper.getClass() + 1) % 3 + 1);
             var money = HeroHelper.getMoney();
             var kobans = HeroHelper.getKoban();
             if (getStoredValue(HHStoredVarPrefixKey + TK.storeContents) === undefined) {
@@ -32584,7 +32572,7 @@ class Missions {
                         setTimer('nextMissionTime', Number(convertTimeToInt(time)) + randomInterval(1, 5));
                 }
             }
-            catch ({ errName, message }) {
+            catch ({ message }) {
                 logHHAuto(`ERROR during mission run: ${message}, retry in 10min`);
                 setTimer('nextMissionTime', randomInterval(10 * 60, 12 * 60));
             }
@@ -32592,7 +32580,7 @@ class Missions {
             return false;
         }
     }
-    static parseMissions(canCollect) {
+    static parseMissions(_canCollect) {
         var missionOngoing = null;
         var missions = [];
         var lastMissionData = {};
@@ -33992,7 +33980,7 @@ function bindOnce() {
         try {
             show(event.currentTarget);
         }
-        catch (err) {
+        catch (_a) {
             logHHAuto('Error in tooltip construction');
         }
     });
@@ -34132,7 +34120,7 @@ function recordForbidden(storage = defaultStorage(), now = Date.now, atStorage =
         if (!Number.isFinite(prevAt) || prevAt < 0)
             prevAt = 0;
     }
-    catch (e) {
+    catch (_a) {
         // proceed with zeros; we still want to record this Forbidden
     }
     const t = now();
@@ -34141,7 +34129,7 @@ function recordForbidden(storage = defaultStorage(), now = Date.now, atStorage =
         storage.setItem(FORBIDDEN_COUNT_KEY, String(count));
         (atStorage !== null && atStorage !== void 0 ? atStorage : storage).setItem(FORBIDDEN_LAST_AT_KEY, String(t));
     }
-    catch (e) {
+    catch (_b) {
         logHHAuto('[ForbiddenBackoff] storage write failed, Forbidden not persisted');
         return -1;
     }
@@ -34162,7 +34150,7 @@ function defaultStorage() {
         if (typeof sessionStorage !== 'undefined')
             return sessionStorage;
     }
-    catch (e) { /* sessionStorage may throw in restricted contexts */ }
+    catch ( /* sessionStorage may throw in restricted contexts */_a) { /* sessionStorage may throw in restricted contexts */ }
     return null;
 }
 
@@ -34286,7 +34274,6 @@ function nextHeroGiveupReloadCount(prevReloadCount) {
 
 
 var started = false;
-var debugMenuID;
 var heroRetryTimer = null;
 var heroRetryCount = 0;
 var heroRetryFirstAt = 0;
@@ -34396,7 +34383,9 @@ function StartService_setDefaults(force = false) {
     }
 }
 function hardened_start() {
-    debugMenuID = GM_registerMenuCommand(getTextForUI("saveDebug", "elementText"), saveHHDebugLog);
+    // The handle GM_registerMenuCommand returns is only good for
+    // GM_unregisterMenuCommand, and nothing here unregisters it.
+    GM_registerMenuCommand(getTextForUI("saveDebug", "elementText"), saveHHDebugLog);
     // Install the AJAX request counter as early as possible so any later
     // page-changing module call can wait for in-flight game POSTs to
     // finish (prevents NS_BINDING_ABORTED -> Forbidden race, issue #1598).
@@ -34410,9 +34399,9 @@ function hardened_start() {
         setOnAjaxForbidden(() => { try {
             recordForbidden();
         }
-        catch (e) { } });
+        catch (_a) { } });
     }
-    catch (e) { /* tracker is best-effort */ }
+    catch ( /* tracker is best-effort */_a) { /* tracker is best-effort */ }
     if (unsafeWindow.jQuery == undefined) {
         console.log("HHAUTO WARNING: No jQuery found.");
         try {
@@ -34435,14 +34424,14 @@ function hardened_start() {
                     if (!Number.isFinite(prevAt) || prevAt < 0)
                         prevAt = 0;
                 }
-                catch (e) { /* sessionStorage unavailable */ }
+                catch ( /* sessionStorage unavailable */_b) { /* sessionStorage unavailable */ }
                 const now = Date.now();
                 const count = nextStreakCount(prevCount, prevAt, now);
                 try {
                     sessionStorage.setItem(FORBIDDEN_COUNT_KEY, String(count));
                     localStorage.setItem(FORBIDDEN_LAST_AT_KEY, String(now));
                 }
-                catch (e) { }
+                catch (_c) { }
                 const time = nextForbiddenDelaySeconds(count);
                 logHHAuto('HHAUTO WARNING: "Forbidden" detected (#' + count + '), reloading the page in ' + time + ' seconds');
                 // C1: safeReload combines setTimeout + waitForAjaxIdle + location.reload
@@ -34451,7 +34440,7 @@ function hardened_start() {
                 safeReload(time * 1000);
             }
         }
-        catch (error) { }
+        catch (_d) { }
         return;
     }
     if (!started) {
@@ -34494,13 +34483,13 @@ function start() {
             try {
                 prevReloads = sanitizeHeroGiveupReloadCount(sessionStorage.getItem(heroGiveupReloadKey()));
             }
-            catch (e) { /* sessionStorage unavailable */ }
+            catch ( /* sessionStorage unavailable */_c) { /* sessionStorage unavailable */ }
             if (shouldReloadAfterHeroGiveup(prevReloads)) {
                 const nextReloads = nextHeroGiveupReloadCount(prevReloads);
                 try {
                     sessionStorage.setItem(heroGiveupReloadKey(), String(nextReloads));
                 }
-                catch (e) { /* sessionStorage unavailable */ }
+                catch ( /* sessionStorage unavailable */_d) { /* sessionStorage unavailable */ }
                 logHHAuto('Hero object not available after ' + HERO_MAX_RETRIES + ' retries. Auto-reloading (attempt ' + nextReloads + '/' + (/* inlined export .HERO_GIVEUP_MAX_RELOADS */3) + ', page=' + location.pathname + ', elapsed=' + elapsed + 'ms).');
                 safeReload();
             }
@@ -34536,7 +34525,7 @@ function start() {
     try {
         sessionStorage.removeItem(heroGiveupReloadKey());
     }
-    catch (e) { /* sessionStorage unavailable */ }
+    catch ( /* sessionStorage unavailable */_e) { /* sessionStorage unavailable */ }
     if ($("a[rel='phoenix_member_login']").length > 0) {
         logHHAuto('Not logged in, please login first!');
         return;
@@ -34740,7 +34729,6 @@ function start() {
         });
         $(document).on('change', "#timerResetSelector", function () {
             const timerSelector = document.getElementById("timerResetSelector");
-            const timerLeftTime = document.getElementById("timerLeftTime");
             if (timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetNoTimer", "elementText") && timerSelector.options[timerSelector.selectedIndex].text !== getTextForUI("timerResetSelector", "elementText")) {
                 $("#timerLeftTime").text(getTimeLeft(timerSelector.options[timerSelector.selectedIndex].text));
             }
@@ -34851,7 +34839,7 @@ function start() {
             logHHAuto('Cold start detected (last activity > ' + Math.round(COLD_START_THRESHOLD_MS / 1000) + 's ago), delaying first autoLoop by ' + initialDelayMs + 'ms');
         }
     }
-    catch (e) { /* fall back to normal delay */ }
+    catch ( /* fall back to normal delay */_f) { /* fall back to normal delay */ }
     setTimeout(autoLoop, initialDelayMs);
     // Manual survey button
     $("#settingsSurvey").on("click", function () {
@@ -35711,7 +35699,7 @@ class Bundles {
                 setTimeout(switchToBundleTabs, randomInterval(1400, 1800));
                 return true;
             }
-            catch ({ errName, message }) {
+            catch ({ message }) {
                 collectionStartedAt = 0;
                 logHHAuto(`ERROR during free bundles run: ${message}, retry in 1h`);
                 setTimer('nextFreeBundlesCollectTime', randomInterval(3600, 4000));

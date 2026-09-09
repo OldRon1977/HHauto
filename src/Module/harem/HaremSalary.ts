@@ -14,7 +14,7 @@ import { randomInterval, TimeHelper } from "../../Helper/TimeHelper";
 import { setTimer } from "../../Helper/TimerHelper";
 import { logHHAuto } from "../../Utils/LogUtils";
 import { HHStoredVarPrefixKey } from "../../config/HHStoredVars";
-import { SK, TK } from "../../config/StorageKeys";
+import { SK } from "../../config/StorageKeys";
 
 export class HaremSalary {
     static getSalaryButton() {

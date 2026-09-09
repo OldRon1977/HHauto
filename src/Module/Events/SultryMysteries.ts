@@ -52,7 +52,7 @@ export class SultryMysteries {
         return getStoredValue(HHStoredVarPrefixKey + SK.sultryMysteriesAutoOpen) === "true" && SultryMysteries.isEnabled();
     }
 
-    static parse(hhEvent: HHEvent, eventList: HHEventList, hhEventData: HHEventData) {
+    static parse(hhEvent: HHEvent, eventList: HHEventList, _hhEventData: HHEventData) {
         const eventID = hhEvent.eventId;
         const refreshTimer = randomInterval(3600, 4000);
 
